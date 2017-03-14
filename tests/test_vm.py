@@ -1,61 +1,9 @@
-import pytest
-
 from eth_utils import (
     to_canonical_address,
     encode_hex,
     decode_hex,
 )
 
-
-FIXTURE = {
-    "callcreates" : [
-    ],
-    "env" : {
-        "currentCoinbase" : "2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-        "currentDifficulty" : "0x0100",
-        "currentGasLimit" : "0x0f4240",
-        "currentNumber" : "0x00",
-        "currentTimestamp" : "0x01"
-    },
-    "exec" : {
-        "address" : "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6",
-        "caller" : "cd1722f2947def4cf144679da39c4c32bdc35681",
-        "code" : "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055",
-        "data" : "0x",
-        "gas" : "0x0186a0",
-        "gasPrice" : "0x5af3107a4000",
-        "origin" : "cd1722f2947def4cf144679da39c4c32bdc35681",
-        "value" : "0x0de0b6b3a7640000"
-    },
-    "gas" : "0x013874",
-    "logs" : [
-    ],
-    "out" : "0x",
-    "post" : {
-        "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6" : {
-            "balance" : "0x0de0b6b3a7640000",
-            "code" : "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055",
-            "nonce" : "0x00",
-            "storage" : {
-                "0x00" : "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
-            }
-        }
-    },
-    "pre" : {
-        "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6" : {
-            "balance" : "0x0de0b6b3a7640000",
-            "code" : "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055",
-            "nonce" : "0x00",
-            "storage" : {
-            }
-        }
-    }
-}
-
-
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
 from evm.storage.memory import (
     MemoryStorage,
 )
@@ -65,12 +13,17 @@ from evm.vm import (
     execute_vm,
 )
 
+from evm.utils.numeric import (
+    big_endian_to_int,
+)
 
-def test_it():
+
+def test_vm_using_fixture(fixture):
     evm = EVM(MemoryStorage())
 
-    for account_as_hex, account_data in FIXTURE['pre'].items():
+    for account_as_hex, account_data in fixture['pre'].items():
         account = to_canonical_address(account_as_hex)
+
         for slot_as_hex, value_as_hex in account_data['storage'].items():
             slot = int(slot_as_hex, 16)
             value = decode_hex(value)
@@ -85,7 +38,7 @@ def test_it():
         evm.storage.set_code(account, code)
         evm.storage.set_balance(account, balance)
 
-    execute_params = FIXTURE['exec']
+    execute_params = fixture['exec']
 
     message = Message(
         origin=to_canonical_address(execute_params['origin']),
@@ -98,17 +51,18 @@ def test_it():
     )
     result_evm, result = execute_vm(evm, message)
 
-    assert result.state.logs == FIXTURE['logs']
+    assert result.state.logs == fixture['logs']
 
-    expected_output = decode_hex(FIXTURE['out'])
+    expected_output = decode_hex(fixture['out'])
     assert result.output == expected_output
 
-    expected_gas_remaining = int(FIXTURE['gas'], 16)
+    expected_gas_remaining = int(fixture['gas'], 16)
     actual_gas_remaining = result.message.gas - result.gas_used + result.state.total_gas_refund
     assert actual_gas_remaining == expected_gas_remaining
 
-    for account_as_hex, account_data in FIXTURE['post'].items():
+    for account_as_hex, account_data in fixture['post'].items():
         account = to_canonical_address(account_as_hex)
+
         for slot_as_hex, expected_storage_value_as_hex in account_data['storage'].items():
             slot = int(slot_as_hex, 16)
             expected_storage_value = decode_hex(expected_storage_value_as_hex)

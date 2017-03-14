@@ -38,3 +38,11 @@ def integer_to_32bytes(value):
     value_as_bytes = int_to_big_endian(value)
     padded_value_as_bytes = pad_left(value_as_bytes, 32, b'\x00')
     return padded_value_as_bytes
+
+
+def ceil32(value):
+    remainder = value % 32
+    if remainder == 0:
+        return value
+    else:
+        return value + 32 - remainder
