@@ -1,11 +1,9 @@
 import pytest
 
-from evm.utils.address import (
-    canonicalize_address,
-)
-from evm.utils.encoding import (
-    decode_hex,
+from eth_utils import (
+    to_canonical_address,
     encode_hex,
+    decode_hex,
 )
 
 
@@ -55,43 +53,66 @@ FIXTURE = {
 }
 
 
-from evm import (
-    EVM,
+from evm.utils.numeric import (
+    big_endian_to_int,
+)
+from evm.storage.memory import (
+    MemoryStorage,
+)
+from evm.vm.evm import (
     execute_vm,
 )
 
 
 def test_it():
-    evm = EVM()
+    storage = MemoryStorage()
 
-    for hex_account, account_data in FIXTURE['pre'].items():
-        account = canonicalize_address(hex_account)
-        for slot, value in account_data['storage'].items():
-            evm.set_storage(account, slot, decode_hex(value))
-        evm.set_nonce(account, decode_hex(account_data['nonce']))
-        evm.set_code(account, decode_hex(account_data['code']))
-        evm.set_balance(account, decode_hex(account_data['balance']))
+    for account_as_hex, account_data in FIXTURE['pre'].items():
+        account = to_canonical_address(account_as_hex)
+        for slot_as_hex, value_as_hex in account_data['storage'].items():
+            slot = int(slot_as_hex, 16)
+            value = decode_hex(value)
+
+            storage.set_storage(account, slot, value)
+
+        nonce = int(account_data['nonce'], 16)
+        code = decode_hex(account_data['code'])
+        balance = int(account_data['balance'], 16)
+
+        storage.set_nonce(account, nonce)
+        storage.set_code(account, code)
+        storage.set_balance(account, balance)
 
     execute_params = FIXTURE['exec']
 
-    result_evm = execute_vm(
-        evm,
-        origin=canonicalize_address(execute_params['origin']),
-        account=canonicalize_address(execute_params['address']),
-        sender=canonicalize_address(execute_params['caller']),
+    result_storage = execute_vm(
+        storage,
+        origin=to_canonical_address(execute_params['origin']),
+        account=to_canonical_address(execute_params['address']),
+        sender=to_canonical_address(execute_params['caller']),
         value=int(execute_params['value'], 16),
         data=decode_hex(execute_params['data']),
         gas=int(execute_params['gas'], 16),
         gas_price=int(execute_params['gasPrice'], 16),
     )
 
-    for account_hex, account_data in FIXTURE['post'].items():
-        account = canonicalize_address(account)
-        for slot, expected_storage_value in account_data['storage'].items():
-            actual_storage_value = encode_hex(
-                result_evm.get_storage(account, decode_hex(slot))
-            )
+    for account_as_hex, account_data in FIXTURE['post'].items():
+        account = to_canonical_address(account_as_hex)
+        for slot_as_hex, expected_storage_value_as_hex in account_data['storage'].items():
+            slot = int(slot_as_hex, 16)
+            expected_storage_value = decode_hex(expected_storage_value_as_hex)
+            actual_storage_value = result_storage.get_storage(account, slot)
+
             assert actual_storage_value == expected_storage_value
-        assert result_evm.get_nonce(account) == decode_hex(account_data['nonce'])
-        assert result_evm.get_code(account) == decode_hex(account_data['code'])
-        assert result_evm.get_balance(account) == decode_hex(account_data['balance'])
+
+        expected_nonce = int(account_data['nonce'], 16)
+        expected_code = decode_hex(account_data['code'])
+        expected_balance = int(account_data['balance'], 16)
+
+        actual_nonce = result_storage.get_nonce(account)
+        actual_code = result_storage.get_code(account)
+        actual_balance = result_storage.get_balance(account)
+
+        assert actual_nonce == expected_nonce
+        assert actual_code == expected_code
+        assert actual_balance == expected_balance

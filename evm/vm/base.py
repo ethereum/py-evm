@@ -1,0 +1,2 @@
+class BaseVM(object):
+    pass

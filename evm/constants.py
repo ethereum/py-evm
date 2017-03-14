@@ -1,0 +1,2 @@
+UINT_256_MAX = 2**256 - 1
+EMPTY_WORD = b'\x00' * 32
