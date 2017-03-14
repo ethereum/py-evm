@@ -1,3 +1,8 @@
+import pytest
+
+import json
+import os
+
 from eth_utils import (
     to_canonical_address,
     encode_hex,
@@ -18,8 +23,34 @@ from evm.utils.numeric import (
 )
 
 
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+
+
+ARITHMETIC_FIXTURES_PATH = os.path.join(
+    ROOT_PROJECT_DIR,
+    'fixtures',
+    'VMTests',
+    'vmArithmeticTest.json',
+)
+
+
+with open(ARITHMETIC_FIXTURES_PATH) as arithmetic_fixtures_file:
+    RAW_ARITHMETIC_FIXTURES = json.load(arithmetic_fixtures_file)
+
+
+ARITHMETIC_FIXTURES = tuple(
+    RAW_ARITHMETIC_FIXTURES[key]
+    for key in sorted(RAW_ARITHMETIC_FIXTURES.keys())
+)
+
+
+@pytest.mark.parametrize(
+    'fixture', ARITHMETIC_FIXTURES,
+)
 def test_vm_using_fixture(fixture):
     evm = EVM(MemoryStorage())
+
+    assert fixture['callcreates'] == []
 
     for account_as_hex, account_data in fixture['pre'].items():
         account = to_canonical_address(account_as_hex)
