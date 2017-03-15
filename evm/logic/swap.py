@@ -14,7 +14,7 @@ logger = logging.getLogger('evm.logic.swap')
 
 def swap_XX(message, storage, state, position):
     """
-    Addition
+    Stack item swapping
     """
     state.stack.swap(position)
     logger.info('SWAP%s')

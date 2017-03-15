@@ -1,5 +1,6 @@
 import pytest
 
+import itertools
 import json
 import os
 
@@ -11,6 +12,9 @@ from eth_utils import (
 
 from evm.storage.memory import (
     MemoryStorage,
+)
+from evm.exceptions import (
+    EVMError,
 )
 from evm.vm import (
     Message,
@@ -26,32 +30,50 @@ from evm.utils.numeric import (
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
-ARITHMETIC_FIXTURES_PATH = os.path.join(
-    ROOT_PROJECT_DIR,
-    'fixtures',
-    'VMTests',
+VM_TEST_FIXTURE_FILENAMES = (
     'vmArithmeticTest.json',
+    'vmBitwiseLogicOperationTest.json',
+)
+
+FIXTURES_PATHS = tuple(
+    (
+        filename,
+        os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests', filename),
+    ) for filename in VM_TEST_FIXTURE_FILENAMES
 )
 
 
-with open(ARITHMETIC_FIXTURES_PATH) as arithmetic_fixtures_file:
-    RAW_ARITHMETIC_FIXTURES = json.load(arithmetic_fixtures_file)
-
-
-ARITHMETIC_FIXTURES = tuple(
-    RAW_ARITHMETIC_FIXTURES[key]
-    for key in sorted(RAW_ARITHMETIC_FIXTURES.keys())
+RAW_FIXTURES = tuple(
+    (
+        fixture_filename,
+        json.load(open(fixture_path))
+    ) for fixture_filename, fixture_path in FIXTURES_PATHS
 )
 
 
-@pytest.mark.parametrize(
-    'fixture', ARITHMETIC_FIXTURES,
+SUCCESS_FIXTURES = tuple(
+    (
+        "{0}:{1}".format(fixture_filename, key),
+        fixtures[key],
+    )
+    for fixture_filename, fixtures in RAW_FIXTURES
+    for key in sorted(fixtures.keys())
+    if 'post' in fixtures[key]
 )
-def test_vm_using_fixture(fixture):
-    evm = EVM(MemoryStorage())
 
-    assert fixture['callcreates'] == []
 
+FAILURE_FIXTURES = tuple(
+    (
+        "{0}:{1}".format(fixture_filename, key),
+        fixtures[key],
+    )
+    for fixture_filename, fixtures in RAW_FIXTURES
+    for key in sorted(fixtures.keys())
+    if 'post' not in fixtures[key]
+)
+
+
+def setup_storage(fixture, storage):
     for account_as_hex, account_data in fixture['pre'].items():
         account = to_canonical_address(account_as_hex)
 
@@ -59,15 +81,27 @@ def test_vm_using_fixture(fixture):
             slot = int(slot_as_hex, 16)
             value = decode_hex(value)
 
-            evm.storage.set_storage(account, slot, value)
+            storage.set_storage(account, slot, value)
 
         nonce = int(account_data['nonce'], 16)
         code = decode_hex(account_data['code'])
         balance = int(account_data['balance'], 16)
 
-        evm.storage.set_nonce(account, nonce)
-        evm.storage.set_code(account, code)
-        evm.storage.set_balance(account, balance)
+        storage.set_nonce(account, nonce)
+        storage.set_code(account, code)
+        storage.set_balance(account, balance)
+    return storage
+
+
+@pytest.mark.parametrize(
+    'fixture_name,fixture', SUCCESS_FIXTURES,
+)
+def test_vm_success_using_fixture(fixture_name, fixture):
+    evm = EVM(MemoryStorage())
+
+    assert fixture.get('callcreates', []) == []
+
+    setup_storage(fixture, evm.storage)
 
     execute_params = fixture['exec']
 
@@ -112,3 +146,29 @@ def test_vm_using_fixture(fixture):
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
         assert actual_balance == expected_balance
+
+
+@pytest.mark.parametrize(
+    'fixture_name,fixture', FAILURE_FIXTURES,
+)
+def test_vm_failure_using_fixture(fixture_name, fixture):
+    evm = EVM(MemoryStorage())
+
+    assert fixture.get('callcreates', []) == []
+
+    setup_storage(fixture, evm.storage)
+
+    execute_params = fixture['exec']
+
+    message = Message(
+        origin=to_canonical_address(execute_params['origin']),
+        account=to_canonical_address(execute_params['address']),
+        sender=to_canonical_address(execute_params['caller']),
+        value=int(execute_params['value'], 16),
+        data=decode_hex(execute_params['data']),
+        gas=int(execute_params['gas'], 16),
+        gas_price=int(execute_params['gasPrice'], 16),
+    )
+
+    with pytest.raises(EVMError):
+        execute_vm(evm, message)

@@ -15,8 +15,11 @@ from evm.constants import (
     NULL_BYTE,
 )
 from evm.exceptions import (
+    EVMError,
     EmptyStream,
     OutOfGas,
+    InsufficientStack,
+    FullStack,
 )
 from evm.validation import (
     validate_canonical_address,
@@ -90,19 +93,28 @@ class Stack(object):
     def __len__(self):
         return len(self.values)
 
-    def push(self, item):
-        validate_is_bytes(item)
-        validate_lte(len(item), maximum=32)
-        self.values.append(item)
+    def push(self, value):
+        if len(self.values) + 1 > 1024:
+            raise FullStack('Stack limit reached')
+        validate_is_bytes(value)
+        validate_lte(len(value), maximum=32)
+        logger.info('STACK:PUSHING: %s', value)
+        self.values.append(value)
 
     def pop(self):
         if not self.values:
-            raise ValueError("Attempt to pop from empty stack")
-        return self.values.pop()
+            raise InsufficientStack('Insufficient stack items')
+        value = self.values.pop()
+        logger.info('STACK:POPPING: %s', value)
+        return value
 
     def swap(self, position):
         idx = -1 * position
         self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
+
+    def dup(self, position):
+        idx = -1 * position
+        self.push(self.values[idx])
 
 
 class Message(object):
@@ -172,7 +184,9 @@ class State(object):
     memory = None
     stack = None
     pc = None
+
     output = b''
+    error = None
 
     code = None
 
@@ -237,7 +251,9 @@ class State(object):
 
     def refund_gas(self, amount):
         validate_uint256(amount)
+        before_value = self.total_gas_refund
         self.gas_refund_ledger.append(amount)
+        self.logger.info('GAS REFUND: %s - %s -> %s', before_value, amount, self.total_gas_refund)
 
     def extend_memory(self, start_position, size):
         prev_cost = self.memory.cost
@@ -257,6 +273,9 @@ def execute_vm(evm, message, state=None):
         state = State(code, start_gas=message.gas)
 
     while True:
+        if state.is_out_of_gas:
+            raise OutOfGas("Ran out of gas during execution")
+
         try:
             opcode_as_bytes = state.code.read1()
         except EmptyStream:
@@ -266,9 +285,6 @@ def execute_vm(evm, message, state=None):
         opcode_fn = OPCODE_LOOKUP[opcode]
 
         opcode_fn(message=message, state=state, storage=evm.storage)
-
-        if state.is_out_of_gas:
-            raise OutOfGas("Ran out of gas during execution")
 
     return evm, state
 

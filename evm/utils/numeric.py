@@ -1,6 +1,10 @@
 import sys
 import math
 
+from toolz import (
+    partial,
+)
+
 from evm.constants import (
     UINT_255_MAX,
     UINT_256_CEILING,
@@ -45,12 +49,16 @@ def integer_to_32bytes(value):
     return padded_value_as_bytes
 
 
-def ceil32(value):
-    remainder = value % 32
+def ceilXX(value, ceiling):
+    remainder = value % ceiling
     if remainder == 0:
         return value
     else:
-        return value + 32 - remainder
+        return value + ceiling - remainder
+
+
+ceil32 = partial(ceilXX, ceiling=32)
+ceil8 = partial(ceilXX, ceiling=8)
 
 
 def unsigned_to_signed(value):

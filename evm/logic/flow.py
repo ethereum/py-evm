@@ -1,3 +1,5 @@
+import logging
+
 from evm.constants import (
     EMPTY_WORD,
 )
@@ -11,6 +13,9 @@ from evm.utils.numeric import (
 )
 
 
+logger = logging.getLogger('evm.logic.flow')
+
+
 def return_op(message, storage, state):
     start_position_as_bytes = state.stack.pop()
     size_as_bytes = state.stack.pop()
@@ -22,3 +27,5 @@ def return_op(message, storage, state):
 
     output = state.memory.read(start_position, size)
     state.output = output
+
+    logger.info('RETURN: (%s:%s) -> %s', start_position, start_position + size, output)

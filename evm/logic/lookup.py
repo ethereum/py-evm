@@ -3,9 +3,12 @@ from evm import opcodes
 from . import (
     arithmetic,
     comparison,
+    duplication,
+    environment,
     flow,
     memory,
     push,
+    stack,
     storage,
     swap,
 )
@@ -30,7 +33,7 @@ OPCODE_LOOKUP = {
     opcodes.MOD: arithmetic.mod,
     opcodes.SMOD: arithmetic.smod,
     opcodes.ADDMOD: arithmetic.addmod,
-    opcodes.MULMOD: not_implemented('MULMOD'),  # TODO: implement me
+    opcodes.MULMOD: arithmetic.mulmod,
     opcodes.EXP: arithmetic.exp,
     opcodes.SIGNEXTEND: not_implemented('SIGNEXTEND'),  # TODO: implement me
     #
@@ -45,7 +48,7 @@ OPCODE_LOOKUP = {
     opcodes.AND: not_implemented('AND'),  # TODO: implement me
     opcodes.OR: not_implemented('OR'),  # TODO: implement me
     opcodes.XOR: not_implemented('XOR'),  # TODO: implement me
-    opcodes.NOT: not_implemented('NOT'),  # TODO: implement me
+    opcodes.NOT: comparison.not_op,
     opcodes.BYTE: not_implemented('BYTE'),  # TODO: implement me
     #
     # Sha3
@@ -59,7 +62,7 @@ OPCODE_LOOKUP = {
     opcodes.ORIGIN: not_implemented('ORIGIN'),  # TODO: implement me
     opcodes.CALLER: not_implemented('CALLER'),  # TODO: implement me
     opcodes.CALLVALUE: not_implemented('CALLVALUE'),  # TODO: implement me
-    opcodes.CALLDATALOAD: not_implemented('CALLDATALOAD'),  # TODO: implement me
+    opcodes.CALLDATALOAD: environment.calldataload,
     opcodes.CALLDATASIZE: not_implemented('CALLDATASIZE'),  # TODO: implement me
     opcodes.CALLDATACOPY: not_implemented('CALLDATACOPY'),  # TODO: implement me
     opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
@@ -79,11 +82,11 @@ OPCODE_LOOKUP = {
     #
     # Stack, Memory, Storage and Flow Operations
     #
-    opcodes.POP: not_implemented('POP'),  # TODO: implement me
-    opcodes.MLOAD: not_implemented('MLOAD'),  # TODO: implement me
+    opcodes.POP: stack.pop,
+    opcodes.MLOAD: memory.mload,
     opcodes.MSTORE: memory.mstore,
-    opcodes.MSTORE8: not_implemented('MSTORE8'),  # TODO: implement me
-    opcodes.SLOAD: not_implemented('SLOAD'),  # TODO: implement me
+    opcodes.MSTORE8: memory.mstore8,
+    opcodes.SLOAD: storage.sload,
     opcodes.SSTORE: storage.sstore,
     opcodes.JUMP: not_implemented('JUMP'),  # TODO: implement me
     opcodes.JUMP1: not_implemented('JUMP1'),  # TODO: implement me
@@ -129,22 +132,22 @@ OPCODE_LOOKUP = {
     #
     # Duplicate Operations
     #
-    opcodes.DUP1: not_implemented('PUSH1'),  # TODO: implement me
-    opcodes.DUP2: not_implemented('DUP2'),  # TODO: implement me
-    opcodes.DUP3: not_implemented('DUP3'),  # TODO: implement me
-    opcodes.DUP4: not_implemented('DUP4'),  # TODO: implement me
-    opcodes.DUP5: not_implemented('DUP5'),  # TODO: implement me
-    opcodes.DUP6: not_implemented('DUP6'),  # TODO: implement me
-    opcodes.DUP7: not_implemented('DUP7'),  # TODO: implement me
-    opcodes.DUP8: not_implemented('DUP8'),  # TODO: implement me
-    opcodes.DUP9: not_implemented('DUP9'),  # TODO: implement me
-    opcodes.DUP10: not_implemented('DUP10'),  # TODO: implement me
-    opcodes.DUP11: not_implemented('DUP11'),  # TODO: implement me
-    opcodes.DUP12: not_implemented('DUP12'),  # TODO: implement me
-    opcodes.DUP13: not_implemented('DUP13'),  # TODO: implement me
-    opcodes.DUP14: not_implemented('DUP14'),  # TODO: implement me
-    opcodes.DUP15: not_implemented('DUP15'),  # TODO: implement me
-    opcodes.DUP16: not_implemented('DUP16'),  # TODO: implement me
+    opcodes.DUP1: duplication.dup1,
+    opcodes.DUP2: duplication.dup2,
+    opcodes.DUP3: duplication.dup3,
+    opcodes.DUP4: duplication.dup4,
+    opcodes.DUP5: duplication.dup5,
+    opcodes.DUP6: duplication.dup6,
+    opcodes.DUP7: duplication.dup7,
+    opcodes.DUP8: duplication.dup8,
+    opcodes.DUP9: duplication.dup9,
+    opcodes.DUP10: duplication.dup10,
+    opcodes.DUP11: duplication.dup11,
+    opcodes.DUP12: duplication.dup12,
+    opcodes.DUP13: duplication.dup13,
+    opcodes.DUP14: duplication.dup14,
+    opcodes.DUP15: duplication.dup15,
+    opcodes.DUP16: duplication.dup16,
     #
     # Exchange Operations
     #

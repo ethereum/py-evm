@@ -2,6 +2,7 @@ import logging
 
 from evm.constants import (
     UINT_256_MAX,
+    UINT_256_CEILING,
 )
 from evm.gas import (
     COST_VERYLOW,
@@ -16,6 +17,7 @@ from evm.utils.numeric import (
     int_to_big_endian,
     unsigned_to_signed,
     signed_to_unsigned,
+    ceil8,
 )
 
 
@@ -34,6 +36,25 @@ def add(message, storage, state):
         int_to_big_endian(result)
     )
     state.consume_gas(COST_VERYLOW)
+
+
+def addmod(message, storage, state):
+    """
+    Modulo Addition
+    """
+    left = big_endian_to_int(state.stack.pop())
+    right = big_endian_to_int(state.stack.pop())
+    mod = big_endian_to_int(state.stack.pop())
+
+    if mod == 0:
+        result = 0
+    else:
+        result = (left + right) % mod
+    logger.info('ADDMOD: (%s + %s) %% %s -> %s', left, right, mod, result)
+    state.stack.push(
+        int_to_big_endian(result)
+    )
+    state.consume_gas(COST_MID)
 
 
 def sub(message, storage, state):
@@ -89,22 +110,6 @@ def smod(message, storage, state):
     state.consume_gas(COST_LOW)
 
 
-def addmod(message, storage, state):
-    left = big_endian_to_int(state.stack.pop())
-    right = big_endian_to_int(state.stack.pop())
-    mod = big_endian_to_int(state.stack.pop())
-
-    if mod == 0:
-        result = 0
-    else:
-        result = (left + right) % mod
-    logger.info('ADDMOD: (%s + %s) %% %s -> %s', left, right, mod, result)
-    state.stack.push(
-        int_to_big_endian(result)
-    )
-    state.consume_gas(COST_MID)
-
-
 def mul(message, storage, state):
     """
     Multiplication
@@ -117,6 +122,25 @@ def mul(message, storage, state):
         int_to_big_endian(result)
     )
     state.consume_gas(COST_LOW)
+
+
+def mulmod(message, storage, state):
+    """
+    Modulo Multiplication
+    """
+    left = big_endian_to_int(state.stack.pop())
+    right = big_endian_to_int(state.stack.pop())
+    mod = big_endian_to_int(state.stack.pop())
+
+    if mod == 0:
+        result = 0
+    else:
+        result = (left * right) % mod
+    logger.info('MULMOD: (%s * %s) %% %s -> %s', left, right, mod, result)
+    state.stack.push(
+        int_to_big_endian(result)
+    )
+    state.consume_gas(COST_MID)
 
 
 def div(message, storage, state):
@@ -144,10 +168,11 @@ def sdiv(message, storage, state):
     denominator = unsigned_to_signed(big_endian_to_int(state.stack.pop()))
 
     if denominator == 0:
+        pos_or_neg = 1
         result = 0
     else:
         pos_or_neg = -1 if numerator * denominator < 0 else 1
-        result = (pos_or_neg * abs(numerator) // abs(denominator)) & UINT_256_MAX
+        result = (pos_or_neg * (abs(numerator) // abs(denominator)))
     logger.info('SDIV: %s * |%s| / |%s| -> %s', pos_or_neg, numerator, denominator, result)
     state.stack.push(
         int_to_big_endian(signed_to_unsigned(result))
@@ -163,12 +188,12 @@ def exp(message, storage, state):
     exponent = big_endian_to_int(state.stack.pop())
 
     bit_size = exponent.bit_length()
-    byte_size = bit_size // 8 + 1
+    byte_size = ceil8(bit_size) // 8
 
     if base == 0:
         result = 0
     else:
-        result = (base ** exponent) & UINT_256_MAX
+        result = pow(base, exponent, UINT_256_CEILING)
     logger.info('EXP: %s ** %s -> %s', base, exponent, result)
     state.stack.push(
         int_to_big_endian(result)
