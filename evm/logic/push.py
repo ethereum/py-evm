@@ -1,8 +1,7 @@
+import logging
+
 from toolz import (
     partial,
-)
-from eth_utils import (
-    pad_left,
 )
 
 from evm.gas import (
@@ -10,10 +9,13 @@ from evm.gas import (
 )
 
 
+logger = logging.getLogger('evm.logic.push.push')
+
+
 def push_XX(message, state, storage, size):
     value_to_push = state.code.read(size)
-    padded_value_to_push = pad_left(value_to_push, 32, b'\x00')
-    state.stack.push(padded_value_to_push)
+    logger.info('PUSH%s: %s', size, value_to_push)
+    state.stack.push(value_to_push)
 
     state.consume_gas(COST_VERYLOW)
 

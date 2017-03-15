@@ -1,5 +1,6 @@
 from io import BytesIO
 import itertools
+import logging
 
 from toolz import (
     partial,
@@ -18,12 +19,16 @@ from evm.validation import (
     validate_canonical_address,
     validate_uint256,
     validate_is_bytes,
+    validate_lte,
 )
 from evm.logic.lookup import OPCODE_LOOKUP
 
 from evm.utils.numeric import (
     ceil32,
 )
+
+
+logger = logging.getLogger('evm.vm')
 
 
 class Memory(object):
@@ -85,7 +90,8 @@ class Stack(object):
         self._stack_values = []
 
     def push(self, item):
-        validate_word(item)
+        validate_is_bytes(item)
+        validate_lte(len(item), maximum=32)
         self._stack_values.append(item)
 
     def pop(self):
@@ -183,6 +189,8 @@ class State(object):
         self.gas_usage_ledger = []
         self.gas_refund_ledger = []
 
+        self.logger = logging.getLogger('evm.vm.State')
+
         self.logs = []
 
         if pc is None:
@@ -213,7 +221,9 @@ class State(object):
 
     def consume_gas(self, amount):
         validate_uint256(amount)
+        before_value = self.gas_available
         self.gas_usage_ledger.append(amount)
+        self.logger.info('GAS CONSUMPTION: %s - %s -> %s', before_value, amount, self.gas_available)
 
     def refund_gas(self, amount):
         validate_uint256(amount)

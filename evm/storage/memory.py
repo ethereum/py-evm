@@ -1,10 +1,8 @@
 import collections
 
-from evm.constants import EMPTY_WORD
 from evm.validation import (
     validate_is_bytes,
     validate_uint256,
-    validate_word,
     validate_canonical_address,
 )
 
@@ -19,14 +17,14 @@ class MemoryStorage(BaseMachineStorage):
 
     def __init__(self):
         self.storage = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: EMPTY_WORD)
+            lambda: collections.defaultdict(lambda: b'')
         )
         self.balances = collections.defaultdict(int)
         self.nonces = collections.defaultdict(int)
         self.code = collections.defaultdict(bytes)
 
     def set_storage(self, account, slot, value):
-        validate_word(value)
+        validate_is_bytes(value)
         validate_uint256(slot)
         validate_canonical_address(account)
         self.storage[account][slot] = value

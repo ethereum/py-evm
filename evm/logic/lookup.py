@@ -7,84 +7,86 @@ from . import (
 )
 
 
-def not_implemented(*args, **kwargs):
-    raise NotImplementedError("This opcode has not been implemented")
+def not_implemented(name):
+    def fn(*args, **kwargs):
+        raise NotImplementedError("The {0} opcode has not been implemented".format(name))
+    return fn
 
 
 OPCODE_LOOKUP = {
     #
     # Arithmetic
     #
-    opcodes.STOP: not_implemented,  # TODO: implement me
+    opcodes.STOP: not_implemented('STOP'),  # TODO: implement me
     opcodes.ADD: arithmetic.add,
-    opcodes.MUL: not_implemented,  # TODO: implement me
-    opcodes.SUB: not_implemented,  # TODO: implement me
-    opcodes.DIV: not_implemented,  # TODO: implement me
-    opcodes.SDIV: not_implemented,  # TODO: implement me
-    opcodes.MOD: not_implemented,  # TODO: implement me
-    opcodes.SMOD: not_implemented,  # TODO: implement me
-    opcodes.ADDMOD: not_implemented,  # TODO: implement me
-    opcodes.MULMOD: not_implemented,  # TODO: implement me
-    opcodes.EXP: not_implemented,  # TODO: implement me
-    opcodes.SIGNEXTEND: not_implemented,  # TODO: implement me
+    opcodes.MUL: not_implemented('MUL'),  # TODO: implement me
+    opcodes.SUB: not_implemented('SUB'),  # TODO: implement me
+    opcodes.DIV: not_implemented('DIV'),  # TODO: implement me
+    opcodes.SDIV: not_implemented('SDIV'),  # TODO: implement me
+    opcodes.MOD: not_implemented('MOD'),  # TODO: implement me
+    opcodes.SMOD: not_implemented('SMOD'),  # TODO: implement me
+    opcodes.ADDMOD: arithmetic.addmod,
+    opcodes.MULMOD: not_implemented('MULMOD'),  # TODO: implement me
+    opcodes.EXP: not_implemented('EXP'),  # TODO: implement me
+    opcodes.SIGNEXTEND: not_implemented('SIGNEXTEND'),  # TODO: implement me
     #
     # Comparisons
     #
-    opcodes.LT: not_implemented,  # TODO: implement me
-    opcodes.GT: not_implemented,  # TODO: implement me
-    opcodes.SLT: not_implemented,  # TODO: implement me
-    opcodes.SGT: not_implemented,  # TODO: implement me
-    opcodes.EQ: not_implemented,  # TODO: implement me
-    opcodes.ISZERO: not_implemented,  # TODO: implement me
-    opcodes.AND: not_implemented,  # TODO: implement me
-    opcodes.OR: not_implemented,  # TODO: implement me
-    opcodes.XOR: not_implemented,  # TODO: implement me
-    opcodes.NOT: not_implemented,  # TODO: implement me
-    opcodes.BYTE: not_implemented,  # TODO: implement me
+    opcodes.LT: not_implemented('LT'),  # TODO: implement me
+    opcodes.GT: not_implemented('GT'),  # TODO: implement me
+    opcodes.SLT: not_implemented('SLT'),  # TODO: implement me
+    opcodes.SGT: not_implemented('SGT'),  # TODO: implement me
+    opcodes.EQ: not_implemented('EQ'),  # TODO: implement me
+    opcodes.ISZERO: not_implemented('ISZERO'),  # TODO: implement me
+    opcodes.AND: not_implemented('AND'),  # TODO: implement me
+    opcodes.OR: not_implemented('OR'),  # TODO: implement me
+    opcodes.XOR: not_implemented('XOR'),  # TODO: implement me
+    opcodes.NOT: not_implemented('NOT'),  # TODO: implement me
+    opcodes.BYTE: not_implemented('BYTE'),  # TODO: implement me
     #
     # Sha3
     #
-    opcodes.SHA3: not_implemented,  # TODO: implement me
+    opcodes.SHA3: not_implemented('SHA3'),  # TODO: implement me
     #
     # Environment Information
     #
-    opcodes.ADDRESS: not_implemented,  # TODO: implement me
-    opcodes.BALANCE: not_implemented,  # TODO: implement me
-    opcodes.ORIGIN: not_implemented,  # TODO: implement me
-    opcodes.CALLER: not_implemented,  # TODO: implement me
-    opcodes.CALLVALUE: not_implemented,  # TODO: implement me
-    opcodes.CALLDATALOAD: not_implemented,  # TODO: implement me
-    opcodes.CALLDATASIZE: not_implemented,  # TODO: implement me
-    opcodes.CALLDATACOPY: not_implemented,  # TODO: implement me
-    opcodes.CODESIZE: not_implemented,  # TODO: implement me
-    opcodes.CODECOPY: not_implemented,  # TODO: implement me
-    opcodes.GASPRICE: not_implemented,  # TODO: implement me
-    opcodes.EXTCODESIZE: not_implemented,  # TODO: implement me
-    opcodes.EXTCODECOPY: not_implemented,  # TODO: implement me
+    opcodes.ADDRESS: not_implemented('ADDRESS'),  # TODO: implement me
+    opcodes.BALANCE: not_implemented('BALANCE'),  # TODO: implement me
+    opcodes.ORIGIN: not_implemented('ORIGIN'),  # TODO: implement me
+    opcodes.CALLER: not_implemented('CALLER'),  # TODO: implement me
+    opcodes.CALLVALUE: not_implemented('CALLVALUE'),  # TODO: implement me
+    opcodes.CALLDATALOAD: not_implemented('CALLDATALOAD'),  # TODO: implement me
+    opcodes.CALLDATASIZE: not_implemented('CALLDATASIZE'),  # TODO: implement me
+    opcodes.CALLDATACOPY: not_implemented('CALLDATACOPY'),  # TODO: implement me
+    opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
+    opcodes.CODECOPY: not_implemented('CODECOPY'),  # TODO: implement me
+    opcodes.GASPRICE: not_implemented('GASPRICE'),  # TODO: implement me
+    opcodes.EXTCODESIZE: not_implemented('EXTCODESIZE'),  # TODO: implement me
+    opcodes.EXTCODECOPY: not_implemented('EXTCODECOPY'),  # TODO: implement me
     #
     # Block Information
     #
-    opcodes.BLOCKHASH: not_implemented,  # TODO: implement me
-    opcodes.COINBASE: not_implemented,  # TODO: implement me
-    opcodes.TIMESTAMP: not_implemented,  # TODO: implement me
-    opcodes.NUMBER: not_implemented,  # TODO: implement me
-    opcodes.DIFFICULTY: not_implemented,  # TODO: implement me
-    opcodes.GASLIMIT: not_implemented,  # TODO: implement me
+    opcodes.BLOCKHASH: not_implemented('BLOCKHASH'),  # TODO: implement me
+    opcodes.COINBASE: not_implemented('COINBASE'),  # TODO: implement me
+    opcodes.TIMESTAMP: not_implemented('TIMESTAMP'),  # TODO: implement me
+    opcodes.NUMBER: not_implemented('NUMBER'),  # TODO: implement me
+    opcodes.DIFFICULTY: not_implemented('DIFFICULTY'),  # TODO: implement me
+    opcodes.GASLIMIT: not_implemented('GASLIMIT'),  # TODO: implement me
     #
     # Stack, Memory, Storage and Flow Operations
     #
-    opcodes.POP: not_implemented,  # TODO: implement me
-    opcodes.MLOAD: not_implemented,  # TODO: implement me
-    opcodes.MSTORE: not_implemented,  # TODO: implement me
-    opcodes.MSTORE8: not_implemented,  # TODO: implement me
-    opcodes.SLOAD: not_implemented,  # TODO: implement me
+    opcodes.POP: not_implemented('POP'),  # TODO: implement me
+    opcodes.MLOAD: not_implemented('MLOAD'),  # TODO: implement me
+    opcodes.MSTORE: not_implemented('MSTORE'),  # TODO: implement me
+    opcodes.MSTORE8: not_implemented('MSTORE8'),  # TODO: implement me
+    opcodes.SLOAD: not_implemented('SLOAD'),  # TODO: implement me
     opcodes.SSTORE: storage.sstore,
-    opcodes.JUMP: not_implemented,  # TODO: implement me
-    opcodes.JUMP1: not_implemented,  # TODO: implement me
-    opcodes.PC: not_implemented,  # TODO: implement me
-    opcodes.MSIZE: not_implemented,  # TODO: implement me
-    opcodes.GAS: not_implemented,  # TODO: implement me
-    opcodes.JUMPDEST: not_implemented,  # TODO: implement me
+    opcodes.JUMP: not_implemented('JUMP'),  # TODO: implement me
+    opcodes.JUMP1: not_implemented('JUMP1'),  # TODO: implement me
+    opcodes.PC: not_implemented('PC'),  # TODO: implement me
+    opcodes.MSIZE: not_implemented('MSIZE'),  # TODO: implement me
+    opcodes.GAS: not_implemented('GAS'),  # TODO: implement me
+    opcodes.JUMPDEST: not_implemented('JUMPDEST'),  # TODO: implement me
     #
     # Push Operations
     #
@@ -123,56 +125,56 @@ OPCODE_LOOKUP = {
     #
     # Duplicate Operations
     #
-    opcodes.DUP1: not_implemented,  # TODO: implement me
-    opcodes.DUP2: not_implemented,  # TODO: implement me
-    opcodes.DUP3: not_implemented,  # TODO: implement me
-    opcodes.DUP4: not_implemented,  # TODO: implement me
-    opcodes.DUP5: not_implemented,  # TODO: implement me
-    opcodes.DUP6: not_implemented,  # TODO: implement me
-    opcodes.DUP7: not_implemented,  # TODO: implement me
-    opcodes.DUP8: not_implemented,  # TODO: implement me
-    opcodes.DUP9: not_implemented,  # TODO: implement me
-    opcodes.DUP10: not_implemented,  # TODO: implement me
-    opcodes.DUP11: not_implemented,  # TODO: implement me
-    opcodes.DUP12: not_implemented,  # TODO: implement me
-    opcodes.DUP13: not_implemented,  # TODO: implement me
-    opcodes.DUP14: not_implemented,  # TODO: implement me
-    opcodes.DUP15: not_implemented,  # TODO: implement me
-    opcodes.DUP16: not_implemented,  # TODO: implement me
+    opcodes.DUP1: not_implemented('PUSH1'),  # TODO: implement me
+    opcodes.DUP2: not_implemented('DUP2'),  # TODO: implement me
+    opcodes.DUP3: not_implemented('DUP3'),  # TODO: implement me
+    opcodes.DUP4: not_implemented('DUP4'),  # TODO: implement me
+    opcodes.DUP5: not_implemented('DUP5'),  # TODO: implement me
+    opcodes.DUP6: not_implemented('DUP6'),  # TODO: implement me
+    opcodes.DUP7: not_implemented('DUP7'),  # TODO: implement me
+    opcodes.DUP8: not_implemented('DUP8'),  # TODO: implement me
+    opcodes.DUP9: not_implemented('DUP9'),  # TODO: implement me
+    opcodes.DUP10: not_implemented('DUP10'),  # TODO: implement me
+    opcodes.DUP11: not_implemented('DUP11'),  # TODO: implement me
+    opcodes.DUP12: not_implemented('DUP12'),  # TODO: implement me
+    opcodes.DUP13: not_implemented('DUP13'),  # TODO: implement me
+    opcodes.DUP14: not_implemented('DUP14'),  # TODO: implement me
+    opcodes.DUP15: not_implemented('DUP15'),  # TODO: implement me
+    opcodes.DUP16: not_implemented('DUP16'),  # TODO: implement me
     #
     # Exchange Operations
     #
-    opcodes.SWAP1: not_implemented,  # TODO: implement me
-    opcodes.SWAP2: not_implemented,  # TODO: implement me
-    opcodes.SWAP3: not_implemented,  # TODO: implement me
-    opcodes.SWAP4: not_implemented,  # TODO: implement me
-    opcodes.SWAP5: not_implemented,  # TODO: implement me
-    opcodes.SWAP6: not_implemented,  # TODO: implement me
-    opcodes.SWAP7: not_implemented,  # TODO: implement me
-    opcodes.SWAP8: not_implemented,  # TODO: implement me
-    opcodes.SWAP9: not_implemented,  # TODO: implement me
-    opcodes.SWAP10: not_implemented,  # TODO: implement me
-    opcodes.SWAP11: not_implemented,  # TODO: implement me
-    opcodes.SWAP12: not_implemented,  # TODO: implement me
-    opcodes.SWAP13: not_implemented,  # TODO: implement me
-    opcodes.SWAP14: not_implemented,  # TODO: implement me
-    opcodes.SWAP15: not_implemented,  # TODO: implement me
-    opcodes.SWAP16: not_implemented,  # TODO: implement me
+    opcodes.SWAP1: not_implemented('SWAP1'),  # TODO: implement me
+    opcodes.SWAP2: not_implemented('SWAP2'),  # TODO: implement me
+    opcodes.SWAP3: not_implemented('SWAP3'),  # TODO: implement me
+    opcodes.SWAP4: not_implemented('SWAP4'),  # TODO: implement me
+    opcodes.SWAP5: not_implemented('SWAP5'),  # TODO: implement me
+    opcodes.SWAP6: not_implemented('SWAP6'),  # TODO: implement me
+    opcodes.SWAP7: not_implemented('SWAP7'),  # TODO: implement me
+    opcodes.SWAP8: not_implemented('SWAP8'),  # TODO: implement me
+    opcodes.SWAP9: not_implemented('SWAP9'),  # TODO: implement me
+    opcodes.SWAP10: not_implemented('SWAP10'),  # TODO: implement me
+    opcodes.SWAP11: not_implemented('SWAP11'),  # TODO: implement me
+    opcodes.SWAP12: not_implemented('SWAP12'),  # TODO: implement me
+    opcodes.SWAP13: not_implemented('SWAP13'),  # TODO: implement me
+    opcodes.SWAP14: not_implemented('SWAP14'),  # TODO: implement me
+    opcodes.SWAP15: not_implemented('SWAP15'),  # TODO: implement me
+    opcodes.SWAP16: not_implemented('SWAP16'),  # TODO: implement me
     #
     # Logging
     #
-    opcodes.LOG0: not_implemented,  # TODO: implement me
-    opcodes.LOG1: not_implemented,  # TODO: implement me
-    opcodes.LOG2: not_implemented,  # TODO: implement me
-    opcodes.LOG3: not_implemented,  # TODO: implement me
-    opcodes.LOG4: not_implemented,  # TODO: implement me
+    opcodes.LOG0: not_implemented('LOG0'),  # TODO: implement me
+    opcodes.LOG1: not_implemented('LOG1'),  # TODO: implement me
+    opcodes.LOG2: not_implemented('LOG2'),  # TODO: implement me
+    opcodes.LOG3: not_implemented('LOG3'),  # TODO: implement me
+    opcodes.LOG4: not_implemented('LOG4'),  # TODO: implement me
     #
     # System
     #
-    opcodes.CREATE: not_implemented,  # TODO: implement me
-    opcodes.CALL: not_implemented,  # TODO: implement me
-    opcodes.CALLCODE: not_implemented,  # TODO: implement me
-    opcodes.RETURN: not_implemented,  # TODO: implement me
-    opcodes.DELEGATECALL: not_implemented,  # TODO: implement me
-    opcodes.SUICIDE: not_implemented,  # TODO: implement me
+    opcodes.CREATE: not_implemented('CREATE'),  # TODO: implement me
+    opcodes.CALL: not_implemented('CALL'),  # TODO: implement me
+    opcodes.CALLCODE: not_implemented('CALLCODE'),  # TODO: implement me
+    opcodes.RETURN: not_implemented('RETURN'),  # TODO: implement me
+    opcodes.DELEGATECALL: not_implemented('DELEGATECALL'),  # TODO: implement me
+    opcodes.SUICIDE: not_implemented('SUICIDE'),  # TODO: implement me
 }
