@@ -7,6 +7,10 @@ from toolz import (
 )
 
 from evm import opcodes
+from evm.gas import (
+    COST_MEMORY,
+    COST_MEMORY_QUADRATIC_DENOMINATOR,
+)
 from evm.constants import (
     NULL_BYTE,
 )
@@ -15,11 +19,12 @@ from evm.exceptions import (
     OutOfGas,
 )
 from evm.validation import (
-    validate_word,
     validate_canonical_address,
-    validate_uint256,
     validate_is_bytes,
+    validate_length,
     validate_lte,
+    validate_uint256,
+    validate_word,
 )
 from evm.logic.lookup import OPCODE_LOOKUP
 
@@ -32,55 +37,48 @@ logger = logging.getLogger('evm.vm')
 
 
 class Memory(object):
-    memory_bytes = None
+    bytes = None
 
     def __init__(self):
-        self.memory_bytes = bytearray()
+        self.bytes = bytearray()
 
     def extend(self, start_position, size):
         if size == 0:
             return
 
         new_size = ceil32(start_position + size)
-        if new_size <= self.size:
+        if new_size <= len(self):
             return
 
-        size_to_extend = new_size - self.size
-        self.memory_bytes.extend(itertools.repeat(0, size_to_extend))
+        size_to_extend = new_size - len(self)
+        self.bytes.extend(itertools.repeat(0, size_to_extend))
 
-    @property
-    def size(self):
-        return len(self.memory_bytes)
+    def __len__(self):
+        return len(self.bytes)
 
     @property
     def cost(self):
-        size_in_words = self.size // 32
+        size_in_words = len(self) // 32
         linear_cost = size_in_words * COST_MEMORY
         quadratic_cost = size_in_words ** (2 // COST_MEMORY_QUADRATIC_DENOMINATOR)
 
         total_cost = linear_cost + quadratic_cost
         return total_cost
 
+    def write(self, start_position, size, value):
+        validate_uint256(start_position)
+        validate_uint256(size)
+        validate_is_bytes(value)
+        validate_length(value, length=size)
+        validate_lte(start_position + size, maximum=len(self))
+        self.bytes = (
+            self.bytes[:start_position] +
+            bytearray(value) +
+            self.bytes[start_position + size:]
+        )
 
-def mem_extend(mem, compustate, op, start, sz):
-    if sz:
-        oldsize = len(mem) // 32
-        old_totalfee = oldsize * opcodes.GMEMORY + \
-            oldsize ** 2 // opcodes.GQUADRATICMEMDENOM
-        newsize = utils.ceil32(start + sz) // 32
-        # if newsize > 524288:
-        #     raise Exception("Memory above 16 MB per call not supported by this VM")
-        new_totalfee = newsize * opcodes.GMEMORY + \
-            newsize ** 2 // opcodes.GQUADRATICMEMDENOM
-        if old_totalfee < new_totalfee:
-            memfee = new_totalfee - old_totalfee
-            if compustate.gas < memfee:
-                compustate.gas = 0
-                return False
-            compustate.gas -= memfee
-            m_extend = (newsize - oldsize) * 32
-            mem.extend([0] * m_extend)
-    return True
+    def read(self, start_position, size):
+        return self.bytes[start_position:start_position + size]
 
 
 class Stack(object):
@@ -174,6 +172,7 @@ class State(object):
     memory = None
     stack = None
     pc = None
+    output = b''
 
     code = None
 
@@ -219,6 +218,10 @@ class State(object):
         return max(self.start_gas - sum(self.gas_usage_ledger), 0)
 
     @property
+    def gas_used(self):
+        return self.start_gas - self.gas_available
+
+    @property
     def total_gas_refund(self):
         return sum(self.gas_refund_ledger)
 
@@ -242,30 +245,10 @@ class State(object):
 
         if prev_cost < self.memory.cost:
             gas_fee = self.memory.cost - prev_cost
-            sel.consume_gas(gas_fee)
+            self.consume_gas(gas_fee)
 
         if self.is_out_of_gas:
             raise OutOfGas("Ran out of gas extending memory")
-
-
-class Result(object):
-    """
-    The result of EVM computation
-    """
-    message = None
-    state = None
-    output = None
-
-    def __init__(self, message, state, output):
-        self.message = message
-        self.state = state
-
-        validate_is_bytes(output)
-        self.output = output
-
-    @property
-    def gas_used(self):
-        return self.state.start_gas - self.state.gas_available
 
 
 def execute_vm(evm, message, state=None):
@@ -287,9 +270,7 @@ def execute_vm(evm, message, state=None):
         if state.is_out_of_gas:
             raise OutOfGas("Ran out of gas during execution")
 
-    result = Result(message, state, b'')
-
-    return evm, result
+    return evm, state
 
 
 class EVM(object):

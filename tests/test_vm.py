@@ -80,15 +80,15 @@ def test_vm_using_fixture(fixture):
         gas=int(execute_params['gas'], 16),
         gas_price=int(execute_params['gasPrice'], 16),
     )
-    result_evm, result = execute_vm(evm, message)
+    result_evm, state = execute_vm(evm, message)
 
-    assert result.state.logs == fixture['logs']
+    assert state.logs == fixture['logs']
 
     expected_output = decode_hex(fixture['out'])
-    assert result.output == expected_output
+    assert state.output == expected_output
 
     expected_gas_remaining = int(fixture['gas'], 16)
-    actual_gas_remaining = result.message.gas - result.gas_used + result.state.total_gas_refund
+    actual_gas_remaining = state.start_gas - state.gas_used + state.total_gas_refund
     assert actual_gas_remaining == expected_gas_remaining
 
     for account_as_hex, account_data in fixture['post'].items():

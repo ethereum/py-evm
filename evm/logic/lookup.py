@@ -3,9 +3,11 @@ from evm import opcodes
 from . import (
     arithmetic,
     comparison,
+    flow,
+    memory,
+    push,
     storage,
     swap,
-    push,
 )
 
 
@@ -79,7 +81,7 @@ OPCODE_LOOKUP = {
     #
     opcodes.POP: not_implemented('POP'),  # TODO: implement me
     opcodes.MLOAD: not_implemented('MLOAD'),  # TODO: implement me
-    opcodes.MSTORE: not_implemented('MSTORE'),  # TODO: implement me
+    opcodes.MSTORE: memory.mstore,
     opcodes.MSTORE8: not_implemented('MSTORE8'),  # TODO: implement me
     opcodes.SLOAD: not_implemented('SLOAD'),  # TODO: implement me
     opcodes.SSTORE: storage.sstore,
@@ -176,7 +178,7 @@ OPCODE_LOOKUP = {
     opcodes.CREATE: not_implemented('CREATE'),  # TODO: implement me
     opcodes.CALL: not_implemented('CALL'),  # TODO: implement me
     opcodes.CALLCODE: not_implemented('CALLCODE'),  # TODO: implement me
-    opcodes.RETURN: not_implemented('RETURN'),  # TODO: implement me
+    opcodes.RETURN: flow.return_op,
     opcodes.DELEGATECALL: not_implemented('DELEGATECALL'),  # TODO: implement me
     opcodes.SUICIDE: not_implemented('SUICIDE'),  # TODO: implement me
 }

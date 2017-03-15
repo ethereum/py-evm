@@ -1,8 +1,5 @@
 import logging
 
-from evm.constants import (
-    EMPTY_WORD,
-)
 from evm.gas import (
     COST_SSET,
     COST_SRESET,
