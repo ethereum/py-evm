@@ -1,6 +1,11 @@
 import sys
 import math
 
+from evm.constants import (
+    UINT_255_MAX,
+    UINT_256_CEILING,
+)
+
 from eth_utils import (
     encode_hex,
     pad_left,
@@ -46,3 +51,17 @@ def ceil32(value):
         return value
     else:
         return value + 32 - remainder
+
+
+def unsigned_to_signed(value):
+    if value <= UINT_255_MAX:
+        return value
+    else:
+        return value - UINT_256_CEILING
+
+
+def signed_to_unsigned(value):
+    if value < 0:
+        return value + UINT_256_CEILING
+    else:
+        return value

@@ -84,20 +84,27 @@ def mem_extend(mem, compustate, op, start, sz):
 
 
 class Stack(object):
-    _stack_values = None
+    values = None
 
     def __init__(self):
-        self._stack_values = []
+        self.values = []
+
+    def __len__(self):
+        return len(self.values)
 
     def push(self, item):
         validate_is_bytes(item)
         validate_lte(len(item), maximum=32)
-        self._stack_values.append(item)
+        self.values.append(item)
 
     def pop(self):
-        if not self._stack_values:
+        if not self.values:
             raise ValueError("Attempt to pop from empty stack")
-        return self._stack_values.pop()
+        return self.values.pop()
+
+    def swap(self, position):
+        idx = -1 * position
+        self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
 
 
 class Message(object):
@@ -240,13 +247,6 @@ class State(object):
         if self.is_out_of_gas:
             raise OutOfGas("Ran out of gas extending memory")
 
-
-def foo():
-        num_zero_bytes = str_to_bytes(self.data).count(ascii_chr(0))
-        num_non_zero_bytes = len(self.data) - num_zero_bytes
-        return (opcodes.GTXCOST
-                + opcodes.GTXDATAZERO * num_zero_bytes
-                + opcodes.GTXDATANONZERO * num_non_zero_bytes)
 
 class Result(object):
     """

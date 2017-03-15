@@ -2,7 +2,9 @@ from evm import opcodes
 
 from . import (
     arithmetic,
+    comparison,
     storage,
+    swap,
     push,
 )
 
@@ -19,15 +21,15 @@ OPCODE_LOOKUP = {
     #
     opcodes.STOP: not_implemented('STOP'),  # TODO: implement me
     opcodes.ADD: arithmetic.add,
-    opcodes.MUL: not_implemented('MUL'),  # TODO: implement me
-    opcodes.SUB: not_implemented('SUB'),  # TODO: implement me
-    opcodes.DIV: not_implemented('DIV'),  # TODO: implement me
-    opcodes.SDIV: not_implemented('SDIV'),  # TODO: implement me
-    opcodes.MOD: not_implemented('MOD'),  # TODO: implement me
-    opcodes.SMOD: not_implemented('SMOD'),  # TODO: implement me
+    opcodes.MUL: arithmetic.mul,
+    opcodes.SUB: arithmetic.sub,
+    opcodes.DIV: arithmetic.div,
+    opcodes.SDIV: arithmetic.sdiv,
+    opcodes.MOD: arithmetic.mod,
+    opcodes.SMOD: arithmetic.smod,
     opcodes.ADDMOD: arithmetic.addmod,
     opcodes.MULMOD: not_implemented('MULMOD'),  # TODO: implement me
-    opcodes.EXP: not_implemented('EXP'),  # TODO: implement me
+    opcodes.EXP: arithmetic.exp,
     opcodes.SIGNEXTEND: not_implemented('SIGNEXTEND'),  # TODO: implement me
     #
     # Comparisons
@@ -36,7 +38,7 @@ OPCODE_LOOKUP = {
     opcodes.GT: not_implemented('GT'),  # TODO: implement me
     opcodes.SLT: not_implemented('SLT'),  # TODO: implement me
     opcodes.SGT: not_implemented('SGT'),  # TODO: implement me
-    opcodes.EQ: not_implemented('EQ'),  # TODO: implement me
+    opcodes.EQ: comparison.eq,
     opcodes.ISZERO: not_implemented('ISZERO'),  # TODO: implement me
     opcodes.AND: not_implemented('AND'),  # TODO: implement me
     opcodes.OR: not_implemented('OR'),  # TODO: implement me
@@ -90,38 +92,38 @@ OPCODE_LOOKUP = {
     #
     # Push Operations
     #
-    opcodes.PUSH1: push.push_1,
-    opcodes.PUSH2: push.push_2,
-    opcodes.PUSH3: push.push_3,
-    opcodes.PUSH4: push.push_4,
-    opcodes.PUSH5: push.push_5,
-    opcodes.PUSH6: push.push_6,
-    opcodes.PUSH7: push.push_7,
-    opcodes.PUSH8: push.push_8,
-    opcodes.PUSH9: push.push_9,
-    opcodes.PUSH10: push.push_10,
-    opcodes.PUSH11: push.push_11,
-    opcodes.PUSH12: push.push_12,
-    opcodes.PUSH13: push.push_13,
-    opcodes.PUSH14: push.push_14,
-    opcodes.PUSH15: push.push_15,
-    opcodes.PUSH16: push.push_16,
-    opcodes.PUSH17: push.push_17,
-    opcodes.PUSH18: push.push_18,
-    opcodes.PUSH19: push.push_19,
-    opcodes.PUSH20: push.push_20,
-    opcodes.PUSH21: push.push_21,
-    opcodes.PUSH22: push.push_22,
-    opcodes.PUSH23: push.push_23,
-    opcodes.PUSH24: push.push_24,
-    opcodes.PUSH25: push.push_25,
-    opcodes.PUSH26: push.push_26,
-    opcodes.PUSH27: push.push_27,
-    opcodes.PUSH28: push.push_28,
-    opcodes.PUSH29: push.push_29,
-    opcodes.PUSH30: push.push_30,
-    opcodes.PUSH31: push.push_31,
-    opcodes.PUSH32: push.push_32,
+    opcodes.PUSH1: push.push1,
+    opcodes.PUSH2: push.push2,
+    opcodes.PUSH3: push.push3,
+    opcodes.PUSH4: push.push4,
+    opcodes.PUSH5: push.push5,
+    opcodes.PUSH6: push.push6,
+    opcodes.PUSH7: push.push7,
+    opcodes.PUSH8: push.push8,
+    opcodes.PUSH9: push.push9,
+    opcodes.PUSH10: push.push10,
+    opcodes.PUSH11: push.push11,
+    opcodes.PUSH12: push.push12,
+    opcodes.PUSH13: push.push13,
+    opcodes.PUSH14: push.push14,
+    opcodes.PUSH15: push.push15,
+    opcodes.PUSH16: push.push16,
+    opcodes.PUSH17: push.push17,
+    opcodes.PUSH18: push.push18,
+    opcodes.PUSH19: push.push19,
+    opcodes.PUSH20: push.push20,
+    opcodes.PUSH21: push.push21,
+    opcodes.PUSH22: push.push22,
+    opcodes.PUSH23: push.push23,
+    opcodes.PUSH24: push.push24,
+    opcodes.PUSH25: push.push25,
+    opcodes.PUSH26: push.push26,
+    opcodes.PUSH27: push.push27,
+    opcodes.PUSH28: push.push28,
+    opcodes.PUSH29: push.push29,
+    opcodes.PUSH30: push.push30,
+    opcodes.PUSH31: push.push31,
+    opcodes.PUSH32: push.push32,
     #
     # Duplicate Operations
     #
@@ -144,22 +146,22 @@ OPCODE_LOOKUP = {
     #
     # Exchange Operations
     #
-    opcodes.SWAP1: not_implemented('SWAP1'),  # TODO: implement me
-    opcodes.SWAP2: not_implemented('SWAP2'),  # TODO: implement me
-    opcodes.SWAP3: not_implemented('SWAP3'),  # TODO: implement me
-    opcodes.SWAP4: not_implemented('SWAP4'),  # TODO: implement me
-    opcodes.SWAP5: not_implemented('SWAP5'),  # TODO: implement me
-    opcodes.SWAP6: not_implemented('SWAP6'),  # TODO: implement me
-    opcodes.SWAP7: not_implemented('SWAP7'),  # TODO: implement me
-    opcodes.SWAP8: not_implemented('SWAP8'),  # TODO: implement me
-    opcodes.SWAP9: not_implemented('SWAP9'),  # TODO: implement me
-    opcodes.SWAP10: not_implemented('SWAP10'),  # TODO: implement me
-    opcodes.SWAP11: not_implemented('SWAP11'),  # TODO: implement me
-    opcodes.SWAP12: not_implemented('SWAP12'),  # TODO: implement me
-    opcodes.SWAP13: not_implemented('SWAP13'),  # TODO: implement me
-    opcodes.SWAP14: not_implemented('SWAP14'),  # TODO: implement me
-    opcodes.SWAP15: not_implemented('SWAP15'),  # TODO: implement me
-    opcodes.SWAP16: not_implemented('SWAP16'),  # TODO: implement me
+    opcodes.SWAP1: swap.swap1,
+    opcodes.SWAP2: swap.swap2,
+    opcodes.SWAP3: swap.swap3,
+    opcodes.SWAP4: swap.swap4,
+    opcodes.SWAP5: swap.swap5,
+    opcodes.SWAP6: swap.swap6,
+    opcodes.SWAP7: swap.swap7,
+    opcodes.SWAP8: swap.swap8,
+    opcodes.SWAP9: swap.swap9,
+    opcodes.SWAP10: swap.swap10,
+    opcodes.SWAP11: swap.swap11,
+    opcodes.SWAP12: swap.swap12,
+    opcodes.SWAP13: swap.swap13,
+    opcodes.SWAP14: swap.swap14,
+    opcodes.SWAP15: swap.swap15,
+    opcodes.SWAP16: swap.swap16,
     #
     # Logging
     #
