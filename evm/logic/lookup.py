@@ -24,7 +24,7 @@ OPCODE_LOOKUP = {
     #
     # Arithmetic
     #
-    opcodes.STOP: not_implemented('STOP'),  # TODO: implement me
+    opcodes.STOP: flow.stop,
     opcodes.ADD: arithmetic.add,
     opcodes.MUL: arithmetic.mul,
     opcodes.SUB: arithmetic.sub,
@@ -35,21 +35,21 @@ OPCODE_LOOKUP = {
     opcodes.ADDMOD: arithmetic.addmod,
     opcodes.MULMOD: arithmetic.mulmod,
     opcodes.EXP: arithmetic.exp,
-    opcodes.SIGNEXTEND: not_implemented('SIGNEXTEND'),  # TODO: implement me
+    opcodes.SIGNEXTEND: arithmetic.signextend,
     #
     # Comparisons
     #
-    opcodes.LT: not_implemented('LT'),  # TODO: implement me
-    opcodes.GT: not_implemented('GT'),  # TODO: implement me
-    opcodes.SLT: not_implemented('SLT'),  # TODO: implement me
-    opcodes.SGT: not_implemented('SGT'),  # TODO: implement me
+    opcodes.LT: comparison.lt,
+    opcodes.GT: comparison.gt,
+    opcodes.SLT: comparison.slt,
+    opcodes.SGT: comparison.sgt,
     opcodes.EQ: comparison.eq,
-    opcodes.ISZERO: not_implemented('ISZERO'),  # TODO: implement me
-    opcodes.AND: not_implemented('AND'),  # TODO: implement me
-    opcodes.OR: not_implemented('OR'),  # TODO: implement me
-    opcodes.XOR: not_implemented('XOR'),  # TODO: implement me
+    opcodes.ISZERO: comparison.iszero,
+    opcodes.AND: comparison.and_op,
+    opcodes.OR: comparison.or_op,
+    opcodes.XOR: comparison.xor,
     opcodes.NOT: comparison.not_op,
-    opcodes.BYTE: not_implemented('BYTE'),  # TODO: implement me
+    opcodes.BYTE: comparison.byte_op,
     #
     # Sha3
     #
@@ -88,12 +88,12 @@ OPCODE_LOOKUP = {
     opcodes.MSTORE8: memory.mstore8,
     opcodes.SLOAD: storage.sload,
     opcodes.SSTORE: storage.sstore,
-    opcodes.JUMP: not_implemented('JUMP'),  # TODO: implement me
-    opcodes.JUMP1: not_implemented('JUMP1'),  # TODO: implement me
+    opcodes.JUMP: flow.jump,
+    opcodes.JUMPI: flow.jumpi,
     opcodes.PC: not_implemented('PC'),  # TODO: implement me
     opcodes.MSIZE: not_implemented('MSIZE'),  # TODO: implement me
     opcodes.GAS: not_implemented('GAS'),  # TODO: implement me
-    opcodes.JUMPDEST: not_implemented('JUMPDEST'),  # TODO: implement me
+    opcodes.JUMPDEST: flow.jumpdest,
     #
     # Push Operations
     #

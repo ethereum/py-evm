@@ -11,7 +11,7 @@ from evm.utils.numeric import (
 )
 
 
-logger = logging.getLogger('evm.logic.push.push')
+logger = logging.getLogger('evm.logic.storage')
 
 
 def sstore(message, storage, state):

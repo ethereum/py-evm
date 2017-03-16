@@ -97,10 +97,11 @@ def smod(message, storage, state):
     value = unsigned_to_signed(big_endian_to_int(state.stack.pop()))
     mod = unsigned_to_signed(big_endian_to_int(state.stack.pop()))
 
+    pos_or_neg = -1 if value < 0 else 1
+
     if mod == 0:
         result = 0
     else:
-        pos_or_neg = -1 if value < 0 else 1
         result = (abs(value) % abs(mod) * pos_or_neg) & UINT_256_MAX
 
     logger.info('SMOD: %s * |%s| %% |%s| -> %s', pos_or_neg, value, mod, result)
@@ -167,11 +168,11 @@ def sdiv(message, storage, state):
     numerator = unsigned_to_signed(big_endian_to_int(state.stack.pop()))
     denominator = unsigned_to_signed(big_endian_to_int(state.stack.pop()))
 
+    pos_or_neg = -1 if numerator * denominator < 0 else 1
+
     if denominator == 0:
-        pos_or_neg = 1
         result = 0
     else:
-        pos_or_neg = -1 if numerator * denominator < 0 else 1
         result = (pos_or_neg * (abs(numerator) // abs(denominator)))
     logger.info('SDIV: %s * |%s| / |%s| -> %s', pos_or_neg, numerator, denominator, result)
     state.stack.push(
@@ -200,3 +201,27 @@ def exp(message, storage, state):
     )
     state.consume_gas(COST_EXP)
     state.consume_gas(COST_EXPBYTE * byte_size)
+
+
+def signextend(message, storage, state):
+    """
+    Signed Extend
+    """
+    bits = big_endian_to_int(state.stack.pop())
+    value = big_endian_to_int(state.stack.pop())
+
+    if bits <= 31:
+        testbit = bits * 8 + 7
+        sign_bit = (1 << testbit)
+        if value & sign_bit:
+            result = value | (UINT_256_CEILING - sign_bit)
+        else:
+            result = value & (sign_bit - 1)
+    else:
+        result = value
+
+    logger.info('SIGNEXTEND: %s by %s bits -> %s', value, bits, result)
+    state.stack.push(
+        int_to_big_endian(result)
+    )
+    state.consume_gas(COST_LOW)

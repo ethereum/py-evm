@@ -33,6 +33,7 @@ from evm.logic.lookup import OPCODE_LOOKUP
 
 from evm.utils.numeric import (
     ceil32,
+    int_to_big_endian,
 )
 
 
@@ -165,8 +166,23 @@ class CodeStream(object):
             raise EmptyStream("Expected {0} bytes.  Got {1} bytes".format(size, len(value)))
         return value
 
-    def read1(self):
-        return self.read(1)
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        if self.code.closed:
+            raise StopIteration()
+        try:
+            next_op = ord(self.read(1))
+            if next_op == opcodes.STOP:
+                self.code.close()
+            return next_op
+        except EmptyStream:
+            self.code.close()
+            return opcodes.STOP
 
     def __len__(self):
         return len(self.code.getvalue())
@@ -221,11 +237,11 @@ class State(object):
 
     @property
     def pc(self):
-        return self.code.tell()
+        return self.code.code.tell()
 
     @pc.setter
     def pc(self, value):
-        self.code.seek(value)
+        self.code.code.seek(value)
 
     @property
     def gas_available(self):
@@ -272,17 +288,15 @@ def execute_vm(evm, message, state=None):
         code = evm.storage.get_code(message.account)
         state = State(code, start_gas=message.gas)
 
-    while True:
+    for opcode in state.code:
         if state.is_out_of_gas:
             raise OutOfGas("Ran out of gas during execution")
 
         try:
-            opcode_as_bytes = state.code.read1()
-        except EmptyStream:
+            opcode_fn = OPCODE_LOOKUP[opcode]
+        except KeyError:
+            # TODO: consume all the gas..
             break
-
-        opcode = ord(opcode_as_bytes)
-        opcode_fn = OPCODE_LOOKUP[opcode]
 
         opcode_fn(message=message, state=state, storage=evm.storage)
 
