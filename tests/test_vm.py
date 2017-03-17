@@ -14,7 +14,7 @@ from evm.storage.memory import (
     MemoryStorage,
 )
 from evm.exceptions import (
-    EVMError,
+    VMError,
 )
 from evm.vm import (
     Message,
@@ -33,6 +33,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 VM_TEST_FIXTURE_FILENAMES = (
     'vmArithmeticTest.json',
     'vmBitwiseLogicOperationTest.json',
+    'vmPushDupSwapTest.json',
 )
 
 FIXTURES_PATHS = tuple(
@@ -170,5 +171,6 @@ def test_vm_failure_using_fixture(fixture_name, fixture):
         gas_price=int(execute_params['gasPrice'], 16),
     )
 
-    with pytest.raises(EVMError):
-        execute_vm(evm, message)
+    _, state = execute_vm(evm, message)
+    assert state.error
+    assert isinstance(state.error, VMError)

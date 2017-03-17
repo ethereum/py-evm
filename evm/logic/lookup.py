@@ -11,6 +11,7 @@ from . import (
     stack,
     storage,
     swap,
+    system,
 )
 
 
@@ -181,7 +182,7 @@ OPCODE_LOOKUP = {
     opcodes.CREATE: not_implemented('CREATE'),  # TODO: implement me
     opcodes.CALL: not_implemented('CALL'),  # TODO: implement me
     opcodes.CALLCODE: not_implemented('CALLCODE'),  # TODO: implement me
-    opcodes.RETURN: flow.return_op,
+    opcodes.RETURN: system.return_op,
     opcodes.DELEGATECALL: not_implemented('DELEGATECALL'),  # TODO: implement me
     opcodes.SUICIDE: not_implemented('SUICIDE'),  # TODO: implement me
 }

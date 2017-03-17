@@ -15,7 +15,7 @@ from evm.constants import (
     NULL_BYTE,
 )
 from evm.exceptions import (
-    EVMError,
+    VMError,
     EmptyStream,
     OutOfGas,
     InsufficientStack,
@@ -160,8 +160,12 @@ class CodeStream(object):
         validate_is_bytes(code)
         self.code = BytesIO(code)
 
-    def read(self, size):
+    def read_raw(self, size):
         value = self.code.read(size)
+        return value
+
+    def read(self, size):
+        value = self.read_raw(size)
         if len(value) != size:
             raise EmptyStream("Expected {0} bytes.  Got {1} bytes".format(size, len(value)))
         return value
@@ -191,6 +195,50 @@ class CodeStream(object):
         if position > len(self):
             raise ValueError("Out of bounds???")
         self.code.seek(position)
+
+
+class GasMeter(object):
+    start_gas = None
+
+    deductions = None
+    refunds = None
+
+    def __init__(self, start_gas):
+        self.start_gas = start_gas
+
+    #
+    # Write API
+    #
+    def consume_gas(self, amount):
+        pass
+
+    def refund_gas(self, amount):
+        pass
+
+    #
+    # Read API
+    #
+    @property
+    def total_used(self):
+        return sum(self.deductions)
+
+    @property
+    def total_refunded(self):
+        return sum(self.refunds)
+
+    @property
+    def available(self):
+        return self.start_gas - self.total_used
+
+    @property
+    def is_out_of_gas(self):
+        return self.available < 0
+
+    def wrap_opcode(self, opcode_logic_fn):
+        # TODO:
+        #@functools.wraps(opcode_logic_fn)
+        #def inner(
+        pass
 
 
 class State(object):
@@ -298,7 +346,11 @@ def execute_vm(evm, message, state=None):
             # TODO: consume all the gas..
             break
 
-        opcode_fn(message=message, state=state, storage=evm.storage)
+        try:
+            opcode_fn(message=message, state=state, storage=evm.storage)
+        except VMError as err:
+            state.error = err
+            break
 
     return evm, state
 

@@ -1,26 +1,30 @@
-class EVMError(Exception):
+class BaseEVMError(Exception):
     pass
 
 
-class EmptyStream(EVMError):
+class EmptyStream(BaseEVMError):
     pass
 
 
-class InsufficientStack(EVMError):
+class VMError(BaseEVMError):
     pass
 
 
-class FullStack(EVMError):
+class OutOfGas(VMError):
     pass
 
 
-class InvalidJumpDestination(EVMError):
+class InsufficientStack(VMError):
     pass
 
 
-class InvalidInstruction(EVMError):
+class FullStack(VMError):
     pass
 
 
-class OutOfGas(EVMError):
+class InvalidJumpDestination(VMError):
+    pass
+
+
+class InvalidInstruction(VMError):
     pass

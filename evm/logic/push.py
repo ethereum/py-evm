@@ -4,6 +4,13 @@ from toolz import (
     partial,
 )
 
+from eth_utils import (
+    pad_right,
+)
+
+from evm.exceptions import (
+    EmptyStream,
+)
 from evm.gas import (
     COST_VERYLOW,
 )
@@ -13,9 +20,11 @@ logger = logging.getLogger('evm.logic.push.push')
 
 
 def push_XX(message, state, storage, size):
-    value_to_push = state.code.read(size)
-    logger.info('PUSH%s: %s', size, value_to_push)
-    state.stack.push(value_to_push)
+    raw_value = state.code.read_raw(size)
+    padded_value = pad_right(raw_value, size, b'\x00')
+
+    logger.info('PUSH%s: %s', size, padded_value)
+    state.stack.push(padded_value)
 
     state.consume_gas(COST_VERYLOW)
 
