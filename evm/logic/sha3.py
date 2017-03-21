@@ -24,8 +24,7 @@ def sha3(environment):
     start_position = big_endian_to_int(environment.state.stack.pop())
     size = big_endian_to_int(environment.state.stack.pop())
 
-    if size:
-        environment.state.extend_memory(start_position, size)
+    environment.state.extend_memory(start_position, size)
 
     sha3_bytes = environment.state.memory.read(start_position, size)
     word_count = ceil32(len(sha3_bytes)) // 32

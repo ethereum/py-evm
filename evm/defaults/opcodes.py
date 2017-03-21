@@ -2,6 +2,7 @@ from evm import opcodes
 
 from evm.logic import (
     arithmetic,
+    block,
     comparison,
     context,
     duplication,
@@ -61,13 +62,13 @@ OPCODE_LOGIC_FUNCTIONS = {
     opcodes.ADDRESS: not_implemented('ADDRESS'),  # TODO: implement me
     opcodes.BALANCE: not_implemented('BALANCE'),  # TODO: implement me
     opcodes.ORIGIN: not_implemented('ORIGIN'),  # TODO: implement me
-    opcodes.CALLER: not_implemented('CALLER'),  # TODO: implement me
-    opcodes.CALLVALUE: not_implemented('CALLVALUE'),  # TODO: implement me
+    opcodes.CALLER: context.caller,
+    opcodes.CALLVALUE: context.callvalue,
     opcodes.CALLDATALOAD: context.calldataload,
     opcodes.CALLDATASIZE: not_implemented('CALLDATASIZE'),  # TODO: implement me
     opcodes.CALLDATACOPY: not_implemented('CALLDATACOPY'),  # TODO: implement me
     opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
-    opcodes.CODECOPY: not_implemented('CODECOPY'),  # TODO: implement me
+    opcodes.CODECOPY: context.codecopy,
     opcodes.GASPRICE: not_implemented('GASPRICE'),  # TODO: implement me
     opcodes.EXTCODESIZE: not_implemented('EXTCODESIZE'),  # TODO: implement me
     opcodes.EXTCODECOPY: not_implemented('EXTCODECOPY'),  # TODO: implement me
@@ -77,7 +78,7 @@ OPCODE_LOGIC_FUNCTIONS = {
     opcodes.BLOCKHASH: not_implemented('BLOCKHASH'),  # TODO: implement me
     opcodes.COINBASE: not_implemented('COINBASE'),  # TODO: implement me
     opcodes.TIMESTAMP: not_implemented('TIMESTAMP'),  # TODO: implement me
-    opcodes.NUMBER: not_implemented('NUMBER'),  # TODO: implement me
+    opcodes.NUMBER: block.number,
     opcodes.DIFFICULTY: not_implemented('DIFFICULTY'),  # TODO: implement me
     opcodes.GASLIMIT: not_implemented('GASLIMIT'),  # TODO: implement me
     #
@@ -91,9 +92,9 @@ OPCODE_LOGIC_FUNCTIONS = {
     opcodes.SSTORE: storage.sstore,
     opcodes.JUMP: flow.jump,
     opcodes.JUMPI: flow.jumpi,
-    opcodes.PC: not_implemented('PC'),  # TODO: implement me
-    opcodes.MSIZE: not_implemented('MSIZE'),  # TODO: implement me
-    opcodes.GAS: not_implemented('GAS'),  # TODO: implement me
+    opcodes.PC: flow.pc,
+    opcodes.MSIZE: memory.msize,
+    opcodes.GAS: flow.gas,
     opcodes.JUMPDEST: flow.jumpdest,
     #
     # Push Operations

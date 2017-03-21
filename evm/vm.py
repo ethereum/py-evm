@@ -228,7 +228,6 @@ class CodeStream(object):
 
     @pc.setter
     def pc(self, value):
-        self.logger.debug("PC: %s", value)
         self.stream.seek(value)
 
 
@@ -320,7 +319,7 @@ class GasMeter(object):
         return inner
 
 
-class Environment(object):
+class ExecutionEnvironment(object):
     """
     The execution environment
     """
@@ -330,11 +329,13 @@ class Environment(object):
 
     accounts_to_delete = None
 
-    logger = logging.getLogger('evm.vm.Environment')
+    logger = logging.getLogger('evm.vm.ExecutionEnvironment')
 
-    def __init__(self, storage, message):
+    def __init__(self, storage, chain_environment, message):
         self.storage = storage
+        self.chain_environment = chain_environment
         self.message = message
+
         self.accounts_to_delete = {}
 
         account_code = self.storage.get_code(message.account)
@@ -402,6 +403,24 @@ class Environment(object):
                 self.storage.set_balance(beneficiary, beneficiary_updated_balance)
 
 
+class ChainEnvironment(object):
+    block_number = None
+    gas_limit = None
+    timestamp = None
+
+    logger = logging.getLogger('evm.vm.ChainEnvironment')
+
+    def __init__(self, block_number, gas_limit, timestamp):
+        validate_uint256(block_number)
+        self.block_number = block_number
+
+        validate_uint256(gas_limit)
+        self.gas_limit = gas_limit
+
+        validate_uint256(timestamp)
+        self.timestamp = timestamp
+
+
 class State(object):
     """
     The local computation state during EVM execution.
@@ -455,14 +474,15 @@ class State(object):
             after_cost,
         )
 
-        if before_cost < after_cost:
-            gas_fee = after_cost - before_cost
-            self.gas_meter.consume_gas(gas_fee)
+        if size:
+            if before_cost < after_cost:
+                gas_fee = after_cost - before_cost
+                self.gas_meter.consume_gas(gas_fee)
 
-        if self.gas_meter.is_out_of_gas:
-            raise OutOfGas("Ran out of gas extending memory")
+            if self.gas_meter.is_out_of_gas:
+                raise OutOfGas("Ran out of gas extending memory")
 
-        self.memory.extend(start_position, size)
+            self.memory.extend(start_position, size)
 
 
 BREAK_OPCODES = {
@@ -496,13 +516,16 @@ def execute_vm(evm, message):
 
 class EVM(object):
     storage = None
+    chain_environment = None
 
-    def __init__(self, storage):
+    def __init__(self, storage, chain_environment):
         self.storage = storage
+        self.chain_environment = chain_environment
 
     def setup_environment(self, message):
-        environment = Environment(
+        environment = ExecutionEnvironment(
             storage=self.storage,
+            chain_environment=self.chain_environment,
             message=message,
         )
         return environment

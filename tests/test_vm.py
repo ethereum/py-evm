@@ -8,6 +8,7 @@ from eth_utils import (
     to_canonical_address,
     encode_hex,
     decode_hex,
+    pad_left,
 )
 
 from evm.storage.memory import (
@@ -17,6 +18,7 @@ from evm.exceptions import (
     VMError,
 )
 from evm.vm import (
+    ChainEnvironment,
     Message,
     EVM,
     execute_vm,
@@ -33,6 +35,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 VM_TEST_FIXTURE_FILENAMES = (
     'vmArithmeticTest.json',
     'vmBitwiseLogicOperationTest.json',
+    'vmIOandFlowOperationsTest.json',
     'vmPushDupSwapTest.json',
     'vmSha3Test.json',
 )
@@ -81,7 +84,7 @@ def setup_storage(fixture, storage):
 
         for slot_as_hex, value_as_hex in account_data['storage'].items():
             slot = int(slot_as_hex, 16)
-            value = decode_hex(value)
+            value = decode_hex(value_as_hex)
 
             storage.set_storage(account, slot, value)
 
@@ -99,7 +102,15 @@ def setup_storage(fixture, storage):
     'fixture_name,fixture', SUCCESS_FIXTURES,
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
-    evm = EVM(MemoryStorage())
+    chain_environment = ChainEnvironment(
+        block_number=int(fixture['env']['currentNumber'], 16),
+        gas_limit=int(fixture['env']['currentGasLimit'], 16),
+        timestamp=int(fixture['env']['currentTimestamp'], 16),
+    )
+    evm = EVM(
+        storage=MemoryStorage(),
+        chain_environment=chain_environment,
+    )
 
     assert fixture.get('callcreates', []) == []
 
@@ -126,7 +137,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     gas_meter = state.gas_meter
 
     expected_gas_remaining = int(fixture['gas'], 16)
-    actual_gas_remaining = gas_meter.start_gas - gas_meter.gas_used + gas_meter.gas_refunded
+    actual_gas_remaining = gas_meter.start_gas - gas_meter.gas_used
     assert actual_gas_remaining == expected_gas_remaining
 
     for account_as_hex, account_data in fixture['post'].items():
@@ -134,8 +145,16 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 
         for slot_as_hex, expected_storage_value_as_hex in account_data['storage'].items():
             slot = int(slot_as_hex, 16)
-            expected_storage_value = decode_hex(expected_storage_value_as_hex)
-            actual_storage_value = result_evm.storage.get_storage(account, slot)
+            expected_storage_value = pad_left(
+                decode_hex(expected_storage_value_as_hex),
+                32,
+                b'\x00',
+            )
+            actual_storage_value = pad_left(
+                result_evm.storage.get_storage(account, slot),
+                32,
+                b'\x00',
+            )
 
             assert actual_storage_value == expected_storage_value
 
@@ -156,7 +175,15 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     'fixture_name,fixture', FAILURE_FIXTURES,
 )
 def test_vm_failure_using_fixture(fixture_name, fixture):
-    evm = EVM(MemoryStorage())
+    chain_environment = ChainEnvironment(
+        block_number=int(fixture['env']['currentNumber'], 16),
+        gas_limit=int(fixture['env']['currentGasLimit'], 16),
+        timestamp=int(fixture['env']['currentTimestamp'], 16),
+    )
+    evm = EVM(
+        storage=MemoryStorage(),
+        chain_environment=chain_environment,
+    )
 
     assert fixture.get('callcreates', []) == []
 

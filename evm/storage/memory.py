@@ -3,6 +3,7 @@ import collections
 from evm.validation import (
     validate_is_bytes,
     validate_uint256,
+    validate_word,
     validate_canonical_address,
 )
 

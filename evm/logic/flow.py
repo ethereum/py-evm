@@ -9,6 +9,7 @@ from evm.opcodes import (
 
 from evm.utils.numeric import (
     big_endian_to_int,
+    int_to_big_endian,
 )
 
 
@@ -49,3 +50,17 @@ def jumpi(environment):
 
 def jumpdest(environment):
     logger.info('JUMPDEST')
+
+
+def pc(environment):
+    pc = max(environment.state.code.pc - 1, 0)
+    logger.info('PC: %s', pc)
+
+    environment.state.stack.push(int_to_big_endian(pc))
+
+
+def gas(environment):
+    gas_remaining = environment.state.gas_meter.gas_remaining
+    logger.info('GAS: %s', gas_remaining)
+
+    environment.state.stack.push(int_to_big_endian(gas_remaining))

@@ -3,6 +3,7 @@ from evm import opcodes
 
 from evm.utils.numeric import (
     ceil32,
+    big_endian_to_int,
 )
 
 
@@ -37,11 +38,12 @@ def mem_extend(mem, compustate, op, start, sz):
 
 
 def sstore_gas_cost(current_value, value_to_write):
+    value_as_int = big_endian_to_int(value_to_write)
     if current_value:
-        gas_cost = constants.GAS_SRESET if value_to_write else constants.GAS_SRESET
-        gas_refund = constants.REFUND_SCLEAR if value_to_write else 0
+        gas_cost = constants.GAS_SRESET if value_as_int else constants.GAS_SRESET
+        gas_refund = constants.REFUND_SCLEAR if value_as_int else 0
     else:
-        gas_cost = constants.GAS_SSET if value_to_write else constants.GAS_SRESET
+        gas_cost = constants.GAS_SSET if value_as_int else constants.GAS_SRESET
         gas_refund = 0
     return gas_cost, gas_refund
 

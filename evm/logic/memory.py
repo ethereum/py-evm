@@ -10,6 +10,7 @@ from eth_utils import (
 
 from evm.utils.numeric import (
     big_endian_to_int,
+    int_to_big_endian,
 )
 
 
@@ -55,3 +56,9 @@ def mload(environment):
         start_position + 32,
         value,
     )
+
+
+def msize(environment):
+    logger.info('MSIZE: %s', len(environment.state.memory))
+
+    environment.state.stack.push(int_to_big_endian(len(environment.state.memory)))
