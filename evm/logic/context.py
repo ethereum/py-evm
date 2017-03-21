@@ -9,6 +9,9 @@ from evm.exceptions import (
     OutOfGas,
 )
 
+from evm.utils.address import (
+    force_bytes_to_address,
+)
 from evm.utils.numeric import (
     ceil32,
     big_endian_to_int,
@@ -67,13 +70,13 @@ def codecopy(environment):
 
     padded_code_bytes = pad_right(code_bytes, size, b'\x00')
 
-    environment.state.memory.write(mem_start_position, size, code_bytes)
+    environment.state.memory.write(mem_start_position, size, padded_code_bytes)
 
     logger.info(
         "CODECOPY: [%s, %s] -> %s",
         code_start_position,
         code_start_position + size,
-        code_bytes
+        padded_code_bytes,
     )
 
 
@@ -94,4 +97,42 @@ def calldatacopy(environment):
         calldata_start_position,
         calldata_start_position + size,
         padded_value,
+    )
+
+
+def extcodesize(environment):
+    account = force_bytes_to_address(environment.state.stack.pop())
+    code_size = len(environment.storage.get_code(account))
+
+    logger.info('EXTCODESIZE: %s', code_size)
+
+    environment.state.stack.push(int_to_big_endian(code_size))
+
+
+def extcodecopy(environment):
+    account = force_bytes_to_address(environment.state.stack.pop())
+    mem_start_position = big_endian_to_int(environment.state.stack.pop())
+    code_start_position = big_endian_to_int(environment.state.stack.pop())
+    size = big_endian_to_int(environment.state.stack.pop())
+
+    environment.state.extend_memory(mem_start_position, size)
+
+    word_count = ceil32(size) // 32
+    copy_gas_cost = constants.GAS_COPY * word_count
+
+    environment.state.gas_meter.consume_gas(copy_gas_cost)
+    if environment.state.gas_meter.is_out_of_gas:
+        raise OutOfGas("Insufficient gas to copy data")
+
+    code = environment.storage.get_code(account)
+    code_bytes = code[code_start_position:code_start_position + size]
+    padded_code_bytes = pad_right(code_bytes, size, b'\x00')
+
+    environment.state.memory.write(mem_start_position, size, padded_code_bytes)
+
+    logger.info(
+        'EXTCODECOPY: [%s:%s] -> %s',
+        code_start_position,
+        code_start_position + code_size,
+        padded_code_bytes,
     )

@@ -9,6 +9,56 @@ class Compustate(object):
         self.gas = 0
 
 
+def apply_msg(ext, msg):
+    return _apply_msg(ext, msg, ext.get_code(msg.code_address))
+
+
+def _apply_msg(ext, msg, code):
+    trace_msg = log_msg.is_active('trace')
+    if trace_msg:
+        log_msg.debug("MSG APPLY", sender=encode_hex(msg.sender), to=encode_hex(msg.to),
+                      gas=msg.gas, value=msg.value,
+                      data=encode_hex(msg.data.extract_all()))
+        if log_state.is_active('trace'):
+            log_state.trace('MSG PRE STATE SENDER', account=encode_hex(msg.sender),
+                            bal=ext.get_balance(msg.sender),
+                            state=ext.log_storage(msg.sender))
+            log_state.trace('MSG PRE STATE RECIPIENT', account=encode_hex(msg.to),
+                            bal=ext.get_balance(msg.to),
+                            state=ext.log_storage(msg.to))
+        # log_state.trace('CODE', code=code)
+    # Transfer value, instaquit if not enough
+    snapshot = ext._block.snapshot()
+    if msg.transfers_value:
+        if not ext._block.transfer_value(msg.sender, msg.to, msg.value):
+            log_msg.debug('MSG TRANSFER FAILED', have=ext.get_balance(msg.to),
+                          want=msg.value)
+            return 1, msg.gas, []
+    # Main loop
+    if msg.code_address in specials.specials:
+        res, gas, dat = specials.specials[msg.code_address](ext, msg)
+    else:
+        res, gas, dat = vm.vm_execute(ext, msg, code)
+    # gas = int(gas)
+    # assert utils.is_numeric(gas)
+    if trace_msg:
+        log_msg.debug('MSG APPLIED', gas_remained=gas,
+                      sender=encode_hex(msg.sender), to=encode_hex(msg.to), data=dat)
+        if log_state.is_active('trace'):
+            log_state.trace('MSG POST STATE SENDER', account=encode_hex(msg.sender),
+                            bal=ext.get_balance(msg.sender),
+                            state=ext.log_storage(msg.sender))
+            log_state.trace('MSG POST STATE RECIPIENT', account=encode_hex(msg.to),
+                            bal=ext.get_balance(msg.to),
+                            state=ext.log_storage(msg.to))
+
+    if res == 0:
+        log_msg.debug('REVERTING')
+        ext._block.revert(snapshot)
+
+    return res, gas, dat
+
+
 def vm_execute(ext, msg, code):
     # precompute trace flag
     # if we trace vm, we're in slow mode anyway

@@ -28,3 +28,11 @@ class InvalidJumpDestination(VMError):
 
 class InvalidInstruction(VMError):
     pass
+
+
+class InsufficientFunds(VMError):
+    pass
+
+
+class StackDepthLimit(VMError):
+    pass

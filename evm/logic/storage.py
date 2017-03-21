@@ -19,7 +19,7 @@ def sstore(environment):
 
     environment.storage.set_storage(environment.message.account, slot, value)
 
-    gas_fn = environment.get_sstore_gas_fn()
+    gas_fn = environment.evm.get_sstore_gas_fn()
     gas_cost, gas_refund = gas_fn(original_value, value)
 
     environment.state.gas_meter.consume_gas(gas_cost)

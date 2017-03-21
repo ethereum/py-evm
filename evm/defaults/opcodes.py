@@ -7,6 +7,7 @@ from evm.logic import (
     context,
     duplication,
     flow,
+    logging,
     memory,
     sha3,
     stack,
@@ -70,8 +71,8 @@ OPCODE_LOGIC_FUNCTIONS = {
     opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
     opcodes.CODECOPY: context.codecopy,
     opcodes.GASPRICE: not_implemented('GASPRICE'),  # TODO: implement me
-    opcodes.EXTCODESIZE: not_implemented('EXTCODESIZE'),  # TODO: implement me
-    opcodes.EXTCODECOPY: not_implemented('EXTCODECOPY'),  # TODO: implement me
+    opcodes.EXTCODESIZE: context.extcodesize,
+    opcodes.EXTCODECOPY: context.extcodecopy,
     #
     # Block Information
     #
@@ -172,16 +173,16 @@ OPCODE_LOGIC_FUNCTIONS = {
     #
     # Logging
     #
-    opcodes.LOG0: not_implemented('LOG0'),  # TODO: implement me
-    opcodes.LOG1: not_implemented('LOG1'),  # TODO: implement me
-    opcodes.LOG2: not_implemented('LOG2'),  # TODO: implement me
-    opcodes.LOG3: not_implemented('LOG3'),  # TODO: implement me
-    opcodes.LOG4: not_implemented('LOG4'),  # TODO: implement me
+    opcodes.LOG0: logging.log0,
+    opcodes.LOG1: logging.log1,
+    opcodes.LOG2: logging.log2,
+    opcodes.LOG3: logging.log3,
+    opcodes.LOG4: logging.log4,
     #
     # System
     #
     opcodes.CREATE: not_implemented('CREATE'),  # TODO: implement me
-    opcodes.CALL: not_implemented('CALL'),  # TODO: implement me
+    opcodes.CALL: system.call,
     opcodes.CALLCODE: not_implemented('CALLCODE'),  # TODO: implement me
     opcodes.RETURN: system.return_op,
     opcodes.DELEGATECALL: not_implemented('DELEGATECALL'),  # TODO: implement me

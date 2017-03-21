@@ -48,6 +48,17 @@ def sstore_gas_cost(current_value, value_to_write):
     return gas_cost, gas_refund
 
 
+def call_gas_cost(to, value, gas):
+    transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
+    create_gas_cost = constants.GAS_CREATE if to == constants.ZERO_ADDRESS else 0
+
+    extra_gas = constants.GAS_CALL + transfer_gas_cost + create_gas_cost
+
+    total_gas_cost = gas + extra_gas
+
+    return total_gas_cost
+
+
 OPCODE_GAS_COSTS = {
     #
     # Arithmetic
@@ -207,9 +218,9 @@ OPCODE_GAS_COSTS = {
     # System
     #
     opcodes.CREATE: constants.GAS_CREATE,
-    opcodes.CALL: constants.GAS_NULL,
-    opcodes.CALLCODE: constants.GAS_NULL,
+    opcodes.CALL: constants.GAS_CALL,
+    opcodes.CALLCODE: constants.GAS_CALL,
     opcodes.RETURN: constants.GAS_ZERO,
-    opcodes.DELEGATECALL: constants.GAS_NULL,
+    opcodes.DELEGATECALL: constants.GAS_CALL,
     opcodes.SUICIDE: constants.GAS_NULL,
 }

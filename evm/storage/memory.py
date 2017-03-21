@@ -1,3 +1,4 @@
+import copy
 import collections
 
 from evm.validation import (
@@ -67,3 +68,17 @@ class MemoryStorage(BaseMachineStorage):
     def delete_code(self, account):
         validate_canonical_address(account)
         self.code[account] = b''
+
+    def snapshot(self):
+        return {
+            'storage': copy.deepcopy(self.storage),
+            'balances': copy.deepcopy(self.balances),
+            'nonces': copy.deepcopy(self.nonces),
+            'code': copy.deepcopy(self.code),
+        }
+
+    def revert(self, snapshot):
+        self.storage = snapshot['storage']
+        self.balances = snapshot['balances']
+        self.nonces = snapshot['nonces']
+        self.code = snapshot['code']

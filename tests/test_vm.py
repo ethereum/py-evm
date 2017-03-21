@@ -6,6 +6,7 @@ import os
 
 from eth_utils import (
     to_canonical_address,
+    to_normalized_address,
     encode_hex,
     decode_hex,
     pad_left,
@@ -33,11 +34,13 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 VM_TEST_FIXTURE_FILENAMES = (
-    'vmArithmeticTest.json',
-    'vmBitwiseLogicOperationTest.json',
-    'vmIOandFlowOperationsTest.json',
-    'vmPushDupSwapTest.json',
-    'vmSha3Test.json',
+    #'vmArithmeticTest.json',
+    #'vmBitwiseLogicOperationTest.json',
+    #'vmIOandFlowOperationsTest.json',
+    #'vmLogTest.json',
+    #'vmPushDupSwapTest.json',
+    #'vmSha3Test.json',
+    'vmSystemOperationsTest.json',
 )
 
 FIXTURES_PATHS = tuple(
@@ -112,8 +115,6 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         chain_environment=chain_environment,
     )
 
-    assert fixture.get('callcreates', []) == []
-
     setup_storage(fixture, evm.storage)
 
     execute_params = fixture['exec']
@@ -127,19 +128,46 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         gas=int(execute_params['gas'], 16),
         gas_price=int(execute_params['gasPrice'], 16),
     )
-    result_evm, state = execute_vm(evm, message)
-    assert state.error is None
+    start_environment = evm.setup_environment(message)
+    environment = execute_vm(evm, start_environment)
+    result_evm = environment.evm
 
-    assert state.logs == fixture['logs']
+    assert environment.error is None
+
+    state = environment.state
+
+    expected_logs = [
+        {
+            'address': to_normalized_address(log_entry[0]),
+            'topics': [encode_hex(topic) for topic in log_entry[1]],
+            'data': encode_hex(log_entry[2]),
+        }
+        for log_entry in environment.logs
+    ]
+    expected_logs == fixture['logs']
 
     expected_output = decode_hex(fixture['out'])
-    assert state.output == expected_output
+    assert environment.output == expected_output
 
     gas_meter = state.gas_meter
 
     expected_gas_remaining = int(fixture['gas'], 16)
     actual_gas_remaining = gas_meter.start_gas - gas_meter.gas_used
     assert actual_gas_remaining == expected_gas_remaining
+
+    call_creates = fixture.get('callcreates', [])
+    assert len(environment.sub_environments) == len(call_creates)
+
+    for sub_environment, created_call in zip(environment.sub_environments, fixture.get('callcreates', [])):
+        to_address = to_canonical_address(created_call['destination'])
+        data = decode_hex(created_call['data'])
+        gas_limit = int(created_call['gasLimit'], 16)
+        value = int(created_call['value'], 16)
+
+        assert sub_environment.message.account == to_address
+        assert data == sub_environment.message.data
+        assert gas_limit == sub_environment.message.gas
+        assert value == sub_environment.message.value
 
     for account_as_hex, account_data in fixture['post'].items():
         account = to_canonical_address(account_as_hex)

@@ -31,3 +31,9 @@ class BaseMachineStorage(object):
 
     def delete_code(self, account):
         raise NotImplementedError("The `delete_code` method is not implemented")
+
+    def snapshot(self):
+        raise NotImplementedError("The `snapshot` method is not implemented")
+
+    def revert(self, snapshot):
+        raise NotImplementedError("The `revert` method is not implemented")
