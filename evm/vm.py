@@ -249,8 +249,6 @@ class CodeStream(object):
         with self.seek(max(0, position - 32)):
             prefix = self.read(min(position, 32))
 
-        as_mnemonics = [opcodes.get_mnemonic(c) for c in prefix]
-        print(as_mnemonics)
         for offset, opcode in enumerate(reversed(prefix)):
             if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
                 continue
