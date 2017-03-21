@@ -60,7 +60,7 @@ OPCODE_LOGIC_FUNCTIONS = {
     #
     # Environment Information
     #
-    opcodes.ADDRESS: not_implemented('ADDRESS'),  # TODO: implement me
+    opcodes.ADDRESS: context.address,
     opcodes.BALANCE: not_implemented('BALANCE'),  # TODO: implement me
     opcodes.ORIGIN: not_implemented('ORIGIN'),  # TODO: implement me
     opcodes.CALLER: context.caller,

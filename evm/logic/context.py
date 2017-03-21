@@ -22,6 +22,11 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.context')
 
 
+def address(environment):
+    logger.info('CALLER: %s', environment.message.account)
+    environment.state.stack.push(environment.message.account)
+
+
 def caller(environment):
     logger.info('CALLER: %s', environment.message.sender)
     environment.state.stack.push(environment.message.sender)
