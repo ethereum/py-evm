@@ -2,6 +2,7 @@ import logging
 
 from evm.exceptions import (
     InvalidJumpDestination,
+    InvalidInstruction,
 )
 from evm.opcodes import (
     JUMPDEST,
@@ -30,6 +31,9 @@ def jump(environment):
     if next_opcode != JUMPDEST:
         raise InvalidJumpDestination("Invalid Jump Destination")
 
+    if not environment.state.code.is_valid_opcode(jump_dest):
+        raise InvalidInstruction("Jump resulted in invalid instruction")
+
     logger.info('JUMP: %s', jump_dest)
 
 
@@ -44,6 +48,9 @@ def jumpi(environment):
 
         if next_opcode != JUMPDEST:
             raise InvalidJumpDestination("Invalid Jump Destination")
+
+        if not environment.state.code.is_valid_opcode(jump_dest):
+            raise InvalidInstruction("Jump resulted in invalid instruction")
 
     logger.info('JUMP: %s - %s', jump_dest, check_value)
 

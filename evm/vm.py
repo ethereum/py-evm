@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import io
 import itertools
@@ -200,6 +201,9 @@ class CodeStream(object):
         value = self.stream.read(size)
         return value
 
+    def __len__(self):
+        return len(self.stream.getvalue())
+
     def __iter__(self):
         return self
 
@@ -228,8 +232,40 @@ class CodeStream(object):
 
     @pc.setter
     def pc(self, value):
-        self.stream.seek(value)
+        self.stream.seek(min(value, len(self)))
 
+    @contextlib.contextmanager
+    def seek(self, pc):
+        anchor_pc = self.pc
+        self.pc = pc
+        try:
+            yield self
+        except:
+            raise
+        finally:
+            self.pc = anchor_pc
+
+    def is_valid_opcode(self, position):
+        with self.seek(max(0, position - 32)):
+            prefix = self.read(min(position, 32))
+
+        as_mnemonics = [opcodes.get_mnemonic(c) for c in prefix]
+        print(as_mnemonics)
+        for offset, opcode in enumerate(reversed(prefix)):
+            if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
+                continue
+
+            push_size = 1 + opcode - opcodes.PUSH1
+            if push_size <= offset:
+                continue
+
+            opcode_position = position - 1 - offset
+            if not self.is_valid_opcode(opcode_position):
+                continue
+
+            return False
+        else:
+            return True
 
 
 class GasMeter(object):

@@ -128,6 +128,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         gas_price=int(execute_params['gasPrice'], 16),
     )
     result_evm, state = execute_vm(evm, message)
+    assert state.error is None
 
     assert state.logs == fixture['logs']
 

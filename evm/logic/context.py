@@ -49,8 +49,6 @@ def calldataload(environment):
 
 
 def codecopy(environment):
-    current_pc = environment.state.code.pc
-
     mem_start_position = big_endian_to_int(environment.state.stack.pop())
     code_start_position = big_endian_to_int(environment.state.stack.pop())
     size = big_endian_to_int(environment.state.stack.pop())
@@ -64,14 +62,12 @@ def codecopy(environment):
     if environment.state.gas_meter.is_out_of_gas:
         raise OutOfGas("Insufficient gas to copy data")
 
-    environment.state.code.pc = code_start_position
+    with environment.state.code.seek(code_start_position):
+        code_bytes = environment.state.code.read(size)
 
-    code_bytes = environment.state.code.read(size)
     padded_code_bytes = pad_right(code_bytes, size, b'\x00')
 
     environment.state.memory.write(mem_start_position, size, code_bytes)
-
-    environment.state.code.pc = current_pc
 
     logger.info(
         "CODECOPY: [%s, %s] -> %s",
