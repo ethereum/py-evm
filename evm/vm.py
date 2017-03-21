@@ -1,4 +1,5 @@
-from io import BytesIO
+import functools
+import io
 import itertools
 import logging
 
@@ -6,17 +7,28 @@ from toolz import (
     partial,
 )
 
+from eth_utils import (
+    to_normalized_address,
+)
+
 from evm import opcodes
-from evm.gas import (
-    COST_MEMORY,
-    COST_MEMORY_QUADRATIC_DENOMINATOR,
+from evm.defaults.gas_costs import (
+    memory_gas_cost,
+    sstore_gas_cost,
+    OPCODE_GAS_COSTS,
+)
+from evm.defaults.opcodes import (
+    OPCODE_LOGIC_FUNCTIONS,
+)
+from evm.logic.invalid import (
+    invalid_op,
 )
 from evm.constants import (
     NULL_BYTE,
 )
 from evm.exceptions import (
+    ValidationError,
     VMError,
-    EmptyStream,
     OutOfGas,
     InsufficientStack,
     FullStack,
@@ -28,8 +40,8 @@ from evm.validation import (
     validate_lte,
     validate_uint256,
     validate_word,
+    validate_opcode,
 )
-from evm.logic.lookup import OPCODE_LOOKUP
 
 from evm.utils.numeric import (
     ceil32,
@@ -37,10 +49,10 @@ from evm.utils.numeric import (
 )
 
 
-logger = logging.getLogger('evm.vm')
-
-
 class Memory(object):
+    """
+    EVM Memory
+    """
     bytes = None
 
     def __init__(self):
@@ -60,21 +72,16 @@ class Memory(object):
     def __len__(self):
         return len(self.bytes)
 
-    @property
-    def cost(self):
-        size_in_words = len(self) // 32
-        linear_cost = size_in_words * COST_MEMORY
-        quadratic_cost = size_in_words ** (2 // COST_MEMORY_QUADRATIC_DENOMINATOR)
-
-        total_cost = linear_cost + quadratic_cost
-        return total_cost
-
     def write(self, start_position, size, value):
+        """
+        Write `value` into memory.
+        """
         validate_uint256(start_position)
         validate_uint256(size)
         validate_is_bytes(value)
         validate_length(value, length=size)
         validate_lte(start_position + size, maximum=len(self))
+
         self.bytes = (
             self.bytes[:start_position] +
             bytearray(value) +
@@ -82,11 +89,18 @@ class Memory(object):
         )
 
     def read(self, start_position, size):
+        """
+        Read a value from memory.
+        """
         return self.bytes[start_position:start_position + size]
 
 
 class Stack(object):
+    """
+    EVM Stack
+    """
     values = None
+    logger = logging.getLogger('evm.vm.Stack')
 
     def __init__(self):
         self.values = []
@@ -95,27 +109,47 @@ class Stack(object):
         return len(self.values)
 
     def push(self, value):
+        """
+        Push an item onto the stack.
+        """
         if len(self.values) + 1 > 1024:
             raise FullStack('Stack limit reached')
+
         validate_is_bytes(value)
         validate_lte(len(value), maximum=32)
-        logger.info('STACK:PUSHING: %s', value)
+
         self.values.append(value)
 
     def pop(self):
+        """
+        Pop an item off thes stack.
+        """
         if not self.values:
-            raise InsufficientStack('Insufficient stack items')
+            raise InsufficientStack('Popping from empty stack')
+
         value = self.values.pop()
-        logger.info('STACK:POPPING: %s', value)
+
         return value
 
     def swap(self, position):
-        idx = -1 * position
-        self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
+        """
+        Perform a SWAP operation on the stack.
+        """
+        idx = -1 * position - 1
+        try:
+            self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
+        except IndexError:
+            raise InsufficientStack("Insufficient stack items for SWAP{0}".format(position))
 
     def dup(self, position):
+        """
+        Perform a DUP operation on the stack.
+        """
         idx = -1 * position
-        self.push(self.values[idx])
+        try:
+            self.push(self.values[idx])
+        except IndexError:
+            raise InsufficientStack("Insufficient stack items for DUP{0}".format(position))
 
 
 class Message(object):
@@ -154,20 +188,16 @@ class Message(object):
 
 
 class CodeStream(object):
-    code = None
+    stream = None
 
-    def __init__(self, code):
-        validate_is_bytes(code)
-        self.code = BytesIO(code)
+    logger = logging.getLogger('evm.vm.CodeStream')
 
-    def read_raw(self, size):
-        value = self.code.read(size)
-        return value
+    def __init__(self, code_bytes):
+        validate_is_bytes(code_bytes)
+        self.stream = io.BytesIO(code_bytes)
 
     def read(self, size):
-        value = self.read_raw(size)
-        if len(value) != size:
-            raise EmptyStream("Expected {0} bytes.  Got {1} bytes".format(size, len(value)))
+        value = self.stream.read(size)
         return value
 
     def __iter__(self):
@@ -177,24 +207,30 @@ class CodeStream(object):
         return self.next()
 
     def next(self):
-        if self.code.closed:
-            raise StopIteration()
-        try:
-            next_op = ord(self.read(1))
-            if next_op == opcodes.STOP:
-                self.code.close()
-            return next_op
-        except EmptyStream:
-            self.code.close()
-            return opcodes.STOP
+        next_opcode_as_byte = self.read(1)
 
-    def __len__(self):
-        return len(self.code.getvalue())
+        if len(next_opcode_as_byte) == 1:
+            next_opcode = ord(next_opcode_as_byte)
+        else:
+            next_opcode = opcodes.STOP
 
-    def seek(self, position):
-        if position > len(self):
-            raise ValueError("Out of bounds???")
-        self.code.seek(position)
+        return next_opcode
+
+    def peek(self):
+        current_pc = self.pc
+        next_opcode = next(self)
+        self.pc = current_pc
+        return next_opcode
+
+    @property
+    def pc(self):
+        return self.stream.tell()
+
+    @pc.setter
+    def pc(self, value):
+        self.logger.debug("PC: %s", value)
+        self.stream.seek(value)
+
 
 
 class GasMeter(object):
@@ -203,42 +239,167 @@ class GasMeter(object):
     deductions = None
     refunds = None
 
+    logger = logging.getLogger('evm.vm.GasMeter')
+
     def __init__(self, start_gas):
+        validate_uint256(start_gas)
+
+        self.deductions = []
+        self.refunds = []
         self.start_gas = start_gas
 
     #
     # Write API
     #
     def consume_gas(self, amount):
-        pass
+        try:
+            validate_uint256(amount)
+        except ValidationError:
+            raise OutOfGas("Gas amount exceeds 256 integer size: %s".format(amount))
+
+        if self.is_out_of_gas:
+            raise OutOfGas("Failed to consume {0} gas.  Already out of gas: {1}".format(
+                amount,
+                self.gas_remaining,
+            ))
+
+        before_value = self.gas_remaining
+        self.deductions.append(amount)
+
+        self.logger.debug(
+            'GAS CONSUMPTION: %s - %s -> %s',
+            before_value,
+            amount,
+            self.gas_remaining,
+        )
 
     def refund_gas(self, amount):
-        pass
+        validate_uint256(amount)
+
+        before_value = self.gas_refunded
+        self.refunds.append(amount)
+
+        self.logger.info(
+            'GAS REFUND: %s + %s -> %s',
+            before_value,
+            amount,
+            self.gas_refunded,
+        )
+
 
     #
     # Read API
     #
     @property
-    def total_used(self):
+    def gas_used(self):
         return sum(self.deductions)
 
     @property
-    def total_refunded(self):
+    def gas_refunded(self):
         return sum(self.refunds)
 
     @property
-    def available(self):
-        return self.start_gas - self.total_used
+    def gas_remaining(self):
+        return self.start_gas - self.gas_used
 
     @property
     def is_out_of_gas(self):
-        return self.available < 0
+        return self.gas_remaining < 0
 
-    def wrap_opcode(self, opcode_logic_fn):
-        # TODO:
-        #@functools.wraps(opcode_logic_fn)
-        #def inner(
-        pass
+    def wrap_opcode_fn(self, opcode, opcode_fn, gas_cost):
+        opcode_mnemonic = opcodes.MNEMONICS[opcode]
+
+        @functools.wraps(opcode_fn)
+        def inner(*args, **kwargs):
+            self.consume_gas(gas_cost)
+            if self.is_out_of_gas:
+                raise OutOfGas("Insufficient gas for opcode 0x{0:x}".format(
+                    opcode,
+                ))
+            return opcode_fn(*args, **kwargs)
+        return inner
+
+
+class Environment(object):
+    """
+    The execution environment
+    """
+    storage = None
+    message = None
+    state = None
+
+    accounts_to_delete = None
+
+    logger = logging.getLogger('evm.vm.Environment')
+
+    def __init__(self, storage, message):
+        self.storage = storage
+        self.message = message
+        self.accounts_to_delete = {}
+
+        account_code = self.storage.get_code(message.account)
+        self.state = State(
+            code=account_code,
+            start_gas=message.gas,
+        )
+
+    def get_opcode_fn(self, opcode):
+        try:
+            validate_opcode(opcode)
+        except ValidationError:
+            opcode_fn = partial(invalid_op, opcode=opcode)
+        else:
+            base_opcode_fn = self.get_base_opcode_fn(opcode)
+            opcode_gas_cost = self.get_opcode_gas_cost(opcode)
+            opcode_fn = self.state.gas_meter.wrap_opcode_fn(
+                opcode=opcode,
+                opcode_fn=base_opcode_fn,
+                gas_cost=opcode_gas_cost,
+            )
+
+        return opcode_fn
+
+    def get_base_opcode_fn(self, opcode):
+        base_opcode_fn = OPCODE_LOGIC_FUNCTIONS[opcode]
+        return base_opcode_fn
+
+    def get_opcode_gas_cost(self, opcode):
+        opcode_gas_cost = OPCODE_GAS_COSTS[opcode]
+        return opcode_gas_cost
+
+    def get_sstore_gas_fn(self):
+        return sstore_gas_cost
+
+    def register_account_for_deletion(self, beneficiary):
+        validate_canonical_address(beneficiary)
+
+        if self.message.account in self.accounts_to_delete:
+            raise ValueError(
+                "Invariant.  Should be impossible for an account to be "
+                "registered for deletion multiple times"
+            )
+        self.accounts_to_delete[self.message.account] = beneficiary
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type and issubclass(exc_type, VMError):
+            self.state.error = exc_value
+            # suppress VM exceptions
+            return True
+        elif exc_type is None:
+            for account, beneficiary in self.accounts_to_delete.items():
+                self.logger.info('DELETING ACCOUNT: %s', to_normalized_address(account))
+                self.storage.delete_storage(account)
+                self.storage.delete_code(account)
+
+                account_balance = self.storage.get_balance(account)
+                self.storage.set_balance(account, 0)
+
+                beneficiary_balance = self.storage.get_balance(beneficiary)
+                beneficiary_updated_balance = beneficiary_balance + account_balance
+                self.storage.set_balance(beneficiary, beneficiary_updated_balance)
 
 
 class State(object):
@@ -247,112 +408,90 @@ class State(object):
     """
     memory = None
     stack = None
-    pc = None
+    gas_meter = None
+    code = None
+
+    logger = None
 
     output = b''
     error = None
-
-    code = None
-
-    start_gas = None
-    gas_usage_ledger = None
-    gas_refund_ledger = None
-
     logs = None
 
-    def __init__(self, code, start_gas, pc=None, parent=None):
+    logger = logging.getLogger('evm.vm.State')
+
+    def __init__(self, code, start_gas, pc=None):
         self.memory = Memory()
         self.stack = Stack()
 
         validate_is_bytes(code)
         self.code = CodeStream(code)
 
-        validate_uint256(start_gas)
-        self.start_gas = start_gas
-
-        self.gas_usage_ledger = []
-        self.gas_refund_ledger = []
-
-        self.logger = logging.getLogger('evm.vm.State')
+        self.gas_meter = GasMeter(start_gas)
 
         self.logs = []
 
-        if pc is None:
-            self.pc = 0
-        else:
+        if pc is not None:
             validate_uint256(pc)
-            self.pc = pc
+            self.code.pc = pc
 
-    @property
-    def pc(self):
-        return self.code.code.tell()
-
-    @pc.setter
-    def pc(self, value):
-        self.code.code.seek(value)
-
-    @property
-    def gas_available(self):
-        return max(self.start_gas - sum(self.gas_usage_ledger), 0)
-
-    @property
-    def gas_used(self):
-        return self.start_gas - self.gas_available
-
-    @property
-    def total_gas_refund(self):
-        return sum(self.gas_refund_ledger)
-
-    @property
-    def is_out_of_gas(self):
-        return self.start_gas - sum(self.gas_usage_ledger) < 0
-
-    def consume_gas(self, amount):
-        validate_uint256(amount)
-        before_value = self.gas_available
-        self.gas_usage_ledger.append(amount)
-        self.logger.info('GAS CONSUMPTION: %s - %s -> %s', before_value, amount, self.gas_available)
-
-    def refund_gas(self, amount):
-        validate_uint256(amount)
-        before_value = self.total_gas_refund
-        self.gas_refund_ledger.append(amount)
-        self.logger.info('GAS REFUND: %s - %s -> %s', before_value, amount, self.total_gas_refund)
-
+    #
+    # Write API
+    #
     def extend_memory(self, start_position, size):
-        prev_cost = self.memory.cost
-        self.memory.extend(start_position, size)
+        validate_uint256(start_position)
+        validate_uint256(size)
 
-        if prev_cost < self.memory.cost:
-            gas_fee = self.memory.cost - prev_cost
-            self.consume_gas(gas_fee)
+        before_size = ceil32(len(self.memory))
+        after_size = ceil32(start_position + size)
 
-        if self.is_out_of_gas:
+        before_cost = memory_gas_cost(before_size)
+        after_cost = memory_gas_cost(after_size)
+
+        self.logger.debug(
+            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+            before_size,
+            after_size,
+            before_cost,
+            after_cost,
+        )
+
+        if before_cost < after_cost:
+            gas_fee = after_cost - before_cost
+            self.gas_meter.consume_gas(gas_fee)
+
+        if self.gas_meter.is_out_of_gas:
             raise OutOfGas("Ran out of gas extending memory")
 
+        self.memory.extend(start_position, size)
 
-def execute_vm(evm, message, state=None):
-    if state is None:
-        code = evm.storage.get_code(message.account)
-        state = State(code, start_gas=message.gas)
 
-    for opcode in state.code:
-        if state.is_out_of_gas:
-            raise OutOfGas("Ran out of gas during execution")
+BREAK_OPCODES = {
+    opcodes.RETURN,
+    opcodes.STOP,
+    opcodes.SUICIDE,
+}
 
-        try:
-            opcode_fn = OPCODE_LOOKUP[opcode]
-        except KeyError:
-            # TODO: consume all the gas..
-            break
 
-        try:
-            opcode_fn(message=message, state=state, storage=evm.storage)
-        except VMError as err:
-            state.error = err
-            break
+def execute_vm(evm, message):
+    with evm.setup_environment(message) as environment:
+        logger = environment.logger
 
-    return evm, state
+        for opcode in environment.state.code:
+            opcode_mnemonic = opcodes.get_mnemonic(opcode)
+            logger.debug("OPCODE: 0x%x (%s)", opcode, opcode_mnemonic)
+
+            opcode_fn = environment.get_opcode_fn(opcode)
+
+            try:
+                opcode_fn(environment=environment)
+            except VMError as err:
+                environment.state.error = err
+                break
+
+            if opcode in BREAK_OPCODES:
+                break
+
+    return evm, environment.state
 
 
 class EVM(object):
@@ -360,5 +499,12 @@ class EVM(object):
 
     def __init__(self, storage):
         self.storage = storage
+
+    def setup_environment(self, message):
+        environment = Environment(
+            storage=self.storage,
+            message=message,
+        )
+        return environment
 
     execute = execute_vm

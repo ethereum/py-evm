@@ -2,7 +2,7 @@ class BaseEVMError(Exception):
     pass
 
 
-class EmptyStream(BaseEVMError):
+class ValidationError(BaseEVMError):
     pass
 
 

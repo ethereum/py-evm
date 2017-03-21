@@ -16,12 +16,10 @@ class MemoryStorage(BaseMachineStorage):
     code = None
 
     def __init__(self):
-        self.storage = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: b'')
-        )
-        self.balances = collections.defaultdict(int)
-        self.nonces = collections.defaultdict(int)
-        self.code = collections.defaultdict(bytes)
+        self.storage = collections.defaultdict(dict)
+        self.balances = {}
+        self.nonces = {}
+        self.code = {}
 
     def set_storage(self, account, slot, value):
         validate_is_bytes(value)
@@ -32,7 +30,11 @@ class MemoryStorage(BaseMachineStorage):
     def get_storage(self, account, slot):
         validate_canonical_address(account)
         validate_uint256(slot)
-        return self.storage[account][slot]
+        return self.storage[account].get(slot, b'')
+
+    def delete_storage(self, account):
+        validate_canonical_address(account)
+        self.storage[account] = {}
 
     def set_balance(self, account, balance):
         validate_canonical_address(account)
@@ -41,7 +43,7 @@ class MemoryStorage(BaseMachineStorage):
 
     def get_balance(self, account):
         validate_canonical_address(account)
-        return self.balances[account]
+        return self.balances.get(account, 0)
 
     def set_nonce(self, account, nonce):
         validate_canonical_address(account)
@@ -50,7 +52,7 @@ class MemoryStorage(BaseMachineStorage):
 
     def get_nonce(self, account):
         validate_canonical_address(account)
-        return self.nonces[account]
+        return self.nonces.get(account, 0)
 
     def set_code(self, account, code):
         validate_canonical_address(account)
@@ -59,4 +61,8 @@ class MemoryStorage(BaseMachineStorage):
 
     def get_code(self, account):
         validate_canonical_address(account)
-        return self.code[account]
+        return self.code.get(account, b'')
+
+    def delete_code(self, account):
+        validate_canonical_address(account)
+        self.code[account] = b''

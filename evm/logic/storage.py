@@ -1,11 +1,5 @@
 import logging
 
-from evm.gas import (
-    COST_SSET,
-    COST_SRESET,
-    COST_SLOAD,
-    REFUND_SCLEAR,
-)
 from evm.utils.numeric import (
     big_endian_to_int,
 )
@@ -14,35 +8,29 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.storage')
 
 
-def sstore(message, storage, state):
-    slot_as_bytes = state.stack.pop()
+def sstore(environment):
+    slot_as_bytes = environment.state.stack.pop()
     slot = big_endian_to_int(slot_as_bytes)
 
-    original_value = storage.get_storage(message.account, slot)
-    value = state.stack.pop()
+    original_value = environment.storage.get_storage(environment.message.account, slot)
+    value = environment.state.stack.pop()
 
     logger.info('SSTORE: (%s) %s -> %s', slot, original_value, value)
 
-    storage.set_storage(message.account, slot, value)
+    environment.storage.set_storage(environment.message.account, slot, value)
 
-    if original_value:
-        gas_fee = COST_SRESET if value else COST_SRESET
-        gas_refund = REFUND_SCLEAR if value else 0
-    else:
-        gas_fee = COST_SSET if value else COST_SRESET
-        gas_refund = 0
+    gas_fn = environment.get_sstore_gas_fn()
+    gas_cost, gas_refund = gas_fn(original_value, value)
 
-    state.consume_gas(gas_fee)
-    state.refund_gas(gas_refund)
+    environment.state.gas_meter.consume_gas(gas_cost)
+    environment.state.gas_meter.refund_gas(gas_refund)
 
 
-def sload(message, storage, state):
-    slot_as_bytes = state.stack.pop()
+def sload(environment):
+    slot_as_bytes = environment.state.stack.pop()
     slot = big_endian_to_int(slot_as_bytes)
 
-    value = storage.get_storage(message.account, slot)
-    state.stack.push(value)
+    value = environment.storage.get_storage(environment.message.account, slot)
+    environment.state.stack.push(value)
 
     logger.info('SLOAD: (%s) -> %s', slot, value)
-
-    state.consume_gas(COST_SLOAD)

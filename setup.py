@@ -23,7 +23,6 @@ setup(
     py_modules=['evm'],
     install_requires=[
         "ethereum-utils==0.2.0",
-        "attrs==16.3.0",
         "toolz==0.8.2",
     ],
     license="MIT",

@@ -4,21 +4,16 @@ from toolz import (
     partial,
 )
 
-from evm.gas import (
-    COST_VERYLOW,
-)
-
 
 logger = logging.getLogger('evm.logic.swap')
 
 
-def swap_XX(message, storage, state, position):
+def swap_XX(environment, position):
     """
     Stack item swapping
     """
-    state.stack.swap(position)
-    logger.info('SWAP%s')
-    state.consume_gas(COST_VERYLOW)
+    environment.state.stack.swap(position)
+    logger.info('SWAP%s', position)
 
 
 swap1 = partial(swap_XX, position=1)

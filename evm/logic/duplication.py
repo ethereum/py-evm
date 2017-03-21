@@ -4,21 +4,16 @@ from toolz import (
     partial,
 )
 
-from evm.gas import (
-    COST_VERYLOW,
-)
-
 
 logger = logging.getLogger('evm.logic.dup')
 
 
-def dup_XX(message, storage, state, position):
+def dup_XX(environment, position):
     """
     Stack item duplication.
     """
-    state.stack.dup(position)
+    environment.state.stack.dup(position)
     logger.info('DUP%s')
-    state.consume_gas(COST_VERYLOW)
 
 
 dup1 = partial(dup_XX, position=1)

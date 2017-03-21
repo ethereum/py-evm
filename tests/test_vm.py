@@ -34,6 +34,7 @@ VM_TEST_FIXTURE_FILENAMES = (
     'vmArithmeticTest.json',
     'vmBitwiseLogicOperationTest.json',
     'vmPushDupSwapTest.json',
+    'vmSha3Test.json',
 )
 
 FIXTURES_PATHS = tuple(
@@ -122,8 +123,10 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     expected_output = decode_hex(fixture['out'])
     assert state.output == expected_output
 
+    gas_meter = state.gas_meter
+
     expected_gas_remaining = int(fixture['gas'], 16)
-    actual_gas_remaining = state.start_gas - state.gas_used + state.total_gas_refund
+    actual_gas_remaining = gas_meter.start_gas - gas_meter.gas_used + gas_meter.gas_refunded
     assert actual_gas_remaining == expected_gas_remaining
 
     for account_as_hex, account_data in fixture['post'].items():

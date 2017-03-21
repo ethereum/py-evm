@@ -6,22 +6,28 @@ class BaseMachineStorage(object):
         raise NotImplementedError("The `set_storage` method is not implemented")
 
     def get_storage(self, account, slot):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `get_storage` method is not implemented")
+
+    def delete_storage(self, account):
+        raise NotImplementedError("The `delete_storage` method is not implemented")
 
     def set_balance(self, account, balance):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `set_balance` method is not implemented")
 
     def get_balance(self, account):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `get_balance` method is not implemented")
 
     def set_nonce(self, account, nonce):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `set_nonce` method is not implemented")
 
     def get_nonce(self, account):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `get_nonce` method is not implemented")
 
     def set_code(self, account, code):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `set_code` method is not implemented")
 
     def get_code(self, account):
-        raise NotImplementedError("The `set_storage` method is not implemented")
+        raise NotImplementedError("The `get_code` method is not implemented")
+
+    def delete_code(self, account):
+        raise NotImplementedError("The `delete_code` method is not implemented")
