@@ -66,7 +66,7 @@ OPCODE_LOGIC_FUNCTIONS = {
     opcodes.CALLVALUE: context.callvalue,
     opcodes.CALLDATALOAD: context.calldataload,
     opcodes.CALLDATASIZE: not_implemented('CALLDATASIZE'),  # TODO: implement me
-    opcodes.CALLDATACOPY: not_implemented('CALLDATACOPY'),  # TODO: implement me
+    opcodes.CALLDATACOPY: context.calldatacopy,
     opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
     opcodes.CODECOPY: context.codecopy,
     opcodes.GASPRICE: not_implemented('GASPRICE'),  # TODO: implement me

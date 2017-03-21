@@ -77,11 +77,21 @@ def codecopy(environment):
     )
 
 
-def data_copy(compustate, size):
-    if size:
-        copyfee = opcodes.GCOPY * utils.ceil32(size) // 32
-        if compustate.gas < copyfee:
-            compustate.gas = 0
-            return False
-        compustate.gas -= copyfee
-    return True
+def calldatacopy(environment):
+    mem_start_position = big_endian_to_int(environment.state.stack.pop())
+    calldata_start_position = big_endian_to_int(environment.state.stack.pop())
+    size = big_endian_to_int(environment.state.stack.pop())
+
+    environment.state.extend_memory(mem_start_position, size)
+
+    value = environment.message.data[calldata_start_position: calldata_start_position + size]
+    padded_value = pad_right(value, size, b'\x00')
+
+    environment.state.memory.write(mem_start_position, size, padded_value)
+
+    logger.info(
+        "CALLDATACOPY: [%s: %s] -> %s",
+        calldata_start_position,
+        calldata_start_position + size,
+        padded_value,
+    )
