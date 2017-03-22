@@ -1,8 +1,8 @@
 from evm.exceptions import InvalidInstruction
 
 
-def invalid_op(environment, opcode):
+def invalid_op(computation, opcode):
     raise InvalidInstruction("Invalid opcode 0x{0:x} @ {1}".format(
         opcode,
-        environment.state.code.pc,
+        computation.code.pc - 1,
     ))

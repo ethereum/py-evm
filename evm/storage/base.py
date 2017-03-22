@@ -2,6 +2,9 @@ class BaseMachineStorage(object):
     """
     Base class which implements the storage API.
     """
+    #
+    # Base storage methods
+    #
     def set_storage(self, account, slot, value):
         raise NotImplementedError("The `set_storage` method is not implemented")
 
@@ -32,6 +35,15 @@ class BaseMachineStorage(object):
     def delete_code(self, account):
         raise NotImplementedError("The `delete_code` method is not implemented")
 
+    #
+    # Account Methods
+    #
+    def account_exists(self, account):
+        raise NotImplementedError("The `delete_code` method is not implemented")
+
+    #
+    # Snapshoting and Restore
+    #
     def snapshot(self):
         raise NotImplementedError("The `snapshot` method is not implemented")
 

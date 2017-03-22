@@ -13,12 +13,12 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.comparison')
 
 
-def lt(environment):
+def lt(computation):
     """
     Lesser Comparison
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     if left < right:
         result = 1
@@ -26,17 +26,17 @@ def lt(environment):
         result = 0
 
     logger.info('LT: %s < %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
-def gt(environment):
+def gt(computation):
     """
     Greater Comparison
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     if left > right:
         result = 1
@@ -44,17 +44,17 @@ def gt(environment):
         result = 0
 
     logger.info('SGT: %s > %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
-def slt(environment):
+def slt(computation):
     """
     Signed Lesser Comparison
     """
-    left = unsigned_to_signed(big_endian_to_int(environment.state.stack.pop()))
-    right = unsigned_to_signed(big_endian_to_int(environment.state.stack.pop()))
+    left = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
+    right = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
 
     if left < right:
         result = 1
@@ -62,17 +62,17 @@ def slt(environment):
         result = 0
 
     logger.info('SLT: %s < %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(signed_to_unsigned(result))
     )
 
 
-def sgt(environment):
+def sgt(computation):
     """
     Signed Greater Comparison
     """
-    left = unsigned_to_signed(big_endian_to_int(environment.state.stack.pop()))
-    right = unsigned_to_signed(big_endian_to_int(environment.state.stack.pop()))
+    left = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
+    right = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
 
     if left > right:
         result = 1
@@ -80,17 +80,17 @@ def sgt(environment):
         result = 0
 
     logger.info('SGT: %s > %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(signed_to_unsigned(result))
     )
 
 
-def eq(environment):
+def eq(computation):
     """
     Equality
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     if left == right:
         result = 1
@@ -98,16 +98,16 @@ def eq(environment):
         result = 0
 
     logger.info('EQ: %s == %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
-def iszero(environment):
+def iszero(computation):
     """
     Not
     """
-    value = big_endian_to_int(environment.state.stack.pop())
+    value = big_endian_to_int(computation.stack.pop())
 
     if value == 0:
         result = 1
@@ -115,78 +115,78 @@ def iszero(environment):
         result = 0
 
     logger.info('ISZERO: %s -> %s', value, result)
-    environment.state.stack.push(int_to_big_endian(result))
+    computation.stack.push(int_to_big_endian(result))
 
 
 
-def and_op(environment):
+def and_op(computation):
     """
     Bitwise And
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     result = left & right
 
     logger.info('AND: %s & %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
 
 
-def or_op(environment):
+def or_op(computation):
     """
     Bitwise Or
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     result = left | right
 
     logger.info('OR: %s | %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
-def xor(environment):
+def xor(computation):
     """
     Bitwise XOr
     """
-    left = big_endian_to_int(environment.state.stack.pop())
-    right = big_endian_to_int(environment.state.stack.pop())
+    left = big_endian_to_int(computation.stack.pop())
+    right = big_endian_to_int(computation.stack.pop())
 
     result = left ^ right
 
     logger.info('XOR: %s ^ %s -> %s', left, right, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )
 
 
-def not_op(environment):
+def not_op(computation):
     """
     Not
     """
-    value_as_bytes = environment.state.stack.pop()
+    value_as_bytes = computation.stack.pop()
     value = big_endian_to_int(value_as_bytes)
 
     result = constants.UINT_256_MAX - value
     result_as_bytes = int_to_big_endian(result)
 
     logger.info('NOT: %s -> %s', value, result)
-    environment.state.stack.push(result_as_bytes)
+    computation.stack.push(result_as_bytes)
 
 
 
-def byte_op(environment):
+def byte_op(computation):
     """
     Bitwise And
     """
-    position = big_endian_to_int(environment.state.stack.pop())
-    value = big_endian_to_int(environment.state.stack.pop())
+    position = big_endian_to_int(computation.stack.pop())
+    value = big_endian_to_int(computation.stack.pop())
 
     if position >= 32:
         result = 0
@@ -194,6 +194,6 @@ def byte_op(environment):
         result = (value // pow(256, 31 - position)) % 256
 
     logger.info('BYTE: %s[%s] -> %s', value, position, result)
-    environment.state.stack.push(
+    computation.stack.push(
         int_to_big_endian(result)
     )

@@ -17,18 +17,18 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.memory')
 
 
-def pop(environment):
-    removed_value = environment.state.stack.pop()
+def pop(computation):
+    removed_value = computation.stack.pop()
 
     logger.info('POP: %s', removed_value)
 
 
-def push_XX(environment, size):
-    raw_value = environment.state.code.read(size)
+def push_XX(computation, size):
+    raw_value = computation.code.read(size)
     padded_value = pad_right(raw_value, size, b'\x00')
 
     logger.info('PUSH%s: %s', size, padded_value)
-    environment.state.stack.push(padded_value)
+    computation.stack.push(padded_value)
 
 
 push1 = partial(push_XX, size=1)

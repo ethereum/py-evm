@@ -23,6 +23,9 @@ class MemoryStorage(BaseMachineStorage):
         self.nonces = {}
         self.code = {}
 
+    #
+    # Base storage methods
+    #
     def set_storage(self, account, slot, value):
         validate_is_bytes(value)
         validate_uint256(slot)
@@ -69,6 +72,24 @@ class MemoryStorage(BaseMachineStorage):
         validate_canonical_address(account)
         self.code[account] = b''
 
+    #
+    # Account Methods
+    #
+    def account_exists(self, account):
+        validate_canonical_address(account)
+        if self.get_balance(account):
+            return True
+        elif self.get_nonce(account):
+            return True
+        elif self.get_code(account):
+            return True
+        elif account in self.storage:
+            return True
+        return False
+
+    #
+    # Snapshoting and Restore
+    #
     def snapshot(self):
         return {
             'storage': copy.deepcopy(self.storage),

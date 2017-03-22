@@ -78,10 +78,10 @@ OPCODE_LOGIC_FUNCTIONS = {
     #
     opcodes.BLOCKHASH: not_implemented('BLOCKHASH'),  # TODO: implement me
     opcodes.COINBASE: not_implemented('COINBASE'),  # TODO: implement me
-    opcodes.TIMESTAMP: not_implemented('TIMESTAMP'),  # TODO: implement me
+    opcodes.TIMESTAMP: block.timestamp,
     opcodes.NUMBER: block.number,
-    opcodes.DIFFICULTY: not_implemented('DIFFICULTY'),  # TODO: implement me
-    opcodes.GASLIMIT: not_implemented('GASLIMIT'),  # TODO: implement me
+    opcodes.DIFFICULTY: block.difficulty,
+    opcodes.GASLIMIT: block.gaslimit,
     #
     # Stack, Memory, Storage and Flow Operations
     #
@@ -181,9 +181,9 @@ OPCODE_LOGIC_FUNCTIONS = {
     #
     # System
     #
-    opcodes.CREATE: not_implemented('CREATE'),  # TODO: implement me
+    opcodes.CREATE: system.create,
     opcodes.CALL: system.call,
-    opcodes.CALLCODE: not_implemented('CALLCODE'),  # TODO: implement me
+    opcodes.CALLCODE: system.callcode,
     opcodes.RETURN: system.return_op,
     opcodes.DELEGATECALL: not_implemented('DELEGATECALL'),  # TODO: implement me
     opcodes.SUICIDE: system.suicide,

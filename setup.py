@@ -24,6 +24,7 @@ setup(
     install_requires=[
         "ethereum-utils==0.2.0",
         "toolz==0.8.2",
+        "rlp==0.4.7",
     ],
     license="MIT",
     zip_safe=False,

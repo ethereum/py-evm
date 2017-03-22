@@ -8,11 +8,11 @@ from toolz import (
 logger = logging.getLogger('evm.logic.swap')
 
 
-def swap_XX(environment, position):
+def swap_XX(computation, position):
     """
     Stack item swapping
     """
-    environment.state.stack.swap(position)
+    computation.stack.swap(position)
     logger.info('SWAP%s', position)
 
 

@@ -17,16 +17,16 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.memory')
 
 
-def mstore_XX(environment, size):
-    start_position = big_endian_to_int(environment.state.stack.pop())
-    value = environment.state.stack.pop()
+def mstore_XX(computation, size):
+    start_position = big_endian_to_int(computation.stack.pop())
+    value = computation.stack.pop()
     padded_value = pad_left(value, size, b'\x00')
     normalized_value = padded_value[-1 * size:]
 
-    environment.state.extend_memory(start_position, size)
+    computation.extend_memory(start_position, size)
 
-    original_value = environment.state.memory.read(start_position, size)
-    environment.state.memory.write(start_position, size,  normalized_value)
+    original_value = computation.memory.read(start_position, size)
+    computation.memory.write(start_position, size,  normalized_value)
 
     logger.info(
         'MSTORE%s: (%s:%s) %s -> %s',
@@ -42,13 +42,13 @@ mstore = partial(mstore_XX, size=32)
 mstore8 = partial(mstore_XX, size=1)
 
 
-def mload(environment):
-    start_position = big_endian_to_int(environment.state.stack.pop())
+def mload(computation):
+    start_position = big_endian_to_int(computation.stack.pop())
 
-    environment.state.extend_memory(start_position, 32)
+    computation.extend_memory(start_position, 32)
 
-    value = environment.state.memory.read(start_position, 32)
-    environment.state.stack.push(value)
+    value = computation.memory.read(start_position, 32)
+    computation.stack.push(value)
 
     logger.info(
         'MLOAD: (%s:%s) -> %s',
@@ -58,7 +58,7 @@ def mload(environment):
     )
 
 
-def msize(environment):
-    logger.info('MSIZE: %s', len(environment.state.memory))
+def msize(computation):
+    logger.info('MSIZE: %s', len(computation.memory))
 
-    environment.state.stack.push(int_to_big_endian(len(environment.state.memory)))
+    computation.stack.push(int_to_big_endian(len(computation.memory)))

@@ -28,28 +28,28 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.logging')
 
 
-def log_XX(environment, topic_count):
+def log_XX(computation, topic_count):
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 
-    mem_start_position = big_endian_to_int(environment.state.stack.pop())
-    size = big_endian_to_int(environment.state.stack.pop())
+    mem_start_position = big_endian_to_int(computation.stack.pop())
+    size = big_endian_to_int(computation.stack.pop())
 
-    topics = [environment.state.stack.pop() for _ in range(topic_count)]
+    topics = [computation.stack.pop() for _ in range(topic_count)]
 
     data_gas_cost = constants.GAS_LOGDATA * size
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count
     total_gas_cost = data_gas_cost + topic_gas_cost
 
-    environment.state.gas_meter.consume_gas(total_gas_cost)
-    if environment.state.gas_meter.is_out_of_gas:
+    computation.gas_meter.consume_gas(total_gas_cost)
+    if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Insufficient gas for log data")
 
-    environment.state.extend_memory(mem_start_position, size)
-    log_data = environment.state.memory.read(mem_start_position, size)
+    computation.extend_memory(mem_start_position, size)
+    log_data = computation.memory.read(mem_start_position, size)
 
-    environment.state.add_log_entry(
-        account=environment.message.account,
+    computation.add_log_entry(
+        account=computation.message.account,
         topics=topics,
         data=log_data,
     )

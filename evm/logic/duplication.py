@@ -8,11 +8,11 @@ from toolz import (
 logger = logging.getLogger('evm.logic.dup')
 
 
-def dup_XX(environment, position):
+def dup_XX(computation, position):
     """
     Stack item duplication.
     """
-    environment.state.stack.dup(position)
+    computation.stack.dup(position)
     logger.info('DUP%s')
 
 

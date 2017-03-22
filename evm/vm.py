@@ -19,6 +19,9 @@ from evm.defaults.gas_costs import (
     call_gas_cost,
     OPCODE_GAS_COSTS,
 )
+from evm.precompile import (
+    PRECOMPILES,
+)
 from evm.defaults.opcodes import (
     OPCODE_LOGIC_FUNCTIONS,
 )
@@ -46,8 +49,12 @@ from evm.validation import (
     validate_word,
     validate_opcode,
     validate_integer,
+    validate_boolean,
 )
 
+from evm.utils.address import (
+    generate_contract_address,
+)
 from evm.utils.numeric import (
     ceil32,
     int_to_big_endian,
@@ -157,47 +164,6 @@ class Stack(object):
             raise InsufficientStack("Insufficient stack items for DUP{0}".format(position))
 
 
-class Message(object):
-    """
-    A message for EVM computation.
-    """
-    origin = None
-    account = None
-    sender = None
-    value = None
-    data = None
-    gas = None
-    gas_price = None
-
-    depth = None
-
-    def __init__(self, gas, gas_price, origin, account, sender, value, data, depth=0):
-        validate_uint256(gas)
-        self.gas = gas
-
-        validate_uint256(gas_price)
-        self.gas_price = gas_price
-
-        validate_canonical_address(origin)
-        self.origin = origin
-
-        validate_canonical_address(account)
-        self.account = account
-
-        validate_canonical_address(sender)
-        self.sender = sender
-
-        validate_uint256(value)
-        self.value = value
-
-        validate_is_bytes(data)
-        self.data = data
-
-        validate_integer(depth)
-        validate_gte(depth, minimum=0)
-        self.depth = depth
-
-
 class CodeStream(object):
     stream = None
 
@@ -260,6 +226,11 @@ class CodeStream(object):
             prefix = self.read(min(position, 32))
 
         for offset, opcode in enumerate(reversed(prefix)):
+            try:
+                validate_opcode(opcode)
+            except ValidationError:
+                return False
+
             if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
                 continue
 
@@ -295,26 +266,28 @@ class GasMeter(object):
     #
     # Write API
     #
-    def consume_gas(self, amount):
+    def consume_gas(self, amount, reason):
         try:
             validate_uint256(amount)
         except ValidationError:
-            raise OutOfGas("Gas amount exceeds 256 integer size: {0}".format(amount))
+            raise OutOfGas("Gas amount exceeds 256 integer size: {0} reason: {1}".format(amount, reason))
 
-        if self.is_out_of_gas:
-            raise OutOfGas("Failed to consume {0} gas.  Already out of gas: {1}".format(
+        if amount > self.gas_remaining:
+            raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
                 amount,
                 self.gas_remaining,
+                reason,
             ))
 
         before_value = self.gas_remaining
         self.deductions.append(amount)
 
         self.logger.debug(
-            'GAS CONSUMPTION: %s - %s -> %s',
+            'GAS CONSUMPTION: %s - %s -> %s (%s)',
             before_value,
             amount,
             self.gas_remaining,
+            reason,
         )
 
     def return_gas(self, amount):
@@ -349,15 +322,19 @@ class GasMeter(object):
     #
     @property
     def gas_used(self):
-        return sum(self.deductions) + sum(self.returns)
+        return sum(self.deductions)
 
     @property
     def gas_refunded(self):
         return sum(self.refunds)
 
     @property
+    def gas_returned(self):
+        return sum(self.returns)
+
+    @property
     def gas_remaining(self):
-        return self.start_gas - self.gas_used
+        return self.start_gas - self.gas_used + self.gas_returned
 
     @property
     def is_out_of_gas(self):
@@ -368,23 +345,115 @@ class GasMeter(object):
 
         @functools.wraps(opcode_fn)
         def inner(*args, **kwargs):
-            self.consume_gas(gas_cost)
-            if self.is_out_of_gas:
-                raise OutOfGas("Insufficient gas for opcode 0x{0:x}".format(
-                    opcode,
-                ))
+            self.consume_gas(gas_cost, reason="Opcode {0}".format(opcodes.get_mnemonic(opcode)))
             return opcode_fn(*args, **kwargs)
         return inner
 
 
-class ChainEnvironment(object):
+class Message(object):
+    """
+    A message for EVM computation.
+    """
+    origin = None
+    to = None
+    sender = None
+    value = None
+    data = None
+    gas = None
+    gas_price = None
+
+    depth = None
+
+    _code_address = None
+    create_address = None
+
+    def __init__(self,
+                 gas,
+                 gas_price,
+                 origin,
+                 to,
+                 sender,
+                 value,
+                 data,
+                 depth=0,
+                 code_address=None,
+                 create_address=None):
+        validate_uint256(gas)
+        self.gas = gas
+
+        validate_uint256(gas_price)
+        self.gas_price = gas_price
+
+        validate_canonical_address(origin)
+        self.origin = origin
+
+        validate_canonical_address(to)
+        self.to = to
+
+        validate_canonical_address(sender)
+        self.sender = sender
+
+        validate_uint256(value)
+        self.value = value
+
+        validate_is_bytes(data)
+        self.data = data
+
+        validate_integer(depth)
+        validate_gte(depth, minimum=0)
+        self.depth = depth
+
+        if code_address is not None:
+            validate_canonical_address(code_address)
+        self.code_address = code_address
+
+        if create_address is not None:
+            validate_canonical_address(create_address)
+        self.create_address = create_address
+
+    @property
+    def is_create(self):
+        return self.create_address is not None
+
+    @property
+    def code_address(self):
+        if self._code_address is not None:
+            return self._code_address
+        else:
+            return self.to
+
+    @code_address.setter
+    def code_address(self, value):
+        self._code_address = value
+
+    @property
+    def storage_address(self):
+        if self.is_create:
+            return self.create_address
+        else:
+            return self.to
+
+    @storage_address.setter
+    def storage_address(self, value):
+        self._storage_address = storage_address
+
+
+class Environment(object):
+    coinbase = None
+    difficulty = None
     block_number = None
     gas_limit = None
     timestamp = None
 
-    logger = logging.getLogger('evm.vm.ChainEnvironment')
+    logger = logging.getLogger('evm.vm.Environment')
 
-    def __init__(self, block_number, gas_limit, timestamp):
+    def __init__(self, coinbase, difficulty, block_number, gas_limit, timestamp):
+        validate_uint256(difficulty)
+        self.difficulty = difficulty
+
+        validate_canonical_address(coinbase)
+        self.coinbase = coinbase
+
         validate_uint256(block_number)
         self.block_number = block_number
 
@@ -395,28 +464,94 @@ class ChainEnvironment(object):
         self.timestamp = timestamp
 
 
-class State(object):
+class Computation(object):
     """
-    The local computation state during EVM execution.
+    The execution computation
     """
+    evm = None
+    msg = None
+
     memory = None
     stack = None
     gas_meter = None
+
     code = None
 
-    logger = logging.getLogger('evm.vm.State')
+    children = None
 
-    def __init__(self, code, start_gas):
+    output = b''
+    error = None
+
+    logs = None
+    accounts_to_delete = None
+
+    logger = logging.getLogger('evm.vm.Computation')
+
+    def __init__(self, evm, message):
+        self.evm = evm
+        self.msg = message
+
         self.memory = Memory()
         self.stack = Stack()
+        self.gas_meter = GasMeter(message.gas)
 
-        validate_is_bytes(code)
+        self.children = []
+        self.accounts_to_delete = {}
+        self.logs = []
+
+        if message.is_create:
+            code = message.data
+        else:
+            code = self.storage.get_code(message.code_address)
         self.code = CodeStream(code)
 
-        self.gas_meter = GasMeter(start_gas)
+    @property
+    def storage(self):
+        return self.evm.storage
+
+    @property
+    def env(self):
+        return self.evm.environment
 
     #
-    # Write API
+    # Execution
+    #
+    def prepare_child_message(self,
+                              gas,
+                              to,
+                              value,
+                              data,
+                              sender=None,
+                              code_address=None,
+                              create_address=None):
+        if sender is None:
+            sender = self.msg.to
+
+        child_message = Message(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            to=to,
+            sender=sender,
+            value=value,
+            data=data,
+            depth=self.msg.depth + 1,
+            code_address=code_address,
+            create_address=create_address,
+        )
+        return child_message
+
+    def apply_child_message(self, message):
+        if message.is_create:
+            child_computation = self.evm.apply_create_message(message)
+        else:
+            child_computation = self.evm.apply_message(message)
+
+        self.children.append(child_computation)
+        return child_computation
+
+    #
+    # Memory Management
     #
     def extend_memory(self, start_position, size):
         validate_uint256(start_position)
@@ -439,71 +574,15 @@ class State(object):
         if size:
             if before_cost < after_cost:
                 gas_fee = after_cost - before_cost
-                self.gas_meter.consume_gas(gas_fee)
+                self.gas_meter.consume_gas(
+                    gas_fee,
+                    reason="Expanding memory {0} -> {1}".format(before_size, after_size)
+                )
 
             if self.gas_meter.is_out_of_gas:
                 raise OutOfGas("Ran out of gas extending memory")
 
             self.memory.extend(start_position, size)
-
-
-class ExecutionEnvironment(object):
-    """
-    The execution environment
-    """
-    evm = None
-    message = None
-    state = None
-
-    sub_environments = None
-
-    output = b''
-    error = None
-
-    logs = None
-    accounts_to_delete = None
-
-    logger = logging.getLogger('evm.vm.ExecutionEnvironment')
-
-    def __init__(self, evm, chain_environment, message, parent=None):
-        self.evm = evm
-        self.chain_environment = chain_environment
-        self.message = message
-
-        self.sub_environments = []
-        self.accounts_to_delete = {}
-        self.logs = []
-
-        account_code = self.storage.get_code(message.account)
-        self.state = State(
-            code=account_code,
-            start_gas=message.gas,
-        )
-
-    @property
-    def storage(self):
-        return self.evm.storage
-
-    def execute(self):
-        return execute_vm(self.evm, self)
-
-    def apply_message(self, message):
-        sub_environment = apply_message(self.evm, message)
-        self.sub_environments.append(sub_environment)
-        return sub_environment
-
-    def create_message(self, gas, to, value, data):
-        message = Message(
-            gas=gas,
-            gas_price=self.message.gas_price,
-            origin=self.message.origin,
-            account=to,
-            sender=self.message.account,
-            value=value,
-            data=data,
-            depth=self.message.depth + 1,
-        )
-        return message
 
     #
     # Opcode Functions
@@ -516,7 +595,7 @@ class ExecutionEnvironment(object):
         else:
             base_opcode_fn = self.evm.get_base_opcode_fn(opcode)
             opcode_gas_cost = self.evm.get_opcode_gas_cost(opcode)
-            opcode_fn = self.state.gas_meter.wrap_opcode_fn(
+            opcode_fn = self.gas_meter.wrap_opcode_fn(
                 opcode=opcode,
                 opcode_fn=base_opcode_fn,
                 gas_cost=opcode_gas_cost,
@@ -530,12 +609,12 @@ class ExecutionEnvironment(object):
     def register_account_for_deletion(self, beneficiary):
         validate_canonical_address(beneficiary)
 
-        if self.message.account in self.accounts_to_delete:
+        if self.msg.to in self.accounts_to_delete:
             raise ValueError(
                 "Invariant.  Should be impossible for an account to be "
                 "registered for deletion multiple times"
             )
-        self.accounts_to_delete[self.message.account] = beneficiary
+        self.accounts_to_delete[self.msg.to] = beneficiary
 
     def add_log_entry(self, account, topics, data):
         self.logs.append((account, topics, data))
@@ -572,7 +651,31 @@ BREAK_OPCODES = {
 }
 
 
-def apply_message(evm, message):
+def _apply_create_message(evm, message):
+    snapshot = evm.snapshot()
+
+    computation = evm.apply_message(message)
+
+    if computation.error:
+        return computation
+    else:
+        contract_code = computation.output
+        if contract_code:
+            contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
+            try:
+                computation.gas_meter.consume_gas(
+                    contract_code_gas_cost,
+                    reason="Write contract code for CREATE",
+                )
+            except OutOfGas as err:
+                evm.revert(snapshot)
+                computation.error = err
+            else:
+                computation.storage.set_code(message.to, contract_code)
+        return computation
+
+
+def _apply_message(evm, message):
     snapshot = evm.snapshot()
 
     if message.depth >= 1024:
@@ -585,66 +688,85 @@ def apply_message(evm, message):
                 "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
             )
 
-        account_balance = evm.storage.get_balance(message.account)
+        recipient_balance = evm.storage.get_balance(message.to)
 
         sender_balance -= message.value
-        account_balance += message.value
+        recipient_balance += message.value
 
         evm.storage.set_balance(message.sender, sender_balance)
-        evm.storage.set_balance(message.account, account_balance)
+        evm.storage.set_balance(message.to, recipient_balance)
 
-    environment = evm.setup_environment(message)
-    result_environment = execute_vm(evm, environment)
+    computation = evm.apply_computation(message)
 
-    if result_environment.error:
+    if computation.error:
         evm.revert(snapshot)
-    return result_environment
+    return computation
 
 
-def execute_vm(evm, environment):
-    with environment:
-        logger = environment.logger
+def _apply_computation(computation):
+    with computation:
+        logger = computation.logger
         logger.debug(
             "EXECUTING: gas: %s | from: %s | to: %s | value: %s",
-            environment.message.gas,
-            environment.message.sender,
-            environment.message.account,
-            environment.message.value,
+            computation.msg.gas,
+            computation.msg.sender,
+            computation.msg.to,
+            computation.msg.value,
         )
 
-        for opcode in environment.state.code:
+        for opcode in computation.code:
             opcode_mnemonic = opcodes.get_mnemonic(opcode)
             logger.debug("OPCODE: 0x%x (%s)", opcode, opcode_mnemonic)
 
-            opcode_fn = environment.get_opcode_fn(opcode)
+            opcode_fn = computation.get_opcode_fn(opcode)
 
             try:
-                opcode_fn(environment=environment)
+                opcode_fn(computation=computation)
             except VMError as err:
-                environment.error = err
+                computation.error = err
+                computation.gas_meter.consume_gas(
+                    reason="Zeroing gas due to VM Exception: {0}".format(str(err)),
+                )
                 break
 
             if opcode in BREAK_OPCODES:
                 break
 
-    return environment
+    return computation
 
 
 class EVM(object):
     storage = None
-    chain_environment = None
+    environment = None
 
-    def __init__(self, storage, chain_environment):
+    def __init__(self, storage, environment):
         self.storage = storage
-        self.chain_environment = chain_environment
+        self.environment = environment
 
-    def setup_environment(self, message):
-        environment = ExecutionEnvironment(
+    #
+    # Execution
+    #
+    def apply_create_message(self, message):
+        return _apply_create_message(self, message)
+
+    def apply_message(self, message):
+        """
+        Executes the full evm message.
+        """
+        return _apply_message(self, message)
+
+    def apply_computation(self, message):
+        """
+        Executes only the computation for a message.
+        """
+        computation = Computation(
             evm=self,
-            chain_environment=self.chain_environment,
             message=message,
         )
-        return environment
+        if message.to in PRECOMPILES:
+            return PRECOMPILES[message.to](computation)
+        else:
+            return _apply_computation(computation)
 
     #
     # Snapshot and Revert
@@ -671,5 +793,3 @@ class EVM(object):
 
     def get_call_gas_fn(self):
         return call_gas_cost
-
-    execute = execute_vm

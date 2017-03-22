@@ -6,6 +6,7 @@ from toolz import (
 from eth_utils import (
     is_bytes,
     is_integer,
+    is_boolean,
     is_canonical_address,
 )
 
@@ -71,6 +72,11 @@ def validate_multiple_of(value, multiple_of):
 def validate_integer(value):
     if not is_integer(value):
         raise ValidationError("Value must be an integer.  Got type: {0}".format(type(value)))
+
+
+def validate_boolean(value):
+    if not is_boolean(value):
+        raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
 
 
 def validate_opcode(value):
