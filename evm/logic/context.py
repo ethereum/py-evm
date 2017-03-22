@@ -23,8 +23,8 @@ logger = logging.getLogger('evm.logic.context')
 
 
 def address(computation):
-    logger.info('CALLER: %s', computation.msg.account)
-    computation.stack.push(computation.msg.account)
+    logger.info('CALLER: %s', computation.msg.to)
+    computation.stack.push(computation.msg.to)
 
 
 def caller(computation):

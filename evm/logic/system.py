@@ -41,7 +41,7 @@ def return_op(computation):
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop())
     computation.register_account_for_deletion(beneficiary)
-    logger.info('SUICIDE: %s -> %s', computation.msg.account, beneficiary)
+    logger.info('SUICIDE: %s -> %s', computation.msg.to, beneficiary)
 
 
 
@@ -156,8 +156,8 @@ def callcode(computation):
 
     child_msg = computation.prepare_child_message(
         gas=child_msg_gas,
-        to=computation.msg.account,
-        sender=computation.msg.account,
+        to=computation.msg.to,
+        sender=computation.msg.to,
         value=value,
         data=call_data,
         code_address=to,
@@ -197,14 +197,10 @@ def create(computation):
     create_msg_gas = computation.gas_meter.gas_remaining
     computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE message gas")
 
-    if computation.msg.sender != computation.msg.origin:
-        nonce = computation.storage.get_nonce(computation.msg.sender) + 1
-        computation.storage.set_nonce(computation.msg.sender, nonce)
+    creation_nonce = computation.storage.get_nonce(computation.msg.to)
+    contract_address = generate_contract_address(computation.msg.to, creation_nonce)
 
-    creation_nonce = computation.storage.get_nonce(computation.msg.sender) - 1
-    contract_address = generate_contract_address(computation.msg.sender, creation_nonce)
-
-    logger.info("%s, %s", computation.msg.sender, creation_nonce)
+    logger.info("%s, %s", computation.msg.to, creation_nonce)
     logger.info(
         "CREATING: %s",
         contract_address,

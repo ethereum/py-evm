@@ -93,10 +93,16 @@ class TestEVM(EVM):
             evm=self,
             message=message,
         )
-        #computation.gas_meter.consume_gas(
-        #    computation.gas_meter.gas_remaining,
-        #    reason="Draining CALL gas",
-        #)
+        return computation
+
+    def apply_create_message(self, message):
+        """
+        For VM tests, we don't actually apply messages.
+        """
+        computation = Computation(
+            evm=self,
+            message=message,
+        )
         return computation
 
 
