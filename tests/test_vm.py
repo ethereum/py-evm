@@ -37,12 +37,12 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 VM_TEST_FIXTURE_FILENAMES = (
-    #'vmArithmeticTest.json',
-    #'vmBitwiseLogicOperationTest.json',
-    #'vmIOandFlowOperationsTest.json',
-    #'vmLogTest.json',
-    #'vmPushDupSwapTest.json',
-    #'vmSha3Test.json',
+    'vmArithmeticTest.json',
+    'vmBitwiseLogicOperationTest.json',
+    'vmIOandFlowOperationsTest.json',
+    'vmLogTest.json',
+    'vmPushDupSwapTest.json',
+    'vmSha3Test.json',
     'vmSystemOperationsTest.json',
 )
 
@@ -232,6 +232,8 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 )
 def test_vm_failure_using_fixture(fixture_name, fixture):
     environment = Environment(
+        coinbase=decode_hex(fixture['env']['currentCoinbase']),
+        difficulty=int(fixture['env']['currentDifficulty'], 16),
         block_number=int(fixture['env']['currentNumber'], 16),
         gas_limit=int(fixture['env']['currentGasLimit'], 16),
         timestamp=int(fixture['env']['currentTimestamp'], 16),

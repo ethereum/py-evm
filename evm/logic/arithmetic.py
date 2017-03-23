@@ -180,7 +180,10 @@ def exp(computation):
     computation.stack.push(
         int_to_big_endian(result)
     )
-    computation.gas_meter.consume_gas(constants.GAS_EXPBYTE * byte_size)
+    computation.gas_meter.consume_gas(
+        constants.GAS_EXPBYTE * byte_size,
+        reason="EXP: exponent bytes",
+    )
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Ran out of gas during exponentiation")
 

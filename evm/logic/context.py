@@ -66,7 +66,10 @@ def codecopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.gas_meter.consume_gas(copy_gas_cost)
+    computation.gas_meter.consume_gas(
+        copy_gas_cost,
+        reason="CODECOPY: word gas cost",
+    )
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Insufficient gas to copy data")
 
@@ -125,7 +128,10 @@ def extcodecopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.gas_meter.consume_gas(copy_gas_cost)
+    computation.gas_meter.consume_gas(
+        copy_gas_cost,
+        reason='EXTCODECOPY: word gas cost',
+    )
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Insufficient gas to copy data")
 

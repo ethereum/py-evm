@@ -41,7 +41,10 @@ def log_XX(computation, topic_count):
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count
     total_gas_cost = data_gas_cost + topic_gas_cost
 
-    computation.gas_meter.consume_gas(total_gas_cost)
+    computation.gas_meter.consume_gas(
+        total_gas_cost,
+        reason="Log topic and data gas cost",
+    )
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Insufficient gas for log data")
 
@@ -49,7 +52,7 @@ def log_XX(computation, topic_count):
     log_data = computation.memory.read(mem_start_position, size)
 
     computation.add_log_entry(
-        account=computation.message.to,
+        account=computation.msg.to,
         topics=topics,
         data=log_data,
     )

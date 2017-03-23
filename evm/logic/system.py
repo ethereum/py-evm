@@ -192,6 +192,13 @@ def create(computation):
 
     computation.extend_memory(start_position, size)
 
+    insufficient_funds = computation.storage.get_balance(computation.msg.to) < value
+    stack_too_deep = computation.msg.depth >= 1024
+
+    if insufficient_funds or stack_too_deep:
+        computation.stack.push(int_to_big_endian(0))
+        return
+
     call_data = computation.memory.read(start_position, size)
 
     create_msg_gas = computation.gas_meter.gas_remaining
@@ -199,6 +206,8 @@ def create(computation):
 
     creation_nonce = computation.storage.get_nonce(computation.msg.to)
     contract_address = generate_contract_address(computation.msg.to, creation_nonce)
+
+    logger.info('BALANCE: %s | %s | %s', computation.msg.value, value, computation.storage.get_balance(computation.msg.to))
 
     logger.info("%s, %s", computation.msg.to, creation_nonce)
     logger.info(

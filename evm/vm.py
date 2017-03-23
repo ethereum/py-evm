@@ -229,7 +229,7 @@ class CodeStream(object):
             try:
                 validate_opcode(opcode)
             except ValidationError:
-                return False
+                continue
 
             if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
                 continue
@@ -693,6 +693,13 @@ def _apply_message(evm, message):
         sender_balance -= message.value
         recipient_balance += message.value
 
+        logger.info(
+            "Transferred: %s from %s -> %s",
+            message.value,
+            message.sender,
+            message.to,
+        )
+
         evm.storage.set_balance(message.sender, sender_balance)
         evm.storage.set_balance(message.to, recipient_balance)
 
@@ -725,6 +732,7 @@ def _apply_computation(computation):
             except VMError as err:
                 computation.error = err
                 computation.gas_meter.consume_gas(
+                    computation.gas_meter.gas_remaining,
                     reason="Zeroing gas due to VM Exception: {0}".format(str(err)),
                 )
                 break

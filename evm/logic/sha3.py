@@ -30,7 +30,7 @@ def sha3(computation):
     word_count = ceil32(len(sha3_bytes)) // 32
 
     gas_cost = constants.GAS_SHA3WORD * word_count
-    computation.gas_meter.consume_gas(gas_cost)
+    computation.gas_meter.consume_gas(gas_cost, reason="SHA3: word gas cost")
 
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Out of gas computing SHA3")
