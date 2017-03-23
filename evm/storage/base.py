@@ -3,7 +3,7 @@ class BaseMachineStorage(object):
     Base class which implements the storage API.
     """
     #
-    # Base storage methods
+    # Account storage methods
     #
     def set_storage(self, account, slot, value):
         raise NotImplementedError("The `set_storage` method is not implemented")
@@ -36,7 +36,13 @@ class BaseMachineStorage(object):
         raise NotImplementedError("The `delete_code` method is not implemented")
 
     #
-    # Account Methods
+    # Chain Storage
+    #
+    def get_block_hash(self, block_number):
+        raise NotImplementedError("The `delete_code` method is not implemented")
+
+    #
+    # Account Helper Methods
     #
     def account_exists(self, account):
         raise NotImplementedError("The `delete_code` method is not implemented")

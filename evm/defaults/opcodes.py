@@ -61,23 +61,23 @@ OPCODE_LOGIC_FUNCTIONS = {
     # Environment Information
     #
     opcodes.ADDRESS: context.address,
-    opcodes.BALANCE: not_implemented('BALANCE'),  # TODO: implement me
-    opcodes.ORIGIN: not_implemented('ORIGIN'),  # TODO: implement me
+    opcodes.BALANCE: context.balance,
+    opcodes.ORIGIN: context.origin,
     opcodes.CALLER: context.caller,
     opcodes.CALLVALUE: context.callvalue,
     opcodes.CALLDATALOAD: context.calldataload,
-    opcodes.CALLDATASIZE: not_implemented('CALLDATASIZE'),  # TODO: implement me
+    opcodes.CALLDATASIZE: context.calldatasize,
     opcodes.CALLDATACOPY: context.calldatacopy,
-    opcodes.CODESIZE: not_implemented('CODESIZE'),  # TODO: implement me
+    opcodes.CODESIZE: context.codesize,
     opcodes.CODECOPY: context.codecopy,
-    opcodes.GASPRICE: not_implemented('GASPRICE'),  # TODO: implement me
+    opcodes.GASPRICE: context.gasprice,
     opcodes.EXTCODESIZE: context.extcodesize,
     opcodes.EXTCODECOPY: context.extcodecopy,
     #
     # Block Information
     #
-    opcodes.BLOCKHASH: not_implemented('BLOCKHASH'),  # TODO: implement me
-    opcodes.COINBASE: not_implemented('COINBASE'),  # TODO: implement me
+    opcodes.BLOCKHASH: block.blockhash,
+    opcodes.COINBASE: block.coinbase,
     opcodes.TIMESTAMP: block.timestamp,
     opcodes.NUMBER: block.number,
     opcodes.DIFFICULTY: block.difficulty,

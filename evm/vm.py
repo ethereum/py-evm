@@ -88,17 +88,18 @@ class Memory(object):
         """
         Write `value` into memory.
         """
-        validate_uint256(start_position)
-        validate_uint256(size)
-        validate_is_bytes(value)
-        validate_length(value, length=size)
-        validate_lte(start_position + size, maximum=len(self))
+        if size:
+            validate_uint256(start_position)
+            validate_uint256(size)
+            validate_is_bytes(value)
+            validate_length(value, length=size)
+            validate_lte(start_position + size, maximum=len(self))
 
-        self.bytes = (
-            self.bytes[:start_position] +
-            bytearray(value) +
-            self.bytes[start_position + size:]
-        )
+            self.bytes = (
+                self.bytes[:start_position] +
+                bytearray(value) +
+                self.bytes[start_position + size:]
+            )
 
     def read(self, start_position, size):
         """
@@ -448,7 +449,6 @@ class Environment(object):
     logger = logging.getLogger('evm.vm.Environment')
 
     def __init__(self, coinbase, difficulty, block_number, gas_limit, timestamp):
-        validate_uint256(difficulty)
         self.difficulty = difficulty
 
         validate_canonical_address(coinbase)
@@ -775,6 +775,12 @@ class EVM(object):
             return PRECOMPILES[message.to](computation)
         else:
             return _apply_computation(computation)
+
+    #
+    # Storage
+    #
+    def get_block_hash(self, block_number):
+        return self.storage.get_block_hash(block_number)
 
     #
     # Snapshot and Revert

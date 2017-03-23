@@ -8,7 +8,7 @@ import sys
 def vm_logger():
     logger = logging.getLogger('evm')
     #logger.setLevel(logging.INFO)
-    logger.setLevel(logging.DEBUG)
+    #logger.setLevel(logging.DEBUG)
 
     handler = logging.StreamHandler(sys.stdout)
     logger.addHandler(handler)

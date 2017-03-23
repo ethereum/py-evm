@@ -5,11 +5,13 @@ import json
 import os
 
 from eth_utils import (
+    is_0x_prefixed,
     to_canonical_address,
     to_normalized_address,
     encode_hex,
     decode_hex,
     pad_left,
+    keccak,
 )
 
 from evm.constants import (
@@ -17,6 +19,9 @@ from evm.constants import (
 )
 from evm.storage.memory import (
     MemoryStorage,
+)
+from evm.validation import (
+    validate_uint256,
 )
 from evm.exceptions import (
     VMError,
@@ -39,11 +44,17 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 VM_TEST_FIXTURE_FILENAMES = (
     'vmArithmeticTest.json',
     'vmBitwiseLogicOperationTest.json',
+    'vmBlockInfoTest.json',
+    'vmEnvironmentalInfoTest.json',
     'vmIOandFlowOperationsTest.json',
+    "vmInputLimits.json",
+    #"vmInputLimitsLight.json",
     'vmLogTest.json',
+    'vmPerformanceTest.json',
     'vmPushDupSwapTest.json',
     'vmSha3Test.json',
     'vmSystemOperationsTest.json',
+    'vmtests.json',
 )
 
 FIXTURES_PATHS = tuple(
@@ -84,7 +95,10 @@ FAILURE_FIXTURES = tuple(
 )
 
 
-class TestEVM(EVM):
+class EVMForTesting(EVM):
+    #
+    # Execution Overrides
+    #
     def apply_message(self, message):
         """
         For VM tests, we don't actually apply messages.
@@ -105,25 +119,49 @@ class TestEVM(EVM):
         )
         return computation
 
+    #
+    # Storage Overrides
+    #
+    def get_block_hash(self, block_number):
+        if block_number >= self.environment.block_number:
+            return b''
+        elif block_number < self.environment.block_number - 256:
+            return b''
+        else:
+            return keccak("{0}".format(block_number))
+
 
 def setup_storage(fixture, storage):
     for account_as_hex, account_data in fixture['pre'].items():
         account = to_canonical_address(account_as_hex)
 
         for slot_as_hex, value_as_hex in account_data['storage'].items():
-            slot = int(slot_as_hex, 16)
+            slot = to_int(slot_as_hex)
             value = decode_hex(value_as_hex)
 
             storage.set_storage(account, slot, value)
 
-        nonce = int(account_data['nonce'], 16)
+        nonce = to_int(account_data['nonce'])
         code = decode_hex(account_data['code'])
-        balance = int(account_data['balance'], 16)
+        balance = to_int(account_data['balance'])
 
         storage.set_nonce(account, nonce)
         storage.set_code(account, code)
         storage.set_balance(account, balance)
     return storage
+
+
+ORIGIN = b'\x00' * 31 + b'\x01'
+
+
+def to_int(value):
+    if is_0x_prefixed(value):
+        if len(value) == 2:
+            return 0
+        else:
+            return int(value, 16)
+    else:
+        return int(value)
 
 
 @pytest.mark.parametrize(
@@ -132,12 +170,12 @@ def setup_storage(fixture, storage):
 def test_vm_success_using_fixture(fixture_name, fixture):
     environment = Environment(
         coinbase=decode_hex(fixture['env']['currentCoinbase']),
-        difficulty=int(fixture['env']['currentDifficulty'], 16),
-        block_number=int(fixture['env']['currentNumber'], 16),
-        gas_limit=int(fixture['env']['currentGasLimit'], 16),
-        timestamp=int(fixture['env']['currentTimestamp'], 16),
+        difficulty=to_int(fixture['env']['currentDifficulty']),
+        block_number=to_int(fixture['env']['currentNumber']),
+        gas_limit=to_int(fixture['env']['currentGasLimit']),
+        timestamp=to_int(fixture['env']['currentTimestamp']),
     )
-    evm = TestEVM(
+    evm = EVMForTesting(
         storage=MemoryStorage(),
         environment=environment,
     )
@@ -147,13 +185,13 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     execute_params = fixture['exec']
 
     message = Message(
-        origin=ZERO_ADDRESS,
+        origin=to_canonical_address(execute_params['origin']),
         to=to_canonical_address(execute_params['address']),
         sender=to_canonical_address(execute_params['caller']),
-        value=int(execute_params['value'], 16),
+        value=to_int(execute_params['value']),
         data=decode_hex(execute_params['data']),
-        gas=int(execute_params['gas'], 16),
-        gas_price=int(execute_params['gasPrice'], 16),
+        gas=to_int(execute_params['gas']),
+        gas_price=to_int(execute_params['gasPrice']),
     )
     computation = evm.apply_computation(message)
 
@@ -174,7 +212,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 
     gas_meter = computation.gas_meter
 
-    expected_gas_remaining = int(fixture['gas'], 16)
+    expected_gas_remaining = to_int(fixture['gas'])
     actual_gas_remaining = gas_meter.gas_remaining
     gas_delta = actual_gas_remaining - expected_gas_remaining
     assert gas_delta == 0, "Gas difference: {0}".format(gas_delta)
@@ -188,8 +226,8 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         else:
             to_address = ZERO_ADDRESS
         data = decode_hex(created_call['data'])
-        gas_limit = int(created_call['gasLimit'], 16)
-        value = int(created_call['value'], 16)
+        gas_limit = to_int(created_call['gasLimit'])
+        value = to_int(created_call['value'])
 
         assert child_computation.msg.to == to_address
         assert data == child_computation.msg.data
@@ -200,7 +238,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         account = to_canonical_address(account_as_hex)
 
         for slot_as_hex, expected_storage_value_as_hex in account_data['storage'].items():
-            slot = int(slot_as_hex, 16)
+            slot = to_int(slot_as_hex)
             expected_storage_value = pad_left(
                 decode_hex(expected_storage_value_as_hex),
                 32,
@@ -214,9 +252,9 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 
             assert actual_storage_value == expected_storage_value
 
-        expected_nonce = int(account_data['nonce'], 16)
+        expected_nonce = to_int(account_data['nonce'])
         expected_code = decode_hex(account_data['code'])
-        expected_balance = int(account_data['balance'], 16)
+        expected_balance = to_int(account_data['balance'])
 
         actual_nonce = evm.storage.get_nonce(account)
         actual_code = evm.storage.get_code(account)
@@ -233,12 +271,12 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 def test_vm_failure_using_fixture(fixture_name, fixture):
     environment = Environment(
         coinbase=decode_hex(fixture['env']['currentCoinbase']),
-        difficulty=int(fixture['env']['currentDifficulty'], 16),
-        block_number=int(fixture['env']['currentNumber'], 16),
-        gas_limit=int(fixture['env']['currentGasLimit'], 16),
-        timestamp=int(fixture['env']['currentTimestamp'], 16),
+        difficulty=to_int(fixture['env']['currentDifficulty']),
+        block_number=to_int(fixture['env']['currentNumber']),
+        gas_limit=to_int(fixture['env']['currentGasLimit']),
+        timestamp=to_int(fixture['env']['currentTimestamp']),
     )
-    evm = TestEVM(
+    evm = EVMForTesting(
         storage=MemoryStorage(),
         environment=environment,
     )
@@ -253,10 +291,10 @@ def test_vm_failure_using_fixture(fixture_name, fixture):
         origin=to_canonical_address(execute_params['origin']),
         to=to_canonical_address(execute_params['address']),
         sender=to_canonical_address(execute_params['caller']),
-        value=int(execute_params['value'], 16),
+        value=to_int(execute_params['value']),
         data=decode_hex(execute_params['data']),
-        gas=int(execute_params['gas'], 16),
-        gas_price=int(execute_params['gasPrice'], 16),
+        gas=to_int(execute_params['gas']),
+        gas_price=to_int(execute_params['gasPrice']),
     )
 
     computation = evm.apply_computation(message)

@@ -22,8 +22,20 @@ from evm.utils.numeric import (
 logger = logging.getLogger('evm.logic.context')
 
 
+def balance(computation):
+    addr = force_bytes_to_address(computation.stack.pop())
+    balance = computation.storage.get_balance(addr)
+    logger.info('BALANCE: %s', balance)
+    computation.stack.push(int_to_big_endian(balance))
+
+
+def origin(computation):
+    logger.info('ORIGIN: %s', computation.msg.origin)
+    computation.stack.push(computation.msg.origin)
+
+
 def address(computation):
-    logger.info('CALLER: %s', computation.msg.to)
+    logger.info('ADDRESS: %s', computation.msg.to)
     computation.stack.push(computation.msg.to)
 
 
@@ -54,6 +66,43 @@ def calldataload(computation):
         normalized_value,
     )
     computation.stack.push(normalized_value)
+
+
+def calldatasize(computation):
+    size = len(computation.msg.data)
+    logger.info('CALLDATASIZE: %s', size)
+    computation.stack.push(int_to_big_endian(size))
+
+
+def calldatacopy(computation):
+    mem_start_position = big_endian_to_int(computation.stack.pop())
+    calldata_start_position = big_endian_to_int(computation.stack.pop())
+    size = big_endian_to_int(computation.stack.pop())
+
+    computation.extend_memory(mem_start_position, size)
+
+    word_count = ceil32(size) // 32
+    copy_gas_cost = word_count * constants.GAS_COPY
+
+    computation.gas_meter.consume_gas(copy_gas_cost, reason="Data copy fee")
+
+    value = computation.msg.data[calldata_start_position: calldata_start_position + size]
+    padded_value = pad_right(value, size, b'\x00')
+
+    computation.memory.write(mem_start_position, size, padded_value)
+
+    logger.info(
+        "CALLDATACOPY: [%s: %s] -> %s",
+        calldata_start_position,
+        calldata_start_position + size,
+        padded_value,
+    )
+
+
+def codesize(computation):
+    size = len(computation.code)
+    logger.info('CODESIZE: %s', size)
+    computation.stack.push(int_to_big_endian(size))
 
 
 def codecopy(computation):
@@ -88,24 +137,9 @@ def codecopy(computation):
     )
 
 
-def calldatacopy(computation):
-    mem_start_position = big_endian_to_int(computation.stack.pop())
-    calldata_start_position = big_endian_to_int(computation.stack.pop())
-    size = big_endian_to_int(computation.stack.pop())
-
-    computation.extend_memory(mem_start_position, size)
-
-    value = computation.msg.data[calldata_start_position: calldata_start_position + size]
-    padded_value = pad_right(value, size, b'\x00')
-
-    computation.memory.write(mem_start_position, size, padded_value)
-
-    logger.info(
-        "CALLDATACOPY: [%s: %s] -> %s",
-        calldata_start_position,
-        calldata_start_position + size,
-        padded_value,
-    )
+def gasprice(computation):
+    logger.info('GASPRICE: %s', computation.msg.gas_price)
+    computation.stack.push(int_to_big_endian(computation.msg.gas_price))
 
 
 def extcodesize(computation):
@@ -144,6 +178,6 @@ def extcodecopy(computation):
     logger.info(
         'EXTCODECOPY: [%s:%s] -> %s',
         code_start_position,
-        code_start_position + code_size,
+        code_start_position + size,
         padded_code_bytes,
     )
