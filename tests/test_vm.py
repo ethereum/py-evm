@@ -42,19 +42,19 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 VM_TEST_FIXTURE_FILENAMES = (
-    'vmArithmeticTest.json',
-    'vmBitwiseLogicOperationTest.json',
-    'vmBlockInfoTest.json',
-    'vmEnvironmentalInfoTest.json',
+    #'vmArithmeticTest.json',
+    #'vmBitwiseLogicOperationTest.json',
+    #'vmBlockInfoTest.json',
+    #'vmEnvironmentalInfoTest.json',
     'vmIOandFlowOperationsTest.json',
-    "vmInputLimits.json",
-    #"vmInputLimitsLight.json",
-    'vmLogTest.json',
-    'vmPerformanceTest.json',
-    'vmPushDupSwapTest.json',
-    'vmSha3Test.json',
-    'vmSystemOperationsTest.json',
-    'vmtests.json',
+    #'vmInputLimits.json',
+    #'vmInputLimitsLight.json',
+    #'vmLogTest.json',
+    #'vmPerformanceTest.json',
+    #'vmPushDupSwapTest.json',
+    #'vmSha3Test.json',
+    #'vmSystemOperationsTest.json',
+    #'vmtests.json',
 )
 
 FIXTURES_PATHS = tuple(

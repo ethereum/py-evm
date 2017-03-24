@@ -46,3 +46,6 @@ docs/modules.rst
 
 # fixtures
 fixtures/**
+
+# profiling
+prof/**

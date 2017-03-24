@@ -4,6 +4,8 @@ import io
 import itertools
 import logging
 
+import pylru
+
 from toolz import (
     partial,
 )
@@ -173,6 +175,7 @@ class CodeStream(object):
     def __init__(self, code_bytes):
         validate_is_bytes(code_bytes)
         self.stream = io.BytesIO(code_bytes)
+        self._validity_cache = {}
 
     def read(self, size):
         value = self.stream.read(size)
@@ -222,47 +225,67 @@ class CodeStream(object):
         finally:
             self.pc = anchor_pc
 
+    _validity_cache = None
+
     def is_valid_opcode(self, position):
-        with self.seek(max(0, position - 32)):
-            prefix = self.read(min(position, 32))
+        if position not in self._validity_cache:
+            with self.seek(position):
+                opcode_at_position = next(self)
 
-        for offset, opcode in enumerate(reversed(prefix)):
             try:
-                validate_opcode(opcode)
+                validate_opcode(opcode_at_position)
             except ValidationError:
-                continue
+                self._validity_cache[position] = False
 
-            if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
-                continue
+        if position not in self._validity_cache:
+            with self.seek(max(0, position - 32)):
+                prefix = self.read(min(position, 32))
 
-            push_size = 1 + opcode - opcodes.PUSH1
-            if push_size <= offset:
-                continue
+            for offset, opcode in enumerate(reversed(prefix)):
+                try:
+                    validate_opcode(opcode)
+                except ValidationError:
+                    continue
 
-            opcode_position = position - 1 - offset
-            if not self.is_valid_opcode(opcode_position):
-                continue
+                if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
+                    continue
 
-            return False
-        else:
-            return True
+                push_size = 1 + opcode - opcodes.PUSH1
+                if push_size <= offset:
+                    continue
+
+                opcode_position = position - 1 - offset
+                if not self.is_valid_opcode(opcode_position):
+                    continue
+
+                self._validity_cache[position] = False
+                break
+            else:
+                self._validity_cache[position] = True
+
+        return self._validity_cache[position]
 
 
 class GasMeter(object):
     start_gas = None
 
-    deductions = None
-    refunds = None
+    gas_used = None
+    gas_refunded = None
+    gas_returned = None
+    gas_remaining = None
+    is_out_of_gas = None
 
     logger = logging.getLogger('evm.vm.GasMeter')
 
     def __init__(self, start_gas):
         validate_uint256(start_gas)
 
-        self.deductions = []
-        self.returns = []
-        self.refunds = []
         self.start_gas = start_gas
+
+        self.gas_remaining = self.start_gas
+        self.gas_used = 0
+        self.gas_returned = 0
+        self.gas_refunded = 0
 
     #
     # Write API
@@ -281,7 +304,10 @@ class GasMeter(object):
             ))
 
         before_value = self.gas_remaining
-        self.deductions.append(amount)
+
+        self.gas_used += amount
+        self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
+        self.is_out_of_gas = self.gas_remaining < 0
 
         self.logger.debug(
             'GAS CONSUMPTION: %s - %s -> %s (%s)',
@@ -295,7 +321,10 @@ class GasMeter(object):
         validate_uint256(amount)
 
         before_value = self.gas_remaining
-        self.returns.append(amount)
+
+        self.gas_returned += amount
+        self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
+        self.is_out_of_gas = self.gas_remaining < 0
 
         self.logger.info(
             'GAS RETURNED: %s + %s -> %s',
@@ -308,7 +337,9 @@ class GasMeter(object):
         validate_uint256(amount)
 
         before_value = self.gas_refunded
-        self.refunds.append(amount)
+
+        self.gas_refunded += amount
+        self.is_out_of_gas = self.gas_remaining < 0
 
         self.logger.info(
             'GAS REFUND: %s + %s -> %s',
@@ -317,31 +348,11 @@ class GasMeter(object):
             self.gas_refunded,
         )
 
-
-    #
-    # Read API
-    #
-    @property
-    def gas_used(self):
-        return sum(self.deductions)
-
-    @property
-    def gas_refunded(self):
-        return sum(self.refunds)
-
-    @property
-    def gas_returned(self):
-        return sum(self.returns)
-
-    @property
-    def gas_remaining(self):
-        return self.start_gas - self.gas_used + self.gas_returned
-
-    @property
-    def is_out_of_gas(self):
-        return self.gas_remaining < 0
-
     def wrap_opcode_fn(self, opcode, opcode_fn, gas_cost):
+        """
+        Wraps an opcode logic function such that it consumes the base opcode
+        gas prior to execution.
+        """
         opcode_mnemonic = opcodes.MNEMONICS[opcode]
 
         @functools.wraps(opcode_fn)
@@ -498,6 +509,7 @@ class Computation(object):
         self.children = []
         self.accounts_to_delete = {}
         self.logs = []
+        self._opcode_cache = pylru.lrucache(256)
 
         if message.is_create:
             code = message.data
@@ -587,21 +599,25 @@ class Computation(object):
     #
     # Opcode Functions
     #
-    def get_opcode_fn(self, opcode):
-        try:
-            validate_opcode(opcode)
-        except ValidationError:
-            opcode_fn = partial(invalid_op, opcode=opcode)
-        else:
-            base_opcode_fn = self.evm.get_base_opcode_fn(opcode)
-            opcode_gas_cost = self.evm.get_opcode_gas_cost(opcode)
-            opcode_fn = self.gas_meter.wrap_opcode_fn(
-                opcode=opcode,
-                opcode_fn=base_opcode_fn,
-                gas_cost=opcode_gas_cost,
-            )
+    _opcode_cache = None
 
-        return opcode_fn
+    def get_opcode_fn(self, opcode):
+        if opcode not in self._opcode_cache:
+            try:
+                validate_opcode(opcode)
+            except ValidationError:
+                opcode_fn = partial(invalid_op, opcode=opcode)
+            else:
+                base_opcode_fn = self.evm.get_base_opcode_fn(opcode)
+                opcode_gas_cost = self.evm.get_opcode_gas_cost(opcode)
+                opcode_fn = self.gas_meter.wrap_opcode_fn(
+                    opcode=opcode,
+                    opcode_fn=base_opcode_fn,
+                    gas_cost=opcode_gas_cost,
+                )
+
+            self._opcode_cache[opcode] = opcode_fn
+        return self._opcode_cache[opcode]
 
     #
     # Runtime Operations
