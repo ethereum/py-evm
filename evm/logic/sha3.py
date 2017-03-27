@@ -6,14 +6,9 @@ except ImportError:
     from sha3 import sha3_256 as keccak_256
 
 from evm import constants
-from evm.exceptions import (
-    OutOfGas,
-)
 
 from evm.utils.numeric import (
     ceil32,
-    big_endian_to_int,
-    int_to_big_endian,
 )
 
 
@@ -21,8 +16,7 @@ logger = logging.getLogger('evm.logic.sha3')
 
 
 def sha3(computation):
-    start_position = big_endian_to_int(computation.stack.pop())
-    size = big_endian_to_int(computation.stack.pop())
+    start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
 
@@ -31,9 +25,6 @@ def sha3(computation):
 
     gas_cost = constants.GAS_SHA3WORD * word_count
     computation.gas_meter.consume_gas(gas_cost, reason="SHA3: word gas cost")
-
-    if computation.gas_meter.is_out_of_gas:
-        raise OutOfGas("Out of gas computing SHA3")
 
     result = keccak_256(sha3_bytes).digest()
 

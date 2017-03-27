@@ -1,16 +1,12 @@
 import logging
 
+from evm import constants
 from evm.exceptions import (
     InvalidJumpDestination,
     InvalidInstruction,
 )
 from evm.opcodes import (
     JUMPDEST,
-)
-
-from evm.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
 )
 
 
@@ -22,7 +18,7 @@ def stop(computation):
 
 
 def jump(computation):
-    jump_dest = big_endian_to_int(computation.stack.pop())
+    jump_dest = computation.stack.pop(type_hint=constants.UINT256)
 
     computation.code.pc = jump_dest
 
@@ -38,8 +34,7 @@ def jump(computation):
 
 
 def jumpi(computation):
-    jump_dest = big_endian_to_int(computation.stack.pop())
-    check_value = big_endian_to_int(computation.stack.pop())
+    jump_dest, check_value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     if check_value:
         computation.code.pc = jump_dest
@@ -63,11 +58,11 @@ def pc(computation):
     pc = max(computation.code.pc - 1, 0)
     logger.info('PC: %s', pc)
 
-    computation.stack.push(int_to_big_endian(pc))
+    computation.stack.push(pc)
 
 
 def gas(computation):
     gas_remaining = computation.gas_meter.gas_remaining
     logger.info('GAS: %s', gas_remaining)
 
-    computation.stack.push(int_to_big_endian(gas_remaining))
+    computation.stack.push(gas_remaining)

@@ -1,23 +1,18 @@
 import logging
 
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
+from evm import constants
 
 
 logger = logging.getLogger('evm.logic.storage')
 
 
 def sstore(computation):
-    slot_as_bytes = computation.stack.pop()
-    slot = big_endian_to_int(slot_as_bytes)
+    slot = computation.stack.pop(type_hint=constants.UINT256)
 
     original_value = computation.storage.get_storage(computation.msg.storage_address, slot)
-    value = computation.stack.pop()
+    value = computation.stack.pop(type_hint=constants.BYTES)
 
     logger.info('SSTORE: (%s) %s -> %s', slot, original_value, value)
-
-    computation.storage.set_storage(computation.msg.storage_address, slot, value)
 
     gas_fn = computation.evm.get_sstore_gas_fn()
     gas_cost, gas_refund = gas_fn(original_value, value)
@@ -25,10 +20,11 @@ def sstore(computation):
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0}".format(slot))
     computation.gas_meter.refund_gas(gas_refund)
 
+    computation.storage.set_storage(computation.msg.storage_address, slot, value)
+
 
 def sload(computation):
-    slot_as_bytes = computation.stack.pop()
-    slot = big_endian_to_int(slot_as_bytes)
+    slot = computation.stack.pop(type_hint=constants.UINT256)
 
     value = computation.storage.get_storage(computation.msg.storage_address, slot)
     computation.stack.push(value)

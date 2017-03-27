@@ -6,23 +6,7 @@ from toolz import (
     partial,
 )
 
-from eth_utils import (
-    pad_right,
-)
-
 from evm import constants
-from evm.exceptions import (
-    OutOfGas,
-)
-
-from evm.utils.address import (
-    force_bytes_to_address,
-)
-from evm.utils.numeric import (
-    ceil32,
-    big_endian_to_int,
-    int_to_big_endian,
-)
 
 
 logger = logging.getLogger('evm.logic.logging')
@@ -32,10 +16,14 @@ def log_XX(computation, topic_count):
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 
-    mem_start_position = big_endian_to_int(computation.stack.pop())
-    size = big_endian_to_int(computation.stack.pop())
+    mem_start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
-    topics = [computation.stack.pop() for _ in range(topic_count)]
+    if not topic_count:
+        topics = []
+    elif topic_count > 1:
+        topics = computation.stack.pop(num_items=topic_count, type_hint=constants.BYTES)
+    else:
+        topics = [computation.stack.pop(num_items=topic_count, type_hint=constants.BYTES)]
 
     data_gas_cost = constants.GAS_LOGDATA * size
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count
@@ -45,8 +33,6 @@ def log_XX(computation, topic_count):
         total_gas_cost,
         reason="Log topic and data gas cost",
     )
-    if computation.gas_meter.is_out_of_gas:
-        raise OutOfGas("Insufficient gas for log data")
 
     computation.extend_memory(mem_start_position, size)
     log_data = computation.memory.read(mem_start_position, size)

@@ -10,11 +10,6 @@ from evm.constants import (
     UINT_256_CEILING,
 )
 
-from eth_utils import (
-    encode_hex,
-    pad_left,
-)
-
 
 if sys.version_info.major == 2:
     import struct
@@ -33,7 +28,7 @@ if sys.version_info.major == 2:
         elif len(value) <= 8:
             return struct.unpack('>Q', value.rjust(8, '\x00'))[0]
         else:
-            return int(encode_hex(value), 16)
+            return int(codecs.encode(value, 'hex'), 16)
 else:
     def int_to_big_endian(value):
         byte_length = math.ceil(value.bit_length() / 8)
@@ -41,12 +36,6 @@ else:
 
     def big_endian_to_int(value):
         return int.from_bytes(value, byteorder='big')
-
-
-def integer_to_32bytes(value):
-    value_as_bytes = int_to_big_endian(value)
-    padded_value_as_bytes = pad_left(value_as_bytes, 32, b'\x00')
-    return padded_value_as_bytes
 
 
 def ceilXX(value, ceiling):

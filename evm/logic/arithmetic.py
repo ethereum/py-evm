@@ -1,10 +1,12 @@
 import logging
 
+from toolz import (
+    map,
+)
+
 from evm import constants
 
 from evm.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
     unsigned_to_signed,
     signed_to_unsigned,
     ceil8,
@@ -18,52 +20,45 @@ def add(computation):
     """
     Addition
     """
-    left = big_endian_to_int(computation.stack.pop())
-    right = big_endian_to_int(computation.stack.pop())
+    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+
     result = (left + right) & constants.UINT_256_MAX
+
     logger.info('ADD: %s + %s -> %s', left, right, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def addmod(computation):
     """
     Modulo Addition
     """
-    left = big_endian_to_int(computation.stack.pop())
-    right = big_endian_to_int(computation.stack.pop())
-    mod = big_endian_to_int(computation.stack.pop())
+    left, right, mod = computation.stack.pop(num_items=3, type_hint=constants.UINT256)
 
     if mod == 0:
         result = 0
     else:
         result = (left + right) % mod
     logger.info('ADDMOD: (%s + %s) %% %s -> %s', left, right, mod, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def sub(computation):
     """
     Subtraction
     """
-    left = big_endian_to_int(computation.stack.pop())
-    right = big_endian_to_int(computation.stack.pop())
+    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+
     result = (left - right) & constants.UINT_256_MAX
+
     logger.info('SUB: %s - %s -> %s', left, right, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def mod(computation):
     """
     Modulo
     """
-    value = big_endian_to_int(computation.stack.pop())
-    mod = big_endian_to_int(computation.stack.pop())
+    value, mod = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     if mod == 0:
         result = 0
@@ -71,17 +66,17 @@ def mod(computation):
         result = value % mod
 
     logger.info('MOD: %s %% %s -> %s', value, mod, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def smod(computation):
     """
     Signed Modulo
     """
-    value = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
-    mod = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
+    value, mod = map(
+        unsigned_to_signed,
+        computation.stack.pop(num_items=2, type_hint=constants.UINT256),
+    )
 
     pos_or_neg = -1 if value < 0 else 1
 
@@ -91,64 +86,59 @@ def smod(computation):
         result = (abs(value) % abs(mod) * pos_or_neg) & constants.UINT_256_MAX
 
     logger.info('SMOD: %s * |%s| %% |%s| -> %s', pos_or_neg, value, mod, result)
-    computation.stack.push(
-        int_to_big_endian(signed_to_unsigned(result))
-    )
+    computation.stack.push(signed_to_unsigned(result))
 
 
 def mul(computation):
     """
     Multiplication
     """
-    left = big_endian_to_int(computation.stack.pop())
-    right = big_endian_to_int(computation.stack.pop())
+    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+
     result = (left * right) & constants.UINT_256_MAX
+
     logger.info('MUL: %s * %s -> %s', left, right, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def mulmod(computation):
     """
     Modulo Multiplication
     """
-    left = big_endian_to_int(computation.stack.pop())
-    right = big_endian_to_int(computation.stack.pop())
-    mod = big_endian_to_int(computation.stack.pop())
+    left, right, mod = computation.stack.pop(num_items=3, type_hint=constants.UINT256)
 
     if mod == 0:
         result = 0
     else:
         result = (left * right) % mod
     logger.info('MULMOD: (%s * %s) %% %s -> %s', left, right, mod, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)
 
 
 def div(computation):
     """
     Division
     """
-    numerator = big_endian_to_int(computation.stack.pop())
-    denominator = big_endian_to_int(computation.stack.pop())
+    numerator, denominator = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+
     if denominator == 0:
         result = 0
     else:
         result = (numerator // denominator) & constants.UINT_256_MAX
+
     logger.info('DIV: %s / %s -> %s', numerator, denominator, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+
+    computation.stack.push(result)
 
 
 def sdiv(computation):
     """
     Signed Division
     """
-    numerator = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
-    denominator = unsigned_to_signed(big_endian_to_int(computation.stack.pop()))
+    numerator, denominator = map(
+        unsigned_to_signed,
+        computation.stack.pop(num_items=2, type_hint=constants.UINT256),
+    )
 
     pos_or_neg = -1 if numerator * denominator < 0 else 1
 
@@ -156,18 +146,17 @@ def sdiv(computation):
         result = 0
     else:
         result = (pos_or_neg * (abs(numerator) // abs(denominator)))
+
     logger.info('SDIV: %s * |%s| / |%s| -> %s', pos_or_neg, numerator, denominator, result)
-    computation.stack.push(
-        int_to_big_endian(signed_to_unsigned(result))
-    )
+
+    computation.stack.push(signed_to_unsigned(result))
 
 
 def exp(computation):
     """
     Exponentiation
     """
-    base = big_endian_to_int(computation.stack.pop())
-    exponent = big_endian_to_int(computation.stack.pop())
+    base, exponent = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     bit_size = exponent.bit_length()
     byte_size = ceil8(bit_size) // 8
@@ -176,10 +165,9 @@ def exp(computation):
         result = 0
     else:
         result = pow(base, exponent, constants.UINT_256_CEILING)
+
     logger.info('EXP: %s ** %s -> %s', base, exponent, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+
     computation.gas_meter.consume_gas(
         constants.GAS_EXPBYTE * byte_size,
         reason="EXP: exponent bytes",
@@ -187,13 +175,14 @@ def exp(computation):
     if computation.gas_meter.is_out_of_gas:
         raise OutOfGas("Ran out of gas during exponentiation")
 
+    computation.stack.push(result)
+
 
 def signextend(computation):
     """
     Signed Extend
     """
-    bits = big_endian_to_int(computation.stack.pop())
-    value = big_endian_to_int(computation.stack.pop())
+    bits, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     if bits <= 31:
         testbit = bits * 8 + 7
@@ -206,6 +195,4 @@ def signextend(computation):
         result = value
 
     logger.info('SIGNEXTEND: %s by %s bits -> %s', value, bits, result)
-    computation.stack.push(
-        int_to_big_endian(result)
-    )
+    computation.stack.push(result)

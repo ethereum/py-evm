@@ -10,10 +10,7 @@ from toolz import (
     partial,
 )
 
-from eth_utils import (
-    to_normalized_address,
-)
-
+from evm import constants
 from evm import opcodes
 from evm.defaults.gas_costs import (
     memory_gas_cost,
@@ -44,14 +41,15 @@ from evm.exceptions import (
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
+    validate_is_integer,
     validate_length,
     validate_lte,
     validate_gte,
     validate_uint256,
     validate_word,
     validate_opcode,
-    validate_integer,
     validate_boolean,
+    validate_stack_item,
 )
 
 from evm.utils.address import (
@@ -60,6 +58,7 @@ from evm.utils.address import (
 from evm.utils.numeric import (
     ceil32,
     int_to_big_endian,
+    big_endian_to_int,
 )
 
 
@@ -130,21 +129,52 @@ class Stack(object):
         if len(self.values) + 1 > 1024:
             raise FullStack('Stack limit reached')
 
-        validate_is_bytes(value)
-        validate_lte(len(value), maximum=32)
+        validate_stack_item(value)
 
         self.values.append(value)
 
-    def pop(self):
+    def pop(self, num_items=1, type_hint=None):
         """
         Pop an item off thes stack.
+
+        Note: This function is optimized for speed over readability.
         """
-        if not self.values:
-            raise InsufficientStack('Popping from empty stack')
+        values = tuple(self._pop(num_items, type_hint))
+        if num_items == 1:
+            return values[0]
+        else:
+            return values
 
-        value = self.values.pop()
+    def _pop(self, num_items, type_hint):
+        for _ in range(num_items):
+            if not self.values:
+                raise InsufficientStack('Popping from empty stack')
 
-        return value
+            if type_hint is None:
+                yield self.values.pop()
+            elif type_hint == constants.UINT256:
+                value = self.values.pop()
+                try:
+                    validate_is_integer(value)
+                except ValidationError:
+                    yield big_endian_to_int(value)
+                else:
+                    yield value
+            elif type_hint == constants.BYTES:
+                value = self.values.pop()
+                try:
+                    validate_is_bytes(value)
+                except ValidationError:
+                    yield int_to_big_endian(value)
+                else:
+                    yield value
+            else:
+                raise TypeError(
+                    "Unknown type_hint: {0}.  Must be one of {1}".format(
+                        type_hint,
+                        ", ".join(constants.UINT256, constants.BYTES),
+                    )
+                )
 
     def swap(self, position):
         """
@@ -178,8 +208,7 @@ class CodeStream(object):
         self._validity_cache = {}
 
     def read(self, size):
-        value = self.stream.read(size)
-        return value
+        return self.stream.read(size)
 
     def __len__(self):
         return len(self.stream.getvalue())
@@ -193,12 +222,10 @@ class CodeStream(object):
     def next(self):
         next_opcode_as_byte = self.read(1)
 
-        if len(next_opcode_as_byte) == 1:
-            next_opcode = ord(next_opcode_as_byte)
-        else:
-            next_opcode = opcodes.STOP
-
-        return next_opcode
+        try:
+            return ord(next_opcode_as_byte)
+        except TypeError:
+            return opcodes.STOP
 
     def peek(self):
         current_pc = self.pc
@@ -357,7 +384,7 @@ class GasMeter(object):
 
         @functools.wraps(opcode_fn)
         def inner(*args, **kwargs):
-            self.consume_gas(gas_cost, reason="Opcode {0}".format(opcodes.get_mnemonic(opcode)))
+            self.consume_gas(gas_cost, reason=" ".join(("Opcode", opcode_mnemonic)))
             return opcode_fn(*args, **kwargs)
         return inner
 
@@ -411,7 +438,7 @@ class Message(object):
         validate_is_bytes(data)
         self.data = data
 
-        validate_integer(depth)
+        validate_is_integer(depth)
         validate_gte(depth, minimum=0)
         self.depth = depth
 
@@ -588,7 +615,12 @@ class Computation(object):
                 gas_fee = after_cost - before_cost
                 self.gas_meter.consume_gas(
                     gas_fee,
-                    reason="Expanding memory {0} -> {1}".format(before_size, after_size)
+                    reason=" ".join((
+                        "Expanding memory",
+                        str(before_size),
+                        "->",
+                        str(after_size),
+                    ))
                 )
 
             if self.gas_meter.is_out_of_gas:
@@ -648,7 +680,7 @@ class Computation(object):
             return True
         elif exc_type is None:
             for account, beneficiary in self.accounts_to_delete.items():
-                self.logger.info('DELETING ACCOUNT: %s', to_normalized_address(account))
+                self.logger.info('DELETING ACCOUNT: %s', account)
                 self.storage.delete_storage(account)
                 self.storage.delete_code(account)
 
@@ -749,7 +781,10 @@ def _apply_computation(computation):
                 computation.error = err
                 computation.gas_meter.consume_gas(
                     computation.gas_meter.gas_remaining,
-                    reason="Zeroing gas due to VM Exception: {0}".format(str(err)),
+                    reason=" ".join((
+                        "Zeroing gas due to VM Exception:"
+                        ,str(err)
+                    )),
                 )
                 break
 
