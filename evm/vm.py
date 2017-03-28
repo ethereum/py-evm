@@ -258,11 +258,8 @@ class CodeStream(object):
 class GasMeter(object):
     start_gas = None
 
-    gas_used = None
     gas_refunded = None
-    gas_returned = None
     gas_remaining = None
-    is_out_of_gas = None
 
     #logger = logging.getLogger('evm.vm.GasMeter')
     logger = None
@@ -273,8 +270,6 @@ class GasMeter(object):
         self.start_gas = start_gas
 
         self.gas_remaining = self.start_gas
-        self.gas_used = 0
-        self.gas_returned = 0
         self.gas_refunded = 0
 
     #
@@ -291,16 +286,12 @@ class GasMeter(object):
                 reason,
             ))
 
-        before_value = self.gas_remaining
-
-        self.gas_used += amount
-        self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
-        self.is_out_of_gas = self.gas_remaining < 0
+        self.gas_remaining -= amount
 
         if self.logger is not None:
             self.logger.debug(
                 'GAS CONSUMPTION: %s - %s -> %s (%s)',
-                before_value,
+                self.gas_remaining + amount,
                 amount,
                 self.gas_remaining,
                 reason,
@@ -310,16 +301,12 @@ class GasMeter(object):
         if amount < 0:
             raise ValidationError("Gas return amount must be positive")
 
-        before_value = self.gas_remaining
-
-        self.gas_returned += amount
-        self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
-        self.is_out_of_gas = self.gas_remaining < 0
+        self.gas_remaining += amount
 
         if self.logger is not None:
             self.logger.info(
                 'GAS RETURNED: %s + %s -> %s',
-                before_value,
+                self.gas_remaining - amount,
                 amount,
                 self.gas_remaining,
             )
@@ -328,15 +315,12 @@ class GasMeter(object):
         if amount < 0:
             raise ValidationError("Gas refund amount must be positive")
 
-        before_value = self.gas_refunded
-
         self.gas_refunded += amount
-        self.is_out_of_gas = self.gas_remaining < 0
 
         if self.logger is not None:
             self.logger.debug(
                 'GAS REFUND: %s + %s -> %s',
-                before_value,
+                self.gas_refunded - amount,
                 amount,
                 self.gas_refunded,
             )
@@ -579,9 +563,6 @@ class Computation(object):
                         str(after_size),
                     ))
                 )
-
-            if self.gas_meter.is_out_of_gas:
-                raise OutOfGas("Ran out of gas extending memory")
 
             self.memory.extend(start_position, size)
 

@@ -1,7 +1,4 @@
 from evm import constants
-from evm.exceptions import (
-    OutOfGas,
-)
 
 from evm.utils.address import (
     force_bytes_to_address,
@@ -53,9 +50,6 @@ def call(computation):
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
 
-    if computation.gas_meter.is_out_of_gas:
-        raise OutOfGas("Insufficient gas for CALL operation")
-
     child_msg = computation.prepare_child_message(
         gas=child_msg_gas,
         to=to,
@@ -104,9 +98,6 @@ def callcode(computation):
     child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
-
-    if computation.gas_meter.is_out_of_gas:
-        raise OutOfGas("Insufficient gas for CALL operation")
 
     child_msg = computation.prepare_child_message(
         gas=child_msg_gas,

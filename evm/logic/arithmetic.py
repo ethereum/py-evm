@@ -156,8 +156,6 @@ def exp(computation):
         constants.GAS_EXPBYTE * byte_size,
         reason="EXP: exponent bytes",
     )
-    if computation.gas_meter.is_out_of_gas:
-        raise OutOfGas("Ran out of gas during exponentiation")
 
     computation.stack.push(result)
 
