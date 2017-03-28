@@ -1,5 +1,3 @@
-import logging
-
 try:
     from sha3 import keccak_256
 except ImportError:
@@ -10,9 +8,6 @@ from evm import constants
 from evm.utils.numeric import (
     ceil32,
 )
-
-
-logger = logging.getLogger('evm.logic.sha3')
 
 
 def sha3(computation):
@@ -27,7 +22,5 @@ def sha3(computation):
     computation.gas_meter.consume_gas(gas_cost, reason="SHA3: word gas cost")
 
     result = keccak_256(sha3_bytes).digest()
-
-    logger.info("SHA3: %s -> %s", sha3_bytes, result)
 
     computation.stack.push(result)

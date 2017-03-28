@@ -1,5 +1,3 @@
-import logging
-
 from toolz import (
     map,
 )
@@ -10,9 +8,6 @@ from evm.utils.numeric import (
     signed_to_unsigned,
     unsigned_to_signed,
 )
-
-
-logger = logging.getLogger('evm.logic.comparison')
 
 
 def lt(computation):
@@ -26,7 +21,6 @@ def lt(computation):
     else:
         result = 0
 
-    logger.info('LT: %s < %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -41,7 +35,6 @@ def gt(computation):
     else:
         result = 0
 
-    logger.info('SGT: %s > %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -59,7 +52,6 @@ def slt(computation):
     else:
         result = 0
 
-    logger.info('SLT: %s < %s -> %s', left, right, result)
     computation.stack.push(signed_to_unsigned(result))
 
 
@@ -77,7 +69,6 @@ def sgt(computation):
     else:
         result = 0
 
-    logger.info('SGT: %s > %s -> %s', left, right, result)
     computation.stack.push(signed_to_unsigned(result))
 
 
@@ -92,7 +83,6 @@ def eq(computation):
     else:
         result = 0
 
-    logger.info('EQ: %s == %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -107,9 +97,7 @@ def iszero(computation):
     else:
         result = 0
 
-    logger.info('ISZERO: %s -> %s', value, result)
     computation.stack.push(result)
-
 
 
 def and_op(computation):
@@ -120,10 +108,7 @@ def and_op(computation):
 
     result = left & right
 
-    logger.info('AND: %s & %s -> %s', left, right, result)
     computation.stack.push(result)
-
-
 
 
 def or_op(computation):
@@ -134,7 +119,6 @@ def or_op(computation):
 
     result = left | right
 
-    logger.info('OR: %s | %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -146,7 +130,6 @@ def xor(computation):
 
     result = left ^ right
 
-    logger.info('XOR: %s ^ %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -158,7 +141,6 @@ def not_op(computation):
 
     result = constants.UINT_256_MAX - value
 
-    logger.info('NOT: %s -> %s', value, result)
     computation.stack.push(result)
 
 
@@ -173,5 +155,4 @@ def byte_op(computation):
     else:
         result = (value // pow(256, 31 - position)) % 256
 
-    logger.info('BYTE: %s[%s] -> %s', value, position, result)
     computation.stack.push(result)

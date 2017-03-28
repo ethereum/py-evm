@@ -1,5 +1,3 @@
-import logging
-
 from evm import constants
 from evm.exceptions import (
     InvalidJumpDestination,
@@ -10,11 +8,8 @@ from evm.opcode_values import (
 )
 
 
-logger = logging.getLogger('evm.logic.flow')
-
-
 def stop(computation):
-    logger.info('STOP')
+    pass
 
 
 def jump(computation):
@@ -29,8 +24,6 @@ def jump(computation):
 
     if not computation.code.is_valid_opcode(jump_dest):
         raise InvalidInstruction("Jump resulted in invalid instruction")
-
-    logger.info('JUMP: %s', jump_dest)
 
 
 def jumpi(computation):
@@ -47,22 +40,18 @@ def jumpi(computation):
         if not computation.code.is_valid_opcode(jump_dest):
             raise InvalidInstruction("Jump resulted in invalid instruction")
 
-    logger.info('JUMP: %s - %s', jump_dest, check_value)
-
 
 def jumpdest(computation):
-    logger.info('JUMPDEST')
+    pass
 
 
 def pc(computation):
     pc = max(computation.code.pc - 1, 0)
-    logger.info('PC: %s', pc)
 
     computation.stack.push(pc)
 
 
 def gas(computation):
     gas_remaining = computation.gas_meter.gas_remaining
-    logger.info('GAS: %s', gas_remaining)
 
     computation.stack.push(gas_remaining)

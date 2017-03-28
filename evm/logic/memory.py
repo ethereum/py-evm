@@ -1,5 +1,3 @@
-import logging
-
 from toolz import (
     partial,
 )
@@ -11,9 +9,6 @@ from evm.utils.padding import (
 )
 
 
-logger = logging.getLogger('evm.logic.memory')
-
-
 def mstore_XX(computation, size):
     start_position = computation.stack.pop(type_hint=constants.UINT256)
     value = computation.stack.pop(type_hint=constants.BYTES)
@@ -23,17 +18,7 @@ def mstore_XX(computation, size):
 
     computation.extend_memory(start_position, size)
 
-    original_value = computation.memory.read(start_position, size)
-    computation.memory.write(start_position, size,  normalized_value)
-
-    logger.info(
-        'MSTORE%s: (%s:%s) %s -> %s',
-        '' if size == 32 else size * 8,
-        start_position,
-        start_position + size,
-        original_value,
-        normalized_value,
-    )
+    computation.memory.write(start_position, size, normalized_value)
 
 
 mstore = partial(mstore_XX, size=32)
@@ -48,15 +33,6 @@ def mload(computation):
     value = computation.memory.read(start_position, 32)
     computation.stack.push(value)
 
-    logger.info(
-        'MLOAD: (%s:%s) -> %s',
-        start_position,
-        start_position + 32,
-        value,
-    )
-
 
 def msize(computation):
-    logger.info('MSIZE: %s', len(computation.memory))
-
     computation.stack.push(len(computation.memory))

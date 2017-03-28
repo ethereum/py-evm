@@ -1,11 +1,6 @@
-import logging
-
 from toolz import (
     partial,
 )
-
-
-logger = logging.getLogger('evm.logic.swap')
 
 
 def swap_XX(computation, position):
@@ -13,7 +8,6 @@ def swap_XX(computation, position):
     Stack item swapping
     """
     computation.stack.swap(position)
-    logger.info('SWAP%s', position)
 
 
 swap1 = partial(swap_XX, position=1)

@@ -1,11 +1,6 @@
-import logging
-
 from toolz import (
     partial,
 )
-
-
-logger = logging.getLogger('evm.logic.dup')
 
 
 def dup_XX(computation, position):
@@ -13,7 +8,6 @@ def dup_XX(computation, position):
     Stack item duplication.
     """
     computation.stack.dup(position)
-    logger.info('DUP%s')
 
 
 dup1 = partial(dup_XX, position=1)

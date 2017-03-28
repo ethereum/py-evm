@@ -1,15 +1,10 @@
 from __future__ import absolute_import
 
-import logging
-
 from toolz import (
     partial,
 )
 
 from evm import constants
-
-
-logger = logging.getLogger('evm.logic.logging')
 
 
 def log_XX(computation, topic_count):
@@ -41,13 +36,6 @@ def log_XX(computation, topic_count):
         account=computation.msg.to,
         topics=topics,
         data=log_data,
-    )
-
-    logger.info(
-        "LOG%s: topics: %s | data: %s",
-        topic_count,
-        b', '.join(topics),
-        log_data,
     )
 
 

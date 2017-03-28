@@ -1,6 +1,3 @@
-import logging
-import functools
-
 from toolz import (
     map,
 )
@@ -14,10 +11,6 @@ from evm.utils.numeric import (
 )
 
 
-logger = logging.getLogger('evm.logic.arithmetic')
-
-
-
 def add(computation):
     """
     Addition
@@ -26,8 +19,8 @@ def add(computation):
 
     result = (left + right) & constants.UINT_256_MAX
 
-    logger.info('ADD: %s + %s -> %s', left, right, result)
     computation.stack.push(result)
+    return left, right, result
 
 
 def addmod(computation):
@@ -40,7 +33,7 @@ def addmod(computation):
         result = 0
     else:
         result = (left + right) % mod
-    logger.info('ADDMOD: (%s + %s) %% %s -> %s', left, right, mod, result)
+
     computation.stack.push(result)
 
 
@@ -52,7 +45,6 @@ def sub(computation):
 
     result = (left - right) & constants.UINT_256_MAX
 
-    logger.info('SUB: %s - %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -67,7 +59,6 @@ def mod(computation):
     else:
         result = value % mod
 
-    logger.info('MOD: %s %% %s -> %s', value, mod, result)
     computation.stack.push(result)
 
 
@@ -87,7 +78,6 @@ def smod(computation):
     else:
         result = (abs(value) % abs(mod) * pos_or_neg) & constants.UINT_256_MAX
 
-    logger.info('SMOD: %s * |%s| %% |%s| -> %s', pos_or_neg, value, mod, result)
     computation.stack.push(signed_to_unsigned(result))
 
 
@@ -99,7 +89,6 @@ def mul(computation):
 
     result = (left * right) & constants.UINT_256_MAX
 
-    logger.info('MUL: %s * %s -> %s', left, right, result)
     computation.stack.push(result)
 
 
@@ -113,7 +102,6 @@ def mulmod(computation):
         result = 0
     else:
         result = (left * right) % mod
-    logger.info('MULMOD: (%s * %s) %% %s -> %s', left, right, mod, result)
     computation.stack.push(result)
 
 
@@ -127,8 +115,6 @@ def div(computation):
         result = 0
     else:
         result = (numerator // denominator) & constants.UINT_256_MAX
-
-    logger.info('DIV: %s / %s -> %s', numerator, denominator, result)
 
     computation.stack.push(result)
 
@@ -149,8 +135,6 @@ def sdiv(computation):
     else:
         result = (pos_or_neg * (abs(numerator) // abs(denominator)))
 
-    logger.info('SDIV: %s * |%s| / |%s| -> %s', pos_or_neg, numerator, denominator, result)
-
     computation.stack.push(signed_to_unsigned(result))
 
 
@@ -167,8 +151,6 @@ def exp(computation):
         result = 0
     else:
         result = pow(base, exponent, constants.UINT_256_CEILING)
-
-    logger.info('EXP: %s ** %s -> %s', base, exponent, result)
 
     computation.gas_meter.consume_gas(
         constants.GAS_EXPBYTE * byte_size,
@@ -196,5 +178,4 @@ def signextend(computation):
     else:
         result = value
 
-    logger.info('SIGNEXTEND: %s by %s bits -> %s', value, bits, result)
     computation.stack.push(result)

@@ -1,33 +1,23 @@
-import logging
-
 from toolz import (
     partial,
 )
 
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
 from evm.utils.padding import (
     pad_right,
 )
 
 
-logger = logging.getLogger('evm.logic.memory')
-
-
 def pop(computation):
-    logger.info('POP: %s', computation.stack.pop())
+    computation.stack.pop()
 
 
 def push_XX(computation, size):
     raw_value = computation.code.read(size)
 
     if not raw_value.strip(b'\x00'):
-        logger.info('PUSH%s: %s', size, b'\x00' * size)
         computation.stack.push(0)
     else:
         padded_value = pad_right(raw_value, size, b'\x00')
-        logger.info('PUSH%s: %s', size, padded_value)
         computation.stack.push(padded_value)
 
 

@@ -1,9 +1,4 @@
-import logging
-
 from evm import constants
-
-
-logger = logging.getLogger('evm.logic.storage')
 
 
 def sstore(computation):
@@ -29,8 +24,6 @@ def sstore(computation):
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0}".format(slot))
     computation.gas_meter.refund_gas(gas_refund)
 
-    logger.info('SSTORE: (%s) %s -> %s', slot, original_value, value)
-
     computation.storage.set_storage(computation.msg.storage_address, slot, value)
 
 
@@ -39,5 +32,3 @@ def sload(computation):
 
     value = computation.storage.get_storage(computation.msg.storage_address, slot)
     computation.stack.push(value)
-
-    logger.info('SLOAD: (%s) -> %s', slot, value)

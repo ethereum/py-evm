@@ -1,25 +1,15 @@
-import logging
-
 from evm import constants
 from evm.exceptions import (
     OutOfGas,
-    InsufficientFunds,
 )
 
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
 )
-from evm.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
-)
 from evm.utils.padding import (
     pad_right,
 )
-
-
-logger = logging.getLogger('evm.logic.system')
 
 
 def return_op(computation):
@@ -30,23 +20,10 @@ def return_op(computation):
     output = computation.memory.read(start_position, size)
     computation.output = output
 
-    logger.info('RETURN: (%s:%s) -> %s', start_position, start_position + size, output)
-
 
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
     computation.register_account_for_deletion(beneficiary)
-    logger.info('SUICIDE: %s -> %s', computation.msg.to, beneficiary)
-
-
-
-def _call_extra_gas_cost(to, value, account_exists):
-    transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
-    create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
-
-    extra_gas = transfer_gas_cost + create_gas_cost
-
-    return extra_gas
 
 
 def call(computation):
@@ -61,27 +38,17 @@ def call(computation):
         memory_output_size,
     ) = computation.stack.pop(num_items=5, type_hint=constants.UINT256)
 
-    logger.info(
-        "CALL: gas: %s | to: %s | value: %s | memory-in: [%s:%s] | memory-out: [%s:%s]",
-        gas,
-        to,
-        value,
-        memory_input_start_position,
-        memory_input_start_position + memory_input_size,
-        memory_output_start_position,
-        memory_output_start_position + memory_output_size,
-    )
-
     computation.extend_memory(memory_input_start_position, memory_input_size)
     computation.extend_memory(memory_output_start_position, memory_output_size)
 
     call_data = computation.memory.read(memory_input_start_position, memory_input_size)
 
-    extra_gas = _call_extra_gas_cost(
-        to=to,
-        value=value,
-        account_exists=computation.storage.account_exists(to),
-    )
+    account_exists = computation.storage.account_exists(to)
+    transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
+    create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
+
+    extra_gas = transfer_gas_cost + create_gas_cost
+
     child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
@@ -123,27 +90,17 @@ def callcode(computation):
         memory_output_size,
     ) = computation.stack.pop(num_items=5, type_hint=constants.UINT256)
 
-    logger.info(
-        "CALLCODE: gas: %s | to: %s | value: %s | memory-in: [%s:%s] | memory-out: [%s:%s]",
-        gas,
-        to,
-        value,
-        memory_input_start_position,
-        memory_input_start_position + memory_input_size,
-        memory_output_start_position,
-        memory_output_start_position + memory_output_size,
-    )
-
     computation.extend_memory(memory_input_start_position, memory_input_size)
     computation.extend_memory(memory_output_start_position, memory_output_size)
 
     call_data = computation.memory.read(memory_input_start_position, memory_input_size)
 
-    extra_gas = _call_extra_gas_cost(
-        to=to,
-        value=value,
-        account_exists=computation.storage.account_exists(to),
-    )
+    account_exists = computation.storage.account_exists(to)
+    transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
+    create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
+
+    extra_gas = transfer_gas_cost + create_gas_cost
+
     child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
@@ -181,13 +138,6 @@ def create(computation):
         type_hint=constants.UINT256,
     )
 
-    logger.info(
-        "CREATE: value: %s | memory-in: [%s:%s]",
-        value,
-        start_position,
-        start_position + size,
-    )
-
     computation.extend_memory(start_position, size)
 
     insufficient_funds = computation.storage.get_balance(computation.msg.to) < value
@@ -204,14 +154,6 @@ def create(computation):
 
     creation_nonce = computation.storage.get_nonce(computation.msg.to)
     contract_address = generate_contract_address(computation.msg.to, creation_nonce)
-
-    logger.info('BALANCE: %s | %s | %s', computation.msg.value, value, computation.storage.get_balance(computation.msg.to))
-
-    logger.info("%s, %s", computation.msg.to, creation_nonce)
-    logger.info(
-        "CREATING: %s",
-        contract_address,
-    )
 
     child_msg = computation.prepare_child_message(
         gas=create_msg_gas,

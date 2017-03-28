@@ -90,7 +90,8 @@ class Stack(object):
     EVM Stack
     """
     values = None
-    logger = logging.getLogger('evm.vm.Stack')
+    #logger = logging.getLogger('evm.vm.Stack')
+    logger = None
 
     def __init__(self):
         self.values = []
@@ -176,7 +177,8 @@ class Stack(object):
 class CodeStream(object):
     stream = None
 
-    logger = logging.getLogger('evm.vm.CodeStream')
+    #logger = logging.getLogger('evm.vm.CodeStream')
+    logger = None
 
     def __init__(self, code_bytes):
         validate_is_bytes(code_bytes)
@@ -267,7 +269,8 @@ class GasMeter(object):
     gas_remaining = None
     is_out_of_gas = None
 
-    logger = logging.getLogger('evm.vm.GasMeter')
+    #logger = logging.getLogger('evm.vm.GasMeter')
+    logger = None
 
     def __init__(self, start_gas):
         validate_uint256(start_gas)
@@ -283,10 +286,8 @@ class GasMeter(object):
     # Write API
     #
     def consume_gas(self, amount, reason):
-        try:
-            validate_uint256(amount)
-        except ValidationError:
-            raise OutOfGas("Gas amount exceeds 256 integer size: {0} reason: {1}".format(amount, reason))
+        if amount < 0:
+            raise ValidationError("Gas consumption amount must be positive")
 
         if amount > self.gas_remaining:
             raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
@@ -301,16 +302,18 @@ class GasMeter(object):
         self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
         self.is_out_of_gas = self.gas_remaining < 0
 
-        self.logger.debug(
-            'GAS CONSUMPTION: %s - %s -> %s (%s)',
-            before_value,
-            amount,
-            self.gas_remaining,
-            reason,
-        )
+        if self.logger is not None:
+            self.logger.debug(
+                'GAS CONSUMPTION: %s - %s -> %s (%s)',
+                before_value,
+                amount,
+                self.gas_remaining,
+                reason,
+            )
 
     def return_gas(self, amount):
-        validate_uint256(amount)
+        if amount < 0:
+            raise ValidationError("Gas return amount must be positive")
 
         before_value = self.gas_remaining
 
@@ -318,27 +321,30 @@ class GasMeter(object):
         self.gas_remaining = self.start_gas - self.gas_used + self.gas_returned
         self.is_out_of_gas = self.gas_remaining < 0
 
-        self.logger.info(
-            'GAS RETURNED: %s + %s -> %s',
-            before_value,
-            amount,
-            self.gas_remaining,
-        )
+        if self.logger is not None:
+            self.logger.info(
+                'GAS RETURNED: %s + %s -> %s',
+                before_value,
+                amount,
+                self.gas_remaining,
+            )
 
     def refund_gas(self, amount):
-        validate_uint256(amount)
+        if amount < 0:
+            raise ValidationError("Gas refund amount must be positive")
 
         before_value = self.gas_refunded
 
         self.gas_refunded += amount
         self.is_out_of_gas = self.gas_remaining < 0
 
-        self.logger.info(
-            'GAS REFUND: %s + %s -> %s',
-            before_value,
-            amount,
-            self.gas_refunded,
-        )
+        if self.logger is not None:
+            self.logger.debug(
+                'GAS REFUND: %s + %s -> %s',
+                before_value,
+                amount,
+                self.gas_refunded,
+            )
 
 
 class Message(object):
@@ -436,7 +442,8 @@ class Environment(object):
     gas_limit = None
     timestamp = None
 
-    logger = logging.getLogger('evm.vm.Environment')
+    #logger = logging.getLogger('evm.vm.Environment')
+    logger = None
 
     def __init__(self, coinbase, difficulty, block_number, gas_limit, timestamp):
         self.difficulty = difficulty
@@ -475,7 +482,8 @@ class Computation(object):
     logs = None
     accounts_to_delete = None
 
-    logger = logging.getLogger('evm.vm.Computation')
+    #logger = logging.getLogger('evm.vm.Computation')
+    logger = None
 
     def __init__(self, evm, message):
         self.evm = evm
@@ -555,13 +563,14 @@ class Computation(object):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        self.logger.debug(
-            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-            before_size,
-            after_size,
-            before_cost,
-            after_cost,
-        )
+        if self.logger is not None:
+            self.logger.debug(
+                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+                before_size,
+                after_size,
+                before_cost,
+                after_cost,
+            )
 
         if size:
             if before_cost < after_cost:
@@ -610,7 +619,8 @@ class Computation(object):
             return True
         elif exc_type is None:
             for account, beneficiary in self.accounts_to_delete.items():
-                self.logger.info('DELETING ACCOUNT: %s', account)
+                if self.logger is not None:
+                    self.logger.info('DELETING ACCOUNT: %s', account)
                 self.storage.delete_storage(account)
                 self.storage.delete_code(account)
 
@@ -671,12 +681,13 @@ def _apply_message(evm, message):
         sender_balance -= message.value
         recipient_balance += message.value
 
-        evm.logger.info(
-            "Transferred: %s from %s -> %s",
-            message.value,
-            message.sender,
-            message.to,
-        )
+        if evm.logger is not None:
+            evm.logger.info(
+                "Transferred: %s from %s -> %s",
+                message.value,
+                message.sender,
+                message.to,
+            )
 
         evm.storage.set_balance(message.sender, sender_balance)
         evm.storage.set_balance(message.to, recipient_balance)
@@ -690,19 +701,24 @@ def _apply_message(evm, message):
 
 def _apply_computation(computation):
     with computation:
-        logger = computation.logger
-        logger.debug(
-            "EXECUTING: gas: %s | from: %s | to: %s | value: %s",
-            computation.msg.gas,
-            computation.msg.sender,
-            computation.msg.to,
-            computation.msg.value,
-        )
+        if computation.logger is not None:
+            computation.logger.debug(
+                "EXECUTING: gas: %s | from: %s | to: %s | value: %s",
+                computation.msg.gas,
+                computation.msg.sender,
+                computation.msg.to,
+                computation.msg.value,
+            )
 
         for opcode in computation.code:
             opcode_fn = computation.evm.get_opcode_fn(opcode)
 
-            logger.debug("OPCODE: 0x%x (%s)", opcode_fn.value, opcode_fn.mnemonic)
+            if computation.logger is not None:
+                computation.logger.debug(
+                    "OPCODE: 0x%x (%s)",
+                    opcode_fn.value,
+                    opcode_fn.mnemonic,
+                )
 
             try:
                 opcode_fn(computation=computation)
@@ -728,7 +744,8 @@ class EVM(object):
     environment = None
     opcodes = None
 
-    logger = logging.getLogger('evm.vm.EVM')
+    #logger = logging.getLogger('evm.vm.EVM')
+    logger = None
 
     def __init__(self, storage, environment):
         self.storage = storage
