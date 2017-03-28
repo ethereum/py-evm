@@ -2,13 +2,15 @@ from toolz import (
     partial,
 )
 
+from evm import constants
+
 from evm.utils.padding import (
     pad_right,
 )
 
 
 def pop(computation):
-    computation.stack.pop()
+    computation.stack.pop(type_hint=constants.ANY)
 
 
 def push_XX(computation, size):

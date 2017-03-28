@@ -1,3 +1,4 @@
+ANY = 'any'
 UINT256 = 'uint256'
 BYTES = 'bytes'
 

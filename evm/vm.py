@@ -103,7 +103,7 @@ class Stack(object):
         """
         Push an item onto the stack.
         """
-        if len(self.values) + 1 > 1024:
+        if len(self.values) > 1023:
             raise FullStack('Stack limit reached')
 
         validate_stack_item(value)
@@ -116,40 +116,35 @@ class Stack(object):
 
         Note: This function is optimized for speed over readability.
         """
-        values = tuple(self._pop(num_items, type_hint))
-        if num_items == 1:
-            return values[0]
-        else:
-            return values
+        try:
+            if num_items == 1:
+                return next(self._pop(num_items, type_hint))
+            else:
+                return tuple(self._pop(num_items, type_hint))
+        except IndexError:
+            raise InsufficientStack("No stack items")
 
     def _pop(self, num_items, type_hint):
         for _ in range(num_items):
-            if not self.values:
-                raise InsufficientStack('Popping from empty stack')
-
-            if type_hint is None:
-                yield self.values.pop()
-            elif type_hint == constants.UINT256:
+            if type_hint == constants.UINT256:
                 value = self.values.pop()
-                try:
-                    validate_is_integer(value)
-                except ValidationError:
-                    yield big_endian_to_int(value)
-                else:
+                if isinstance(value, int):
                     yield value
+                else:
+                    yield big_endian_to_int(value)
             elif type_hint == constants.BYTES:
                 value = self.values.pop()
-                try:
-                    validate_is_bytes(value)
-                except ValidationError:
-                    yield int_to_big_endian(value)
-                else:
+                if isinstance(value, (bytes, bytearray)):
                     yield value
+                else:
+                    yield int_to_big_endian(value)
+            elif type_hint == constants.ANY:
+                yield self.values.pop()
             else:
                 raise TypeError(
                     "Unknown type_hint: {0}.  Must be one of {1}".format(
                         type_hint,
-                        ", ".join(constants.UINT256, constants.BYTES),
+                        ", ".join((constants.UINT256, constants.BYTES)),
                     )
                 )
 

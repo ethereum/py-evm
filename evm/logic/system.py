@@ -18,7 +18,7 @@ def return_op(computation):
     computation.extend_memory(start_position, size)
 
     output = computation.memory.read(start_position, size)
-    computation.output = output
+    computation.output = bytes(output)
 
 
 def suicide(computation):
