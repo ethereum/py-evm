@@ -1,6 +1,5 @@
 from toolz import (
     partial,
-    juxt,
 )
 
 from evm.constants import (
@@ -8,9 +7,6 @@ from evm.constants import (
 )
 from evm.exceptions import (
     ValidationError,
-)
-from evm.opcodes import (
-    KNOWN_OPCODES,
 )
 
 
@@ -70,13 +66,6 @@ def validate_multiple_of(value, multiple_of):
 def validate_boolean(value):
     if not isinstance(value, bool):
         raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
-
-
-def validate_opcode(value):
-    if not isinstance(value, int):
-        raise ValidationError("Opcodes must be integers")
-    if value not in KNOWN_OPCODES:
-        raise ValidationError("Value {0} is not a known opcode.".format(hex(value)))
 
 
 validate_multiple_of_8 = partial(validate_multiple_of, multiple_of=8)

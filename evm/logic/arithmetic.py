@@ -1,4 +1,5 @@
 import logging
+import functools
 
 from toolz import (
     map,
@@ -14,6 +15,7 @@ from evm.utils.numeric import (
 
 
 logger = logging.getLogger('evm.logic.arithmetic')
+
 
 
 def add(computation):

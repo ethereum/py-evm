@@ -5,7 +5,7 @@ from evm.exceptions import (
     InvalidJumpDestination,
     InvalidInstruction,
 )
-from evm.opcodes import (
+from evm.opcode_values import (
     JUMPDEST,
 )
 

@@ -1,34 +1,15 @@
 import contextlib
-import functools
 import io
 import itertools
 import logging
 
-import pylru
-
-from toolz import (
-    partial,
-)
-
 from evm import constants
-from evm import opcodes
-from evm.defaults.gas_costs import (
-    memory_gas_cost,
-    sstore_gas_cost,
-    call_gas_cost,
-    OPCODE_GAS_COSTS,
-)
+from evm import opcode_values
 from evm.precompile import (
     PRECOMPILES,
 )
-from evm.defaults.opcodes import (
-    OPCODE_LOGIC_FUNCTIONS,
-)
 from evm.logic.invalid import (
-    invalid_op,
-)
-from evm.constants import (
-    NULL_BYTE,
+    InvalidOpcode,
 )
 from evm.exceptions import (
     ValidationError,
@@ -37,6 +18,7 @@ from evm.exceptions import (
     InsufficientStack,
     FullStack,
     StackDepthLimit,
+    InsufficientFunds,
 )
 from evm.validation import (
     validate_canonical_address,
@@ -46,15 +28,9 @@ from evm.validation import (
     validate_lte,
     validate_gte,
     validate_uint256,
-    validate_word,
-    validate_opcode,
-    validate_boolean,
     validate_stack_item,
 )
 
-from evm.utils.address import (
-    generate_contract_address,
-)
 from evm.utils.numeric import (
     ceil32,
     int_to_big_endian,
@@ -225,7 +201,7 @@ class CodeStream(object):
         try:
             return ord(next_opcode_as_byte)
         except TypeError:
-            return opcodes.STOP
+            return opcode_values.STOP
 
     def peek(self):
         current_pc = self.pc
@@ -255,29 +231,18 @@ class CodeStream(object):
     _validity_cache = None
 
     def is_valid_opcode(self, position):
-        if position not in self._validity_cache:
-            with self.seek(position):
-                opcode_at_position = next(self)
-
-            try:
-                validate_opcode(opcode_at_position)
-            except ValidationError:
-                self._validity_cache[position] = False
+        if position >= len(self):
+            return False
 
         if position not in self._validity_cache:
             with self.seek(max(0, position - 32)):
                 prefix = self.read(min(position, 32))
 
             for offset, opcode in enumerate(reversed(prefix)):
-                try:
-                    validate_opcode(opcode)
-                except ValidationError:
+                if opcode < opcode_values.PUSH1 or opcode > opcode_values.PUSH32:
                     continue
 
-                if opcode < opcodes.PUSH1 or opcode > opcodes.PUSH32:
-                    continue
-
-                push_size = 1 + opcode - opcodes.PUSH1
+                push_size = 1 + opcode - opcode_values.PUSH1
                 if push_size <= offset:
                     continue
 
@@ -375,19 +340,6 @@ class GasMeter(object):
             self.gas_refunded,
         )
 
-    def wrap_opcode_fn(self, opcode, opcode_fn, gas_cost):
-        """
-        Wraps an opcode logic function such that it consumes the base opcode
-        gas prior to execution.
-        """
-        opcode_mnemonic = opcodes.MNEMONICS[opcode]
-
-        @functools.wraps(opcode_fn)
-        def inner(*args, **kwargs):
-            self.consume_gas(gas_cost, reason=" ".join(("Opcode", opcode_mnemonic)))
-            return opcode_fn(*args, **kwargs)
-        return inner
-
 
 class Message(object):
     """
@@ -448,11 +400,7 @@ class Message(object):
 
         if create_address is not None:
             validate_canonical_address(create_address)
-        self.create_address = create_address
-
-    @property
-    def is_create(self):
-        return self.create_address is not None
+        self.storage_address = create_address
 
     @property
     def code_address(self):
@@ -467,14 +415,18 @@ class Message(object):
 
     @property
     def storage_address(self):
-        if self.is_create:
-            return self.create_address
+        if self._storage_address is not None:
+            return self._storage_address
         else:
             return self.to
 
     @storage_address.setter
     def storage_address(self, value):
-        self._storage_address = storage_address
+        self._storage_address = value
+
+    @property
+    def is_create(self):
+        return self._storage_address is not None
 
 
 class Environment(object):
@@ -536,7 +488,6 @@ class Computation(object):
         self.children = []
         self.accounts_to_delete = {}
         self.logs = []
-        self._opcode_cache = pylru.lrucache(256)
 
         if message.is_create:
             code = message.data
@@ -599,6 +550,8 @@ class Computation(object):
         before_size = ceil32(len(self.memory))
         after_size = ceil32(start_position + size)
 
+        from evm.preconfigured.genesis import memory_gas_cost
+        # TODO: abstract
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
@@ -627,29 +580,6 @@ class Computation(object):
                 raise OutOfGas("Ran out of gas extending memory")
 
             self.memory.extend(start_position, size)
-
-    #
-    # Opcode Functions
-    #
-    _opcode_cache = None
-
-    def get_opcode_fn(self, opcode):
-        if opcode not in self._opcode_cache:
-            try:
-                validate_opcode(opcode)
-            except ValidationError:
-                opcode_fn = partial(invalid_op, opcode=opcode)
-            else:
-                base_opcode_fn = self.evm.get_base_opcode_fn(opcode)
-                opcode_gas_cost = self.evm.get_opcode_gas_cost(opcode)
-                opcode_fn = self.gas_meter.wrap_opcode_fn(
-                    opcode=opcode,
-                    opcode_fn=base_opcode_fn,
-                    gas_cost=opcode_gas_cost,
-                )
-
-            self._opcode_cache[opcode] = opcode_fn
-        return self._opcode_cache[opcode]
 
     #
     # Runtime Operations
@@ -693,9 +623,9 @@ class Computation(object):
 
 
 BREAK_OPCODES = {
-    opcodes.RETURN,
-    opcodes.STOP,
-    opcodes.SUICIDE,
+    opcode_values.RETURN,
+    opcode_values.STOP,
+    opcode_values.SUICIDE,
 }
 
 
@@ -741,7 +671,7 @@ def _apply_message(evm, message):
         sender_balance -= message.value
         recipient_balance += message.value
 
-        logger.info(
+        evm.logger.info(
             "Transferred: %s from %s -> %s",
             message.value,
             message.sender,
@@ -770,10 +700,9 @@ def _apply_computation(computation):
         )
 
         for opcode in computation.code:
-            opcode_mnemonic = opcodes.get_mnemonic(opcode)
-            logger.debug("OPCODE: 0x%x (%s)", opcode, opcode_mnemonic)
+            opcode_fn = computation.evm.get_opcode_fn(opcode)
 
-            opcode_fn = computation.get_opcode_fn(opcode)
+            logger.debug("OPCODE: 0x%x (%s)", opcode_fn.value, opcode_fn.mnemonic)
 
             try:
                 opcode_fn(computation=computation)
@@ -782,8 +711,8 @@ def _apply_computation(computation):
                 computation.gas_meter.consume_gas(
                     computation.gas_meter.gas_remaining,
                     reason=" ".join((
-                        "Zeroing gas due to VM Exception:"
-                        ,str(err)
+                        "Zeroing gas due to VM Exception:",
+                        str(err),
                     )),
                 )
                 break
@@ -797,10 +726,24 @@ def _apply_computation(computation):
 class EVM(object):
     storage = None
     environment = None
+    opcodes = None
+
+    logger = logging.getLogger('evm.vm.EVM')
 
     def __init__(self, storage, environment):
         self.storage = storage
         self.environment = environment
+
+    @classmethod
+    def create(cls, name, opcode_classes):
+        props = {
+            'opcodes': {
+                opcode_class.value: opcode_class()
+                for opcode_class in opcode_classes
+            },
+            'logger': logging.getLogger('evm.vm.EVM.{0}'.format(name))
+        }
+        return type(name, (cls,), props)
 
     #
     # Execution
@@ -845,16 +788,8 @@ class EVM(object):
     #
     # Opcode API
     #
-    def get_base_opcode_fn(self, opcode):
-        base_opcode_fn = OPCODE_LOGIC_FUNCTIONS[opcode]
-        return base_opcode_fn
-
-    def get_opcode_gas_cost(self, opcode):
-        opcode_gas_cost = OPCODE_GAS_COSTS[opcode]
-        return opcode_gas_cost
-
-    def get_sstore_gas_fn(self):
-        return sstore_gas_cost
-
-    def get_call_gas_fn(self):
-        return call_gas_cost
+    def get_opcode_fn(self, opcode):
+        try:
+            return self.opcodes[opcode]
+        except KeyError:
+            return InvalidOpcode(opcode)

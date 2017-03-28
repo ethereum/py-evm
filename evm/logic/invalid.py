@@ -1,8 +1,17 @@
 from evm.exceptions import InvalidInstruction
+from evm.opcode import Opcode
 
 
-def invalid_op(computation, opcode):
-    raise InvalidInstruction("Invalid opcode 0x{0:x} @ {1}".format(
-        opcode,
-        computation.code.pc - 1,
-    ))
+class InvalidOpcode(Opcode):
+    mnemonic = "INVALID"
+    gas_cost = 0
+
+    def __init__(self, value):
+        self.value = value
+        super(InvalidInstruction, self).__init__()
+
+    def __call__(self, computation):
+        raise InvalidInstruction("Invalid opcode 0x{0:x} @ {1}".format(
+            self.value,
+            computation.code.pc - 1,
+        ))

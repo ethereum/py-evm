@@ -12,13 +12,24 @@ def sstore(computation):
     original_value = computation.storage.get_storage(computation.msg.storage_address, slot)
     value = computation.stack.pop(type_hint=constants.BYTES)
 
-    logger.info('SSTORE: (%s) %s -> %s', slot, original_value, value)
-
-    gas_fn = computation.evm.get_sstore_gas_fn()
-    gas_cost, gas_refund = gas_fn(original_value, value)
+    if original_value.strip(b'\x00'):
+        if value.strip(b'\x00'):
+            gas_cost = constants.GAS_SRESET
+            gas_refund = constants.REFUND_SCLEAR
+        else:
+            gas_cost = constants.GAS_SRESET
+            gas_refund = 0
+    else:
+        if value.strip(b'\x00'):
+            gas_cost = constants.GAS_SSET
+        else:
+            gas_cost = constants.GAS_SRESET
+        gas_refund = 0
 
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0}".format(slot))
     computation.gas_meter.refund_gas(gas_refund)
+
+    logger.info('SSTORE: (%s) %s -> %s', slot, original_value, value)
 
     computation.storage.set_storage(computation.msg.storage_address, slot, value)
 
