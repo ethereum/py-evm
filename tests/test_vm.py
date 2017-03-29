@@ -1,5 +1,6 @@
 import pytest
 
+import fnmatch
 import json
 import os
 
@@ -124,35 +125,24 @@ GenesisEVM = EVM.create(name='genesis', opcode_classes=GENESIS_OPCODES)
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
-VM_TEST_FIXTURE_FILENAMES = (
-    'vmArithmeticTest.json',
-    'vmBitwiseLogicOperationTest.json',
-    'vmBlockInfoTest.json',
-    'vmEnvironmentalInfoTest.json',
-    'vmIOandFlowOperationsTest.json',
-    'vmInputLimits.json',
-    'vmInputLimitsLight.json',
-    'vmLogTest.json',
-    'vmPerformanceTest.json',
-    'vmPushDupSwapTest.json',
-    'vmSha3Test.json',
-    'vmSystemOperationsTest.json',
-    'vmtests.json',
-)
+def recursive_find_files(base_dir, pattern):
+    for dirpath, _, filenames in os.walk(base_dir):
+        for filename in filenames:
+            if fnmatch.fnmatch(filename, pattern):
+                yield os.path.join(dirpath, filename)
 
-FIXTURES_PATHS = tuple(
-    (
-        filename,
-        os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests', filename),
-    ) for filename in VM_TEST_FIXTURE_FILENAMES
-)
+
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
+
+
+FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 
 
 RAW_FIXTURES = tuple(
     (
-        fixture_filename,
-        json.load(open(fixture_path))
-    ) for fixture_filename, fixture_path in FIXTURES_PATHS
+        os.path.basename(fixture_path),
+        json.load(open(fixture_path)),
+    ) for fixture_path in FIXTURES_PATHS
 )
 
 

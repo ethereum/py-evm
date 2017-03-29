@@ -195,9 +195,9 @@ class CodeStream(object):
     def next(self):
         next_opcode_as_byte = self.read(1)
 
-        try:
+        if next_opcode_as_byte:
             return ord(next_opcode_as_byte)
-        except TypeError:
+        else:
             return opcode_values.STOP
 
     def peek(self):
