@@ -1,13 +1,20 @@
 from evm import constants
 
+from evm.utils.padding import (
+    pad32,
+)
+
 
 def sstore(computation):
-    slot = computation.stack.pop(type_hint=constants.UINT256)
+    slot, value = computation.stack.pop(num_items=2, type_hint=constants.BYTES)
+    padded_slot = pad32(slot)
 
-    original_value = computation.storage.get_storage(computation.msg.storage_address, slot)
-    value = computation.stack.pop(type_hint=constants.BYTES)
+    current_value = computation.storage.get_storage(
+        address=computation.msg.storage_address,
+        slot=padded_slot,
+    )
 
-    if original_value.strip(b'\x00'):
+    if current_value.strip(b'\x00'):
         if value.strip(b'\x00'):
             gas_cost = constants.GAS_SRESET
             gas_refund = constants.REFUND_SCLEAR
@@ -24,11 +31,19 @@ def sstore(computation):
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0}".format(slot))
     computation.gas_meter.refund_gas(gas_refund)
 
-    computation.storage.set_storage(computation.msg.storage_address, slot, value)
+    computation.storage.set_storage(
+        address=computation.msg.storage_address,
+        slot=padded_slot,
+        value=value,
+    )
 
 
 def sload(computation):
-    slot = computation.stack.pop(type_hint=constants.UINT256)
+    slot = computation.stack.pop(type_hint=constants.BYTES)
+    padded_slot = pad32(slot)
 
-    value = computation.storage.get_storage(computation.msg.storage_address, slot)
+    value = computation.storage.get_storage(
+        address=computation.msg.storage_address,
+        slot=padded_slot,
+    )
     computation.stack.push(value)

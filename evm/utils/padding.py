@@ -1,3 +1,8 @@
+from toolz import (
+    partial,
+)
+
+
 def pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
@@ -24,3 +29,6 @@ def pad_right(value, to_size, pad_with):
         ))
     else:
         return value
+
+
+pad32 = partial(pad_left, to_size=32, pad_with=b'\x00')

@@ -4,23 +4,15 @@ import fnmatch
 import json
 import os
 
-from trie import (
-    Trie,
-)
-from trie.db.memory import (
-    MemoryDB,
-)
-
 from eth_utils import (
     is_0x_prefixed,
     to_canonical_address,
     decode_hex,
     pad_left,
-    keccak,
 )
 
-from evm.constants import (
-    ZERO_ADDRESS,
+from evm.storage.memory import (
+    MemoryStorage,
 )
 from evm.exceptions import (
     VMError,
@@ -28,7 +20,6 @@ from evm.exceptions import (
 from evm.vm import (
     Environment,
     Message,
-    Computation,
     EVM,
 )
 from evm.preconfigured.genesis import (
@@ -46,7 +37,7 @@ def to_int(value):
         return int(value)
 
 
-def normalize_fixture(fixture):
+def normalize_statetest_fixture(fixture):
     normalized_fixture = {
         'env': {
             'currentCoinbase': decode_hex(fixture['env']['currentCoinbase']),
@@ -54,15 +45,16 @@ def normalize_fixture(fixture):
             'currentNumber': to_int(fixture['env']['currentNumber']),
             'currentGasLimit': to_int(fixture['env']['currentGasLimit']),
             'currentTimestamp': to_int(fixture['env']['currentTimestamp']),
+            'previousHash': decode_hex(fixture['env']['previousHash']),
         },
-        'exec': {
-            'origin': to_canonical_address(fixture['exec']['origin']),
-            'address': to_canonical_address(fixture['exec']['address']),
-            'caller': to_canonical_address(fixture['exec']['caller']),
-            'value': to_int(fixture['exec']['value']),
-            'data': decode_hex(fixture['exec']['data']),
-            'gas': to_int(fixture['exec']['gas']),
-            'gasPrice': to_int(fixture['exec']['gasPrice']),
+        'transaction': {
+            'data': decode_hex(fixture['transaction']['data']),
+            'gasLimit': to_int(fixture['transaction']['gasLimit']),
+            'gasPrice': to_int(fixture['transaction']['gasPrice']),
+            'nonce': to_int(fixture['transaction']['nonce']),
+            'secretKey': decode_hex(fixture['transaction']['secretKey']),
+            'to': to_canonical_address(fixture['transaction']['to']),
+            'value': to_int(fixture['transaction']['value']),
         },
         'pre': {
             to_canonical_address(address): {
@@ -75,6 +67,7 @@ def normalize_fixture(fixture):
                 },
             } for address, state in fixture['pre'].items()
         },
+        'postStateRoot': decode_hex(fixture['postStateRoot']),
     }
 
     if 'post' in fixture:
@@ -89,23 +82,6 @@ def normalize_fixture(fixture):
                 },
             } for address, state in fixture['post'].items()
         }
-
-    if 'callcreates' in fixture:
-        normalized_fixture['callcreates'] = [
-            {
-                'data': decode_hex(created_call['data']),
-                'destination': (
-                    to_canonical_address(created_call['destination'])
-                    if created_call['destination']
-                    else ZERO_ADDRESS
-                ),
-                'gasLimit': to_int(created_call['gasLimit']),
-                'value': to_int(created_call['value']),
-            } for created_call in fixture['callcreates']
-        ]
-
-    if 'gas' in fixture:
-        normalized_fixture['gas'] = to_int(fixture['gas'])
 
     if 'out' in fixture:
         normalized_fixture['out'] = decode_hex(fixture['out'])
@@ -136,7 +112,7 @@ def recursive_find_files(base_dir, pattern):
                 yield os.path.join(dirpath, filename)
 
 
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
 FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
@@ -153,7 +129,7 @@ RAW_FIXTURES = tuple(
 SUCCESS_FIXTURES = tuple(
     (
         "{0}:{1}".format(fixture_filename, key),
-        normalize_fixture(fixtures[key]),
+        normalize_statetest_fixture(fixtures[key]),
     )
     for fixture_filename, fixtures in RAW_FIXTURES
     for key in sorted(fixtures.keys())
@@ -161,51 +137,15 @@ SUCCESS_FIXTURES = tuple(
 )
 
 
-FAILURE_FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_fixture(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
-    if 'post' not in fixtures[key]
-)
-
-
-class EVMForTesting(GenesisEVM):
-    #
-    # Execution Overrides
-    #
-    def apply_message(self, message):
-        """
-        For VM tests, we don't actually apply messages.
-        """
-        computation = Computation(
-            evm=self,
-            message=message,
-        )
-        return computation
-
-    def apply_create_message(self, message):
-        """
-        For VM tests, we don't actually apply messages.
-        """
-        computation = Computation(
-            evm=self,
-            message=message,
-        )
-        return computation
-
-    #
-    # Storage Overrides
-    #
-    def get_block_hash(self, block_number):
-        if block_number >= self.environment.block_number:
-            return b''
-        elif block_number < self.environment.block_number - 256:
-            return b''
-        else:
-            return keccak("{0}".format(block_number))
+#FAILURE_FIXTURES = tuple(
+#    (
+#        "{0}:{1}".format(fixture_filename, key),
+#        normalize_statetest_fixture(fixtures[key]),
+#    )
+#    for fixture_filename, fixtures in RAW_FIXTURES
+#    for key in sorted(fixtures.keys())
+#    if 'post' not in fixtures[key]
+#)
 
 
 def setup_storage(fixture, storage):
@@ -238,7 +178,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
     )
     evm = EVMForTesting(
-        db=Trie(MemoryDB()),
+        storage=MemoryStorage(),
         environment=environment,
     )
 

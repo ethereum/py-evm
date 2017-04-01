@@ -75,3 +75,15 @@ GAS_IDENTITY = 15
 GAS_IDENTITYWORD = 3
 
 GAS_ECRECOVER = 3000
+
+#
+# SECPK1N
+#
+SECPK1N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+
+
+#
+# Sha3 Keccak
+#
+EMPTY_SHA3 = b"\xc5\xd2F\x01\x86\xf7#<\x92~}\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6S\xca\x82';{\xfa\xd8\x04]\x85\xa4p"  # noqa: E501
+BLANK_TRIE_HASH = b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n[H\xe0\x1b\x99l\xad\xc0\x01b/\xb5\xe3c\xb4!'  # noqa: E501

@@ -20,7 +20,6 @@ def add(computation):
     result = (left + right) & constants.UINT_256_MAX
 
     computation.stack.push(result)
-    return left, right, result
 
 
 def addmod(computation):

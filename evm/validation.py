@@ -4,6 +4,7 @@ from toolz import (
 
 from evm.constants import (
     UINT_256_MAX,
+    SECPK1N,
 )
 from evm.exceptions import (
     ValidationError,
@@ -79,6 +80,8 @@ def validate_word(value):
 
 
 def validate_uint256(value):
+    if not isinstance(value, int):
+        raise ValidationError("Invalid UINT256: Must be an integer")
     if value < 0:
         raise ValidationError("Invalid UINT256: Value is negative")
     if value > UINT_256_MAX:
@@ -91,3 +94,11 @@ def validate_stack_item(value):
     elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
         return
     raise ValidationError("Invalid bytes or UINT256")
+
+
+validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1N - 1)
+
+
+def validate_storage_slot(value):
+    if not isinstance(value, bytes) or len(value) != 32:
+        raise ValidationError("Storage slots must be byte strings of length 32")

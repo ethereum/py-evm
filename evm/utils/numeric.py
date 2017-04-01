@@ -13,6 +13,7 @@ from evm.constants import (
 
 if sys.version_info.major == 2:
     import struct
+    import codecs
 
     def int_to_big_endian(value):
         cs = []

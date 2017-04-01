@@ -484,7 +484,7 @@ class Computation(object):
 
     @property
     def storage(self):
-        return self.evm.storage
+        return self.evm.db
 
     @property
     def env(self):
@@ -716,15 +716,15 @@ def _apply_computation(computation):
 
 
 class EVM(object):
-    storage = None
+    db = None
     environment = None
     opcodes = None
 
     #logger = logging.getLogger('evm.vm.EVM')
     logger = None
 
-    def __init__(self, storage, environment):
-        self.storage = storage
+    def __init__(self, db, environment):
+        self.db = db
         self.environment = environment
 
     @classmethod
@@ -767,16 +767,16 @@ class EVM(object):
     # Storage
     #
     def get_block_hash(self, block_number):
-        return self.storage.get_block_hash(block_number)
+        return self.db.get_block_hash(block_number)
 
     #
     # Snapshot and Revert
     #
     def snapshot(self):
-        return self.storage.snapshot()
+        return self.db.snapshot()
 
     def revert(self, snapshot):
-        self.storage.revert(snapshot)
+        self.db.revert(snapshot)
 
     #
     # Opcode API

@@ -1,12 +1,10 @@
-try:
-    from sha3 import keccak_256
-except ImportError:
-    from sha3 import sha3_256 as keccak_256
-
 from evm import constants
 
 from evm.utils.numeric import (
     ceil32,
+)
+from evm.utils.sha3 import (
+    keccak,
 )
 
 
@@ -21,6 +19,6 @@ def sha3(computation):
     gas_cost = constants.GAS_SHA3WORD * word_count
     computation.gas_meter.consume_gas(gas_cost, reason="SHA3: word gas cost")
 
-    result = keccak_256(sha3_bytes).digest()
+    result = keccak(sha3_bytes)
 
     computation.stack.push(result)
