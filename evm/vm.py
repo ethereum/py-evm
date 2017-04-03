@@ -20,6 +20,9 @@ from evm.exceptions import (
     StackDepthLimit,
     InsufficientFunds,
 )
+from evm.storage import (
+    Storage,
+)
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -484,7 +487,7 @@ class Computation(object):
 
     @property
     def storage(self):
-        return self.evm.db
+        return self.evm.storage
 
     @property
     def env(self):
@@ -726,6 +729,10 @@ class EVM(object):
     def __init__(self, db, environment):
         self.db = db
         self.environment = environment
+
+    @property
+    def storage(self):
+        return Storage(self.db)
 
     @classmethod
     def create(cls, name, opcode_classes):

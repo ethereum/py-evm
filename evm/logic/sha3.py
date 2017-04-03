@@ -3,7 +3,7 @@ from evm import constants
 from evm.utils.numeric import (
     ceil32,
 )
-from evm.utils.sha3 import (
+from evm.utils.keccak import (
     keccak,
 )
 

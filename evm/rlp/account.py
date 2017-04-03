@@ -18,6 +18,7 @@ class Account(rlp.Serializable):
     """
     RLP object for accounts.
     """
+    # TODO: add _cached_rlp class attribute and measure speed.
 
     fields = [
         ('nonce', big_endian_int),
@@ -26,5 +27,10 @@ class Account(rlp.Serializable):
         ('code_hash', hash32)
     ]
 
-    def __init__(self, nonce=0, balance=0, storage_root=BLANK_TRIE_HASH, code_hash=EMPTY_SHA3):
-        super(self, Account).__init__(nonce, balance, storage_root, code_hash)
+    def __init__(self,
+                 nonce=0,
+                 balance=0,
+                 storage_root=BLANK_TRIE_HASH,
+                 code_hash=EMPTY_SHA3,
+                 **kwargs):
+        super(Account, self).__init__(nonce, balance, storage_root, code_hash, **kwargs)

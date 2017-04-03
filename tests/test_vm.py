@@ -35,6 +35,13 @@ from evm.preconfigured.genesis import (
     GENESIS_OPCODES,
 )
 
+from evm.utils.numeric import (
+    int_to_big_endian,
+)
+from evm.utils.padding import (
+    pad32,
+)
+
 
 def to_int(value):
     if is_0x_prefixed(value):
@@ -70,7 +77,7 @@ def normalize_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    to_int(slot): decode_hex(value)
+                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['pre'].items()
@@ -84,7 +91,7 @@ def normalize_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    to_int(slot): decode_hex(value)
+                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['post'].items()
@@ -139,7 +146,8 @@ def recursive_find_files(base_dir, pattern):
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "vmArithmeticTest.json"))
 
 
 RAW_FIXTURES = tuple(
@@ -241,7 +249,6 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         db=Trie(MemoryDB()),
         environment=environment,
     )
-
     setup_storage(fixture, evm.storage)
 
     message = Message(
@@ -291,9 +298,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         assert gas_limit == child_computation.msg.gas
         assert value == child_computation.msg.value
 
-    for account_as_hex, account_data in fixture['post'].items():
-        account = to_canonical_address(account_as_hex)
-
+    for account, account_data in fixture['post'].items():
         for slot, unpadded_expected_storage_value in account_data['storage'].items():
             expected_storage_value = pad_left(
                 unpadded_expected_storage_value,

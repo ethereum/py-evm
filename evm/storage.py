@@ -20,7 +20,7 @@ from evm.validation import (
     validate_storage_slot,
 )
 
-from evm.utils.sha3 import (
+from evm.utils.keccak import (
     keccak,
 )
 
@@ -58,15 +58,21 @@ class Storage(object):
         validate_storage_slot(slot)
         validate_canonical_address(address)
 
-        storage = self._get_account_storage(address)
+        account = self._get_account(address)
+        storage = AccountStorage(self.db, account.storage_root)
+
         encoded_value = rlp.encode(value)
         storage[slot] = encoded_value
+
+        account.storage_root = storage.db.root_hash
+        self.db[address] = rlp.encode(account, sedes=Account)
 
     def get_storage(self, address, slot):
         validate_canonical_address(address)
         validate_storage_slot(slot)
 
-        storage = self._get_account_storage(address)
+        account = self._get_account(address)
+        storage = AccountStorage(self.db, account.storage_root)
 
         if slot in storage:
             raw_value = storage[slot]
@@ -79,7 +85,7 @@ class Storage(object):
 
         account = self._get_account(address)
         account.storage_root = BLANK_TRIE_HASH
-        self.db[address] = Account.serialize(account)
+        self.db[address] = rlp.encode(account, sedes=Account)
 
     def set_balance(self, address, balance):
         validate_canonical_address(address)
@@ -88,7 +94,7 @@ class Storage(object):
         account = self._get_account(address)
         account.balance = balance
 
-        self.db[address] = Account.serialize(account)
+        self.db[address] = rlp.encode(account, sedes=Account)
 
     def get_balance(self, address):
         validate_canonical_address(address)
@@ -103,7 +109,7 @@ class Storage(object):
         account = self._get_account(address)
         account.nonce = nonce
 
-        self.db[address] = Account.serialize(account)
+        self.db[address] = rlp.encode(account, sedes=Account)
 
     def get_nonce(self, address):
         validate_canonical_address(address)
@@ -121,7 +127,7 @@ class Storage(object):
 
         account.code_hash = keccak(code)
         self.db[account.code_hash] = code
-        self.db[address] = Account.serialize(account)
+        self.db[address] = rlp.encode(account, sedes=Account)
 
     def get_code(self, address):
         validate_canonical_address(address)
@@ -155,11 +161,8 @@ class Storage(object):
     #
     def _get_account(self, address):
         if address in self.db:
-            account = Account.deserialize(self.db[address])
+            account = rlp.decode(self.db[address], sedes=Account)
+            account._mutable = True
         else:
             account = Account()
         return account
-
-    def _get_account_storage(self, address):
-        account = self._get_account(address)
-        return AccountStorage(db=self.db, storage_root=account.storage_root)
