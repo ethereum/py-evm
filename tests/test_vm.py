@@ -146,8 +146,7 @@ def recursive_find_files(base_dir, pattern):
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "vmArithmeticTest.json"))
+FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 
 
 RAW_FIXTURES = tuple(
@@ -338,7 +337,7 @@ def test_vm_failure_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
     )
     evm = EVMForTesting(
-        storage=MemoryStorage(),
+        db=Trie(MemoryDB()),
         environment=environment,
     )
 

@@ -11,6 +11,7 @@ EMPTY_WORD = NULL_BYTE * 32
 
 UINT_160_CEILING = 2**160
 ZERO_ADDRESS = 20 * b'\x00'
+ZERO_HASH32 = 32 * b'\x00'
 
 
 #
@@ -83,7 +84,28 @@ SECPK1N = 1157920892373161954235709850086879078528375642790749043826051631415181
 
 
 #
+# Block and Header
+#
+EMPTY_UNCLE_HASH = b'\x1d\xccM\xe8\xde\xc7]z\xab\x85\xb5g\xb6\xcc\xd4\x1a\xd3\x12E\x1b\x94\x8at\x13\xf0\xa1B\xfd@\xd4\x93G'  # keccak(rlp.encode([]))
+
+
+#
+# Genesis Data
+#
+GENESIS_DIFFICULTY = 131072,
+GENESIS_GAS_LIMIT = 3141592,
+GENESIS_PARENT_HASH = ZERO_HASH32
+GENESIS_COINBASE = ZERO_ADDRESS
+GENESIS_NONCE = b'\x00\x00\x00\x00\x00\x00\x00*'  # 42 encoded as big-endian-integer
+GENESIS_MIX_HASH = ZERO_HASH32
+GENESIS_EXTRA_DATA = b'',
+GENESIS_INITIAL_ALLOC = {}
+
+
+#
 # Sha3 Keccak
 #
 EMPTY_SHA3 = b"\xc5\xd2F\x01\x86\xf7#<\x92~}\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6S\xca\x82';{\xfa\xd8\x04]\x85\xa4p"  # noqa: E501
-BLANK_TRIE_HASH = b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n[H\xe0\x1b\x99l\xad\xc0\x01b/\xb5\xe3c\xb4!'  # noqa: E501
+BLANK_ROOT_HASH = (
+    b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n[H\xe0\x1b\x99l\xad\xc0\x01b/\xb5\xe3c\xb4!'  # noqa: E501
+)

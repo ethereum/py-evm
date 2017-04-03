@@ -32,6 +32,7 @@ from evm.validation import (
     validate_gte,
     validate_uint256,
     validate_stack_item,
+    validate_word,
 )
 
 from evm.utils.numeric import (
@@ -85,7 +86,7 @@ class Memory(object):
         """
         Read a value from memory.
         """
-        return self.bytes[start_position:start_position + size]
+        return bytes(self.bytes[start_position:start_position + size])
 
 
 class Stack(object):
@@ -137,7 +138,7 @@ class Stack(object):
                     yield big_endian_to_int(value)
             elif type_hint == constants.BYTES:
                 value = self.values.pop()
-                if isinstance(value, (bytes, bytearray)):
+                if isinstance(value, bytes):
                     yield value
                 else:
                     yield int_to_big_endian(value)
@@ -423,11 +424,12 @@ class Environment(object):
     block_number = None
     gas_limit = None
     timestamp = None
+    previous_hash = None
 
     #logger = logging.getLogger('evm.vm.Environment')
     logger = None
 
-    def __init__(self, coinbase, difficulty, block_number, gas_limit, timestamp):
+    def __init__(self, coinbase, difficulty, block_number, gas_limit, timestamp, previous_hash):
         self.difficulty = difficulty
 
         validate_canonical_address(coinbase)
@@ -441,6 +443,9 @@ class Environment(object):
 
         validate_uint256(timestamp)
         self.timestamp = timestamp
+
+        validate_word(previous_hash)
+        self.previous_hash = previous_hash
 
 
 class Computation(object):
@@ -618,6 +623,10 @@ BREAK_OPCODES = {
 }
 
 
+def _apply_transaction(evm, transaction):
+    assert False
+
+
 def _apply_create_message(evm, message):
     snapshot = evm.snapshot()
 
@@ -748,6 +757,9 @@ class EVM(object):
     #
     # Execution
     #
+    def apply_transaction(self, transaction):
+        return _apply_transaction(self, transaction)
+
     def apply_create_message(self, message):
         return _apply_create_message(self, message)
 

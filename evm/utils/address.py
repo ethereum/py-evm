@@ -1,12 +1,13 @@
 import rlp
 
-from sha3 import keccak_256
-
-from .numeric import (
-    int_to_big_endian,
+from .keccak import (
+    keccak,
 )
 from .padding import (
     pad_left,
+)
+from .secp256k1 import (
+    private_key_to_public_key,
 )
 
 
@@ -17,4 +18,13 @@ def force_bytes_to_address(value):
 
 
 def generate_contract_address(address, nonce):
-    return keccak_256(rlp.encode([address, nonce])).digest()[12:]
+    return keccak(rlp.encode([address, nonce]))[-20:]
+
+
+def private_key_to_address(private_key):
+    public_key = private_key_to_public_key(private_key)
+    return public_key_to_address(public_key)
+
+
+def public_key_to_address(public_key):
+    return keccak(public_key[1:])[-20:]

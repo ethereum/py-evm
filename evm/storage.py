@@ -7,7 +7,7 @@ from trie import (
 )
 
 from evm.constants import (
-    BLANK_TRIE_HASH,
+    BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
 from evm.rlp.account import (
@@ -84,7 +84,7 @@ class Storage(object):
         validate_canonical_address(address)
 
         account = self._get_account(address)
-        account.storage_root = BLANK_TRIE_HASH
+        account.storage_root = BLANK_ROOT_HASH
         self.db[address] = rlp.encode(account, sedes=Account)
 
     def set_balance(self, address, balance):

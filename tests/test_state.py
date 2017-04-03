@@ -4,26 +4,47 @@ import fnmatch
 import json
 import os
 
+from trie import (
+    Trie,
+)
+from trie.db.memory import (
+    MemoryDB,
+)
+
 from eth_utils import (
     is_0x_prefixed,
     to_canonical_address,
     decode_hex,
     pad_left,
+    keccak,
 )
 
-from evm.storage.memory import (
-    MemoryStorage,
-)
-from evm.exceptions import (
-    VMError,
-)
-from evm.vm import (
-    Environment,
-    Message,
-    EVM,
+from evm.constants import (
+    ZERO_ADDRESS,
 )
 from evm.preconfigured.genesis import (
     GENESIS_OPCODES,
+)
+from evm.rlp.header import (
+    BlockHeader,
+)
+from evm.rlp.transaction import (
+    Transaction,
+    UnsignedTransaction,
+)
+from evm.vm import (
+    Message,
+    EVM,
+)
+
+from evm.utils.address import (
+    private_key_to_address,
+)
+from evm.utils.numeric import (
+    int_to_big_endian,
+)
+from evm.utils.padding import (
+    pad32,
 )
 
 
@@ -53,7 +74,11 @@ def normalize_statetest_fixture(fixture):
             'gasPrice': to_int(fixture['transaction']['gasPrice']),
             'nonce': to_int(fixture['transaction']['nonce']),
             'secretKey': decode_hex(fixture['transaction']['secretKey']),
-            'to': to_canonical_address(fixture['transaction']['to']),
+            'to': (
+                to_canonical_address(fixture['transaction']['to'])
+                if fixture['transaction']['to']
+                else ZERO_ADDRESS
+            ),
             'value': to_int(fixture['transaction']['value']),
         },
         'pre': {
@@ -62,7 +87,7 @@ def normalize_statetest_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    to_int(slot): decode_hex(value)
+                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['pre'].items()
@@ -77,14 +102,17 @@ def normalize_statetest_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    to_int(slot): decode_hex(value)
+                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['post'].items()
         }
 
     if 'out' in fixture:
-        normalized_fixture['out'] = decode_hex(fixture['out'])
+        if fixture['out'].startswith('#'):
+            normalized_fixture['out'] = int(fixture['out'][1:])
+        else:
+            normalized_fixture['out'] = decode_hex(fixture['out'])
 
     if 'logs' in fixture:
         normalized_fixture['logs'] = [
@@ -147,6 +175,18 @@ SUCCESS_FIXTURES = tuple(
 #    if 'post' not in fixtures[key]
 #)
 
+class EVMForTesting(GenesisEVM):
+    #
+    # Storage Overrides
+    #
+    def get_block_hash(self, block_number):
+        if block_number >= self.environment.block_number:
+            return b''
+        elif block_number < self.environment.block_number - 256:
+            return b''
+        else:
+            return keccak("{0}".format(block_number))
+
 
 def setup_storage(fixture, storage):
     for account, account_data in fixture['pre'].items():
@@ -170,30 +210,30 @@ ORIGIN = b'\x00' * 31 + b'\x01'
     'fixture_name,fixture', SUCCESS_FIXTURES,
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
-    environment = Environment(
+    environment = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
         block_number=fixture['env']['currentNumber'],
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
+        previous_hash=fixture['env']['previousHash'],
     )
     evm = EVMForTesting(
-        storage=MemoryStorage(),
+        db=Trie(MemoryDB()),
         environment=environment,
     )
 
     setup_storage(fixture, evm.storage)
 
-    message = Message(
-        origin=fixture['exec']['origin'],
-        to=fixture['exec']['address'],
-        sender=fixture['exec']['caller'],
-        value=fixture['exec']['value'],
-        data=fixture['exec']['data'],
-        gas=fixture['exec']['gas'],
-        gas_price=fixture['exec']['gasPrice'],
+    transaction = UnsignedTransaction(
+        nonce=fixture['transaction']['nonce'],
+        gas_price=fixture['transaction']['gasPrice'],
+        gas=fixture['transaction']['gasLimit'],
+        to=fixture['transaction']['to'],
+        value=fixture['transaction']['value'],
+        data=fixture['transaction']['data'],
     )
-    computation = evm.apply_computation(message)
+    computation = evm.apply_transaction(transaction)
 
     assert computation.error is None
 
@@ -208,28 +248,12 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     expected_logs == fixture['logs']
 
     expected_output = fixture['out']
-    assert computation.output == expected_output
+    if isinstance(expected_output, int):
+        assert len(computation.output) == expected_output
+    else:
+        assert computation.output == expected_output
 
-    gas_meter = computation.gas_meter
-
-    expected_gas_remaining = fixture['gas']
-    actual_gas_remaining = gas_meter.gas_remaining
-    gas_delta = actual_gas_remaining - expected_gas_remaining
-    assert gas_delta == 0, "Gas difference: {0}".format(gas_delta)
-
-    call_creates = fixture.get('callcreates', [])
-    assert len(computation.children) == len(call_creates)
-
-    for child_computation, created_call in zip(computation.children, fixture.get('callcreates', [])):
-        to_address = created_call['destination']
-        data = created_call['data']
-        gas_limit = created_call['gasLimit']
-        value = created_call['value']
-
-        assert child_computation.msg.to == to_address
-        assert data == child_computation.msg.data
-        assert gas_limit == child_computation.msg.gas
-        assert value == child_computation.msg.value
+    assert evm.db.root_hash == fixture['postStateRoot']
 
     for account_as_hex, account_data in fixture['post'].items():
         account = to_canonical_address(account_as_hex)
@@ -261,36 +285,36 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         assert actual_balance == expected_balance
 
 
-@pytest.mark.parametrize(
-    'fixture_name,fixture', FAILURE_FIXTURES,
-)
-def test_vm_failure_using_fixture(fixture_name, fixture):
-    environment = Environment(
-        coinbase=fixture['env']['currentCoinbase'],
-        difficulty=fixture['env']['currentDifficulty'],
-        block_number=fixture['env']['currentNumber'],
-        gas_limit=fixture['env']['currentGasLimit'],
-        timestamp=fixture['env']['currentTimestamp'],
-    )
-    evm = EVMForTesting(
-        storage=MemoryStorage(),
-        environment=environment,
-    )
-
-    assert fixture.get('callcreates', []) == []
-
-    setup_storage(fixture, evm.storage)
-
-    message = Message(
-        origin=fixture['exec']['origin'],
-        to=fixture['exec']['address'],
-        sender=fixture['exec']['caller'],
-        value=fixture['exec']['value'],
-        data=fixture['exec']['data'],
-        gas=fixture['exec']['gas'],
-        gas_price=fixture['exec']['gasPrice'],
-    )
-
-    computation = evm.apply_computation(message)
-    assert computation.error
-    assert isinstance(computation.error, VMError)
+#@pytest.mark.parametrize(
+#    'fixture_name,fixture', FAILURE_FIXTURES,
+#)
+#def test_vm_failure_using_fixture(fixture_name, fixture):
+#    environment = Environment(
+#        coinbase=fixture['env']['currentCoinbase'],
+#        difficulty=fixture['env']['currentDifficulty'],
+#        block_number=fixture['env']['currentNumber'],
+#        gas_limit=fixture['env']['currentGasLimit'],
+#        timestamp=fixture['env']['currentTimestamp'],
+#    )
+#    evm = EVMForTesting(
+#        storage=MemoryStorage(),
+#        environment=environment,
+#    )
+#
+#    assert fixture.get('callcreates', []) == []
+#
+#    setup_storage(fixture, evm.storage)
+#
+#    message = Message(
+#        origin=fixture['exec']['origin'],
+#        to=fixture['exec']['address'],
+#        sender=fixture['exec']['caller'],
+#        value=fixture['exec']['value'],
+#        data=fixture['exec']['data'],
+#        gas=fixture['exec']['gas'],
+#        gas_price=fixture['exec']['gasPrice'],
+#    )
+#
+#    computation = evm.apply_computation(message)
+#    assert computation.error
+#    assert isinstance(computation.error, VMError)

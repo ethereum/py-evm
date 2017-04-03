@@ -12,7 +12,7 @@ from evm.exceptions import (
 
 
 def validate_is_bytes(value):
-    if not isinstance(value, (bytes, bytearray)):
+    if not isinstance(value, bytes):
         raise ValidationError("Value must be a byte string.  Got: {0}".format(type(value)))
 
 
@@ -73,7 +73,7 @@ validate_multiple_of_8 = partial(validate_multiple_of, multiple_of=8)
 
 
 def validate_word(value):
-    if not isinstance(value, (bytes, bytearray)):
+    if not isinstance(value, bytes):
         raise ValidationError("Invalid word:  Must be of bytes type")
     elif not len(value) == 32:
         raise ValidationError("Invalid word:  Must be 32 bytes in length")
@@ -89,7 +89,7 @@ def validate_uint256(value):
 
 
 def validate_stack_item(value):
-    if isinstance(value, (bytes, bytearray)) and len(value) <= 32:
+    if isinstance(value, bytes) and len(value) <= 32:
         return
     elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
         return

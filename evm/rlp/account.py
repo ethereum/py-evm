@@ -5,7 +5,7 @@ from rlp.sedes import (
 
 from evm.constants import (
     EMPTY_SHA3,
-    BLANK_TRIE_HASH,
+    BLANK_ROOT_HASH,
 )
 
 from .sedes import (
@@ -30,7 +30,7 @@ class Account(rlp.Serializable):
     def __init__(self,
                  nonce=0,
                  balance=0,
-                 storage_root=BLANK_TRIE_HASH,
+                 storage_root=BLANK_ROOT_HASH,
                  code_hash=EMPTY_SHA3,
                  **kwargs):
         super(Account, self).__init__(nonce, balance, storage_root, code_hash, **kwargs)
