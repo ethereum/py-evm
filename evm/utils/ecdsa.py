@@ -43,7 +43,7 @@ from .secp256k1 import (
 )
 
 
-def encode_sig(v, r, s):
+def encode_signature(v, r, s):
     vb = int_to_byte(v)
     rb = pad32(int_to_big_endian(r))
     sb = pad32(int_to_big_endian(s))
@@ -51,14 +51,14 @@ def encode_sig(v, r, s):
     return b''.join((vb, rb, sb))
 
 
-def decode_sig(sig):
-    assert isinstance(sig, bytes)
-    assert len(sig) == 65
+def decode_signature(signature):
+    assert isinstance(signature, bytes)
+    assert len(signature) == 65
 
-    rb = sig[1:33]
-    sb = sig[33:65]
+    rb = signature[1:33]
+    sb = signature[33:65]
 
-    v = sig[0]
+    v = signature[0]
     r = big_endian_to_int(rb)
     s = big_endian_to_int(sb)
 
@@ -102,12 +102,12 @@ def ecdsa_sign(msg, private_key):
     assert isinstance(private_key, bytes)
 
     v, r, s = ecdsa_raw_sign(keccak(msg), private_key)
-    sig = encode_sig(v, r, s)
-    if not ecdsa_verify(msg, sig, private_key_to_public_key(private_key)):
+    signature = encode_signature(v, r, s)
+    if not ecdsa_verify(msg, signature, private_key_to_public_key(private_key)):
         raise ValueError(
-            "Bad Signature: {0}\nv = {1}\nr = {2}\ns = {3}".format(sig, v, r, s)
+            "Bad Signature: {0}\nv = {1}\nr = {2}\ns = {3}".format(signature, v, r, s)
         )
-    return sig
+    return signature
 
 
 def ecdsa_raw_verify(msg_hash, vrs, public_key):
@@ -129,22 +129,22 @@ def ecdsa_raw_verify(msg_hash, vrs, public_key):
     return bool(r == x and (r % N) and (s % N))
 
 
-def ecdsa_verify_address(msg, sig, address):
+def ecdsa_verify_address(msg, signature, address):
     assert isinstance(msg, bytes)
-    assert isinstance(sig, bytes)
+    assert isinstance(signature, bytes)
     assert isinstance(address, bytes)
 
-    public_key = ecdsa_recover(msg, sig)
+    public_key = ecdsa_recover(msg, signature)
     recovered_address = public_key_to_address(public_key)
     return recovered_address == address
 
 
-def ecdsa_verify(msg, sig, public_key):
+def ecdsa_verify(msg, signature, public_key):
     assert isinstance(msg, bytes)
-    assert isinstance(sig, bytes)
+    assert isinstance(signature, bytes)
     assert isinstance(public_key, bytes)
 
-    return ecdsa_raw_verify(keccak(msg), decode_sig(sig), public_key)
+    return ecdsa_raw_verify(keccak(msg), decode_signature(signature), public_key)
 
 
 def ecdsa_raw_recover(msg_hash, vrs):
@@ -174,10 +174,10 @@ def ecdsa_raw_recover(msg_hash, vrs):
     return Q
 
 
-def ecdsa_recover(msg, sig):
+def ecdsa_recover(msg, signature):
     assert isinstance(msg, bytes)
-    assert isinstance(sig, bytes)
+    assert isinstance(signature, bytes)
 
-    v, r, s = decode_sig(sig)
+    v, r, s = decode_signature(signature)
     raw_public_key = ecdsa_raw_recover(keccak(msg), (v, r, s))
     return encode_raw_public_key(raw_public_key)

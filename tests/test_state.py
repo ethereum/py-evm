@@ -33,6 +33,7 @@ from evm.rlp.blocks import (
 )
 from evm.rlp.transactions import (
     UnsignedTransaction,
+    sign_transaction,
 )
 
 from evm.utils.numeric import (
@@ -162,11 +163,11 @@ class EVMForTesting(FrontierEVM):
     # Storage Overrides
     #
     def get_block_hash(self, block_number):
-        if block_number >= self.block.number:
+        if block_number >= self.block.header.block_number:
             return b''
         elif block_number < 0:
             return b''
-        elif block_number < self.block.number - 256:
+        elif block_number < self.block.header.block_number - 256:
             return b''
         else:
             return keccak("{0}".format(block_number))
@@ -210,7 +211,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
 
     setup_storage(fixture, evm.storage)
 
-    transaction = UnsignedTransaction(
+    unsigned_transaction = UnsignedTransaction(
         nonce=fixture['transaction']['nonce'],
         gas_price=fixture['transaction']['gasPrice'],
         gas=fixture['transaction']['gasLimit'],
@@ -218,6 +219,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         value=fixture['transaction']['value'],
         data=fixture['transaction']['data'],
     )
+    transaction = sign_transaction(unsigned_transaction, fixture['transaction']['secretKey'])
     computation = evm.apply_transaction(transaction)
 
     assert computation.error is None

@@ -18,6 +18,9 @@ from evm.storage import (
     Storage,
 )
 
+from .message import (
+    Message,
+)
 from .computation import (
     Computation,
 )
@@ -31,13 +34,30 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
-    assert False
+    snapshot = evm.snapshot()
+    evm.storage.increment_nonce(transaction.sender)
+
+    message = Message(
+        gas=transaction.gas,
+        gas_price=transaction.gas_price,
+        to=transaction.to,
+        sender=transaction.sender,
+        value=transaction.value,
+        data=transaction.data,
+    )
+    computation = evm.apply_message(message)
+    if computation.error:
+        evm.revert(snapshot)
+    return computation
 
 
 def _apply_create_message(evm, message):
     snapshot = evm.snapshot()
 
     computation = evm.apply_message(message)
+
+    if message.to != message.origin:
+        evm.storage.increment_nonce(computation.msg.to)
 
     if computation.error:
         return computation
@@ -152,7 +172,11 @@ class BaseEVM(object):
     @classmethod
     def configure(cls, name, opcodes):
         props = {
-            'opcodes': opcodes,
+            'opcodes': {
+                opcode.value: opcode
+                for opcode
+                in opcodes
+            },
             'logger': logging.getLogger('evm.vm.evm.EVM.{0}'.format(name))
         }
         return type(name, (cls,), props)
