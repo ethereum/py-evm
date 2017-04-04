@@ -18,22 +18,10 @@ from evm.logic import (
     swap,
     system,
 )
-
-from evm.utils.numeric import (
-    ceil32,
-)
+from evm.vm import BaseEVM
 
 
-def memory_gas_cost(size_in_bytes):
-    size_in_words = ceil32(size_in_bytes) // 32
-    linear_cost = size_in_words * constants.GAS_MEMORY
-    quadratic_cost = size_in_words ** 2 // constants.GAS_MEMORY_QUADRATIC_DENOMINATOR
-
-    total_cost = linear_cost + quadratic_cost
-    return total_cost
-
-
-GENESIS_OPCODES = (
+FRONTIER_OPCODES = (
     #
     # Arithmetic
     #
@@ -842,3 +830,6 @@ GENESIS_OPCODES = (
         gas_cost=constants.GAS_SUICIDE,
     ),
 )
+
+
+FrontierEVM = BaseEVM.configure('FrontierEVM', opcodes=FRONTIER_OPCODES)

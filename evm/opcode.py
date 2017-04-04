@@ -39,7 +39,7 @@ class Opcode(object):
             'gas_cost': gas_cost,
         }
         opcode_cls = type(mnemonic, (cls,), props)
-        return opcode_cls
+        return opcode_cls()
 
 
 as_opcode = Opcode.as_opcode

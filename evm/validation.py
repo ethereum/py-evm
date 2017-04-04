@@ -4,7 +4,7 @@ from toolz import (
 
 from evm.constants import (
     UINT_256_MAX,
-    SECPK1N,
+    SECPK1_N,
 )
 from evm.exceptions import (
     ValidationError,
@@ -96,7 +96,7 @@ def validate_stack_item(value):
     raise ValidationError("Invalid bytes or UINT256")
 
 
-validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1N - 1)
+validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1_N - 1)
 
 
 def validate_storage_slot(value):

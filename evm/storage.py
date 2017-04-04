@@ -10,7 +10,7 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from evm.rlp.account import (
+from evm.rlp.accounts import (
     Account,
 )
 from evm.validation import (
@@ -51,7 +51,7 @@ class Storage(object):
         self.db = db
 
     #
-    # Public API
+    # Base API
     #
     def set_storage(self, address, slot, value):
         validate_is_bytes(value)
@@ -145,6 +145,10 @@ class Storage(object):
     def account_exists(self, address):
         validate_canonical_address(address)
         return address in self.db
+
+    def increment_nonce(self, address):
+        current_nonce = self.get_nonce(address)
+        self.set_nonce(address, current_nonce + 1)
 
     #
     # Snapshoting and Restore

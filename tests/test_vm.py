@@ -130,7 +130,7 @@ def normalize_fixture(fixture):
     return normalized_fixture
 
 
-GenesisEVM = EVM.create(name='genesis', opcode_classes=GENESIS_OPCODES)
+GenesisEVM = EVM.configure(name='genesis', opcode_classes=GENESIS_OPCODES)
 
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))

@@ -1,0 +1,196 @@
+import logging
+
+from evm.exceptions import (
+    VMError,
+)
+from evm.validation import (
+    validate_canonical_address,
+    validate_uint256,
+)
+
+from evm.utils.numeric import (
+    ceil32,
+)
+
+from .code_stream import (
+    CodeStream,
+)
+from .gas_meter import (
+    GasMeter,
+)
+from .memory import (
+    Memory,
+)
+from .message import (
+    Message,
+)
+from .stack import (
+    Stack,
+)
+
+
+class Computation(object):
+    """
+    The execution computation
+    """
+    evm = None
+    msg = None
+
+    memory = None
+    stack = None
+    gas_meter = None
+
+    code = None
+
+    children = None
+
+    output = b''
+    error = None
+
+    logs = None
+    accounts_to_delete = None
+
+    logger = logging.getLogger('evm.vm.computation.Computation')
+
+    def __init__(self, evm, message):
+        self.evm = evm
+        self.msg = message
+
+        self.memory = Memory()
+        self.stack = Stack()
+        self.gas_meter = GasMeter(message.gas)
+
+        self.children = []
+        self.accounts_to_delete = {}
+        self.logs = []
+
+        if message.is_create:
+            code = message.data
+        else:
+            code = self.storage.get_code(message.code_address)
+        self.code = CodeStream(code)
+
+    @property
+    def storage(self):
+        return self.evm.storage
+
+    @property
+    def env(self):
+        return self.evm.environment
+
+    #
+    # Execution
+    #
+    def prepare_child_message(self,
+                              gas,
+                              to,
+                              value,
+                              data,
+                              sender=None,
+                              code_address=None,
+                              create_address=None):
+        if sender is None:
+            sender = self.msg.to
+
+        child_message = Message(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            to=to,
+            sender=sender,
+            value=value,
+            data=data,
+            depth=self.msg.depth + 1,
+            code_address=code_address,
+            create_address=create_address,
+        )
+        return child_message
+
+    def apply_child_message(self, message):
+        if message.is_create:
+            child_computation = self.evm.apply_create_message(message)
+        else:
+            child_computation = self.evm.apply_message(message)
+
+        self.children.append(child_computation)
+        return child_computation
+
+    #
+    # Memory Management
+    #
+    def extend_memory(self, start_position, size):
+        validate_uint256(start_position)
+        validate_uint256(size)
+
+        before_size = ceil32(len(self.memory))
+        after_size = ceil32(start_position + size)
+
+        from evm.preconfigured.genesis import memory_gas_cost
+        # TODO: abstract
+        before_cost = memory_gas_cost(before_size)
+        after_cost = memory_gas_cost(after_size)
+
+        if self.logger is not None:
+            self.logger.debug(
+                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+                before_size,
+                after_size,
+                before_cost,
+                after_cost,
+            )
+
+        if size:
+            if before_cost < after_cost:
+                gas_fee = after_cost - before_cost
+                self.gas_meter.consume_gas(
+                    gas_fee,
+                    reason=" ".join((
+                        "Expanding memory",
+                        str(before_size),
+                        "->",
+                        str(after_size),
+                    ))
+                )
+
+            self.memory.extend(start_position, size)
+
+    #
+    # Runtime Operations
+    #
+    def register_account_for_deletion(self, beneficiary):
+        validate_canonical_address(beneficiary)
+
+        if self.msg.to in self.accounts_to_delete:
+            raise ValueError(
+                "Invariant.  Should be impossible for an account to be "
+                "registered for deletion multiple times"
+            )
+        self.accounts_to_delete[self.msg.to] = beneficiary
+
+    def add_log_entry(self, account, topics, data):
+        self.logs.append((account, topics, data))
+
+    #
+    # Context Manager API
+    #
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type and issubclass(exc_type, VMError):
+            self.error = exc_value
+            # suppress VM exceptions
+            return True
+        elif exc_type is None:
+            for account, beneficiary in self.accounts_to_delete.items():
+                if self.logger is not None:
+                    self.logger.info('DELETING ACCOUNT: %s', account)
+                self.storage.delete_storage(account)
+                self.storage.delete_code(account)
+
+                account_balance = self.storage.get_balance(account)
+                self.storage.set_balance(account, 0)
+
+                beneficiary_balance = self.storage.get_balance(beneficiary)
+                beneficiary_updated_balance = beneficiary_balance + account_balance
+                self.storage.set_balance(beneficiary, beneficiary_updated_balance)

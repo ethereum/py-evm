@@ -22,24 +22,19 @@ from eth_utils import (
 from evm.constants import (
     ZERO_ADDRESS,
 )
-from evm.preconfigured.genesis import (
-    GENESIS_OPCODES,
+from evm.vm.flavors import (
+    FrontierEVM
 )
-from evm.rlp.header import (
+from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.rlp.transaction import (
-    Transaction,
+from evm.rlp.blocks import (
+    Block,
+)
+from evm.rlp.transactions import (
     UnsignedTransaction,
 )
-from evm.vm import (
-    Message,
-    EVM,
-)
 
-from evm.utils.address import (
-    private_key_to_address,
-)
 from evm.utils.numeric import (
     int_to_big_endian,
 )
@@ -127,9 +122,6 @@ def normalize_statetest_fixture(fixture):
     return normalized_fixture
 
 
-GenesisEVM = EVM.create(name='genesis', opcode_classes=GENESIS_OPCODES)
-
-
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -165,24 +157,16 @@ SUCCESS_FIXTURES = tuple(
 )
 
 
-#FAILURE_FIXTURES = tuple(
-#    (
-#        "{0}:{1}".format(fixture_filename, key),
-#        normalize_statetest_fixture(fixtures[key]),
-#    )
-#    for fixture_filename, fixtures in RAW_FIXTURES
-#    for key in sorted(fixtures.keys())
-#    if 'post' not in fixtures[key]
-#)
-
-class EVMForTesting(GenesisEVM):
+class EVMForTesting(FrontierEVM):
     #
     # Storage Overrides
     #
     def get_block_hash(self, block_number):
-        if block_number >= self.environment.block_number:
+        if block_number >= self.block.number:
             return b''
-        elif block_number < self.environment.block_number - 256:
+        elif block_number < 0:
+            return b''
+        elif block_number < self.block.number - 256:
             return b''
         else:
             return keccak("{0}".format(block_number))
@@ -210,17 +194,18 @@ ORIGIN = b'\x00' * 31 + b'\x01'
     'fixture_name,fixture', SUCCESS_FIXTURES,
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
-    environment = BlockHeader(
+    header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
         block_number=fixture['env']['currentNumber'],
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
-        previous_hash=fixture['env']['previousHash'],
+        parent_hash=fixture['env']['previousHash'],
     )
+    block = Block(header=header)
     evm = EVMForTesting(
         db=Trie(MemoryDB()),
-        environment=environment,
+        block=block,
     )
 
     setup_storage(fixture, evm.storage)
@@ -283,38 +268,3 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
         assert actual_balance == expected_balance
-
-
-#@pytest.mark.parametrize(
-#    'fixture_name,fixture', FAILURE_FIXTURES,
-#)
-#def test_vm_failure_using_fixture(fixture_name, fixture):
-#    environment = Environment(
-#        coinbase=fixture['env']['currentCoinbase'],
-#        difficulty=fixture['env']['currentDifficulty'],
-#        block_number=fixture['env']['currentNumber'],
-#        gas_limit=fixture['env']['currentGasLimit'],
-#        timestamp=fixture['env']['currentTimestamp'],
-#    )
-#    evm = EVMForTesting(
-#        storage=MemoryStorage(),
-#        environment=environment,
-#    )
-#
-#    assert fixture.get('callcreates', []) == []
-#
-#    setup_storage(fixture, evm.storage)
-#
-#    message = Message(
-#        origin=fixture['exec']['origin'],
-#        to=fixture['exec']['address'],
-#        sender=fixture['exec']['caller'],
-#        value=fixture['exec']['value'],
-#        data=fixture['exec']['data'],
-#        gas=fixture['exec']['gas'],
-#        gas_price=fixture['exec']['gasPrice'],
-#    )
-#
-#    computation = evm.apply_computation(message)
-#    assert computation.error
-#    assert isinstance(computation.error, VMError)

@@ -9,7 +9,7 @@ from .sedes import (
     int256,
 )
 
-from .log import Log
+from .logs import Log
 
 
 class Receipt(rlp.Serializable):

@@ -30,7 +30,7 @@ class BlockHeader(rlp.Serializable):
         ('receipts_root', trie_root),
         ('bloom', int256),
         ('difficulty', big_endian_int),
-        ('number', big_endian_int),
+        ('block_number', big_endian_int),
         ('gas_limit', big_endian_int),
         ('gas_used', big_endian_int),
         ('timestamp', big_endian_int),
@@ -42,7 +42,7 @@ class BlockHeader(rlp.Serializable):
     def __init__(self,
                  coinbase,
                  difficulty,
-                 number,
+                 block_number,
                  gas_limit,
                  timestamp,
                  parent_hash=ZERO_HASH32,
@@ -56,7 +56,7 @@ class BlockHeader(rlp.Serializable):
                  mix_hash=ZERO_HASH32,
                  nonce=GENESIS_NONCE):
         super(BlockHeader, self).__init__(
-            parten_hash=parent_hash,
+            parent_hash=parent_hash,
             uncles_hash=uncles_hash,
             coinbase=coinbase,
             state_root=state_root,
@@ -64,7 +64,7 @@ class BlockHeader(rlp.Serializable):
             receipts_root=receipts_root,
             bloom=bloom,
             difficulty=difficulty,
-            number=number,
+            block_number=block_number,
             gas_limit=gas_limit,
             gas_used=gas_used,
             timestamp=timestamp,
@@ -72,11 +72,3 @@ class BlockHeader(rlp.Serializable):
             mix_hash=mix_hash,
             nonce=nonce,
         )
-
-#
-#        coinbase=fixture['env']['currentCoinbase'],
-#        difficulty=fixture['env']['currentDifficulty'],
-#        block_number=fixture['env']['currentNumber'],
-#        gas_limit=fixture['env']['currentGasLimit'],
-#        timestamp=fixture['env']['currentTimestamp'],
-#        previous_hash=fixture['env']['previousHash'],
