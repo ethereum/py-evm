@@ -88,7 +88,7 @@ def _apply_create_message(evm, message):
                 evm.revert(snapshot)
                 computation.error = err
             else:
-                computation.storage.set_code(message.to, contract_code)
+                computation.evm.block.state_db.set_code(message.to, contract_code)
         return computation
 
 

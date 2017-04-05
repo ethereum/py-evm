@@ -40,7 +40,7 @@ def call(computation):
 
     call_data = computation.memory.read(memory_input_start_position, memory_input_size)
 
-    account_exists = computation.storage.account_exists(to)
+    account_exists = computation.evm.block.state_db.account_exists(to)
     transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
     create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
 
@@ -89,7 +89,7 @@ def callcode(computation):
 
     call_data = computation.memory.read(memory_input_start_position, memory_input_size)
 
-    account_exists = computation.storage.account_exists(to)
+    account_exists = computation.evm.block.state_db.account_exists(to)
     transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
     create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
 
@@ -131,7 +131,7 @@ def create(computation):
 
     computation.extend_memory(start_position, size)
 
-    insufficient_funds = computation.storage.get_balance(computation.msg.to) < value
+    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.to) < value
     stack_too_deep = computation.msg.depth >= 1024
 
     if insufficient_funds or stack_too_deep:
@@ -143,7 +143,7 @@ def create(computation):
     create_msg_gas = computation.gas_meter.gas_remaining
     computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE message gas")
 
-    creation_nonce = computation.storage.get_nonce(computation.msg.to)
+    creation_nonce = computation.evm.block.state_db.get_nonce(computation.msg.to)
     contract_address = generate_contract_address(computation.msg.to, creation_nonce)
 
     child_msg = computation.prepare_child_message(
