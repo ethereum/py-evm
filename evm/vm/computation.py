@@ -188,7 +188,7 @@ class Computation(object):
             for account, beneficiary in self.accounts_to_delete.items():
                 if self.logger is not None:
                     self.logger.info('DELETING ACCOUNT: %s', account)
-                self.evm.block.state_db.storage.delete_storage(account)
+                self.evm.block.state_db.delete_storage(account)
                 self.evm.block.state_db.delete_code(account)
 
                 account_balance = self.evm.block.state_db.get_balance(account)

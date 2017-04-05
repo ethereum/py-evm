@@ -141,7 +141,10 @@ class State(object):
     def get_code(self, address):
         validate_canonical_address(address)
         account = self._get_account(address)
-        return self.db[account.code_hash]
+        try:
+            return self.db[account.code_hash]
+        except KeyError:
+            return b''
 
     def delete_code(self, address):
         validate_canonical_address(address)
