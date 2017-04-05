@@ -1,5 +1,3 @@
-import copy
-
 import rlp
 
 from trie import (
@@ -25,30 +23,38 @@ from evm.utils.keccak import (
 )
 
 
-class AccountStorage(object):
-    db = None
+class StateTrie(object):
+    trie = None
 
-    def __init__(self, db, storage_root):
-        self.db = Trie(db, root_hash=storage_root)
-
-    def __getitem__(self, key):
-        return self.db[key]
+    def __init__(self, trie):
+        self.trie = trie
 
     def __setitem__(self, key, value):
-        self.db[key] = value
+        self._set(key, value)
+
+    def _set(self, key, value):
+        self.trie[keccak(key)] = value
+
+    def __getitem__(self, key):
+        return self.trie[keccak(key)]
 
     def __delitem__(self, key):
-        del self.db[key]
+        del self.trie[keccak(key)]
 
     def __contains__(self, key):
-        return key in self.db
+        return keccak(key) in self.trie
+
+    @property
+    def root_hash(self):
+        return self.trie.root_hash
 
 
-class Storage(object):
+class State(object):
     db = None
 
-    def __init__(self, db):
-        self.db = db
+    def __init__(self, trie):
+        self.db = trie.db
+        self.state = StateTrie(trie)
 
     #
     # Base API
@@ -59,20 +65,24 @@ class Storage(object):
         validate_canonical_address(address)
 
         account = self._get_account(address)
-        storage = AccountStorage(self.db, account.storage_root)
+        storage = StateTrie(Trie(self.db, account.storage_root))
 
-        encoded_value = rlp.encode(value)
-        storage[slot] = encoded_value
+        if value.strip(b'\x00'):
+            encoded_value = rlp.encode(value)
+            storage[slot] = encoded_value
+        else:
+            assert False
+            del storage[slot]
 
-        account.storage_root = storage.db.root_hash
-        self.db[address] = rlp.encode(account, sedes=Account)
+        account.storage_root = storage.root_hash
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     def get_storage(self, address, slot):
         validate_canonical_address(address)
         validate_storage_slot(slot)
 
         account = self._get_account(address)
-        storage = AccountStorage(self.db, account.storage_root)
+        storage = StateTrie(Trie(self.db, account.storage_root))
 
         if slot in storage:
             raw_value = storage[slot]
@@ -85,7 +95,7 @@ class Storage(object):
 
         account = self._get_account(address)
         account.storage_root = BLANK_ROOT_HASH
-        self.db[address] = rlp.encode(account, sedes=Account)
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     def set_balance(self, address, balance):
         validate_canonical_address(address)
@@ -94,7 +104,7 @@ class Storage(object):
         account = self._get_account(address)
         account.balance = balance
 
-        self.db[address] = rlp.encode(account, sedes=Account)
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     def get_balance(self, address):
         validate_canonical_address(address)
@@ -109,7 +119,7 @@ class Storage(object):
         account = self._get_account(address)
         account.nonce = nonce
 
-        self.db[address] = rlp.encode(account, sedes=Account)
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     def get_nonce(self, address):
         validate_canonical_address(address)
@@ -127,7 +137,7 @@ class Storage(object):
 
         account.code_hash = keccak(code)
         self.db[account.code_hash] = code
-        self.db[address] = rlp.encode(account, sedes=Account)
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     def get_code(self, address):
         validate_canonical_address(address)
@@ -138,34 +148,26 @@ class Storage(object):
         validate_canonical_address(address)
         account = self._get_account(address)
         del self.db[account.code_hash]
+        account.code_hash = EMPTY_SHA3
+        self.state[address] = rlp.encode(account, sedes=Account)
 
     #
     # Account Methods
     #
     def account_exists(self, address):
         validate_canonical_address(address)
-        return address in self.db
+        return address in self.state
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
         self.set_nonce(address, current_nonce + 1)
 
     #
-    # Snapshoting and Restore
-    #
-    def snapshot(self):
-        # TODO: can we just use the state-root?
-        return copy.deepcopy(self.db)
-
-    def revert(self, snapshot):
-        self.db = snapshot
-
-    #
     # Internal
     #
     def _get_account(self, address):
-        if address in self.db:
-            account = rlp.decode(self.db[address], sedes=Account)
+        if address in self.state:
+            account = rlp.decode(self.state[address], sedes=Account)
             account._mutable = True
         else:
             account = Account()

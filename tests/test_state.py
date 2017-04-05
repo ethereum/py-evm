@@ -4,9 +4,6 @@ import fnmatch
 import json
 import os
 
-from trie import (
-    Trie,
-)
 from trie.db.memory import (
     MemoryDB,
 )
@@ -136,7 +133,8 @@ def recursive_find_files(base_dir, pattern):
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json"))
 
 
 RAW_FIXTURES = tuple(
@@ -173,8 +171,8 @@ class EVMForTesting(FrontierEVM):
             return keccak("{0}".format(block_number))
 
 
-def setup_storage(fixture, storage):
-    for account, account_data in fixture['pre'].items():
+def setup_storage(account_fixtures, storage):
+    for account, account_data in account_fixtures.items():
         for slot, value in account_data['storage'].items():
             storage.set_storage(account, slot, value)
 
@@ -203,13 +201,14 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    block = Block(header=header)
+    db = MemoryDB()
+    block = Block(header=header, db=db)
     evm = EVMForTesting(
-        db=Trie(MemoryDB()),
+        db=db,
         block=block,
     )
 
-    setup_storage(fixture, evm.storage)
+    setup_storage(fixture['pre'], block.state_db)
 
     unsigned_transaction = UnsignedTransaction(
         nonce=fixture['transaction']['nonce'],
@@ -240,8 +239,6 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     else:
         assert computation.output == expected_output
 
-    assert evm.db.root_hash == fixture['postStateRoot']
-
     for account_as_hex, account_data in fixture['post'].items():
         account = to_canonical_address(account_as_hex)
 
@@ -252,7 +249,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
                 b'\x00',
             )
             actual_storage_value = pad_left(
-                evm.storage.get_storage(account, slot),
+                evm.block.state_db.get_storage(account, slot),
                 32,
                 b'\x00',
             )
@@ -263,10 +260,12 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         expected_code = account_data['code']
         expected_balance = account_data['balance']
 
-        actual_nonce = evm.storage.get_nonce(account)
-        actual_code = evm.storage.get_code(account)
-        actual_balance = evm.storage.get_balance(account)
+        actual_nonce = evm.block.state_db.get_nonce(account)
+        actual_code = evm.block.state_db.get_code(account)
+        actual_balance = evm.block.state_db.get_balance(account)
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
         assert actual_balance == expected_balance
+
+    assert evm.block.state_db.state.root_hash == fixture['postStateRoot']

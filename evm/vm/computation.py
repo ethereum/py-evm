@@ -1,5 +1,9 @@
 import logging
 
+from evm.constants import (
+    GAS_MEMORY,
+    GAS_MEMORY_QUADRATIC_DENOMINATOR,
+)
 from evm.exceptions import (
     VMError,
 )
@@ -27,6 +31,15 @@ from .message import (
 from .stack import (
     Stack,
 )
+
+
+def memory_gas_cost(size_in_bytes):
+    size_in_words = ceil32(size_in_bytes) // 32
+    linear_cost = size_in_words * GAS_MEMORY
+    quadratic_cost = size_in_words ** 2 // GAS_MEMORY_QUADRATIC_DENOMINATOR
+
+    total_cost = linear_cost + quadratic_cost
+    return total_cost
 
 
 class Computation(object):
@@ -67,16 +80,8 @@ class Computation(object):
         if message.is_create:
             code = message.data
         else:
-            code = self.storage.get_code(message.code_address)
+            code = self.evm.block.state_db.get_code(message.code_address)
         self.code = CodeStream(code)
-
-    @property
-    def storage(self):
-        return self.evm.storage
-
-    @property
-    def env(self):
-        return self.evm.environment
 
     #
     # Execution
@@ -125,8 +130,6 @@ class Computation(object):
         before_size = ceil32(len(self.memory))
         after_size = ceil32(start_position + size)
 
-        from evm.preconfigured.genesis import memory_gas_cost
-        # TODO: abstract
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
@@ -185,12 +188,12 @@ class Computation(object):
             for account, beneficiary in self.accounts_to_delete.items():
                 if self.logger is not None:
                     self.logger.info('DELETING ACCOUNT: %s', account)
-                self.storage.delete_storage(account)
-                self.storage.delete_code(account)
+                self.evm.block.state_db.storage.delete_storage(account)
+                self.evm.block.state_db.delete_code(account)
 
-                account_balance = self.storage.get_balance(account)
-                self.storage.set_balance(account, 0)
+                account_balance = self.evm.block.state_db.get_balance(account)
+                self.evm.block.state_db.set_balance(account, 0)
 
-                beneficiary_balance = self.storage.get_balance(beneficiary)
+                beneficiary_balance = self.evm.block.state_db.get_balance(beneficiary)
                 beneficiary_updated_balance = beneficiary_balance + account_balance
-                self.storage.set_balance(beneficiary, beneficiary_updated_balance)
+                self.evm.block.state_db.set_balance(beneficiary, beneficiary_updated_balance)

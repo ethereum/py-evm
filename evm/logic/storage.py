@@ -9,7 +9,7 @@ def sstore(computation):
     slot, value = computation.stack.pop(num_items=2, type_hint=constants.BYTES)
     padded_slot = pad32(slot)
 
-    current_value = computation.storage.get_storage(
+    current_value = computation.evm.block.state_db.get_storage(
         address=computation.msg.storage_address,
         slot=padded_slot,
     )
@@ -28,10 +28,10 @@ def sstore(computation):
             gas_cost = constants.GAS_SRESET
         gas_refund = 0
 
-    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0}".format(slot))
+    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0} -> {1}".format(slot, value))
     computation.gas_meter.refund_gas(gas_refund)
 
-    computation.storage.set_storage(
+    computation.evm.block.state_db.set_storage(
         address=computation.msg.storage_address,
         slot=padded_slot,
         value=value,
@@ -42,7 +42,7 @@ def sload(computation):
     slot = computation.stack.pop(type_hint=constants.BYTES)
     padded_slot = pad32(slot)
 
-    value = computation.storage.get_storage(
+    value = computation.evm.block.state_db.get_storage(
         address=computation.msg.storage_address,
         slot=padded_slot,
     )

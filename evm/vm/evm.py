@@ -14,9 +14,6 @@ from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
 )
-from evm.storage import (
-    Storage,
-)
 
 from .message import (
     Message,
@@ -34,8 +31,7 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
-    snapshot = evm.snapshot()
-    evm.storage.increment_nonce(transaction.sender)
+    evm.block.state_db.increment_nonce(transaction.sender)
 
     message = Message(
         gas=transaction.gas,
@@ -45,9 +41,27 @@ def _apply_transaction(evm, transaction):
         value=transaction.value,
         data=transaction.data,
     )
+    total_gas = message.gas + constants.GAS_TRANSACTION
+    gas_cost = total_gas * message.gas_price
+    sender_balance = evm.block.state_db.get_balance(message.sender)
+    if sender_balance < gas_cost:
+        raise InsufficientFunds("Sender account balance cannot afford txn gas")
+    evm.block.state_db.set_balance(message.sender, sender_balance - gas_cost)
+
     computation = evm.apply_message(message)
-    if computation.error:
-        evm.revert(snapshot)
+
+    gas_refund = (
+        computation.gas_meter.gas_remaining * message.gas_price +
+        computation.gas_meter.gas_refunded * message.gas_price
+    )
+    sender_balance = evm.block.state_db.get_balance(message.sender)
+    evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
+
+    gas_used = total_gas - computation.gas_meter.gas_remaining
+    transaction_fee = gas_used * message.gas_price
+    coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
+    evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+
     return computation
 
 
@@ -57,7 +71,7 @@ def _apply_create_message(evm, message):
     computation = evm.apply_message(message)
 
     if message.to != message.origin:
-        evm.storage.increment_nonce(computation.msg.to)
+        evm.block.state_db.increment_nonce(computation.msg.to)
 
     if computation.error:
         return computation
@@ -84,14 +98,14 @@ def _apply_message(evm, message):
     if message.depth >= 1024:
         raise StackDepthLimit("Stack depth limit reached")
     if message.value:
-        sender_balance = evm.storage.get_balance(message.sender)
+        sender_balance = evm.block.state_db.get_balance(message.sender)
 
         if sender_balance < message.value:
             raise InsufficientFunds(
                 "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
             )
 
-        recipient_balance = evm.storage.get_balance(message.to)
+        recipient_balance = evm.block.state_db.get_balance(message.to)
 
         sender_balance -= message.value
         recipient_balance += message.value
@@ -104,8 +118,8 @@ def _apply_message(evm, message):
                 message.to,
             )
 
-        evm.storage.set_balance(message.sender, sender_balance)
-        evm.storage.set_balance(message.to, recipient_balance)
+        evm.block.state_db.set_balance(message.sender, sender_balance)
+        evm.block.state_db.set_balance(message.to, recipient_balance)
 
     computation = evm.apply_computation(message)
 
@@ -164,10 +178,6 @@ class BaseEVM(object):
     def __init__(self, db, block):
         self.db = db
         self.block = block
-
-    @property
-    def storage(self):
-        return Storage(self.db)
 
     @classmethod
     def configure(cls, name, opcodes):

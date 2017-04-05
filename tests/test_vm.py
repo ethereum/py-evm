@@ -4,9 +4,6 @@ import fnmatch
 import json
 import os
 
-from trie import (
-    Trie,
-)
 from trie.db.memory import (
     MemoryDB,
 )
@@ -25,14 +22,18 @@ from evm.constants import (
 from evm.exceptions import (
     VMError,
 )
+from evm.rlp.headers import (
+    BlockHeader,
+)
+from evm.rlp.blocks import (
+    Block,
+)
+from evm.vm.flavors import (
+    FrontierEVM
+)
 from evm.vm import (
-    Environment,
     Message,
     Computation,
-    EVM,
-)
-from evm.preconfigured.genesis import (
-    GENESIS_OPCODES,
 )
 
 from evm.utils.numeric import (
@@ -130,9 +131,6 @@ def normalize_fixture(fixture):
     return normalized_fixture
 
 
-GenesisEVM = EVM.configure(name='genesis', opcode_classes=GENESIS_OPCODES)
-
-
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -179,7 +177,7 @@ FAILURE_FIXTURES = tuple(
 )
 
 
-class EVMForTesting(GenesisEVM):
+class EVMForTesting(FrontierEVM):
     #
     # Execution Overrides
     #
@@ -237,16 +235,18 @@ ORIGIN = b'\x00' * 31 + b'\x01'
     'fixture_name,fixture', SUCCESS_FIXTURES,
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
-    environment = Environment(
+    header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
         block_number=fixture['env']['currentNumber'],
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
+    db = MemoryDB()
+    block = Block(header=header, db=db)
     evm = EVMForTesting(
-        db=Trie(MemoryDB()),
-        environment=environment,
+        db=db,
+        block=block,
     )
     setup_storage(fixture, evm.storage)
 
@@ -329,16 +329,18 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     'fixture_name,fixture', FAILURE_FIXTURES,
 )
 def test_vm_failure_using_fixture(fixture_name, fixture):
-    environment = Environment(
+    header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
         block_number=fixture['env']['currentNumber'],
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
+    db = MemoryDB()
+    block = Block(header=header, db=db)
     evm = EVMForTesting(
-        db=Trie(MemoryDB()),
-        environment=environment,
+        db=db,
+        block=block,
     )
 
     assert fixture.get('callcreates', []) == []
