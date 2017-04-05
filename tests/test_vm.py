@@ -205,9 +205,9 @@ class EVMForTesting(FrontierEVM):
     # Storage Overrides
     #
     def get_block_hash(self, block_number):
-        if block_number >= self.environment.block_number:
+        if block_number >= self.block.header.block_number:
             return b''
-        elif block_number < self.environment.block_number - 256:
+        elif block_number < self.block.header.block_number - 256:
             return b''
         else:
             return keccak("{0}".format(block_number))
@@ -248,7 +248,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         db=db,
         block=block,
     )
-    setup_storage(fixture, evm.storage)
+    setup_storage(fixture, evm.block.state_db)
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -305,7 +305,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
                 b'\x00',
             )
             actual_storage_value = pad_left(
-                evm.storage.get_storage(account, slot),
+                evm.block.state_db.get_storage(account, slot),
                 32,
                 b'\x00',
             )
@@ -316,9 +316,9 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         expected_code = account_data['code']
         expected_balance = account_data['balance']
 
-        actual_nonce = evm.storage.get_nonce(account)
-        actual_code = evm.storage.get_code(account)
-        actual_balance = evm.storage.get_balance(account)
+        actual_nonce = evm.block.state_db.get_nonce(account)
+        actual_code = evm.block.state_db.get_code(account)
+        actual_balance = evm.block.state_db.get_balance(account)
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
@@ -345,7 +345,7 @@ def test_vm_failure_using_fixture(fixture_name, fixture):
 
     assert fixture.get('callcreates', []) == []
 
-    setup_storage(fixture, evm.storage)
+    setup_storage(fixture, evm.block.state_db)
 
     message = Message(
         origin=fixture['exec']['origin'],

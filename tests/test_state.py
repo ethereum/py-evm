@@ -133,8 +133,8 @@ def recursive_find_files(base_dir, pattern):
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
-#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json"))
+FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json"))
 
 
 RAW_FIXTURES = tuple(

@@ -10,20 +10,20 @@ def blockhash(computation):
 
 
 def coinbase(computation):
-    computation.stack.push(computation.env.coinbase)
+    computation.stack.push(computation.block.header.coinbase)
 
 
 def timestamp(computation):
-    computation.stack.push(computation.env.timestamp)
+    computation.stack.push(computation.block.header.timestamp)
 
 
 def number(computation):
-    computation.stack.push(computation.env.block_number)
+    computation.stack.push(computation.block.header.block_number)
 
 
 def difficulty(computation):
-    computation.stack.push(computation.env.difficulty)
+    computation.stack.push(computation.block.header.difficulty)
 
 
 def gaslimit(computation):
-    computation.stack.push(computation.env.gas_limit)
+    computation.stack.push(computation.block.header.gas_limit)

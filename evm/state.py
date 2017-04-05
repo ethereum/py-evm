@@ -71,7 +71,6 @@ class State(object):
             encoded_value = rlp.encode(value)
             storage[slot] = encoded_value
         else:
-            assert False
             del storage[slot]
 
         account.storage_root = storage.root_hash
