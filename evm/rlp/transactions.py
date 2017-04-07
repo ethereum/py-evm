@@ -4,6 +4,11 @@ from rlp.sedes import (
     binary,
 )
 
+from evm.constants import (
+    GAS_TX,
+    GAS_TXDATAZERO,
+    GAS_TXDATANONZERO,
+)
 from evm.validation import (
     validate_uint256,
     validate_is_integer,
@@ -58,6 +63,10 @@ class Transaction(rlp.Serializable):
     @property
     def sender(self):
         return extract_transaction_sender(self)
+
+    @property
+    def intrensic_gas(self):
+        return get_intrensic_gas(self.data)
 
 
 class UnsignedTransaction(rlp.Serializable):
@@ -114,3 +123,13 @@ def extract_transaction_sender(transaction):
     public_key = ecdsa_recover(rlp.encode(unsigned_transaction), signature)
     sender = public_key_to_address(public_key)
     return sender
+
+
+def get_intrensic_gas(transaction_data):
+    num_zero_bytes = transaction_data.count(b'\x00')
+    num_non_zero_bytes = len(transaction_data) - num_zero_bytes
+    return (
+        GAS_TX +
+        num_zero_bytes * GAS_TXDATAZERO +
+        num_non_zero_bytes * GAS_TXDATANONZERO
+    )

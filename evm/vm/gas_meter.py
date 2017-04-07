@@ -57,7 +57,7 @@ class GasMeter(object):
         self.gas_remaining += amount
 
         if self.logger is not None:
-            self.logger.info(
+            self.logger.debug(
                 'GAS RETURNED: %s + %s -> %s',
                 self.gas_remaining - amount,
                 amount,

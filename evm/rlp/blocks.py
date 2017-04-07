@@ -39,6 +39,6 @@ class Block(rlp.Serializable):
 
         super(Block, self).__init__(header=header, transactions=transactions, uncles=uncles)
 
-        self.state_db = State(Trie(self.db, root_hash=self.header.state_root))
+        self.state_db = State(self.db, root_hash=self.header.state_root)
         self.transaction_db = Trie(self.db, root_hash=self.header.transaction_root)
         self.receipt_db = Trie(self.db, root_hash=self.header.receipts_root)

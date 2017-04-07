@@ -1,3 +1,5 @@
+import logging
+
 import rlp
 
 from trie import (
@@ -26,6 +28,8 @@ from evm.utils.keccak import (
 class StateTrie(object):
     trie = None
 
+    logger = logging.getLogger('evm.state.StateTrie')
+
     def __init__(self, trie):
         self.trie = trie
 
@@ -48,13 +52,22 @@ class StateTrie(object):
     def root_hash(self):
         return self.trie.root_hash
 
+    def snapshot(self):
+        return self.trie.snapshot()
+
+    def revert(self, snapshot):
+        return self.trie.revert(snapshot)
+
 
 class State(object):
     db = None
+    state = None
 
-    def __init__(self, trie):
-        self.db = trie.db
-        self.state = StateTrie(trie)
+    logger = logging.getLogger('evm.state.State')
+
+    def __init__(self, db, root_hash):
+        self.db = db
+        self.state = StateTrie(Trie(db, root_hash))
 
     #
     # Base API
@@ -163,6 +176,15 @@ class State(object):
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
         self.set_nonce(address, current_nonce + 1)
+
+    #
+    # Internal
+    #
+    def snapshot(self):
+        return self.state.snapshot()
+
+    def revert(self, snapshot):
+        return self.state.revert(snapshot)
 
     #
     # Internal

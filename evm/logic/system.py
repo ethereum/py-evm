@@ -89,38 +89,43 @@ def callcode(computation):
 
     call_data = computation.memory.read(memory_input_start_position, memory_input_size)
 
-    account_exists = computation.evm.block.state_db.account_exists(to)
     transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
-    create_gas_cost = constants.GAS_NEWACCOUNT if not account_exists else 0
-
-    extra_gas = transfer_gas_cost + create_gas_cost
 
     child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
 
-    computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
+    computation.gas_meter.consume_gas(gas + transfer_gas_cost, reason="CALLCODE")
 
-    child_msg = computation.prepare_child_message(
-        gas=child_msg_gas,
-        to=computation.msg.to,
-        sender=computation.msg.to,
-        value=value,
-        data=call_data,
-        code_address=to,
-    )
-    child_computation = computation.apply_child_message(child_msg)
+    child_msg_is_invalid = any((
+        computation.evm.block.state_db.get_balance(computation.msg.to) < value,
+        computation.msg.depth + 1 > 1024,
+    ))
 
-    if child_computation.error:
+    if child_msg_is_invalid:
         computation.gas_meter.return_gas(child_msg_gas)
         computation.stack.push(0)
     else:
-        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
-        padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
-        computation.memory.write(
-            memory_output_start_position,
-            memory_output_size,
-            padded_return_data,
+        child_msg = computation.prepare_child_message(
+            gas=child_msg_gas,
+            to=computation.msg.to,
+            sender=computation.msg.to,
+            value=value,
+            data=call_data,
+            code_address=to,
         )
-        computation.stack.push(1)
+        child_computation = computation.apply_child_message(child_msg)
+
+        if child_computation.error:
+            computation.gas_meter.return_gas(child_msg_gas)
+            computation.stack.push(0)
+        else:
+            computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+            padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
+            computation.memory.write(
+                memory_output_start_position,
+                memory_output_size,
+                padded_return_data,
+            )
+            computation.stack.push(1)
 
 
 def create(computation):
@@ -141,7 +146,7 @@ def create(computation):
     call_data = computation.memory.read(start_position, size)
 
     create_msg_gas = computation.gas_meter.gas_remaining
-    computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE message gas")
+    computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
     creation_nonce = computation.evm.block.state_db.get_nonce(computation.msg.to)
     contract_address = generate_contract_address(computation.msg.to, creation_nonce)

@@ -31,34 +31,42 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
+    # Nonce
     evm.block.state_db.increment_nonce(transaction.sender)
 
+    # Gas
+    gas_cost = transaction.gas * transaction.gas_price
+    sender_balance = evm.block.state_db.get_balance(transaction.sender)
+    if sender_balance < gas_cost:
+        raise InsufficientFunds("Sender account balance cannot afford txn gas")
+    evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
+
+    message_gas = transaction.gas - transaction.intrensic_gas
+
     message = Message(
-        gas=transaction.gas,
+        gas=message_gas,
         gas_price=transaction.gas_price,
         to=transaction.to,
         sender=transaction.sender,
         value=transaction.value,
         data=transaction.data,
     )
-    total_gas = message.gas + constants.GAS_TRANSACTION
-    gas_cost = total_gas * message.gas_price
-    sender_balance = evm.block.state_db.get_balance(message.sender)
-    if sender_balance < gas_cost:
-        raise InsufficientFunds("Sender account balance cannot afford txn gas")
-    evm.block.state_db.set_balance(message.sender, sender_balance - gas_cost)
 
-    computation = evm.apply_message(message)
+    if message.is_create:
+        computation = evm.apply_create_message(message)
+    else:
+        computation = evm.apply_message(message)
 
-    gas_refund = (
-        computation.gas_meter.gas_remaining * message.gas_price +
-        computation.gas_meter.gas_refunded * message.gas_price
-    )
-    sender_balance = evm.block.state_db.get_balance(message.sender)
-    evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
+    if not computation.error:
+        gas_refund = (
+            computation.gas_meter.gas_remaining * message.gas_price +
+            computation.gas_meter.gas_refunded * message.gas_price
+        )
+        sender_balance = evm.block.state_db.get_balance(message.sender)
+        evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
 
-    gas_used = total_gas - computation.gas_meter.gas_remaining
-    transaction_fee = gas_used * message.gas_price
+    gas_used = message_gas - computation.gas_meter.gas_remaining
+    transaction_fee = transaction.intrensic_gas + gas_used * message.gas_price
     coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
     evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
 
@@ -111,7 +119,7 @@ def _apply_message(evm, message):
         recipient_balance += message.value
 
         if evm.logger is not None:
-            evm.logger.info(
+            evm.logger.debug(
                 "Transferred: %s from %s -> %s",
                 message.value,
                 message.sender,
@@ -229,10 +237,10 @@ class BaseEVM(object):
     # Snapshot and Revert
     #
     def snapshot(self):
-        return self.db.snapshot()
+        return self.block.state_db.snapshot()
 
     def revert(self, snapshot):
-        self.db.revert(snapshot)
+        return self.block.state_db.revert(snapshot)
 
     #
     # Opcode API

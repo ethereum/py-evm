@@ -133,8 +133,12 @@ def recursive_find_files(base_dir, pattern):
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json"))
+#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+FIXTURES_PATHS = (
+
+    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json")) +
+    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stBlockHashTest.json"))
+)
 
 
 RAW_FIXTURES = tuple(
@@ -220,8 +224,6 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     )
     transaction = sign_transaction(unsigned_transaction, fixture['transaction']['secretKey'])
     computation = evm.apply_transaction(transaction)
-
-    assert computation.error is None
 
     expected_logs = [
         {
