@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 import os
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-
-
 from setuptools import setup, find_packages
+
+
+DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 readme = open(os.path.join(DIR, 'README.md')).read()
@@ -22,7 +22,11 @@ setup(
     include_package_data=True,
     py_modules=['evm'],
     install_requires=[
-        "pysha3>=0.3",
+        "ethereum-utils>=0.2.0",
+        "toolz==0.8.2",
+        "rlp==0.4.7",
+        "trie>=0.2.2",
+        "ethereum-bloom>=0.3.0",
     ],
     license="MIT",
     zip_safe=False,
