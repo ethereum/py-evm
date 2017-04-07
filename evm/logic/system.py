@@ -50,31 +50,39 @@ def call(computation):
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
 
-    child_msg = computation.prepare_child_message(
-        gas=child_msg_gas,
-        to=to,
-        value=value,
-        data=call_data,
-    )
-    child_computation = computation.apply_child_message(child_msg)
+    child_msg_is_invalid = any((
+        computation.evm.block.state_db.get_balance(computation.msg.to) < value,
+        computation.msg.depth + 1 > 1024,
+    ))
 
-    if child_computation.error:
+    if child_msg_is_invalid:
         computation.gas_meter.return_gas(child_msg_gas)
         computation.stack.push(0)
     else:
-        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
-        padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
-        computation.memory.write(
-            memory_output_start_position,
-            memory_output_size,
-            padded_return_data,
+        child_msg = computation.prepare_child_message(
+            gas=child_msg_gas,
+            to=to,
+            value=value,
+            data=call_data,
         )
-        computation.stack.push(1)
+        child_computation = computation.apply_child_message(child_msg)
+
+        if child_computation.error:
+            computation.stack.push(0)
+        else:
+            computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+            padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
+            computation.memory.write(
+                memory_output_start_position,
+                memory_output_size,
+                padded_return_data,
+            )
+            computation.stack.push(1)
 
 
 def callcode(computation):
     gas = computation.stack.pop(type_hint=constants.UINT256)
-    to = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    code_address = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
 
     (
         value,
@@ -110,12 +118,11 @@ def callcode(computation):
             sender=computation.msg.to,
             value=value,
             data=call_data,
-            code_address=to,
+            code_address=code_address,
         )
         child_computation = computation.apply_child_message(child_msg)
 
         if child_computation.error:
-            computation.gas_meter.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:
             computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)

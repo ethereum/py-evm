@@ -135,9 +135,9 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 #FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 FIXTURES_PATHS = (
-
     tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json")) +
-    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stBlockHashTest.json"))
+    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stBlockHashTest.json")) +
+    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stCallCodes.json"))
 )
 
 
@@ -265,9 +265,10 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         actual_nonce = evm.block.state_db.get_nonce(account)
         actual_code = evm.block.state_db.get_code(account)
         actual_balance = evm.block.state_db.get_balance(account)
+        balance_delta = expected_balance - actual_balance
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
-        assert actual_balance == expected_balance
+        assert balance_delta == 0, "Expected: {0} - Actual: {1} | Delta: {2}".format(expected_balance, actual_balance, balance_delta)
 
     assert evm.block.state_db.state.root_hash == fixture['postStateRoot']
