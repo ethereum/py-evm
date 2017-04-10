@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 from evm.constants import (
@@ -75,13 +76,23 @@ class Computation(object):
 
         self.children = []
         self.accounts_to_delete = {}
-        self.logs = []
+        self.log_entries = []
 
         if message.is_create:
             code = message.data
         else:
             code = self.evm.block.state_db.get_code(message.code_address)
         self.code = CodeStream(code)
+
+    #
+    # Convenience
+    #
+    @property
+    def is_origin_computation(self):
+        """
+        Is this computation the computation initiated by a transaction.
+        """
+        return self.msg.is_origin
 
     #
     # Execution
@@ -170,8 +181,26 @@ class Computation(object):
             )
         self.accounts_to_delete[self.msg.to] = beneficiary
 
+    def get_accounts_for_deletion(self):
+        if self.error:
+            return tuple(dict().items())
+        else:
+            return tuple(dict(itertools.chain(
+                self.accounts_to_delete.items(),
+                *(child.get_accounts_for_deletion() for child in self.children)
+            )).items())
+
     def add_log_entry(self, account, topics, data):
-        self.logs.append((account, topics, data))
+        self.log_entries.append((account, topics, data))
+
+    def get_log_entries(self):
+        if self.error:
+            return tuple()
+        else:
+            return tuple(itertools.chain(
+                self.log_entries,
+                *(child.get_log_entries() for child in self.children)
+            ))
 
     #
     # Context Manager API
@@ -184,16 +213,3 @@ class Computation(object):
             self.error = exc_value
             # suppress VM exceptions
             return True
-        elif exc_type is None:
-            for account, beneficiary in self.accounts_to_delete.items():
-                if self.logger is not None:
-                    self.logger.debug('DELETING ACCOUNT: %s', account)
-                self.evm.block.state_db.delete_storage(account)
-                self.evm.block.state_db.delete_code(account)
-
-                account_balance = self.evm.block.state_db.get_balance(account)
-                self.evm.block.state_db.set_balance(account, 0)
-
-                beneficiary_balance = self.evm.block.state_db.get_balance(beneficiary)
-                beneficiary_updated_balance = beneficiary_balance + account_balance
-                self.evm.block.state_db.set_balance(beneficiary, beneficiary_updated_balance)

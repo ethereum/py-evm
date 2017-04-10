@@ -58,14 +58,34 @@ def _apply_transaction(evm, transaction):
         computation = evm.apply_message(message)
 
     if not computation.error:
-        gas_refund = (
-            computation.gas_meter.gas_remaining * message.gas_price +
-            computation.gas_meter.gas_refunded * message.gas_price
-        )
-        sender_balance = evm.block.state_db.get_balance(message.sender)
-        evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
+        # Suicides
+        for account, beneficiary in computation.get_accounts_for_deletion():
+            # TODO: need to figure out how we prevent multiple suicides from
+            # the same account and if this is the right place to put this.
+            if evm.logger is not None:
+                evm.logger.debug('DELETING ACCOUNT: %s', account)
 
-    gas_used = message_gas - computation.gas_meter.gas_remaining
+            evm.block.state_db.set_balance(account, 0)
+            evm.block.state_db.delete_account(account)
+
+            computation.gas_meter.refund_gas(constants.REFUND_SUICIDE)
+
+    # Gas Refunds
+    gas_refund = (
+        computation.gas_meter.gas_remaining * message.gas_price +
+        computation.gas_meter.gas_refunded * message.gas_price
+    )
+    if evm.logger:
+        evm.logger.debug('TRANSACTION REFUND: %s', gas_refund)
+    sender_balance = evm.block.state_db.get_balance(message.sender)
+    evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
+
+    # Miner Fees
+    gas_used = (
+        message_gas -
+        computation.gas_meter.gas_remaining -
+        computation.gas_meter.gas_refunded
+    )
     transaction_fee = transaction.intrensic_gas + gas_used * message.gas_price
     coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
     evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
@@ -120,7 +140,7 @@ def _apply_message(evm, message):
 
         if evm.logger is not None:
             evm.logger.debug(
-                "Transferred: %s from %s -> %s",
+                "TRANSFERRED: %s from %s -> %s",
                 message.value,
                 message.sender,
                 message.to,

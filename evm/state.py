@@ -60,6 +60,9 @@ class StateTrie(object):
 
 
 class State(object):
+    """
+    High level API around account storage.
+    """
     db = None
     state = None
 
@@ -169,6 +172,9 @@ class State(object):
     #
     # Account Methods
     #
+    def delete_account(self, address):
+        del self.state[address]
+
     def account_exists(self, address):
         validate_canonical_address(address)
         return address in self.state

@@ -20,6 +20,16 @@ def return_op(computation):
 
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+
+    local_balance = computation.evm.block.state_db.get_balance(computation.msg.storage_address)
+    beneficiary_balance = computation.evm.block.state_db.get_balance(beneficiary)
+
+    computation.evm.block.state_db.set_balance(computation.msg.storage_address, 0)
+    computation.evm.block.state_db.set_balance(
+        beneficiary,
+        local_balance + beneficiary_balance,
+    )
+
     computation.register_account_for_deletion(beneficiary)
 
 

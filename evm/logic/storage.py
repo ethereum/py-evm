@@ -29,7 +29,9 @@ def sstore(computation):
         gas_refund = 0
 
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0} -> {1}".format(slot, value))
-    computation.gas_meter.refund_gas(gas_refund)
+
+    if gas_refund:
+        computation.gas_meter.refund_gas(gas_refund)
 
     computation.evm.block.state_db.set_storage(
         address=computation.msg.storage_address,

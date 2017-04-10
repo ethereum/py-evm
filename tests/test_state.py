@@ -231,7 +231,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
             'topics': log_entry[1],
             'data': log_entry[2],
         }
-        for log_entry in computation.logs
+        for log_entry in computation.get_log_entries()
     ]
     expected_logs == fixture['logs']
 

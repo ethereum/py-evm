@@ -74,6 +74,10 @@ class Message(object):
         self.storage_address = create_address
 
     @property
+    def is_origin(self):
+        return self.sender == self.origin
+
+    @property
     def origin(self):
         if self._origin is not None:
             return self._origin
