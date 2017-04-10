@@ -106,7 +106,7 @@ class Computation(object):
                               code_address=None,
                               create_address=None):
         if sender is None:
-            sender = self.msg.to
+            sender = self.msg.storage_address
 
         child_message = Message(
             gas=gas,
@@ -174,12 +174,12 @@ class Computation(object):
     def register_account_for_deletion(self, beneficiary):
         validate_canonical_address(beneficiary)
 
-        if self.msg.to in self.accounts_to_delete:
+        if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(
                 "Invariant.  Should be impossible for an account to be "
                 "registered for deletion multiple times"
             )
-        self.accounts_to_delete[self.msg.to] = beneficiary
+        self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
     def get_accounts_for_deletion(self):
         if self.error:

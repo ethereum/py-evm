@@ -22,7 +22,7 @@ def origin(computation):
 
 
 def address(computation):
-    computation.stack.push(computation.msg.to)
+    computation.stack.push(computation.msg.storage_address)
 
 
 def caller(computation):

@@ -33,7 +33,7 @@ def log_XX(computation, topic_count):
     log_data = computation.memory.read(mem_start_position, size)
 
     computation.add_log_entry(
-        account=computation.msg.to,
+        account=computation.msg.storage_address,
         topics=topics,
         data=log_data,
     )

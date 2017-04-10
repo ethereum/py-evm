@@ -61,7 +61,7 @@ def call(computation):
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
 
     child_msg_is_invalid = any((
-        computation.evm.block.state_db.get_balance(computation.msg.to) < value,
+        computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value,
         computation.msg.depth + 1 > 1024,
     ))
 
@@ -114,7 +114,7 @@ def callcode(computation):
     computation.gas_meter.consume_gas(gas + transfer_gas_cost, reason="CALLCODE")
 
     child_msg_is_invalid = any((
-        computation.evm.block.state_db.get_balance(computation.msg.to) < value,
+        computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value,
         computation.msg.depth + 1 > 1024,
     ))
 
@@ -124,8 +124,8 @@ def callcode(computation):
     else:
         child_msg = computation.prepare_child_message(
             gas=child_msg_gas,
-            to=computation.msg.to,
-            sender=computation.msg.to,
+            to=computation.msg.storage_address,
+            sender=computation.msg.storage_address,
             value=value,
             data=call_data,
             code_address=code_address,
@@ -153,7 +153,7 @@ def create(computation):
 
     computation.extend_memory(start_position, size)
 
-    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.to) < value
+    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value
     stack_too_deep = computation.msg.depth >= 1024
 
     if insufficient_funds or stack_too_deep:
@@ -165,8 +165,8 @@ def create(computation):
     create_msg_gas = computation.gas_meter.gas_remaining
     computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-    creation_nonce = computation.evm.block.state_db.get_nonce(computation.msg.to)
-    contract_address = generate_contract_address(computation.msg.to, creation_nonce)
+    creation_nonce = computation.evm.block.state_db.get_nonce(computation.msg.storage_address)
+    contract_address = generate_contract_address(computation.msg.storage_address, creation_nonce)
 
     child_msg = computation.prepare_child_message(
         gas=create_msg_gas,

@@ -57,38 +57,43 @@ def _apply_transaction(evm, transaction):
     else:
         computation = evm.apply_message(message)
 
-    if not computation.error:
-        # Suicides
-        for account, beneficiary in computation.get_accounts_for_deletion():
-            # TODO: need to figure out how we prevent multiple suicides from
-            # the same account and if this is the right place to put this.
-            if evm.logger is not None:
-                evm.logger.debug('DELETING ACCOUNT: %s', account)
+    if computation.error:
+        # Miner Fees
+        transaction_fee = transaction.gas * transaction.gas_price
+        coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
+        evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+    else:
+        # Suicide Refunds
+        num_deletions = len(computation.get_accounts_for_deletion())
+        computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
 
-            evm.block.state_db.set_balance(account, 0)
-            evm.block.state_db.delete_account(account)
+        # Gas Refunds
+        gas_remaining = computation.gas_meter.gas_remaining
+        gas_refunded = computation.gas_meter.gas_refunded
+        gas_used = transaction.gas - gas_remaining
+        gas_refund = min(gas_refunded, gas_used // 2)
+        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
-            computation.gas_meter.refund_gas(constants.REFUND_SUICIDE)
+        if evm.logger:
+            evm.logger.debug('TRANSACTION REFUND: %s', gas_refund)
 
-    # Gas Refunds
-    gas_refund = (
-        computation.gas_meter.gas_remaining * message.gas_price +
-        computation.gas_meter.gas_refunded * message.gas_price
-    )
-    if evm.logger:
-        evm.logger.debug('TRANSACTION REFUND: %s', gas_refund)
-    sender_balance = evm.block.state_db.get_balance(message.sender)
-    evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund)
+        sender_balance = evm.block.state_db.get_balance(message.sender)
+        evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
 
-    # Miner Fees
-    gas_used = (
-        message_gas -
-        computation.gas_meter.gas_remaining -
-        computation.gas_meter.gas_refunded
-    )
-    transaction_fee = transaction.intrensic_gas + gas_used * message.gas_price
-    coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
-    evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+        # Miner Fees
+        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
+        evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+
+    # Suicides
+    for account, beneficiary in computation.get_accounts_for_deletion():
+        # TODO: need to figure out how we prevent multiple suicides from
+        # the same account and if this is the right place to put this.
+        if evm.logger is not None:
+            evm.logger.debug('DELETING ACCOUNT: %s', account)
+
+        evm.block.state_db.set_balance(account, 0)
+        evm.block.state_db.delete_account(account)
 
     return computation
 
@@ -98,8 +103,8 @@ def _apply_create_message(evm, message):
 
     computation = evm.apply_message(message)
 
-    if message.to != message.origin:
-        evm.block.state_db.increment_nonce(computation.msg.to)
+    if message.sender != message.origin:
+        evm.block.state_db.increment_nonce(computation.msg.sender)
 
     if computation.error:
         return computation
@@ -116,7 +121,13 @@ def _apply_create_message(evm, message):
                 evm.revert(snapshot)
                 computation.error = err
             else:
-                computation.evm.block.state_db.set_code(message.to, contract_code)
+                if evm.logger:
+                    evm.logger.debug(
+                        "SETTING CODE: %s -> %s",
+                        message.storage_address,
+                        contract_code,
+                    )
+                computation.evm.block.state_db.set_code(message.storage_address, contract_code)
         return computation
 
 
@@ -133,21 +144,20 @@ def _apply_message(evm, message):
                 "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
             )
 
-        recipient_balance = evm.block.state_db.get_balance(message.to)
-
         sender_balance -= message.value
+        evm.block.state_db.set_balance(message.sender, sender_balance)
+
+        recipient_balance = evm.block.state_db.get_balance(message.storage_address)
         recipient_balance += message.value
+        evm.block.state_db.set_balance(message.storage_address, recipient_balance)
 
         if evm.logger is not None:
             evm.logger.debug(
                 "TRANSFERRED: %s from %s -> %s",
                 message.value,
                 message.sender,
-                message.to,
+                message.storage_address,
             )
-
-        evm.block.state_db.set_balance(message.sender, sender_balance)
-        evm.block.state_db.set_balance(message.to, recipient_balance)
 
     computation = evm.apply_computation(message)
 

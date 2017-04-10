@@ -28,7 +28,11 @@ def sstore(computation):
             gas_cost = constants.GAS_SRESET
         gas_refund = 0
 
-    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE:{0} -> {1}".format(slot, value))
+    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2}".format(
+        computation.msg.storage_address,
+        slot,
+        value,
+    ))
 
     if gas_refund:
         computation.gas_meter.refund_gas(gas_refund)
