@@ -135,9 +135,9 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 #FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 FIXTURES_PATHS = (
-    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stExample.json")) +
-    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stBlockHashTest.json")) +
-    tuple(recursive_find_files(BASE_FIXTURE_PATH, "stCallCodes.json"))
+    os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
 )
 
 
