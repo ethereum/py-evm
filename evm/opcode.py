@@ -20,17 +20,20 @@ class Opcode(object):
     @classmethod
     def as_opcode(cls, logic_fn, value, mnemonic, gas_cost):
 
-        @functools.wraps(logic_fn)
-        def wrapped_logic_fn(computation):
-            """
-            Wrapper functionf or the logic function which consumes the base
-            opcode gas cost prior to execution.
-            """
-            computation.gas_meter.consume_gas(
-                gas_cost,
-                reason=mnemonic,
-            )
-            return logic_fn(computation)
+        if gas_cost:
+            @functools.wraps(logic_fn)
+            def wrapped_logic_fn(computation):
+                """
+                Wrapper functionf or the logic function which consumes the base
+                opcode gas cost prior to execution.
+                """
+                computation.gas_meter.consume_gas(
+                    gas_cost,
+                    reason=mnemonic,
+                )
+                return logic_fn(computation)
+        else:
+            wrapped_logic_fn = logic_fn
 
         props = {
             '__call__': staticmethod(wrapped_logic_fn),

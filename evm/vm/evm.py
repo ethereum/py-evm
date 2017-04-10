@@ -31,10 +31,10 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
-    # Nonce
+    # Increment Nonce
     evm.block.state_db.increment_nonce(transaction.sender)
 
-    # Gas
+    # Buy Gas
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = evm.block.state_db.get_balance(transaction.sender)
     if sender_balance < gas_cost:
@@ -136,6 +136,7 @@ def _apply_message(evm, message):
 
     if message.depth >= 1024:
         raise StackDepthLimit("Stack depth limit reached")
+
     if message.value:
         sender_balance = evm.block.state_db.get_balance(message.sender)
 

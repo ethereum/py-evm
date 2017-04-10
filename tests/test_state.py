@@ -241,10 +241,8 @@ def test_vm_success_using_fixture(fixture_name, fixture):
     else:
         assert computation.output == expected_output
 
-    for account_as_hex, account_data in fixture['post'].items():
-        account = to_canonical_address(account_as_hex)
-
-        for slot, unpadded_expected_storage_value in account_data['storage'].items():
+    for account, account_data in sorted(fixture['post'].items()):
+        for slot, unpadded_expected_storage_value in sorted(account_data['storage'].items()):
             expected_storage_value = pad_left(
                 unpadded_expected_storage_value,
                 32,
