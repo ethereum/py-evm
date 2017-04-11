@@ -9,10 +9,13 @@ from evm.logic.invalid import (
     InvalidOpcode,
 )
 from evm.exceptions import (
-    VMError,
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
+)
+
+from evm.utils.address import (
+    generate_contract_address,
 )
 
 from .message import (
@@ -43,6 +46,14 @@ def _apply_transaction(evm, transaction):
 
     message_gas = transaction.gas - transaction.intrensic_gas
 
+    if transaction.to == constants.ZERO_ADDRESS:
+        contract_address = generate_contract_address(
+            transaction.sender,
+            evm.block.state_db.get_nonce(transaction.sender) - 1,
+        )
+    else:
+        contract_address = None
+
     message = Message(
         gas=message_gas,
         gas_price=transaction.gas_price,
@@ -50,6 +61,7 @@ def _apply_transaction(evm, transaction):
         sender=transaction.sender,
         value=transaction.value,
         data=transaction.data,
+        create_address=contract_address,
     )
 
     if message.is_create:
@@ -65,7 +77,8 @@ def _apply_transaction(evm, transaction):
     else:
         # Suicide Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
-        computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
+        if num_deletions:
+            computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
 
         # Gas Refunds
         gas_remaining = computation.gas_meter.gas_remaining
@@ -134,7 +147,7 @@ def _apply_create_message(evm, message):
 def _apply_message(evm, message):
     snapshot = evm.snapshot()
 
-    if message.depth > 1024:
+    if message.depth > constants.STACK_DEPTH_LIMIT:
         raise StackDepthLimit("Stack depth limit reached")
 
     if message.value:
@@ -171,15 +184,6 @@ def _apply_computation(evm, message):
     computation = Computation(evm, message)
 
     with computation:
-        if computation.logger is not None:
-            computation.logger.debug(
-                "EXECUTING: gas: %s | from: %s | to: %s | value: %s",
-                computation.msg.gas,
-                computation.msg.sender,
-                computation.msg.to,
-                computation.msg.value,
-            )
-
         # Early exit on pre-compiles
         if computation.msg.to in PRECOMPILES:
             return PRECOMPILES[computation.msg.to](computation)

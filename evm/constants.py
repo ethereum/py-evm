@@ -15,6 +15,12 @@ ZERO_HASH32 = 32 * b'\x00'
 
 
 #
+# Stack Limit
+#
+STACK_DEPTH_LIMIT = 1024
+
+
+#
 # Gas Costs and Refunds
 #
 GAS_NULL = 0

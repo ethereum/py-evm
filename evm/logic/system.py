@@ -4,9 +4,6 @@ from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
 )
-from evm.utils.padding import (
-    pad_right,
-)
 
 
 def return_op(computation):
@@ -60,12 +57,10 @@ def call(computation):
 
     computation.gas_meter.consume_gas(gas + extra_gas, reason="CALL")
 
-    child_msg_is_invalid = any((
-        computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value,
-        computation.msg.depth + 1 > 1024,
-    ))
+    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value
+    stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
-    if child_msg_is_invalid:
+    if insufficient_funds or stack_too_deep:
         computation.gas_meter.return_gas(child_msg_gas)
         computation.stack.push(0)
     else:
@@ -87,11 +82,10 @@ def call(computation):
             computation.stack.push(0)
         else:
             computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
-            padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
             computation.memory.write(
                 memory_output_start_position,
-                memory_output_size,
-                padded_return_data,
+                min(memory_output_size, len(child_computation.output)),
+                child_computation.output,
             )
             computation.stack.push(1)
 
@@ -119,12 +113,10 @@ def callcode(computation):
 
     computation.gas_meter.consume_gas(gas + transfer_gas_cost, reason="CALLCODE")
 
-    child_msg_is_invalid = any((
-        computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value,
-        computation.msg.depth + 1 > 1024,
-    ))
+    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value
+    stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
-    if child_msg_is_invalid:
+    if insufficient_funds or stack_too_deep:
         computation.gas_meter.return_gas(child_msg_gas)
         computation.stack.push(0)
     else:
@@ -148,11 +140,10 @@ def callcode(computation):
             computation.stack.push(0)
         else:
             computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
-            padded_return_data = pad_right(child_computation.output, memory_output_size, b'\x00')
             computation.memory.write(
                 memory_output_start_position,
-                memory_output_size,
-                padded_return_data,
+                min(memory_output_size, len(child_computation.output)),
+                child_computation.output,
             )
             computation.stack.push(1)
 
@@ -166,7 +157,7 @@ def create(computation):
     computation.extend_memory(start_position, size)
 
     insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value
-    stack_too_deep = computation.msg.depth >= 1024
+    stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
     if insufficient_funds or stack_too_deep:
         computation.stack.push(0)

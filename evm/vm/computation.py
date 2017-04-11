@@ -203,10 +203,28 @@ class Computation(object):
     # Context Manager API
     #
     def __enter__(self):
+        if self.logger is not None:
+            self.logger.debug(
+                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s",
+                self.msg.gas,
+                self.msg.sender,
+                self.msg.to,
+                self.msg.value,
+            )
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type and issubclass(exc_type, VMError):
+            if self.logger is not None:
+                self.logger.debug(
+                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | error: %s",
+                    self.msg.gas,
+                    self.msg.sender,
+                    self.msg.to,
+                    self.msg.value,
+                    exc_value,
+                )
             self.error = exc_value
             self.gas_meter.consume_gas(
                 self.gas_meter.gas_remaining,
@@ -218,3 +236,17 @@ class Computation(object):
 
             # suppress VM exceptions
             return True
+        elif exc_type is None:
+            if self.logger is not None:
+                self.logger.debug(
+                    (
+                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
+                        "gas-used: %s | gas-remaining: %s | output: %s"
+                    ),
+                    self.msg.sender,
+                    self.msg.to,
+                    self.msg.value,
+                    self.msg.gas - self.gas_meter.gas_remaining,
+                    self.gas_meter.gas_remaining,
+                    self.output,
+                )

@@ -1,6 +1,5 @@
 import pytest
 
-import datetime
 import logging
 import sys
 
@@ -11,29 +10,32 @@ def vm_logger():
 
     handler = logging.StreamHandler(sys.stdout)
 
-    #logger.setLevel(logging.DEBUG)
-    #logger.setLevel(logging.DEBUG)
-    handler.setLevel(logging.INFO)
-    logger.setLevel(logging.INFO)
+    level = logging.TRACE
+    #level = logging.DEBUG
+    #level = logging.INFO
+
+    logger.setLevel(level)
+    handler.setLevel(level)
 
     logger.addHandler(handler)
 
     return logger
-
-
-@pytest.yield_fixture(autouse=True)
-def vm_file_logger(request):
-    logger = logging.getLogger('evm')
-
-    logger.setLevel(logging.TRACE)
-
-    fixture_name = request.getfuncargvalue('fixture_name')
-    logfile_name = 'logs/{0}-{1}.log'.format(fixture_name, datetime.datetime.now().isoformat())
-
-    with open(logfile_name, 'w') as logfile:
-        handler = logging.StreamHandler(logfile)
-        logger.addHandler(handler)
-        try:
-            yield logger
-        finally:
-            logger.removeHandler(handler)
+#
+#
+#@pytest.yield_fixture(autouse=True)
+#def vm_file_logger(request):
+#    import datetime
+#    logger = logging.getLogger('evm')
+#
+#    logger.setLevel(logging.TRACE)
+#
+#    fixture_name = request.getfuncargvalue('fixture_name')
+#    logfile_name = 'logs/{0}-{1}.log'.format(fixture_name, datetime.datetime.now().isoformat())
+#
+#    with open(logfile_name, 'w') as logfile:
+#        handler = logging.StreamHandler(logfile)
+#        logger.addHandler(handler)
+#        try:
+#            yield logger
+#        finally:
+#            logger.removeHandler(handler)

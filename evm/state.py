@@ -143,12 +143,11 @@ class State(object):
         return account.nonce
 
     def set_code(self, address, code):
+        print('!!!!!!!!!!!!SET-CODE-{0}!!!!!!!!!!!!!!'.format(address))
         validate_canonical_address(address)
         validate_is_bytes(code)
 
         account = self._get_account(address)
-        if account.code_hash != EMPTY_SHA3:
-            raise ValueError("Should not be overwriting account code")
 
         account.code_hash = keccak(code)
         self.db[account.code_hash] = code

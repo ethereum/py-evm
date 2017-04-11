@@ -14,24 +14,30 @@ def sstore(computation):
         slot=padded_slot,
     )
 
-    if current_value.strip(b'\x00'):
-        if value.strip(b'\x00'):
-            gas_cost = constants.GAS_SRESET
-            gas_refund = constants.REFUND_SCLEAR
-        else:
-            gas_cost = constants.GAS_SRESET
-            gas_refund = 0
+    is_currently_empty = not bool(current_value.strip(b'\x00'))
+    is_going_to_be_empty = not bool(value.strip(b'\x00'))
+
+    if is_currently_empty:
+        gas_refund = 0
+    elif is_going_to_be_empty:
+        gas_refund = constants.REFUND_SCLEAR
     else:
-        if value.strip(b'\x00'):
-            gas_cost = constants.GAS_SSET
-        else:
-            gas_cost = constants.GAS_SRESET
         gas_refund = 0
 
-    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2}".format(
+    if is_currently_empty and is_going_to_be_empty:
+        gas_cost = constants.GAS_SRESET
+    elif is_currently_empty:
+        gas_cost = constants.GAS_SSET
+    elif is_going_to_be_empty:
+        gas_cost = constants.GAS_SRESET
+    else:
+        gas_cost = constants.GAS_SRESET
+
+    computation.gas_meter.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2} ({3})".format(
         computation.msg.storage_address,
         slot,
         value,
+        current_value,
     ))
 
     if gas_refund:
