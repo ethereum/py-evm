@@ -122,15 +122,6 @@ class Computation(object):
         )
         return child_message
 
-    def apply_child_message(self, message):
-        if message.is_create:
-            child_computation = self.evm.apply_create_message(message)
-        else:
-            child_computation = self.evm.apply_message(message)
-
-        self.children.append(child_computation)
-        return child_computation
-
     #
     # Memory Management
     #
@@ -202,6 +193,12 @@ class Computation(object):
                 *(child.get_log_entries() for child in self.children)
             ))
 
+    def get_gas_refund(self):
+        if self.error:
+            return 0
+        else:
+            return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
+
     #
     # Context Manager API
     #
@@ -211,5 +208,13 @@ class Computation(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type and issubclass(exc_type, VMError):
             self.error = exc_value
+            self.gas_meter.consume_gas(
+                self.gas_meter.gas_remaining,
+                reason=" ".join((
+                    "Zeroing gas due to VM Exception:",
+                    str(exc_value),
+                )),
+            )
+
             # suppress VM exceptions
             return True

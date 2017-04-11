@@ -69,7 +69,7 @@ def _apply_transaction(evm, transaction):
 
         # Gas Refunds
         gas_remaining = computation.gas_meter.gas_remaining
-        gas_refunded = computation.gas_meter.gas_refunded
+        gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
@@ -134,7 +134,7 @@ def _apply_create_message(evm, message):
 def _apply_message(evm, message):
     snapshot = evm.snapshot()
 
-    if message.depth >= 1024:
+    if message.depth > 1024:
         raise StackDepthLimit("Stack depth limit reached")
 
     if message.value:
@@ -167,7 +167,9 @@ def _apply_message(evm, message):
     return computation
 
 
-def _apply_computation(computation):
+def _apply_computation(evm, message):
+    computation = Computation(evm, message)
+
     with computation:
         if computation.logger is not None:
             computation.logger.debug(
@@ -178,28 +180,21 @@ def _apply_computation(computation):
                 computation.msg.value,
             )
 
+        # Early exit on pre-compiles
+        if computation.msg.to in PRECOMPILES:
+            return PRECOMPILES[computation.msg.to](computation)
+
         for opcode in computation.code:
             opcode_fn = computation.evm.get_opcode_fn(opcode)
 
             if computation.logger is not None:
-                computation.logger.debug(
+                computation.logger.trace(
                     "OPCODE: 0x%x (%s)",
                     opcode_fn.value,
                     opcode_fn.mnemonic,
                 )
 
-            try:
-                opcode_fn(computation=computation)
-            except VMError as err:
-                computation.error = err
-                computation.gas_meter.consume_gas(
-                    computation.gas_meter.gas_remaining,
-                    reason=" ".join((
-                        "Zeroing gas due to VM Exception:",
-                        str(err),
-                    )),
-                )
-                break
+            opcode_fn(computation=computation)
 
             if opcode in BREAK_OPCODES:
                 break
@@ -233,30 +228,10 @@ class BaseEVM(object):
     #
     # Execution
     #
-    def apply_transaction(self, transaction):
-        return _apply_transaction(self, transaction)
-
-    def apply_create_message(self, message):
-        return _apply_create_message(self, message)
-
-    def apply_message(self, message):
-        """
-        Executes the full evm message.
-        """
-        return _apply_message(self, message)
-
-    def apply_computation(self, message):
-        """
-        Executes only the computation for a message.
-        """
-        computation = Computation(
-            evm=self,
-            message=message,
-        )
-        if message.to in PRECOMPILES:
-            return PRECOMPILES[message.to](computation)
-        else:
-            return _apply_computation(computation)
+    apply_transaction = _apply_transaction
+    apply_create_message = _apply_create_message
+    apply_message = _apply_message
+    apply_computation = _apply_computation
 
     #
     # Storage

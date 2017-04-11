@@ -75,7 +75,13 @@ def call(computation):
             value=value,
             data=call_data,
         )
-        child_computation = computation.apply_child_message(child_msg)
+
+        if child_msg.is_create:
+            child_computation = computation.evm.apply_create_message(child_msg)
+        else:
+            child_computation = computation.evm.apply_message(child_msg)
+
+        computation.children.append(child_computation)
 
         if child_computation.error:
             computation.stack.push(0)
@@ -130,7 +136,13 @@ def callcode(computation):
             data=call_data,
             code_address=code_address,
         )
-        child_computation = computation.apply_child_message(child_msg)
+
+        if child_msg.is_create:
+            child_computation = computation.evm.apply_create_message(child_msg)
+        else:
+            child_computation = computation.evm.apply_message(child_msg)
+
+        computation.children.append(child_computation)
 
         if child_computation.error:
             computation.stack.push(0)
@@ -175,7 +187,13 @@ def create(computation):
         data=call_data,
         create_address=contract_address,
     )
-    child_computation = computation.apply_child_message(child_msg)
+
+    if child_msg.is_create:
+        child_computation = computation.evm.apply_create_message(child_msg)
+    else:
+        child_computation = computation.evm.apply_message(child_msg)
+
+    computation.children.append(child_computation)
 
     if child_computation.error:
         computation.stack.push(0)

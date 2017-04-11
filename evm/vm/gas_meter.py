@@ -42,7 +42,7 @@ class GasMeter(object):
         self.gas_remaining -= amount
 
         if self.logger is not None:
-            self.logger.debug(
+            self.logger.trace(
                 'GAS CONSUMPTION: %s - %s -> %s (%s)',
                 self.gas_remaining + amount,
                 amount,
@@ -57,7 +57,7 @@ class GasMeter(object):
         self.gas_remaining += amount
 
         if self.logger is not None:
-            self.logger.debug(
+            self.logger.trace(
                 'GAS RETURNED: %s + %s -> %s',
                 self.gas_remaining - amount,
                 amount,
@@ -71,7 +71,7 @@ class GasMeter(object):
         self.gas_refunded += amount
 
         if self.logger is not None:
-            self.logger.debug(
+            self.logger.trace(
                 'GAS REFUND: %s + %s -> %s',
                 self.gas_refunded - amount,
                 amount,

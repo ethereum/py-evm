@@ -10,6 +10,32 @@ from evm.utils.numeric import (
 )
 
 
+def precompiled_sha256(computation):
+    word_count = ceil32(computation.message.data) // 32
+    gas_fee = constants.GAS_SHA256 + word_count * constants.GAS_SHA256WORD
+
+    computation.gas_meter.consume_gas(gas_fee, reason="SHA256 Precompile")
+    input_bytes = computation.message.data
+    hash = sha256(input_bytes).digest()
+    computation.output = hash
+    return computation
+
+
+def not_implemented(name):
+    def inner(computation):
+        raise NotImplementedError("Precompile {0} is not implemented".format(name))
+    return inner
+
+
+PRECOMPILES = {
+    force_bytes_to_address(b'\x01'): not_implemented('ecrecover'),
+    force_bytes_to_address(b'\x02'): precompiled_sha256,
+    force_bytes_to_address(b'\x03'): not_implemented('ripemd160'),
+    force_bytes_to_address(b'\x04'): not_implemented('identity'),
+}
+
+
+"""
 def proc_ecrecover(ext, msg):
     # print('ecrecover proc', msg.gas)
     OP_GAS = opcodes.GECRECOVER
@@ -54,17 +80,6 @@ def proc_ecrecover(ext, msg):
     return 1, msg.gas - gas_cost, o
 
 
-def sha256(computation):
-    word_count = ceil32(computation.message.data) // 32
-    gas_fee = constants.GAS_SHA256 + word_count * constants.GAS_SHA256WORD
-
-    computation.gas_meter.consume_gas(gas_fee, reason="SHA256 Precompile")
-    input_bytes = computation.message.data
-    hash = sha256(input_bytes).digest()
-    computation.output = hash
-    return computation
-
-
 def proc_ripemd160(ext, msg):
     # print('ripemd160 proc', msg.gas)
     OP_GAS = opcodes.GRIPEMD160BASE + \
@@ -88,11 +103,4 @@ def proc_identity(ext, msg):
     o = [0] * msg.data.size
     msg.data.extract_copy(o, 0, 0, len(o))
     return 1, msg.gas - gas_cost, o
-
-
-PRECOMPILES = {
-    force_bytes_to_address(b'\x01'): proc_ecrecover,
-    force_bytes_to_address(b'\x02'): sha256,
-    force_bytes_to_address(b'\x03'): proc_ripemd160,
-    force_bytes_to_address(b'\x04'): proc_identity,
-}
+"""

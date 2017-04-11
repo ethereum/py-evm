@@ -138,6 +138,7 @@ FIXTURES_PATHS = (
     os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
     os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
 )
 
 
