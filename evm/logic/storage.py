@@ -1,21 +1,16 @@
 from evm import constants
 
-from evm.utils.padding import (
-    pad32,
-)
-
 
 def sstore(computation):
-    slot, value = computation.stack.pop(num_items=2, type_hint=constants.BYTES)
-    padded_slot = pad32(slot)
+    slot, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     current_value = computation.evm.block.state_db.get_storage(
         address=computation.msg.storage_address,
-        slot=padded_slot,
+        slot=slot,
     )
 
-    is_currently_empty = not bool(current_value.strip(b'\x00'))
-    is_going_to_be_empty = not bool(value.strip(b'\x00'))
+    is_currently_empty = not bool(current_value)
+    is_going_to_be_empty = not bool(value)
 
     if is_currently_empty:
         gas_refund = 0
@@ -45,17 +40,16 @@ def sstore(computation):
 
     computation.evm.block.state_db.set_storage(
         address=computation.msg.storage_address,
-        slot=padded_slot,
+        slot=slot,
         value=value,
     )
 
 
 def sload(computation):
-    slot = computation.stack.pop(type_hint=constants.BYTES)
-    padded_slot = pad32(slot)
+    slot = computation.stack.pop(type_hint=constants.UINT256)
 
     value = computation.evm.block.state_db.get_storage(
         address=computation.msg.storage_address,
-        slot=padded_slot,
+        slot=slot,
     )
     computation.stack.push(value)

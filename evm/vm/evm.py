@@ -14,6 +14,9 @@ from evm.exceptions import (
     StackDepthLimit,
 )
 
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.address import (
     generate_contract_address,
 )
@@ -95,6 +98,8 @@ def _apply_transaction(evm, transaction):
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        if evm.logger:
+            evm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
         coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
         evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
 
@@ -113,6 +118,11 @@ def _apply_transaction(evm, transaction):
 
 def _apply_create_message(evm, message):
     snapshot = evm.snapshot()
+
+    if evm.block.state_db.account_exists(message.storage_address):
+        evm.block.state_db.set_nonce(message.storage_address, 0)
+        evm.block.state_db.set_code(message.storage_address, b'')
+        evm.block.state_db.delete_storage(message.storage_address)
 
     computation = evm.apply_message(message)
 
@@ -138,7 +148,7 @@ def _apply_create_message(evm, message):
                     evm.logger.debug(
                         "SETTING CODE: %s -> %s",
                         message.storage_address,
-                        contract_code,
+                        keccak(contract_code),
                     )
                 computation.evm.block.state_db.set_code(message.storage_address, contract_code)
         return computation

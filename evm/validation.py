@@ -97,8 +97,3 @@ def validate_stack_item(value):
 
 
 validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1_N - 1)
-
-
-def validate_storage_slot(value):
-    if not isinstance(value, bytes) or len(value) != 32:
-        raise ValidationError("Storage slots must be byte strings of length 32")

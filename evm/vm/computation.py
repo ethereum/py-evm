@@ -241,12 +241,11 @@ class Computation(object):
                 self.logger.debug(
                     (
                         "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
-                        "gas-used: %s | gas-remaining: %s | output: %s"
+                        "gas-used: %s | gas-remaining: %s"
                     ),
                     self.msg.sender,
                     self.msg.to,
                     self.msg.value,
                     self.msg.gas - self.gas_meter.gas_remaining,
                     self.gas_meter.gas_remaining,
-                    self.output,
                 )

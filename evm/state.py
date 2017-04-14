@@ -17,11 +17,16 @@ from evm.validation import (
     validate_is_bytes,
     validate_uint256,
     validate_canonical_address,
-    validate_storage_slot,
 )
 
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.numeric import (
+    int_to_big_endian,
+)
+from evm.utils.padding import (
+    pad32,
 )
 
 
@@ -37,6 +42,7 @@ class StateTrie(object):
         self._set(key, value)
 
     def _set(self, key, value):
+        # TODO: remove, for debug purposes.
         self.trie[keccak(key)] = value
 
     def __getitem__(self, key):
@@ -76,34 +82,38 @@ class State(object):
     # Base API
     #
     def set_storage(self, address, slot, value):
-        validate_is_bytes(value)
-        validate_storage_slot(slot)
+        validate_uint256(value)
+        validate_uint256(slot)
         validate_canonical_address(address)
 
         account = self._get_account(address)
         storage = StateTrie(Trie(self.db, account.storage_root))
 
-        if value.strip(b'\x00'):
+        slot_as_key = pad32(int_to_big_endian(slot))
+
+        if value:
             encoded_value = rlp.encode(value)
-            storage[slot] = encoded_value
+            storage[slot_as_key] = encoded_value
         else:
-            del storage[slot]
+            del storage[slot_as_key]
 
         account.storage_root = storage.root_hash
         self.state[address] = rlp.encode(account, sedes=Account)
 
     def get_storage(self, address, slot):
         validate_canonical_address(address)
-        validate_storage_slot(slot)
+        validate_uint256(slot)
 
         account = self._get_account(address)
         storage = StateTrie(Trie(self.db, account.storage_root))
 
-        if slot in storage:
-            raw_value = storage[slot]
-            return rlp.decode(raw_value)
+        slot_as_key = pad32(int_to_big_endian(slot))
+
+        if slot_as_key in storage:
+            encoded_value = storage[slot_as_key]
+            return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
         else:
-            return b''
+            return 0
 
     def delete_storage(self, address):
         validate_canonical_address(address)
@@ -143,7 +153,6 @@ class State(object):
         return account.nonce
 
     def set_code(self, address, code):
-        print('!!!!!!!!!!!!SET-CODE-{0}!!!!!!!!!!!!!!'.format(address))
         validate_canonical_address(address)
         validate_is_bytes(code)
 

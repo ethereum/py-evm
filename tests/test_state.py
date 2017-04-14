@@ -35,6 +35,7 @@ from evm.rlp.transactions import (
 
 from evm.utils.numeric import (
     int_to_big_endian,
+    big_endian_to_int,
 )
 from evm.utils.padding import (
     pad32,
@@ -80,7 +81,7 @@ def normalize_statetest_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
+                    to_int(slot): big_endian_to_int(decode_hex(value))
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['pre'].items()
@@ -95,7 +96,7 @@ def normalize_statetest_fixture(fixture):
                 'code': decode_hex(state['code']),
                 'nonce': to_int(state['nonce']),
                 'storage': {
-                    pad32(int_to_big_endian(to_int(slot))): decode_hex(value)
+                    to_int(slot): big_endian_to_int(decode_hex(value))
                     for slot, value in state['storage'].items()
                 },
             } for address, state in fixture['post'].items()
@@ -243,17 +244,8 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         assert computation.output == expected_output
 
     for account, account_data in sorted(fixture['post'].items()):
-        for slot, unpadded_expected_storage_value in sorted(account_data['storage'].items()):
-            expected_storage_value = pad_left(
-                unpadded_expected_storage_value,
-                32,
-                b'\x00',
-            )
-            actual_storage_value = pad_left(
-                evm.block.state_db.get_storage(account, slot),
-                32,
-                b'\x00',
-            )
+        for slot, expected_storage_value in sorted(account_data['storage'].items()):
+            actual_storage_value = evm.block.state_db.get_storage(account, slot)
 
             assert actual_storage_value == expected_storage_value
 
