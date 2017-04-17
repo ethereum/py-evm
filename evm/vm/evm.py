@@ -38,13 +38,17 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
-    # Buy Gas
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = evm.block.state_db.get_balance(transaction.sender)
     if sender_balance < gas_cost:
         raise InvalidTransaction(
             "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
         )
+
+    if transaction.intrensic_gas > transaction.gas:
+        raise InvalidTransaction("Insufficient gas")
+
+    # Buy Gas
     evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
 
     # Increment Nonce
@@ -128,10 +132,10 @@ def _apply_create_message(evm, message):
         evm.block.state_db.set_code(message.storage_address, b'')
         evm.block.state_db.delete_storage(message.storage_address)
 
-    computation = evm.apply_message(message)
-
     if message.sender != message.origin:
-        evm.block.state_db.increment_nonce(computation.msg.sender)
+        evm.block.state_db.increment_nonce(message.sender)
+
+    computation = evm.apply_message(message)
 
     if computation.error:
         return computation
@@ -153,7 +157,7 @@ def _apply_create_message(evm, message):
                     evm.logger.debug(
                         "SETTING CODE: %s -> %s",
                         message.storage_address,
-                        keccak(contract_code),
+                        contract_code,
                     )
                 computation.evm.block.state_db.set_code(message.storage_address, contract_code)
         return computation
