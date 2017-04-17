@@ -32,3 +32,4 @@ def pad_right(value, to_size, pad_with):
 
 
 pad32 = partial(pad_left, to_size=32, pad_with=b'\x00')
+pad32r = partial(pad_right, to_size=32, pad_with=b'\x00')

@@ -203,8 +203,8 @@ def _apply_computation(evm, message):
 
     with computation:
         # Early exit on pre-compiles
-        if computation.msg.to in PRECOMPILES:
-            return PRECOMPILES[computation.msg.to](computation)
+        if computation.msg.code_address in PRECOMPILES:
+            return PRECOMPILES[computation.msg.code_address](computation)
 
         for opcode in computation.code:
             opcode_fn = computation.evm.get_opcode_fn(opcode)

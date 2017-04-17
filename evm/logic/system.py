@@ -81,11 +81,12 @@ def call(computation):
         if child_computation.error:
             computation.stack.push(0)
         else:
+            actual_output_size = min(memory_output_size, len(child_computation.output))
             computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
             computation.memory.write(
                 memory_output_start_position,
-                min(memory_output_size, len(child_computation.output)),
-                child_computation.output,
+                actual_output_size,
+                child_computation.output[:actual_output_size],
             )
             computation.stack.push(1)
 
@@ -139,11 +140,12 @@ def callcode(computation):
         if child_computation.error:
             computation.stack.push(0)
         else:
+            actual_output_size = min(memory_output_size, len(child_computation.output))
             computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
             computation.memory.write(
                 memory_output_start_position,
-                min(memory_output_size, len(child_computation.output)),
-                child_computation.output,
+                actual_output_size,
+                child_computation.output[:actual_output_size],
             )
             computation.stack.push(1)
 

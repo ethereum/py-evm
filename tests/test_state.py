@@ -139,11 +139,15 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 #FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 FIXTURES_PATHS = (
-    os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stLogTests.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stMemoryStressTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stMemoryTest.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stPreCompiledContracts.json"),
 )
 
 
@@ -194,9 +198,6 @@ def setup_storage(account_fixtures, storage):
         storage.set_code(account, code)
         storage.set_balance(account, balance)
     return storage
-
-
-ORIGIN = b'\x00' * 31 + b'\x01'
 
 
 @pytest.mark.parametrize(
