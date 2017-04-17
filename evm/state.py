@@ -78,17 +78,6 @@ class State(object):
         self.db = db
         self.state = StateTrie(Trie(db, root_hash))
 
-        orig_set = self.state._set
-
-        def wrapper(key, value):
-            from eth_utils import encode_hex
-            before_acct = self._get_account(key)
-            #print('ACCT BEFORE', encode_hex(key)[2:12], encode_hex(before_acct.storage_root)[2:12])
-            after_acct = rlp.decode(value, sedes=Account)
-            #print('ACCT AFTER', encode_hex(key)[2:12], encode_hex(after_acct.storage_root)[2:12])
-            orig_set(key, value)
-        self.state._set = wrapper
-
     #
     # Base API
     #
