@@ -1,5 +1,8 @@
 import logging
 
+from evm.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -45,7 +48,8 @@ class Message(object):
         validate_uint256(gas_price)
         self.gas_price = gas_price
 
-        validate_canonical_address(to)
+        if to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(to)
         self.to = to
 
         validate_canonical_address(sender)

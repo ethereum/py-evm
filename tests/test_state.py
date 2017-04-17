@@ -17,7 +17,7 @@ from eth_utils import (
 )
 
 from evm.constants import (
-    ZERO_ADDRESS,
+    CREATE_CONTRACT_ADDRESS,
 )
 from evm.exceptions import (
     InvalidTransaction,
@@ -74,7 +74,7 @@ def normalize_statetest_fixture(fixture):
             'to': (
                 to_canonical_address(fixture['transaction']['to'])
                 if fixture['transaction']['to']
-                else ZERO_ADDRESS
+                else CREATE_CONTRACT_ADDRESS
             ),
             'value': to_int(fixture['transaction']['value']),
         },
@@ -139,21 +139,21 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 #FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
 FIXTURES_PATHS = (
-    os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stLogTests.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stMemoryStressTest.json"),  # slow
-    os.path.join(BASE_FIXTURE_PATH, "stMemoryTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stPreCompiledContracts.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stQuadraticComplexityTest.json"),  # slow
-    os.path.join(BASE_FIXTURE_PATH, "stRecursiveCreate.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stRefundTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stLogTests.json"),
+    ##os.path.join(BASE_FIXTURE_PATH, "stMemoryStressTest.json"),  # slow
+    #os.path.join(BASE_FIXTURE_PATH, "stMemoryTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stPreCompiledContracts.json"),
+    ##os.path.join(BASE_FIXTURE_PATH, "stQuadraticComplexityTest.json"),  # slow
+    #os.path.join(BASE_FIXTURE_PATH, "stRecursiveCreate.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stRefundTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),

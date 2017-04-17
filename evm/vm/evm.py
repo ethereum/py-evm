@@ -45,8 +45,19 @@ def _apply_transaction(evm, transaction):
             "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
         )
 
+    total_cost = transaction.value + gas_cost
+
+    if sender_balance < total_cost:
+        raise InvalidTransaction("Sender account balance cannot afford txn")
+
     if transaction.intrensic_gas > transaction.gas:
         raise InvalidTransaction("Insufficient gas")
+
+    if transaction.gas > evm.block.header.gas_limit:
+        raise InvalidTransaction("Transaction exceeds gas limit")
+
+    if evm.block.state_db.get_nonce(transaction.sender) != transaction.nonce:
+        raise InvalidTransaction("Invalid transaction nonce")
 
     # Buy Gas
     evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
@@ -57,7 +68,7 @@ def _apply_transaction(evm, transaction):
     # Setup VM Message
     message_gas = transaction.gas - transaction.intrensic_gas
 
-    if transaction.to == constants.ZERO_ADDRESS:
+    if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
         contract_address = generate_contract_address(
             transaction.sender,
             evm.block.state_db.get_nonce(transaction.sender) - 1,

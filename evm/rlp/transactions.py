@@ -8,6 +8,7 @@ from evm.constants import (
     GAS_TX,
     GAS_TXDATAZERO,
     GAS_TXDATANONZERO,
+    CREATE_CONTRACT_ADDRESS,
 )
 from evm.validation import (
     validate_uint256,
@@ -49,7 +50,8 @@ class Transaction(rlp.Serializable):
         validate_uint256(nonce)
         validate_is_integer(gas_price)
         validate_uint256(gas)
-        validate_canonical_address(to)
+        if to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(to)
         validate_uint256(value)
         validate_is_bytes(data)
 
@@ -83,7 +85,8 @@ class UnsignedTransaction(rlp.Serializable):
         validate_uint256(nonce)
         validate_is_integer(gas_price)
         validate_uint256(gas)
-        validate_canonical_address(to)
+        if to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(to)
         validate_uint256(value)
         validate_is_bytes(data)
 

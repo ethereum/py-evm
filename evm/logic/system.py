@@ -21,13 +21,13 @@ def suicide(computation):
     local_balance = computation.evm.block.state_db.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.evm.block.state_db.get_balance(beneficiary)
 
-    computation.evm.block.state_db.set_balance(computation.msg.storage_address, 0)
     computation.evm.block.state_db.set_balance(
         beneficiary,
         local_balance + beneficiary_balance,
     )
+    computation.evm.block.state_db.set_balance(computation.msg.storage_address, 0)
 
-    computation.register_account_for_deletion(beneficiary)
+    computation.register_account_for_deletion(computation.msg.storage_address)
 
 
 def call(computation):
@@ -175,7 +175,7 @@ def create(computation):
 
     child_msg = computation.prepare_child_message(
         gas=create_msg_gas,
-        to=constants.ZERO_ADDRESS,
+        to=constants.CREATE_CONTRACT_ADDRESS,
         value=value,
         data=call_data,
         create_address=contract_address,
