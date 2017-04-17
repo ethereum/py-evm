@@ -58,7 +58,7 @@ class Computation(object):
 
     children = None
 
-    output = b''
+    _output = b''
     error = None
 
     logs = None
@@ -162,6 +162,17 @@ class Computation(object):
     #
     # Runtime Operations
     #
+    @property
+    def output(self):
+        if self.error:
+            return b''
+        else:
+            return self._output
+
+    @output.setter
+    def output(self, value):
+        self._output = value
+
     def register_account_for_deletion(self, beneficiary):
         validate_canonical_address(beneficiary)
 
@@ -215,7 +226,7 @@ class Computation(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type and issubclass(exc_type, VMError):
+        if exc_value and isinstance(exc_value, VMError):
             if self.logger is not None:
                 self.logger.debug(
                     "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | error: %s",

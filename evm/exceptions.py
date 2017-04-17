@@ -36,3 +36,7 @@ class InsufficientFunds(VMError):
 
 class StackDepthLimit(VMError):
     pass
+
+
+class InvalidTransaction(BaseEVMError):
+    pass

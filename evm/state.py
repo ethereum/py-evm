@@ -78,6 +78,17 @@ class State(object):
         self.db = db
         self.state = StateTrie(Trie(db, root_hash))
 
+        orig_set = self.state._set
+
+        def wrapper(key, value):
+            from eth_utils import encode_hex
+            before_acct = self._get_account(key)
+            #print('ACCT BEFORE', encode_hex(key)[2:12], encode_hex(before_acct.storage_root)[2:12])
+            after_acct = rlp.decode(value, sedes=Account)
+            #print('ACCT AFTER', encode_hex(key)[2:12], encode_hex(after_acct.storage_root)[2:12])
+            orig_set(key, value)
+        self.state._set = wrapper
+
     #
     # Base API
     #
@@ -98,7 +109,7 @@ class State(object):
             del storage[slot_as_key]
 
         account.storage_root = storage.root_hash
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     def get_storage(self, address, slot):
         validate_canonical_address(address)
@@ -120,7 +131,7 @@ class State(object):
 
         account = self._get_account(address)
         account.storage_root = BLANK_ROOT_HASH
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     def set_balance(self, address, balance):
         validate_canonical_address(address)
@@ -129,7 +140,7 @@ class State(object):
         account = self._get_account(address)
         account.balance = balance
 
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     def get_balance(self, address):
         validate_canonical_address(address)
@@ -144,7 +155,7 @@ class State(object):
         account = self._get_account(address)
         account.nonce = nonce
 
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     def get_nonce(self, address):
         validate_canonical_address(address)
@@ -160,7 +171,7 @@ class State(object):
 
         account.code_hash = keccak(code)
         self.db[account.code_hash] = code
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     def get_code(self, address):
         validate_canonical_address(address)
@@ -175,7 +186,7 @@ class State(object):
         account = self._get_account(address)
         del self.db[account.code_hash]
         account.code_hash = EMPTY_SHA3
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._set_account(address, account)
 
     #
     # Account Methods
@@ -185,7 +196,11 @@ class State(object):
 
     def account_exists(self, address):
         validate_canonical_address(address)
-        return address in self.state
+        return bool(self.state[address])
+
+    def touch_account(self, address):
+        account = self._get_account(address)
+        self._set_account(address, account)
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
@@ -210,3 +225,6 @@ class State(object):
         else:
             account = Account()
         return account
+
+    def _set_account(self, address, account):
+        self.state[address] = rlp.encode(account, sedes=Account)

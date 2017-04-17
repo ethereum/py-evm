@@ -12,6 +12,7 @@ from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
+    InvalidTransaction,
 )
 
 from evm.utils.keccak import (
@@ -37,16 +38,19 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
-    # Increment Nonce
-    evm.block.state_db.increment_nonce(transaction.sender)
-
     # Buy Gas
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = evm.block.state_db.get_balance(transaction.sender)
     if sender_balance < gas_cost:
-        raise InsufficientFunds("Sender account balance cannot afford txn gas")
+        raise InvalidTransaction(
+            "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
+        )
     evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
 
+    # Increment Nonce
+    evm.block.state_db.increment_nonce(transaction.sender)
+
+    # Setup VM Message
     message_gas = transaction.gas - transaction.intrensic_gas
 
     if transaction.to == constants.ZERO_ADDRESS:
@@ -75,6 +79,8 @@ def _apply_transaction(evm, transaction):
     if computation.error:
         # Miner Fees
         transaction_fee = transaction.gas * transaction.gas_price
+        if evm.logger:
+            evm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
         coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
         evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
     else:
@@ -117,8 +123,6 @@ def _apply_transaction(evm, transaction):
 
 
 def _apply_create_message(evm, message):
-    snapshot = evm.snapshot()
-
     if evm.block.state_db.account_exists(message.storage_address):
         evm.block.state_db.set_nonce(message.storage_address, 0)
         evm.block.state_db.set_code(message.storage_address, b'')
@@ -133,6 +137,7 @@ def _apply_create_message(evm, message):
         return computation
     else:
         contract_code = computation.output
+
         if contract_code:
             contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
             try:
@@ -141,8 +146,8 @@ def _apply_create_message(evm, message):
                     reason="Write contract code for CREATE",
                 )
             except OutOfGas as err:
-                evm.revert(snapshot)
-                computation.error = err
+                computation.output = b''
+                pass
             else:
                 if evm.logger:
                     evm.logger.debug(
@@ -182,6 +187,9 @@ def _apply_message(evm, message):
                 message.sender,
                 message.storage_address,
             )
+
+    if not evm.block.state_db.account_exists(message.storage_address):
+        evm.block.state_db.touch_account(message.storage_address)
 
     computation = evm.apply_computation(message)
 

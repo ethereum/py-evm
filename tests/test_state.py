@@ -19,6 +19,9 @@ from eth_utils import (
 from evm.constants import (
     ZERO_ADDRESS,
 )
+from evm.exceptions import (
+    InvalidTransaction,
+)
 from evm.vm.flavors import (
     FrontierEVM
 )
@@ -140,6 +143,7 @@ FIXTURES_PATHS = (
     os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
     os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
 )
 
 
@@ -225,23 +229,30 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         data=fixture['transaction']['data'],
     )
     transaction = sign_transaction(unsigned_transaction, fixture['transaction']['secretKey'])
-    computation = evm.apply_transaction(transaction)
 
-    expected_logs = [
-        {
-            'address': log_entry[0],
-            'topics': log_entry[1],
-            'data': log_entry[2],
-        }
-        for log_entry in computation.get_log_entries()
-    ]
-    expected_logs == fixture['logs']
-
-    expected_output = fixture['out']
-    if isinstance(expected_output, int):
-        assert len(computation.output) == expected_output
+    try:
+        computation = evm.apply_transaction(transaction)
+    except InvalidTransaction:
+        transaction_error = True
     else:
-        assert computation.output == expected_output
+        transaction_error = False
+
+    if not transaction_error:
+        expected_logs = [
+            {
+                'address': log_entry[0],
+                'topics': log_entry[1],
+                'data': log_entry[2],
+            }
+            for log_entry in computation.get_log_entries()
+        ]
+        expected_logs == fixture['logs']
+
+        expected_output = fixture['out']
+        if isinstance(expected_output, int):
+            assert len(computation.output) == expected_output
+        else:
+            assert computation.output == expected_output
 
     for account, account_data in sorted(fixture['post'].items()):
         for slot, expected_storage_value in sorted(account_data['storage'].items()):
