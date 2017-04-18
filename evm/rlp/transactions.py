@@ -1,138 +1,25 @@
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-    binary,
-)
-
-from evm.constants import (
-    GAS_TX,
-    GAS_TXDATAZERO,
-    GAS_TXDATANONZERO,
-    CREATE_CONTRACT_ADDRESS,
-)
-from evm.validation import (
-    validate_uint256,
-    validate_is_integer,
-    validate_is_bytes,
-    validate_canonical_address,
-    validate_lt_secpk1n,
-)
-
-from evm.utils.address import (
-    public_key_to_address,
-)
-from evm.utils.ecdsa import (
-    ecdsa_sign,
-    decode_signature,
-    encode_signature,
-    ecdsa_recover,
-)
-
-from .sedes import (
-    address,
-)
 
 
-class Transaction(rlp.Serializable):
-    fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('v', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
-    ]
-
-    def __init__(self, nonce, gas_price, gas, to, value, data, v, r, s):
-        validate_uint256(nonce)
-        validate_is_integer(gas_price)
-        validate_uint256(gas)
-        if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to)
-        validate_uint256(value)
-        validate_is_bytes(data)
-
-        validate_uint256(v)
-        validate_uint256(s)
-        validate_uint256(s)
-        validate_lt_secpk1n(s)
-
-        super(Transaction, self).__init__(nonce, gas_price, gas, to, value, data, v, r, s)
-
+class BaseTransaction(rlp.Serializable):
     @property
     def sender(self):
-        return extract_transaction_sender(self)
+        return self.get_sender()
+
+    def get_sender(self):
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     def intrensic_gas(self):
-        return get_intrensic_gas(self.data)
+        return self.get_intrensic_gas()
+
+    def get_intrensic_gas(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def as_unsigned_transaction(self):
+        raise NotImplementedError("Must be implemented by subclasses")
 
 
-class UnsignedTransaction(rlp.Serializable):
-    fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-    ]
-
-    def __init__(self, nonce, gas_price, gas, to, value, data):
-        validate_uint256(nonce)
-        validate_is_integer(gas_price)
-        validate_uint256(gas)
-        if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to)
-        validate_uint256(value)
-        validate_is_bytes(data)
-
-        super(UnsignedTransaction, self).__init__(nonce, gas_price, gas, to, value, data)
-
-
-def sign_transaction(unsigned_txn, private_key):
-    signature = ecdsa_sign(rlp.encode(unsigned_txn), private_key)
-    v, r, s = decode_signature(signature)
-    return Transaction(
-        nonce=unsigned_txn.nonce,
-        gas_price=unsigned_txn.gas_price,
-        gas=unsigned_txn.gas,
-        to=unsigned_txn.to,
-        value=unsigned_txn.value,
-        data=unsigned_txn.data,
-        v=v,
-        r=r,
-        s=s,
-    )
-
-
-def extract_transaction_sender(transaction):
-    unsigned_transaction = UnsignedTransaction(
-        nonce=transaction.nonce,
-        gas_price=transaction.gas_price,
-        gas=transaction.gas,
-        to=transaction.to,
-        value=transaction.value,
-        data=transaction.data,
-    )
-    signature = encode_signature(
-        v=transaction.v,
-        r=transaction.r,
-        s=transaction.s,
-    )
-    public_key = ecdsa_recover(rlp.encode(unsigned_transaction), signature)
-    sender = public_key_to_address(public_key)
-    return sender
-
-
-def get_intrensic_gas(transaction_data):
-    num_zero_bytes = transaction_data.count(b'\x00')
-    num_non_zero_bytes = len(transaction_data) - num_zero_bytes
-    return (
-        GAS_TX +
-        num_zero_bytes * GAS_TXDATAZERO +
-        num_non_zero_bytes * GAS_TXDATANONZERO
-    )
+class BaseUnsignedTransaction(rlp.Serializable):
+    def as_signed_transaction(self, private_key):
+        raise NotImplementedError("Must be implemented by subclasses")

@@ -21,12 +21,17 @@ def suicide(computation):
     local_balance = computation.evm.block.state_db.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.evm.block.state_db.get_balance(beneficiary)
 
+    # 1st: Transfer to beneficiary
     computation.evm.block.state_db.set_balance(
         beneficiary,
         local_balance + beneficiary_balance,
     )
+    # 2nd: Zero the balance of the address being deleted (must come after
+    # sending to beneficiary in case the contract named itself as the
+    # beneficiary.
     computation.evm.block.state_db.set_balance(computation.msg.storage_address, 0)
 
+    # 3rd: Register the account to be deleted
     computation.register_account_for_deletion(computation.msg.storage_address)
 
 

@@ -1,5 +1,9 @@
 import logging
 
+from toolz import (
+    merge,
+)
+
 from evm import constants
 from evm import opcode_values
 from evm.precompile import (
@@ -12,14 +16,13 @@ from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
-    InvalidTransaction,
 )
 
-from evm.utils.keccak import (
-    keccak,
-)
 from evm.utils.address import (
     generate_contract_address,
+)
+from evm.utils.empty import (
+    empty,
 )
 
 from .message import (
@@ -38,26 +41,15 @@ BREAK_OPCODES = {
 
 
 def _apply_transaction(evm, transaction):
+    #
+    # 1) Pre Computation
+    #
+
+    # Validate the transaction
+    evm.validate_transaction(transaction)
+
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = evm.block.state_db.get_balance(transaction.sender)
-    if sender_balance < gas_cost:
-        raise InvalidTransaction(
-            "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
-        )
-
-    total_cost = transaction.value + gas_cost
-
-    if sender_balance < total_cost:
-        raise InvalidTransaction("Sender account balance cannot afford txn")
-
-    if transaction.intrensic_gas > transaction.gas:
-        raise InvalidTransaction("Insufficient gas")
-
-    if transaction.gas > evm.block.header.gas_limit:
-        raise InvalidTransaction("Transaction exceeds gas limit")
-
-    if evm.block.state_db.get_nonce(transaction.sender) != transaction.nonce:
-        raise InvalidTransaction("Invalid transaction nonce")
 
     # Buy Gas
     evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
@@ -86,11 +78,17 @@ def _apply_transaction(evm, transaction):
         create_address=contract_address,
     )
 
+    #
+    # 2) Apply the message to the EVM.
+    #
     if message.is_create:
         computation = evm.apply_create_message(message)
     else:
         computation = evm.apply_message(message)
 
+    #
+    # 2) Post Computation
+    #
     if computation.error:
         # Miner Fees
         transaction_fee = transaction.gas * transaction.gas_price
@@ -162,7 +160,6 @@ def _apply_create_message(evm, message):
                 )
             except OutOfGas as err:
                 computation.output = b''
-                pass
             else:
                 if evm.logger:
                     evm.logger.debug(
@@ -241,8 +238,11 @@ def _apply_computation(evm, message):
 
 class BaseEVM(object):
     db = None
+
     block = None
+
     opcodes = None
+    block_class = None
 
     logger = logging.getLogger('evm.vm.evm.EVM')
 
@@ -251,15 +251,32 @@ class BaseEVM(object):
         self.block = block
 
     @classmethod
-    def configure(cls, name, opcodes):
-        props = {
-            'opcodes': {
-                opcode.value: opcode
-                for opcode
-                in opcodes
-            },
-            'logger': logging.getLogger('evm.vm.evm.EVM.{0}'.format(name))
+    def configure(cls,
+                  name,
+                  opcodes,
+                  transaction_class=None,
+                  block_class=None,
+                  db=None,
+                  logger=empty,
+                  **extra_props):
+        if logger is empty:
+            logger = logging.getLogger('evm.vm.evm.EVM.{0}'.format(name))
+
+        configure_props = {
+            'opcodes': opcodes,
+            'logger': logger,
+            'transaction_class': transaction_class or cls.transaction_class,
+            'block_class': block_class or cls.block_class,
+            'db': db or cls.db,
         }
+        for key in extra_props:
+            if not hasattr(cls, key):
+                raise TypeError(
+                    "The EVM.configure cannot set attributes that are not "
+                    "already present on the base class.  The attribute `{0}` was "
+                    "not found on the base class `{1}`".format(key, cls)
+                )
+        props = merge(configure_props, extra_props)
         return type(name, (cls,), props)
 
     #
@@ -271,10 +288,55 @@ class BaseEVM(object):
     apply_computation = _apply_computation
 
     #
-    # Storage
+    # Transactions
     #
-    def get_block_hash(self, block_number):
-        return self.db.get_block_hash(block_number)
+    transaction_class = None
+
+    @classmethod
+    def get_transaction_class(cls):
+        """
+        Return the class that this EVM uses for transactions.
+        """
+        if cls.transaction_class is None:
+            raise AttributeError("No `transaction_class` has been set for this EVM")
+
+        return cls.transaction_class
+
+    def validate_transaction(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Blocks
+    #
+    block_class = None
+
+    @classmethod
+    def get_block_class(cls):
+        """
+        Return the class that this EVM uses for blocks.
+        """
+        if cls.block_class is None:
+            raise AttributeError("No `block_class` has been set for this EVM")
+
+        return cls.block_class
+
+    @classmethod
+    def initialize_block(cls, header):
+        """
+        Return the class that this EVM uses for transactions.
+        """
+        block_class = cls.get_block_class()
+        return block_class(
+            header=header,
+            db=cls.db,
+        )
+
+    @classmethod
+    def get_block_hash(cls, block_number):
+        """
+        Return the block has for the requested block number.
+        """
+        return cls.db.get_block_hash(block_number)
 
     #
     # Snapshot and Revert

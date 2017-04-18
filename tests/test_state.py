@@ -12,7 +12,6 @@ from eth_utils import (
     is_0x_prefixed,
     to_canonical_address,
     decode_hex,
-    pad_left,
     keccak,
 )
 
@@ -37,11 +36,7 @@ from evm.rlp.transactions import (
 )
 
 from evm.utils.numeric import (
-    int_to_big_endian,
     big_endian_to_int,
-)
-from evm.utils.padding import (
-    pad32,
 )
 
 
@@ -154,7 +149,7 @@ FIXTURES_PATHS = (
     #os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
     #os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
     #os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
     os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),
 )

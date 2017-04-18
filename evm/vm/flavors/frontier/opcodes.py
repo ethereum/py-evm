@@ -18,818 +18,685 @@ from evm.logic import (
     swap,
     system,
 )
-from evm.vm import BaseEVM
 
 
-FRONTIER_OPCODES = (
+FRONTIER_OPCODES = {
     #
     # Arithmetic
     #
-    as_opcode(
+    opcode_values.STOP: as_opcode(
         logic_fn=flow.stop,
-        value=opcode_values.STOP,
         mnemonic=mnemonics.STOP,
         gas_cost=constants.GAS_ZERO,
     ),
-    as_opcode(
+    opcode_values.ADD: as_opcode(
         logic_fn=arithmetic.add,
-        value=opcode_values.ADD,
         mnemonic=mnemonics.ADD,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.MUL: as_opcode(
         logic_fn=arithmetic.mul,
-        value=opcode_values.MUL,
         mnemonic=mnemonics.MUL,
         gas_cost=constants.GAS_LOW,
     ),
-    as_opcode(
+    opcode_values.SUB: as_opcode(
         logic_fn=arithmetic.sub,
-        value=opcode_values.SUB,
         mnemonic=mnemonics.SUB,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DIV: as_opcode(
         logic_fn=arithmetic.div,
-        value=opcode_values.DIV,
         mnemonic=mnemonics.DIV,
         gas_cost=constants.GAS_LOW,
     ),
-    as_opcode(
+    opcode_values.SDIV: as_opcode(
         logic_fn=arithmetic.sdiv,
-        value=opcode_values.SDIV,
         mnemonic=mnemonics.SDIV,
         gas_cost=constants.GAS_LOW,
     ),
-    as_opcode(
+    opcode_values.MOD: as_opcode(
         logic_fn=arithmetic.mod,
-        value=opcode_values.MOD,
         mnemonic=mnemonics.MOD,
         gas_cost=constants.GAS_LOW,
     ),
-    as_opcode(
+    opcode_values.SMOD: as_opcode(
         logic_fn=arithmetic.smod,
-        value=opcode_values.SMOD,
         mnemonic=mnemonics.SMOD,
         gas_cost=constants.GAS_LOW,
     ),
-    as_opcode(
+    opcode_values.ADDMOD: as_opcode(
         logic_fn=arithmetic.addmod,
-        value=opcode_values.ADDMOD,
         mnemonic=mnemonics.ADDMOD,
         gas_cost=constants.GAS_MID,
     ),
-    as_opcode(
+    opcode_values.MULMOD: as_opcode(
         logic_fn=arithmetic.mulmod,
-        value=opcode_values.MULMOD,
         mnemonic=mnemonics.MULMOD,
         gas_cost=constants.GAS_MID,
     ),
-    as_opcode(
+    opcode_values.EXP: as_opcode(
         logic_fn=arithmetic.exp,
-        value=opcode_values.EXP,
         mnemonic=mnemonics.EXP,
         gas_cost=constants.GAS_EXP,
     ),
-    as_opcode(
+    opcode_values.SIGNEXTEND: as_opcode(
         logic_fn=arithmetic.signextend,
-        value=opcode_values.SIGNEXTEND,
         mnemonic=mnemonics.SIGNEXTEND,
         gas_cost=constants.GAS_LOW,
     ),
     #
     # Comparisons
     #
-    as_opcode(
+    opcode_values.LT: as_opcode(
         logic_fn=comparison.lt,
-        value=opcode_values.LT,
         mnemonic=mnemonics.LT,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.GT: as_opcode(
         logic_fn=comparison.gt,
-        value=opcode_values.GT,
         mnemonic=mnemonics.GT,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SLT: as_opcode(
         logic_fn=comparison.slt,
-        value=opcode_values.SLT,
         mnemonic=mnemonics.SLT,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SGT: as_opcode(
         logic_fn=comparison.sgt,
-        value=opcode_values.SGT,
         mnemonic=mnemonics.SGT,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.EQ: as_opcode(
         logic_fn=comparison.eq,
-        value=opcode_values.EQ,
         mnemonic=mnemonics.EQ,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.ISZERO: as_opcode(
         logic_fn=comparison.iszero,
-        value=opcode_values.ISZERO,
         mnemonic=mnemonics.ISZERO,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.AND: as_opcode(
         logic_fn=comparison.and_op,
-        value=opcode_values.AND,
         mnemonic=mnemonics.AND,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.OR: as_opcode(
         logic_fn=comparison.or_op,
-        value=opcode_values.OR,
         mnemonic=mnemonics.OR,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.XOR: as_opcode(
         logic_fn=comparison.xor,
-        value=opcode_values.XOR,
         mnemonic=mnemonics.XOR,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.NOT: as_opcode(
         logic_fn=comparison.not_op,
-        value=opcode_values.NOT,
         mnemonic=mnemonics.NOT,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.BYTE: as_opcode(
         logic_fn=comparison.byte_op,
-        value=opcode_values.BYTE,
         mnemonic=mnemonics.BYTE,
         gas_cost=constants.GAS_VERYLOW,
     ),
     #
     # Sha3
     #
-    as_opcode(
+    opcode_values.SHA3: as_opcode(
         logic_fn=sha3.sha3,
-        value=opcode_values.SHA3,
         mnemonic=mnemonics.SHA3,
         gas_cost=constants.GAS_SHA3,
     ),
     #
     # Environment Information
     #
-    as_opcode(
+    opcode_values.ADDRESS: as_opcode(
         logic_fn=context.address,
-        value=opcode_values.ADDRESS,
         mnemonic=mnemonics.ADDRESS,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.BALANCE: as_opcode(
         logic_fn=context.balance,
-        value=opcode_values.BALANCE,
         mnemonic=mnemonics.BALANCE,
         gas_cost=constants.GAS_BALANCE,
     ),
-    as_opcode(
+    opcode_values.ORIGIN: as_opcode(
         logic_fn=context.origin,
-        value=opcode_values.ORIGIN,
         mnemonic=mnemonics.ORIGIN,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.CALLER: as_opcode(
         logic_fn=context.caller,
-        value=opcode_values.CALLER,
         mnemonic=mnemonics.CALLER,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.CALLVALUE: as_opcode(
         logic_fn=context.callvalue,
-        value=opcode_values.CALLVALUE,
         mnemonic=mnemonics.CALLVALUE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.CALLDATALOAD: as_opcode(
         logic_fn=context.calldataload,
-        value=opcode_values.CALLDATALOAD,
         mnemonic=mnemonics.CALLDATALOAD,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.CALLDATASIZE: as_opcode(
         logic_fn=context.calldatasize,
-        value=opcode_values.CALLDATASIZE,
         mnemonic=mnemonics.CALLDATASIZE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.CALLDATACOPY: as_opcode(
         logic_fn=context.calldatacopy,
-        value=opcode_values.CALLDATACOPY,
         mnemonic=mnemonics.CALLDATACOPY,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.CODESIZE: as_opcode(
         logic_fn=context.codesize,
-        value=opcode_values.CODESIZE,
         mnemonic=mnemonics.CODESIZE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.CODECOPY: as_opcode(
         logic_fn=context.codecopy,
-        value=opcode_values.CODECOPY,
         mnemonic=mnemonics.CODECOPY,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.GASPRICE: as_opcode(
         logic_fn=context.gasprice,
-        value=opcode_values.GASPRICE,
         mnemonic=mnemonics.GASPRICE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.EXTCODESIZE: as_opcode(
         logic_fn=context.extcodesize,
-        value=opcode_values.EXTCODESIZE,
         mnemonic=mnemonics.EXTCODESIZE,
         gas_cost=constants.GAS_EXTCODE,
     ),
-    as_opcode(
+    opcode_values.EXTCODECOPY: as_opcode(
         logic_fn=context.extcodecopy,
-        value=opcode_values.EXTCODECOPY,
         mnemonic=mnemonics.EXTCODECOPY,
         gas_cost=constants.GAS_EXTCODE,
     ),
     #
     # Block Information
     #
-    as_opcode(
+    opcode_values.BLOCKHASH: as_opcode(
         logic_fn=block.blockhash,
-        value=opcode_values.BLOCKHASH,
         mnemonic=mnemonics.BLOCKHASH,
         gas_cost=constants.GAS_BLOCKHASH,
     ),
-    as_opcode(
+    opcode_values.COINBASE: as_opcode(
         logic_fn=block.coinbase,
-        value=opcode_values.COINBASE,
         mnemonic=mnemonics.COINBASE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.TIMESTAMP: as_opcode(
         logic_fn=block.timestamp,
-        value=opcode_values.TIMESTAMP,
         mnemonic=mnemonics.TIMESTAMP,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.NUMBER: as_opcode(
         logic_fn=block.number,
-        value=opcode_values.NUMBER,
         mnemonic=mnemonics.NUMBER,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.DIFFICULTY: as_opcode(
         logic_fn=block.difficulty,
-        value=opcode_values.DIFFICULTY,
         mnemonic=mnemonics.DIFFICULTY,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.GASLIMIT: as_opcode(
         logic_fn=block.gaslimit,
-        value=opcode_values.GASLIMIT,
         mnemonic=mnemonics.GASLIMIT,
         gas_cost=constants.GAS_BASE,
     ),
     #
     # Stack, Memory, Storage and Flow Operations
     #
-    as_opcode(
+    opcode_values.POP: as_opcode(
         logic_fn=stack.pop,
-        value=opcode_values.POP,
         mnemonic=mnemonics.POP,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.MLOAD: as_opcode(
         logic_fn=memory.mload,
-        value=opcode_values.MLOAD,
         mnemonic=mnemonics.MLOAD,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.MSTORE: as_opcode(
         logic_fn=memory.mstore,
-        value=opcode_values.MSTORE,
         mnemonic=mnemonics.MSTORE,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.MSTORE8: as_opcode(
         logic_fn=memory.mstore8,
-        value=opcode_values.MSTORE8,
         mnemonic=mnemonics.MSTORE8,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SLOAD: as_opcode(
         logic_fn=storage.sload,
-        value=opcode_values.SLOAD,
         mnemonic=mnemonics.SLOAD,
         gas_cost=constants.GAS_SLOAD,
     ),
-    as_opcode(
+    opcode_values.SSTORE: as_opcode(
         logic_fn=storage.sstore,
-        value=opcode_values.SSTORE,
         mnemonic=mnemonics.SSTORE,
         gas_cost=constants.GAS_NULL,
     ),
-    as_opcode(
+    opcode_values.JUMP: as_opcode(
         logic_fn=flow.jump,
-        value=opcode_values.JUMP,
         mnemonic=mnemonics.JUMP,
         gas_cost=constants.GAS_MID,
     ),
-    as_opcode(
+    opcode_values.JUMPI: as_opcode(
         logic_fn=flow.jumpi,
-        value=opcode_values.JUMPI,
         mnemonic=mnemonics.JUMPI,
         gas_cost=constants.GAS_HIGH,
     ),
-    as_opcode(
+    opcode_values.PC: as_opcode(
         logic_fn=flow.pc,
-        value=opcode_values.PC,
         mnemonic=mnemonics.PC,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.MSIZE: as_opcode(
         logic_fn=memory.msize,
-        value=opcode_values.MSIZE,
         mnemonic=mnemonics.MSIZE,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.GAS: as_opcode(
         logic_fn=flow.gas,
-        value=opcode_values.GAS,
         mnemonic=mnemonics.GAS,
         gas_cost=constants.GAS_BASE,
     ),
-    as_opcode(
+    opcode_values.JUMPDEST: as_opcode(
         logic_fn=flow.jumpdest,
-        value=opcode_values.JUMPDEST,
         mnemonic=mnemonics.JUMPDEST,
         gas_cost=constants.GAS_JUMPDEST,
     ),
     #
     # Push Operations
     #
-    as_opcode(
+    opcode_values.PUSH1: as_opcode(
         logic_fn=stack.push1,
-        value=opcode_values.PUSH1,
         mnemonic=mnemonics.PUSH1,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH2: as_opcode(
         logic_fn=stack.push2,
-        value=opcode_values.PUSH2,
         mnemonic=mnemonics.PUSH2,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH3: as_opcode(
         logic_fn=stack.push3,
-        value=opcode_values.PUSH3,
         mnemonic=mnemonics.PUSH3,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH4: as_opcode(
         logic_fn=stack.push4,
-        value=opcode_values.PUSH4,
         mnemonic=mnemonics.PUSH4,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH5: as_opcode(
         logic_fn=stack.push5,
-        value=opcode_values.PUSH5,
         mnemonic=mnemonics.PUSH5,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH6: as_opcode(
         logic_fn=stack.push6,
-        value=opcode_values.PUSH6,
         mnemonic=mnemonics.PUSH6,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH7: as_opcode(
         logic_fn=stack.push7,
-        value=opcode_values.PUSH7,
         mnemonic=mnemonics.PUSH7,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH8: as_opcode(
         logic_fn=stack.push8,
-        value=opcode_values.PUSH8,
         mnemonic=mnemonics.PUSH8,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH9: as_opcode(
         logic_fn=stack.push9,
-        value=opcode_values.PUSH9,
         mnemonic=mnemonics.PUSH9,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH10: as_opcode(
         logic_fn=stack.push10,
-        value=opcode_values.PUSH10,
         mnemonic=mnemonics.PUSH10,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH11: as_opcode(
         logic_fn=stack.push11,
-        value=opcode_values.PUSH11,
         mnemonic=mnemonics.PUSH11,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH12: as_opcode(
         logic_fn=stack.push12,
-        value=opcode_values.PUSH12,
         mnemonic=mnemonics.PUSH12,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH13: as_opcode(
         logic_fn=stack.push13,
-        value=opcode_values.PUSH13,
         mnemonic=mnemonics.PUSH13,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH14: as_opcode(
         logic_fn=stack.push14,
-        value=opcode_values.PUSH14,
         mnemonic=mnemonics.PUSH14,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH15: as_opcode(
         logic_fn=stack.push15,
-        value=opcode_values.PUSH15,
         mnemonic=mnemonics.PUSH15,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH16: as_opcode(
         logic_fn=stack.push16,
-        value=opcode_values.PUSH16,
         mnemonic=mnemonics.PUSH16,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH17: as_opcode(
         logic_fn=stack.push17,
-        value=opcode_values.PUSH17,
         mnemonic=mnemonics.PUSH17,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH18: as_opcode(
         logic_fn=stack.push18,
-        value=opcode_values.PUSH18,
         mnemonic=mnemonics.PUSH18,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH19: as_opcode(
         logic_fn=stack.push19,
-        value=opcode_values.PUSH19,
         mnemonic=mnemonics.PUSH19,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH20: as_opcode(
         logic_fn=stack.push20,
-        value=opcode_values.PUSH20,
         mnemonic=mnemonics.PUSH20,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH21: as_opcode(
         logic_fn=stack.push21,
-        value=opcode_values.PUSH21,
         mnemonic=mnemonics.PUSH21,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH22: as_opcode(
         logic_fn=stack.push22,
-        value=opcode_values.PUSH22,
         mnemonic=mnemonics.PUSH22,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH23: as_opcode(
         logic_fn=stack.push23,
-        value=opcode_values.PUSH23,
         mnemonic=mnemonics.PUSH23,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH24: as_opcode(
         logic_fn=stack.push24,
-        value=opcode_values.PUSH24,
         mnemonic=mnemonics.PUSH24,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH25: as_opcode(
         logic_fn=stack.push25,
-        value=opcode_values.PUSH25,
         mnemonic=mnemonics.PUSH25,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH26: as_opcode(
         logic_fn=stack.push26,
-        value=opcode_values.PUSH26,
         mnemonic=mnemonics.PUSH26,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH27: as_opcode(
         logic_fn=stack.push27,
-        value=opcode_values.PUSH27,
         mnemonic=mnemonics.PUSH27,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH28: as_opcode(
         logic_fn=stack.push28,
-        value=opcode_values.PUSH28,
         mnemonic=mnemonics.PUSH28,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH29: as_opcode(
         logic_fn=stack.push29,
-        value=opcode_values.PUSH29,
         mnemonic=mnemonics.PUSH29,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH30: as_opcode(
         logic_fn=stack.push30,
-        value=opcode_values.PUSH30,
         mnemonic=mnemonics.PUSH30,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH31: as_opcode(
         logic_fn=stack.push31,
-        value=opcode_values.PUSH31,
         mnemonic=mnemonics.PUSH31,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.PUSH32: as_opcode(
         logic_fn=stack.push32,
-        value=opcode_values.PUSH32,
         mnemonic=mnemonics.PUSH32,
         gas_cost=constants.GAS_VERYLOW,
     ),
     #
     # Duplicate Operations
     #
-    as_opcode(
+    opcode_values.DUP1: as_opcode(
         logic_fn=duplication.dup1,
-        value=opcode_values.DUP1,
         mnemonic=mnemonics.DUP1,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP2: as_opcode(
         logic_fn=duplication.dup2,
-        value=opcode_values.DUP2,
         mnemonic=mnemonics.DUP2,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP3: as_opcode(
         logic_fn=duplication.dup3,
-        value=opcode_values.DUP3,
         mnemonic=mnemonics.DUP3,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP4: as_opcode(
         logic_fn=duplication.dup4,
-        value=opcode_values.DUP4,
         mnemonic=mnemonics.DUP4,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP5: as_opcode(
         logic_fn=duplication.dup5,
-        value=opcode_values.DUP5,
         mnemonic=mnemonics.DUP5,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP6: as_opcode(
         logic_fn=duplication.dup6,
-        value=opcode_values.DUP6,
         mnemonic=mnemonics.DUP6,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP7: as_opcode(
         logic_fn=duplication.dup7,
-        value=opcode_values.DUP7,
         mnemonic=mnemonics.DUP7,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP8: as_opcode(
         logic_fn=duplication.dup8,
-        value=opcode_values.DUP8,
         mnemonic=mnemonics.DUP8,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP9: as_opcode(
         logic_fn=duplication.dup9,
-        value=opcode_values.DUP9,
         mnemonic=mnemonics.DUP9,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP10: as_opcode(
         logic_fn=duplication.dup10,
-        value=opcode_values.DUP10,
         mnemonic=mnemonics.DUP10,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP11: as_opcode(
         logic_fn=duplication.dup11,
-        value=opcode_values.DUP11,
         mnemonic=mnemonics.DUP11,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP12: as_opcode(
         logic_fn=duplication.dup12,
-        value=opcode_values.DUP12,
         mnemonic=mnemonics.DUP12,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP13: as_opcode(
         logic_fn=duplication.dup13,
-        value=opcode_values.DUP13,
         mnemonic=mnemonics.DUP13,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP14: as_opcode(
         logic_fn=duplication.dup14,
-        value=opcode_values.DUP14,
         mnemonic=mnemonics.DUP14,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP15: as_opcode(
         logic_fn=duplication.dup15,
-        value=opcode_values.DUP15,
         mnemonic=mnemonics.DUP15,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.DUP16: as_opcode(
         logic_fn=duplication.dup16,
-        value=opcode_values.DUP16,
         mnemonic=mnemonics.DUP16,
         gas_cost=constants.GAS_VERYLOW,
     ),
     #
     # Exchange Operations
     #
-    as_opcode(
+    opcode_values.SWAP1: as_opcode(
         logic_fn=swap.swap1,
-        value=opcode_values.SWAP1,
         mnemonic=mnemonics.SWAP1,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP2: as_opcode(
         logic_fn=swap.swap2,
-        value=opcode_values.SWAP2,
         mnemonic=mnemonics.SWAP2,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP3: as_opcode(
         logic_fn=swap.swap3,
-        value=opcode_values.SWAP3,
         mnemonic=mnemonics.SWAP3,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP4: as_opcode(
         logic_fn=swap.swap4,
-        value=opcode_values.SWAP4,
         mnemonic=mnemonics.SWAP4,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP5: as_opcode(
         logic_fn=swap.swap5,
-        value=opcode_values.SWAP5,
         mnemonic=mnemonics.SWAP5,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP6: as_opcode(
         logic_fn=swap.swap6,
-        value=opcode_values.SWAP6,
         mnemonic=mnemonics.SWAP6,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP7: as_opcode(
         logic_fn=swap.swap7,
-        value=opcode_values.SWAP7,
         mnemonic=mnemonics.SWAP7,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP8: as_opcode(
         logic_fn=swap.swap8,
-        value=opcode_values.SWAP8,
         mnemonic=mnemonics.SWAP8,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP9: as_opcode(
         logic_fn=swap.swap9,
-        value=opcode_values.SWAP9,
         mnemonic=mnemonics.SWAP9,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP10: as_opcode(
         logic_fn=swap.swap10,
-        value=opcode_values.SWAP10,
         mnemonic=mnemonics.SWAP10,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP11: as_opcode(
         logic_fn=swap.swap11,
-        value=opcode_values.SWAP11,
         mnemonic=mnemonics.SWAP11,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP12: as_opcode(
         logic_fn=swap.swap12,
-        value=opcode_values.SWAP12,
         mnemonic=mnemonics.SWAP12,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP13: as_opcode(
         logic_fn=swap.swap13,
-        value=opcode_values.SWAP13,
         mnemonic=mnemonics.SWAP13,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP14: as_opcode(
         logic_fn=swap.swap14,
-        value=opcode_values.SWAP14,
         mnemonic=mnemonics.SWAP14,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP15: as_opcode(
         logic_fn=swap.swap15,
-        value=opcode_values.SWAP15,
         mnemonic=mnemonics.SWAP15,
         gas_cost=constants.GAS_VERYLOW,
     ),
-    as_opcode(
+    opcode_values.SWAP16: as_opcode(
         logic_fn=swap.swap16,
-        value=opcode_values.SWAP16,
         mnemonic=mnemonics.SWAP16,
         gas_cost=constants.GAS_VERYLOW,
     ),
     #
     # Logging
     #
-    as_opcode(
+    opcode_values.LOG0: as_opcode(
         logic_fn=logging.log0,
-        value=opcode_values.LOG0,
         mnemonic=mnemonics.LOG0,
         gas_cost=constants.GAS_LOG,
     ),
-    as_opcode(
+    opcode_values.LOG1: as_opcode(
         logic_fn=logging.log1,
-        value=opcode_values.LOG1,
         mnemonic=mnemonics.LOG1,
         gas_cost=constants.GAS_LOG,
     ),
-    as_opcode(
+    opcode_values.LOG2: as_opcode(
         logic_fn=logging.log2,
-        value=opcode_values.LOG2,
         mnemonic=mnemonics.LOG2,
         gas_cost=constants.GAS_LOG,
     ),
-    as_opcode(
+    opcode_values.LOG3: as_opcode(
         logic_fn=logging.log3,
-        value=opcode_values.LOG3,
         mnemonic=mnemonics.LOG3,
         gas_cost=constants.GAS_LOG,
     ),
-    as_opcode(
+    opcode_values.LOG4: as_opcode(
         logic_fn=logging.log4,
-        value=opcode_values.LOG4,
         mnemonic=mnemonics.LOG4,
         gas_cost=constants.GAS_LOG,
     ),
     #
     # System
     #
-    as_opcode(
+    opcode_values.CREATE: as_opcode(
         logic_fn=system.create,
-        value=opcode_values.CREATE,
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     ),
-    as_opcode(
+    opcode_values.CALL: as_opcode(
         logic_fn=system.call,
-        value=opcode_values.CALL,
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_CALL,
     ),
-    as_opcode(
+    opcode_values.CALLCODE: as_opcode(
         logic_fn=system.callcode,
-        value=opcode_values.CALLCODE,
         mnemonic=mnemonics.CALLCODE,
         gas_cost=constants.GAS_CALL,
     ),
-    as_opcode(
+    opcode_values.RETURN: as_opcode(
         logic_fn=system.return_op,
-        value=opcode_values.RETURN,
         mnemonic=mnemonics.RETURN,
         gas_cost=constants.GAS_ZERO,
     ),
-    as_opcode(
+    opcode_values.SUICIDE: as_opcode(
         logic_fn=system.suicide,
-        value=opcode_values.SUICIDE,
         mnemonic=mnemonics.SUICIDE,
         gas_cost=constants.GAS_SUICIDE,
     ),
-)
-
-
-FrontierEVM = BaseEVM.configure('FrontierEVM', opcodes=FRONTIER_OPCODES)
+}
