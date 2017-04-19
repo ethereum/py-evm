@@ -17,12 +17,19 @@ from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
 )
+from evm.validation import (
+    validate_evm_block_ranges,
+)
 
 from evm.utils.address import (
     generate_contract_address,
 )
 from evm.utils.empty import (
     empty,
+)
+from evm.utils.ranges import (
+    range_sort_fn,
+    find_range,
 )
 
 from .message import (
@@ -237,6 +244,9 @@ def _apply_computation(evm, message):
 
 
 class BaseEVM(object):
+    """
+    The EVM class is... TODO:
+    """
     db = None
 
     block = None
@@ -368,3 +378,55 @@ class BaseEVM(object):
             return self.opcodes[opcode]
         except KeyError:
             return InvalidOpcode(opcode)
+
+
+class MetaEVM(object):
+    db = None
+    ranges = None
+    evms = None
+
+    """
+    TOOD: better name...
+    The EVMChain combines multiple EVM classes into a single EVM.  Each sub-EVM
+
+    Acknowledgement that this is not really a class but a function disguised as
+    a class.  It is however easier to reason about in this format.
+    """
+    def __init__(self, db):
+        self.db = db
+
+    @classmethod
+    def configure(cls, name, evm_rules):
+        if not evm_rules:
+            raise TypeError("MetaEVM requires at least one set of EVM rules")
+
+        if len(evm_rules) == 1:
+            # edge case for a single range.
+            ranges = [evm_rules[0][0]]
+            evms = [evm_rules[0][1]]
+        else:
+            raw_ranges, evms = zip(*evm_rules)
+            ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
+
+        validate_evm_block_ranges(ranges)
+
+        evms = {
+            range: evm
+            for range, evm
+            in evm_rules
+        }
+
+        props = {
+            'ranges': ranges,
+            'evms': evms,
+        }
+        return type(name, (cls,), props)
+
+    def __call__(self, header):
+        """
+        Returns the appropriate EVM for the block
+        """
+        range = find_range(self.ranges, header.block_number)
+        evm_class = self.evms[range]
+        evm = evm_class(header=header, db=self.db)
+        return evm

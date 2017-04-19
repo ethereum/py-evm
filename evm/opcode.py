@@ -40,5 +40,11 @@ class Opcode(object):
         opcode_cls = type("opcode:{0}".format(mnemonic), (cls,), props)
         return opcode_cls()
 
+    def __copy__(self):
+        return type(self)()
+
+    def __deepcopy__(self, memo):
+        return type(self)()
+
 
 as_opcode = Opcode.as_opcode

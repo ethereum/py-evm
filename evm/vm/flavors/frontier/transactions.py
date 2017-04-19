@@ -14,7 +14,6 @@ from evm.validation import (
     validate_is_integer,
     validate_is_bytes,
     validate_canonical_address,
-    validate_lt_secpk1n,
 )
 
 from evm.rlp.transactions import (
@@ -54,9 +53,8 @@ class FrontierTransaction(BaseTransaction):
         validate_is_bytes(self.data)
 
         validate_uint256(self.v)
+        validate_uint256(self.r)
         validate_uint256(self.s)
-        validate_uint256(self.s)
-        validate_lt_secpk1n(self.s)
 
     def get_sender(self):
         return extract_transaction_sender(self)

@@ -22,7 +22,7 @@ from evm.exceptions import (
     InvalidTransaction,
 )
 from evm.vm.flavors import (
-    FrontierEVM
+    MainnetEVM,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -171,15 +171,15 @@ class EVMForTesting(FrontierEVM):
     #
     # Storage Overrides
     #
-    def get_block_hash(self, block_number):
-        if block_number >= self.block.header.block_number:
-            return b''
-        elif block_number < 0:
-            return b''
-        elif block_number < self.block.header.block_number - 256:
-            return b''
-        else:
-            return keccak("{0}".format(block_number))
+def get_block_hash_for_testing(self, block_number):
+    if block_number >= self.block.header.block_number:
+        return b''
+    elif block_number < 0:
+        return b''
+    elif block_number < self.block.header.block_number - 256:
+        return b''
+    else:
+        return keccak("{0}".format(block_number))
 
 
 def setup_storage(account_fixtures, storage):
@@ -201,6 +201,8 @@ def setup_storage(account_fixtures, storage):
     'fixture_name,fixture', SUCCESS_FIXTURES,
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
+    db = MemoryDB()
+    meta_evm = MainnetEVM(db=db)
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -209,7 +211,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    db = MemoryDB()
+    assert False
     evm = EVMForTesting(
         db=db,
         header=header,

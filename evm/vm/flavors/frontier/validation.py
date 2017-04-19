@@ -3,7 +3,7 @@ from evm.exceptions import (
 )
 
 
-def validate_transaction(evm, transaction):
+def validate_frontier_transaction(evm, transaction):
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = evm.block.state_db.get_balance(transaction.sender)
 

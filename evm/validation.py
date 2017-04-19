@@ -1,3 +1,5 @@
+import itertools
+
 from toolz import (
     partial,
 )
@@ -8,6 +10,10 @@ from evm.constants import (
 )
 from evm.exceptions import (
     ValidationError,
+)
+
+from evm.utils.ranges import (
+    range_sort_fn,
 )
 
 
@@ -97,3 +103,77 @@ def validate_stack_item(value):
 
 
 validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1_N - 1)
+
+
+def validate_evm_block_ranges(ranges):
+    """
+    Given an iterable of inclusive ranges formatted as 2-tuples
+    of [left_bound, right_bound] where `left_bound` and `right_bound` are
+    either integers or `None` to represent and open-ended range, validate all
+    of the following properties.
+
+    - Non empty
+    - There is at most 1 open left bound
+    - There is at most 1 open right bound
+    - There are no ranges which intersect
+    - There are no gaps between the ranges
+    """
+    if not ranges:
+        raise ValidationError("Must be at least one range")
+
+    # Make sure it's an iterable of length two iterables
+    if not all(len(range) == 2 for range in ranges):
+        raise ValidationError("Ranges must be iterables of length two")
+
+    # Make sure all range values are either integers or None
+    for bound in itertools.chain.from_iterable(ranges):
+        if bound is None:
+            continue
+        elif isinstance(bound, int):
+            validate_uint256(bound)
+        else:
+            raise ValidationError("All range bounds must be either None or an integer")
+
+    # Split into two iterables of all left bounds and all right bounds.
+    left_bounds, right_bounds = zip(*ranges)
+    has_open_left_bound = any(left is None for left in left_bounds)
+    has_open_right_bound = any(right is None for right in right_bounds)
+
+    # make sure that there is at most one range open on the left.
+    if has_open_left_bound:
+        iter_left_bounds = (left is None for left in left_bounds)
+        if not (any(iter_left_bounds) and not any(iter_left_bounds)):
+            raise ValidationError("More than one range has an open left bound")
+
+    # make sure that there is at most one range open on the right.
+    if has_open_right_bound:
+        iter_right_bounds = (right is None for right in right_bounds)
+        if not (any(iter_right_bounds) and not any(iter_right_bounds)):
+            raise ValidationError("More than one range has an open right bound")
+
+    # check that there are no intersecting ranges.
+    sorted_ranges = tuple(sorted(ranges, key=range_sort_fn))
+    for range_a, range_b in zip(sorted_ranges, sorted_ranges[1:]):
+        to_check = itertools.chain(
+            itertools.product(range_a, [range_b]),
+            itertools.product(range_b, [range_a]),
+        )
+        for bound, (left, right) in to_check:
+            print(bound, left, right)
+            if bound is None:
+                continue
+            elif left is None:
+                if bound <= right:
+                    raise ValidationError("Ranges have intersection")
+            elif right is None:
+                if bound >= left:
+                    raise ValidationError("Ranges have intersection")
+            else:
+                if left <= bound <= right:
+                    raise ValidationError("Ranges have intersection")
+
+        # Check that there is not a gap between the ranges.
+        _, right_a = range_a
+        left_b, _ = range_b
+        if right_a + 1 != left_b:
+            raise ValidationError("Ranges have gap")
