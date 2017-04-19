@@ -1,4 +1,3 @@
-import rlp
 from rlp.sedes import (
     big_endian_int,
     binary,
@@ -45,27 +44,25 @@ class FrontierTransaction(BaseTransaction):
         ('s', big_endian_int),
     ]
 
-    def __init__(self, nonce, gas_price, gas, to, value, data, v, r, s):
-        validate_uint256(nonce)
-        validate_is_integer(gas_price)
-        validate_uint256(gas)
-        if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to)
-        validate_uint256(value)
-        validate_is_bytes(data)
+    def validate(self):
+        validate_uint256(self.nonce)
+        validate_is_integer(self.gas_price)
+        validate_uint256(self.gas)
+        if self.to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(self.to)
+        validate_uint256(self.value)
+        validate_is_bytes(self.data)
 
-        validate_uint256(v)
-        validate_uint256(s)
-        validate_uint256(s)
-        validate_lt_secpk1n(s)
-
-        super(BaseTransaction, self).__init__(nonce, gas_price, gas, to, value, data, v, r, s)
+        validate_uint256(self.v)
+        validate_uint256(self.s)
+        validate_uint256(self.s)
+        validate_lt_secpk1n(self.s)
 
     def get_sender(self):
         return extract_transaction_sender(self)
 
     def get_intrensic_gas(self):
-        return get_frontier_intrensic_gas(self.data)
+        return _get_frontier_intrensic_gas(self.data)
 
     def as_unsigned_transaction(self):
         return FrontierUnsignedTransaction(
@@ -77,8 +74,12 @@ class FrontierTransaction(BaseTransaction):
             data=self.data,
         )
 
+    @classmethod
+    def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
+        return FrontierUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
-class FrontierUnsignedTransaction(rlp.Serializable):
+
+class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -88,16 +89,14 @@ class FrontierUnsignedTransaction(rlp.Serializable):
         ('data', binary),
     ]
 
-    def __init__(self, nonce, gas_price, gas, to, value, data):
-        validate_uint256(nonce)
-        validate_is_integer(gas_price)
-        validate_uint256(gas)
-        if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to)
-        validate_uint256(value)
-        validate_is_bytes(data)
-
-        super(BaseUnsignedTransaction, self).__init__(nonce, gas_price, gas, to, value, data)
+    def validate(self):
+        validate_uint256(self.nonce)
+        validate_is_integer(self.gas_price)
+        validate_uint256(self.gas)
+        if self.to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(self.to)
+        validate_uint256(self.value)
+        validate_is_bytes(self.data)
 
     def as_signed_transaction(self, private_key):
         v, r, s = create_transaction_signature(self, private_key)
@@ -114,7 +113,7 @@ class FrontierUnsignedTransaction(rlp.Serializable):
         )
 
 
-def get_frontier_intrensic_gas(transaction_data):
+def _get_frontier_intrensic_gas(transaction_data):
     num_zero_bytes = transaction_data.count(b'\x00')
     num_non_zero_bytes = len(transaction_data) - num_zero_bytes
     return (

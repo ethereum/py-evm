@@ -224,7 +224,7 @@ def _apply_computation(evm, message):
             if computation.logger is not None:
                 computation.logger.trace(
                     "OPCODE: 0x%x (%s)",
-                    opcode_fn.value,
+                    opcode,
                     opcode_fn.mnemonic,
                 )
 
@@ -246,9 +246,12 @@ class BaseEVM(object):
 
     logger = logging.getLogger('evm.vm.evm.EVM')
 
-    def __init__(self, db, block):
+    def __init__(self, db, header):
         self.db = db
-        self.block = block
+        self.header = header
+
+        block_class = self.get_block_class()
+        self.block = block_class(header=self.header, db=self.db)
 
     @classmethod
     def configure(cls,
@@ -342,9 +345,19 @@ class BaseEVM(object):
     # Snapshot and Revert
     #
     def snapshot(self):
+        """
+        Perform a full snapshot of the current state of the EVM.
+
+        TODO: This needs to do more than just snapshot the state_db but this is a start.
+        """
         return self.block.state_db.snapshot()
 
     def revert(self, snapshot):
+        """
+        Revert the EVM to the state
+
+        TODO: This needs to do more than just snapshot the state_db but this is a start.
+        """
         return self.block.state_db.revert(snapshot)
 
     #

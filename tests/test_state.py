@@ -27,13 +27,6 @@ from evm.vm.flavors import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.rlp.blocks import (
-    Block,
-)
-from evm.rlp.transactions import (
-    UnsignedTransaction,
-    sign_transaction,
-)
 
 from evm.utils.numeric import (
     big_endian_to_int,
@@ -149,9 +142,9 @@ FIXTURES_PATHS = (
     #os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
     #os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
     #os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),
+    os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
+    #os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),
 )
 
 
@@ -217,15 +210,17 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = MemoryDB()
-    block = Block(header=header, db=db)
     evm = EVMForTesting(
         db=db,
-        block=block,
+        header=header,
     )
+    block = evm.block
 
     setup_storage(fixture['pre'], block.state_db)
 
-    unsigned_transaction = UnsignedTransaction(
+    Transaction = evm.get_transaction_class()
+
+    unsigned_transaction = Transaction.create_unsigned_transaction(
         nonce=fixture['transaction']['nonce'],
         gas_price=fixture['transaction']['gasPrice'],
         gas=fixture['transaction']['gasLimit'],
@@ -233,7 +228,9 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         value=fixture['transaction']['value'],
         data=fixture['transaction']['data'],
     )
-    transaction = sign_transaction(unsigned_transaction, fixture['transaction']['secretKey'])
+    transaction = unsigned_transaction.as_signed_transaction(
+        private_key=fixture['transaction']['secretKey']
+    )
 
     try:
         computation = evm.apply_transaction(transaction)
