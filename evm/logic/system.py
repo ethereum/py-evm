@@ -62,7 +62,8 @@ def create(computation):
         gas=create_msg_gas,
         to=constants.CREATE_CONTRACT_ADDRESS,
         value=value,
-        data=call_data,
+        data=b'',
+        code=call_data,
         create_address=contract_address,
     )
 

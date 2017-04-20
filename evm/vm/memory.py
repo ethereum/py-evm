@@ -55,7 +55,6 @@ class Memory(object):
             )
 
     def read(self, start_position, size):
-        from eth_utils import encode_hex
         """
         Read a value from memory.
         """

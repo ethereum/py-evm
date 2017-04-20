@@ -149,6 +149,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
+        code=evm.block.state_db.get_code(fixture['exec']['address']),
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
@@ -190,7 +191,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
             value = created_call['value']
 
             assert child_computation.msg.to == to_address
-            assert data == child_computation.msg.data
+            assert data == child_computation.msg.data or child_computation.msg.code
             assert gas_limit == child_computation.msg.gas
             assert value == child_computation.msg.value
         post_state = fixture['post']

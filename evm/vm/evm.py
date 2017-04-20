@@ -67,8 +67,12 @@ def _apply_transaction(evm, transaction):
             transaction.sender,
             evm.block.state_db.get_nonce(transaction.sender) - 1,
         )
+        data = b''
+        code = transaction.data
     else:
         contract_address = None
+        data = transaction.data
+        code = evm.block.state_db.get_code(transaction.to)
 
     if evm.logger:
         evm.logger.info(
@@ -93,7 +97,8 @@ def _apply_transaction(evm, transaction):
         to=transaction.to,
         sender=transaction.sender,
         value=transaction.value,
-        data=transaction.data,
+        data=data,
+        code=code,
         create_address=contract_address,
     )
 

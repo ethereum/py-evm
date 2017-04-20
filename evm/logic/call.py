@@ -73,17 +73,23 @@ class BaseCall(Opcode):
             computation.gas_meter.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:
+            if code_address:
+                code = computation.evm.block.state_db.get_code(code_address)
+            else:
+                code = computation.evm.block.state_db.get_code(to)
+
             child_msg_kwargs = {
                 'gas': child_msg_gas,
                 'value': value,
                 'to': to,
                 'data': call_data,
+                'code': code,
+                'code_address': code_address,
                 'should_transfer_value': should_transfer_value,
             }
             if sender is not None:
                 child_msg_kwargs['sender'] = sender
-            if code_address is not None:
-                child_msg_kwargs['code_address'] = code_address
+
             child_msg = computation.prepare_child_message(**child_msg_kwargs)
 
             if child_msg.is_create:

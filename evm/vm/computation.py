@@ -81,10 +81,7 @@ class Computation(object):
         self.accounts_to_delete = {}
         self.log_entries = []
 
-        if message.is_create:
-            code = message.data
-        else:
-            code = self.evm.block.state_db.get_code(message.code_address)
+        code = message.code
         self.code = CodeStream(code)
 
     #
@@ -105,6 +102,7 @@ class Computation(object):
                               to,
                               value,
                               data,
+                              code,
                               **kwargs):
         kwargs.setdefault('sender', self.msg.storage_address)
 
@@ -115,6 +113,7 @@ class Computation(object):
             to=to,
             value=value,
             data=data,
+            code=code,
             depth=self.msg.depth + 1,
             **kwargs
         )

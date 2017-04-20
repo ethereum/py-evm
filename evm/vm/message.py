@@ -27,7 +27,9 @@ class Message(object):
 
     depth = None
 
+    code = None
     _code_address = None
+
     create_address = None
 
     should_transfer_value = None
@@ -41,10 +43,11 @@ class Message(object):
                  sender,
                  value,
                  data,
+                 code,
                  origin=None,
                  depth=0,
-                 code_address=None,
                  create_address=None,
+                 code_address=None,
                  should_transfer_value=True):
         validate_uint256(gas)
         self.gas = gas
@@ -73,13 +76,16 @@ class Message(object):
         validate_gte(depth, minimum=0)
         self.depth = depth
 
-        if code_address is not None:
-            validate_canonical_address(code_address)
-        self.code_address = code_address
+        validate_is_bytes(code)
+        self.code = code
 
         if create_address is not None:
             validate_canonical_address(create_address)
         self.storage_address = create_address
+
+        if code_address is not None:
+            validate_canonical_address(code_address)
+        self.code_address = code_address
 
         validate_is_boolean(should_transfer_value)
         self.should_transfer_value = should_transfer_value
@@ -123,4 +129,4 @@ class Message(object):
 
     @property
     def is_create(self):
-        return self._storage_address is not None
+        return self.to == CREATE_CONTRACT_ADDRESS
