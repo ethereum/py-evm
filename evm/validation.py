@@ -159,7 +159,6 @@ def validate_evm_block_ranges(ranges):
             itertools.product(range_b, [range_a]),
         )
         for bound, (left, right) in to_check:
-            print(bound, left, right)
             if bound is None:
                 continue
             elif left is None:
