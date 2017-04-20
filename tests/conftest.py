@@ -10,9 +10,9 @@ def vm_logger():
 
     handler = logging.StreamHandler(sys.stdout)
 
-    level = logging.TRACE
+    #level = logging.TRACE
     #level = logging.DEBUG
-    #level = logging.INFO
+    level = logging.INFO
 
     logger.setLevel(level)
     handler.setLevel(level)
@@ -34,7 +34,8 @@ def vm_logger():
 #    logger.setLevel(level)
 #
 #    fixture_name = request.getfuncargvalue('fixture_name')
-#    logfile_name = 'logs/{0}-{1}.log'.format(fixture_name, datetime.datetime.now().isoformat())
+#    _, _, safe_fixture_name = fixture_name.rpartition('/')
+#    logfile_name = 'logs/{0}-{1}.log'.format(safe_fixture_name, datetime.datetime.now().isoformat())
 #
 #    with open(logfile_name, 'w') as logfile:
 #        handler = logging.StreamHandler(logfile)

@@ -65,7 +65,7 @@ def normalize_account_state(account_state):
     }
 
 
-def normalize_transaction(transaction):
+def normalize_unsigned_transaction(transaction):
     return {
         'data': decode_hex(transaction['data']),
         'gasLimit': to_int(transaction['gasLimit']),
@@ -95,7 +95,7 @@ def normalize_logs(logs):
 def normalize_statetest_fixture(fixture):
     normalized_fixture = {
         'env': normalize_env(fixture['env']),
-        'transaction': normalize_transaction(fixture['transaction']),
+        'transaction': normalize_unsigned_transaction(fixture['transaction']),
         'pre': normalize_account_state(fixture['pre']),
         'postStateRoot': decode_hex(fixture['postStateRoot']),
     }
@@ -163,6 +163,34 @@ def normalize_vmtest_fixture(fixture):
 
     if 'logs' in fixture:
         normalized_fixture['logs'] = normalize_logs(fixture['logs'])
+
+    return normalized_fixture
+
+
+def normalize_signed_transaction(transaction):
+    return {
+        'data': decode_hex(transaction['data']),
+        'gasLimit': to_int(transaction['gasLimit']),
+        'gasPrice': to_int(transaction['gasPrice']),
+        'nonce': to_int(transaction['nonce']),
+        'r': to_int(transaction['r']),
+        's': to_int(transaction['r']),
+        'v': to_int(transaction['r']),
+        'to': decode_hex(transaction['to']),
+        'value': to_int(transaction['value']),
+    }
+
+
+def normalize_transactiontest_fixture(fixture):
+    normalized_fixture = {
+        'blocknumber': to_int(fixture['blocknumber']),
+        'rlp': decode_hex(fixture['rlp']),
+    }
+
+    if "sender" in fixture:
+        normalized_fixture["transaction"] = normalize_signed_transaction(fixture['transaction'])
+        normalized_fixture['sender'] = to_canonical_address(fixture['sender'])
+        normalized_fixture['hash'] = decode_hex(fixture['hash'])
 
     return normalized_fixture
 

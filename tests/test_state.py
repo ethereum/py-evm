@@ -75,7 +75,9 @@ RAW_FIXTURES = tuple(
     for fixture_path in FIXTURES_PATHS
     if (
         "Stress" not in fixture_path and
-        "Complexity" not in fixture_path
+        "Complexity" not in fixture_path and
+        "EIP150" not in fixture_path and
+        "EIP158" not in fixture_path
     )
 )
 

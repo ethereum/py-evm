@@ -70,6 +70,23 @@ def _apply_transaction(evm, transaction):
     else:
         contract_address = None
 
+    if evm.logger:
+        evm.logger.info(
+            (
+                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
+                "gas-price: %s | s: %s | r: %s | v: %s | data: %s"
+            ),
+            encode_hex(transaction.sender),
+            encode_hex(transaction.to),
+            transaction.value,
+            transaction.gas,
+            transaction.gas_price,
+            transaction.s,
+            transaction.r,
+            transaction.v,
+            encode_hex(transaction.data),
+        )
+
     message = Message(
         gas=message_gas,
         gas_price=transaction.gas_price,
@@ -111,15 +128,16 @@ def _apply_transaction(evm, transaction):
         gas_refund = min(gas_refunded, gas_used // 2)
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
-        if evm.logger:
-            evm.logger.debug(
-                'TRANSACTION REFUND: %s -> %s',
-                gas_refund,
-                encode_hex(message.sender),
-            )
+        if gas_refund_amount:
+            if evm.logger:
+                evm.logger.debug(
+                    'TRANSACTION REFUND: %s -> %s',
+                    gas_refund_amount,
+                    encode_hex(message.sender),
+                )
 
-        sender_balance = evm.block.state_db.get_balance(message.sender)
-        evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
+            sender_balance = evm.block.state_db.get_balance(message.sender)
+            evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -385,7 +403,12 @@ class MetaEVM(object):
         """
         Returns the appropriate EVM for the block
         """
-        range = find_range(self.ranges, header.block_number)
-        evm_class = self.evms[range]
+        evm_class = self.get_evm_class_for_block_number(header.block_number)
         evm = evm_class(header=header, db=self.db)
         return evm
+
+    @classmethod
+    def get_evm_class_for_block_number(self, block_number):
+        range = find_range(self.ranges, block_number)
+        evm_class = self.evms[range]
+        return evm_class
