@@ -21,8 +21,16 @@ from evm.constants import (
 from evm.exceptions import (
     InvalidTransaction,
 )
+from evm.vm.evm import (
+    MetaEVM,
+)
 from evm.vm.flavors import (
-    MainnetEVM,
+    FrontierEVM,
+    HomesteadEVM,
+)
+from evm.vm.flavors.mainnet import (
+    FRONTIER_BLOCK_RANGE,
+    HOMESTEAD_BLOCK_RANGE,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -123,36 +131,43 @@ def recursive_find_files(base_dir, pattern):
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
+HOMESTEAD_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests', 'Homestead')
 
 
 #FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-FIXTURES_PATHS = (
-    #os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stLogTests.json"),
-    ##os.path.join(BASE_FIXTURE_PATH, "stMemoryStressTest.json"),  # slow
-    #os.path.join(BASE_FIXTURE_PATH, "stMemoryTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stPreCompiledContracts.json"),
-    ##os.path.join(BASE_FIXTURE_PATH, "stQuadraticComplexityTest.json"),  # slow
-    #os.path.join(BASE_FIXTURE_PATH, "stRecursiveCreate.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stRefundTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
-    os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
-    #os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),
-)
+FIXTURES_PATHS = tuple(recursive_find_files(HOMESTEAD_FIXTURE_PATH, "*.json"))
+#FIXTURES_PATHS = (
+#    os.path.join(BASE_FIXTURE_PATH, "stBlockHashTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stCallCodes.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stCallCreateCallCodeTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stExample.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stInitCodeTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stLogTests.json"),
+#    #os.path.join(BASE_FIXTURE_PATH, "stMemoryStressTest.json"),  # slow
+#    os.path.join(BASE_FIXTURE_PATH, "stMemoryTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stPreCompiledContracts.json"),
+#    #os.path.join(BASE_FIXTURE_PATH, "stQuadraticComplexityTest.json"),  # slow
+#    os.path.join(BASE_FIXTURE_PATH, "stRecursiveCreate.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stRefundTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stSolidityTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stSpecialTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stSystemOperationsTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stTransactionTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stTransitionTest.json"),
+#    os.path.join(BASE_FIXTURE_PATH, "stWalletTest.json"),
+#)
 
 
 RAW_FIXTURES = tuple(
     (
-        os.path.basename(fixture_path),
+        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
         json.load(open(fixture_path)),
-    ) for fixture_path in FIXTURES_PATHS
+    )
+    for fixture_path in FIXTURES_PATHS
+    if (
+        "Stress" not in fixture_path and
+        "Complexity" not in fixture_path
+    )
 )
 
 
@@ -167,10 +182,6 @@ SUCCESS_FIXTURES = tuple(
 )
 
 
-class EVMForTesting(FrontierEVM):
-    #
-    # Storage Overrides
-    #
 def get_block_hash_for_testing(self, block_number):
     if block_number >= self.block.header.block_number:
         return b''
@@ -180,6 +191,25 @@ def get_block_hash_for_testing(self, block_number):
         return b''
     else:
         return keccak("{0}".format(block_number))
+
+
+FrontierEVMForTesting = FrontierEVM.configure(
+    name='FrontierEVMForTesting',
+    get_block_hash=get_block_hash_for_testing,
+)
+HomesteadEVMForTesting = HomesteadEVM.configure(
+    name='HomesteadEVMForTesting',
+    get_block_hash=get_block_hash_for_testing,
+)
+
+
+EVMForTesting = MetaEVM.configure(
+    name='EVMForTesting',
+    evm_block_ranges=(
+        (FRONTIER_BLOCK_RANGE, FrontierEVMForTesting),
+        (HOMESTEAD_BLOCK_RANGE, HomesteadEVMForTesting),
+    ),
+)
 
 
 def setup_storage(account_fixtures, storage):
@@ -202,7 +232,7 @@ def setup_storage(account_fixtures, storage):
 )
 def test_vm_success_using_fixture(fixture_name, fixture):
     db = MemoryDB()
-    meta_evm = MainnetEVM(db=db)
+    meta_evm = EVMForTesting(db=db)
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -211,11 +241,7 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    assert False
-    evm = EVMForTesting(
-        db=db,
-        header=header,
-    )
+    evm = meta_evm(header=header)
     block = evm.block
 
     setup_storage(fixture['pre'], block.state_db)

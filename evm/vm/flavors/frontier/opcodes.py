@@ -6,6 +6,7 @@ from evm.opcode import as_opcode
 from evm.logic import (
     arithmetic,
     block,
+    call,
     comparison,
     context,
     duplication,
@@ -679,16 +680,16 @@ FRONTIER_OPCODES = {
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     ),
-    opcode_values.CALL: as_opcode(
-        logic_fn=system.call,
+    opcode_values.CALL: call.Call.configure(
+        name='opcode:CALL',
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_CALL,
-    ),
-    opcode_values.CALLCODE: as_opcode(
-        logic_fn=system.callcode,
+    )(),
+    opcode_values.CALLCODE: call.CallCode.configure(
+        name='opcode:CALLCODE',
         mnemonic=mnemonics.CALLCODE,
         gas_cost=constants.GAS_CALL,
-    ),
+    )(),
     opcode_values.RETURN: as_opcode(
         logic_fn=system.return_op,
         mnemonic=mnemonics.RETURN,

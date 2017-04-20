@@ -1,9 +1,5 @@
 import logging
 
-from toolz import (
-    merge,
-)
-
 from evm import constants
 from evm import opcode_values
 from evm.precompile import (
@@ -13,7 +9,6 @@ from evm.logic.invalid import (
     InvalidOpcode,
 )
 from evm.exceptions import (
-    OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
 )
@@ -24,8 +19,8 @@ from evm.validation import (
 from evm.utils.address import (
     generate_contract_address,
 )
-from evm.utils.empty import (
-    empty,
+from evm.utils.hexidecimal import (
+    encode_hex,
 )
 from evm.utils.ranges import (
     range_sort_fn,
@@ -117,7 +112,11 @@ def _apply_transaction(evm, transaction):
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
         if evm.logger:
-            evm.logger.debug('TRANSACTION REFUND: %s', gas_refund)
+            evm.logger.debug(
+                'TRANSACTION REFUND: %s -> %s',
+                gas_refund,
+                encode_hex(message.sender),
+            )
 
         sender_balance = evm.block.state_db.get_balance(message.sender)
         evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
@@ -125,7 +124,11 @@ def _apply_transaction(evm, transaction):
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
         if evm.logger:
-            evm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
+            evm.logger.debug(
+                'TRANSACTION FEE: %s -> %s',
+                transaction_fee,
+                encode_hex(evm.block.header.coinbase),
+            )
         coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
         evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
 
@@ -134,48 +137,12 @@ def _apply_transaction(evm, transaction):
         # TODO: need to figure out how we prevent multiple suicides from
         # the same account and if this is the right place to put this.
         if evm.logger is not None:
-            evm.logger.debug('DELETING ACCOUNT: %s', account)
+            evm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
         evm.block.state_db.set_balance(account, 0)
         evm.block.state_db.delete_account(account)
 
     return computation
-
-
-def _apply_create_message(evm, message):
-    if evm.block.state_db.account_exists(message.storage_address):
-        evm.block.state_db.set_nonce(message.storage_address, 0)
-        evm.block.state_db.set_code(message.storage_address, b'')
-        evm.block.state_db.delete_storage(message.storage_address)
-
-    if message.sender != message.origin:
-        evm.block.state_db.increment_nonce(message.sender)
-
-    computation = evm.apply_message(message)
-
-    if computation.error:
-        return computation
-    else:
-        contract_code = computation.output
-
-        if contract_code:
-            contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
-            try:
-                computation.gas_meter.consume_gas(
-                    contract_code_gas_cost,
-                    reason="Write contract code for CREATE",
-                )
-            except OutOfGas as err:
-                computation.output = b''
-            else:
-                if evm.logger:
-                    evm.logger.debug(
-                        "SETTING CODE: %s -> %s",
-                        message.storage_address,
-                        contract_code,
-                    )
-                computation.evm.block.state_db.set_code(message.storage_address, contract_code)
-        return computation
 
 
 def _apply_message(evm, message):
@@ -184,7 +151,7 @@ def _apply_message(evm, message):
     if message.depth > constants.STACK_DEPTH_LIMIT:
         raise StackDepthLimit("Stack depth limit reached")
 
-    if message.value:
+    if message.should_transfer_value and message.value:
         sender_balance = evm.block.state_db.get_balance(message.sender)
 
         if sender_balance < message.value:
@@ -203,8 +170,8 @@ def _apply_message(evm, message):
             evm.logger.debug(
                 "TRANSFERRED: %s from %s -> %s",
                 message.value,
-                message.sender,
-                message.storage_address,
+                encode_hex(message.sender),
+                encode_hex(message.storage_address),
             )
 
     if not evm.block.state_db.account_exists(message.storage_address):
@@ -254,8 +221,6 @@ class BaseEVM(object):
     opcodes = None
     block_class = None
 
-    logger = logging.getLogger('evm.vm.evm.EVM')
-
     def __init__(self, db, header):
         self.db = db
         self.header = header
@@ -266,37 +231,31 @@ class BaseEVM(object):
     @classmethod
     def configure(cls,
                   name,
-                  opcodes,
-                  transaction_class=None,
-                  block_class=None,
-                  db=None,
-                  logger=empty,
-                  **extra_props):
-        if logger is empty:
-            logger = logging.getLogger('evm.vm.evm.EVM.{0}'.format(name))
-
-        configure_props = {
-            'opcodes': opcodes,
-            'logger': logger,
-            'transaction_class': transaction_class or cls.transaction_class,
-            'block_class': block_class or cls.block_class,
-            'db': db or cls.db,
-        }
-        for key in extra_props:
+                  **overrides):
+        for key in overrides:
             if not hasattr(cls, key):
                 raise TypeError(
                     "The EVM.configure cannot set attributes that are not "
                     "already present on the base class.  The attribute `{0}` was "
                     "not found on the base class `{1}`".format(key, cls)
                 )
-        props = merge(configure_props, extra_props)
-        return type(name, (cls,), props)
+        return type(name, (cls,), overrides)
+
+    #
+    # Logging
+    #
+    @property
+    def logger(self):
+        return logging.getLogger('evm.vm.evm.EVM.{0}'.format(self.__class__.__name__))
 
     #
     # Execution
     #
     apply_transaction = _apply_transaction
-    apply_create_message = _apply_create_message
+
+    def apply_create_message(self, message):
+        raise NotImplementedError("Must be implemented by subclasses")
+
     apply_message = _apply_message
     apply_computation = _apply_computation
 
@@ -396,16 +355,16 @@ class MetaEVM(object):
         self.db = db
 
     @classmethod
-    def configure(cls, name, evm_rules):
-        if not evm_rules:
+    def configure(cls, name, evm_block_ranges):
+        if not evm_block_ranges:
             raise TypeError("MetaEVM requires at least one set of EVM rules")
 
-        if len(evm_rules) == 1:
+        if len(evm_block_ranges) == 1:
             # edge case for a single range.
-            ranges = [evm_rules[0][0]]
-            evms = [evm_rules[0][1]]
+            ranges = [evm_block_ranges[0][0]]
+            evms = [evm_block_ranges[0][1]]
         else:
-            raw_ranges, evms = zip(*evm_rules)
+            raw_ranges, evms = zip(*evm_block_ranges)
             ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
 
         validate_evm_block_ranges(ranges)
@@ -413,7 +372,7 @@ class MetaEVM(object):
         evms = {
             range: evm
             for range, evm
-            in evm_rules
+            in evm_block_ranges
         }
 
         props = {

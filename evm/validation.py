@@ -70,7 +70,7 @@ def validate_multiple_of(value, multiple_of):
         )
 
 
-def validate_boolean(value):
+def validate_is_boolean(value):
     if not isinstance(value, bool):
         raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
 

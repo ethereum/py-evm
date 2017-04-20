@@ -13,6 +13,9 @@ from evm.validation import (
     validate_uint256,
 )
 
+from evm.utils.hexidecimal import (
+    encode_hex,
+)
 from evm.utils.numeric import (
     ceil32,
 )
@@ -102,23 +105,18 @@ class Computation(object):
                               to,
                               value,
                               data,
-                              sender=None,
-                              code_address=None,
-                              create_address=None):
-        if sender is None:
-            sender = self.msg.storage_address
+                              **kwargs):
+        kwargs.setdefault('sender', self.msg.storage_address)
 
         child_message = Message(
             gas=gas,
             gas_price=self.msg.gas_price,
             origin=self.msg.origin,
             to=to,
-            sender=sender,
             value=value,
             data=data,
             depth=self.msg.depth + 1,
-            code_address=code_address,
-            create_address=create_address,
+            **kwargs
         )
         return child_message
 
@@ -218,8 +216,8 @@ class Computation(object):
             self.logger.debug(
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s",
                 self.msg.gas,
-                self.msg.sender,
-                self.msg.to,
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
                 self.msg.value,
             )
 
@@ -231,8 +229,8 @@ class Computation(object):
                 self.logger.debug(
                     "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | error: %s",
                     self.msg.gas,
-                    self.msg.sender,
-                    self.msg.to,
+                    encode_hex(self.msg.sender),
+                    encode_hex(self.msg.to),
                     self.msg.value,
                     exc_value,
                 )
@@ -254,8 +252,8 @@ class Computation(object):
                         "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
                         "gas-used: %s | gas-remaining: %s"
                     ),
-                    self.msg.sender,
-                    self.msg.to,
+                    encode_hex(self.msg.sender),
+                    encode_hex(self.msg.to),
                     self.msg.value,
                     self.msg.gas - self.gas_meter.gas_remaining,
                     self.gas_meter.gas_remaining,

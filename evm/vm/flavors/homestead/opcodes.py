@@ -1,25 +1,24 @@
 import copy
 
-from tools import merge
+from toolz import merge
 
 from evm import constants
 from evm import opcode_values
 from evm import mnemonics
 
-from evm.opcode import as_opcode
 from evm.logic import (
-    system,
+    call,
 )
 
 from evm.vm.flavors.frontier.opcodes import FRONTIER_OPCODES
 
 
 NEW_OPCODES = {
-    opcode_values.DELEGATECALL: as_opcode(
-        logic_fn=system.delegatecall,
+    opcode_values.DELEGATECALL: call.DelegateCall.configure(
+        name='opcode:DELEGATECALL',
         mnemonic=mnemonics.DELEGATECALL,
         gas_cost=constants.GAS_CALL,
-    ),
+    )(),
 }
 
 

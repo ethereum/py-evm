@@ -9,6 +9,7 @@ from evm.validation import (
     validate_is_integer,
     validate_gte,
     validate_uint256,
+    validate_is_boolean,
 )
 
 
@@ -29,6 +30,8 @@ class Message(object):
     _code_address = None
     create_address = None
 
+    should_transfer_value = None
+
     logger = logging.getLogger('evm.vm.message.Message')
 
     def __init__(self,
@@ -41,7 +44,8 @@ class Message(object):
                  origin=None,
                  depth=0,
                  code_address=None,
-                 create_address=None):
+                 create_address=None,
+                 should_transfer_value=True):
         validate_uint256(gas)
         self.gas = gas
 
@@ -76,6 +80,9 @@ class Message(object):
         if create_address is not None:
             validate_canonical_address(create_address)
         self.storage_address = create_address
+
+        validate_is_boolean(should_transfer_value)
+        self.should_transfer_value = should_transfer_value
 
     @property
     def is_origin(self):

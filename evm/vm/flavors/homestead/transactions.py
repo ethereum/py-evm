@@ -1,9 +1,9 @@
 from evm.constants import (
     GAS_TX,
+    GAS_TXCREATE,
     GAS_TXDATAZERO,
     GAS_TXDATANONZERO,
     CREATE_CONTRACT_ADDRESS,
-    TX_CREATE,
 )
 from evm.validation import (
     validate_lt_secpk1n,
@@ -62,7 +62,7 @@ def _get_homestead_intrensic_gas(transaction):
     num_zero_bytes = transaction.data.count(b'\x00')
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes
     if transaction.to == CREATE_CONTRACT_ADDRESS:
-        create_cost = TX_CREATE
+        create_cost = GAS_TXCREATE
     else:
         create_cost = 0
     return (

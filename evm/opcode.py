@@ -1,4 +1,5 @@
 import functools
+import logging
 
 
 class Opcode(object):
@@ -12,11 +13,36 @@ class Opcode(object):
             raise TypeError("Opcode class {0} missing opcode gas_cost".format(type(self)))
 
     def __call__(self, computation):
+        """
+        Hook for performing the actual VM execution.
+        """
         raise NotImplementedError("Must be implemented by subclasses")
+
+    @property
+    def logger(self):
+        return logging.getLogger('evm.vm.logic.call.{0}'.format(self.mnemonic))
+
+    @classmethod
+    def configure(cls,
+                  name,
+                  **overrides):
+        """
+        Class factory method for simple inline subclassing.
+        """
+        for key in overrides:
+            if not hasattr(cls, key):
+                raise TypeError(
+                    "The Opcode.configure cannot set attributes that are not "
+                    "already present on the base class.  The attribute `{0}` was "
+                    "not found on the base class `{1}`".format(key, cls)
+                )
+        return type(name, (cls,), overrides)
 
     @classmethod
     def as_opcode(cls, logic_fn, mnemonic, gas_cost):
-
+        """
+        Class factory method for turning vanilla functions into Opcode classes.
+        """
         if gas_cost:
             @functools.wraps(logic_fn)
             def wrapped_logic_fn(computation):

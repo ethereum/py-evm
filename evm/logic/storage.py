@@ -1,5 +1,9 @@
 from evm import constants
 
+from evm.utils.hexidecimal import (
+    encode_hex,
+)
+
 
 def sstore(computation):
     slot, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
@@ -29,7 +33,7 @@ def sstore(computation):
         gas_cost = constants.GAS_SRESET
 
     computation.gas_meter.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2} ({3})".format(
-        computation.msg.storage_address,
+        encode_hex(computation.msg.storage_address),
         slot,
         value,
         current_value,
