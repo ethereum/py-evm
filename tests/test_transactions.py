@@ -69,7 +69,7 @@ FIXTURES = tuple(
 @pytest.mark.parametrize(
     'fixture_name,fixture', FIXTURES,
 )
-def test_transaction_class(fixture_name, fixture):
+def test_transaction_fixtures(fixture_name, fixture):
     EVM = MainnetEVM.get_evm_class_for_block_number(fixture['blocknumber'])
     TransactionClass = EVM.get_transaction_class()
 

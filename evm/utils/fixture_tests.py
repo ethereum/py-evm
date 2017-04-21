@@ -207,6 +207,61 @@ def normalize_transactiontest_fixture(fixture):
     return normalized_fixture
 
 
+def normalize_block_header(header):
+    normalized_header = {
+        'bloom': big_endian_to_int(decode_hex(header['bloom'])),
+        'coinbase': to_canonical_address(header['coinbase']),
+        'difficulty': to_int(header['difficulty']),
+        'extraData': decode_hex(header['extraData']),
+        'gasLimit': to_int(header['gasLimit']),
+        'gasUsed': to_int(header['gasUsed']),
+        'hash': decode_hex(header['hash']),
+        'mixHash': decode_hex(header['mixHash']),
+        'nonce': big_endian_to_int(decode_hex(header['nonce'])),
+        'number': to_int(header['number']),
+        'parentHash': decode_hex(header['parentHash']),
+        'receiptTrie': decode_hex(header['receiptTrie']),
+        'stateRoot': decode_hex(header['stateRoot']),
+        'timestamp': to_int(header['timestamp']),
+        'transactionsTrie': decode_hex(header['transactionsTrie']),
+        'uncleHash': decode_hex(header['uncleHash']),
+    }
+    if 'blocknumber' in header:
+        normalized_header['blocknumber'] = to_int(header['blocknumber'])
+    if 'chainname' in header:
+        normalized_header['chainname'] = header['chainname']
+    if 'chainnetwork' in header:
+        normalized_header['chainnetwork'] = header['chainnetwork']
+    return normalized_header
+
+
+def normalize_block(block):
+    normalized_block = {
+        'rlp': decode_hex(block['rlp']),
+    }
+    if 'blockHeader' in block:
+        normalized_block['blockHeader'] = normalize_block_header(block['blockHeader'])
+    if 'transactions' in block:
+        normalized_block['transactions'] = [
+            normalize_signed_transaction(transaction)
+            for transaction
+            in block['transactions']
+        ]
+    return normalized_block
+
+
+def normalize_blockchain_fixtures(fixture):
+    normalized_fixture = {
+        'blocks': [normalize_block(block_fixture) for block_fixture in fixture['blocks']],
+        'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
+        'genesisRLP': decode_hex(fixture['genesisRLP']),
+        'lastblockhash': decode_hex(fixture['lastblockhash']),
+        'pre': normalize_account_state(fixture['pre']),
+        'postState': normalize_account_state(fixture['postState']),
+    }
+    return normalized_fixture
+
+
 #
 # State Setup
 #

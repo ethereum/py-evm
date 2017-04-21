@@ -130,7 +130,7 @@ EVMForTesting = MetaEVM.configure(
 @pytest.mark.parametrize(
     'fixture_name,fixture', FIXTURES,
 )
-def test_vm_success_using_fixture(fixture_name, fixture):
+def test_vm_fixtures(fixture_name, fixture):
     db = MemoryDB()
     meta_evm = EVMForTesting(db=db)
     header = BlockHeader(

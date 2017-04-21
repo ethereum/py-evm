@@ -104,9 +104,7 @@ EVMForTesting = MetaEVM.configure(
 @pytest.mark.parametrize(
     'fixture_name,fixture', FIXTURES,
 )
-def test_vm_success_using_fixture(fixture_name, fixture):
-    db = MemoryDB()
-    meta_evm = EVMForTesting(db=db)
+def test_state_fixtures(fixture_name, fixture):
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -115,7 +113,9 @@ def test_vm_success_using_fixture(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    evm = meta_evm(header=header)
+    db = MemoryDB()
+    meta_evm = EVMForTesting(db=db, header=header)
+    evm = meta_evm.get_evm()
     block = evm.block
 
     setup_state_db(fixture['pre'], block.state_db)
