@@ -6,8 +6,8 @@ from evm.utils.secp256k1 import (
     encode_raw_public_key,
 )
 from evm.utils.ecdsa import (
-    encode_sig,
-    decode_sig,
+    encode_signature,
+    decode_signature,
     ecdsa_sign,
     ecdsa_raw_sign,
     ecdsa_verify,
@@ -58,8 +58,8 @@ def test_raw_verify():
 
 
 def test_signature_encoding_and_decoding():
-    signature = encode_sig(V, R, S)
-    v, r, s, = decode_sig(signature)
+    signature = encode_signature(V, R, S)
+    v, r, s, = decode_signature(signature)
     assert v == V
     assert r == R
     assert s == S
