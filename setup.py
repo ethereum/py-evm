@@ -24,7 +24,7 @@ setup(
     install_requires=[
         "ethereum-utils>=0.2.0",
         "rlp==0.4.7",
-        "trie>=0.2.3",
+        "trie>=0.2.4",
         "ethereum-bloom>=0.3.0",
     ],
     license="MIT",
