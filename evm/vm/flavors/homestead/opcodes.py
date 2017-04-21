@@ -1,7 +1,5 @@
 import copy
 
-from toolz import merge
-
 from evm import constants
 from evm import opcode_values
 from evm import mnemonics
@@ -27,8 +25,8 @@ UPDATED_OPCODES = {
 }
 
 
-HOMESTEAD_OPCODES = merge(
-    copy.deepcopy(FRONTIER_OPCODES),
-    UPDATED_OPCODES,
-    NEW_OPCODES,
-)
+HOMESTEAD_OPCODES = {
+    **copy.deepcopy(FRONTIER_OPCODES),
+    **UPDATED_OPCODES,
+    **NEW_OPCODES
+}

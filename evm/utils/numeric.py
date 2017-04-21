@@ -1,9 +1,6 @@
-import sys
+import functools
 import math
-
-from toolz import (
-    partial,
-)
+import sys
 
 from evm.constants import (
     UINT_255_MAX,
@@ -59,8 +56,8 @@ def ceilXX(value, ceiling):
         return value + ceiling - remainder
 
 
-ceil32 = partial(ceilXX, ceiling=32)
-ceil8 = partial(ceilXX, ceiling=8)
+ceil32 = functools.partial(ceilXX, ceiling=32)
+ceil8 = functools.partial(ceilXX, ceiling=8)
 
 
 def unsigned_to_signed(value):

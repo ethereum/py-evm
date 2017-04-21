@@ -1,6 +1,4 @@
-from toolz import (
-    partial,
-)
+import functools
 
 
 def pad_left(value, to_size, pad_with):
@@ -31,5 +29,5 @@ def pad_right(value, to_size, pad_with):
         return value
 
 
-pad32 = partial(pad_left, to_size=32, pad_with=b'\x00')
-pad32r = partial(pad_right, to_size=32, pad_with=b'\x00')
+pad32 = functools.partial(pad_left, to_size=32, pad_with=b'\x00')
+pad32r = functools.partial(pad_right, to_size=32, pad_with=b'\x00')

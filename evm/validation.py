@@ -1,8 +1,5 @@
+import functools
 import itertools
-
-from toolz import (
-    partial,
-)
 
 from evm.constants import (
     UINT_256_MAX,
@@ -75,7 +72,7 @@ def validate_is_boolean(value):
         raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
 
 
-validate_multiple_of_8 = partial(validate_multiple_of, multiple_of=8)
+validate_multiple_of_8 = functools.partial(validate_multiple_of, multiple_of=8)
 
 
 def validate_word(value):
@@ -102,7 +99,7 @@ def validate_stack_item(value):
     raise ValidationError("Invalid bytes or UINT256")
 
 
-validate_lt_secpk1n = partial(validate_lte, maximum=SECPK1_N - 1)
+validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
 
 
 def validate_evm_block_ranges(ranges):

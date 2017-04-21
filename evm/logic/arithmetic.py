@@ -1,7 +1,3 @@
-from toolz import (
-    map,
-)
-
 from evm import constants
 
 from evm.utils.numeric import (

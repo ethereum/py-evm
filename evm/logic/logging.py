@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from toolz import (
-    partial,
-)
+import functools
 
 from evm import constants
 
@@ -39,8 +37,8 @@ def log_XX(computation, topic_count):
     )
 
 
-log0 = partial(log_XX, topic_count=0)
-log1 = partial(log_XX, topic_count=1)
-log2 = partial(log_XX, topic_count=2)
-log3 = partial(log_XX, topic_count=3)
-log4 = partial(log_XX, topic_count=4)
+log0 = functools.partial(log_XX, topic_count=0)
+log1 = functools.partial(log_XX, topic_count=1)
+log2 = functools.partial(log_XX, topic_count=2)
+log3 = functools.partial(log_XX, topic_count=3)
+log4 = functools.partial(log_XX, topic_count=4)

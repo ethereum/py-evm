@@ -1,10 +1,14 @@
 import logging
+import pkg_resources
 import sys
 
 from evm.utils.logging import (
     trace,
     TRACE_LEVEL_NUM,
 )
+
+
+__version__ = pkg_resources.get_distribution("py-evm").version
 
 
 #
