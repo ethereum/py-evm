@@ -17,9 +17,6 @@ def validate_frontier_transaction(evm, transaction):
     if sender_balance < total_cost:
         raise InvalidTransaction("Sender account balance cannot afford txn")
 
-    if transaction.intrensic_gas > transaction.gas:
-        raise InvalidTransaction("Insufficient gas")
-
     if transaction.gas > evm.block.header.gas_limit:
         raise InvalidTransaction("Transaction exceeds gas limit")
 

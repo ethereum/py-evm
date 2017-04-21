@@ -6,7 +6,7 @@ from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
 from evm.validation import (
-    validate_lt_secpk1n,
+    validate_lt_secpk1n2,
 )
 
 from evm.vm.flavors.frontier.transactions import (
@@ -22,7 +22,7 @@ from evm.utils.transactions import (
 class HomesteadTransaction(FrontierTransaction):
     def validate(self):
         super(HomesteadTransaction, self).validate()
-        validate_lt_secpk1n(self.s * 2)
+        validate_lt_secpk1n2(self.s)
 
     def get_intrensic_gas(self):
         return _get_homestead_intrensic_gas(self)

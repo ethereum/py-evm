@@ -47,7 +47,7 @@ class BaseCall(Opcode):
         computation.gas_meter.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
-        sender_balance = computation.evm.block.state_db.get_balance(
+        sender_balance = computation.state_db.get_balance(
             computation.msg.storage_address,
         )
         insufficient_funds = should_transfer_value and sender_balance < value
@@ -74,9 +74,9 @@ class BaseCall(Opcode):
             computation.stack.push(0)
         else:
             if code_address:
-                code = computation.evm.block.state_db.get_code(code_address)
+                code = computation.state_db.get_code(code_address)
             else:
-                code = computation.evm.block.state_db.get_code(to)
+                code = computation.state_db.get_code(to)
 
             child_msg_kwargs = {
                 'gas': child_msg_gas,
@@ -114,7 +114,7 @@ class BaseCall(Opcode):
 
 class Call(BaseCall):
     def compute_msg_gas(self, computation, gas, to, value):
-        account_exists = computation.evm.block.state_db.account_exists(to)
+        account_exists = computation.state_db.account_exists(to)
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
 

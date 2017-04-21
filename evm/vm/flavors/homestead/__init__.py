@@ -52,7 +52,7 @@ def _apply_homestead_create_message(evm, message):
                         encode_hex(message.storage_address),
                         contract_code,
                     )
-                computation.evm.block.state_db.set_code(message.storage_address, contract_code)
+                computation.state_db.set_code(message.storage_address, contract_code)
         return computation
 
 

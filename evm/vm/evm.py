@@ -11,6 +11,8 @@ from evm.logic.invalid import (
 from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
+    ValidationError,
+    InvalidTransaction,
 )
 from evm.validation import (
     validate_evm_block_ranges,
@@ -48,6 +50,11 @@ def _apply_transaction(evm, transaction):
     #
 
     # Validate the transaction
+    try:
+        transaction.validate()
+    except ValidationError as err:
+        raise InvalidTransaction(str(err))
+
     evm.validate_transaction(transaction)
 
     gas_cost = transaction.gas * transaction.gas_price
@@ -119,7 +126,10 @@ def _apply_transaction(evm, transaction):
         if evm.logger:
             evm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
         coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
-        evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+        evm.block.state_db.set_balance(
+            evm.block.header.coinbase,
+            coinbase_balance + transaction_fee,
+        )
     else:
         # Suicide Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
@@ -153,7 +163,10 @@ def _apply_transaction(evm, transaction):
                 encode_hex(evm.block.header.coinbase),
             )
         coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
-        evm.block.state_db.set_balance(evm.block.header.coinbase, coinbase_balance + transaction_fee)
+        evm.block.state_db.set_balance(
+            evm.block.header.coinbase,
+            coinbase_balance + transaction_fee,
+        )
 
     # Suicides
     for account, beneficiary in computation.get_accounts_for_deletion():

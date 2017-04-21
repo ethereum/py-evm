@@ -94,6 +94,13 @@ class Computation(object):
         """
         return self.msg.is_origin
 
+    @property
+    def state_db(self):
+        """
+        Convenience access to the state database
+        """
+        return self.evm.block.state_db
+
     #
     # Execution
     #

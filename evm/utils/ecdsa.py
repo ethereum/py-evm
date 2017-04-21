@@ -13,6 +13,9 @@ from evm.constants import (
     SECPK1_A as A,
     SECPK1_B as B,
 )
+from evm.exceptions import (
+    InvalidSignature,
+)
 
 from .address import (
     public_key_to_address,
@@ -50,8 +53,12 @@ def encode_signature(v, r, s):
 
 
 def decode_signature(signature):
-    assert isinstance(signature, bytes)
-    assert len(signature) == 65
+    if not isinstance(signature, bytes):
+        raise TypeError("signature parameter must be bytes")
+    if not len(signature) == 65:
+        raise InvalidSignature(
+            "signature must be exactly 65 bytes in length: got {0}".format(len(signature))
+        )
 
     rb = signature[1:33]
     sb = signature[33:65]
@@ -64,8 +71,11 @@ def decode_signature(signature):
 
 
 def deterministic_generate_k(msg_hash, private_key, digest_fn=hashlib.sha256):
-    assert isinstance(msg_hash, bytes)
-    assert isinstance(private_key, bytes)
+    if not isinstance(msg_hash, bytes):
+        raise TypeError("msg_hash parameter must be bytes")
+    if not isinstance(private_key, bytes):
+        raise TypeError("private_key parameter must be bytes")
+
     v_0 = b'\x01' * 32
     k_0 = b'\x00' * 32
 
@@ -80,8 +90,10 @@ def deterministic_generate_k(msg_hash, private_key, digest_fn=hashlib.sha256):
 
 
 def ecdsa_raw_sign(msg_hash, private_key):
-    assert isinstance(msg_hash, bytes)
-    assert isinstance(private_key, bytes)
+    if not isinstance(msg_hash, bytes):
+        raise TypeError("msg_hash parameter must be bytes")
+    if not isinstance(private_key, bytes):
+        raise TypeError("private_key parameter must be bytes")
 
     z = big_endian_to_int(msg_hash)
     k = deterministic_generate_k(msg_hash, private_key)
@@ -96,25 +108,29 @@ def ecdsa_raw_sign(msg_hash, private_key):
 
 
 def ecdsa_sign(msg, private_key):
-    assert isinstance(msg, bytes)
-    assert isinstance(private_key, bytes)
+    if not isinstance(msg, bytes):
+        raise TypeError("msg parameter must be bytes")
+    if not isinstance(private_key, bytes):
+        raise TypeError("private_key parameter must be bytes")
 
     v, r, s = ecdsa_raw_sign(keccak(msg), private_key)
     signature = encode_signature(v, r, s)
     if not ecdsa_verify(msg, signature, private_key_to_public_key(private_key)):
-        raise ValueError(
+        raise InvalidSignature(
             "Bad Signature: {0}\nv = {1}\nr = {2}\ns = {3}".format(signature, v, r, s)
         )
     return signature
 
 
 def ecdsa_raw_verify(msg_hash, vrs, public_key):
-    assert isinstance(msg_hash, bytes)
-    assert isinstance(public_key, bytes)
+    if not isinstance(msg_hash, bytes):
+        raise TypeError("msg_hash parameter must be bytes")
+    if not isinstance(public_key, bytes):
+        raise TypeError("public_key parameter must be bytes")
 
     v, r, s = vrs
     if not (27 <= v <= 34):
-        raise ValueError("Invalid Signature")
+        raise InvalidSignature("Invalid Signature")
 
     w = inv(s, N)
     z = big_endian_to_int(msg_hash)
@@ -128,9 +144,12 @@ def ecdsa_raw_verify(msg_hash, vrs, public_key):
 
 
 def ecdsa_verify_address(msg, signature, address):
-    assert isinstance(msg, bytes)
-    assert isinstance(signature, bytes)
-    assert isinstance(address, bytes)
+    if not isinstance(msg, bytes):
+        raise TypeError("msg parameter must be bytes")
+    if not isinstance(signature, bytes):
+        raise TypeError("signature parameter must be bytes")
+    if not isinstance(address, bytes) or len(address) != 20:
+        raise TypeError("address must be bytes of length 20")
 
     public_key = ecdsa_recover(msg, signature)
     recovered_address = public_key_to_address(public_key)
@@ -138,20 +157,24 @@ def ecdsa_verify_address(msg, signature, address):
 
 
 def ecdsa_verify(msg, signature, public_key):
-    assert isinstance(msg, bytes)
-    assert isinstance(signature, bytes)
-    assert isinstance(public_key, bytes)
+    if not isinstance(msg, bytes):
+        raise TypeError("msg parameter must be bytes")
+    if not isinstance(signature, bytes):
+        raise TypeError("signature parameter must be bytes")
+    if not isinstance(public_key, bytes):
+        raise TypeError("public_key parameter must be bytes")
 
     return ecdsa_raw_verify(keccak(msg), decode_signature(signature), public_key)
 
 
 def ecdsa_raw_recover(msg_hash, vrs):
-    assert isinstance(msg_hash, bytes)
+    if not isinstance(msg_hash, bytes):
+        raise TypeError("msg_hash parameter must be bytes")
 
     v, r, s = vrs
 
     if not (27 <= v <= 34):
-        raise ValueError("%d must in range 27-31" % v)
+        raise InvalidSignature("%d must in range 27-31" % v)
 
     x = r
 
@@ -161,7 +184,7 @@ def ecdsa_raw_recover(msg_hash, vrs):
     # If xcubedaxb is not a quadratic residue, then r cannot be the x coord
     # for a point on the curve, and so the sig is invalid
     if (xcubedaxb - y * y) % P != 0 or not (r % N) or not (s % N):
-        raise ValueError("Invalid signature")
+        raise InvalidSignature("Invalid signature")
     z = big_endian_to_int(msg_hash)
     Gz = jacobian_multiply((Gx, Gy, 1), (N - z) % N)
     XY = jacobian_multiply((x, y, 1), s)
@@ -173,8 +196,10 @@ def ecdsa_raw_recover(msg_hash, vrs):
 
 
 def ecdsa_recover(msg, signature):
-    assert isinstance(msg, bytes)
-    assert isinstance(signature, bytes)
+    if not isinstance(msg, bytes):
+        raise TypeError("msg parameter must be bytes")
+    if not isinstance(signature, bytes):
+        raise TypeError("signature parameter must be bytes")
 
     v, r, s = decode_signature(signature)
     raw_public_key = ecdsa_raw_recover(keccak(msg), (v, r, s))

@@ -100,6 +100,7 @@ def validate_stack_item(value):
 
 
 validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
+validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
 
 
 def validate_evm_block_ranges(ranges):

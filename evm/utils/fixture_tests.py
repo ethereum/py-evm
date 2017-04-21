@@ -6,6 +6,8 @@ from eth_utils import (
     is_0x_prefixed,
     to_canonical_address,
     decode_hex,
+    remove_0x_prefix,
+    pad_left,
 )
 
 from evm.constants import (
@@ -167,15 +169,23 @@ def normalize_vmtest_fixture(fixture):
     return normalized_fixture
 
 
+def robust_decode_hex(value):
+    unprefixed_value = remove_0x_prefix(value)
+    if len(unprefixed_value) % 2:
+        return decode_hex(pad_left(unprefixed_value, len(unprefixed_value) + 1, b'0'))
+    else:
+        return decode_hex(unprefixed_value)
+
+
 def normalize_signed_transaction(transaction):
     return {
-        'data': decode_hex(transaction['data']),
+        'data': robust_decode_hex(transaction['data']),
         'gasLimit': to_int(transaction['gasLimit']),
         'gasPrice': to_int(transaction['gasPrice']),
         'nonce': to_int(transaction['nonce']),
         'r': to_int(transaction['r']),
-        's': to_int(transaction['r']),
-        'v': to_int(transaction['r']),
+        's': to_int(transaction['s']),
+        'v': to_int(transaction['v']),
         'to': decode_hex(transaction['to']),
         'value': to_int(transaction['value']),
     }
@@ -188,8 +198,10 @@ def normalize_transactiontest_fixture(fixture):
     }
 
     if "sender" in fixture:
-        normalized_fixture["transaction"] = normalize_signed_transaction(fixture['transaction'])
-        normalized_fixture['sender'] = to_canonical_address(fixture['sender'])
+        # intentionally not normalized.
+        normalized_fixture["transaction"] = fixture['transaction']
+        # intentionally not normalized.
+        normalized_fixture['sender'] = fixture['sender']
         normalized_fixture['hash'] = decode_hex(fixture['hash'])
 
     return normalized_fixture

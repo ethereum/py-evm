@@ -8,7 +8,7 @@ from evm.utils.hexidecimal import (
 def sstore(computation):
     slot, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
-    current_value = computation.evm.block.state_db.get_storage(
+    current_value = computation.state_db.get_storage(
         address=computation.msg.storage_address,
         slot=slot,
     )
@@ -42,7 +42,7 @@ def sstore(computation):
     if gas_refund:
         computation.gas_meter.refund_gas(gas_refund)
 
-    computation.evm.block.state_db.set_storage(
+    computation.state_db.set_storage(
         address=computation.msg.storage_address,
         slot=slot,
         value=value,
@@ -52,7 +52,7 @@ def sstore(computation):
 def sload(computation):
     slot = computation.stack.pop(type_hint=constants.UINT256)
 
-    value = computation.evm.block.state_db.get_storage(
+    value = computation.state_db.get_storage(
         address=computation.msg.storage_address,
         slot=slot,
     )

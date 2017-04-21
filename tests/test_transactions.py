@@ -2,6 +2,10 @@ import pytest
 
 import rlp
 
+from eth_utils import (
+    to_canonical_address,
+)
+
 import json
 import os
 
@@ -15,6 +19,8 @@ from eth_utils import (
 
 from evm.exceptions import (
     InvalidTransaction,
+    ValidationError,
+    InvalidSignature,
 )
 from evm.vm.flavors import (
     MainnetEVM,
@@ -23,6 +29,7 @@ from evm.vm.flavors import (
 from evm.utils.fixture_tests import (
     recursive_find_files,
     normalize_transactiontest_fixture,
+    normalize_signed_transaction,
 )
 
 
@@ -56,14 +63,43 @@ FIXTURES = tuple(
     )
     for fixture_filename, fixtures in RAW_FIXTURES
     for key in sorted(fixtures.keys())
-    if 'post' in fixtures[key]
 )
 
 
 @pytest.mark.parametrize(
     'fixture_name,fixture', FIXTURES,
 )
-def test_vm_success_using_fixture(fixture_name, fixture):
+def test_transaction_class(fixture_name, fixture):
     EVM = MainnetEVM.get_evm_class_for_block_number(fixture['blocknumber'])
+    TransactionClass = EVM.get_transaction_class()
 
-    assert False, "TODO"
+    if 'sender' in fixture:
+        transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)
+        expected = normalize_signed_transaction(fixture['transaction'])
+
+        assert transaction.nonce == expected['nonce']
+        assert transaction.gas_price == expected['gasPrice']
+        assert transaction.gas == expected['gasLimit']
+        assert transaction.to == expected['to']
+        assert transaction.value == expected['value']
+        assert transaction.data == expected['data']
+        assert transaction.v == expected['v']
+        assert transaction.r == expected['r']
+        assert transaction.s == expected['s']
+
+        sender = to_canonical_address(fixture['sender'])
+
+        assert transaction.sender == sender
+        assert transaction.hash == fixture['hash']
+    else:
+        # check RLP correctness
+        try:
+            transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)
+        except rlp.exceptions.ObjectDeserializationError:
+            return
+
+        # check parameter correctness
+        try:
+            transaction.validate()
+        except ValidationError:
+            return

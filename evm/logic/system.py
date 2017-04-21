@@ -18,18 +18,18 @@ def return_op(computation):
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
 
-    local_balance = computation.evm.block.state_db.get_balance(computation.msg.storage_address)
-    beneficiary_balance = computation.evm.block.state_db.get_balance(beneficiary)
+    local_balance = computation.state_db.get_balance(computation.msg.storage_address)
+    beneficiary_balance = computation.state_db.get_balance(beneficiary)
 
     # 1st: Transfer to beneficiary
-    computation.evm.block.state_db.set_balance(
+    computation.state_db.set_balance(
         beneficiary,
         local_balance + beneficiary_balance,
     )
     # 2nd: Zero the balance of the address being deleted (must come after
     # sending to beneficiary in case the contract named itself as the
     # beneficiary.
-    computation.evm.block.state_db.set_balance(computation.msg.storage_address, 0)
+    computation.state_db.set_balance(computation.msg.storage_address, 0)
 
     # 3rd: Register the account to be deleted
     computation.register_account_for_deletion(computation.msg.storage_address)
@@ -43,7 +43,7 @@ def create(computation):
 
     computation.extend_memory(start_position, size)
 
-    insufficient_funds = computation.evm.block.state_db.get_balance(computation.msg.storage_address) < value
+    insufficient_funds = computation.state_db.get_balance(computation.msg.storage_address) < value
     stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
     if insufficient_funds or stack_too_deep:
@@ -55,7 +55,7 @@ def create(computation):
     create_msg_gas = computation.gas_meter.gas_remaining
     computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-    creation_nonce = computation.evm.block.state_db.get_nonce(computation.msg.storage_address)
+    creation_nonce = computation.state_db.get_nonce(computation.msg.storage_address)
     contract_address = generate_contract_address(computation.msg.storage_address, creation_nonce)
 
     child_msg = computation.prepare_child_message(
