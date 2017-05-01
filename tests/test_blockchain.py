@@ -98,6 +98,9 @@ def test_blockchain_fixtures(fixture_name, fixture):
     db = MemoryDB()
     meta_evm = MainnetEVM(db=db, header=genesis_header)
 
+    # seal the genesis block
+    meta_evm.finalize_block()
+
     # 1 - seal the genesis block
     # 2 - initialize a new header and open block
     # 3 - apply the transactions in the block.

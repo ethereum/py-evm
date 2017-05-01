@@ -126,9 +126,9 @@ class BaseEVM(object):
             db=cls.db,
         )
 
-    @classmethod
-    def finalize_block(cls):
-        raise NotImplementedError("TODO")
+    def finalize_block(self, uncles=None):
+        sealed_block = self.block.seal(uncles=uncles)
+        return sealed_block
 
     #
     # EVM level DB operations.
@@ -231,9 +231,30 @@ class MetaEVM(object):
     # Wrapper API around inner EVM classes
     #
     def apply_transaction(self, transaction):
-        evm_class = self.get_evm_class_for_block_number(self.header.block_number)
-        evm = evm_class(self.db, self.header)
+        """
+        evm = MetaEVM(db=db, header=header)
+        evm_b = evm.apply_transaction(txn_a)
+        evm_c = evm_b.apply_transaction(txn_b)
+        """
+        evm = self.get_evm()
+        if evm.block.is_sealed:
+            # TODO: what to do here? The current header/block is *sealed* and
+            # we don't have an open block to apply transactions to....
+            raise Exception("What to do when the block is sealed??")
         computation = evm.block.apply_transaction(evm, transaction)
         # icky mutation...
         self.header = evm.block.header
         return computation
+
+    def finalize_block(self, uncles=None):
+        evm = self.get_evm()
+        sealed_block = evm.finalize_block(uncles=uncles)
+        # icky mutation....
+        self.header = BlockHeader.from_parent(sealed_block.header)
+        return sealed_block
+
+    def import_block(self, header, uncles=None):
+        """
+        1. Finalize current block if not finalized.
+        2. Update local header to new header.
+        """

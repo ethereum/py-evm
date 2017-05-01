@@ -132,7 +132,6 @@ EVMForTesting = MetaEVM.configure(
 )
 def test_vm_fixtures(fixture_name, fixture):
     db = MemoryDB()
-    meta_evm = EVMForTesting(db=db)
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -140,7 +139,8 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    evm = meta_evm(header)
+    meta_evm = EVMForTesting(db=db, header=header)
+    evm = meta_evm.get_evm()
     setup_state_db(fixture['pre'], evm.block.state_db)
 
     message = Message(

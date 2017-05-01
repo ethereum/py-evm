@@ -1,3 +1,5 @@
+import time
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -10,6 +12,10 @@ from evm.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
+)
+
+from evm.utils.keccak import (
+    keccak,
 )
 
 from .sedes import (
@@ -72,3 +78,29 @@ class BlockHeader(rlp.Serializable):
             mix_hash=mix_hash,
             nonce=nonce,
         )
+
+    @property
+    def hash(self):
+        return keccak(rlp.encode(self))
+
+    @classmethod
+    def from_parent(cls, parent, coinbase, timestamp=None, nonce=None, extra_data=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        kwargs = {
+            'parent_hash': parent.hash,
+            'coinbase': coinbase,
+            'state_root': parent.state_root,
+            'gas_limit': parent.gas_limit,  # TODO: compute gas_limit
+            'difficulty': parent.difficulty,  # TODO: compute difficulty
+            'block_number': parent.block_number + 1,
+            'timestamp': timestamp,
+        }
+        if nonce is not None:
+            kwargs['nonce'] = nonce
+        if extra_data is not None:
+            kwargs['extra_data'] = extra_data
+
+        header = cls(**kwargs)
+        return header

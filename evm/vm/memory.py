@@ -48,11 +48,14 @@ class Memory(object):
             validate_length(value, length=size)
             validate_lte(start_position + size, maximum=len(self))
 
-            self.bytes = (
-                self.bytes[:start_position] +
-                bytearray(value) +
-                self.bytes[start_position + size:]
-            )
+            if len(self.bytes) < start_position + size:
+                self.bytes.extend(itertools.repeat(
+                    0,
+                    len(self.bytes) - (start_position + size),
+                ))
+
+            for idx, v in enumerate(value):
+                self.bytes[start_position + idx] = v
 
     def read(self, start_position, size):
         """

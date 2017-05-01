@@ -75,7 +75,7 @@ class OpenFrontierBlock(BaseFrontierBlock, OpenBlock):
 
     @property
     def transactions(self):
-        return list(self._get_transaction())
+        return list(self._get_transactions())
 
     def _get_transactions(self):
         """
