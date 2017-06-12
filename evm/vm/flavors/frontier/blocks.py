@@ -23,8 +23,8 @@ from evm.rlp.receipts import (
     Receipt,
 )
 from evm.rlp.blocks import (
-    OpenBlock,
-    SealedBlock,
+    BaseOpenBlock,
+    BaseSealedBlock,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -43,11 +43,11 @@ class BaseFrontierBlock(object):
     ]
 
 
-class SealedFrontierBlock(BaseFrontierBlock, SealedBlock):
+class SealedFrontierBlock(BaseFrontierBlock, BaseSealedBlock):
     pass
 
 
-class OpenFrontierBlock(BaseFrontierBlock, OpenBlock):
+class OpenFrontierBlock(BaseFrontierBlock, BaseOpenBlock):
     bloom = None
 
     def __init__(self, header, db=None):
@@ -113,7 +113,7 @@ class OpenFrontierBlock(BaseFrontierBlock, OpenBlock):
         Note return value of this function can be cached based on
         `self.receipt_db.root_hash`
         """
-        return sum(receipt.gas_used for receipt in self.receipts),
+        return sum(receipt.gas_used for receipt in self.receipts)
 
     @property
     def header(self):

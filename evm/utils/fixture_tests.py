@@ -217,7 +217,7 @@ def normalize_block_header(header):
         'gasUsed': to_int(header['gasUsed']),
         'hash': decode_hex(header['hash']),
         'mixHash': decode_hex(header['mixHash']),
-        'nonce': big_endian_to_int(decode_hex(header['nonce'])),
+        'nonce': decode_hex(header['nonce']),
         'number': to_int(header['number']),
         'parentHash': decode_hex(header['parentHash']),
         'receiptTrie': decode_hex(header['receiptTrie']),

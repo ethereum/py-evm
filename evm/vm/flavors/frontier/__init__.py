@@ -179,7 +179,7 @@ def _apply_transaction(evm, transaction):
     return computation
 
 
-def _apply_message(evm, message):
+def _apply_frontier_message(evm, message):
     snapshot = evm.snapshot()
 
     if message.depth > constants.STACK_DEPTH_LIMIT:
@@ -218,7 +218,7 @@ def _apply_message(evm, message):
     return computation
 
 
-def _apply_computation(evm, message):
+def _apply_frontier_computation(evm, message):
     computation = Computation(evm, message)
 
     with computation:
@@ -288,6 +288,6 @@ FrontierEVM = BaseEVM.configure(
     validate_transaction=validate_frontier_transaction,
     apply_create_message=_apply_frontier_create_message,
     apply_transaction=_apply_transaction,
-    apply_message=_apply_message,
-    apply_computation=_apply_computation,
+    apply_message=_apply_frontier_message,
+    apply_computation=_apply_frontier_computation,
 )

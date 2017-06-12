@@ -7,6 +7,10 @@ from evm.validation import (
     validate_evm_block_ranges,
 )
 
+from evm.rlp.headers import (
+    BlockHeader,
+)
+
 from evm.utils.ranges import (
     range_sort_fn,
     find_range,
@@ -228,29 +232,56 @@ class MetaEVM(object):
         return evm
 
     #
+    # Initialization
+    #
+    @classmethod
+    def from_genesis(cls,
+                     db,
+                     genesis_header_params,
+                     genesis_state=None):
+        genesis_header = BlockHeader(**genesis_header_params)
+        meta_evm = cls(db=db, header=genesis_header)
+        evm = meta_evm.get_evm()
+
+        if genesis_state is None:
+            genesis_state = {}
+
+        for account, account_data in genesis_state.items():
+            evm.block.state_db.set_balance(account, account_data['balance'])
+            evm.block.state_db.set_nonce(account, account_data['nonce'])
+            evm.block.state_db.set_code(account, account_data['code'])
+
+            for slot, value in account_data['storage']:
+                evm.block.state_db.set_storage(account, slot, value)
+
+        meta_evm.header.state_root = evm.block.state_db.state.root_hash
+
+        return meta_evm
+
+    #
     # Wrapper API around inner EVM classes
     #
-    def apply_transaction(self, transaction):
-        """
-        evm = MetaEVM(db=db, header=header)
-        evm_b = evm.apply_transaction(txn_a)
-        evm_c = evm_b.apply_transaction(txn_b)
-        """
+    def apply_transaction(self, txn_args=None, txn_kwargs=None):
+        if txn_args is None:
+            txn_args = tuple()
+        if txn_kwargs is None:
+            txn_kwargs = {}
         evm = self.get_evm()
-        if evm.block.is_sealed:
-            # TODO: what to do here? The current header/block is *sealed* and
-            # we don't have an open block to apply transactions to....
-            raise Exception("What to do when the block is sealed??")
+        transaction = evm.create_transaction(*txn_args, **txn_kwargs)
         computation = evm.block.apply_transaction(evm, transaction)
         # icky mutation...
         self.header = evm.block.header
         return computation
 
+    #
+    # Block API
+    #
     def finalize_block(self, uncles=None):
         evm = self.get_evm()
         sealed_block = evm.finalize_block(uncles=uncles)
         # icky mutation....
         self.header = BlockHeader.from_parent(sealed_block.header)
+        # TODO: serialize and store?
         return sealed_block
 
     def import_block(self, header, uncles=None):
@@ -258,3 +289,7 @@ class MetaEVM(object):
         1. Finalize current block if not finalized.
         2. Update local header to new header.
         """
+        if header.parent_hash != self.header.hash:
+            raise Exception("Bad Mojo")
+        self.header = header
+        evm = self.get_evm()

@@ -8,6 +8,7 @@ from rlp.sedes import (
 )
 
 from evm.constants import (
+    ZERO_ADDRESS,
     ZERO_HASH32,
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
@@ -84,7 +85,16 @@ class BlockHeader(rlp.Serializable):
         return keccak(rlp.encode(self))
 
     @classmethod
-    def from_parent(cls, parent, coinbase, timestamp=None, nonce=None, extra_data=None):
+    def from_parent(cls,
+                    parent,
+                    coinbase=ZERO_ADDRESS,
+                    timestamp=None,
+                    nonce=None,
+                    extra_data=None):
+        """
+        Initialize a new block header with the `parent` header as the block's
+        parent hash.
+        """
         if timestamp is None:
             timestamp = int(time.time())
 

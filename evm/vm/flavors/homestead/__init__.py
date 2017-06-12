@@ -1,5 +1,3 @@
-from evm.vm import BaseEVM
-
 from evm import constants
 from evm.exceptions import (
     OutOfGas,
@@ -8,6 +6,8 @@ from evm.exceptions import (
 from evm.utils.hexidecimal import (
     encode_hex,
 )
+
+from ..frontier import FrontierEVM
 
 from .opcodes import HOMESTEAD_OPCODES
 from .blocks import OpenHomesteadBlock
@@ -55,7 +55,7 @@ def _apply_homestead_create_message(evm, message):
         return computation
 
 
-HomesteadEVM = BaseEVM.configure(
+HomesteadEVM = FrontierEVM.configure(
     name='HomesteadEVM',
     opcodes=HOMESTEAD_OPCODES,
     block_class=OpenHomesteadBlock,

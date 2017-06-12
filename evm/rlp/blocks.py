@@ -7,7 +7,7 @@ class BaseBlock(rlp.Serializable):
         return not self.is_open
 
 
-class OpenBlock(BaseBlock):
+class BaseOpenBlock(BaseBlock):
     is_open = True
 
     transaction_class = None
@@ -27,5 +27,5 @@ class OpenBlock(BaseBlock):
         return cls.sealed_block_class
 
 
-class SealedBlock(BaseBlock):
+class BaseSealedBlock(BaseBlock):
     is_open = False
