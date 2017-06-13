@@ -10,7 +10,7 @@ from evm.utils.hexidecimal import (
 from ..frontier import FrontierEVM
 
 from .opcodes import HOMESTEAD_OPCODES
-from .blocks import OpenHomesteadBlock
+from .blocks import HomesteadBlock
 from .validation import validate_homestead_transaction
 
 
@@ -58,7 +58,7 @@ def _apply_homestead_create_message(evm, message):
 HomesteadEVM = FrontierEVM.configure(
     name='HomesteadEVM',
     opcodes=HOMESTEAD_OPCODES,
-    block_class=OpenHomesteadBlock,
+    block_class=HomesteadBlock,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     apply_create_message=_apply_homestead_create_message,

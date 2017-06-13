@@ -1,16 +1,10 @@
 from evm.vm.flavors.frontier.blocks import (
-    OpenFrontierBlock,
-    SealedFrontierBlock,
+    FrontierBlock,
 )
 from .transactions import (
     HomesteadTransaction,
 )
 
 
-class SealedHomesteadBlock(SealedFrontierBlock):
-    pass
-
-
-class OpenHomesteadBlock(OpenFrontierBlock):
+class HomesteadBlock(FrontierBlock):
     transaction_class = HomesteadTransaction
-    sealed_block_class = SealedHomesteadBlock

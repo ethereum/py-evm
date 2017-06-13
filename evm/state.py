@@ -30,39 +30,35 @@ from evm.utils.padding import (
 )
 
 
-class StateTrie(object):
-    trie = None
+class HashTrie(object):
+    _trie = None
 
-    logger = logging.getLogger('evm.state.StateTrie')
+    logger = logging.getLogger('evm.state.HashTrie')
 
     def __init__(self, trie):
-        self.trie = trie
+        self._trie = trie
 
     def __setitem__(self, key, value):
-        self._set(key, value)
-
-    def _set(self, key, value):
-        # TODO: remove, for debug purposes.
-        self.trie[keccak(key)] = value
+        self._trie[keccak(key)] = value
 
     def __getitem__(self, key):
-        return self.trie[keccak(key)]
+        return self._trie[keccak(key)]
 
     def __delitem__(self, key):
-        del self.trie[keccak(key)]
+        del self._trie[keccak(key)]
 
     def __contains__(self, key):
-        return keccak(key) in self.trie
+        return keccak(key) in self._trie
 
     @property
     def root_hash(self):
-        return self.trie.root_hash
+        return self._trie.root_hash
 
     def snapshot(self):
-        return self.trie.snapshot()
+        return self._trie.snapshot()
 
     def revert(self, snapshot):
-        return self.trie.revert(snapshot)
+        return self._trie.revert(snapshot)
 
 
 class State(object):
@@ -70,24 +66,28 @@ class State(object):
     High level API around account storage.
     """
     db = None
-    state = None
+    _trie = None
 
     logger = logging.getLogger('evm.state.State')
 
-    def __init__(self, db, root_hash):
+    def __init__(self, db, root_hash=BLANK_ROOT_HASH):
         self.db = db
-        self.state = StateTrie(Trie(db, root_hash))
+        self._trie = HashTrie(Trie(db, root_hash))
 
     #
     # Base API
     #
+    @property
+    def state_root(self):
+        return self._trie.root_hash
+
     def set_storage(self, address, slot, value):
         validate_uint256(value)
         validate_uint256(slot)
         validate_canonical_address(address)
 
         account = self._get_account(address)
-        storage = StateTrie(Trie(self.db, account.storage_root))
+        storage = HashTrie(Trie(self.db, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
@@ -105,7 +105,7 @@ class State(object):
         validate_uint256(slot)
 
         account = self._get_account(address)
-        storage = StateTrie(Trie(self.db, account.storage_root))
+        storage = HashTrie(Trie(self.db, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
@@ -181,11 +181,11 @@ class State(object):
     # Account Methods
     #
     def delete_account(self, address):
-        del self.state[address]
+        del self._trie[address]
 
     def account_exists(self, address):
         validate_canonical_address(address)
-        return bool(self.state[address])
+        return bool(self._trie[address])
 
     def touch_account(self, address):
         account = self._get_account(address)
@@ -199,21 +199,21 @@ class State(object):
     # Internal
     #
     def snapshot(self):
-        return self.state.snapshot()
+        return self._trie.snapshot()
 
     def revert(self, snapshot):
-        return self.state.revert(snapshot)
+        return self._trie.revert(snapshot)
 
     #
     # Internal
     #
     def _get_account(self, address):
-        if address in self.state:
-            account = rlp.decode(self.state[address], sedes=Account)
+        if address in self._trie:
+            account = rlp.decode(self._trie[address], sedes=Account)
             account._mutable = True
         else:
             account = Account()
         return account
 
     def _set_account(self, address, account):
-        self.state[address] = rlp.encode(account, sedes=Account)
+        self._trie[address] = rlp.encode(account, sedes=Account)

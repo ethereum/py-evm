@@ -3,6 +3,9 @@ import logging
 from evm.logic.invalid import (
     InvalidOpcode,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 from evm.validation import (
     validate_evm_block_ranges,
 )
@@ -15,6 +18,8 @@ from evm.utils.ranges import (
     range_sort_fn,
     find_range,
 )
+
+from evm.state import State
 
 
 class BaseEVM(object):
@@ -119,20 +124,9 @@ class BaseEVM(object):
 
         return cls.block_class
 
-    @classmethod
-    def initialize_block(cls, header):
-        """
-        Return the class that this EVM uses for transactions.
-        """
-        block_class = cls.get_block_class()
-        return block_class(
-            header=header,
-            db=cls.db,
-        )
-
-    def finalize_block(self, uncles=None):
-        sealed_block = self.block.seal(uncles=uncles)
-        return sealed_block
+    def mine_block(self, *args, **kwargs):
+        block = self.block.mine(*args, **kwargs)
+        return block
 
     #
     # EVM level DB operations.
@@ -198,12 +192,12 @@ class MetaEVM(object):
         if not evm_block_ranges:
             raise TypeError("MetaEVM requires at least one set of EVM rules")
 
+        # Validate that the block range does not have any gaps or overlaps
         if len(evm_block_ranges) == 1:
             # edge case for a single range.
             ranges = [evm_block_ranges[0][0]]
-            evms = [evm_block_ranges[0][1]]
         else:
-            raw_ranges, evms = zip(*evm_block_ranges)
+            raw_ranges, _ = zip(*evm_block_ranges)
             ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
 
         validate_evm_block_ranges(ranges)
@@ -222,12 +216,21 @@ class MetaEVM(object):
 
     @classmethod
     def get_evm_class_for_block_number(self, block_number):
+        """
+        Return the evm class for the given block number.
+        """
         range = find_range(self.ranges, block_number)
         evm_class = self.evms[range]
         return evm_class
 
-    def get_evm(self):
-        evm_class = self.get_evm_class_for_block_number(self.header.block_number)
+    def get_evm(self, block_number=None):
+        """
+        Return the evm instance for the given block number.
+        """
+        if block_number is None:
+            block_number = self.header.block_number
+
+        evm_class = self.get_evm_class_for_block_number(block_number)
         evm = evm_class(header=self.header, db=self.db)
         return evm
 
@@ -241,20 +244,29 @@ class MetaEVM(object):
                      genesis_state=None):
         genesis_header = BlockHeader(**genesis_header_params)
         meta_evm = cls(db=db, header=genesis_header)
-        evm = meta_evm.get_evm()
+
+        state_db = State(db)
 
         if genesis_state is None:
             genesis_state = {}
 
         for account, account_data in genesis_state.items():
-            evm.block.state_db.set_balance(account, account_data['balance'])
-            evm.block.state_db.set_nonce(account, account_data['nonce'])
-            evm.block.state_db.set_code(account, account_data['code'])
+            state_db.set_balance(account, account_data['balance'])
+            state_db.set_nonce(account, account_data['nonce'])
+            state_db.set_code(account, account_data['code'])
 
             for slot, value in account_data['storage']:
-                evm.block.state_db.set_storage(account, slot, value)
+                state_db.set_storage(account, slot, value)
 
-        meta_evm.header.state_root = evm.block.state_db.state.root_hash
+        genesis_block = meta_evm.mine_block()
+        if genesis_block.header.state_root != state_db.state_root:
+            raise ValidationError(
+                "The provided genesis state root does not match the computed "
+                "genesis state root.  Got {0}.  Expected {1}".format(
+                    state_db.state_root,
+                    genesis_block.header.state_root,
+                )
+            )
 
         return meta_evm
 
@@ -276,20 +288,9 @@ class MetaEVM(object):
     #
     # Block API
     #
-    def finalize_block(self, uncles=None):
+    def mine_block(self, *args, **kwargs):
         evm = self.get_evm()
-        sealed_block = evm.finalize_block(uncles=uncles)
-        # icky mutation....
-        self.header = BlockHeader.from_parent(sealed_block.header)
-        # TODO: serialize and store?
-        return sealed_block
-
-    def import_block(self, header, uncles=None):
-        """
-        1. Finalize current block if not finalized.
-        2. Update local header to new header.
-        """
-        if header.parent_hash != self.header.hash:
-            raise Exception("Bad Mojo")
-        self.header = header
-        evm = self.get_evm()
+        block = evm.mine_block(*args, **kwargs)
+        self.header = BlockHeader.from_parent(block.header)
+        # TODO: serialize and store
+        return block

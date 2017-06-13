@@ -87,7 +87,7 @@ def normalize_logs(logs):
     return [
         {
             'address': to_canonical_address(log_entry['address']),
-            'topics': [decode_hex(topic) for topic in log_entry['topics']],
+            'topics': [to_int(topic) for topic in log_entry['topics']],
             'data': decode_hex(log_entry['data']),
             'bloom': decode_hex(log_entry['bloom']),
         } for log_entry in logs

@@ -28,7 +28,7 @@ from evm.utils.hexidecimal import (
 )
 
 from .opcodes import FRONTIER_OPCODES
-from .blocks import OpenFrontierBlock
+from .blocks import FrontierBlock
 from .validation import validate_frontier_transaction
 
 
@@ -39,7 +39,7 @@ BREAK_OPCODES = {
 }
 
 
-def _apply_transaction(evm, transaction):
+def _apply_frontier_transaction(evm, transaction):
     #
     # 1) Pre Computation
     #
@@ -283,11 +283,11 @@ def _apply_frontier_create_message(evm, message):
 FrontierEVM = BaseEVM.configure(
     name='FrontierEVM',
     opcodes=FRONTIER_OPCODES,
-    block_class=OpenFrontierBlock,
+    block_class=FrontierBlock,
     # method overrides
     validate_transaction=validate_frontier_transaction,
     apply_create_message=_apply_frontier_create_message,
-    apply_transaction=_apply_transaction,
+    apply_transaction=_apply_frontier_transaction,
     apply_message=_apply_frontier_message,
     apply_computation=_apply_frontier_computation,
 )

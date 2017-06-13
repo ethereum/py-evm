@@ -81,11 +81,16 @@ FIXTURES = tuple(
 def test_blockchain_fixtures(fixture_name, fixture):
     genesis_header_params = {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
+        'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
         'coinbase': fixture['genesisBlockHeader']['coinbase'],
+        'state_root': fixture['genesisBlockHeader']['stateRoot'],
+        'transaction_root': fixture['genesisBlockHeader']['transactionsTrie'],
+        'receipts_root': fixture['genesisBlockHeader']['receiptTrie'],
         'bloom': fixture['genesisBlockHeader']['bloom'],
         'difficulty': fixture['genesisBlockHeader']['difficulty'],
         'block_number': fixture['genesisBlockHeader']['number'],
         'gas_limit': fixture['genesisBlockHeader']['gasLimit'],
+        'gas_used': fixture['genesisBlockHeader']['gasUsed'],
         'timestamp': fixture['genesisBlockHeader']['timestamp'],
         'extra_data': fixture['genesisBlockHeader']['extraData'],
         'mix_hash': fixture['genesisBlockHeader']['mixHash'],
@@ -164,7 +169,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
 
         actual_header = meta_evm.finalize_block(
             coinbase=block['blockHeader']['coinbase'],
-            mix_hash=block['blockHeader']['mix_hash'],
+            mix_hash=block['blockHeader']['mixHash'],
         )
         assert actual_header == expected_header
         assert False

@@ -11,6 +11,7 @@ from evm.exceptions import (
 from evm.validation import (
     validate_canonical_address,
     validate_uint256,
+    validate_is_bytes,
 )
 
 from evm.utils.hexidecimal import (
@@ -197,6 +198,10 @@ class Computation(object):
             )).items())
 
     def add_log_entry(self, account, topics, data):
+        validate_canonical_address(account)
+        for topic in topics:
+            validate_uint256(topic)
+        validate_is_bytes(data)
         self.log_entries.append((account, topics, data))
 
     def get_log_entries(self):
@@ -213,6 +218,12 @@ class Computation(object):
             return 0
         else:
             return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
+
+    def get_gas_used(self):
+        if self.error:
+            return self.msg.gas
+        else:
+            return self.msg.gas - self.gas_meter.gas_remaining
 
     #
     # Context Manager API
