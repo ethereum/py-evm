@@ -1,5 +1,7 @@
 import logging
 
+import rlp
+
 from evm.logic.invalid import (
     InvalidOpcode,
 )
@@ -14,6 +16,10 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
+from evm.utils.db import (
+    make_block_number_to_hash_lookup_key,
+    make_block_hash_to_number_lookup_key,
+)
 from evm.utils.ranges import (
     range_sort_fn,
     find_range,
@@ -112,33 +118,39 @@ class BaseEVM(object):
     #
     # Blocks
     #
-    block_class = None
+    _block_class = None
 
     @classmethod
     def get_block_class(cls):
         """
         Return the class that this EVM uses for blocks.
         """
-        if cls.block_class is None:
-            raise AttributeError("No `block_class` has been set for this EVM")
+        if cls._block_class is None:
+            raise AttributeError("No `_block_class` has been set for this EVM")
 
-        return cls.block_class
+        block_class = cls._block_class.configure(db=cls.db)
+        return block_class
 
     def mine_block(self, *args, **kwargs):
+        """
+        Mine the current block.
+        """
         block = self.block.mine(*args, **kwargs)
         return block
 
     #
     # EVM level DB operations.
     #
-    @classmethod
-    def get_block_hash(cls, block_number):
-        """
-        Return the block has for the requested block number.
+    def get_block_by_hash(self, block_hash):
+        block_class = self.get_block_class()
+        block = rlp.decode(self.db.get(block_hash), sedes=block_class, db=self.db)
+        return block
 
-        # TODO: is this the correct place for this API?
+    def get_block_hash(self, block_number):
         """
-        return cls.db.get_block_hash(block_number)
+        For getting block hash for any block number in the the last 256 blocks.
+        """
+        raise NotImplementedError("Not yet implemented")
 
     #
     # Snapshot and Revert
@@ -214,6 +226,9 @@ class MetaEVM(object):
         }
         return type(name, (cls,), props)
 
+    #
+    # EVM Operations
+    #
     @classmethod
     def get_evm_class_for_block_number(self, block_number):
         """
@@ -233,6 +248,55 @@ class MetaEVM(object):
         evm_class = self.get_evm_class_for_block_number(block_number)
         evm = evm_class(header=self.header, db=self.db)
         return evm
+
+    #
+    # Block Database Operations
+    #
+    def get_block_by_number(self, block_number):
+        """
+        Returns the requested block as specified by block number.
+        """
+        # TODO: validate block number
+        block_hash = self._lookup_block_hash(block_number)
+        evm = self.get_evm(block_number)
+        block = evm.get_block_by_hash(block_hash)
+        return block
+
+    def _lookup_block_hash(self, block_number):
+        """
+        Return the block hash for the given block number.
+        """
+        number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
+        # TODO: can raise KeyError
+        block_hash = rlp.decode(
+            self.db.get(number_to_hash_key),
+            sedes=rlp.sedes.binary,
+        )
+        return block_hash
+
+    def get_block_by_hash(self, block_hash):
+        """
+        Returns the requested block as specified by block hash.
+
+        TODO: how do we determine the correct EVM class?
+        """
+        # TODO: validate block hash
+        block_number = self._lookup_block_number(block_hash)
+        evm = self.get_evm(block_number)
+        block = evm.get_block_by_hash(block_hash)
+        return block
+
+    def _lookup_block_number(self, block_hash):
+        """
+        Return the block number for the given block hash.
+        """
+        hash_to_number_key = make_block_hash_to_number_lookup_key(block_hash)
+        # TODO: can raise KeyError
+        block_number = rlp.decode(
+            self.db.get(hash_to_number_key),
+            sedes=rlp.sedes.big_endian_int,
+        )
+        return block_number
 
     #
     # Initialization
@@ -259,11 +323,11 @@ class MetaEVM(object):
                 state_db.set_storage(account, slot, value)
 
         genesis_block = meta_evm.mine_block()
-        if genesis_block.header.state_root != state_db.state_root:
+        if genesis_block.header.state_root != state_db.root_hash:
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    state_db.state_root,
+                    state_db.root_hash,
                     genesis_block.header.state_root,
                 )
             )
@@ -271,7 +335,7 @@ class MetaEVM(object):
         return meta_evm
 
     #
-    # Wrapper API around inner EVM classes
+    # Mining and Execution API
     #
     def apply_transaction(self, txn_args=None, txn_kwargs=None):
         if txn_args is None:
@@ -285,12 +349,35 @@ class MetaEVM(object):
         self.header = evm.block.header
         return computation
 
-    #
-    # Block API
-    #
+    def _persist_block(self, block):
+        # Store mapping from block hash to number
+        block_hash_to_number_key = make_block_hash_to_number_lookup_key(block.hash)
+        self.db.set(
+            block_hash_to_number_key,
+            rlp.encode(block.header.block_number, sedes=rlp.sedes.big_endian_int),
+        )
+
+        # Store mapping from block number to block hash.
+        block_number_to_hash_key = make_block_number_to_hash_lookup_key(
+            block.header.block_number
+        )
+        self.db.set(
+            block_number_to_hash_key,
+            rlp.encode(block.hash, sedes=rlp.sedes.binary),
+        )
+
+        # Store the block itself.
+        self.db.set(
+            block.hash,
+            rlp.encode(block),
+        )
+
     def mine_block(self, *args, **kwargs):
         evm = self.get_evm()
+
         block = evm.mine_block(*args, **kwargs)
+        self._persist_block(block)
+
         self.header = BlockHeader.from_parent(block.header)
-        # TODO: serialize and store
+
         return block

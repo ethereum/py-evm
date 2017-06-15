@@ -107,9 +107,6 @@ def _apply_frontier_transaction(evm, transaction):
     #
     # 2) Apply the message to the EVM.
     #
-    if evm.block.is_sealed:
-        raise ValueError("Trying to apply transaction to sealed block")
-
     if message.is_create:
         computation = evm.apply_create_message(message)
     else:
@@ -283,7 +280,7 @@ def _apply_frontier_create_message(evm, message):
 FrontierEVM = BaseEVM.configure(
     name='FrontierEVM',
     opcodes=FRONTIER_OPCODES,
-    block_class=FrontierBlock,
+    _block_class=FrontierBlock,
     # method overrides
     validate_transaction=validate_frontier_transaction,
     apply_create_message=_apply_frontier_create_message,

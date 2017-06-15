@@ -1,4 +1,10 @@
+import itertools
+
 import rlp
+
+from eth_utils import (
+    to_list,
+)
 
 from evm.exceptions import (
     InvalidSignature,
@@ -45,3 +51,14 @@ def extract_transaction_sender(transaction):
     public_key = ecdsa_recover(rlp.encode(unsigned_transaction), signature)
     sender = public_key_to_address(public_key)
     return sender
+
+
+@to_list
+def get_transactions_from_db(transaction_db, transaction_class):
+    for transaction_idx in itertools.count():
+        transaction_key = rlp.encode(transaction_idx)
+        if transaction_key in transaction_db:
+            transaction_data = transaction_db[transaction_key]
+            yield rlp.decode(transaction_data, sedes=transaction_class)
+        else:
+            break

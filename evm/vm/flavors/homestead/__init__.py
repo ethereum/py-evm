@@ -58,7 +58,7 @@ def _apply_homestead_create_message(evm, message):
 HomesteadEVM = FrontierEVM.configure(
     name='HomesteadEVM',
     opcodes=HOMESTEAD_OPCODES,
-    block_class=HomesteadBlock,
+    _block_class=HomesteadBlock,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     apply_create_message=_apply_homestead_create_message,

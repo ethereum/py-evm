@@ -1,5 +1,3 @@
-import itertools
-
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -14,7 +12,11 @@ from trie import (
 )
 
 from evm.constants import (
-    EMPTY_UNCLE_HASH,
+    GAS_LIMIT_EMA_DENOMINATOR,
+    GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_MINIMUM,
+    GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
+    GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
 )
 from evm.state import (
     State,
@@ -32,9 +34,71 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
+from evm.utils.transactions import (
+    get_transactions_from_db,
+)
+from evm.utils.receipts import (
+    get_receipts_from_db,
+)
+
 from .transactions import (
     FrontierTransaction,
 )
+
+
+def compute_gas_limit_bounds(parent):
+    boundary_range = parent.gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR
+    upper_bound = parent.gas_limit + boundary_range
+    lower_bound = max(GAS_LIMIT_MINIMUM, parent.gas_limit - boundary_range)
+    return lower_bound, upper_bound
+
+
+def compute_adjusted_gas_limit(parent_header, gas_limit_floor):
+    """
+    A simple strategy for adjusting the gas limit.
+
+    For each block:
+
+    - decrease by 1/1024th of the gas limit from the previous block
+    - increase by 50% of the total gas used by the previous block
+
+    If the value is less than the given `gas_limit_floor`:
+
+    - increase the gas limit by 1/1024th of the gas limit from the previous block.
+
+    If the value is less than the GAS_LIMIT_MINIMUM:
+
+    - use the GAS_LIMIT_MINIMUM as the new gas limit.
+    """
+    if gas_limit_floor < GAS_LIMIT_MINIMUM:
+        raise ValueError(
+            "The `gas_limit_floor` value must be greater than the "
+            "GAS_LIMIT_MINIMUM.  Got {0}.  Must be greater than "
+            "{1}".format(gas_limit_floor, GAS_LIMIT_MINIMUM)
+        )
+
+    decay = parent_header.gas_limit // GAS_LIMIT_EMA_DENOMINATOR
+
+    if parent_header.gas_used:
+        usage_increase = (
+            parent_header.gas_used * GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR
+        ) // (
+            GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR
+        ) // (
+            GAS_LIMIT_EMA_DENOMINATOR
+        )
+    else:
+        usage_increase = 0
+
+    gas_limit = max(
+        GAS_LIMIT_MINIMUM,
+        parent_header.gas_limit - decay + usage_increase
+    )
+
+    if gas_limit < gas_limit_floor:
+        return GAS_LIMIT_MINIMUM
+    else:
+        return gas_limit
 
 
 class FrontierBlock(BaseBlock):
@@ -44,22 +108,30 @@ class FrontierBlock(BaseBlock):
         ('uncles', CountableList(BlockHeader))
     ]
 
-    def __init__(self, header, db=None):
+    db = None
+    bloom_filter = None
+
+    def __init__(self, header, transactions=[], uncles=[], db=None):
         if db is not None:
             self.db = db
 
         if self.db is None:
             raise TypeError("Block must have a db")
 
-        # NOTE: setting the header also sets the `self.bloom_filter` property
-        self.header = header
+        self.bloom_filter = BloomFilter(header.bloom)
+        self.state_db = State(db=db, root_hash=header.state_root)
+        self.transaction_db = Trie(db=db, root_hash=header.transaction_root)
+        self.receipt_db = Trie(db=db, root_hash=header.receipt_root)
 
-        # TODO: tons more validation......
-        # - transaction_root vs self.transactions
-        # - receipts_root vs self.receipts
+        super(FrontierBlock, self).__init__(
+            header=header,
+            transactions=transactions,
+            uncles=uncles,
+        )
+        # TODO: should perform block validation at this point?
 
     #
-    # Computed properties and methods
+    # Transaction class for this block class
     #
     transaction_class = FrontierTransaction
 
@@ -67,120 +139,50 @@ class FrontierBlock(BaseBlock):
     def get_transaction_class(cls):
         return cls.transaction_class
 
-    @property
-    def transactions(self):
-        return list(self._get_transactions())
-
-    def _get_transactions(self):
-        """
-        Note: return value of this function can be cached based on the
-        `self.transaction_db.root_hash` value.
-        """
-        for transaction_idx in itertools.count():
-            transaction_key = rlp.encode(transaction_idx)
-            if transaction_key in self.transaction_db:
-                transaction_data = self.transaction_db[transaction_key]
-                yield rlp.decode(transaction_data, sedes=self.get_transaction_class())
-            else:
-                break
-
-    #
-    # Receipt API
-    #
-    bloom_filter = None
-
-    @property
-    def receipts(self):
-        return list(self._get_receipts())
-
-    def _get_receipts(self):
-        """
-        Note: return value of this function can be cached based on the
-        `self.receipt_db.root_hash` value.
-        """
-        for transaction_idx in itertools.count():
-            transaction_key = rlp.encode(transaction_idx)
-            if transaction_key in self.receipt_db:
-                receipt_data = self.receipt_db[transaction_key]
-                yield rlp.decode(receipt_data, sedes=Receipt)
-            else:
-                break
-
     #
     # Gas Usage API
     #
-    @property
-    def cumulative_gas_used(self):
+    def get_cumulative_gas_used(self):
         """
         Note return value of this function can be cached based on
         `self.receipt_db.root_hash`
         """
-        return sum(receipt.gas_used for receipt in self.receipts)
+        if len(self.transactions):
+            return self.receipts[-1].gas_used
+        else:
+            return 0
+
+    #
+    # Receipts API
+    #
+    @property
+    def receipts(self):
+        return get_receipts_from_db(self.receipt_db, Receipt)
 
     #
     # Header API
     #
-    _static_header_params = None
-
-    @property
-    def header(self):
-        """
-        The block header is a computed property for open blocks each time.
-        """
-        return BlockHeader(**self._get_header_params())
-
-    @header.setter
-    def header(self, value):
+    @classmethod
+    def from_header(cls, header):
         """
         Update this block to the values represented by the given header.
         """
-        if not isinstance(value, BlockHeader):
-            raise TypeError("block.header may only be set with a BlockHeader instance")
+        uncles = rlp.decode(cls.db.get(header.uncles_hash), sedes=CountableList(BlockHeader))
 
-        if value.uncles_hash != EMPTY_UNCLE_HASH:
-            # TODO: what to do about this?
-            raise ValueError("Open blocks may not have uncles")
+        transaction_db = Trie(cls.db, root_hash=header.transaction_root)
+        transactions = get_transactions_from_db(transaction_db, cls.get_transaction_class())
 
-        self._static_header_params = {
-            'parent_hash': value.parent_hash,
-            'uncles_hash': value.uncles_hash,
-            'coinbase': value.coinbase,
-            'difficulty': value.difficulty,
-            'block_number': value.block_number,
-            'gas_limit': value.gas_limit,
-            'timestamp': value.timestamp,
-            'extra_data': value.extra_data,
-            'mix_hash': value.mix_hash,
-            'nonce': value.nonce,
-        }
+        return cls(
+            header=header,
+            transactions=transactions,
+            uncles=uncles,
+        )
 
-        self.bloom_filter = BloomFilter(value.bloom)
-        self.state_db = State(self.db, root_hash=value.state_root)
-        self.transaction_db = Trie(self.db, root_hash=value.transaction_root)
-        self.receipt_db = Trie(self.db, root_hash=value.receipts_root)
-
-    def _get_header_params(self):
-        return {
-            # static values
-            'parent_hash': self._static_header_params['parent_hash'],
-            'coinbase': self._static_header_params['coinbase'],
-            'difficulty': self._static_header_params['difficulty'],
-            'block_number': self._static_header_params['block_number'],
-            'gas_limit': self._static_header_params['gas_limit'],
-            'timestamp': self._static_header_params['timestamp'],
-            'extra_data': self._static_header_params['extra_data'],
-            'mix_hash': self._static_header_params['mix_hash'],
-            'nonce': self._static_header_params['nonce'],
-            # dynamic values
-            'uncles_hash': EMPTY_UNCLE_HASH,
-            'state_root': self.state_db.state_root,
-            'transaction_root': self.transaction_db.root_hash,
-            'receipts_root': self.receipt_db.root_hash,
-            'bloom': int(self.bloom_filter),
-            'gas_used': self.cumulative_gas_used,
-        }
-
+    #
+    # Execution API
+    #
     def apply_transaction(self, evm, transaction):
+        init_state_root = evm.block.state_db.root_hash
         computation = evm.apply_transaction(transaction)
 
         logs = [
@@ -189,17 +191,29 @@ class FrontierBlock(BaseBlock):
             in computation.get_log_entries()
         ]
         receipt = Receipt(
-            state_root=self.state_db.state_root,
-            gas_used=computation.get_gas_used(),
+            state_root=evm.block.state_db.root_hash,
+            gas_used=transaction.get_intrensic_gas() + computation.get_gas_used(),
             logs=logs,
         )
 
         transaction_idx = len(self.transactions)
         transaction_key = rlp.encode(transaction_idx)
 
+        self.transactions.append(transaction)
         self.transaction_db[transaction_key] = rlp.encode(transaction)
+
         self.receipt_db[transaction_key] = rlp.encode(receipt)
         self.bloom_filter |= receipt.bloom
+
+        self.header.transaction_root = self.transaction_db.root_hash
+        self.header.state_root = evm.block.state_db.root_hash
+        self.header.receipt_root = self.receipt_db.root_hash
+        self.header.bloom = int(self.bloom_filter)
+        self.header.gas_used = self.get_cumulative_gas_used()
+
+        if evm.block.state_db.root_hash == init_state_root:
+            assert False
+
         return computation
 
     def mine(self, **kwargs):
@@ -207,7 +221,7 @@ class FrontierBlock(BaseBlock):
         - `uncles_hash`
         - `state_root`
         - `transaction_root`
-        - `receipts_root`
+        - `receipt_root`
         - `bloom`
         - `gas_used`
         - `extra_data`
@@ -216,7 +230,7 @@ class FrontierBlock(BaseBlock):
         """
         header = self.header
         provided_fields = set(kwargs.keys())
-        known_fields = set(tuple(zip(BlockHeader.fields))[0])
+        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
         unknown_fields = provided_fields.difference(known_fields)
 
         if unknown_fields:
@@ -231,10 +245,5 @@ class FrontierBlock(BaseBlock):
         for key, value in kwargs.items():
             setattr(header, key, value)
 
-        mined_block = self.block.mine(**kwargs)
-        # TODO: validation....!!!!
-
-        self.header = BlockHeader.from_parent(mined_block.header)
-        # TODO: validation....!!!!
-
+        # TODO: do we validate here!?
         return self

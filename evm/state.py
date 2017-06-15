@@ -78,7 +78,7 @@ class State(object):
     # Base API
     #
     @property
-    def state_root(self):
+    def root_hash(self):
         return self._trie.root_hash
 
     def set_storage(self, address, slot, value):
