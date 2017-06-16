@@ -108,23 +108,24 @@ def test_blockchain_fixtures(fixture_name, fixture):
         genesis_state=fixture['pre'],
     )
 
-    assert meta_evm.header.parent_hash == fixture['genesisBlockHeader']['parentHash']
-    assert meta_evm.header.uncles_hash == fixture['genesisBlockHeader']['uncleHash']
-    assert meta_evm.header.coinbase == fixture['genesisBlockHeader']['coinbase']
-    assert meta_evm.header.state_root == fixture['genesisBlockHeader']['stateRoot']
-    assert meta_evm.header.transaction_root == fixture['genesisBlockHeader']['transactionsTrie']
-    assert meta_evm.header.receipt_root == fixture['genesisBlockHeader']['receiptTrie']
-    assert meta_evm.header.bloom == fixture['genesisBlockHeader']['bloom']
-    assert meta_evm.header.difficulty == fixture['genesisBlockHeader']['difficulty']
-    assert meta_evm.header.block_number == fixture['genesisBlockHeader']['number']
-    assert meta_evm.header.gas_limit == fixture['genesisBlockHeader']['gasLimit']
-    assert meta_evm.header.gas_used == fixture['genesisBlockHeader']['gasUsed']
-    assert meta_evm.header.timestamp == fixture['genesisBlockHeader']['timestamp']
-    assert meta_evm.header.extra_data == fixture['genesisBlockHeader']['extraData']
-    assert meta_evm.header.mix_hash == fixture['genesisBlockHeader']['mixHash']
-    assert meta_evm.header.nonce == fixture['genesisBlockHeader']['nonce']
+    genesis_block = meta_evm.get_block_by_number(0)
+    genesis_header = genesis_block.header
 
-    meta_evm.mine_block()
+    assert genesis_header.parent_hash == fixture['genesisBlockHeader']['parentHash']
+    assert genesis_header.uncles_hash == fixture['genesisBlockHeader']['uncleHash']
+    assert genesis_header.coinbase == fixture['genesisBlockHeader']['coinbase']
+    assert genesis_header.state_root == fixture['genesisBlockHeader']['stateRoot']
+    assert genesis_header.transaction_root == fixture['genesisBlockHeader']['transactionsTrie']
+    assert genesis_header.receipt_root == fixture['genesisBlockHeader']['receiptTrie']
+    assert genesis_header.bloom == fixture['genesisBlockHeader']['bloom']
+    assert genesis_header.difficulty == fixture['genesisBlockHeader']['difficulty']
+    assert genesis_header.block_number == fixture['genesisBlockHeader']['number']
+    assert genesis_header.gas_limit == fixture['genesisBlockHeader']['gasLimit']
+    assert genesis_header.gas_used == fixture['genesisBlockHeader']['gasUsed']
+    assert genesis_header.timestamp == fixture['genesisBlockHeader']['timestamp']
+    assert genesis_header.extra_data == fixture['genesisBlockHeader']['extraData']
+    assert genesis_header.mix_hash == fixture['genesisBlockHeader']['mixHash']
+    assert genesis_header.nonce == fixture['genesisBlockHeader']['nonce']
 
     # 1 - mine the genesis block
     # 2 - loop over blocks:
@@ -202,8 +203,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
                     )),
                 )
             )
-            print(error_message)
-            #raise AssertionError(error_message)
+            raise AssertionError(error_message)
 
     meta_evm.mine_block()
 

@@ -127,17 +127,20 @@ class BaseEVM(object):
         """
         block = self.block.mine(*args, **kwargs)
 
-        block_reward = self.get_block_reward(block.number) + (
-            len(block.uncles) * self.get_nephew_reward(block.number)
-        )
+        if block.number > 0:
+            block_reward = self.get_block_reward(block.number) + (
+                len(block.uncles) * self.get_nephew_reward(block.number)
+            )
 
-        self.state_db.delta_balance(block.header.coinbase, block_reward)
+            self.state_db.delta_balance(block.header.coinbase, block_reward)
 
-        for uncle in block.uncles:
-            uncle_reward = block_reward * (
-                UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
-            ) // UNCLE_DEPTH_PENALTY_FACTOR
-            self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+            for uncle in block.uncles:
+                uncle_reward = block_reward * (
+                    UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
+                ) // UNCLE_DEPTH_PENALTY_FACTOR
+                self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+
+            block.header.state_root = self.state_db.root_hash
 
         return block
 
@@ -405,6 +408,10 @@ class MetaEVM(object):
             )
 
         meta_evm = cls(header=genesis_header)
+        evm = meta_evm.get_evm()
+        persist_block_to_db(meta_evm.db, evm.block)
+
+        meta_evm.header = evm.create_header_from_parent(genesis_header)
         return meta_evm
 
     #
