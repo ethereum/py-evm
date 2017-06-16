@@ -118,6 +118,8 @@ HomesteadEVMForTesting = HomesteadEVM.configure(
     apply_create_message=apply_create_message_for_testing,
     get_block_hash=get_block_hash_for_testing,
 )
+
+
 EVMForTesting = MetaEVM.configure(
     name='EVMForTesting',
     evm_block_ranges=(
@@ -139,9 +141,9 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    meta_evm = EVMForTesting(db=db, header=header)
+    meta_evm = EVMForTesting.configure(db=db)(header=header)
     evm = meta_evm.get_evm()
-    setup_state_db(fixture['pre'], evm.block.state_db)
+    setup_state_db(fixture['pre'], evm.state_db)
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -149,7 +151,7 @@ def test_vm_fixtures(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
-        code=evm.block.state_db.get_code(fixture['exec']['address']),
+        code=evm.state_db.get_code(fixture['exec']['address']),
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
@@ -205,7 +207,7 @@ def test_vm_fixtures(fixture_name, fixture):
 
     for account, account_data in post_state.items():
         for slot, expected_storage_value in account_data['storage'].items():
-            actual_storage_value = evm.block.state_db.get_storage(account, slot)
+            actual_storage_value = evm.state_db.get_storage(account, slot)
 
             assert actual_storage_value == expected_storage_value
 
@@ -213,9 +215,9 @@ def test_vm_fixtures(fixture_name, fixture):
         expected_code = account_data['code']
         expected_balance = account_data['balance']
 
-        actual_nonce = evm.block.state_db.get_nonce(account)
-        actual_code = evm.block.state_db.get_code(account)
-        actual_balance = evm.block.state_db.get_balance(account)
+        actual_nonce = evm.state_db.get_nonce(account)
+        actual_code = evm.state_db.get_code(account)
+        actual_balance = evm.state_db.get_balance(account)
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code

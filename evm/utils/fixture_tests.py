@@ -87,7 +87,7 @@ def normalize_logs(logs):
     return [
         {
             'address': to_canonical_address(log_entry['address']),
-            'topics': [to_int(topic) for topic in log_entry['topics']],
+            'topics': [int(topic, 16) for topic in log_entry['topics']],
             'data': decode_hex(log_entry['data']),
             'bloom': decode_hex(log_entry['bloom']),
         } for log_entry in logs
@@ -278,3 +278,24 @@ def setup_state_db(desired_state, state_db):
         state_db.set_code(account, code)
         state_db.set_balance(account, balance)
     return state_db
+
+
+def verify_state_db(expected_state, state_db):
+    for account, account_data in sorted(expected_state.items()):
+        for slot, expected_storage_value in sorted(account_data['storage'].items()):
+            actual_storage_value = state_db.get_storage(account, slot)
+
+            assert actual_storage_value == expected_storage_value
+
+        expected_nonce = account_data['nonce']
+        expected_code = account_data['code']
+        expected_balance = account_data['balance']
+
+        actual_nonce = state_db.get_nonce(account)
+        actual_code = state_db.get_code(account)
+        actual_balance = state_db.get_balance(account)
+        balance_delta = expected_balance - actual_balance
+
+        assert actual_nonce == expected_nonce
+        assert actual_code == expected_code
+        assert balance_delta == 0, "Expected: {0} - Actual: {1} | Delta: {2}".format(expected_balance, actual_balance, balance_delta)

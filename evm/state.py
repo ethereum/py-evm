@@ -131,6 +131,9 @@ class State(object):
 
         self._set_account(address, account)
 
+    def delta_balance(self, address, delta):
+        self.set_balance(address, self.get_balance(address) + delta)
+
     def get_balance(self, address):
         validate_canonical_address(address)
 

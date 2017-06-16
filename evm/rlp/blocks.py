@@ -28,9 +28,22 @@ class BaseBlock(rlp.Serializable):
             raise AttributeError("OpenBlock subclasses must declare a transaction_class")
         return cls.transaction_class
 
+    @classmethod
+    def from_header(cls, header):
+        """
+        Returns the block denoted by the given block header.
+        """
+        raise NotImplementedError(
+            "The `Block.from_header` class method must be implemented by subclasses."
+        )
+
     @property
     def hash(self):
         return keccak(rlp.encode(self))
+
+    @property
+    def number(self):
+        raise NotImplementedError("`Block.number` must be implemented by subclasses")
 
     def apply_transaction(self, evm, transaction):
         """

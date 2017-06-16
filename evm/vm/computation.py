@@ -100,7 +100,7 @@ class Computation(object):
         """
         Convenience access to the state database
         """
-        return self.evm.block.state_db
+        return self.evm.state_db
 
     #
     # Execution

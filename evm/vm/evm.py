@@ -1,7 +1,14 @@
+from __future__ import absolute_import
+
 import logging
 
 import rlp
 
+from evm.constants import (
+    BLOCK_REWARD,
+    NEPHEW_REWARD,
+    UNCLE_DEPTH_PENALTY_FACTOR,
+)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
@@ -19,6 +26,9 @@ from evm.rlp.headers import (
 from evm.utils.db import (
     make_block_number_to_hash_lookup_key,
     make_block_hash_to_number_lookup_key,
+)
+from evm.utils.blocks import (
+    persist_block_to_db,
 )
 from evm.utils.ranges import (
     range_sort_fn,
@@ -39,17 +49,26 @@ class BaseEVM(object):
     opcodes = None
     block_class = None
 
-    def __init__(self, db, header):
-        self.db = db
+    def __init__(self, header, db=None):
+        if db is not None:
+            self.db = db
+
+        if self.db is None:
+            raise ValueError("EVM classes must have a `db`")
+
         self.header = header
 
         block_class = self.get_block_class()
-        self.block = block_class(header=self.header, db=self.db)
+        self.block = block_class(header=self.header)
+        self.state_db = State(db=self.db, root_hash=self.header.state_root)
 
     @classmethod
     def configure(cls,
-                  name,
+                  name=None,
                   **overrides):
+        if name is None:
+            name = cls.__name__
+
         for key in overrides:
             if not hasattr(cls, key):
                 raise TypeError(
@@ -94,6 +113,35 @@ class BaseEVM(object):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
+    # Mining
+    #
+    def get_block_reward(self, block_number):
+        return BLOCK_REWARD
+
+    def get_nephew_reward(self, block_number):
+        return NEPHEW_REWARD
+
+    def mine_block(self, *args, **kwargs):
+        """
+        Mine the current block.
+        """
+        block = self.block.mine(*args, **kwargs)
+
+        block_reward = self.get_block_reward(block.number) + (
+            len(block.uncles) * self.get_nephew_reward(block.number)
+        )
+
+        self.state_db.delta_balance(block.header.coinbase, block_reward)
+
+        for uncle in block.uncles:
+            uncle_reward = block_reward * (
+                UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
+            ) // UNCLE_DEPTH_PENALTY_FACTOR
+            self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+
+        return block
+
+    #
     # Transactions
     #
     @classmethod
@@ -131,16 +179,6 @@ class BaseEVM(object):
         block_class = cls._block_class.configure(db=cls.db)
         return block_class
 
-    def mine_block(self, *args, **kwargs):
-        """
-        Mine the current block.
-        """
-        block = self.block.mine(*args, **kwargs)
-        return block
-
-    #
-    # EVM level DB operations.
-    #
     def get_block_by_hash(self, block_hash):
         block_class = self.get_block_class()
         block = rlp.decode(self.db.get(block_hash), sedes=block_class, db=self.db)
@@ -153,6 +191,31 @@ class BaseEVM(object):
         raise NotImplementedError("Not yet implemented")
 
     #
+    # Headers
+    #
+    def compute_gas_limit(self, parent_header):
+        """
+        Hook for computing the block gas limit
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def compute_difficulty(self, parent_header):
+        """
+        Hook for computing the block difficulty
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def create_header_from_parent(self, parent_header, **init_kwargs):
+        if 'difficulty' not in init_kwargs:
+            init_kwargs['difficulty'] = self.compute_difficulty(parent_header)
+        if 'gas_limit' not in init_kwargs:
+            init_kwargs['gas_limit'] = self.compute_gas_limit(parent_header)
+
+        header = BlockHeader.from_parent(parent=parent_header, **init_kwargs)
+
+        return header
+
+    #
     # Snapshot and Revert
     #
     def snapshot(self):
@@ -161,7 +224,7 @@ class BaseEVM(object):
 
         TODO: This needs to do more than just snapshot the state_db but this is a start.
         """
-        return self.block.state_db.snapshot()
+        return self.state_db.snapshot()
 
     def revert(self, snapshot):
         """
@@ -169,7 +232,7 @@ class BaseEVM(object):
 
         TODO: This needs to do more than just snapshot the state_db but this is a start.
         """
-        return self.block.state_db.revert(snapshot)
+        return self.state_db.revert(snapshot)
 
     #
     # Opcode API
@@ -182,47 +245,53 @@ class BaseEVM(object):
 
 
 class MetaEVM(object):
+    """
+    The MetaEVM combines multiple EVM classes into a single EVM.
+    """
     db = None
     header = None
 
-    ranges = None
-    evms = None
+    evms_by_range = None
 
-    """
-    TOOD: better name...
-    The EVMChain combines multiple EVM classes into a single EVM.  Each sub-EVM
+    def __init__(self, header):
+        if self.db is None:
+            raise ValueError("MetaEVM must be configured with a db")
 
-    Acknowledgement that this is not really a class but a function disguised as
-    a class.  It is however easier to reason about in this format.
-    """
-    def __init__(self, db, header):
-        self.db = db
+        if not self.evms_by_range:
+            raise ValueError("MetaEVM must be configured with block ranges")
+
         self.header = header
 
     @classmethod
-    def configure(cls, name, evm_block_ranges):
-        if not evm_block_ranges:
-            raise TypeError("MetaEVM requires at least one set of EVM rules")
-
-        # Validate that the block range does not have any gaps or overlaps
-        if len(evm_block_ranges) == 1:
-            # edge case for a single range.
-            ranges = [evm_block_ranges[0][0]]
+    def configure(cls, name=None, evm_block_ranges=None, db=None):
+        if evm_block_ranges is None:
+            evms_by_range = cls.evms_by_range
         else:
-            raw_ranges, _ = zip(*evm_block_ranges)
-            ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
+            # Extract the block ranges for the provided EVMs
+            if len(evm_block_ranges) == 1:
+                # edge case for a single range.
+                ranges = [evm_block_ranges[0][0]]
+            else:
+                raw_ranges, _ = zip(*evm_block_ranges)
+                ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
 
-        validate_evm_block_ranges(ranges)
+            # Validate that the block ranges define a continuous range of block
+            # numbers with no gaps.
+            validate_evm_block_ranges(ranges)
 
-        evms = {
-            range: evm
-            for range, evm
-            in evm_block_ranges
-        }
+            # Organize the EVM classes by their respected ranges
+            evms_by_range = {
+                range: evm
+                for range, evm
+                in evm_block_ranges
+            }
+
+        if name is None:
+            name = cls.__name__
 
         props = {
-            'ranges': ranges,
-            'evms': evms,
+            'evms_by_range': evms_by_range,
+            'db': db or cls.db,
         }
         return type(name, (cls,), props)
 
@@ -230,12 +299,13 @@ class MetaEVM(object):
     # EVM Operations
     #
     @classmethod
-    def get_evm_class_for_block_number(self, block_number):
+    def get_evm_class_for_block_number(cls, block_number):
         """
         Return the evm class for the given block number.
         """
-        range = find_range(self.ranges, block_number)
-        evm_class = self.evms[range]
+        range = find_range(tuple(cls.evms_by_range.keys()), block_number)
+        base_evm_class = cls.evms_by_range[range]
+        evm_class = base_evm_class.configure(db=cls.db)
         return evm_class
 
     def get_evm(self, block_number=None):
@@ -246,11 +316,11 @@ class MetaEVM(object):
             block_number = self.header.block_number
 
         evm_class = self.get_evm_class_for_block_number(block_number)
-        evm = evm_class(header=self.header, db=self.db)
+        evm = evm_class(header=self.header)
         return evm
 
     #
-    # Block Database Operations
+    # Block Retrieval
     #
     def get_block_by_number(self, block_number):
         """
@@ -299,17 +369,19 @@ class MetaEVM(object):
         return block_number
 
     #
-    # Initialization
+    # EVM Initialization
     #
     @classmethod
     def from_genesis(cls,
-                     db,
-                     genesis_header_params,
+                     genesis_params,
                      genesis_state=None):
-        genesis_header = BlockHeader(**genesis_header_params)
-        meta_evm = cls(db=db, header=genesis_header)
+        """
+        Initialize the EVM from a genesis state.
+        """
+        if cls.db is None:
+            raise ValueError("MetaEVM class must have a db")
 
-        state_db = State(db)
+        state_db = State(cls.db)
 
         if genesis_state is None:
             genesis_state = {}
@@ -322,16 +394,17 @@ class MetaEVM(object):
             for slot, value in account_data['storage']:
                 state_db.set_storage(account, slot, value)
 
-        genesis_block = meta_evm.mine_block()
-        if genesis_block.header.state_root != state_db.root_hash:
+        genesis_header = BlockHeader(**genesis_params)
+        if genesis_header.state_root != state_db.root_hash:
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
                     state_db.root_hash,
-                    genesis_block.header.state_root,
+                    genesis_header.state_root,
                 )
             )
 
+        meta_evm = cls(header=genesis_header)
         return meta_evm
 
     #
@@ -349,35 +422,15 @@ class MetaEVM(object):
         self.header = evm.block.header
         return computation
 
-    def _persist_block(self, block):
-        # Store mapping from block hash to number
-        block_hash_to_number_key = make_block_hash_to_number_lookup_key(block.hash)
-        self.db.set(
-            block_hash_to_number_key,
-            rlp.encode(block.header.block_number, sedes=rlp.sedes.big_endian_int),
-        )
-
-        # Store mapping from block number to block hash.
-        block_number_to_hash_key = make_block_number_to_hash_lookup_key(
-            block.header.block_number
-        )
-        self.db.set(
-            block_number_to_hash_key,
-            rlp.encode(block.hash, sedes=rlp.sedes.binary),
-        )
-
-        # Store the block itself.
-        self.db.set(
-            block.hash,
-            rlp.encode(block),
-        )
-
-    def mine_block(self, *args, **kwargs):
+    def mine_block(self, **mine_params):
+        """
+        Mine the current block, applying
+        """
         evm = self.get_evm()
 
-        block = evm.mine_block(*args, **kwargs)
-        self._persist_block(block)
+        block = evm.mine_block(**mine_params)
+        persist_block_to_db(self.db, block)
 
-        self.header = BlockHeader.from_parent(block.header)
+        self.header = evm.create_header_from_parent(block.header)
 
         return block

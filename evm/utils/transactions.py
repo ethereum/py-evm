@@ -14,6 +14,7 @@ from evm.utils.address import (
     public_key_to_address,
 )
 from evm.utils.ecdsa import (
+    BadSignature,
     ecdsa_sign,
     decode_signature,
     encode_signature,
@@ -36,9 +37,12 @@ def validate_transaction_signature(transaction):
     )
     unsigned_transaction = transaction.as_unsigned_transaction()
     msg = rlp.encode(unsigned_transaction)
-    public_key = ecdsa_recover(msg, signature)
+    try:
+        public_key = ecdsa_recover(msg, signature)
+    except BadSignature as e:
+        raise InvalidSignature("Bad Signature: {0}".format(str(e)))
     if not ecdsa_verify(msg, signature, public_key):
-        raise InvalidSignature("Invalide Signature")
+        raise InvalidSignature("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):

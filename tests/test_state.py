@@ -33,6 +33,7 @@ from evm.utils.fixture_tests import (
     recursive_find_files,
     normalize_statetest_fixture,
     setup_state_db,
+    verify_state_db,
 )
 
 
@@ -114,11 +115,11 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = MemoryDB()
-    meta_evm = EVMForTesting(db=db, header=header)
+    meta_evm = EVMForTesting.configure(db=db)(header=header)
     evm = meta_evm.get_evm()
     block = evm.block
 
-    setup_state_db(fixture['pre'], block.state_db)
+    setup_state_db(fixture['pre'], evm.state_db)
 
     Transaction = evm.get_transaction_class()
 
@@ -158,23 +159,4 @@ def test_state_fixtures(fixture_name, fixture):
         else:
             assert computation.output == expected_output
 
-    for account, account_data in sorted(fixture['post'].items()):
-        for slot, expected_storage_value in sorted(account_data['storage'].items()):
-            actual_storage_value = evm.block.state_db.get_storage(account, slot)
-
-            assert actual_storage_value == expected_storage_value
-
-        expected_nonce = account_data['nonce']
-        expected_code = account_data['code']
-        expected_balance = account_data['balance']
-
-        actual_nonce = evm.block.state_db.get_nonce(account)
-        actual_code = evm.block.state_db.get_code(account)
-        actual_balance = evm.block.state_db.get_balance(account)
-        balance_delta = expected_balance - actual_balance
-
-        assert actual_nonce == expected_nonce
-        assert actual_code == expected_code
-        assert balance_delta == 0, "Expected: {0} - Actual: {1} | Delta: {2}".format(expected_balance, actual_balance, balance_delta)
-
-    assert evm.block.state_db.state.root_hash == fixture['postStateRoot']
+    verify_state_db(fixture['post'], evm.state_db)

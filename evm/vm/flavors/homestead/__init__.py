@@ -15,13 +15,13 @@ from .validation import validate_homestead_transaction
 
 
 def _apply_homestead_create_message(evm, message):
-    if evm.block.state_db.account_exists(message.storage_address):
-        evm.block.state_db.set_nonce(message.storage_address, 0)
-        evm.block.state_db.set_code(message.storage_address, b'')
-        evm.block.state_db.delete_storage(message.storage_address)
+    if evm.state_db.account_exists(message.storage_address):
+        evm.state_db.set_nonce(message.storage_address, 0)
+        evm.state_db.set_code(message.storage_address, b'')
+        evm.state_db.delete_storage(message.storage_address)
 
     if message.sender != message.origin:
-        evm.block.state_db.increment_nonce(message.sender)
+        evm.state_db.increment_nonce(message.sender)
 
     snapshot = evm.snapshot()
 
