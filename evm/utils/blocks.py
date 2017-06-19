@@ -7,14 +7,14 @@ from .db import (
 
 
 def persist_block_to_db(db, block):
-    # Store mapping from block hash to number
+    # Keep a mapping from block hash to number
     block_hash_to_number_key = make_block_hash_to_number_lookup_key(block.hash)
     db.set(
         block_hash_to_number_key,
         rlp.encode(block.header.block_number, sedes=rlp.sedes.big_endian_int),
     )
 
-    # Store mapping from block number to block hash.
+    # Keep a mapping from block number to block hash.
     block_number_to_hash_key = make_block_number_to_hash_lookup_key(
         block.header.block_number
     )
@@ -23,8 +23,34 @@ def persist_block_to_db(db, block):
         rlp.encode(block.hash, sedes=rlp.sedes.binary),
     )
 
-    # Store the block itself.
+    # Persist the block itself.
     db.set(
         block.hash,
         rlp.encode(block),
     )
+
+    # Persist the block header
+    db.set(
+        block.header.hash,
+        rlp.encode(block.header),
+    )
+
+    # Persist the transactions
+    for transaction in block.transactions:
+        db.set(
+            transaction.hash,
+            rlp.encode(transaction),
+        )
+
+    # Persist the uncles list
+    db.set(
+        block.header.uncles_hash,
+        rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
+    )
+
+    # Persist each individual uncle
+    for uncle in block.uncles:
+        db.set(
+            uncle.hash,
+            rlp.encode(hash),
+        )

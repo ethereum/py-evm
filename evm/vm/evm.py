@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 import rlp
 
@@ -59,7 +60,7 @@ class BaseEVM(object):
         self.header = header
 
         block_class = self.get_block_class()
-        self.block = block_class(header=self.header)
+        self.block = block_class.from_header(header=self.header)
         self.state_db = State(db=self.db, root_hash=self.header.state_root)
 
     @classmethod
@@ -202,21 +203,33 @@ class BaseEVM(object):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def compute_difficulty(self, parent_header):
+    def compute_difficulty(self, parent_header, timestamp):
         """
         Hook for computing the block difficulty
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     def create_header_from_parent(self, parent_header, **init_kwargs):
+        """
+        Creates and initializes a new block header from the provided
+        `parent_header`.
+        """
         if 'difficulty' not in init_kwargs:
-            init_kwargs['difficulty'] = self.compute_difficulty(parent_header)
+            init_kwargs['difficulty'] = self.compute_difficulty(parent_header, time.time())
         if 'gas_limit' not in init_kwargs:
             init_kwargs['gas_limit'] = self.compute_gas_limit(parent_header)
 
         header = BlockHeader.from_parent(parent=parent_header, **init_kwargs)
 
         return header
+
+    def setup_header(self, **header_params):
+        """
+        Setup the current header with the provided parameters.  This can be
+        used to set fields like the gas limit or timestamp to value different
+        than their computed defaults.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Snapshot and Revert
@@ -441,3 +454,8 @@ class MetaEVM(object):
         self.header = evm.create_header_from_parent(block.header)
 
         return block
+
+    def setup_header(self, *args, **kwargs):
+        evm = self.get_evm()
+        self.header = evm.setup_header(*args, **kwargs)
+        return self.header

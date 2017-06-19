@@ -37,6 +37,18 @@ class BaseBlock(rlp.Serializable):
             "The `Block.from_header` class method must be implemented by subclasses."
         )
 
+    def get_parent_header(self):
+        """
+        Returns the header for the parent block.
+        """
+        raise NotImplementedError("`Block.get_parent` must be implemented by subclasses")
+
+    def get_parent(self):
+        """
+        Returns the parent block.
+        """
+        raise NotImplementedError("`Block.get_parent` must be implemented by subclasses")
+
     @property
     def hash(self):
         return keccak(rlp.encode(self))
@@ -44,6 +56,13 @@ class BaseBlock(rlp.Serializable):
     @property
     def number(self):
         raise NotImplementedError("`Block.number` must be implemented by subclasses")
+
+    @property
+    def is_genesis(self):
+        return self.number == 0
+
+    def validate(self):
+        pass
 
     def apply_transaction(self, evm, transaction):
         """
@@ -58,3 +77,12 @@ class BaseBlock(rlp.Serializable):
         Mines the block.
         """
         raise NotImplementedError("The `Block.mine` method must be implemented by subclasses")
+
+    def __repr__(self):
+        return '<{class_name}(#{b})>'.format(
+            class_name=self.__class__.__name__,
+            b=str(self),
+        )
+
+    def __str__(self):
+        return "Block #{b.number}".format(b=self)

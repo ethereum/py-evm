@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import functools
-import time
 
 from evm.vm import BaseEVM
 
@@ -39,7 +38,10 @@ from evm.utils.hexidecimal import (
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
 from .validation import validate_frontier_transaction
-from .headers import compute_frontier_difficulty
+from .headers import (
+    compute_frontier_difficulty,
+    setup_header as _setup_header,
+)
 
 
 BREAK_OPCODES = {
@@ -142,7 +144,7 @@ def _apply_frontier_transaction(evm, transaction):
             computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
 
         # Gas Refunds
-        gas_remaining = computation.gas_meter.gas_remaining
+        gas_remaining = computation.get_gas_remaining()
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
@@ -287,11 +289,6 @@ def _apply_frontier_create_message(evm, message):
         return computation
 
 
-def _compute_frontier_difficulty(parent_header):
-    timestamp = max(int(time.time()), parent_header.timestamp + 1)
-    return compute_frontier_difficulty(parent_header, timestamp)
-
-
 FrontierEVM = BaseEVM.configure(
     name='FrontierEVM',
     # EVM logic
@@ -303,7 +300,8 @@ FrontierEVM = BaseEVM.configure(
         _compute_gas_limit,
         gas_limit_floor=constants.GENESIS_GAS_LIMIT,
     )),
-    compute_difficulty=staticmethod(_compute_frontier_difficulty),
+    compute_difficulty=staticmethod(compute_frontier_difficulty),
+    setup_header=_setup_header,
     # validation
     validate_transaction=validate_frontier_transaction,
     # transactions and evm messages

@@ -50,3 +50,37 @@ def compute_frontier_difficulty(parent_header, timestamp):
         difficulty = base_difficulty
 
     return difficulty
+
+
+ALLOWED_HEADER_FIELDS = {
+    'coinbase',
+    'gas_limit',
+    'timestamp',
+    'extra_data',
+    'mix_hash',
+    'nonce',
+}
+
+
+def setup_header(evm, **header_params):
+    extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
+    if extra_fields:
+        raise ValueError(
+            "The `setup_header` method may only be used with the fields ({0}). "
+            "The provided fields ({1}) are not supported".format(
+                ", ".join(tuple(sorted(ALLOWED_HEADER_FIELDS))),
+                ", ".join(tuple(sorted(extra_fields))),
+            )
+        )
+
+    for field_name, value in header_params.items():
+        setattr(evm.header, field_name, value)
+
+    if 'timestamp' in header_params and evm.header.block_number > 0:
+        parent_header = evm.block.get_parent_header()
+        evm.header.difficulty = evm.compute_difficulty(
+            parent_header,
+            header_params['timestamp'],
+        )
+
+    return evm.header

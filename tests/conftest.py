@@ -11,8 +11,8 @@ def vm_logger():
     handler = logging.StreamHandler(sys.stdout)
 
     #level = logging.TRACE
-    level = logging.DEBUG
-    #level = logging.INFO
+    #level = logging.DEBUG
+    level = logging.INFO
 
     logger.setLevel(level)
     handler.setLevel(level)

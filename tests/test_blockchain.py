@@ -14,7 +14,7 @@ from eth_utils import (
 )
 
 from evm.exceptions import (
-    InvalidTransaction,
+    InvalidBlock,
 )
 from evm.vm.evm import (
     MetaEVM,
@@ -133,35 +133,55 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     - mine block
     # 4 - profit!!
 
-    for block in fixture['blocks']:
+    for block_data in fixture['blocks']:
+        should_be_good_block = any((
+            'blockHeader' in block_data,
+            'transactions' in block_data,
+            'uncleHeaders' in block_data,
+        ))
+
+        try:
+            expected_block = rlp.decode(
+                block_data['rlp'],
+                sedes=meta_evm.get_evm().get_block_class(),
+            )
+        except Exception as arst:
+            assert not should_be_good_block, "Block should be good"
+            continue
+
+        try:
+            expected_block.validate()
+        except InvalidBlock:
+            assert not should_be_good_block, "Block should be good"
+            continue
+
         expected_header = BlockHeader(
-            parent_hash=block['blockHeader']['parentHash'],
-            uncles_hash=block['blockHeader']['uncleHash'],
-            coinbase=block['blockHeader']['coinbase'],
-            state_root=block['blockHeader']['stateRoot'],
-            transaction_root=block['blockHeader']['transactionsTrie'],
-            receipt_root=block['blockHeader']['receiptTrie'],
-            bloom=block['blockHeader']['bloom'],
-            difficulty=block['blockHeader']['difficulty'],
-            block_number=block['blockHeader']['number'],
-            gas_limit=block['blockHeader']['gasLimit'],
-            gas_used=block['blockHeader']['gasUsed'],
-            timestamp=block['blockHeader']['timestamp'],
-            extra_data=block['blockHeader']['extraData'],
-            mix_hash=block['blockHeader']['mixHash'],
-            nonce=block['blockHeader']['nonce'],
+            parent_hash=block_data['blockHeader']['parentHash'],
+            uncles_hash=block_data['blockHeader']['uncleHash'],
+            coinbase=block_data['blockHeader']['coinbase'],
+            state_root=block_data['blockHeader']['stateRoot'],
+            transaction_root=block_data['blockHeader']['transactionsTrie'],
+            receipt_root=block_data['blockHeader']['receiptTrie'],
+            bloom=block_data['blockHeader']['bloom'],
+            difficulty=block_data['blockHeader']['difficulty'],
+            block_number=block_data['blockHeader']['number'],
+            gas_limit=block_data['blockHeader']['gasLimit'],
+            gas_used=block_data['blockHeader']['gasUsed'],
+            timestamp=block_data['blockHeader']['timestamp'],
+            extra_data=block_data['blockHeader']['extraData'],
+            mix_hash=block_data['blockHeader']['mixHash'],
+            nonce=block_data['blockHeader']['nonce'],
         )
         # set the gas limit as this value is only required to be within a
         # specific range and can be picked by the party who crafts the block.
-        meta_evm.header.gas_limit = expected_header.gas_limit
-        meta_evm.header.coinbase = expected_header.coinbase
-        meta_evm.header.timestamp = expected_header.timestamp
+        meta_evm.setup_header(
+            extra_data=expected_block.header.extra_data,
+            gas_limit=expected_block.header.gas_limit,
+            coinbase=expected_block.header.coinbase,
+            timestamp=expected_block.header.timestamp,
+        )
 
-        if 'rlp' in block:
-            pass
-            #assert rlp.encode(expected_header) == block['rlp']
-
-        for transaction in block['transactions']:
+        for transaction in block_data['transactions']:
             txn_kwargs = {
                 'data': transaction['data'],
                 'gas': transaction['gasLimit'],
@@ -173,13 +193,15 @@ def test_blockchain_fixtures(fixture_name, fixture):
                 's': transaction['s'],
                 'v': transaction['v'],
             }
-            meta_evm.apply_transaction(txn_kwargs=txn_kwargs)
+            computation = meta_evm.apply_transaction(txn_kwargs=txn_kwargs)
 
         block = meta_evm.mine_block(
-            mix_hash=block['blockHeader']['mixHash'],
-            extra_data=block['blockHeader']['extraData'],
-            nonce=block['blockHeader']['nonce'],
+            mix_hash=expected_block.header.mix_hash,
+            nonce=expected_block.header.nonce,
         )
+        assert block == expected_block
+        assert rlp.encode(block) == block_data['rlp']
+
         header = block.header
 
         if header != expected_header:
@@ -205,7 +227,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
             )
             raise AssertionError(error_message)
 
-    meta_evm.mine_block()
+        assert header == expected_header
 
     evm = meta_evm.get_evm()
     verify_state_db(fixture['postState'], evm.state_db)

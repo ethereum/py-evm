@@ -204,6 +204,9 @@ class Computation(object):
         validate_is_bytes(data)
         self.log_entries.append((account, topics, data))
 
+    #
+    # Getters
+    #
     def get_log_entries(self):
         if self.error:
             return tuple()
@@ -223,7 +226,16 @@ class Computation(object):
         if self.error:
             return self.msg.gas
         else:
-            return self.msg.gas - self.gas_meter.gas_remaining
+            return max(
+                0,
+                self.msg.gas - self.gas_meter.gas_remaining,
+            )
+
+    def get_gas_remaining(self):
+        if self.error:
+            return 0
+        else:
+            return self.gas_meter.gas_remaining
 
     #
     # Context Manager API
