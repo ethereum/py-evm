@@ -25,6 +25,7 @@ from evm.utils.numeric import (
 #
 # Filesystem fixture loading.
 #
+@to_tuple
 def _recursive_find_files(base_dir, pattern):
     for dirpath, _, filenames in os.walk(base_dir):
         for filename in filenames:
@@ -41,9 +42,9 @@ def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn, mark_fn=None):
     - `normalize_fn`: callback to normalize json fixture to internal format.
     - `skip_fn`: callback to skip any tests that should not be run.
     """
-    all_fixture_paths = sorted(tuple(_recursive_find_files(fixtures_base_dir, "*.json")))
+    all_fixture_paths = _recursive_find_files(fixtures_base_dir, "*.json")
 
-    for fixture_path in all_fixture_paths:
+    for fixture_path in sorted(all_fixture_paths):
         with open(fixture_path) as fixture_file:
             fixtures = json.load(fixture_file)
 
