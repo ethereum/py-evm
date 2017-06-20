@@ -1,7 +1,12 @@
 import pytest
 
+from evm import constants
 from evm.exceptions import (
     EVMNotFound,
+)
+from evm.vm.flavors.mainnet import (
+    FRONTIER_BLOCK_RANGE,
+    HOMESTEAD_BLOCK_RANGE,
 )
 
 from evm.utils.ranges import (
@@ -17,6 +22,11 @@ RANGE_A = ((10, 100), (101, 200), (201, 300))
 RANGE_B = ((None, 100), (101, 200), (201, 300))
 RANGE_C = ((10, 100), (101, 200), (201, None))
 RANGE_D = ((None, 100), (101, 200), (201, None))
+
+MAINNET_RANGES = (
+    FRONTIER_BLOCK_RANGE,
+    HOMESTEAD_BLOCK_RANGE,
+)
 
 
 @pytest.mark.parametrize(
@@ -85,6 +95,10 @@ RANGE_D = ((None, 100), (101, 200), (201, None))
         (RANGE_D, 300, (201, None)),
         (RANGE_D, 301, (201, None)),
         (RANGE_D, 999, (201, None)),
+        # Mainnet
+        (MAINNET_RANGES, 0, FRONTIER_BLOCK_RANGE),
+        (MAINNET_RANGES, constants.FRONTIER_MAINNET_FINAL_BLOCK, FRONTIER_BLOCK_RANGE),
+        (MAINNET_RANGES, constants.HOMESTEAD_MAINNET_BLOCK, HOMESTEAD_BLOCK_RANGE),
     ),
 )
 def test_find_range(ranges, block_number, expected):

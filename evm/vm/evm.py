@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import collections
 import logging
-import time
 
 import rlp
 
@@ -277,11 +277,11 @@ class MetaEVM(object):
             validate_evm_block_ranges(ranges)
 
             # Organize the EVM classes by their respected ranges
-            evms_by_range = {
-                range: evm
+            evms_by_range = collections.OrderedDict(
+                (range, evm)
                 for range, evm
                 in evm_block_ranges
-            }
+            )
 
         if name is None:
             name = cls.__name__
