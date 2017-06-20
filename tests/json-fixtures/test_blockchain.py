@@ -1,6 +1,5 @@
 import pytest
 
-import json
 import os
 
 import rlp
@@ -31,48 +30,28 @@ from evm.rlp.headers import (
 )
 
 from evm.utils.fixture_tests import (
-    recursive_find_files,
+    find_fixtures,
     normalize_blockchain_fixtures,
     setup_state_db,
     verify_state_db,
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
-#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-#FIXTURES_PATHS = tuple(recursive_find_files(HOMESTEAD_FIXTURE_PATH, "*.json"))
-FIXTURES_PATHS = (
-    os.path.join(BASE_FIXTURE_PATH, "bcValidBlockTest.json"),
-)
+def blockchain_fixture_skip_fn(fixture_path):
+    # TODO: enable all tests
+    return 'bcValidBlockTest.json' not in fixture_path
 
 
-RAW_FIXTURES = tuple(
-    (
-        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
-        json.load(open(fixture_path)),
-    )
-    for fixture_path in FIXTURES_PATHS
-    if (
-        "Stress" not in fixture_path and
-        "Complexity" not in fixture_path and
-        "EIP150" not in fixture_path and
-        "EIP158" not in fixture_path
-    )
-)
-
-
-FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_blockchain_fixtures(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
+FIXTURES = find_fixtures(
+    BASE_FIXTURE_PATH,
+    normalize_blockchain_fixtures,
+    blockchain_fixture_skip_fn,
 )
 
 

@@ -1,5 +1,5 @@
-
 import fnmatch
+import json
 import os
 
 from eth_utils import (
@@ -8,6 +8,7 @@ from eth_utils import (
     decode_hex,
     remove_0x_prefix,
     pad_left,
+    to_tuple,
 )
 
 from evm.constants import (
@@ -27,6 +28,27 @@ def recursive_find_files(base_dir, pattern):
         for filename in filenames:
             if fnmatch.fnmatch(filename, pattern):
                 yield os.path.join(dirpath, filename)
+
+
+@to_tuple
+def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
+    all_fixture_paths = sorted(tuple(recursive_find_files(fixtures_base_dir, "*.json")))
+
+    for fixture_path in all_fixture_paths:
+        if skip_if_fn(fixture_path):
+            continue
+        else:
+
+            with open(fixture_path) as fixture_file:
+                fixtures = json.load(fixture_file)
+
+        for key in sorted(fixtures.keys()):
+            fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
+
+            fixture_name = "{0}:{1}".format(fixture_relpath, key)
+            normalized_fixture = normalize_fn(fixtures[key])
+
+            yield fixture_name, normalized_fixture
 
 
 #

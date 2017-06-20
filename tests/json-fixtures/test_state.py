@@ -1,6 +1,5 @@
 import pytest
 
-import json
 import os
 
 from trie.db.memory import (
@@ -30,45 +29,32 @@ from evm.rlp.headers import (
 )
 
 from evm.utils.fixture_tests import (
-    recursive_find_files,
+    find_fixtures,
     normalize_statetest_fixture,
     setup_state_db,
     verify_state_db,
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-
-
-RAW_FIXTURES = tuple(
-    (
-        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
-        json.load(open(fixture_path)),
-    )
-    for fixture_path in FIXTURES_PATHS
-    if (
+def state_fixture_skip_fn(fixture_path):
+    return (
         "Stress" not in fixture_path and
         "Complexity" not in fixture_path and
         "EIP150" not in fixture_path and
         "EIP158" not in fixture_path
     )
-)
 
 
-FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_statetest_fixture(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
-    if 'post' in fixtures[key]
+FIXTURES = find_fixtures(
+    BASE_FIXTURE_PATH,
+    normalize_statetest_fixture,
+    state_fixture_skip_fn,
 )
 
 
@@ -100,6 +86,10 @@ EVMForTesting = MetaEVM.configure(
         (HOMESTEAD_BLOCK_RANGE, HomesteadEVMForTesting),
     ),
 )
+
+
+def test_found_state_fixtures():
+    assert len(FIXTURES) != 0
 
 
 @pytest.mark.parametrize(

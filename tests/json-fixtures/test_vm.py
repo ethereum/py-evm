@@ -1,6 +1,5 @@
 import pytest
 
-import json
 import os
 
 from trie.db.memory import (
@@ -35,40 +34,28 @@ from evm.vm import (
 
 from evm.utils.fixture_tests import (
     normalize_vmtest_fixture,
-    recursive_find_files,
+    find_fixtures,
     setup_state_db,
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-
-
-RAW_FIXTURES = tuple(
-    (
-        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
-        json.load(open(fixture_path)),
-    )
-    for fixture_path in FIXTURES_PATHS
-    if (
+def vm_fixture_skip_fn(fixture_path):
+    return (
         "Performance" not in fixture_path and
         "Limits" not in fixture_path
     )
-)
 
 
-FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_vmtest_fixture(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
+FIXTURES = find_fixtures(
+    BASE_FIXTURE_PATH,
+    normalize_vmtest_fixture,
+    vm_fixture_skip_fn,
 )
 
 
