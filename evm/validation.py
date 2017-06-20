@@ -113,7 +113,7 @@ validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
 validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
 
 
-def validate_evm_block_ranges(ranges):
+def validate_vm_block_ranges(ranges):
     """
     Given an iterable of inclusive ranges formatted as 2-tuples
     of [left_bound, right_bound] where `left_bound` and `right_bound` are

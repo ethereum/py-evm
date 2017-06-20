@@ -51,7 +51,7 @@ class Computation(object):
     """
     The execution computation
     """
-    evm = None
+    vm = None
     msg = None
 
     memory = None
@@ -70,8 +70,8 @@ class Computation(object):
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, evm, message):
-        self.evm = evm
+    def __init__(self, vm, message):
+        self.vm = vm
         self.msg = message
 
         self.memory = Memory()
@@ -100,7 +100,7 @@ class Computation(object):
         """
         Convenience access to the state database
         """
-        return self.evm.state_db
+        return self.vm.state_db
 
     #
     # Execution

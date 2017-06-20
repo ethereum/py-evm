@@ -4,7 +4,7 @@ from evm.exceptions import (
     ValidationError,
 )
 from evm.validation import (
-    validate_evm_block_ranges,
+    validate_vm_block_ranges,
 )
 
 
@@ -78,9 +78,9 @@ from evm.validation import (
         ),
     ),
 )
-def test_validate_evm_block_ranges(ranges, should_error):
+def test_validate_vm_block_ranges(ranges, should_error):
     if should_error:
         with pytest.raises(ValidationError):
-            validate_evm_block_ranges(ranges)
+            validate_vm_block_ranges(ranges)
     else:
-        validate_evm_block_ranges(ranges)
+        validate_vm_block_ranges(ranges)

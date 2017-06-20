@@ -1,9 +1,5 @@
 import rlp
 
-from evm.utils.keccak import (
-    keccak,
-)
-
 
 class BaseBlock(rlp.Serializable):
     db = None
@@ -25,7 +21,7 @@ class BaseBlock(rlp.Serializable):
     @classmethod
     def get_transaction_class(cls):
         if cls.transaction_class is None:
-            raise AttributeError("OpenBlock subclasses must declare a transaction_class")
+            raise AttributeError("Block subclasses must declare a transaction_class")
         return cls.transaction_class
 
     @classmethod
@@ -33,29 +29,21 @@ class BaseBlock(rlp.Serializable):
         """
         Returns the block denoted by the given block header.
         """
-        raise NotImplementedError(
-            "The `Block.from_header` class method must be implemented by subclasses."
-        )
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def get_parent_header(self):
         """
         Returns the header for the parent block.
         """
-        raise NotImplementedError("`Block.get_parent` must be implemented by subclasses")
-
-    def get_parent(self):
-        """
-        Returns the parent block.
-        """
-        raise NotImplementedError("`Block.get_parent` must be implemented by subclasses")
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     def hash(self):
-        return keccak(rlp.encode(self))
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     def number(self):
-        raise NotImplementedError("`Block.number` must be implemented by subclasses")
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     def is_genesis(self):
@@ -64,19 +52,17 @@ class BaseBlock(rlp.Serializable):
     def validate(self):
         pass
 
-    def apply_transaction(self, evm, transaction):
+    def add_transaction(self, transaction, computation):
         """
-        Applies the given transaction to the current block.
+        Adds the given transaction to the current block.
         """
-        raise NotImplementedError(
-            "The `Block.apply_transaction` method must be implemented by subclasses"
-        )
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def mine(self, *args, **kwargs):
         """
         Mines the block.
         """
-        raise NotImplementedError("The `Block.mine` method must be implemented by subclasses")
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def __repr__(self):
         return '<{class_name}(#{b})>'.format(

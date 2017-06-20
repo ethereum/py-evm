@@ -23,3 +23,9 @@ logging.Logger.trace = trace
 #  Ensure we can reach 1024 frames of recursion
 #
 sys.setrecursionlimit(1024 * 10)
+
+
+from evm.vm import (  # noqa: F401
+    EVM,
+    VM,
+)

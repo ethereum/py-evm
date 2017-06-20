@@ -10,15 +10,15 @@ from eth_utils import (
     keccak,
 )
 
+from evm import (
+    EVM,
+)
 from evm.exceptions import (
     InvalidTransaction,
 )
-from evm.vm.evm import (
-    MetaEVM,
-)
 from evm.vm.flavors import (
-    FrontierEVM,
-    HomesteadEVM,
+    FrontierVM,
+    HomesteadVM,
 )
 from evm.vm.flavors.mainnet import (
     FRONTIER_BLOCK_RANGE,
@@ -124,21 +124,21 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-FrontierEVMForTesting = FrontierEVM.configure(
-    name='FrontierEVMForTesting',
+FrontierVMForTesting = FrontierVM.configure(
+    name='FrontierVMForTesting',
     get_block_hash=get_block_hash_for_testing,
 )
-HomesteadEVMForTesting = HomesteadEVM.configure(
-    name='HomesteadEVMForTesting',
+HomesteadVMForTesting = HomesteadVM.configure(
+    name='HomesteadVMForTesting',
     get_block_hash=get_block_hash_for_testing,
 )
 
 
-EVMForTesting = MetaEVM.configure(
+EVMForTesting = EVM.configure(
     name='EVMForTesting',
-    evm_block_ranges=(
-        (FRONTIER_BLOCK_RANGE, FrontierEVMForTesting),
-        (HOMESTEAD_BLOCK_RANGE, HomesteadEVMForTesting),
+    vm_block_ranges=(
+        (FRONTIER_BLOCK_RANGE, FrontierVMForTesting),
+        (HOMESTEAD_BLOCK_RANGE, HomesteadVMForTesting),
     ),
 )
 
@@ -160,15 +160,12 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = MemoryDB()
-    meta_evm = EVMForTesting.configure(db=db)(header=header)
-    evm = meta_evm.get_evm()
-    block = evm.block
+    evm = EVMForTesting.configure(db=db)(header=header)
 
-    setup_state_db(fixture['pre'], evm.state_db)
+    state_db = setup_state_db(fixture['pre'], evm.get_state_db())
+    evm.header.state_root = state_db.root_hash
 
-    Transaction = evm.get_transaction_class()
-
-    unsigned_transaction = Transaction.create_unsigned_transaction(
+    unsigned_transaction = evm.create_unsigned_transaction(
         nonce=fixture['transaction']['nonce'],
         gas_price=fixture['transaction']['gasPrice'],
         gas=fixture['transaction']['gasLimit'],
@@ -204,4 +201,4 @@ def test_state_fixtures(fixture_name, fixture):
         else:
             assert computation.output == expected_output
 
-    verify_state_db(fixture['post'], evm.state_db)
+    verify_state_db(fixture['post'], evm.get_state_db())

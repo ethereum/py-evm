@@ -10,18 +10,18 @@ from eth_utils import (
     keccak,
 )
 
+from evm import (
+    EVM,
+)
 from evm.exceptions import (
     VMError,
 )
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.evm import (
-    MetaEVM,
-)
 from evm.vm.flavors import (
-    FrontierEVM,
-    HomesteadEVM,
+    FrontierVM,
+    HomesteadVM,
 )
 from evm.vm.flavors.mainnet import (
     FRONTIER_BLOCK_RANGE,
@@ -36,6 +36,7 @@ from evm.utils.fixture_tests import (
     normalize_vmtest_fixture,
     find_fixtures,
     setup_state_db,
+    verify_state_db,
 )
 
 
@@ -74,7 +75,7 @@ def apply_message_for_testing(self, message):
     For VM tests, we don't actually apply messages.
     """
     computation = Computation(
-        evm=self,
+        vm=self,
         message=message,
     )
     return computation
@@ -85,7 +86,7 @@ def apply_create_message_for_testing(self, message):
     For VM tests, we don't actually apply messages.
     """
     computation = Computation(
-        evm=self,
+        vm=self,
         message=message,
     )
     return computation
@@ -100,25 +101,25 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-FrontierEVMForTesting = FrontierEVM.configure(
-    name='FrontierEVMForTesting',
+FrontierVMForTesting = FrontierVM.configure(
+    name='FrontierVMForTesting',
     apply_message=apply_create_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
     get_block_hash=get_block_hash_for_testing,
 )
-HomesteadEVMForTesting = HomesteadEVM.configure(
-    name='HomesteadEVMForTesting',
+HomesteadVMForTesting = HomesteadVM.configure(
+    name='HomesteadVMForTesting',
     apply_message=apply_create_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
     get_block_hash=get_block_hash_for_testing,
 )
 
 
-EVMForTesting = MetaEVM.configure(
+EVMForTesting = EVM.configure(
     name='EVMForTesting',
-    evm_block_ranges=(
-        (FRONTIER_BLOCK_RANGE, FrontierEVMForTesting),
-        (HOMESTEAD_BLOCK_RANGE, HomesteadEVMForTesting),
+    vm_block_ranges=(
+        (FRONTIER_BLOCK_RANGE, FrontierVMForTesting),
+        (HOMESTEAD_BLOCK_RANGE, HomesteadVMForTesting),
     ),
 )
 
@@ -135,9 +136,9 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    meta_evm = EVMForTesting.configure(db=db)(header=header)
-    evm = meta_evm.get_evm()
-    setup_state_db(fixture['pre'], evm.state_db)
+    evm = EVMForTesting.configure(db=db)(header=header)
+    state_db = setup_state_db(fixture['pre'], evm.get_state_db())
+    evm.header.state_root = state_db.root_hash
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -145,11 +146,12 @@ def test_vm_fixtures(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
-        code=evm.state_db.get_code(fixture['exec']['address']),
+        code=evm.get_state_db().get_code(fixture['exec']['address']),
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = evm.apply_computation(message)
+    vm = evm.get_vm()
+    computation = vm.apply_computation(message)
 
     if 'post' in fixture:
         #
@@ -199,20 +201,4 @@ def test_vm_fixtures(fixture_name, fixture):
         assert isinstance(computation.error, VMError)
         post_state = fixture['pre']
 
-    for account, account_data in post_state.items():
-        for slot, expected_storage_value in account_data['storage'].items():
-            actual_storage_value = evm.state_db.get_storage(account, slot)
-
-            assert actual_storage_value == expected_storage_value
-
-        expected_nonce = account_data['nonce']
-        expected_code = account_data['code']
-        expected_balance = account_data['balance']
-
-        actual_nonce = evm.state_db.get_nonce(account)
-        actual_code = evm.state_db.get_code(account)
-        actual_balance = evm.state_db.get_balance(account)
-
-        assert actual_nonce == expected_nonce
-        assert actual_code == expected_code
-        assert actual_balance == expected_balance
+    verify_state_db(post_state, vm.state_db)
