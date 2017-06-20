@@ -25,7 +25,7 @@ from evm.utils.numeric import (
 #
 # Filesystem fixture loading.
 #
-def recursive_find_files(base_dir, pattern):
+def _recursive_find_files(base_dir, pattern):
     for dirpath, _, filenames in os.walk(base_dir):
         for filename in filenames:
             if fnmatch.fnmatch(filename, pattern):
@@ -34,7 +34,14 @@ def recursive_find_files(base_dir, pattern):
 
 @to_tuple
 def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
-    all_fixture_paths = sorted(tuple(recursive_find_files(fixtures_base_dir, "*.json")))
+    """
+    Helper function for JSON based fixture test suite.
+
+    - `fixtures_base_dir`: the filesystem path under which JSON fixtures can be found.
+    - `normalize_fn`: callback to normalize json fixture to internal format.
+    - `skip_if_fn`: callback to skip any tests that should not be run.
+    """
+    all_fixture_paths = sorted(tuple(_recursive_find_files(fixtures_base_dir, "*.json")))
 
     for fixture_path in all_fixture_paths:
         with open(fixture_path) as fixture_file:
@@ -332,4 +339,12 @@ def verify_state_db(expected_state, state_db):
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code
-        assert balance_delta == 0, "Expected: {0} - Actual: {1} | Delta: {2}".format(expected_balance, actual_balance, balance_delta)
+
+        balance_error_message = (
+            "Expected: {0} - Actual: {1} | Delta: {2}".format(
+                expected_balance,
+                actual_balance,
+                balance_delta,
+            )
+        )
+        assert balance_delta == 0, balance_error_message
