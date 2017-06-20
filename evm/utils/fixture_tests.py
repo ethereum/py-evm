@@ -2,6 +2,8 @@ import fnmatch
 import json
 import os
 
+import pytest
+
 from eth_utils import (
     is_0x_prefixed,
     to_canonical_address,
@@ -35,12 +37,8 @@ def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
     all_fixture_paths = sorted(tuple(recursive_find_files(fixtures_base_dir, "*.json")))
 
     for fixture_path in all_fixture_paths:
-        if skip_if_fn(fixture_path):
-            continue
-        else:
-
-            with open(fixture_path) as fixture_file:
-                fixtures = json.load(fixture_file)
+        with open(fixture_path) as fixture_file:
+            fixtures = json.load(fixture_file)
 
         for key in sorted(fixtures.keys()):
             fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
@@ -48,7 +46,14 @@ def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
             fixture_name = "{0}:{1}".format(fixture_relpath, key)
             normalized_fixture = normalize_fn(fixtures[key])
 
-            yield fixture_name, normalized_fixture
+            if skip_if_fn(fixture_path, key, fixtures[key]):
+                yield pytest.param(
+                    fixture_name,
+                    normalized_fixture,
+                    marks=pytest.mark.skip(reason="Did not pass fixture skip fn"),
+                )
+            else:
+                yield fixture_name, normalized_fixture
 
 
 #

@@ -38,7 +38,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
 
 
-def transaction_fixture_skip_fn(fixture_path):
+def transaction_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all fixture tests
     return "ttTransactionTest.json" not in fixture_path
 

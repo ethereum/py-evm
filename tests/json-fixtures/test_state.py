@@ -42,7 +42,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 
-def state_fixture_skip_fn(fixture_path):
+def state_fixture_skip_fn(fixture_path, fixture_name, fixture):
     return (
         "Stress" in fixture_path or
         "Complexity" in fixture_path or

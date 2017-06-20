@@ -45,7 +45,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-def vm_fixture_skip_fn(fixture_path):
+def vm_fixture_skip_fn(fixture_path, fixture_name, fixture):
     return (
         "Performance" in fixture_path or
         "Limits" in fixture_path
