@@ -6,7 +6,6 @@ from eth_utils import (
     to_canonical_address,
 )
 
-import json
 import os
 
 from trie.db.memory import (
@@ -27,7 +26,7 @@ from evm.vm.flavors import (
 )
 
 from evm.utils.fixture_tests import (
-    recursive_find_files,
+    find_fixtures,
     normalize_transactiontest_fixture,
     normalize_signed_transaction,
 )
@@ -37,32 +36,17 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
-#HOMESTEAD_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests', 'Homestead')
 
 
-#FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
-#FIXTURES_PATHS = tuple(recursive_find_files(HOMESTEAD_FIXTURE_PATH, "*.json"))
-FIXTURES_PATHS = (
-    os.path.join(BASE_FIXTURE_PATH, "ttTransactionTest.json"),
-)
+def transaction_fixture_skip_fn(fixture_path, fixture_name, fixture):
+    # TODO: enable all fixture tests
+    return "ttTransactionTest.json" not in fixture_path
 
 
-RAW_FIXTURES = tuple(
-    (
-        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
-        json.load(open(fixture_path)),
-    )
-    for fixture_path in FIXTURES_PATHS
-)
-
-
-FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_transactiontest_fixture(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
+FIXTURES = find_fixtures(
+    BASE_FIXTURE_PATH,
+    normalize_transactiontest_fixture,
+    transaction_fixture_skip_fn,
 )
 
 

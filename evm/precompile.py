@@ -15,6 +15,7 @@ from evm.utils.address import (
     public_key_to_address,
 )
 from evm.utils.ecdsa import (
+    BadSignature,
     ecdsa_raw_recover,
 )
 from evm.utils.numeric import (
@@ -65,7 +66,7 @@ def precompile_ecrecover(computation):
 
     try:
         raw_public_key = ecdsa_raw_recover(message_hash, (v, r, s))
-    except ValueError:
+    except BadSignature:
         return computation
 
     public_key = encode_raw_public_key(raw_public_key)

@@ -1,5 +1,3 @@
-from evm.vm import BaseEVM
-
 from evm import constants
 from evm.exceptions import (
     OutOfGas,
@@ -9,19 +7,21 @@ from evm.utils.hexidecimal import (
     encode_hex,
 )
 
+from ..frontier import FrontierEVM
+
 from .opcodes import HOMESTEAD_OPCODES
-from .blocks import OpenHomesteadBlock
+from .blocks import HomesteadBlock
 from .validation import validate_homestead_transaction
 
 
 def _apply_homestead_create_message(evm, message):
-    if evm.block.state_db.account_exists(message.storage_address):
-        evm.block.state_db.set_nonce(message.storage_address, 0)
-        evm.block.state_db.set_code(message.storage_address, b'')
-        evm.block.state_db.delete_storage(message.storage_address)
+    if evm.state_db.account_exists(message.storage_address):
+        evm.state_db.set_nonce(message.storage_address, 0)
+        evm.state_db.set_code(message.storage_address, b'')
+        evm.state_db.delete_storage(message.storage_address)
 
     if message.sender != message.origin:
-        evm.block.state_db.increment_nonce(message.sender)
+        evm.state_db.increment_nonce(message.sender)
 
     snapshot = evm.snapshot()
 
@@ -55,10 +55,10 @@ def _apply_homestead_create_message(evm, message):
         return computation
 
 
-HomesteadEVM = BaseEVM.configure(
+HomesteadEVM = FrontierEVM.configure(
     name='HomesteadEVM',
     opcodes=HOMESTEAD_OPCODES,
-    block_class=OpenHomesteadBlock,
+    _block_class=HomesteadBlock,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     apply_create_message=_apply_homestead_create_message,

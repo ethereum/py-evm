@@ -1,6 +1,8 @@
-
 import fnmatch
+import json
 import os
+
+import pytest
 
 from eth_utils import (
     is_0x_prefixed,
@@ -8,6 +10,7 @@ from eth_utils import (
     decode_hex,
     remove_0x_prefix,
     pad_left,
+    to_tuple,
 )
 
 from evm.constants import (
@@ -22,11 +25,52 @@ from evm.utils.numeric import (
 #
 # Filesystem fixture loading.
 #
-def recursive_find_files(base_dir, pattern):
+@to_tuple
+def _recursive_find_files(base_dir, pattern):
     for dirpath, _, filenames in os.walk(base_dir):
         for filename in filenames:
             if fnmatch.fnmatch(filename, pattern):
                 yield os.path.join(dirpath, filename)
+
+
+@to_tuple
+def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn, mark_fn=None):
+    """
+    Helper function for JSON based fixture test suite.
+
+    - `fixtures_base_dir`: the filesystem path under which JSON fixtures can be found.
+    - `normalize_fn`: callback to normalize json fixture to internal format.
+    - `skip_fn`: callback to skip any tests that should not be run.
+    """
+    all_fixture_paths = _recursive_find_files(fixtures_base_dir, "*.json")
+
+    for fixture_path in sorted(all_fixture_paths):
+        with open(fixture_path) as fixture_file:
+            fixtures = json.load(fixture_file)
+
+        for key in sorted(fixtures.keys()):
+            fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
+
+            fixture_name = "{0}:{1}".format(fixture_relpath, key)
+            normalized_fixture = normalize_fn(fixtures[key])
+
+            if skip_fn(fixture_path, key, fixtures[key]):
+                yield pytest.param(
+                    fixture_name,
+                    normalized_fixture,
+                    marks=pytest.mark.skip(reason="Did not pass fixture skip fn"),
+                )
+            else:
+                if mark_fn:
+                    mark = mark_fn(fixture_name)
+                    if mark:
+                        yield pytest.param(
+                            fixture_name,
+                            normalized_fixture,
+                            marks=mark,
+                        )
+                        continue
+                yield fixture_name, normalized_fixture
 
 
 #
@@ -87,7 +131,7 @@ def normalize_logs(logs):
     return [
         {
             'address': to_canonical_address(log_entry['address']),
-            'topics': [decode_hex(topic) for topic in log_entry['topics']],
+            'topics': [int(topic, 16) for topic in log_entry['topics']],
             'data': decode_hex(log_entry['data']),
             'bloom': decode_hex(log_entry['bloom']),
         } for log_entry in logs
@@ -217,7 +261,7 @@ def normalize_block_header(header):
         'gasUsed': to_int(header['gasUsed']),
         'hash': decode_hex(header['hash']),
         'mixHash': decode_hex(header['mixHash']),
-        'nonce': big_endian_to_int(decode_hex(header['nonce'])),
+        'nonce': decode_hex(header['nonce']),
         'number': to_int(header['number']),
         'parentHash': decode_hex(header['parentHash']),
         'receiptTrie': decode_hex(header['receiptTrie']),
@@ -236,9 +280,13 @@ def normalize_block_header(header):
 
 
 def normalize_block(block):
-    normalized_block = {
-        'rlp': decode_hex(block['rlp']),
-    }
+    normalized_block = {}
+
+    try:
+        normalized_block['rlp'] = decode_hex(block['rlp'])
+    except ValueError as err:
+        normalized_block['rlp_error'] = err
+
     if 'blockHeader' in block:
         normalized_block['blockHeader'] = normalize_block_header(block['blockHeader'])
     if 'transactions' in block:
@@ -254,11 +302,14 @@ def normalize_blockchain_fixtures(fixture):
     normalized_fixture = {
         'blocks': [normalize_block(block_fixture) for block_fixture in fixture['blocks']],
         'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
-        'genesisRLP': decode_hex(fixture['genesisRLP']),
         'lastblockhash': decode_hex(fixture['lastblockhash']),
         'pre': normalize_account_state(fixture['pre']),
         'postState': normalize_account_state(fixture['postState']),
     }
+
+    if 'genesisRLP' in fixture:
+        normalized_fixture['genesisRLP'] = decode_hex(fixture['genesisRLP'])
+
     return normalized_fixture
 
 
@@ -278,3 +329,32 @@ def setup_state_db(desired_state, state_db):
         state_db.set_code(account, code)
         state_db.set_balance(account, balance)
     return state_db
+
+
+def verify_state_db(expected_state, state_db):
+    for account, account_data in sorted(expected_state.items()):
+        for slot, expected_storage_value in sorted(account_data['storage'].items()):
+            actual_storage_value = state_db.get_storage(account, slot)
+
+            assert actual_storage_value == expected_storage_value
+
+        expected_nonce = account_data['nonce']
+        expected_code = account_data['code']
+        expected_balance = account_data['balance']
+
+        actual_nonce = state_db.get_nonce(account)
+        actual_code = state_db.get_code(account)
+        actual_balance = state_db.get_balance(account)
+        balance_delta = expected_balance - actual_balance
+
+        assert actual_nonce == expected_nonce
+        assert actual_code == expected_code
+
+        balance_error_message = (
+            "Expected: {0} - Actual: {1} | Delta: {2}".format(
+                expected_balance,
+                actual_balance,
+                balance_delta,
+            )
+        )
+        assert balance_delta == 0, balance_error_message

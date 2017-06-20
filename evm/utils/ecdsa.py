@@ -13,9 +13,6 @@ from evm.constants import (
     SECPK1_A as A,
     SECPK1_B as B,
 )
-from evm.exceptions import (
-    InvalidSignature,
-)
 
 from .address import (
     public_key_to_address,
@@ -44,6 +41,13 @@ from .secp256k1 import (
 )
 
 
+class BadSignature(ValueError):
+    """
+    Raised for invalid signatures.
+    """
+    pass
+
+
 def encode_signature(v, r, s):
     vb = int_to_byte(v)
     rb = pad32(int_to_big_endian(r))
@@ -56,7 +60,7 @@ def decode_signature(signature):
     if not isinstance(signature, bytes):
         raise TypeError("signature parameter must be bytes")
     if not len(signature) == 65:
-        raise InvalidSignature(
+        raise BadSignature(
             "signature must be exactly 65 bytes in length: got {0}".format(len(signature))
         )
 
@@ -116,7 +120,7 @@ def ecdsa_sign(msg, private_key):
     v, r, s = ecdsa_raw_sign(keccak(msg), private_key)
     signature = encode_signature(v, r, s)
     if not ecdsa_verify(msg, signature, private_key_to_public_key(private_key)):
-        raise InvalidSignature(
+        raise BadSignature(
             "Bad Signature: {0}\nv = {1}\nr = {2}\ns = {3}".format(signature, v, r, s)
         )
     return signature
@@ -130,7 +134,7 @@ def ecdsa_raw_verify(msg_hash, vrs, public_key):
 
     v, r, s = vrs
     if not (27 <= v <= 34):
-        raise InvalidSignature("Invalid Signature")
+        raise BadSignature("Invalid Signature")
 
     w = inv(s, N)
     z = big_endian_to_int(msg_hash)
@@ -174,7 +178,7 @@ def ecdsa_raw_recover(msg_hash, vrs):
     v, r, s = vrs
 
     if not (27 <= v <= 34):
-        raise InvalidSignature("%d must in range 27-31" % v)
+        raise BadSignature("%d must in range 27-31" % v)
 
     x = r
 
@@ -184,7 +188,7 @@ def ecdsa_raw_recover(msg_hash, vrs):
     # If xcubedaxb is not a quadratic residue, then r cannot be the x coord
     # for a point on the curve, and so the sig is invalid
     if (xcubedaxb - y * y) % P != 0 or not (r % N) or not (s % N):
-        raise InvalidSignature("Invalid signature")
+        raise BadSignature("Invalid signature")
     z = big_endian_to_int(msg_hash)
     Gz = jacobian_multiply((Gx, Gy, 1), (N - z) % N)
     XY = jacobian_multiply((x, y, 1), s)

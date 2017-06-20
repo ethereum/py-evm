@@ -20,10 +20,13 @@ validate_evm_block_ranges((
 ))
 
 
+MAINNET_BLOCK_RANGES = (
+    (FRONTIER_BLOCK_RANGE, FrontierEVM),
+    (HOMESTEAD_BLOCK_RANGE, HomesteadEVM),
+)
+
+
 MainnetEVM = MetaEVM.configure(
     'MainnetEVM',
-    evm_block_ranges=(
-        (FRONTIER_BLOCK_RANGE, FrontierEVM),
-        (HOMESTEAD_BLOCK_RANGE, HomesteadEVM),
-    ),
+    evm_block_ranges=MAINNET_BLOCK_RANGES,
 )

@@ -1,4 +1,10 @@
+import itertools
+
 import rlp
+
+from eth_utils import (
+    to_list,
+)
 
 from evm.exceptions import (
     InvalidSignature,
@@ -8,6 +14,7 @@ from evm.utils.address import (
     public_key_to_address,
 )
 from evm.utils.ecdsa import (
+    BadSignature,
     ecdsa_sign,
     decode_signature,
     encode_signature,
@@ -30,9 +37,12 @@ def validate_transaction_signature(transaction):
     )
     unsigned_transaction = transaction.as_unsigned_transaction()
     msg = rlp.encode(unsigned_transaction)
-    public_key = ecdsa_recover(msg, signature)
+    try:
+        public_key = ecdsa_recover(msg, signature)
+    except BadSignature as e:
+        raise InvalidSignature("Bad Signature: {0}".format(str(e)))
     if not ecdsa_verify(msg, signature, public_key):
-        raise InvalidSignature("Invalide Signature")
+        raise InvalidSignature("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):
@@ -45,3 +55,14 @@ def extract_transaction_sender(transaction):
     public_key = ecdsa_recover(rlp.encode(unsigned_transaction), signature)
     sender = public_key_to_address(public_key)
     return sender
+
+
+@to_list
+def get_transactions_from_db(transaction_db, transaction_class):
+    for transaction_idx in itertools.count():
+        transaction_key = rlp.encode(transaction_idx)
+        if transaction_key in transaction_db:
+            transaction_data = transaction_db[transaction_key]
+            yield rlp.decode(transaction_data, sedes=transaction_class)
+        else:
+            break

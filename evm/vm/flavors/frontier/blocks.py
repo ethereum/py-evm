@@ -1,5 +1,3 @@
-import itertools
-
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -16,18 +14,27 @@ from trie import (
 from evm.constants import (
     EMPTY_UNCLE_HASH,
 )
-from evm.state import (
-    State,
+from evm.exceptions import (
+    InvalidBlock,
+)
+from evm.rlp.logs import (
+    Log,
 )
 from evm.rlp.receipts import (
     Receipt,
 )
 from evm.rlp.blocks import (
-    OpenBlock,
-    SealedBlock,
+    BaseBlock,
 )
 from evm.rlp.headers import (
     BlockHeader,
+)
+
+from evm.utils.transactions import (
+    get_transactions_from_db,
+)
+from evm.utils.receipts import (
+    get_receipts_from_db,
 )
 
 from .transactions import (
@@ -35,37 +42,71 @@ from .transactions import (
 )
 
 
-class BaseFrontierBlock(object):
+class FrontierBlock(BaseBlock):
     fields = [
         ('header', BlockHeader),
         ('transactions', CountableList(FrontierTransaction)),
         ('uncles', CountableList(BlockHeader))
     ]
 
+    db = None
+    bloom_filter = None
 
-class SealedFrontierBlock(BaseFrontierBlock, SealedBlock):
-    pass
-
-
-class OpenFrontierBlock(BaseFrontierBlock, OpenBlock):
-    bloom = None
-
-    def __init__(self, header, db=None):
-        self.db = db
+    def __init__(self, header, transactions=None, uncles=None, db=None):
+        if db is not None:
+            self.db = db
 
         if self.db is None:
             raise TypeError("Block must have a db")
 
-        self.header = header
+        if transactions is None:
+            transactions = []
+        if uncles is None:
+            uncles = []
 
-        # TODO: tons more validation......
-        # - transaction_root vs self.transactions
-        # - receipts_root vs self.receipts
+        self.bloom_filter = BloomFilter(header.bloom)
+        self.transaction_db = Trie(db=self.db, root_hash=header.transaction_root)
+        self.receipt_db = Trie(db=self.db, root_hash=header.receipt_root)
 
-    _static_header_data = None
+        super(FrontierBlock, self).__init__(
+            header=header,
+            transactions=transactions,
+            uncles=uncles,
+        )
+        # TODO: should perform block validation at this point?
+
+    def validate(self):
+        if not self.is_genesis:
+            parent_block = self.get_parent()
+
+            # timestamp
+            if self.header.timestamp < parent_block.header.timestamp:
+                raise InvalidBlock("Block timestamp is before the parent block's timestamp")
+            elif self.header.timestamp == parent_block.header.timestamp:
+                raise InvalidBlock("Block timestamp is equal to the parent block's timestamp")
+
+        super(FrontierBlock, self).validate()
 
     #
-    # Computed properties and methods
+    # Helpers
+    #
+    @property
+    def number(self):
+        return self.header.block_number
+
+    def get_parent_header(self):
+        parent_header = rlp.decode(
+            self.db.get(self.header.parent_hash),
+            sedes=BlockHeader,
+        )
+        return parent_header
+
+    def get_parent(self):
+        parent_header = self.get_parent_header()
+        return self.from_header(parent_header)
+
+    #
+    # Transaction class for this block class
     #
     transaction_class = FrontierTransaction
 
@@ -73,129 +114,124 @@ class OpenFrontierBlock(BaseFrontierBlock, OpenBlock):
     def get_transaction_class(cls):
         return cls.transaction_class
 
-    @property
-    def transactions(self):
-        return list(self._get_transactions())
-
-    def _get_transactions(self):
-        """
-        Note: return value of this function can be cached based on the
-        `self.transaction_db.root_hash` value.
-        """
-        for transaction_idx in itertools.count():
-            transaction_key = rlp.encode(transaction_idx)
-            if transaction_key in self.transaction_db:
-                transaction_data = self.transaction_db[transaction_key]
-                yield rlp.decode(transaction_data, sedes=self.get_transaction_class())
-            else:
-                break
-
-    @property
-    def receipts(self):
-        return list(self._get_receipts())
-
-    def _get_receipts(self):
-        """
-        Note: return value of this function can be cached based on the
-        `self.receipt_db.root_hash` value.
-        """
-        for transaction_idx in itertools.count():
-            transaction_key = rlp.encode(transaction_idx)
-            if transaction_key in self.receipt_db:
-                receipt_data = self.receipt_db[transaction_key]
-                yield rlp.decode(receipt_data, sedes=Receipt)
-            else:
-                break
-
-    @property
-    def cumulative_gas_used(self):
+    #
+    # Gas Usage API
+    #
+    def get_cumulative_gas_used(self):
         """
         Note return value of this function can be cached based on
         `self.receipt_db.root_hash`
         """
-        return sum(receipt.gas_used for receipt in self.receipts),
+        if len(self.transactions):
+            return self.receipts[-1].gas_used
+        else:
+            return 0
 
+    #
+    # Receipts API
+    #
     @property
-    def header(self):
+    def receipts(self):
+        return get_receipts_from_db(self.receipt_db, Receipt)
+
+    #
+    # Header API
+    #
+    @classmethod
+    def from_header(cls, header):
         """
-        The block header is a computed property for open blocks each time.
+        Returns the block denoted by the given block header.
         """
-        return BlockHeader(**self.get_header_data())
+        if header.uncles_hash == EMPTY_UNCLE_HASH:
+            uncles = []
+        else:
+            uncles = rlp.decode(cls.db.get(header.uncles_hash), sedes=CountableList(BlockHeader))
 
-    @header.setter
-    def header(self, value):
-        """
-        Update this block to the values represented by the given header.
-        """
-        if not isinstance(value, BlockHeader):
-            raise TypeError("block.header may only be set with a BlockHeader instance")
+        transaction_db = Trie(cls.db, root_hash=header.transaction_root)
+        transactions = get_transactions_from_db(transaction_db, cls.get_transaction_class())
 
-        if value.uncles_hash != EMPTY_UNCLE_HASH:
-            # TODO: what to do about this?
-            raise ValueError("Open blocks may not have uncles")
+        return cls(
+            header=header,
+            transactions=transactions,
+            uncles=uncles,
+        )
 
-        self._static_header_data = {
-            'parent_hash': value.parent_hash,
-            'uncles_hash': value.uncles_hash,
-            'coinbase': value.coinbase,
-            'difficulty': value.difficulty,
-            'block_number': value.block_number,
-            'gas_limit': value.gas_limit,
-            'timestamp': value.timestamp,
-            'extra_data': value.extra_data,
-            'mix_hash': value.mix_hash,
-            'nonce': value.nonce,
-        }
-
-        self.bloom = BloomFilter(value.bloom)
-        self.state_db = State(self.db, root_hash=value.state_root)
-        self.transaction_db = Trie(self.db, root_hash=value.transaction_root)
-        self.receipt_db = Trie(self.db, root_hash=value.receipts_root)
-
-    def get_header_data(self):
-        return {
-            # static values
-            'parent_hash': self._static_header_data['parent_hash'],
-            'coinbase': self._static_header_data['coinbase'],
-            'difficulty': self._static_header_data['difficulty'],
-            'block_number': self._static_header_data['block_number'],
-            'gas_limit': self._static_header_data['gas_limit'],
-            'timestamp': self._static_header_data['timestamp'],
-            'extra_data': self._static_header_data['extra_data'],
-            'mix_hash': self._static_header_data['mix_hash'],
-            'nonce': self._static_header_data['nonce'],
-            # dynamic values
-            'uncles_hash': EMPTY_UNCLE_HASH,
-            'state_root': self.state_db.state.root_hash,
-            'transaction_root': self.transaction_db.root_hash,
-            'receipts_root': self.receipt_db.root_hash,
-            'bloom': int(self.bloom),
-            'gas_used': self.cumulative_gas_used,
-        }
-
+    #
+    # Execution API
+    #
     def apply_transaction(self, evm, transaction):
         computation = evm.apply_transaction(transaction)
 
+        logs = [
+            Log(address, topics, data)
+            for address, topics, data
+            in computation.get_log_entries()
+        ]
+
+        if computation.error:
+            gas_used = self.get_cumulative_gas_used() + transaction.gas
+        else:
+            gas_remaining = computation.get_gas_remaining()
+            base_gas_used = transaction.gas - gas_remaining
+            gas_refunded = min(
+                computation.get_gas_refund(),
+                base_gas_used // 2,
+            )
+            gas_used = self.get_cumulative_gas_used() + base_gas_used - gas_refunded
+
         receipt = Receipt(
-            state_root=self.state_db.state_root,
-            gas_used=self.total_gas_used(),
-            logs=self.logs,
-            bloom=self.bloom,  # TODO: logs?
+            state_root=computation.state_db.root_hash,
+            gas_used=gas_used,
+            logs=logs,
         )
 
         transaction_idx = len(self.transactions)
-        transaction_key = rlp.encode(transaction_idx)
 
-        self.transaction_db[transaction_key] = rlp.encode(transaction)
-        self.receipt_db[transaction_key] = rlp.encode(transaction)
-        self.bloom |= receipt.bloom
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+
+        self.transactions.append(transaction)
+
+        self.transaction_db[index_key] = rlp.encode(transaction)
+        self.receipt_db[index_key] = rlp.encode(receipt)
+
+        self.bloom_filter |= receipt.bloom
+
+        self.header.transaction_root = self.transaction_db.root_hash
+        self.header.state_root = computation.state_db.root_hash
+        self.header.receipt_root = self.receipt_db.root_hash
+        self.header.bloom = int(self.bloom_filter)
+        self.header.gas_used = gas_used
+
         return computation
 
-    sealed_block_class = SealedFrontierBlock
+    def mine(self, **kwargs):
+        """
+        - `uncles_hash`
+        - `state_root`
+        - `transaction_root`
+        - `receipt_root`
+        - `bloom`
+        - `gas_used`
+        - `extra_data`
+        - `mix_hash`
+        - `nonce`
+        """
+        header = self.header
+        provided_fields = set(kwargs.keys())
+        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
+        unknown_fields = provided_fields.difference(known_fields)
 
-    def seal(self, uncles):
-        return self.get_sealed_block_class()(
-            header=self.header,
-            transactions=self.transactions,
-            uncles=uncles,
-        )
+        if unknown_fields:
+            raise AttributeError(
+                "Unable to set the field(s) {0} on the `BlockHeader` class. "
+                "Received the following unexpected fields: {0}.".format(
+                    ", ".join(unknown_fields),
+                    ", ".join(known_fields),
+                )
+            )
+
+        for key, value in kwargs.items():
+            setattr(header, key, value)
+
+        # TODO: do we validate here!?
+        return self

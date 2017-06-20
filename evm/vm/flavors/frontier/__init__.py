@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 from evm.vm import BaseEVM
 
 from evm import constants
+
 from evm import opcode_values
 from evm.exceptions import (
     OutOfGas,
@@ -28,8 +31,12 @@ from evm.utils.hexidecimal import (
 )
 
 from .opcodes import FRONTIER_OPCODES
-from .blocks import OpenFrontierBlock
+from .blocks import FrontierBlock
 from .validation import validate_frontier_transaction
+from .headers import (
+    create_frontier_header_from_parent,
+    configure_frontier_header,
+)
 
 
 BREAK_OPCODES = {
@@ -39,7 +46,7 @@ BREAK_OPCODES = {
 }
 
 
-def _apply_transaction(evm, transaction):
+def _apply_frontier_transaction(evm, transaction):
     #
     # 1) Pre Computation
     #
@@ -53,13 +60,13 @@ def _apply_transaction(evm, transaction):
     evm.validate_transaction(transaction)
 
     gas_cost = transaction.gas * transaction.gas_price
-    sender_balance = evm.block.state_db.get_balance(transaction.sender)
+    sender_balance = evm.state_db.get_balance(transaction.sender)
 
     # Buy Gas
-    evm.block.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
+    evm.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
 
     # Increment Nonce
-    evm.block.state_db.increment_nonce(transaction.sender)
+    evm.state_db.increment_nonce(transaction.sender)
 
     # Setup VM Message
     message_gas = transaction.gas - transaction.intrensic_gas
@@ -67,14 +74,14 @@ def _apply_transaction(evm, transaction):
     if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
         contract_address = generate_contract_address(
             transaction.sender,
-            evm.block.state_db.get_nonce(transaction.sender) - 1,
+            evm.state_db.get_nonce(transaction.sender) - 1,
         )
         data = b''
         code = transaction.data
     else:
         contract_address = None
         data = transaction.data
-        code = evm.block.state_db.get_code(transaction.to)
+        code = evm.state_db.get_code(transaction.to)
 
     if evm.logger:
         evm.logger.info(
@@ -107,9 +114,6 @@ def _apply_transaction(evm, transaction):
     #
     # 2) Apply the message to the EVM.
     #
-    if evm.block.is_sealed:
-        raise ValueError("Trying to apply transaction to sealed block")
-
     if message.is_create:
         computation = evm.apply_create_message(message)
     else:
@@ -123,8 +127,8 @@ def _apply_transaction(evm, transaction):
         transaction_fee = transaction.gas * transaction.gas_price
         if evm.logger:
             evm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
-        coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
-        evm.block.state_db.set_balance(
+        coinbase_balance = evm.state_db.get_balance(evm.block.header.coinbase)
+        evm.state_db.set_balance(
             evm.block.header.coinbase,
             coinbase_balance + transaction_fee,
         )
@@ -135,7 +139,7 @@ def _apply_transaction(evm, transaction):
             computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
 
         # Gas Refunds
-        gas_remaining = computation.gas_meter.gas_remaining
+        gas_remaining = computation.get_gas_remaining()
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
@@ -149,8 +153,8 @@ def _apply_transaction(evm, transaction):
                     encode_hex(message.sender),
                 )
 
-            sender_balance = evm.block.state_db.get_balance(message.sender)
-            evm.block.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
+            sender_balance = evm.state_db.get_balance(message.sender)
+            evm.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -160,8 +164,8 @@ def _apply_transaction(evm, transaction):
                 transaction_fee,
                 encode_hex(evm.block.header.coinbase),
             )
-        coinbase_balance = evm.block.state_db.get_balance(evm.block.header.coinbase)
-        evm.block.state_db.set_balance(
+        coinbase_balance = evm.state_db.get_balance(evm.block.header.coinbase)
+        evm.state_db.set_balance(
             evm.block.header.coinbase,
             coinbase_balance + transaction_fee,
         )
@@ -173,20 +177,20 @@ def _apply_transaction(evm, transaction):
         if evm.logger is not None:
             evm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
-        evm.block.state_db.set_balance(account, 0)
-        evm.block.state_db.delete_account(account)
+        evm.state_db.set_balance(account, 0)
+        evm.state_db.delete_account(account)
 
     return computation
 
 
-def _apply_message(evm, message):
+def _apply_frontier_message(evm, message):
     snapshot = evm.snapshot()
 
     if message.depth > constants.STACK_DEPTH_LIMIT:
         raise StackDepthLimit("Stack depth limit reached")
 
     if message.should_transfer_value and message.value:
-        sender_balance = evm.block.state_db.get_balance(message.sender)
+        sender_balance = evm.state_db.get_balance(message.sender)
 
         if sender_balance < message.value:
             raise InsufficientFunds(
@@ -194,11 +198,11 @@ def _apply_message(evm, message):
             )
 
         sender_balance -= message.value
-        evm.block.state_db.set_balance(message.sender, sender_balance)
+        evm.state_db.set_balance(message.sender, sender_balance)
 
-        recipient_balance = evm.block.state_db.get_balance(message.storage_address)
+        recipient_balance = evm.state_db.get_balance(message.storage_address)
         recipient_balance += message.value
-        evm.block.state_db.set_balance(message.storage_address, recipient_balance)
+        evm.state_db.set_balance(message.storage_address, recipient_balance)
 
         if evm.logger is not None:
             evm.logger.debug(
@@ -208,8 +212,8 @@ def _apply_message(evm, message):
                 encode_hex(message.storage_address),
             )
 
-    if not evm.block.state_db.account_exists(message.storage_address):
-        evm.block.state_db.touch_account(message.storage_address)
+    if not evm.state_db.account_exists(message.storage_address):
+        evm.state_db.touch_account(message.storage_address)
 
     computation = evm.apply_computation(message)
 
@@ -218,7 +222,7 @@ def _apply_message(evm, message):
     return computation
 
 
-def _apply_computation(evm, message):
+def _apply_frontier_computation(evm, message):
     computation = Computation(evm, message)
 
     with computation:
@@ -245,13 +249,13 @@ def _apply_computation(evm, message):
 
 
 def _apply_frontier_create_message(evm, message):
-    if evm.block.state_db.account_exists(message.storage_address):
-        evm.block.state_db.set_nonce(message.storage_address, 0)
-        evm.block.state_db.set_code(message.storage_address, b'')
-        evm.block.state_db.delete_storage(message.storage_address)
+    if evm.state_db.account_exists(message.storage_address):
+        evm.state_db.set_nonce(message.storage_address, 0)
+        evm.state_db.set_code(message.storage_address, b'')
+        evm.state_db.delete_storage(message.storage_address)
 
     if message.sender != message.origin:
-        evm.block.state_db.increment_nonce(message.sender)
+        evm.state_db.increment_nonce(message.sender)
 
     computation = evm.apply_message(message)
 
@@ -282,12 +286,18 @@ def _apply_frontier_create_message(evm, message):
 
 FrontierEVM = BaseEVM.configure(
     name='FrontierEVM',
+    # EVM logic
     opcodes=FRONTIER_OPCODES,
-    block_class=OpenFrontierBlock,
-    # method overrides
+    # classes
+    _block_class=FrontierBlock,
+    # helpers
+    create_header_from_parent=create_frontier_header_from_parent,
+    configure_header=configure_frontier_header,
+    # validation
     validate_transaction=validate_frontier_transaction,
+    # transactions and evm messages
     apply_create_message=_apply_frontier_create_message,
-    apply_transaction=_apply_transaction,
-    apply_message=_apply_message,
-    apply_computation=_apply_computation,
+    apply_transaction=_apply_frontier_transaction,
+    apply_message=_apply_frontier_message,
+    apply_computation=_apply_frontier_computation,
 )

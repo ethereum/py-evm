@@ -1,6 +1,5 @@
 import pytest
 
-import json
 import os
 
 from trie.db.memory import (
@@ -35,40 +34,35 @@ from evm.vm import (
 
 from evm.utils.fixture_tests import (
     normalize_vmtest_fixture,
-    recursive_find_files,
+    find_fixtures,
     setup_state_db,
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-FIXTURES_PATHS = tuple(recursive_find_files(BASE_FIXTURE_PATH, "*.json"))
+def vm_fixture_skip_fn(fixture_path, fixture_name, fixture):
+    return False
 
 
-RAW_FIXTURES = tuple(
-    (
-        os.path.relpath(fixture_path, BASE_FIXTURE_PATH),
-        json.load(open(fixture_path)),
-    )
-    for fixture_path in FIXTURES_PATHS
-    if (
-        "Performance" not in fixture_path and
-        "Limits" not in fixture_path
-    )
-)
+def vm_fixture_mark_fn(fixture_name):
+    if 'Performance' in fixture_name:
+        return pytest.mark.vm_performance
+    elif 'vmInputLimits' in fixture_name:
+        return pytest.mark.vm_limits
+    else:
+        return None
 
 
-FIXTURES = tuple(
-    (
-        "{0}:{1}".format(fixture_filename, key),
-        normalize_vmtest_fixture(fixtures[key]),
-    )
-    for fixture_filename, fixtures in RAW_FIXTURES
-    for key in sorted(fixtures.keys())
+FIXTURES = find_fixtures(
+    BASE_FIXTURE_PATH,
+    normalize_vmtest_fixture,
+    skip_fn=vm_fixture_skip_fn,
+    mark_fn=vm_fixture_mark_fn,
 )
 
 
@@ -118,6 +112,8 @@ HomesteadEVMForTesting = HomesteadEVM.configure(
     apply_create_message=apply_create_message_for_testing,
     get_block_hash=get_block_hash_for_testing,
 )
+
+
 EVMForTesting = MetaEVM.configure(
     name='EVMForTesting',
     evm_block_ranges=(
@@ -139,9 +135,9 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    meta_evm = EVMForTesting(db=db, header=header)
+    meta_evm = EVMForTesting.configure(db=db)(header=header)
     evm = meta_evm.get_evm()
-    setup_state_db(fixture['pre'], evm.block.state_db)
+    setup_state_db(fixture['pre'], evm.state_db)
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -149,7 +145,7 @@ def test_vm_fixtures(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
-        code=evm.block.state_db.get_code(fixture['exec']['address']),
+        code=evm.state_db.get_code(fixture['exec']['address']),
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
@@ -205,7 +201,7 @@ def test_vm_fixtures(fixture_name, fixture):
 
     for account, account_data in post_state.items():
         for slot, expected_storage_value in account_data['storage'].items():
-            actual_storage_value = evm.block.state_db.get_storage(account, slot)
+            actual_storage_value = evm.state_db.get_storage(account, slot)
 
             assert actual_storage_value == expected_storage_value
 
@@ -213,9 +209,9 @@ def test_vm_fixtures(fixture_name, fixture):
         expected_code = account_data['code']
         expected_balance = account_data['balance']
 
-        actual_nonce = evm.block.state_db.get_nonce(account)
-        actual_code = evm.block.state_db.get_code(account)
-        actual_balance = evm.block.state_db.get_balance(account)
+        actual_nonce = evm.state_db.get_nonce(account)
+        actual_code = evm.state_db.get_code(account)
+        actual_balance = evm.state_db.get_balance(account)
 
         assert actual_nonce == expected_nonce
         assert actual_code == expected_code

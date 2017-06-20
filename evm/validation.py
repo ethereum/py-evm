@@ -44,6 +44,11 @@ def validate_gte(value, minimum):
         )
 
 
+def validate_gt(value, minimum):
+    if value <= minimum:
+        raise ValidationError("Value {0} is not greater than {1}".format(value, minimum))
+
+
 def validate_lte(value, maximum):
     if value > maximum:
         raise ValidationError(
@@ -51,6 +56,11 @@ def validate_lte(value, maximum):
                 value, maximum,
             )
         )
+
+
+def validate_lt(value, maximum):
+    if value >= maximum:
+        raise ValidationError("Value {0} is not less than {1}".format(value, maximum))
 
 
 def validate_canonical_address(value):
