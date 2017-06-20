@@ -33,13 +33,13 @@ def _recursive_find_files(base_dir, pattern):
 
 
 @to_tuple
-def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
+def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn, mark_fn=None):
     """
     Helper function for JSON based fixture test suite.
 
     - `fixtures_base_dir`: the filesystem path under which JSON fixtures can be found.
     - `normalize_fn`: callback to normalize json fixture to internal format.
-    - `skip_if_fn`: callback to skip any tests that should not be run.
+    - `skip_fn`: callback to skip any tests that should not be run.
     """
     all_fixture_paths = sorted(tuple(_recursive_find_files(fixtures_base_dir, "*.json")))
 
@@ -53,13 +53,22 @@ def find_fixtures(fixtures_base_dir, normalize_fn, skip_if_fn):
             fixture_name = "{0}:{1}".format(fixture_relpath, key)
             normalized_fixture = normalize_fn(fixtures[key])
 
-            if skip_if_fn(fixture_path, key, fixtures[key]):
+            if skip_fn(fixture_path, key, fixtures[key]):
                 yield pytest.param(
                     fixture_name,
                     normalized_fixture,
                     marks=pytest.mark.skip(reason="Did not pass fixture skip fn"),
                 )
             else:
+                if mark_fn:
+                    mark = mark_fn(fixture_name)
+                    if mark:
+                        yield pytest.param(
+                            fixture_name,
+                            normalized_fixture,
+                            marks=mark,
+                        )
+                        continue
                 yield fixture_name, normalized_fixture
 
 

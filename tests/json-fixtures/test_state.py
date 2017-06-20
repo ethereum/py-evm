@@ -51,10 +51,33 @@ def state_fixture_skip_fn(fixture_path, fixture_name, fixture):
     )
 
 
+SLOW_FIXTURE_NAMES = {
+    'Homestead/stCallCreateCallCodeTest.json:Call1024OOG-fixture1819',
+    'Homestead/stCallCreateCallCodeTest.json:CallRecursiveBombPreCall-fixture1822',
+    'Homestead/stCallCreateCallCodeTest.json:Callcode1024OOG-fixture1824',
+    'Homestead/stDelegatecallTest.json:Call1024OOG-fixture1973',
+    'Homestead/stDelegatecallTest.json:Delegatecall1024OOG-fixture1979',
+    'Homestead/stRecursiveCreate.json:recursiveCreateReturnValue-fixture2264',
+    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth-fixture2301',
+    'stCallCreateCallCodeTest.json:Call1024OOG-fixture3191',
+    'stCallCreateCallCodeTest.json:Callcode1024OOG-fixture3196',
+    'stRecursiveCreate.json:recursiveCreateReturnValue-fixture3469',
+    'stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth-fixture3524',
+}
+
+
+def state_fixture_mark_fn(fixture_name):
+    if fixture_name in SLOW_FIXTURE_NAMES:
+        return pytest.mark.state_slow
+    else:
+        return None
+
+
 FIXTURES = find_fixtures(
     BASE_FIXTURE_PATH,
     normalize_statetest_fixture,
-    state_fixture_skip_fn,
+    skip_fn=state_fixture_skip_fn,
+    mark_fn=state_fixture_mark_fn,
 )
 
 

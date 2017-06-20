@@ -46,16 +46,23 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
 def vm_fixture_skip_fn(fixture_path, fixture_name, fixture):
-    return (
-        "Performance" in fixture_path or
-        "Limits" in fixture_path
-    )
+    return False
+
+
+def vm_fixture_mark_fn(fixture_name):
+    if 'Performance' in fixture_name:
+        return pytest.mark.vm_performance
+    elif 'vmInputLimits' in fixture_name:
+        return pytest.mark.vm_limits
+    else:
+        return None
 
 
 FIXTURES = find_fixtures(
     BASE_FIXTURE_PATH,
     normalize_vmtest_fixture,
-    vm_fixture_skip_fn,
+    skip_fn=vm_fixture_skip_fn,
+    mark_fn=vm_fixture_mark_fn,
 )
 
 

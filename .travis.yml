@@ -10,8 +10,12 @@ env:
     - TOX_ENV=py35-blockchain
     - TOX_ENV=py35-core
     - TOX_ENV=py35-state
+    - TOX_ENV=py35-state-fast
+    - TOX_ENV=py35-state-slow
     - TOX_ENV=py35-transactions
-    - TOX_ENV=py35-vm
+    - TOX_ENV=py35-vm-fast
+    - TOX_ENV=py35-vm-limits
+    - TOX_ENV=py35-vm-performance
     - TOX_ENV=flake8
 cache:
   pip: true
