@@ -44,10 +44,10 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 
 def state_fixture_skip_fn(fixture_path):
     return (
-        "Stress" not in fixture_path and
-        "Complexity" not in fixture_path and
-        "EIP150" not in fixture_path and
-        "EIP158" not in fixture_path
+        "Stress" in fixture_path or
+        "Complexity" in fixture_path or
+        "EIP150" in fixture_path or  # TODO: enable
+        "EIP158" in fixture_path  # TODO: enable
     )
 
 

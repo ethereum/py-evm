@@ -47,8 +47,8 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 def vm_fixture_skip_fn(fixture_path):
     return (
-        "Performance" not in fixture_path and
-        "Limits" not in fixture_path
+        "Performance" in fixture_path or
+        "Limits" in fixture_path
     )
 
 

@@ -45,7 +45,11 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 
 def blockchain_fixture_skip_fn(fixture_path):
     # TODO: enable all tests
-    return 'bcValidBlockTest.json' not in fixture_path
+    return (
+        'bcValidBlockTest.json' not in fixture_path or
+        'EIP150' in fixture_path or  # TODO: enable
+        'Homestead' in fixture_path  # TODO: enable
+    )
 
 
 FIXTURES = find_fixtures(
@@ -53,6 +57,43 @@ FIXTURES = find_fixtures(
     normalize_blockchain_fixtures,
     blockchain_fixture_skip_fn,
 )
+
+
+def diff_rlp_object(left, right):
+    if type(left) is not type(right):
+        raise AssertionError(
+            "Type mismatch.  Got {0} and {1}".format(repr(type(left)), repr(type(right)))
+        )
+
+    rlp_type = type(left)
+
+    rlp_field_names = tuple(sorted(set(tuple(zip(*rlp_type.fields))[0])))
+    mismatched_fields = tuple(
+        (field_name, getattr(left, field_name), getattr(right, field_name))
+        for field_name
+        in rlp_field_names
+        if getattr(left, field_name) != getattr(right, field_name)
+    )
+    return mismatched_fields
+
+
+def assert_rlp_equal(left, right):
+    if left == right:
+        return
+    mismatched_fields = diff_rlp_object(left, right)
+    error_message = (
+        "RLP objects not equal for {0} fields:\n - {1}".format(
+            len(mismatched_fields),
+            "\n - ".join(tuple(
+                "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
+                    field_name, actual, expected
+                )
+                for field_name, actual, expected
+                in mismatched_fields
+            )),
+        )
+    )
+    raise AssertionError(error_message)
 
 
 @pytest.mark.parametrize(
@@ -117,14 +158,19 @@ def test_blockchain_fixtures(fixture_name, fixture):
             'blockHeader' in block_data,
             'transactions' in block_data,
             'uncleHeaders' in block_data,
+            'rlp_error' in block_data,
         ))
+
+        if 'rlp_error' in block_data:
+            assert not should_be_good_block
+            continue
 
         try:
             expected_block = rlp.decode(
                 block_data['rlp'],
                 sedes=meta_evm.get_evm().get_block_class(),
             )
-        except Exception as arst:
+        except :
             assert not should_be_good_block, "Block should be good"
             continue
 
@@ -153,7 +199,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
         )
         # set the gas limit as this value is only required to be within a
         # specific range and can be picked by the party who crafts the block.
-        meta_evm.setup_header(
+        meta_evm.configure_header(
             extra_data=expected_block.header.extra_data,
             gas_limit=expected_block.header.gas_limit,
             coinbase=expected_block.header.coinbase,
@@ -178,35 +224,11 @@ def test_blockchain_fixtures(fixture_name, fixture):
             mix_hash=expected_block.header.mix_hash,
             nonce=expected_block.header.nonce,
         )
-        assert block == expected_block
+
+        assert_rlp_equal(block.header, expected_header)
+        assert_rlp_equal(block, expected_block)
+
         assert rlp.encode(block) == block_data['rlp']
-
-        header = block.header
-
-        if header != expected_header:
-            header_field_names = tuple(sorted(set(tuple(zip(*header.fields))[0])))
-            mismatched_fields = tuple(
-                (field_name, getattr(header, field_name), getattr(expected_header, field_name))
-                for field_name
-                in header_field_names
-                if getattr(header, field_name) != getattr(expected_header, field_name)
-            )
-            error_message = (
-                "Actual block header does not match expected block header. "
-                "Mismatched {0} fields:\n - {1}".format(
-                    len(mismatched_fields),
-                    "\n - ".join(tuple(
-                        "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                            field_name, actual, expected
-                        )
-                        for field_name, actual, expected
-                        in mismatched_fields
-                    )),
-                )
-            )
-            raise AssertionError(error_message)
-
-        assert header == expected_header
 
     evm = meta_evm.get_evm()
     verify_state_db(fixture['postState'], evm.state_db)

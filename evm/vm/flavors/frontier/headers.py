@@ -1,15 +1,22 @@
 from __future__ import absolute_import
 
+import time
+
 from evm.validation import (
     validate_gt,
 )
 from evm.constants import (
+    GENESIS_GAS_LIMIT,
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
     FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
+from evm.utils.headers import (
+    compute_gas_limit,
+)
+from evm.rlp.headers import BlockHeader
 
 
 def compute_frontier_difficulty(parent_header, timestamp):
@@ -52,6 +59,24 @@ def compute_frontier_difficulty(parent_header, timestamp):
     return difficulty
 
 
+def create_frontier_header_from_parent(evm, parent_header, **header_params):
+    if 'difficulty' not in header_params:
+        timestamp = header_params.get('timestamp', time.time())
+        header_params['difficulty'] = compute_frontier_difficulty(
+            parent_header,
+            timestamp,
+        )
+    if 'gas_limit' not in header_params:
+        header_params['gas_limit'] = compute_gas_limit(
+            parent_header,
+            gas_limit_floor=GENESIS_GAS_LIMIT,
+        )
+
+    header = BlockHeader.from_parent(parent=parent_header, **header_params)
+
+    return header
+
+
 ALLOWED_HEADER_FIELDS = {
     'coinbase',
     'gas_limit',
@@ -62,11 +87,11 @@ ALLOWED_HEADER_FIELDS = {
 }
 
 
-def setup_header(evm, **header_params):
+def configure_frontier_header(evm, **header_params):
     extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
     if extra_fields:
         raise ValueError(
-            "The `setup_header` method may only be used with the fields ({0}). "
+            "The `configure_header` method may only be used with the fields ({0}). "
             "The provided fields ({1}) are not supported".format(
                 ", ".join(tuple(sorted(ALLOWED_HEADER_FIELDS))),
                 ", ".join(tuple(sorted(extra_fields))),
@@ -78,7 +103,7 @@ def setup_header(evm, **header_params):
 
     if 'timestamp' in header_params and evm.header.block_number > 0:
         parent_header = evm.block.get_parent_header()
-        evm.header.difficulty = evm.compute_difficulty(
+        evm.header.difficulty = compute_frontier_difficulty(
             parent_header,
             header_params['timestamp'],
         )

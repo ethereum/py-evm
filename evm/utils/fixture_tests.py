@@ -258,9 +258,13 @@ def normalize_block_header(header):
 
 
 def normalize_block(block):
-    normalized_block = {
-        'rlp': decode_hex(block['rlp']),
-    }
+    normalized_block = {}
+
+    try:
+        normalized_block['rlp'] = decode_hex(block['rlp'])
+    except ValueError as err:
+        normalized_block['rlp_error'] = err
+
     if 'blockHeader' in block:
         normalized_block['blockHeader'] = normalize_block_header(block['blockHeader'])
     if 'transactions' in block:
@@ -276,11 +280,14 @@ def normalize_blockchain_fixtures(fixture):
     normalized_fixture = {
         'blocks': [normalize_block(block_fixture) for block_fixture in fixture['blocks']],
         'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
-        'genesisRLP': decode_hex(fixture['genesisRLP']),
         'lastblockhash': decode_hex(fixture['lastblockhash']),
         'pre': normalize_account_state(fixture['pre']),
         'postState': normalize_account_state(fixture['postState']),
     }
+
+    if 'genesisRLP' in fixture:
+        normalized_fixture['genesisRLP'] = decode_hex(fixture['genesisRLP'])
+
     return normalized_fixture
 
 

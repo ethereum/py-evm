@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import functools
-
 from evm.vm import BaseEVM
 
 from evm import constants
@@ -28,9 +26,6 @@ from evm.vm.computation import (
 from evm.utils.address import (
     generate_contract_address,
 )
-from evm.utils.headers import (
-    compute_gas_limit as _compute_gas_limit,
-)
 from evm.utils.hexidecimal import (
     encode_hex,
 )
@@ -39,8 +34,8 @@ from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
 from .validation import validate_frontier_transaction
 from .headers import (
-    compute_frontier_difficulty,
-    setup_header as _setup_header,
+    create_frontier_header_from_parent,
+    configure_frontier_header,
 )
 
 
@@ -296,12 +291,8 @@ FrontierEVM = BaseEVM.configure(
     # classes
     _block_class=FrontierBlock,
     # helpers
-    compute_gas_limit=staticmethod(functools.partial(
-        _compute_gas_limit,
-        gas_limit_floor=constants.GENESIS_GAS_LIMIT,
-    )),
-    compute_difficulty=staticmethod(compute_frontier_difficulty),
-    setup_header=_setup_header,
+    create_header_from_parent=create_frontier_header_from_parent,
+    configure_header=configure_frontier_header,
     # validation
     validate_transaction=validate_frontier_transaction,
     # transactions and evm messages

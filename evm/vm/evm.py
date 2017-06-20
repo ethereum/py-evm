@@ -155,17 +155,17 @@ class BaseEVM(object):
         """
         return cls.get_block_class().get_transaction_class()
 
-    def validate_transaction(self, transaction):
-        """
-        Perform evm-aware validation checks on the transaction.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     def create_transaction(self, *args, **kwargs):
         """
         Proxy for instantiating a transaction for this EVM.
         """
         return self.get_transaction_class()(*args, **kwargs)
+
+    def validate_transaction(self, transaction):
+        """
+        Perform evm-aware validation checks on the transaction.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Blocks
@@ -197,33 +197,14 @@ class BaseEVM(object):
     #
     # Headers
     #
-    def compute_gas_limit(self, parent_header):
-        """
-        Hook for computing the block gas limit
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def compute_difficulty(self, parent_header, timestamp):
-        """
-        Hook for computing the block difficulty
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def create_header_from_parent(self, parent_header, **init_kwargs):
+    def create_header_from_parent(self, parent_header, **header_params):
         """
         Creates and initializes a new block header from the provided
         `parent_header`.
         """
-        if 'difficulty' not in init_kwargs:
-            init_kwargs['difficulty'] = self.compute_difficulty(parent_header, time.time())
-        if 'gas_limit' not in init_kwargs:
-            init_kwargs['gas_limit'] = self.compute_gas_limit(parent_header)
+        raise NotImplementedError("Must be implemented by subclasses")
 
-        header = BlockHeader.from_parent(parent=parent_header, **init_kwargs)
-
-        return header
-
-    def setup_header(self, **header_params):
+    def configure_header(self, **header_params):
         """
         Setup the current header with the provided parameters.  This can be
         used to set fields like the gas limit or timestamp to value different
@@ -455,7 +436,7 @@ class MetaEVM(object):
 
         return block
 
-    def setup_header(self, *args, **kwargs):
+    def configure_header(self, *args, **kwargs):
         evm = self.get_evm()
-        self.header = evm.setup_header(*args, **kwargs)
+        self.header = evm.configure_header(*args, **kwargs)
         return self.header
