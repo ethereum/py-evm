@@ -52,17 +52,17 @@ def state_fixture_skip_fn(fixture_path, fixture_name, fixture):
 
 
 SLOW_FIXTURE_NAMES = {
-    'Homestead/stCallCreateCallCodeTest.json:Call1024OOG-fixture1819',
-    'Homestead/stCallCreateCallCodeTest.json:CallRecursiveBombPreCall-fixture1822',
-    'Homestead/stCallCreateCallCodeTest.json:Callcode1024OOG-fixture1824',
-    'Homestead/stDelegatecallTest.json:Call1024OOG-fixture1973',
-    'Homestead/stDelegatecallTest.json:Delegatecall1024OOG-fixture1979',
-    'Homestead/stRecursiveCreate.json:recursiveCreateReturnValue-fixture2264',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth-fixture2301',
-    'stCallCreateCallCodeTest.json:Call1024OOG-fixture3191',
-    'stCallCreateCallCodeTest.json:Callcode1024OOG-fixture3196',
-    'stRecursiveCreate.json:recursiveCreateReturnValue-fixture3469',
-    'stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth-fixture3524',
+    'Homestead/stCallCreateCallCodeTest.json:Call1024OOG',
+    'Homestead/stCallCreateCallCodeTest.json:CallRecursiveBombPreCall',
+    'Homestead/stCallCreateCallCodeTest.json:Callcode1024OOG',
+    'Homestead/stDelegatecallTest.json:Call1024OOG',
+    'Homestead/stDelegatecallTest.json:Delegatecall1024OOG',
+    'Homestead/stRecursiveCreate.json:recursiveCreateReturnValue',
+    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth',
+    'stCallCreateCallCodeTest.json:Call1024OOG',
+    'stCallCreateCallCodeTest.json:Callcode1024OOG',
+    'stRecursiveCreate.json:recursiveCreateReturnValue',
+    'stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth',
 }
 
 
