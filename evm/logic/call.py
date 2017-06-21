@@ -93,9 +93,9 @@ class BaseCall(Opcode):
             child_msg = computation.prepare_child_message(**child_msg_kwargs)
 
             if child_msg.is_create:
-                child_computation = computation.evm.apply_create_message(child_msg)
+                child_computation = computation.vm.apply_create_message(child_msg)
             else:
-                child_computation = computation.evm.apply_message(child_msg)
+                child_computation = computation.vm.apply_message(child_msg)
 
             computation.children.append(child_computation)
 

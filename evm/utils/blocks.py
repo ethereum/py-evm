@@ -23,12 +23,6 @@ def persist_block_to_db(db, block):
         rlp.encode(block.hash, sedes=rlp.sedes.binary),
     )
 
-    # Persist the block itself.
-    db.set(
-        block.hash,
-        rlp.encode(block),
-    )
-
     # Persist the block header
     db.set(
         block.header.hash,

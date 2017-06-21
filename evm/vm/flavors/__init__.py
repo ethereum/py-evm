@@ -1,8 +1,8 @@
 from .frontier import (  # noqa: F401
-    FrontierEVM,
+    FrontierVM,
 )
 from .homestead import (  # noqa: F401
-    HomesteadEVM,
+    HomesteadVM,
 )
 from .mainnet import (  # noqa: F401
     MainnetEVM,

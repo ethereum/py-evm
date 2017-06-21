@@ -1,11 +1,11 @@
 from evm import constants
-from evm.vm.evm import MetaEVM
+from evm import EVM
 
-from evm.vm.flavors.frontier import FrontierEVM
-from evm.vm.flavors.homestead import HomesteadEVM
+from evm.vm.flavors.frontier import FrontierVM
+from evm.vm.flavors.homestead import HomesteadVM
 
 from evm.validation import (
-    validate_evm_block_ranges,
+    validate_vm_block_ranges,
 )
 
 
@@ -14,19 +14,19 @@ HOMESTEAD_BLOCK_RANGE = (constants.HOMESTEAD_MAINNET_BLOCK, None)
 
 
 # sanity check
-validate_evm_block_ranges((
+validate_vm_block_ranges((
     FRONTIER_BLOCK_RANGE,
     HOMESTEAD_BLOCK_RANGE,
 ))
 
 
 MAINNET_BLOCK_RANGES = (
-    (FRONTIER_BLOCK_RANGE, FrontierEVM),
-    (HOMESTEAD_BLOCK_RANGE, HomesteadEVM),
+    (FRONTIER_BLOCK_RANGE, FrontierVM),
+    (HOMESTEAD_BLOCK_RANGE, HomesteadVM),
 )
 
 
-MainnetEVM = MetaEVM.configure(
+MainnetEVM = EVM.configure(
     'MainnetEVM',
-    evm_block_ranges=MAINNET_BLOCK_RANGES,
+    vm_block_ranges=MAINNET_BLOCK_RANGES,
 )

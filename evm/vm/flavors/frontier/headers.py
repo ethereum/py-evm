@@ -59,7 +59,7 @@ def compute_frontier_difficulty(parent_header, timestamp):
     return difficulty
 
 
-def create_frontier_header_from_parent(evm, parent_header, **header_params):
+def create_frontier_header_from_parent(parent_header, **header_params):
     if 'difficulty' not in header_params:
         timestamp = header_params.get('timestamp', time.time())
         header_params['difficulty'] = compute_frontier_difficulty(
@@ -87,7 +87,7 @@ ALLOWED_HEADER_FIELDS = {
 }
 
 
-def configure_frontier_header(evm, **header_params):
+def configure_frontier_header(vm, **header_params):
     extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
     if extra_fields:
         raise ValueError(
@@ -99,13 +99,13 @@ def configure_frontier_header(evm, **header_params):
         )
 
     for field_name, value in header_params.items():
-        setattr(evm.header, field_name, value)
+        setattr(vm.block.header, field_name, value)
 
-    if 'timestamp' in header_params and evm.header.block_number > 0:
-        parent_header = evm.block.get_parent_header()
-        evm.header.difficulty = compute_frontier_difficulty(
+    if 'timestamp' in header_params and vm.block.header.block_number > 0:
+        parent_header = vm.block.get_parent_header()
+        vm.block.header.difficulty = compute_frontier_difficulty(
             parent_header,
             header_params['timestamp'],
         )
 
-    return evm.header
+    return vm.block.header

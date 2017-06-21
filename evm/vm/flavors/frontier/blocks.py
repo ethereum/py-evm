@@ -77,12 +77,12 @@ class FrontierBlock(BaseBlock):
 
     def validate(self):
         if not self.is_genesis:
-            parent_block = self.get_parent()
+            parent_header = self.get_parent_header()
 
             # timestamp
-            if self.header.timestamp < parent_block.header.timestamp:
+            if self.header.timestamp < parent_header.timestamp:
                 raise InvalidBlock("Block timestamp is before the parent block's timestamp")
-            elif self.header.timestamp == parent_block.header.timestamp:
+            elif self.header.timestamp == parent_header.timestamp:
                 raise InvalidBlock("Block timestamp is equal to the parent block's timestamp")
 
         super(FrontierBlock, self).validate()
@@ -94,16 +94,16 @@ class FrontierBlock(BaseBlock):
     def number(self):
         return self.header.block_number
 
+    @property
+    def hash(self):
+        return self.header.hash
+
     def get_parent_header(self):
         parent_header = rlp.decode(
             self.db.get(self.header.parent_hash),
             sedes=BlockHeader,
         )
         return parent_header
-
-    def get_parent(self):
-        parent_header = self.get_parent_header()
-        return self.from_header(parent_header)
 
     #
     # Transaction class for this block class
@@ -159,9 +159,7 @@ class FrontierBlock(BaseBlock):
     #
     # Execution API
     #
-    def apply_transaction(self, evm, transaction):
-        computation = evm.apply_transaction(transaction)
-
+    def add_transaction(self, transaction, computation):
         logs = [
             Log(address, topics, data)
             for address, topics, data
@@ -202,7 +200,7 @@ class FrontierBlock(BaseBlock):
         self.header.bloom = int(self.bloom_filter)
         self.header.gas_used = gas_used
 
-        return computation
+        return self
 
     def mine(self, **kwargs):
         """

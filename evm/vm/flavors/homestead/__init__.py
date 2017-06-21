@@ -7,25 +7,25 @@ from evm.utils.hexidecimal import (
     encode_hex,
 )
 
-from ..frontier import FrontierEVM
+from ..frontier import FrontierVM
 
 from .opcodes import HOMESTEAD_OPCODES
 from .blocks import HomesteadBlock
 from .validation import validate_homestead_transaction
 
 
-def _apply_homestead_create_message(evm, message):
-    if evm.state_db.account_exists(message.storage_address):
-        evm.state_db.set_nonce(message.storage_address, 0)
-        evm.state_db.set_code(message.storage_address, b'')
-        evm.state_db.delete_storage(message.storage_address)
+def _apply_homestead_create_message(vm, message):
+    if vm.state_db.account_exists(message.storage_address):
+        vm.state_db.set_nonce(message.storage_address, 0)
+        vm.state_db.set_code(message.storage_address, b'')
+        vm.state_db.delete_storage(message.storage_address)
 
     if message.sender != message.origin:
-        evm.state_db.increment_nonce(message.sender)
+        vm.state_db.increment_nonce(message.sender)
 
-    snapshot = evm.snapshot()
+    snapshot = vm.snapshot()
 
-    computation = evm.apply_message(message)
+    computation = vm.apply_message(message)
 
     if computation.error:
         return computation
@@ -43,10 +43,10 @@ def _apply_homestead_create_message(evm, message):
                 # Different from Frontier: reverts state on gas failure while
                 # writing contract code.
                 computation.error = err
-                evm.revert(snapshot)
+                vm.revert(snapshot)
             else:
-                if evm.logger:
-                    evm.logger.debug(
+                if vm.logger:
+                    vm.logger.debug(
                         "SETTING CODE: %s -> %s",
                         encode_hex(message.storage_address),
                         contract_code,
@@ -55,8 +55,8 @@ def _apply_homestead_create_message(evm, message):
         return computation
 
 
-HomesteadEVM = FrontierEVM.configure(
-    name='HomesteadEVM',
+HomesteadVM = FrontierVM.configure(
+    name='HomesteadVM',
     opcodes=HOMESTEAD_OPCODES,
     _block_class=HomesteadBlock,
     # method overrides

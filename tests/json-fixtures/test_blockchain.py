@@ -15,9 +15,6 @@ from eth_utils import (
 from evm.exceptions import (
     InvalidBlock,
 )
-from evm.vm.evm import (
-    MetaEVM,
-)
 from evm.vm.flavors import (
     MainnetEVM,
 )
@@ -46,9 +43,12 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
     return (
-        'bcValidBlockTest.json' not in fixture_path or
-        'EIP150' in fixture_path or  # TODO: enable
-        'Homestead' in fixture_path  # TODO: enable
+        'bcValidBlockTest' not in fixture_path or  # TODO: remove
+        'Homestead' in fixture_path or # TODO: enable
+        'EIP150' in fixture_path or # TODO: enable
+        'EIP150' in fixture_name or # TODO: enable
+        'EIP158' in fixture_path or # TODO: enable
+        'EIP158' in fixture_name  # TODO: enable
     )
 
 
@@ -117,35 +117,22 @@ def test_blockchain_fixtures(fixture_name, fixture):
         'mix_hash': fixture['genesisBlockHeader']['mixHash'],
         'nonce': fixture['genesisBlockHeader']['nonce'],
     }
+    expected_genesis_header = BlockHeader(**genesis_params)
 
     # TODO: find out if this is supposed to pass?
     # if 'genesisRLP' in fixture:
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = MemoryDB()
-    meta_evm = MainnetEVM.configure(db=db).from_genesis(
+    evm = MainnetEVM.configure(db=db).from_genesis(
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],
     )
 
-    genesis_block = meta_evm.get_block_by_number(0)
+    genesis_block = evm.get_block_by_number(0)
     genesis_header = genesis_block.header
 
-    assert genesis_header.parent_hash == fixture['genesisBlockHeader']['parentHash']
-    assert genesis_header.uncles_hash == fixture['genesisBlockHeader']['uncleHash']
-    assert genesis_header.coinbase == fixture['genesisBlockHeader']['coinbase']
-    assert genesis_header.state_root == fixture['genesisBlockHeader']['stateRoot']
-    assert genesis_header.transaction_root == fixture['genesisBlockHeader']['transactionsTrie']
-    assert genesis_header.receipt_root == fixture['genesisBlockHeader']['receiptTrie']
-    assert genesis_header.bloom == fixture['genesisBlockHeader']['bloom']
-    assert genesis_header.difficulty == fixture['genesisBlockHeader']['difficulty']
-    assert genesis_header.block_number == fixture['genesisBlockHeader']['number']
-    assert genesis_header.gas_limit == fixture['genesisBlockHeader']['gasLimit']
-    assert genesis_header.gas_used == fixture['genesisBlockHeader']['gasUsed']
-    assert genesis_header.timestamp == fixture['genesisBlockHeader']['timestamp']
-    assert genesis_header.extra_data == fixture['genesisBlockHeader']['extraData']
-    assert genesis_header.mix_hash == fixture['genesisBlockHeader']['mixHash']
-    assert genesis_header.nonce == fixture['genesisBlockHeader']['nonce']
+    assert_rlp_equal(genesis_header, expected_genesis_header)
 
     # 1 - mine the genesis block
     # 2 - loop over blocks:
@@ -168,7 +155,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
         try:
             expected_block = rlp.decode(
                 block_data['rlp'],
-                sedes=meta_evm.get_evm().get_block_class(),
+                sedes=evm.get_vm().get_block_class(),
             )
         except :
             assert not should_be_good_block, "Block should be good"
@@ -199,7 +186,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
         )
         # set the gas limit as this value is only required to be within a
         # specific range and can be picked by the party who crafts the block.
-        meta_evm.configure_header(
+        evm.configure_header(
             extra_data=expected_block.header.extra_data,
             gas_limit=expected_block.header.gas_limit,
             coinbase=expected_block.header.coinbase,
@@ -218,9 +205,10 @@ def test_blockchain_fixtures(fixture_name, fixture):
                 's': transaction['s'],
                 'v': transaction['v'],
             }
-            computation = meta_evm.apply_transaction(txn_kwargs=txn_kwargs)
+            transaction = evm.create_transaction(**txn_kwargs)
+            computation = evm.apply_transaction(transaction)
 
-        block = meta_evm.mine_block(
+        block = evm.mine_block(
             mix_hash=expected_block.header.mix_hash,
             nonce=expected_block.header.nonce,
         )
@@ -230,5 +218,4 @@ def test_blockchain_fixtures(fixture_name, fixture):
 
         assert rlp.encode(block) == block_data['rlp']
 
-    evm = meta_evm.get_evm()
-    verify_state_db(fixture['postState'], evm.state_db)
+    verify_state_db(fixture['postState'], evm.get_state_db())
