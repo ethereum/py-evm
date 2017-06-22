@@ -34,7 +34,7 @@ def _recursive_find_files(base_dir, pattern):
 
 
 @to_tuple
-def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn, mark_fn=None):
+def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn=None, mark_fn=None, ignore_fn=None):
     """
     Helper function for JSON based fixture test suite.
 
@@ -52,25 +52,33 @@ def find_fixtures(fixtures_base_dir, normalize_fn, skip_fn, mark_fn=None):
             fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
 
             fixture_name = "{0}:{1}".format(fixture_relpath, key)
+
+            if ignore_fn:
+                if ignore_fn(fixture_path, key, fixtures[key]):
+                    continue
+
             normalized_fixture = normalize_fn(fixtures[key])
 
-            if skip_fn(fixture_path, key, fixtures[key]):
-                yield pytest.param(
-                    fixture_name,
-                    normalized_fixture,
-                    marks=pytest.mark.skip(reason="Did not pass fixture skip fn"),
-                )
-            else:
-                if mark_fn:
-                    mark = mark_fn(fixture_name)
-                    if mark:
-                        yield pytest.param(
-                            fixture_name,
-                            normalized_fixture,
-                            marks=mark,
-                        )
-                        continue
-                yield fixture_name, normalized_fixture
+            if skip_fn:
+                if skip_fn(fixture_path, key, fixtures[key]):
+                    yield pytest.param(
+                        fixture_name,
+                        normalized_fixture,
+                        marks=pytest.mark.skip(reason="Did not pass fixture skip fn"),
+                    )
+                    continue
+
+            if mark_fn:
+                mark = mark_fn(fixture_name)
+                if mark:
+                    yield pytest.param(
+                        fixture_name,
+                        normalized_fixture,
+                        marks=mark,
+                    )
+                    continue
+
+            yield fixture_name, normalized_fixture
 
 
 #
