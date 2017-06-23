@@ -44,18 +44,33 @@ def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
     return (
         'bcValidBlockTest' not in fixture_path or  # TODO: remove
-        'Homestead' in fixture_path or # TODO: enable
-        'EIP150' in fixture_path or # TODO: enable
-        'EIP150' in fixture_name or # TODO: enable
-        'EIP158' in fixture_path or # TODO: enable
-        'EIP158' in fixture_name  # TODO: enable
+        'Homestead' in fixture_path or  # TODO: enable
+        'Homestead' in fixture_name or  # TODO: enable
+        'EIP150' in fixture_path or  # TODO: enable
+        'EIP150' in fixture_name or  # TODO: enable
+        'EIP158' in fixture_path or  # TODO: enable
+        'EIP158' in fixture_name   # TODO: enable
     )
+
+
+SLOW_FIXTURE_NAMES = {
+    'GeneralStateTests/stAttackTest/ContractCreationSpam.json:ContractCreationSpam_d0g0v0_Frontier',
+    'GeneralStateTests/stBoundsTest/MLOAD_Bounds.json:MLOAD_Bounds_d0g0v0_Frontier',
+}
+
+
+def blockchain_fixture_mark_fn(fixture_name):
+    if fixture_name in SLOW_FIXTURE_NAMES:
+        return pytest.mark.blockchain_slow
+    else:
+        return None
 
 
 FIXTURES = find_fixtures(
     BASE_FIXTURE_PATH,
     normalize_blockchain_fixtures,
-    blockchain_fixture_skip_fn,
+    skip_fn=blockchain_fixture_skip_fn,
+    mark_fn=blockchain_fixture_mark_fn,
 )
 
 
