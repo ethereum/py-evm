@@ -1,7 +1,3 @@
-'''
-   This is going to DRY up the docs and setup.
-'''
-
 __title__ = 'py-evm'
 __description__ = 'Python implementation of the Ethereum Virtual Machine'
 __url__ = 'Piper Merriam'

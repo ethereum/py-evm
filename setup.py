@@ -4,21 +4,23 @@ import os
 
 from setuptools import setup, find_packages
 
-
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 readme = open(os.path.join(DIR, 'README.md')).read()
 
+about = {}
+with open(os.path.join(DIR, 'evm', '__version__.py'), 'r', 'utf-8') as f:
+    exec(f.read(), about)
 
 setup(
-    name='py-evm',
-    version="0.1.0",
-    description="""Python implementation of the Ethereum Virtual Machine""",
+    name=about['__title__'],
+    version=about['__version__'],
+    description=about['__description__'],
     long_description=readme,
-    author='Piper Merriam',
-    author_email='pipermerriam@gmail.com',
-    url='https://github.com/pipermerriam/py-evm',
+    author=about['__author__'],
+    author_email=about['__author_email__'],
+    url=about['__url__'],
     include_package_data=True,
     py_modules=['evm'],
     install_requires=[
