@@ -55,7 +55,11 @@ class EVM(object):
             vms_by_range = cls.vms_by_range
         else:
             # Organize the EVM classes by their starting blocks.
-            validate_vm_block_numbers(tuple(vm_configuration.keys()))
+            validate_vm_block_numbers(tuple(
+                block_number
+                for block_number, _
+                in vm_configuration
+            ))
 
             vms_by_range = collections.OrderedDict(sorted(vm_configuration, key=itemgetter(0)))
 
