@@ -24,9 +24,9 @@
 
 # -- General configuration ------------------------------------------------
 
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
+#  Defined in requirements-docs.txt, force another check here.
+#  Note: Only refuses to build if sphinx too **old**.
+needs_sphinx = '1.5'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
