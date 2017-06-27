@@ -154,6 +154,3 @@ texinfo_documents = [
      about['__author__'], about['__title__'], about['__description__'],
      'Miscellaneous'),
 ]
-
-
-
