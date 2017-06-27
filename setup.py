@@ -10,7 +10,7 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 readme = open(os.path.join(DIR, 'README.md')).read()
 
 about = {}
-with open(os.path.join(DIR, 'evm', '__version__.py'), 'r', 'utf-8') as f:
+with open(os.path.join(DIR, 'evm', '__version__.py'), 'r') as f:
     exec(f.read(), about)
 
 setup(
@@ -29,7 +29,7 @@ setup(
         "trie>=0.2.4",
         "ethereum-bloom>=0.4.0",
     ],
-    license="MIT",
+    license=about['__license__'],
     zip_safe=False,
     keywords='ethereum blockchain evm',
     packages=find_packages(exclude=["tests", "tests.*"]),

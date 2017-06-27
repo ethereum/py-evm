@@ -5,7 +5,5 @@ __version__ = "0.1.0"
 __author__ = 'Piper Merriam'
 __author_email__ = 'pipermerriam@gmail.com'
 __license__ = 'MIT'
-
-# Manually bump for now...
-# __build__ = '[TODO] STUB'
-__copyright__ = 'Copyright 2017 ' + __author__
+__copyright__ = 'Copyright 2017 %s' % __author__
+__build__ = '[TODO] STUB'
