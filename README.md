@@ -7,14 +7,10 @@ Py-EVM aims to eventually become the defacto python implementation of the EVM, e
 ### Step 1: Alpha Release
 The plan is to begin with an MVP, alpha-level release that is suitable for testing purposes. We’ll be looking for early adopters to provide feedback on our architecture and API choices as well as general feedback and bug finding.
 
-Blog post:
-https://medium.com/@pipermerriam/py-evm-part-1-origins-25d9ad390b
+#### Blog posts:
 
-Ethnews:
-https://www.ethnews.com/piper-merriam-wants-to-rebuild-pyethereum-introduces-py-evm?platform=hootsuite
+- https://medium.com/@pipermerriam/py-evm-part-1-origins-25d9ad390b
 
-Reddit discussion:
-https://www.reddit.com/r/ethereum/comments/6igel2/pyevm_part_1_origins/
+#### Join the chat on gitter:
 
-Join the chat:
-https://gitter.im/pipermerriam/py-evm
+- [![Join the chat at https://gitter.im/pipermerriam/py-evm](https://badges.gitter.im/pipermerriam/py-evm.svg)](https://gitter.im/pipermerriam/py-evm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
