@@ -18,10 +18,6 @@ from evm.exceptions import (
 from evm.vm.flavors import (
     MainnetEVM,
 )
-from evm.vm.flavors.mainnet import (
-    FRONTIER_BLOCK_RANGE,
-    HOMESTEAD_BLOCK_RANGE,
-)
 from evm.rlp.headers import (
     BlockHeader,
 )

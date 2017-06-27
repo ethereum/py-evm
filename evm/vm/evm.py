@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 import collections
+from operator import itemgetter
 
 import rlp
 
 from evm.exceptions import (
-    EVMNotFound, ValidationError,
+    EVMNotFound,
+    ValidationError,
 )
 
 from evm.rlp.headers import (
@@ -50,11 +52,17 @@ class EVM(object):
             vms_by_range = cls.vms_by_range
         else:
             # Organize the EVM classes by their starting blocks.
-            vms_by_range = collections.OrderedDict(
-                (block_number, vm)
-                for block_number, vm
-                in vm_configuration
-            )
+            seen_block_numbers = []
+            vms_by_range = collections.OrderedDict()
+            for block_number, vm in sorted(vm_configuration, key=itemgetter(0)):
+                if block_number < 0:
+                    raise ValidationError(
+                        "Block number must be positive, got #{0}".format(block_number))
+                if block_number in seen_block_numbers:
+                    raise ValidationError(
+                        "Duplicated block number #{0}".format(block_number))
+                seen_block_numbers.append(block_number)
+                vms_by_range[block_number] = vm
 
         if name is None:
             name = cls.__name__
@@ -109,7 +117,8 @@ class EVM(object):
         for n in reversed(cls.vms_by_range.keys()):
             if block_number >= n:
                 return cls.vms_by_range[n]
-        raise EVMNotFound("No VM class configured for block %d" % block_number)
+        raise EVMNotFound(
+            "There is no EVM available for block #{0}".format(block_number))
 
     def get_vm(self, block_number=None):
         """

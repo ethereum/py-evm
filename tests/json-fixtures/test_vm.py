@@ -115,7 +115,7 @@ HomesteadVMForTesting = HomesteadVM.configure(
 EVMForTesting = EVM.configure(
     name='EVMForTesting',
     vm_configuration=(
-        (0, FrontierVMForTesting),
+        (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
     ),
 )
