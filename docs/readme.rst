@@ -5,5 +5,4 @@ Readme
    :maxdepth: 2
    :caption: Contents:
 
-
-.. include:: ../README.md
+  .. include:: ../README.md
