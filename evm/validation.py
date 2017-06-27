@@ -1,3 +1,4 @@
+import collections
 import functools
 
 from evm.constants import (
@@ -106,3 +107,30 @@ def validate_stack_item(value):
 
 validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
 validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
+
+
+def validate_unique(values):
+    duplicates = sorted((
+        value
+        for value, count
+        in collections.Counter(values).items()
+        if count > 1
+    ))
+    if duplicates:
+        raise ValidationError(
+            "The values provided are not unique.  Duplicates: {0}".format(
+                ', '.join(duplicates)
+            )
+        )
+
+
+def validate_block_number(block_number):
+    validate_is_integer(block_number)
+    validate_gte(block_number, 0)
+
+
+def validate_vm_block_numbers(vm_block_numbers):
+    validate_unique(vm_block_numbers)
+
+    for block_number in vm_block_numbers:
+        validate_block_number(block_number)

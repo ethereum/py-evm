@@ -9,6 +9,9 @@ from evm.exceptions import (
     EVMNotFound,
     ValidationError,
 )
+from evm.validation import (
+    validate_vm_block_numbers,
+)
 
 from evm.rlp.headers import (
     BlockHeader,
@@ -52,17 +55,9 @@ class EVM(object):
             vms_by_range = cls.vms_by_range
         else:
             # Organize the EVM classes by their starting blocks.
-            seen_block_numbers = []
-            vms_by_range = collections.OrderedDict()
-            for block_number, vm in sorted(vm_configuration, key=itemgetter(0)):
-                if block_number < 0:
-                    raise ValidationError(
-                        "Block number must be positive, got #{0}".format(block_number))
-                if block_number in seen_block_numbers:
-                    raise ValidationError(
-                        "Duplicated block number #{0}".format(block_number))
-                seen_block_numbers.append(block_number)
-                vms_by_range[block_number] = vm
+            validate_vm_block_numbers(tuple(vm_configuration.keys()))
+
+            vms_by_range = collections.OrderedDict(sorted(vm_configuration, key=itemgetter(0)))
 
         if name is None:
             name = cls.__name__
