@@ -16,11 +16,14 @@
 #
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+# Pull details from version file.
 DIR = os.path.dirname('__file__')
 about = {}
 with open(os.path.join(DIR, '../evm', '__version__.py'), 'r') as f:
     exec(f.read(), about)
+
+sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
 
 # -- General configuration ------------------------------------------------
 
