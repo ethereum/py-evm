@@ -13,16 +13,13 @@ from eth_utils import (
 from evm import (
     EVM,
 )
+from evm import constants
 from evm.exceptions import (
     InvalidTransaction,
 )
 from evm.vm.flavors import (
     FrontierVM,
     HomesteadVM,
-)
-from evm.vm.flavors.mainnet import (
-    FRONTIER_BLOCK_RANGE,
-    HOMESTEAD_BLOCK_RANGE,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -136,9 +133,9 @@ HomesteadVMForTesting = HomesteadVM.configure(
 
 EVMForTesting = EVM.configure(
     name='EVMForTesting',
-    vm_block_ranges=(
-        (FRONTIER_BLOCK_RANGE, FrontierVMForTesting),
-        (HOMESTEAD_BLOCK_RANGE, HomesteadVMForTesting),
+    vm_configuration=(
+        (0, FrontierVMForTesting),
+        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
     ),
 )
 

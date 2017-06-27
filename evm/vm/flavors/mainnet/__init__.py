@@ -28,5 +28,8 @@ MAINNET_BLOCK_RANGES = (
 
 MainnetEVM = EVM.configure(
     'MainnetEVM',
-    vm_block_ranges=MAINNET_BLOCK_RANGES,
+    vm_configuration=(
+        (0, FrontierVM),
+        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM)
+    )
 )

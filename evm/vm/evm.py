@@ -5,10 +5,7 @@ import collections
 import rlp
 
 from evm.exceptions import (
-    ValidationError,
-)
-from evm.validation import (
-    validate_vm_block_ranges,
+    EVMNotFound, ValidationError,
 )
 
 from evm.rlp.headers import (
@@ -21,10 +18,6 @@ from evm.utils.db import (
 )
 from evm.utils.blocks import (
     persist_block_to_db,
-)
-from evm.utils.ranges import (
-    range_sort_fn,
-    find_range,
 )
 
 from evm.state import State
@@ -52,27 +45,15 @@ class EVM(object):
         self.header = header
 
     @classmethod
-    def configure(cls, name=None, vm_block_ranges=None, db=None):
-        if vm_block_ranges is None:
+    def configure(cls, name=None, vm_configuration=None, db=None):
+        if vm_configuration is None:
             vms_by_range = cls.vms_by_range
         else:
-            # Extract the block ranges for the provided EVMs
-            if len(vm_block_ranges) == 1:
-                # edge case for a single range.
-                ranges = [vm_block_ranges[0][0]]
-            else:
-                raw_ranges, _ = zip(*vm_block_ranges)
-                ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
-
-            # Validate that the block ranges define a continuous range of block
-            # numbers with no gaps.
-            validate_vm_block_ranges(ranges)
-
-            # Organize the EVM classes by their respected ranges
+            # Organize the EVM classes by their starting blocks.
             vms_by_range = collections.OrderedDict(
-                (range, vm)
-                for range, vm
-                in vm_block_ranges
+                (block_number, vm)
+                for block_number, vm
+                in vm_configuration
             )
 
         if name is None:
@@ -125,10 +106,10 @@ class EVM(object):
         """
         Return the vm class for the given block number.
         """
-        range = find_range(tuple(cls.vms_by_range.keys()), block_number)
-        base_vm_class = cls.vms_by_range[range]
-        vm_class = base_vm_class.configure(db=cls.db)
-        return vm_class
+        for n in reversed(cls.vms_by_range.keys()):
+            if block_number >= n:
+                return cls.vms_by_range[n]
+        raise EVMNotFound("No VM class configured for block %d" % block_number)
 
     def get_vm(self, block_number=None):
         """
@@ -137,9 +118,8 @@ class EVM(object):
         if block_number is None:
             block_number = self.header.block_number
 
-        vm_class = self.get_vm_class_for_block_number(block_number)
-        vm = vm_class(evm=self)
-        return vm
+        vm_class = self.get_vm_class_for_block_number(block_number).configure(db=self.db)
+        return vm_class(evm=self)
 
     #
     # Block Retrieval
