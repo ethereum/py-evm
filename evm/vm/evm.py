@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
 import collections
+from operator import itemgetter
 
 import rlp
 
 from evm.exceptions import (
+    EVMNotFound,
     ValidationError,
 )
 from evm.validation import (
-    validate_vm_block_ranges,
+    validate_vm_block_numbers,
 )
 
 from evm.rlp.headers import (
@@ -21,10 +23,6 @@ from evm.utils.db import (
 )
 from evm.utils.blocks import (
     persist_block_to_db,
-)
-from evm.utils.ranges import (
-    range_sort_fn,
-    find_range,
 )
 
 from evm.state import State
@@ -42,45 +40,32 @@ class EVM(object):
 
     vms_by_range = None
 
-    def __init__(self, header):
-        if self.db is None:
-            raise ValueError("MetaEVM must be configured with a db")
-
-        if not self.vms_by_range:
+    def __init__(self, db, header):
+        if self.vms_by_range is None:
             raise ValueError("MetaEVM must be configured with block ranges")
 
+        self.db = db
         self.header = header
 
     @classmethod
-    def configure(cls, name=None, vm_block_ranges=None, db=None):
-        if vm_block_ranges is None:
+    def configure(cls, name=None, vm_configuration=None):
+        if vm_configuration is None:
             vms_by_range = cls.vms_by_range
         else:
-            # Extract the block ranges for the provided EVMs
-            if len(vm_block_ranges) == 1:
-                # edge case for a single range.
-                ranges = [vm_block_ranges[0][0]]
-            else:
-                raw_ranges, _ = zip(*vm_block_ranges)
-                ranges = tuple(sorted(raw_ranges, key=range_sort_fn))
+            # Organize the EVM classes by their starting blocks.
+            validate_vm_block_numbers(tuple(
+                block_number
+                for block_number, _
+                in vm_configuration
+            ))
 
-            # Validate that the block ranges define a continuous range of block
-            # numbers with no gaps.
-            validate_vm_block_ranges(ranges)
-
-            # Organize the EVM classes by their respected ranges
-            vms_by_range = collections.OrderedDict(
-                (range, vm)
-                for range, vm
-                in vm_block_ranges
-            )
+            vms_by_range = collections.OrderedDict(sorted(vm_configuration, key=itemgetter(0)))
 
         if name is None:
             name = cls.__name__
 
         props = {
             'vms_by_range': vms_by_range,
-            'db': db or cls.db,
         }
         return type(name, (cls,), props)
 
@@ -120,15 +105,15 @@ class EVM(object):
     #
     # EVM Operations
     #
-    @classmethod
-    def get_vm_class_for_block_number(cls, block_number):
+    def get_vm_class_for_block_number(self, block_number):
         """
         Return the vm class for the given block number.
         """
-        range = find_range(tuple(cls.vms_by_range.keys()), block_number)
-        base_vm_class = cls.vms_by_range[range]
-        vm_class = base_vm_class.configure(db=cls.db)
-        return vm_class
+        for n in reversed(self.vms_by_range.keys()):
+            if block_number >= n:
+                return self.vms_by_range[n]
+        raise EVMNotFound(
+            "There is no EVM available for block #{0}".format(block_number))
 
     def get_vm(self, block_number=None):
         """
@@ -138,8 +123,7 @@ class EVM(object):
             block_number = self.header.block_number
 
         vm_class = self.get_vm_class_for_block_number(block_number)
-        vm = vm_class(evm=self)
-        return vm
+        return vm_class(evm=self, db=self.db)
 
     #
     # Block Retrieval
@@ -199,15 +183,13 @@ class EVM(object):
     #
     @classmethod
     def from_genesis(cls,
+                     db,
                      genesis_params,
                      genesis_state=None):
         """
         Initialize the EVM from a genesis state.
         """
-        if cls.db is None:
-            raise ValueError("MetaEVM class must have a db")
-
-        state_db = State(cls.db)
+        state_db = State(db)
 
         if genesis_state is None:
             genesis_state = {}
@@ -230,9 +212,11 @@ class EVM(object):
                 )
             )
 
-        evm = cls(header=genesis_header)
+        evm = cls(db, genesis_header)
         persist_block_to_db(evm.db, evm.get_block())
 
+        # XXX: It doesn't feel right to overwrite evm.header here given that
+        # it is set by EVM.__init__, which we called above.
         evm.header = evm.create_header_from_parent(genesis_header)
         return evm
 

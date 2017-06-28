@@ -13,16 +13,13 @@ from eth_utils import (
 from evm import (
     EVM,
 )
+from evm import constants
 from evm.exceptions import (
     InvalidTransaction,
 )
 from evm.vm.flavors import (
     FrontierVM,
     HomesteadVM,
-)
-from evm.vm.flavors.mainnet import (
-    FRONTIER_BLOCK_RANGE,
-    HOMESTEAD_BLOCK_RANGE,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -136,9 +133,9 @@ HomesteadVMForTesting = HomesteadVM.configure(
 
 EVMForTesting = EVM.configure(
     name='EVMForTesting',
-    vm_block_ranges=(
-        (FRONTIER_BLOCK_RANGE, FrontierVMForTesting),
-        (HOMESTEAD_BLOCK_RANGE, HomesteadVMForTesting),
+    vm_configuration=(
+        (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
+        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
     ),
 )
 
@@ -160,7 +157,7 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = MemoryDB()
-    evm = EVMForTesting.configure(db=db)(header=header)
+    evm = EVMForTesting(db=db, header=header)
 
     state_db = setup_state_db(fixture['pre'], evm.get_state_db())
     evm.header.state_root = state_db.root_hash

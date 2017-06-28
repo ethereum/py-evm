@@ -18,10 +18,6 @@ from evm.exceptions import (
 from evm.vm.flavors import (
     MainnetEVM,
 )
-from evm.vm.flavors.mainnet import (
-    FRONTIER_BLOCK_RANGE,
-    HOMESTEAD_BLOCK_RANGE,
-)
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -139,7 +135,8 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = MemoryDB()
-    evm = MainnetEVM.configure(db=db).from_genesis(
+    evm = MainnetEVM.from_genesis(
+        db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],
     )
@@ -171,6 +168,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
             expected_block = rlp.decode(
                 block_data['rlp'],
                 sedes=evm.get_vm().get_block_class(),
+                db=db,
             )
         except :
             assert not should_be_good_block, "Block should be good"
