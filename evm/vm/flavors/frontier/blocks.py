@@ -1,3 +1,5 @@
+import logging
+
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -30,6 +32,9 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.transactions import (
     get_transactions_from_db,
 )
@@ -87,10 +92,47 @@ class FrontierBlock(BaseBlock):
                 )
             elif self.header.timestamp == parent_header.timestamp:
                 raise ValidationError(
-                    "Block timestamp is equal to the parent block's timestamp"
+                    "`timestamp` is equal to the parent block's timestamp\n"
+                    "- block : {0}\n"
+                    "- parent: {1}. ".format(
+                        self.header.timestamp,
+                        parent_header.timestamp,
+                    )
                 )
 
+        if len(self.uncles) > 2:
+            raise ValidationError(
+                "Blocks may have a maximum of two uncles.  Found "
+                "{0}.".format(len(self.uncles))
+            )
+
+        for uncle in self.uncles:
+            self.validate_uncle(uncle)
+
+        if self.header.state_root not in self.db:
+            raise ValidationError(
+                "`state_root` was not found in the db.\n"
+                "- state_root: {0}".format(
+                    self.header.state_root,
+                )
+            )
+        local_uncle_hash = keccak(rlp.encode(self.uncles))
+        if local_uncle_hash != self.header.uncles_hash:
+            raise ValidationError(
+                "`uncles_hash` and block `uncles` do not match.\n"
+                " - num_uncles       : {0}\n"
+                " - block uncle_hash : {1}\n"
+                " - header uncle_hash: {2}".format(
+                    len(self.uncles),
+                    local_uncle_hash,
+                    self.header.uncle_hash,
+                )
+            )
+
         super(FrontierBlock, self).validate()
+
+    def validate_uncle(self, uncle):
+        raise NotImplementedError("Not yet implemented")
 
     #
     # Helpers
@@ -177,15 +219,20 @@ class FrontierBlock(BaseBlock):
         ]
 
         if computation.error:
-            gas_used = self.get_cumulative_gas_used() + transaction.gas
+            tx_gas_used = transaction.gas
         else:
             gas_remaining = computation.get_gas_remaining()
-            base_gas_used = transaction.gas - gas_remaining
-            gas_refunded = min(
-                computation.get_gas_refund(),
-                base_gas_used // 2,
+            gas_refund = computation.get_gas_refund()
+            tx_gas_used = (
+                transaction.gas - gas_remaining
+            ) - min(
+                gas_refund,
+                (transaction.gas - gas_remaining) // 2,
             )
-            gas_used = self.get_cumulative_gas_used() + base_gas_used - gas_refunded
+            logger = logging.getLogger('evm.foo')
+            logger.debug('REFUND: %s | tx_gas_used %s', gas_refund, tx_gas_used)
+
+        gas_used = self.header.gas_used + tx_gas_used
 
         receipt = Receipt(
             state_root=computation.state_db.root_hash,
@@ -212,6 +259,11 @@ class FrontierBlock(BaseBlock):
 
         return self
 
+    def add_uncle(self, uncle):
+        self.uncles.append(uncle)
+        self.header.uncles_hash = keccak(rlp.encode(self.uncles))
+        return self
+
     def mine(self, **kwargs):
         """
         - `uncles_hash`
@@ -224,6 +276,10 @@ class FrontierBlock(BaseBlock):
         - `mix_hash`
         - `nonce`
         """
+        if 'uncles' in kwargs:
+            self.uncles = kwargs.pop('uncles')
+            kwargs.setdefault('uncles_hash', keccak(rlp.encode(self.uncles)))
+
         header = self.header
         provided_fields = set(kwargs.keys())
         known_fields = set(tuple(zip(*BlockHeader.fields))[0])
@@ -241,5 +297,7 @@ class FrontierBlock(BaseBlock):
         for key, value in kwargs.items():
             setattr(header, key, value)
 
-        # TODO: do we validate here!?
+        # Perform validation
+        self.validate()
+
         return self
