@@ -15,7 +15,7 @@ from evm import (
 )
 from evm import constants
 from evm.exceptions import (
-    InvalidTransaction,
+    ValidationError,
 )
 from evm.vm.flavors import (
     FrontierVM,
@@ -176,7 +176,7 @@ def test_state_fixtures(fixture_name, fixture):
 
     try:
         computation = evm.apply_transaction(transaction)
-    except InvalidTransaction:
+    except ValidationError:
         transaction_error = True
     else:
         transaction_error = False

@@ -9,8 +9,6 @@ from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
-    ValidationError,
-    InvalidTransaction,
 )
 from evm.precompile import (
     PRECOMPILES,
@@ -46,16 +44,13 @@ BREAK_OPCODES = {
 }
 
 
-def _apply_frontier_transaction(vm, transaction):
+def _execute_frontier_transaction(vm, transaction):
     #
     # 1) Pre Computation
     #
 
     # Validate the transaction
-    try:
-        transaction.validate()
-    except ValidationError as err:
-        raise InvalidTransaction(str(err))
+    transaction.validate()
 
     vm.validate_transaction(transaction)
 
@@ -251,9 +246,10 @@ def _apply_frontier_computation(vm, message):
 
 
 def _apply_frontier_create_message(vm, message):
-    if vm.state_db.account_exists(message.storage_address):
+    if vm.state_db.get_balance(message.storage_address) > 0:
         vm.state_db.set_nonce(message.storage_address, 0)
         vm.state_db.set_code(message.storage_address, b'')
+        # TODO: figure out whether the following line is correct.
         vm.state_db.delete_storage(message.storage_address)
 
     if message.sender != message.origin:
@@ -298,8 +294,8 @@ FrontierVM = VM.configure(
     # validation
     validate_transaction=validate_frontier_transaction,
     # transactions and vm messages
+    execute_transaction=_execute_frontier_transaction,
     apply_create_message=_apply_frontier_create_message,
-    apply_transaction=_apply_frontier_transaction,
     apply_message=_apply_frontier_message,
     apply_computation=_apply_frontier_computation,
 )

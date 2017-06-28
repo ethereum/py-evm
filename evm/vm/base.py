@@ -23,8 +23,6 @@ class VM(object):
     """
     db = None
 
-    block = None
-
     opcodes = None
     block_class = None
 
@@ -55,6 +53,20 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
+    _block = None
+    state_db = None
+
+    @property
+    def block(self):
+        if self._block is None:
+            raise AttributeError("No block property set")
+        return self._block
+
+    @block.setter
+    def block(self, value):
+        self._block = value
+        self.state_db = State(db=self.db, root_hash=value.header.state_root)
+
     #
     # Logging
     #
@@ -67,7 +79,19 @@ class VM(object):
     #
     def apply_transaction(self, transaction):
         """
-        Execution of a transaction within the VM.
+        Apply the transaction to the vm in the current block.
+        """
+        computation = self.execute_transaction(transaction)
+        # NOTE: mutation
+        self.block = self.block.add_transaction(
+            transaction=transaction,
+            computation=computation,
+        )
+        return computation
+
+    def execute_transaction(self, transaction):
+        """
+        Execute the transaction in the vm.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 

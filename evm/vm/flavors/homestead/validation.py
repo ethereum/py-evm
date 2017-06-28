@@ -2,7 +2,7 @@ from evm.constants import (
     SECPK1_N,
 )
 from evm.exceptions import (
-    InvalidTransaction,
+    ValidationError,
 )
 
 from evm.vm.flavors.frontier.validation import (
@@ -12,6 +12,6 @@ from evm.vm.flavors.frontier.validation import (
 
 def validate_homestead_transaction(evm, transaction):
     if transaction.s > SECPK1_N // 2 or transaction.s == 0:
-        raise InvalidTransaction("Invalid signature S value")
+        raise ValidationError("Invalid signature S value")
 
     validate_frontier_transaction(evm, transaction)

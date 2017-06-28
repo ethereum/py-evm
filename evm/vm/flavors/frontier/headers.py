@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import time
-
 from evm.validation import (
     validate_gt,
 )
@@ -61,7 +59,7 @@ def compute_frontier_difficulty(parent_header, timestamp):
 
 def create_frontier_header_from_parent(parent_header, **header_params):
     if 'difficulty' not in header_params:
-        timestamp = header_params.get('timestamp', time.time())
+        timestamp = header_params.get('timestamp', parent_header.timestamp + 1)
         header_params['difficulty'] = compute_frontier_difficulty(
             parent_header,
             timestamp,
