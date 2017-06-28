@@ -21,6 +21,9 @@ from evm.exceptions import (
     ValidationError,
     InvalidSignature,
 )
+from evm.rlp.headers import (
+    BlockHeader,
+)
 from evm.vm.flavors import (
     MainnetEVM,
 )
@@ -54,8 +57,9 @@ FIXTURES = find_fixtures(
     'fixture_name,fixture', FIXTURES,
 )
 def test_transaction_fixtures(fixture_name, fixture):
-    EVM = MainnetEVM.get_evm_class_for_block_number(fixture['blocknumber'])
-    TransactionClass = EVM.get_transaction_class()
+    evm = MainnetEVM(MemoryDB(), BlockHeader(1, 0, 100))
+    vm = evm.get_vm_class_for_block_number(fixture['blocknumber'])
+    TransactionClass = vm.get_transaction_class()
 
     if 'sender' in fixture:
         transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)

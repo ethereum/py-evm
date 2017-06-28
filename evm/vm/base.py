@@ -28,17 +28,15 @@ class VM(object):
     opcodes = None
     block_class = None
 
-    def __init__(self, evm, db=None):
-        if db is not None:
-            self.db = db
-
-        if self.db is None:
+    def __init__(self, evm, db):
+        if db is None:
             raise ValueError("VM classes must have a `db`")
 
+        self.db = db
         self.evm = evm
 
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=self.evm.header)
+        self.block = block_class.from_header(header=self.evm.header, db=db)
         self.state_db = State(db=self.db, root_hash=self.evm.header.state_root)
 
     @classmethod
@@ -126,12 +124,11 @@ class VM(object):
     #
     # Transactions
     #
-    @classmethod
-    def get_transaction_class(cls):
+    def get_transaction_class(self):
         """
         Return the class that this VM uses for transactions.
         """
-        return cls.get_block_class().get_transaction_class()
+        return self.get_block_class().get_transaction_class()
 
     def create_transaction(self, *args, **kwargs):
         """
@@ -156,21 +153,19 @@ class VM(object):
     #
     _block_class = None
 
-    @classmethod
-    def get_block_class(cls):
+    def get_block_class(self):
         """
         Return the class that this VM uses for blocks.
         """
-        if cls._block_class is None:
+        if self._block_class is None:
             raise AttributeError("No `_block_class` has been set for this VM")
 
-        block_class = cls._block_class.configure(db=cls.db)
-        return block_class
+        return self._block_class
 
     def get_block_by_hash(self, block_hash):
         block_header = self.evm.get_block_header_by_hash(block_hash)
         block_class = self.get_block_class()
-        block = block_class.from_header(block_header)
+        block = block_class.from_header(block_header, self.db)
         return block
 
     def get_block_hash(self, block_number):

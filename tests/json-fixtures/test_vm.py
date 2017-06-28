@@ -133,7 +133,7 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    evm = EVMForTesting.configure(db=db)(header=header)
+    evm = EVMForTesting(db=db, header=header)
     state_db = setup_state_db(fixture['pre'], evm.get_state_db())
     evm.header.state_root = state_db.root_hash
 

@@ -25,7 +25,7 @@ class BaseBlock(rlp.Serializable):
         return cls.transaction_class
 
     @classmethod
-    def from_header(cls, header):
+    def from_header(cls, header, db):
         """
         Returns the block denoted by the given block header.
         """

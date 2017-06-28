@@ -157,7 +157,7 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = MemoryDB()
-    evm = EVMForTesting.configure(db=db)(header=header)
+    evm = EVMForTesting(db=db, header=header)
 
     state_db = setup_state_db(fixture['pre'], evm.get_state_db())
     evm.header.state_root = state_db.root_hash

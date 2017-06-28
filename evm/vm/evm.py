@@ -40,17 +40,15 @@ class EVM(object):
 
     vms_by_range = None
 
-    def __init__(self, header):
-        if self.db is None:
-            raise ValueError("MetaEVM must be configured with a db")
-
-        if not self.vms_by_range:
+    def __init__(self, db, header):
+        if self.vms_by_range is None:
             raise ValueError("MetaEVM must be configured with block ranges")
 
+        self.db = db
         self.header = header
 
     @classmethod
-    def configure(cls, name=None, vm_configuration=None, db=None):
+    def configure(cls, name=None, vm_configuration=None):
         if vm_configuration is None:
             vms_by_range = cls.vms_by_range
         else:
@@ -68,7 +66,6 @@ class EVM(object):
 
         props = {
             'vms_by_range': vms_by_range,
-            'db': db or cls.db,
         }
         return type(name, (cls,), props)
 
@@ -108,14 +105,13 @@ class EVM(object):
     #
     # EVM Operations
     #
-    @classmethod
-    def get_vm_class_for_block_number(cls, block_number):
+    def get_vm_class_for_block_number(self, block_number):
         """
         Return the vm class for the given block number.
         """
-        for n in reversed(cls.vms_by_range.keys()):
+        for n in reversed(self.vms_by_range.keys()):
             if block_number >= n:
-                return cls.vms_by_range[n]
+                return self.vms_by_range[n]
         raise EVMNotFound(
             "There is no EVM available for block #{0}".format(block_number))
 
@@ -126,8 +122,8 @@ class EVM(object):
         if block_number is None:
             block_number = self.header.block_number
 
-        vm_class = self.get_vm_class_for_block_number(block_number).configure(db=self.db)
-        return vm_class(evm=self)
+        vm_class = self.get_vm_class_for_block_number(block_number)
+        return vm_class(evm=self, db=self.db)
 
     #
     # Block Retrieval
@@ -187,15 +183,13 @@ class EVM(object):
     #
     @classmethod
     def from_genesis(cls,
+                     db,
                      genesis_params,
                      genesis_state=None):
         """
         Initialize the EVM from a genesis state.
         """
-        if cls.db is None:
-            raise ValueError("MetaEVM class must have a db")
-
-        state_db = State(cls.db)
+        state_db = State(db)
 
         if genesis_state is None:
             genesis_state = {}
@@ -218,9 +212,11 @@ class EVM(object):
                 )
             )
 
-        evm = cls(header=genesis_header)
+        evm = cls(db, genesis_header)
         persist_block_to_db(evm.db, evm.get_block())
 
+        # XXX: It doesn't feel right to overwrite evm.header here given that
+        # it is set by EVM.__init__, which we called above.
         evm.header = evm.create_header_from_parent(genesis_header)
         return evm
 

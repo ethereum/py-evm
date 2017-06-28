@@ -52,12 +52,8 @@ class FrontierBlock(BaseBlock):
     db = None
     bloom_filter = None
 
-    def __init__(self, header, transactions=None, uncles=None, db=None):
-        if db is not None:
-            self.db = db
-
-        if self.db is None:
-            raise TypeError("Block must have a db")
+    def __init__(self, header, db, transactions=None, uncles=None):
+        self.db = db
 
         if transactions is None:
             transactions = []
@@ -138,22 +134,27 @@ class FrontierBlock(BaseBlock):
     # Header API
     #
     @classmethod
-    def from_header(cls, header):
+    def from_header(cls, header, db):
         """
         Returns the block denoted by the given block header.
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
             uncles = []
         else:
-            uncles = rlp.decode(cls.db.get(header.uncles_hash), sedes=CountableList(BlockHeader))
+            uncles = rlp.decode(
+                db.get(header.uncles_hash),
+                sedes=CountableList(BlockHeader),
+                db=db,
+            )
 
-        transaction_db = Trie(cls.db, root_hash=header.transaction_root)
+        transaction_db = Trie(db, root_hash=header.transaction_root)
         transactions = get_transactions_from_db(transaction_db, cls.get_transaction_class())
 
         return cls(
             header=header,
             transactions=transactions,
             uncles=uncles,
+            db=db,
         )
 
     #
