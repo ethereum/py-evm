@@ -122,6 +122,48 @@ class VM(object):
     def get_nephew_reward(self, block_number):
         return NEPHEW_REWARD
 
+    def import_block(self, block):
+        parent_header = self.evm.get_block_header_by_hash(block.header.parent_hash)
+        init_header = self.create_header_from_parent(parent_header)
+        vm = type(self)(evm=self.evm, header=init_header)
+
+        vm.configure_header(
+            coinbase=block.header.coinbase,
+            gas_limit=block.header.gas_limit,
+            timestamp=block.header.timestamp,
+            extra_data=block.header.extra_data,
+            mix_hash=block.header.mix_hash,
+            nonce=block.header.nonce,
+        )
+
+        for transaction in block.transactions:
+            vm.apply_transaction(transaction)
+
+        for uncle in block.uncles:
+            vm.block.add_uncle(uncle)
+
+        mined_block = vm.mine_block()
+        if mined_block != block:
+            diff = diff_rlp_object(mined_block, block)
+            longest_field_name = max(len(field_name) for field_name, _, _ in diff)
+            error_message = (
+                "Mismatch between block and imported block on {0} fields:\n - {1}".format(
+                    len(diff),
+                    "\n - ".join(tuple(
+                        "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
+                            pad_right(field_name, longest_field_name, ' '),
+                            actual,
+                            expected,
+                        )
+                        for field_name, actual, expected
+                        in diff
+                    )),
+                )
+            )
+            raise ValidationError(error_message)
+
+        return mined_block
+
     def mine_block(self, *args, **kwargs):
         """
         Mine the current block.
@@ -134,14 +176,26 @@ class VM(object):
             )
 
             self.state_db.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
 
             for uncle in block.uncles:
-                uncle_reward = block_reward * (
+                uncle_reward = BLOCK_REWARD * (
                     UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
                 ) // UNCLE_DEPTH_PENALTY_FACTOR
                 self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
 
+            self.logger.debug('BEFORE ROOT: %s', block.header.state_root)
             block.header.state_root = self.state_db.root_hash
+            self.logger.debug('STATE_ROOT: %s', block.header.state_root)
 
         return block
 
@@ -205,7 +259,8 @@ class VM(object):
     #
     # Headers
     #
-    def create_header_from_parent(self, parent_header, **header_params):
+    @classmethod
+    def create_header_from_parent(cls, parent_header, **header_params):
         """
         Creates and initializes a new block header from the provided
         `parent_header`.
