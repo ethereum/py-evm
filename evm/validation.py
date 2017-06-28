@@ -111,7 +111,7 @@ validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1
 
 def validate_unique(values):
     duplicates = sorted((
-        value
+        str(value)
         for value, count
         in collections.Counter(values).items()
         if count > 1
