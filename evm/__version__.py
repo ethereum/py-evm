@@ -1,6 +1,6 @@
 __title__ = 'py-evm'
 __description__ = 'Python implementation of the Ethereum Virtual Machine'
-__url__ = 'Piper Merriam'
+__url__ = 'https://github.com/pipermerriam/py-evm'
 __version__ = "0.1.0"
 __author__ = 'Piper Merriam'
 __author_email__ = 'pipermerriam@gmail.com'

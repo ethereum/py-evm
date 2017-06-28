@@ -9,6 +9,8 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 
 readme = open(os.path.join(DIR, 'README.md')).read()
 
+# By definition, we can't depend on evm being installed yet,
+# so pull this information in via read, not import.
 about = {}
 with open(os.path.join(DIR, 'evm', '__version__.py'), 'r') as f:
     exec(f.read(), about)

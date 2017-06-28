@@ -1,5 +1,4 @@
 import logging
-import pkg_resources
 import sys
 
 from evm.utils.logging import (
@@ -7,9 +6,16 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
-from evm.__version__ import (
-    __title__, __description__, __url__, __version__, __copyright__,
-    __author__, __author_email__, __license__, __build__
+from .__version__ import (
+    __title__,
+    __description__,
+    __url__,
+    __version__,
+    __copyright__,
+    __author__,
+    __author_email__,
+    __license__,
+    __build__
 )
 
 #
