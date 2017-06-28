@@ -16,7 +16,6 @@ Py-EVM aims to eventually become the defacto python implementation of the EVM, e
    :caption: Contents:
 
    readme.rst
-   evm
 
 
 Indices and tables

@@ -6,7 +6,7 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
-from .__version__ import (
+from .__version__ import (  # noqa: F401
     __title__,
     __description__,
     __url__,
