@@ -15,6 +15,8 @@ from trie import (
 
 from evm.constants import (
     EMPTY_UNCLE_HASH,
+    MAX_UNCLE_DEPTH,
+    MAX_UNCLES,
 )
 from evm.exceptions import (
     ValidationError,
@@ -100,10 +102,10 @@ class FrontierBlock(BaseBlock):
                     )
                 )
 
-        if len(self.uncles) > 2:
+        if len(self.uncles) > MAX_UNCLES:
             raise ValidationError(
-                "Blocks may have a maximum of two uncles.  Found "
-                "{0}.".format(len(self.uncles))
+                "Blocks may have a maximum of {0} uncles.  Found "
+                "{1}.".format(MAX_UNCLES, len(self.uncles))
             )
 
         for uncle in self.uncles:
@@ -132,7 +134,25 @@ class FrontierBlock(BaseBlock):
         super(FrontierBlock, self).validate()
 
     def validate_uncle(self, uncle):
-        raise NotImplementedError("Not yet implemented")
+        if uncle.block_number >= self.number:
+            raise ValidationError(
+                "Uncle number too high: {0}".format(uncle.block_number))
+        try:
+            uncle_parent = self.db.get(uncle.parent_hash)
+        except KeyError:
+            raise ValidationError(
+                "Uncle ancestor not found {0}".format(uncle.parent_hash))
+        parent_header = rlp.decode(uncle_parent, sedes=BlockHeader)
+        if uncle.block_number != parent_header.block_number + 1:
+            raise ValidationError("Block number mismatch")
+        if uncle.timestamp < parent_header.timestamp:
+            raise ValidationError("Timestamp mismatch")
+        if uncle.gas_used > uncle.gas_limit:
+            raise ValidationError("Uncle used too much gas")
+
+        # TODO: Implement uncle ancestor chain validation. Not done yet as
+        # we're missing a way to get most recent block hashes
+        # TODO: Check PoW on uncle as well?
 
     #
     # Helpers
@@ -195,7 +215,6 @@ class FrontierBlock(BaseBlock):
             uncles = rlp.decode(
                 db.get(header.uncles_hash),
                 sedes=CountableList(BlockHeader),
-                db=db,
             )
 
         transaction_db = Trie(db, root_hash=header.transaction_root)

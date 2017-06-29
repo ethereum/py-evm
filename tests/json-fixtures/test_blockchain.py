@@ -137,17 +137,16 @@ def test_blockchain_fixtures(fixture_name, fixture):
                 sedes=evm.get_vm().get_block_class(),
                 db=db,
             )
-        except rlp.DecodingError as err:
+        except (TypeError, rlp.DecodingError, rlp.DeserializationError) as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue
 
         try:
             mined_block = evm.import_block(block)
+            assert_rlp_equal(mined_block, block)
         except ValidationError as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue
-
-            assert_rlp_equal(mined_block, block)
         else:
             assert should_be_good_block, "Block should have caused a validation error"
 

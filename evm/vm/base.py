@@ -136,7 +136,8 @@ class VM(object):
     def import_block(self, block):
         parent_header = self.evm.get_block_header_by_hash(block.header.parent_hash)
         init_header = self.create_header_from_parent(parent_header)
-        vm = type(self)(evm=self.evm, header=init_header)
+        evm = type(self.evm)(self.db, init_header)
+        vm = type(self)(evm, self.db)
 
         vm.configure_header(
             coinbase=block.header.coinbase,
