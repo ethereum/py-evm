@@ -15,7 +15,7 @@ from evm.constants import (
     EMPTY_UNCLE_HASH,
 )
 from evm.exceptions import (
-    InvalidBlock,
+    ValidationError,
 )
 from evm.rlp.logs import (
     Log,
@@ -77,9 +77,18 @@ class FrontierBlock(BaseBlock):
 
             # timestamp
             if self.header.timestamp < parent_header.timestamp:
-                raise InvalidBlock("Block timestamp is before the parent block's timestamp")
+                raise ValidationError(
+                    "`timestamp` is before the parent block's timestamp.\n"
+                    "- block  : {0}\n"
+                    "- parent : {1}. ".format(
+                        self.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
             elif self.header.timestamp == parent_header.timestamp:
-                raise InvalidBlock("Block timestamp is equal to the parent block's timestamp")
+                raise ValidationError(
+                    "Block timestamp is equal to the parent block's timestamp"
+                )
 
         super(FrontierBlock, self).validate()
 

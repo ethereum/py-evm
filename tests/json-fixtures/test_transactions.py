@@ -17,9 +17,7 @@ from eth_utils import (
 )
 
 from evm.exceptions import (
-    InvalidTransaction,
     ValidationError,
-    InvalidSignature,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -35,7 +33,7 @@ from evm.utils.fixture_tests import (
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
@@ -53,12 +51,17 @@ FIXTURES = find_fixtures(
 )
 
 
+def test_transaction_fixtures_smoke_test():
+    assert FIXTURES
+
+
 @pytest.mark.parametrize(
     'fixture_name,fixture', FIXTURES,
 )
 def test_transaction_fixtures(fixture_name, fixture):
-    evm = MainnetEVM(MemoryDB(), BlockHeader(1, 0, 100))
-    vm = evm.get_vm_class_for_block_number(fixture['blocknumber'])
+    header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
+    evm = MainnetEVM(MemoryDB(), header=header)
+    vm = evm.get_vm()
     TransactionClass = vm.get_transaction_class()
 
     if 'sender' in fixture:
@@ -78,7 +81,6 @@ def test_transaction_fixtures(fixture_name, fixture):
         sender = to_canonical_address(fixture['sender'])
 
         assert transaction.sender == sender
-        assert transaction.hash == fixture['hash']
     else:
         # check RLP correctness
         try:

@@ -7,7 +7,7 @@ from eth_utils import (
 )
 
 from evm.exceptions import (
-    InvalidSignature,
+    ValidationError,
 )
 
 from evm.utils.address import (
@@ -40,9 +40,9 @@ def validate_transaction_signature(transaction):
     try:
         public_key = ecdsa_recover(msg, signature)
     except BadSignature as e:
-        raise InvalidSignature("Bad Signature: {0}".format(str(e)))
+        raise ValidationError("Bad Signature: {0}".format(str(e)))
     if not ecdsa_verify(msg, signature, public_key):
-        raise InvalidSignature("Invalid Signature")
+        raise ValidationError("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):

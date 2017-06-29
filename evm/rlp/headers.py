@@ -118,21 +118,3 @@ class BlockHeader(rlp.Serializable):
 
         header = cls(**header_kwargs)
         return header
-
-    @property
-    def is_empty(self):
-        """
-        Returns `True` if no transactions have been run within this header.
-        """
-        if self.transaction_root != BLANK_ROOT_HASH:
-            return False
-        elif self.receipt_root != BLANK_ROOT_HASH:
-            return False
-        elif self.bloom != 0:
-            return False
-        elif self.gas_used != 0:
-            return False
-        elif self.uncles_hash != EMPTY_UNCLE_HASH:
-            return False
-        else:
-            return True

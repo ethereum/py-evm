@@ -7,7 +7,7 @@ env:
   matrix:
     # TODO: py27
     # TODO: py34
-    - TOX_ENV=py35-blockchain-fast
+    #- TOX_ENV=py35-blockchain-fast
     #- TOX_ENV=py35-blockchain-slow
     - TOX_ENV=py35-core
     - TOX_ENV=py35-state-fast

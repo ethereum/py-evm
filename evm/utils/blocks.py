@@ -43,8 +43,9 @@ def persist_block_to_db(db, block):
     )
 
     # Persist each individual uncle
+    # TODO: is this necessary?
     for uncle in block.uncles:
         db.set(
             uncle.hash,
-            rlp.encode(hash),
+            rlp.encode(uncle),
         )

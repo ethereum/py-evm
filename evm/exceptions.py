@@ -12,20 +12,6 @@ class ValidationError(BaseEVMError):
     pass
 
 
-class InvalidBlock(ValidationError):
-    """
-    Raised when a block does not pass validation checks.
-    """
-    pass
-
-
-class InvalidSignature(ValidationError):
-    """
-    Error to signal something does not pass a validation check.
-    """
-    pass
-
-
 class VMError(BaseEVMError):
     """
     Class of errors which can be raised during EVM execution.
@@ -79,13 +65,6 @@ class InsufficientFunds(VMError):
 class StackDepthLimit(VMError):
     """
     Error signaling that the call stack has exceeded it's maximum allowed depth.
-    """
-    pass
-
-
-class InvalidTransaction(BaseEVMError):
-    """
-    Error for signaling a transaction is invalid.
     """
     pass
 

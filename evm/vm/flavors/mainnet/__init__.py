@@ -1,8 +1,10 @@
 from evm import constants
 from evm import EVM
 
-from evm.vm.flavors.frontier import FrontierVM
-from evm.vm.flavors.homestead import HomesteadVM
+from evm.vm.flavors import (
+    FrontierVM,
+    HomesteadVM,
+)
 
 
 MainnetEVM = EVM.configure(
