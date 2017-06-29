@@ -2,17 +2,28 @@ from __future__ import absolute_import
 
 import logging
 
+from eth_utils import (
+    pad_right,
+)
+
 from evm.constants import (
     BLOCK_REWARD,
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
+from evm.state import (
+    State,
+)
 
-
-from evm.state import State
+from evm.utils.rlp import (
+    diff_rlp_object,
+)
 
 
 class VM(object):
