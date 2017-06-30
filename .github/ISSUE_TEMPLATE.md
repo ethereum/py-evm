@@ -1,5 +1,7 @@
 * py-evm Version: x.x.x
 * OS: osx/linux/win
+* Python Version (python --version):
+* Environment (output of `pip freeze`):
 
 ### What was wrong?
 
