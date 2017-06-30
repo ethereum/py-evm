@@ -49,3 +49,7 @@ fixtures/**
 
 # profiling
 prof/**
+
+#vscode/direnv 
+.direnv/**
+.vscode/**
