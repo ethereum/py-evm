@@ -132,17 +132,29 @@ class EVM(object):
     # Block Retrieval
     #
     def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Returns None if it is not present in the db.
+        """
         validate_word(block_hash)
-        block_header = rlp.decode(self.db.get(block_hash), sedes=BlockHeader)
-        return block_header
+        try:
+            block = self.db.get(block_hash)
+        except KeyError:
+            return None
+        return rlp.decode(block, sedes=BlockHeader)
 
     def get_block_by_number(self, block_number):
         """
         Returns the requested block as specified by block number.
+
+        Returns None if it is not present in the db.
         """
         validate_uint256(block_number)
         block_hash = self._lookup_block_hash(block_number)
         block_header = self.get_block_header_by_hash(block_hash)
+        if block_header is None:
+            return None
         vm = self.get_vm(block_header)
         block = vm.get_block_by_hash(block_hash)
         return block

@@ -37,9 +37,30 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
+# A list of individual tests (fixture_path:fixture_name) that are disable
+# because of any reasons.
+DISABLED_INDIVIDUAL_TESTS = [
+    "bcForkUncle.json:reusePreviousBlockAsUncleIgnoringLeadingZerosInMixHash",
+    "bcForkUncle.json:ForkUncle",
+    "bcInvalidHeaderTest.json:ExtraData33",
+    "bcInvalidHeaderTest.json:wrongGasLimit",
+    "bcInvalidHeaderTest.json:ExtraData1024",
+    "bcInvalidHeaderTest.json:DifferentExtraData1025",
+    "bcInvalidHeaderTest.json:GasLimitHigherThan2p63m1",
+    "bcTotalDifficultyTest.json:lotsOfBranches",
+    "bcTotalDifficultyTest.json:lotsOfBranchesOverrideAtTheMiddle",
+    "bcTotalDifficultyTest.json:lotsOfLeafs",
+    "bcTotalDifficultyTest.json:sideChainWithMoreTransactions",
+    "bcTotalDifficultyTest.json:uncleBlockAtBlock3afterBlock4",
+    "bcMultiChainTest.json:CallContractFromNotBestBlock",
+    "bcMultiChainTest.json:ChainAtoChainB_blockorder1",
+    "bcMultiChainTest.json:ChainAtoChainB_blockorder2",
+]
+
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
     return (
+        ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS or
         fixture_path.startswith('TestNetwork') or  # TODO: enable
         'Homestead' in fixture_path or  # TODO: enable
         'Homestead' in fixture_name or  # TODO: enable
@@ -60,6 +81,7 @@ SLOW_FIXTURE_NAMES = {
     'GeneralStateTests/stCallCreateCallCodeTest/Callcode1024OOG.json:Callcode1024OOG_d0g0v0_Frontier',
     'GeneralStateTests/stCallCreateCallCodeTest/CallRecursiveBombPreCall.json:CallRecursiveBombPreCall_d0g0v0_Frontier',
     'bcForkStressTest.json:ForkStressTest',
+    'bcWalletTest.json:walletReorganizeOwners',
 }
 
 

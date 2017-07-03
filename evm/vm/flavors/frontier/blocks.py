@@ -15,7 +15,6 @@ from trie import (
 
 from evm.constants import (
     EMPTY_UNCLE_HASH,
-    MAX_UNCLE_DEPTH,
     MAX_UNCLES,
 )
 from evm.exceptions import (
@@ -136,23 +135,26 @@ class FrontierBlock(BaseBlock):
     def validate_uncle(self, uncle):
         if uncle.block_number >= self.number:
             raise ValidationError(
-                "Uncle number too high: {0}".format(uncle.block_number))
+                "Uncle number ({0}) is higher than block number ({1})".format(
+                    uncle.block_number, self.number))
         try:
             uncle_parent = self.db.get(uncle.parent_hash)
         except KeyError:
             raise ValidationError(
-                "Uncle ancestor not found {0}".format(uncle.parent_hash))
+                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
         parent_header = rlp.decode(uncle_parent, sedes=BlockHeader)
         if uncle.block_number != parent_header.block_number + 1:
-            raise ValidationError("Block number mismatch")
+            raise ValidationError(
+                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                    uncle.block_number, parent_header.block_number))
         if uncle.timestamp < parent_header.timestamp:
-            raise ValidationError("Timestamp mismatch")
+            raise ValidationError(
+                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                    uncle.timestamp, parent_header.timestamp))
         if uncle.gas_used > uncle.gas_limit:
-            raise ValidationError("Uncle used too much gas")
-
-        # TODO: Implement uncle ancestor chain validation. Not done yet as
-        # we're missing a way to get most recent block hashes
-        # TODO: Check PoW on uncle as well?
+            raise ValidationError(
+                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                    uncle.gas_used, uncle.gas_limit))
 
     #
     # Helpers

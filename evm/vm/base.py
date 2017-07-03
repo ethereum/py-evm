@@ -6,6 +6,9 @@ from eth_utils import (
     pad_right,
 )
 
+from evm.consensus.pow import (
+    check_pow,
+)
 from evm.constants import (
     BLOCK_REWARD,
     NEPHEW_REWARD,
@@ -135,6 +138,9 @@ class VM(object):
 
     def import_block(self, block):
         parent_header = self.evm.get_block_header_by_hash(block.header.parent_hash)
+        if parent_header is None:
+            raise ValidationError("Parent ({0}) of block {1} not found".format(
+                block.header.parent_hash, block.header.hash))
         init_header = self.create_header_from_parent(parent_header)
         evm = type(self.evm)(self.db, init_header)
         vm = type(self)(evm, self.db)
@@ -180,7 +186,8 @@ class VM(object):
         """
         Mine the current block.
         """
-        block = self.block.mine(*args, **kwargs)
+        block = self.block
+        block.mine(*args, **kwargs)
 
         if block.number > 0:
             block_reward = self.get_block_reward(block.number) + (
@@ -209,7 +216,18 @@ class VM(object):
             block.header.state_root = self.state_db.root_hash
             self.logger.debug('STATE_ROOT: %s', block.header.state_root)
 
+        self.validate_block(block)
         return block
+
+    def validate_block(self, block):
+        check_pow(
+            block.number, block.header.mining_hash,
+            block.header.mix_hash, block.header.nonce,
+            block.header.difficulty)
+
+        # TODO: Implement uncle ancestor chain validation. Not done yet as
+        # we're missing a way to get most recent block hashes
+        # TODO: Check PoW on uncle as well?
 
     #
     # Transactions
@@ -254,6 +272,8 @@ class VM(object):
 
     def get_block_by_hash(self, block_hash):
         block_header = self.evm.get_block_header_by_hash(block_hash)
+        if block_header is None:
+            return None
         block_class = self.get_block_class()
         block = block_class.from_header(block_header, self.db)
         return block
