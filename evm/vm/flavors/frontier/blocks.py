@@ -1,5 +1,3 @@
-import logging
-
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -250,8 +248,6 @@ class FrontierBlock(BaseBlock):
                 gas_refund,
                 (transaction.gas - gas_remaining) // 2,
             )
-            logger = logging.getLogger('evm.foo')
-            logger.debug('REFUND: %s | tx_gas_used %s', gas_refund, tx_gas_used)
 
         gas_used = self.header.gas_used + tx_gas_used
 
