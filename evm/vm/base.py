@@ -15,6 +15,7 @@ from evm.constants import (
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
 from evm.exceptions import (
+    BlockNotFound,
     ValidationError,
 )
 from evm.logic.invalid import (
@@ -137,8 +138,10 @@ class VM(object):
         return NEPHEW_REWARD
 
     def import_block(self, block):
-        parent_header = self.evm.get_block_header_by_hash(block.header.parent_hash)
-        if parent_header is None:
+        try:
+            parent_header = self.evm.get_block_header_by_hash(
+                block.header.parent_hash)
+        except BlockNotFound:
             raise ValidationError("Parent ({0}) of block {1} not found".format(
                 block.header.parent_hash, block.header.hash))
         init_header = self.create_header_from_parent(parent_header)
@@ -272,11 +275,7 @@ class VM(object):
 
     def get_block_by_hash(self, block_hash):
         block_header = self.evm.get_block_header_by_hash(block_hash)
-        if block_header is None:
-            return None
-        block_class = self.get_block_class()
-        block = block_class.from_header(block_header, self.db)
-        return block
+        return self.get_block_class().from_header(block_header, self.db)
 
     def get_block_hash(self, block_number):
         """

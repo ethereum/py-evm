@@ -5,6 +5,13 @@ class BaseEVMError(Exception):
     pass
 
 
+class BlockNotFound(BaseEVMError):
+    """
+    The block with the given number/hash does not exist.
+    """
+    pass
+
+
 class ValidationError(BaseEVMError):
     """
     Error to signal something does not pass a validation check.

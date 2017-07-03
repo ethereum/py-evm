@@ -6,6 +6,7 @@ from operator import itemgetter
 import rlp
 
 from evm.exceptions import (
+    BlockNotFound,
     EVMNotFound,
     ValidationError,
 )
@@ -24,6 +25,9 @@ from evm.utils.db import (
 )
 from evm.utils.blocks import (
     persist_block_to_db,
+)
+from evm.utils.hexidecimal import (
+    encode_hex,
 )
 
 from evm.state import State
@@ -141,7 +145,8 @@ class EVM(object):
         try:
             block = self.db.get(block_hash)
         except KeyError:
-            return None
+            raise BlockNotFound("No block with hash {0} found".format(
+                encode_hex(block_hash)))
         return rlp.decode(block, sedes=BlockHeader)
 
     def get_block_by_number(self, block_number):
@@ -152,10 +157,7 @@ class EVM(object):
         """
         validate_uint256(block_number)
         block_hash = self._lookup_block_hash(block_number)
-        block_header = self.get_block_header_by_hash(block_hash)
-        if block_header is None:
-            return None
-        vm = self.get_vm(block_header)
+        vm = self.get_vm(self.get_block_header_by_hash(block_hash))
         block = vm.get_block_by_hash(block_hash)
         return block
 
