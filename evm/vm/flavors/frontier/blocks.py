@@ -13,6 +13,9 @@ from trie import (
 
 from evm.constants import (
     EMPTY_UNCLE_HASH,
+    GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_MAXIMUM,
+    GAS_LIMIT_MINIMUM,
     MAX_UNCLES,
 )
 from evm.exceptions import (
@@ -39,6 +42,9 @@ from evm.utils.transactions import (
 )
 from evm.utils.receipts import (
     get_receipts_from_db,
+)
+from evm.validation import (
+    validate_length_lte,
 )
 
 from .transactions import (
@@ -75,9 +81,27 @@ class FrontierBlock(BaseBlock):
         )
         # TODO: should perform block validation at this point?
 
+    def validate_gas_limit(self):
+        gas_limit = self.header.gas_limit
+        if gas_limit < GAS_LIMIT_MINIMUM:
+            raise ValidationError("Gas limit {0} is below minimum {1}".format(
+                gas_limit, GAS_LIMIT_MINIMUM))
+        if gas_limit > GAS_LIMIT_MAXIMUM:
+            raise ValidationError("Gas limit {0} is above maximum {1}".format(
+                gas_limit, GAS_LIMIT_MAXIMUM))
+        parent_gas_limit = self.get_parent_header().gas_limit
+        diff = gas_limit - parent_gas_limit
+        if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
+            raise ValidationError(
+                "Gas limit {0} difference to parent {1} is too big {2}".format(
+                    gas_limit, parent_gas_limit, diff))
+
     def validate(self):
         if not self.is_genesis:
             parent_header = self.get_parent_header()
+
+            self.validate_gas_limit()
+            validate_length_lte(self.header.extra_data, 32)
 
             # timestamp
             if self.header.timestamp < parent_header.timestamp:

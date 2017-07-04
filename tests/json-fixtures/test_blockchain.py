@@ -42,11 +42,8 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 DISABLED_INDIVIDUAL_TESTS = [
     "bcForkUncle.json:reusePreviousBlockAsUncleIgnoringLeadingZerosInMixHash",
     "bcForkUncle.json:ForkUncle",
-    "bcInvalidHeaderTest.json:ExtraData33",
-    "bcInvalidHeaderTest.json:wrongGasLimit",
     "bcInvalidHeaderTest.json:ExtraData1024",
     "bcInvalidHeaderTest.json:DifferentExtraData1025",
-    "bcInvalidHeaderTest.json:GasLimitHigherThan2p63m1",
     "bcTotalDifficultyTest.json:lotsOfBranches",
     "bcTotalDifficultyTest.json:lotsOfBranchesOverrideAtTheMiddle",
     "bcTotalDifficultyTest.json:lotsOfLeafs",
