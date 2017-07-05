@@ -2,17 +2,34 @@ from __future__ import absolute_import
 
 import logging
 
+from eth_utils import (
+    pad_right,
+)
+
+from evm.consensus.pow import (
+    check_pow,
+)
 from evm.constants import (
     BLOCK_REWARD,
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
+from evm.state import (
+    State,
+)
 
-
-from evm.state import State
+from evm.utils.blocks import (
+    lookup_block_hash,
+)
+from evm.utils.rlp import (
+    diff_rlp_object,
+)
 
 
 class VM(object):
@@ -26,16 +43,14 @@ class VM(object):
     opcodes = None
     block_class = None
 
-    def __init__(self, evm, db):
+    def __init__(self, header, db):
         if db is None:
             raise ValueError("VM classes must have a `db`")
 
         self.db = db
-        self.evm = evm
 
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=self.evm.header, db=db)
-        self.state_db = State(db=self.db, root_hash=self.evm.header.state_root)
+        self.block = block_class.from_header(header=header, db=db)
 
     @classmethod
     def configure(cls,
@@ -122,11 +137,50 @@ class VM(object):
     def get_nephew_reward(self, block_number):
         return NEPHEW_REWARD
 
+    def import_block(self, block):
+        self.configure_header(
+            coinbase=block.header.coinbase,
+            gas_limit=block.header.gas_limit,
+            timestamp=block.header.timestamp,
+            extra_data=block.header.extra_data,
+            mix_hash=block.header.mix_hash,
+            nonce=block.header.nonce,
+        )
+
+        for transaction in block.transactions:
+            self.apply_transaction(transaction)
+
+        for uncle in block.uncles:
+            self.block.add_uncle(uncle)
+
+        mined_block = self.mine_block()
+        if mined_block != block:
+            diff = diff_rlp_object(mined_block, block)
+            longest_field_name = max(len(field_name) for field_name, _, _ in diff)
+            error_message = (
+                "Mismatch between block and imported block on {0} fields:\n - {1}".format(
+                    len(diff),
+                    "\n - ".join(tuple(
+                        "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
+                            pad_right(field_name, longest_field_name, ' '),
+                            actual,
+                            expected,
+                        )
+                        for field_name, actual, expected
+                        in diff
+                    )),
+                )
+            )
+            raise ValidationError(error_message)
+
+        return mined_block
+
     def mine_block(self, *args, **kwargs):
         """
         Mine the current block.
         """
-        block = self.block.mine(*args, **kwargs)
+        block = self.block
+        block.mine(*args, **kwargs)
 
         if block.number > 0:
             block_reward = self.get_block_reward(block.number) + (
@@ -134,16 +188,39 @@ class VM(object):
             )
 
             self.state_db.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
 
             for uncle in block.uncles:
-                uncle_reward = block_reward * (
+                uncle_reward = BLOCK_REWARD * (
                     UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
                 ) // UNCLE_DEPTH_PENALTY_FACTOR
                 self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
 
+            self.logger.debug('BEFORE ROOT: %s', block.header.state_root)
             block.header.state_root = self.state_db.root_hash
+            self.logger.debug('STATE_ROOT: %s', block.header.state_root)
 
+        self.validate_block(block)
         return block
+
+    def validate_block(self, block):
+        check_pow(
+            block.number, block.header.mining_hash,
+            block.header.mix_hash, block.header.nonce,
+            block.header.difficulty)
+
+        # TODO: Implement uncle ancestor chain validation. Not done yet as
+        # we're missing a way to get most recent block hashes
+        # TODO: Check PoW on uncle as well?
 
     #
     # Transactions
@@ -186,11 +263,8 @@ class VM(object):
 
         return self._block_class
 
-    def get_block_by_hash(self, block_hash):
-        block_header = self.evm.get_block_header_by_hash(block_hash)
-        block_class = self.get_block_class()
-        block = block_class.from_header(block_header, self.db)
-        return block
+    def get_block_by_header(self, block_header):
+        return self.get_block_class().from_header(block_header, self.db)
 
     def get_block_hash(self, block_number):
         """
@@ -198,14 +272,15 @@ class VM(object):
         """
         ancestor_depth = self.block.number - block_number
         if 1 <= ancestor_depth <= 256:
-            return self.evm.get_block_by_number(block_number).header.hash
+            return lookup_block_hash(self.db, block_number)
         else:
             return b''
 
     #
     # Headers
     #
-    def create_header_from_parent(self, parent_header, **header_params):
+    @classmethod
+    def create_header_from_parent(cls, parent_header, **header_params):
         """
         Creates and initializes a new block header from the provided
         `parent_header`.

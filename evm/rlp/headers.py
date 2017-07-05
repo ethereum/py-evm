@@ -15,6 +15,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
 )
 
+from evm.utils.hexidecimal import (
+    encode_hex,
+)
 from evm.utils.keccak import (
     keccak,
 )
@@ -85,6 +88,15 @@ class BlockHeader(rlp.Serializable):
     @property
     def hash(self):
         return keccak(rlp.encode(self))
+
+    @property
+    def mining_hash(self):
+        return keccak(
+            rlp.encode(self, BlockHeader.exclude(['mix_hash', 'nonce'])))
+
+    @property
+    def hex_hash(self):
+        return encode_hex(self.hash)
 
     @classmethod
     def from_parent(cls,

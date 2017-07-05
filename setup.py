@@ -30,6 +30,7 @@ setup(
         "rlp==0.4.7",
         "trie>=0.2.4",
         "ethereum-bloom>=0.4.0",
+        "pyethash>=0.1.27",
     ],
     license=about['__license__'],
     zip_safe=False,

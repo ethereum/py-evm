@@ -31,6 +31,18 @@ def validate_length(value, length):
         )
 
 
+def validate_length_lte(value, maximum_length):
+    if len(value) > maximum_length:
+        raise ValidationError(
+            "Value must be of length less than or equal to {0}.  "
+            "Got {1} of length {2}".format(
+                maximum_length,
+                value,
+                len(value),
+            )
+        )
+
+
 def validate_gte(value, minimum):
     if value < minimum:
         raise ValidationError(

@@ -13,6 +13,10 @@ from trie import (
 
 from evm.constants import (
     EMPTY_UNCLE_HASH,
+    GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_MAXIMUM,
+    GAS_LIMIT_MINIMUM,
+    MAX_UNCLES,
 )
 from evm.exceptions import (
     ValidationError,
@@ -30,11 +34,17 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.transactions import (
     get_transactions_from_db,
 )
 from evm.utils.receipts import (
     get_receipts_from_db,
+)
+from evm.validation import (
+    validate_length_lte,
 )
 
 from .transactions import (
@@ -71,9 +81,27 @@ class FrontierBlock(BaseBlock):
         )
         # TODO: should perform block validation at this point?
 
+    def validate_gas_limit(self):
+        gas_limit = self.header.gas_limit
+        if gas_limit < GAS_LIMIT_MINIMUM:
+            raise ValidationError("Gas limit {0} is below minimum {1}".format(
+                gas_limit, GAS_LIMIT_MINIMUM))
+        if gas_limit > GAS_LIMIT_MAXIMUM:
+            raise ValidationError("Gas limit {0} is above maximum {1}".format(
+                gas_limit, GAS_LIMIT_MAXIMUM))
+        parent_gas_limit = self.get_parent_header().gas_limit
+        diff = gas_limit - parent_gas_limit
+        if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
+            raise ValidationError(
+                "Gas limit {0} difference to parent {1} is too big {2}".format(
+                    gas_limit, parent_gas_limit, diff))
+
     def validate(self):
         if not self.is_genesis:
             parent_header = self.get_parent_header()
+
+            self.validate_gas_limit()
+            validate_length_lte(self.header.extra_data, 32)
 
             # timestamp
             if self.header.timestamp < parent_header.timestamp:
@@ -87,10 +115,68 @@ class FrontierBlock(BaseBlock):
                 )
             elif self.header.timestamp == parent_header.timestamp:
                 raise ValidationError(
-                    "Block timestamp is equal to the parent block's timestamp"
+                    "`timestamp` is equal to the parent block's timestamp\n"
+                    "- block : {0}\n"
+                    "- parent: {1}. ".format(
+                        self.header.timestamp,
+                        parent_header.timestamp,
+                    )
                 )
 
+        if len(self.uncles) > MAX_UNCLES:
+            raise ValidationError(
+                "Blocks may have a maximum of {0} uncles.  Found "
+                "{1}.".format(MAX_UNCLES, len(self.uncles))
+            )
+
+        for uncle in self.uncles:
+            self.validate_uncle(uncle)
+
+        if self.header.state_root not in self.db:
+            raise ValidationError(
+                "`state_root` was not found in the db.\n"
+                "- state_root: {0}".format(
+                    self.header.state_root,
+                )
+            )
+        local_uncle_hash = keccak(rlp.encode(self.uncles))
+        if local_uncle_hash != self.header.uncles_hash:
+            raise ValidationError(
+                "`uncles_hash` and block `uncles` do not match.\n"
+                " - num_uncles       : {0}\n"
+                " - block uncle_hash : {1}\n"
+                " - header uncle_hash: {2}".format(
+                    len(self.uncles),
+                    local_uncle_hash,
+                    self.header.uncle_hash,
+                )
+            )
+
         super(FrontierBlock, self).validate()
+
+    def validate_uncle(self, uncle):
+        if uncle.block_number >= self.number:
+            raise ValidationError(
+                "Uncle number ({0}) is higher than block number ({1})".format(
+                    uncle.block_number, self.number))
+        try:
+            uncle_parent = self.db.get(uncle.parent_hash)
+        except KeyError:
+            raise ValidationError(
+                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
+        parent_header = rlp.decode(uncle_parent, sedes=BlockHeader)
+        if uncle.block_number != parent_header.block_number + 1:
+            raise ValidationError(
+                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                    uncle.block_number, parent_header.block_number))
+        if uncle.timestamp < parent_header.timestamp:
+            raise ValidationError(
+                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                    uncle.timestamp, parent_header.timestamp))
+        if uncle.gas_used > uncle.gas_limit:
+            raise ValidationError(
+                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                    uncle.gas_used, uncle.gas_limit))
 
     #
     # Helpers
@@ -153,7 +239,6 @@ class FrontierBlock(BaseBlock):
             uncles = rlp.decode(
                 db.get(header.uncles_hash),
                 sedes=CountableList(BlockHeader),
-                db=db,
             )
 
         transaction_db = Trie(db, root_hash=header.transaction_root)
@@ -177,15 +262,18 @@ class FrontierBlock(BaseBlock):
         ]
 
         if computation.error:
-            gas_used = self.get_cumulative_gas_used() + transaction.gas
+            tx_gas_used = transaction.gas
         else:
             gas_remaining = computation.get_gas_remaining()
-            base_gas_used = transaction.gas - gas_remaining
-            gas_refunded = min(
-                computation.get_gas_refund(),
-                base_gas_used // 2,
+            gas_refund = computation.get_gas_refund()
+            tx_gas_used = (
+                transaction.gas - gas_remaining
+            ) - min(
+                gas_refund,
+                (transaction.gas - gas_remaining) // 2,
             )
-            gas_used = self.get_cumulative_gas_used() + base_gas_used - gas_refunded
+
+        gas_used = self.header.gas_used + tx_gas_used
 
         receipt = Receipt(
             state_root=computation.state_db.root_hash,
@@ -212,6 +300,11 @@ class FrontierBlock(BaseBlock):
 
         return self
 
+    def add_uncle(self, uncle):
+        self.uncles.append(uncle)
+        self.header.uncles_hash = keccak(rlp.encode(self.uncles))
+        return self
+
     def mine(self, **kwargs):
         """
         - `uncles_hash`
@@ -224,6 +317,10 @@ class FrontierBlock(BaseBlock):
         - `mix_hash`
         - `nonce`
         """
+        if 'uncles' in kwargs:
+            self.uncles = kwargs.pop('uncles')
+            kwargs.setdefault('uncles_hash', keccak(rlp.encode(self.uncles)))
+
         header = self.header
         provided_fields = set(kwargs.keys())
         known_fields = set(tuple(zip(*BlockHeader.fields))[0])
@@ -233,13 +330,15 @@ class FrontierBlock(BaseBlock):
             raise AttributeError(
                 "Unable to set the field(s) {0} on the `BlockHeader` class. "
                 "Received the following unexpected fields: {0}.".format(
-                    ", ".join(unknown_fields),
                     ", ".join(known_fields),
+                    ", ".join(unknown_fields),
                 )
             )
 
         for key, value in kwargs.items():
             setattr(header, key, value)
 
-        # TODO: do we validate here!?
+        # Perform validation
+        self.validate()
+
         return self

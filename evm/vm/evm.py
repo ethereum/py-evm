@@ -6,23 +6,28 @@ from operator import itemgetter
 import rlp
 
 from evm.exceptions import (
+    BlockNotFound,
     EVMNotFound,
     ValidationError,
 )
 from evm.validation import (
     validate_vm_block_numbers,
+    validate_uint256,
+    validate_word,
 )
 
 from evm.rlp.headers import (
     BlockHeader,
 )
 
-from evm.utils.db import (
-    make_block_number_to_hash_lookup_key,
-    make_block_hash_to_number_lookup_key,
+from evm.utils.blocks import (
+    lookup_block_hash,
 )
 from evm.utils.blocks import (
     persist_block_to_db,
+)
+from evm.utils.hexidecimal import (
+    encode_hex,
 )
 
 from evm.state import State
@@ -96,11 +101,13 @@ class EVM(object):
         """
         return self.get_vm().create_unsigned_transaction(*args, **kwargs)
 
-    def create_header_from_parent(self, *args, **kwargs):
+    def create_header_from_parent(self, parent_header, **header_params):
         """
         Passthrough helper to the current VM class.
         """
-        return self.get_vm().create_header_from_parent(*args, **kwargs)
+        return self.get_vm_class_for_block_number(
+            block_number=parent_header.block_number + 1,
+        ).create_header_from_parent(parent_header, **header_params)
 
     #
     # EVM Operations
@@ -115,44 +122,41 @@ class EVM(object):
         raise EVMNotFound(
             "There is no EVM available for block #{0}".format(block_number))
 
-    def get_vm(self, block_number=None):
+    def get_vm(self, header=None):
         """
         Return the vm instance for the given block number.
         """
-        if block_number is None:
-            block_number = self.header.block_number
+        if header is None:
+            header = self.header
 
-        vm_class = self.get_vm_class_for_block_number(block_number)
-        return vm_class(evm=self, db=self.db)
+        vm_class = self.get_vm_class_for_block_number(header.block_number)
+        return vm_class(header=header, db=self.db)
 
     #
     # Block Retrieval
     #
     def get_block_header_by_hash(self, block_hash):
-        block_header = rlp.decode(self.db.get(block_hash), sedes=BlockHeader)
-        return block_header
+        """
+        Returns the requested block header as specified by block hash.
+
+        Returns None if it is not present in the db.
+        """
+        validate_word(block_hash)
+        try:
+            block = self.db.get(block_hash)
+        except KeyError:
+            raise BlockNotFound("No block with hash {0} found".format(
+                encode_hex(block_hash)))
+        return rlp.decode(block, sedes=BlockHeader)
 
     def get_block_by_number(self, block_number):
         """
         Returns the requested block as specified by block number.
-        """
-        # TODO: validate block number
-        block_hash = self._lookup_block_hash(block_number)
-        vm = self.get_vm(block_number)
-        block = vm.get_block_by_hash(block_hash)
-        return block
 
-    def _lookup_block_hash(self, block_number):
+        Returns None if it is not present in the db.
         """
-        Return the block hash for the given block number.
-        """
-        number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
-        # TODO: can raise KeyError
-        block_hash = rlp.decode(
-            self.db.get(number_to_hash_key),
-            sedes=rlp.sedes.binary,
-        )
-        return block_hash
+        validate_uint256(block_number)
+        return self.get_block_by_hash(lookup_block_hash(self.db, block_number))
 
     def get_block_by_hash(self, block_hash):
         """
@@ -160,23 +164,10 @@ class EVM(object):
 
         TODO: how do we determine the correct EVM class?
         """
-        # TODO: validate block hash
-        block_number = self._lookup_block_number(block_hash)
-        vm = self.get_vm(block_number)
-        block = vm.get_block_by_hash(block_hash)
-        return block
-
-    def _lookup_block_number(self, block_hash):
-        """
-        Return the block number for the given block hash.
-        """
-        hash_to_number_key = make_block_hash_to_number_lookup_key(block_hash)
-        # TODO: can raise KeyError
-        block_number = rlp.decode(
-            self.db.get(hash_to_number_key),
-            sedes=rlp.sedes.big_endian_int,
-        )
-        return block_number
+        validate_word(block_hash)
+        block_header = self.get_block_header_by_hash(block_hash)
+        vm = self.get_vm(block_header)
+        return vm.get_block_by_header(block_header)
 
     #
     # EVM Initialization
@@ -229,24 +220,56 @@ class EVM(object):
         """
         vm = self.get_vm()
         computation = vm.apply_transaction(transaction)
-        block = vm.block.add_transaction(
-            transaction=transaction,
-            computation=computation,
-        )
+
         # TODO: icky mutation...
-        self.header = block.header
+        self.header = vm.block.header
         return computation
+
+    def import_block(self, block):
+        """
+        Import a complete block.
+        """
+        if block.number > self.header.block_number:
+            raise ValidationError(
+                "Attempt to import block #{0}.  Cannot import block with number "
+                "greater than current block #{1}.".format(
+                    block.number,
+                    self.header.block_number,
+                )
+            )
+
+        try:
+            parent_header = self.get_block_header_by_hash(
+                block.header.parent_hash)
+        except BlockNotFound:
+            raise ValidationError("Parent ({0}) of block {1} not found".format(
+                block.header.parent_hash, block.header.hash))
+        init_header = self.create_header_from_parent(parent_header)
+        parent_evm = type(self)(self.db, init_header)
+
+        # TODO: weird that this vm instance is instantiated with whatever
+        # header is currently in place and then that header is immediately
+        # discarded.
+        # Now it actually makes sense as the instantiation of the EVM for the
+        # parent's block is right above (as opposed to inside the VM's
+        # import_block method), so it becomes clear that we import the block
+        # using that EVM for the parent and once everything is validated
+        # and saved in the DB we advance this EVM to the recently-imported block.
+        imported_block = parent_evm.get_vm().import_block(block)
+
+        persist_block_to_db(self.db, imported_block)
+        self.header = self.create_header_from_parent(imported_block.header)
+
+        return imported_block
 
     def mine_block(self, **mine_params):
         """
         Mine the current block, applying
         """
-        vm = self.get_vm()
-
-        block = vm.mine_block(**mine_params)
+        block = self.get_vm().mine_block(**mine_params)
         persist_block_to_db(self.db, block)
 
-        self.header = vm.create_header_from_parent(block.header)
+        self.header = self.create_header_from_parent(block.header)
 
         return block
 
