@@ -15,7 +15,6 @@ from evm.constants import (
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
 from evm.exceptions import (
-    BlockNotFound,
     ValidationError,
 )
 from evm.logic.invalid import (
@@ -25,6 +24,9 @@ from evm.state import (
     State,
 )
 
+from evm.utils.blocks import (
+    lookup_block_hash,
+)
 from evm.utils.rlp import (
     diff_rlp_object,
 )
@@ -41,16 +43,14 @@ class VM(object):
     opcodes = None
     block_class = None
 
-    def __init__(self, evm, db):
+    def __init__(self, header, db):
         if db is None:
             raise ValueError("VM classes must have a `db`")
 
         self.db = db
-        self.evm = evm
 
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=self.evm.header, db=db)
-        self.state_db = State(db=self.db, root_hash=self.evm.header.state_root)
+        self.block = block_class.from_header(header=header, db=db)
 
     @classmethod
     def configure(cls,
@@ -138,17 +138,7 @@ class VM(object):
         return NEPHEW_REWARD
 
     def import_block(self, block):
-        try:
-            parent_header = self.evm.get_block_header_by_hash(
-                block.header.parent_hash)
-        except BlockNotFound:
-            raise ValidationError("Parent ({0}) of block {1} not found".format(
-                block.header.parent_hash, block.header.hash))
-        init_header = self.create_header_from_parent(parent_header)
-        evm = type(self.evm)(self.db, init_header)
-        vm = type(self)(evm, self.db)
-
-        vm.configure_header(
+        self.configure_header(
             coinbase=block.header.coinbase,
             gas_limit=block.header.gas_limit,
             timestamp=block.header.timestamp,
@@ -158,12 +148,12 @@ class VM(object):
         )
 
         for transaction in block.transactions:
-            vm.apply_transaction(transaction)
+            self.apply_transaction(transaction)
 
         for uncle in block.uncles:
-            vm.block.add_uncle(uncle)
+            self.block.add_uncle(uncle)
 
-        mined_block = vm.mine_block()
+        mined_block = self.mine_block()
         if mined_block != block:
             diff = diff_rlp_object(mined_block, block)
             longest_field_name = max(len(field_name) for field_name, _, _ in diff)
@@ -273,8 +263,7 @@ class VM(object):
 
         return self._block_class
 
-    def get_block_by_hash(self, block_hash):
-        block_header = self.evm.get_block_header_by_hash(block_hash)
+    def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.db)
 
     def get_block_hash(self, block_number):
@@ -283,7 +272,7 @@ class VM(object):
         """
         ancestor_depth = self.block.number - block_number
         if 1 <= ancestor_depth <= 256:
-            return self.evm.get_block_by_number(block_number).header.hash
+            return lookup_block_hash(self.db, block_number)
         else:
             return b''
 

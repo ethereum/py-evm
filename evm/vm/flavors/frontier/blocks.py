@@ -330,8 +330,8 @@ class FrontierBlock(BaseBlock):
             raise AttributeError(
                 "Unable to set the field(s) {0} on the `BlockHeader` class. "
                 "Received the following unexpected fields: {0}.".format(
-                    ", ".join(unknown_fields),
                     ", ".join(known_fields),
+                    ", ".join(unknown_fields),
                 )
             )
 

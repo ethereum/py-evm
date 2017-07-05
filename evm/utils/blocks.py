@@ -1,5 +1,8 @@
 import rlp
 
+from evm.validation import (
+    validate_uint256,
+)
 from .db import (
     make_block_number_to_hash_lookup_key,
     make_block_hash_to_number_lookup_key,
@@ -49,3 +52,17 @@ def persist_block_to_db(db, block):
             uncle.hash,
             rlp.encode(uncle),
         )
+
+
+def lookup_block_hash(db, block_number):
+    """
+    Return the block hash for the given block number.
+    """
+    validate_uint256(block_number)
+    number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
+    # TODO: can raise KeyError
+    block_hash = rlp.decode(
+        db.get(number_to_hash_key),
+        sedes=rlp.sedes.binary,
+    )
+    return block_hash

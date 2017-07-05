@@ -20,8 +20,8 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
-from evm.utils.db import (
-    make_block_number_to_hash_lookup_key,
+from evm.utils.blocks import (
+    lookup_block_hash,
 )
 from evm.utils.blocks import (
     persist_block_to_db,
@@ -130,7 +130,7 @@ class EVM(object):
             header = self.header
 
         vm_class = self.get_vm_class_for_block_number(header.block_number)
-        return vm_class(evm=self, db=self.db)
+        return vm_class(header=header, db=self.db)
 
     #
     # Block Retrieval
@@ -156,23 +156,7 @@ class EVM(object):
         Returns None if it is not present in the db.
         """
         validate_uint256(block_number)
-        block_hash = self._lookup_block_hash(block_number)
-        vm = self.get_vm(self.get_block_header_by_hash(block_hash))
-        block = vm.get_block_by_hash(block_hash)
-        return block
-
-    def _lookup_block_hash(self, block_number):
-        """
-        Return the block hash for the given block number.
-        """
-        validate_uint256(block_number)
-        number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
-        # TODO: can raise KeyError
-        block_hash = rlp.decode(
-            self.db.get(number_to_hash_key),
-            sedes=rlp.sedes.binary,
-        )
-        return block_hash
+        return self.get_block_by_hash(lookup_block_hash(self.db, block_number))
 
     def get_block_by_hash(self, block_hash):
         """
@@ -183,8 +167,7 @@ class EVM(object):
         validate_word(block_hash)
         block_header = self.get_block_header_by_hash(block_hash)
         vm = self.get_vm(block_header)
-        block = vm.get_block_by_hash(block_hash)
-        return block
+        return vm.get_block_by_header(block_header)
 
     #
     # EVM Initialization
@@ -255,16 +238,27 @@ class EVM(object):
                 )
             )
 
+        try:
+            parent_header = self.get_block_header_by_hash(
+                block.header.parent_hash)
+        except BlockNotFound:
+            raise ValidationError("Parent ({0}) of block {1} not found".format(
+                block.header.parent_hash, block.header.hash))
+        init_header = self.create_header_from_parent(parent_header)
+        parent_evm = type(self)(self.db, init_header)
+
         # TODO: weird that this vm instance is instantiated with whatever
         # header is currently in place and then that header is immediately
         # discarded.
-        vm = self.get_vm()
-        imported_block = vm.import_block(block)
+        # Now it actually makes sense as the instantiation of the EVM for the
+        # parent's block is right above (as opposed to inside the VM's
+        # import_block method), so it becomes clear that we import the block
+        # using that EVM for the parent and once everything is validated
+        # and saved in the DB we advance this EVM to the recently-imported block.
+        imported_block = parent_evm.get_vm().import_block(block)
 
         persist_block_to_db(self.db, imported_block)
-        self.header = self.get_vm_class_for_block_number(
-            block_number=imported_block.number + 1,
-        ).create_header_from_parent(imported_block.header)
+        self.header = self.create_header_from_parent(imported_block.header)
 
         return imported_block
 
@@ -275,9 +269,7 @@ class EVM(object):
         block = self.get_vm().mine_block(**mine_params)
         persist_block_to_db(self.db, block)
 
-        self.header = self.get_vm_class_for_block_number(
-            block_number=block.number + 1,
-        ).create_header_from_parent(block.header)
+        self.header = self.create_header_from_parent(block.header)
 
         return block
 
