@@ -6,9 +6,6 @@ from eth_utils import (
     pad_right,
 )
 
-from evm.consensus.pow import (
-    check_pow,
-)
 from evm.constants import (
     BLOCK_REWARD,
     NEPHEW_REWARD,
@@ -209,18 +206,7 @@ class VM(object):
             block.header.state_root = self.state_db.root_hash
             self.logger.debug('STATE_ROOT: %s', block.header.state_root)
 
-        self.validate_block(block)
         return block
-
-    def validate_block(self, block):
-        check_pow(
-            block.number, block.header.mining_hash,
-            block.header.mix_hash, block.header.nonce,
-            block.header.difficulty)
-
-        # TODO: Implement uncle ancestor chain validation. Not done yet as
-        # we're missing a way to get most recent block hashes
-        # TODO: Check PoW on uncle as well?
 
     #
     # Transactions

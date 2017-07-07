@@ -5,6 +5,12 @@ from operator import itemgetter
 
 import rlp
 
+from evm.consensus.pow import (
+    check_pow,
+)
+from evm.constants import (
+    MAX_UNCLE_DEPTH,
+)
 from evm.exceptions import (
     BlockNotFound,
     EVMNotFound,
@@ -246,18 +252,12 @@ class EVM(object):
                 block.header.parent_hash, block.header.hash))
         init_header = self.create_header_from_parent(parent_header)
         parent_evm = type(self)(self.db, init_header)
-
-        # TODO: weird that this vm instance is instantiated with whatever
-        # header is currently in place and then that header is immediately
-        # discarded.
-        # Now it actually makes sense as the instantiation of the EVM for the
-        # parent's block is right above (as opposed to inside the VM's
-        # import_block method), so it becomes clear that we import the block
-        # using that EVM for the parent and once everything is validated
-        # and saved in the DB we advance this EVM to the recently-imported block.
         imported_block = parent_evm.get_vm().import_block(block)
+        self.validate_block(imported_block)
 
         persist_block_to_db(self.db, imported_block)
+        # TODO: We must only do this when the imported block has higher
+        # score than current head.
         self.header = self.create_header_from_parent(imported_block.header)
 
         return imported_block
@@ -267,11 +267,57 @@ class EVM(object):
         Mine the current block, applying
         """
         block = self.get_vm().mine_block(**mine_params)
+        self.validate_block(block)
         persist_block_to_db(self.db, block)
 
         self.header = self.create_header_from_parent(block.header)
 
         return block
+
+    def validate_block(self, block):
+        self.validate_seal(block.header)
+        self.validate_uncles(block)
+
+    def validate_uncles(self, block):
+        recent_ancestors = dict(
+            (ancestor.hash, ancestor)
+            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH+1))
+        recent_uncles = []
+        for ancestor in recent_ancestors.values():
+            recent_uncles.extend([uncle.hash for uncle in ancestor.uncles])
+        recent_ancestors[block.hash] = block
+        recent_uncles.append(block.hash)
+
+        for uncle in block.uncles:
+            if uncle.hash in recent_ancestors:
+                raise ValidationError(
+                    "Duplicate uncle: {0}".format(encode_hex(uncle.hash)))
+            recent_uncles.append(uncle.hash)
+
+            if uncle.hash in recent_ancestors:
+                raise ValidationError(
+                    "Uncle {0} cannot be an ancestor of {1}".format(
+                        encode_hex(uncle.hash), encode_hex(block.hash)))
+
+            if uncle.parent_hash not in recent_ancestors or (
+               uncle.parent_hash == block.header.parent_hash):
+                raise ValidationError(
+                    "Uncle's parent {0} is not an ancestor of {1}".format(
+                        encode_hex(uncle.parent_hash), encode_hex(block.hash)))
+
+            self.validate_seal(uncle)
+
+    def validate_seal(self, header):
+        check_pow(
+            header.block_number, header.mining_hash,
+            header.mix_hash, header.nonce, header.difficulty)
+
+    def get_ancestors(self, limit):
+        blocks = []
+        lower_limit = max(self.header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, self.header.block_number)):
+            blocks.append(self.get_block_by_number(n))
+        return blocks
 
     def configure_header(self, *args, **kwargs):
         vm = self.get_vm()
