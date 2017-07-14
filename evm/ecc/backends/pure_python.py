@@ -15,7 +15,7 @@ class PurePythonECCBackend(BaseECCBackend):
         return ecdsa_sign(msg, private_key)
 
     def ecdsa_raw_sign(self, msg_hash, private_key):
-        return ecdsa_raw_sign(msg_hash, hash, private_key)
+        return ecdsa_raw_sign(msg_hash, private_key)
 
     def ecdsa_verify(self, msg, signature, public_key):
         return ecdsa_verify(msg, signature, public_key)
