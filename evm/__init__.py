@@ -1,6 +1,5 @@
 import logging
 import sys
-import os
 
 from evm.utils.logging import (
     trace,
@@ -37,7 +36,3 @@ from evm.vm import (  # noqa: F401
     EVM,
     VM,
 )
-
-# Chooses which backend to use for the elliptic curve cryptography
-os.environ['EVM_ECC_BACKEND_CLASS'] = \
-    'evm.ecc.backends.pure_python_ecc_backend.PurePythonECCBackend'
