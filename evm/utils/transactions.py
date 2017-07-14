@@ -13,46 +13,51 @@ from evm.exceptions import (
 from evm.utils.address import (
     public_key_to_address,
 )
+
+from evm.ecc import (
+    get_ecc_backend,
+)
+
 from evm.utils.ecdsa import (
     BadSignature,
-    ecdsa_sign,
-    decode_signature,
-    encode_signature,
-    ecdsa_recover,
-    ecdsa_verify,
+)
+from evm.utils.keccak import (
+    keccak,
+)
+from evm.utils.secp256k1 import (
+    encode_raw_public_key,
 )
 
 
 def create_transaction_signature(unsigned_txn, private_key):
-    signature = ecdsa_sign(rlp.encode(unsigned_txn), private_key)
-    v, r, s = decode_signature(signature)
+    v, r, s = get_ecc_backend().ecdsa_raw_sign(
+        keccak(rlp.encode(unsigned_txn)),
+        private_key
+    )
     return v, r, s
 
 
 def validate_transaction_signature(transaction):
-    signature = encode_signature(
-        v=transaction.v,
-        r=transaction.r,
-        s=transaction.s,
-    )
+    vrs = (transaction.v, transaction.r, transaction.s)
     unsigned_transaction = transaction.as_unsigned_transaction()
-    msg = rlp.encode(unsigned_transaction)
+    msg_hash = keccak(rlp.encode(unsigned_transaction))
     try:
-        public_key = ecdsa_recover(msg, signature)
+        public_key = get_ecc_backend().ecdsa_raw_recover(msg_hash, vrs)
     except BadSignature as e:
         raise ValidationError("Bad Signature: {0}".format(str(e)))
-    if not ecdsa_verify(msg, signature, public_key):
+
+    if not get_ecc_backend().ecdsa_raw_verify(msg_hash, vrs, public_key):
         raise ValidationError("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):
+    vrs = (transaction.v, transaction.r, transaction.s)
     unsigned_transaction = transaction.as_unsigned_transaction()
-    signature = encode_signature(
-        v=transaction.v,
-        r=transaction.r,
-        s=transaction.s,
+    raw_public_key = get_ecc_backend().ecdsa_raw_recover(
+        keccak(rlp.encode(unsigned_transaction)),
+        vrs,
     )
-    public_key = ecdsa_recover(rlp.encode(unsigned_transaction), signature)
+    public_key = encode_raw_public_key(raw_public_key)
     sender = public_key_to_address(public_key)
     return sender
 

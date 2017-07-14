@@ -126,11 +126,11 @@ def ecdsa_sign(msg, private_key):
     return signature
 
 
-def ecdsa_raw_verify(msg_hash, vrs, public_key):
+def ecdsa_raw_verify(msg_hash, vrs, raw_public_key):
     if not isinstance(msg_hash, bytes):
         raise TypeError("msg_hash parameter must be bytes")
-    if not isinstance(public_key, bytes):
-        raise TypeError("public_key parameter must be bytes")
+    if not isinstance(raw_public_key, tuple) or len(raw_public_key) != 2:
+        raise TypeError("raw_public_key parameter must be a 2-tuple of integers")
 
     v, r, s = vrs
     if not (27 <= v <= 34):
@@ -142,7 +142,7 @@ def ecdsa_raw_verify(msg_hash, vrs, public_key):
     u1, u2 = z * w % N, r * w % N
     x, y = fast_add(
         fast_multiply(G, u1),
-        fast_multiply(decode_public_key(public_key), u2),
+        fast_multiply(raw_public_key, u2),
     )
     return bool(r == x and (r % N) and (s % N))
 
@@ -168,7 +168,11 @@ def ecdsa_verify(msg, signature, public_key):
     if not isinstance(public_key, bytes):
         raise TypeError("public_key parameter must be bytes")
 
-    return ecdsa_raw_verify(keccak(msg), decode_signature(signature), public_key)
+    return ecdsa_raw_verify(
+        keccak(msg),
+        decode_signature(signature),
+        decode_public_key(public_key),
+    )
 
 
 def ecdsa_raw_recover(msg_hash, vrs):

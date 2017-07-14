@@ -1,6 +1,7 @@
 import hashlib
 
 from evm import constants
+from evm.ecc import get_ecc_backend
 from evm.exceptions import (
     ValidationError,
 )
@@ -16,7 +17,6 @@ from evm.utils.address import (
 )
 from evm.utils.ecdsa import (
     BadSignature,
-    ecdsa_raw_recover,
 )
 from evm.utils.numeric import (
     ceil32,
@@ -65,7 +65,7 @@ def precompile_ecrecover(computation):
         return computation
 
     try:
-        raw_public_key = ecdsa_raw_recover(message_hash, (v, r, s))
+        raw_public_key = get_ecc_backend().ecdsa_raw_recover(message_hash, (v, r, s))
     except BadSignature:
         return computation
 

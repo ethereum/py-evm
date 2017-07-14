@@ -24,6 +24,7 @@ PRIVATE_KEY = (
 PUBLIC_KEY = (
     b'\x04:QAvFo\xa8\x15\xedH\x1f\xfa\xd0\x91\x10\xa2\xd3D\xf6\xc9\xb7\x8c\x1d\x14\xaf\xc3Q\xc3\xa5\x1b\xe3=\x80r\xe7y9\xdc\x03\xbaDy\x07y\xb7\xa1\x02\x5b\xaf0\x03\xf6s$0\xe2\x0c\xd9\xb7m\x953\x91\xb3'
 )
+RAW_PUBLIC_KEY = decode_public_key(PUBLIC_KEY)
 ADDRESS = (
     b'\xa9OSt\xfc\xe5\xed\xbc\x8e*\x86\x97\xc1S1g~n\xbf\x0b'
 )
@@ -44,7 +45,7 @@ assert encode_raw_public_key(decode_public_key(PUBLIC_KEY)) == PUBLIC_KEY
 
 def test_raw_signing():
     v, r, s = ecdsa_raw_sign(MSG_HASH, PRIVATE_KEY)
-    assert ecdsa_raw_verify(MSG_HASH, (v, r, s), PUBLIC_KEY)
+    assert ecdsa_raw_verify(MSG_HASH, (v, r, s), RAW_PUBLIC_KEY)
 
 
 def test_raw_recover():
@@ -54,7 +55,7 @@ def test_raw_recover():
 
 
 def test_raw_verify():
-    assert ecdsa_raw_verify(MSG_HASH, (V, R, S), PUBLIC_KEY)
+    assert ecdsa_raw_verify(MSG_HASH, (V, R, S), RAW_PUBLIC_KEY)
 
 
 def test_signature_encoding_and_decoding():
