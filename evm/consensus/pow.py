@@ -1,7 +1,16 @@
-from pyethash import mkcache_bytes, hashimoto_light
+from collections import OrderedDict
+
+from pyethash import (
+    EPOCH_LENGTH,
+    hashimoto_light,
+    mkcache_bytes,
+)
 
 from evm.utils.hexidecimal import (
     encode_hex,
+)
+from evm.utils.keccak import (
+    keccak,
 )
 from evm.exceptions import (
     ValidationError,
@@ -15,11 +24,31 @@ from evm.validation import (
 )
 
 
+cache_seeds = ['\x00' * 32]
+cache_by_seed = OrderedDict()
+cache_by_seed.max_items = 10
+
+
+def get_cache(block_number):
+    while len(cache_seeds) <= block_number // EPOCH_LENGTH:
+        cache_seeds.append(keccak(cache_seeds[-1]))
+    seed = cache_seeds[block_number // EPOCH_LENGTH]
+    if seed in cache_by_seed:
+        c = cache_by_seed.pop(seed)  # pop and append at end
+        cache_by_seed[seed] = c
+        return c
+    c = mkcache_bytes(block_number)
+    cache_by_seed[seed] = c
+    if len(cache_by_seed) > cache_by_seed.max_items:
+        cache_by_seed.popitem(last=False)  # remove last recently accessed
+    return c
+
+
 def check_pow(block_number, mining_hash, mix_hash, nonce, difficulty):
     validate_length(mix_hash, 32)
     validate_length(mining_hash, 32)
     validate_length(nonce, 8)
-    cache = mkcache_bytes(block_number)
+    cache = get_cache(block_number)
     mining_output = hashimoto_light(
         block_number, cache, mining_hash, big_endian_to_int(nonce))
     if mining_output[b'mix digest'] != mix_hash:
