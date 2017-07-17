@@ -40,10 +40,12 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 # A list of individual tests (fixture_path:fixture_name) that are disable
 # because of any reasons.
 DISABLED_INDIVIDUAL_TESTS = [
-    "bcForkUncle.json:reusePreviousBlockAsUncleIgnoringLeadingZerosInMixHash",
-    "bcForkUncle.json:ForkUncle",
     "bcInvalidHeaderTest.json:ExtraData1024",
     "bcInvalidHeaderTest.json:DifferentExtraData1025",
+    # These tests are failing because any successfully imported block always
+    # becomes the new head of the chain, even when it is not on the current
+    # chain nor has a higher score than the current head.
+    "bcForkUncle.json:ForkUncle",
     "bcTotalDifficultyTest.json:lotsOfBranches",
     "bcTotalDifficultyTest.json:lotsOfBranchesOverrideAtTheMiddle",
     "bcTotalDifficultyTest.json:lotsOfLeafs",
