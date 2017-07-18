@@ -209,13 +209,10 @@ class EVM(object):
                 )
             )
 
-        evm = cls(db, genesis_header)
-        persist_block_to_db(evm.db, evm.get_block())
+        genesis_evm = cls(db, genesis_header)
+        persist_block_to_db(db, genesis_evm.get_block())
 
-        # XXX: It doesn't feel right to overwrite evm.header here given that
-        # it is set by EVM.__init__, which we called above.
-        evm.header = evm.create_header_from_parent(genesis_header)
-        return evm
+        return cls(db, genesis_evm.create_header_from_parent(genesis_header))
 
     #
     # Mining and Execution API
@@ -225,11 +222,7 @@ class EVM(object):
         Apply the transaction to the current head block of the EVM.
         """
         vm = self.get_vm()
-        computation = vm.apply_transaction(transaction)
-
-        # TODO: icky mutation...
-        self.header = vm.block.header
-        return computation
+        return vm.apply_transaction(transaction)
 
     def import_block(self, block):
         """
@@ -318,8 +311,3 @@ class EVM(object):
         for n in reversed(range(lower_limit, self.header.block_number)):
             blocks.append(self.get_block_by_number(n))
         return blocks
-
-    def configure_header(self, *args, **kwargs):
-        vm = self.get_vm()
-        self.header = vm.configure_header(*args, **kwargs)
-        return self.header
