@@ -123,11 +123,11 @@ def get_block_hash_for_testing(self, block_number):
 
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
-    get_block_hash=get_block_hash_for_testing,
+    get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    get_block_hash=get_block_hash_for_testing,
+    get_ancestor_hash=get_block_hash_for_testing,
 )
 
 

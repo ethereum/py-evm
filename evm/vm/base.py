@@ -22,7 +22,7 @@ from evm.state import (
 )
 
 from evm.utils.blocks import (
-    lookup_block_hash,
+    get_block_header_by_hash,
 )
 from evm.utils.rlp import (
     diff_rlp_object,
@@ -252,15 +252,17 @@ class VM(object):
     def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.db)
 
-    def get_block_hash(self, block_number):
+    def get_ancestor_hash(self, block_number):
         """
-        For getting block hash for any block number in the the last 256 blocks.
+        Return the hash for the ancestor with the given number
         """
         ancestor_depth = self.block.number - block_number
-        if 1 <= ancestor_depth <= 256:
-            return lookup_block_hash(self.db, block_number)
-        else:
+        if ancestor_depth > 256 or ancestor_depth < 1:
             return b''
+        h = get_block_header_by_hash(self.db, self.block.header.parent_hash)
+        while h.block_number != block_number:
+            h = get_block_header_by_hash(self.db, h.parent_hash)
+        return h.hash
 
     #
     # Headers
