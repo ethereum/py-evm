@@ -32,6 +32,11 @@ setup(
         "ethereum-bloom>=0.4.0",
         "pyethash>=0.1.27",
     ],
+    extra_require={
+        'coincurve': [
+            "coincurve>=4.5.1",
+        ]
+    },
     license=about['__license__'],
     zip_safe=False,
     keywords='ethereum blockchain evm',

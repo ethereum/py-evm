@@ -15,6 +15,7 @@ env:
     - TOX_ENV=py35-transactions
     - TOX_ENV=py35-vm-fast
     - TOX_ENV=py35-vm-limits
+    - TOX_ENV=py35-coincurve
     #- TOX_ENV=py35-vm-performance
     - TOX_ENV=flake8
 cache:
