@@ -102,13 +102,13 @@ FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
     apply_message=apply_create_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
-    get_block_hash=get_block_hash_for_testing,
+    get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     apply_message=apply_create_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
-    get_block_hash=get_block_hash_for_testing,
+    get_ancestor_hash=get_block_hash_for_testing,
 )
 
 

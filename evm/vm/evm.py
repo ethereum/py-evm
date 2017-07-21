@@ -3,12 +3,14 @@ from __future__ import absolute_import
 import collections
 from operator import itemgetter
 
-import rlp
-
+from eth_utils import (
+    to_tuple,
+)
 from evm.consensus.pow import (
     check_pow,
 )
 from evm.constants import (
+    GENESIS_BLOCK_NUMBER,
     MAX_UNCLE_DEPTH,
 )
 from evm.exceptions import (
@@ -27,6 +29,9 @@ from evm.rlp.headers import (
 )
 
 from evm.utils.blocks import (
+    add_block_number_to_hash_lookup,
+    get_score,
+    get_block_header_by_hash,
     lookup_block_hash,
 )
 from evm.utils.blocks import (
@@ -142,24 +147,14 @@ class EVM(object):
     # Block Retrieval
     #
     def get_block_header_by_hash(self, block_hash):
-        """
-        Returns the requested block header as specified by block hash.
+        return get_block_header_by_hash(self.db, block_hash)
 
-        Returns None if it is not present in the db.
+    def get_canonical_block_by_number(self, block_number):
         """
-        validate_word(block_hash)
-        try:
-            block = self.db.get(block_hash)
-        except KeyError:
-            raise BlockNotFound("No block with hash {0} found".format(
-                encode_hex(block_hash)))
-        return rlp.decode(block, sedes=BlockHeader)
+        Returns the block with the given number in the canonical chain.
 
-    def get_block_by_number(self, block_number):
-        """
-        Returns the requested block as specified by block number.
-
-        Returns None if it is not present in the db.
+        Raises BlockNotFound if there's no block with the given number in the
+        canonical chain.
         """
         validate_uint256(block_number)
         return self.get_block_by_hash(lookup_block_hash(self.db, block_number))
@@ -211,6 +206,7 @@ class EVM(object):
 
         genesis_evm = cls(db, genesis_header)
         persist_block_to_db(db, genesis_evm.get_block())
+        add_block_number_to_hash_lookup(db, genesis_evm.get_block())
 
         return cls(db, genesis_evm.create_header_from_parent(genesis_header))
 
@@ -237,35 +233,53 @@ class EVM(object):
                 )
             )
 
+        parent_evm = self.get_parent_evm(block)
+        imported_block = parent_evm.get_vm().import_block(block)
+        # It feels wrong to call validate_block() on self here, but we do that
+        # because we want to look up the recent uncles starting from the
+        # currenct canonical chain head.
+        self.validate_block(imported_block)
+
+        persist_block_to_db(self.db, imported_block)
+        if self.should_be_canonical_chain_head(imported_block):
+            self.add_to_canonical_chain_head(imported_block)
+
+        return imported_block
+
+    def get_parent_evm(self, block):
         try:
             parent_header = self.get_block_header_by_hash(
                 block.header.parent_hash)
         except BlockNotFound:
             raise ValidationError("Parent ({0}) of block {1} not found".format(
                 block.header.parent_hash, block.header.hash))
+
         init_header = self.create_header_from_parent(parent_header)
-        parent_evm = type(self)(self.db, init_header)
-        imported_block = parent_evm.get_vm().import_block(block)
-        self.validate_block(imported_block)
+        return type(self)(self.db, init_header)
 
-        persist_block_to_db(self.db, imported_block)
-        # TODO: We must only do this when the imported block has higher
-        # score than current head.
-        self.header = self.create_header_from_parent(imported_block.header)
+    def should_be_canonical_chain_head(self, block):
+        current_head = self.get_block_by_hash(self.header.parent_hash)
+        return get_score(self.db, block.hash) > get_score(self.db, current_head.hash)
 
-        return imported_block
-
-    def mine_block(self, **mine_params):
-        """
-        Mine the current block, applying
-        """
-        block = self.get_vm().mine_block(**mine_params)
-        self.validate_block(block)
-        persist_block_to_db(self.db, block)
-
+    def add_to_canonical_chain_head(self, block):
+        for b in reversed(self.find_common_ancestor(block)):
+            add_block_number_to_hash_lookup(self.db, b)
         self.header = self.create_header_from_parent(block.header)
 
-        return block
+    @to_tuple
+    def find_common_ancestor(self, block):
+        b = block
+        while b.number >= GENESIS_BLOCK_NUMBER:
+            yield b
+            try:
+                orig = self.get_canonical_block_by_number(b.number)
+                if orig.hash == b.hash:
+                    # Found the common ancestor, stop.
+                    break
+            except KeyError:
+                # This just means the block is not on the canonical chain.
+                pass
+            b = self.get_block_by_hash(b.header.parent_hash)
 
     def validate_block(self, block):
         self.validate_seal(block.header)
@@ -309,5 +323,5 @@ class EVM(object):
         blocks = []
         lower_limit = max(self.header.block_number - limit, 0)
         for n in reversed(range(lower_limit, self.header.block_number)):
-            blocks.append(self.get_block_by_number(n))
+            blocks.append(self.get_canonical_block_by_number(n))
         return blocks

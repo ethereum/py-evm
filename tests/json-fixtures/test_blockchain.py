@@ -42,18 +42,6 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 DISABLED_INDIVIDUAL_TESTS = [
     "bcInvalidHeaderTest.json:ExtraData1024",
     "bcInvalidHeaderTest.json:DifferentExtraData1025",
-    # These tests are failing because any successfully imported block always
-    # becomes the new head of the chain, even when it is not on the current
-    # chain nor has a higher score than the current head.
-    "bcForkUncle.json:ForkUncle",
-    "bcTotalDifficultyTest.json:lotsOfBranches",
-    "bcTotalDifficultyTest.json:lotsOfBranchesOverrideAtTheMiddle",
-    "bcTotalDifficultyTest.json:lotsOfLeafs",
-    "bcTotalDifficultyTest.json:sideChainWithMoreTransactions",
-    "bcTotalDifficultyTest.json:uncleBlockAtBlock3afterBlock4",
-    "bcMultiChainTest.json:CallContractFromNotBestBlock",
-    "bcMultiChainTest.json:ChainAtoChainB_blockorder1",
-    "bcMultiChainTest.json:ChainAtoChainB_blockorder2",
 ]
 
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
@@ -134,7 +122,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
         genesis_state=fixture['pre'],
     )
 
-    genesis_block = evm.get_block_by_number(0)
+    genesis_block = evm.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
 
     assert_rlp_equal(genesis_header, expected_genesis_header)
@@ -171,6 +159,6 @@ def test_blockchain_fixtures(fixture_name, fixture):
         else:
             assert should_be_good_block, "Block should have caused a validation error"
 
-    assert evm.get_block_by_number(evm.get_block().number - 1).hash == fixture['lastblockhash']
+    assert evm.get_canonical_block_by_number(evm.get_block().number - 1).hash == fixture['lastblockhash']
 
     verify_state_db(fixture['postState'], evm.get_state_db())
