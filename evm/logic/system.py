@@ -1,9 +1,12 @@
 from evm import constants
+from evm import mnemonics
 
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
 )
+
+from .call import max_child_gas_eip150
 
 
 def return_op(computation):
@@ -17,7 +20,18 @@ def return_op(computation):
 
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    _suicide(computation, beneficiary)
 
+
+def suicide_eip150(computation):
+    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    if not computation.state_db.account_exists(beneficiary):
+        computation.gas_meter.consume_gas(
+            constants.GAS_SUICIDE_NEWACCOUNT, reason=mnemonics.SUICIDE)
+    _suicide(computation, beneficiary)
+
+
+def _suicide(computation, beneficiary):
     local_balance = computation.state_db.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.state_db.get_balance(beneficiary)
 
@@ -36,6 +50,14 @@ def suicide(computation):
 
 
 def create(computation):
+    return _create(computation, lambda g: g)
+
+
+def create_eip150(computation):
+    return _create(computation, max_child_gas_eip150)
+
+
+def _create(computation, max_child_gas_modifier):
     value, start_position, size = computation.stack.pop(
         num_items=3,
         type_hint=constants.UINT256,
@@ -52,7 +74,7 @@ def create(computation):
 
     call_data = computation.memory.read(start_position, size)
 
-    create_msg_gas = computation.gas_meter.gas_remaining
+    create_msg_gas = max_child_gas_modifier(computation.gas_meter.gas_remaining)
     computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
     creation_nonce = computation.state_db.get_nonce(computation.msg.storage_address)
