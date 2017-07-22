@@ -72,3 +72,10 @@ def signed_to_unsigned(value):
         return value + UINT_256_CEILING
     else:
         return value
+
+
+def safe_ord(value):
+    if isinstance(value, int):
+        return value
+    else:
+        return ord(value)
