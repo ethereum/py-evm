@@ -26,6 +26,10 @@ from evm.vm.flavors import (
     MainnetEVM,
 )
 
+from evm.utils.ecdsa import (
+    BadSignature,
+)
+
 from evm.utils.fixture_tests import (
     find_fixtures,
     normalize_transactiontest_fixture,
@@ -39,15 +43,9 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
 
 
-def transaction_fixture_skip_fn(fixture_path, fixture_name, fixture):
-    # TODO: enable all fixture tests
-    return "ttTransactionTest.json" not in fixture_path
-
-
 FIXTURES = find_fixtures(
     BASE_FIXTURE_PATH,
     normalize_transactiontest_fixture,
-    transaction_fixture_skip_fn,
 )
 
 
@@ -80,12 +78,24 @@ def test_transaction_fixtures(fixture_name, fixture):
 
         sender = to_canonical_address(fixture['sender'])
 
-        assert transaction.sender == sender
+        try:
+            assert transaction.sender == sender
+        except BadSignature:
+            assert not (27 <= transaction.v <= 34)
     else:
         # check RLP correctness
         try:
             transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)
-        except rlp.exceptions.ObjectDeserializationError:
+        # fixture normalization changes the fixture key from rlp to rlpHex
+        except KeyError:
+            assert fixture['rlpHex']
+            return
+        # rlp is a list of bytes when it shouldn't be
+        except TypeError as err:
+            assert err.args == ("'bytes' object cannot be interpreted as an integer",)
+            return
+        # rlp is invalid or not in the correct form
+        except (rlp.exceptions.ObjectDeserializationError, rlp.exceptions.DecodingError):
             return
 
         # check parameter correctness
