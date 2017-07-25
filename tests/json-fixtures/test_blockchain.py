@@ -12,10 +12,12 @@ from eth_utils import (
     keccak,
 )
 
+from evm import EVM
 from evm.exceptions import (
     ValidationError,
 )
 from evm.vm.flavors import (
+    HomesteadVM,
     MainnetEVM,
 )
 from evm.rlp.headers import (
@@ -42,6 +44,10 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 DISABLED_INDIVIDUAL_TESTS = [
     "bcInvalidHeaderTest.json:ExtraData1024",
     "bcInvalidHeaderTest.json:DifferentExtraData1025",
+    # This test alone takes more than 10 minutes to run, and that causes the
+    # travis build to be terminated so it's disabled until we figure out how
+    # to make it run faster.
+    "Homestead/bcSuicideIssue.json:SuicideIssue",
 ]
 
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
@@ -49,8 +55,6 @@ def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     return (
         ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS or
         fixture_path.startswith('TestNetwork') or  # TODO: enable
-        'Homestead' in fixture_path or  # TODO: enable
-        'Homestead' in fixture_name or  # TODO: enable
         'EIP150' in fixture_path or  # TODO: enable
         'EIP150' in fixture_name or  # TODO: enable
         'EIP158' in fixture_path or  # TODO: enable
@@ -59,16 +63,11 @@ def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
 
 
 SLOW_FIXTURE_NAMES = {
-    'GeneralStateTests/stAttackTest/ContractCreationSpam.json:ContractCreationSpam_d0g0v0_Frontier',
-    'GeneralStateTests/stBoundsTest/MLOAD_Bounds.json:MLOAD_Bounds_d0g0v0_Frontier',
-    'GeneralStateTests/stMemoryStressTest/CALLCODE_Bounds3.json:CALLCODE_Bounds3_d0g0v0_Frontier',
-    'GeneralStateTests/stMemoryStressTest/CALL_Bounds2.json:CALL_Bounds2_d0g0v0_Frontier',
-    'GeneralStateTests/stMemoryStressTest/CALL_Bounds2a.json:CALL_Bounds2a_d0g0v0_Frontier',
-    'GeneralStateTests/stCallCreateCallCodeTest/Call1024OOG.json:Call1024OOG_d0g0v0_Frontier',
-    'GeneralStateTests/stCallCreateCallCodeTest/Callcode1024OOG.json:Callcode1024OOG_d0g0v0_Frontier',
-    'GeneralStateTests/stCallCreateCallCodeTest/CallRecursiveBombPreCall.json:CallRecursiveBombPreCall_d0g0v0_Frontier',
     'bcForkStressTest.json:ForkStressTest',
     'bcWalletTest.json:walletReorganizeOwners',
+    'Homestead/bcExploitTest.json:DelegateCallSpam',
+    "Homestead/bcWalletTest.json:walletReorganizeOwners",
+    "Homestead/bcShanghaiLove.json:Devcon2Attack",
 }
 
 
@@ -116,7 +115,16 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = MemoryDB()
-    evm = MainnetEVM.from_genesis(
+
+    evm = MainnetEVM
+    # TODO: It would be great if we can figure out an API for re-configuring
+    # start block numbers that was more elegant.
+    if fixture_name.startswith('Homestead'):
+        evm = EVM.configure(
+            'HomesteadEVM',
+            vm_configuration=[(0, HomesteadVM)])
+
+    evm = evm.from_genesis(
         db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],

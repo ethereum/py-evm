@@ -12,6 +12,10 @@ from ..frontier import FrontierVM
 from .opcodes import HOMESTEAD_OPCODES
 from .blocks import HomesteadBlock
 from .validation import validate_homestead_transaction
+from .headers import (
+    create_homestead_header_from_parent,
+    configure_homestead_header,
+)
 
 
 def _apply_homestead_create_message(vm, message):
@@ -62,4 +66,6 @@ HomesteadVM = FrontierVM.configure(
     # method overrides
     validate_transaction=validate_homestead_transaction,
     apply_create_message=_apply_homestead_create_message,
+    create_header_from_parent=staticmethod(create_homestead_header_from_parent),
+    configure_header=configure_homestead_header,
 )
