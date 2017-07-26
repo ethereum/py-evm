@@ -17,6 +17,6 @@ def get_ecc_backend_class(import_path=None):
     return import_string(import_path)
 
 
-def get_ecc_backend():
-    backend_class = get_ecc_backend_class()
+def get_ecc_backend(import_path=None):
+    backend_class = get_ecc_backend_class(import_path)
     return backend_class()

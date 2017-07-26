@@ -2,8 +2,8 @@ import pytest
 
 import os
 
-from trie.db.memory import (
-    MemoryDB,
+from evm.db import (
+    get_db_backend,
 )
 
 from eth_utils import (
@@ -156,7 +156,7 @@ def test_state_fixtures(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    db = MemoryDB()
+    db = get_db_backend()
     evm = EVMForTesting(db=db, header=header)
 
     state_db = setup_state_db(fixture['pre'], evm.get_state_db())

@@ -2,8 +2,8 @@ import pytest
 
 import os
 
-from trie.db.memory import (
-    MemoryDB,
+from evm.db import (
+    get_db_backend,
 )
 
 from eth_utils import (
@@ -125,7 +125,7 @@ EVMForTesting = EVM.configure(
     'fixture_name,fixture', FIXTURES,
 )
 def test_vm_fixtures(fixture_name, fixture):
-    db = MemoryDB()
+    db = get_db_backend()
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
