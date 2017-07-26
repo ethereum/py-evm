@@ -8,8 +8,8 @@ from eth_utils import (
 
 import os
 
-from trie.db.memory import (
-    MemoryDB,
+from evm.db import (
+    get_db_backend,
 )
 
 from eth_utils import (
@@ -60,7 +60,7 @@ def test_transaction_fixtures_smoke_test():
 )
 def test_transaction_fixtures(fixture_name, fixture):
     header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
-    evm = MainnetEVM(MemoryDB(), header=header)
+    evm = MainnetEVM(get_db_backend(), header=header)
     vm = evm.get_vm()
     TransactionClass = vm.get_transaction_class()
 

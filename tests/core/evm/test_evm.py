@@ -1,8 +1,9 @@
 import pytest
 
-from trie.db.memory import (
-    MemoryDB,
+from evm.db import (
+    get_db_backend,
 )
+
 
 from evm import constants
 from evm import EVM
@@ -25,7 +26,7 @@ def test_get_vm_class_for_block_number():
             (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
         ),
     )
-    evm = evm_class(MemoryDB(), BlockHeader(1, 0, 100))
+    evm = evm_class(get_db_backend(), BlockHeader(1, 0, 100))
     assert evm.get_vm_class_for_block_number(
         constants.GENESIS_BLOCK_NUMBER,) == FrontierVM
     assert evm.get_vm_class_for_block_number(
@@ -38,7 +39,7 @@ def test_get_vm_class_for_block_number():
 
 def test_get_vm_class_for_block_number_evm_not_found():
     evm_class = EVM.configure(vm_configuration=())
-    evm = evm_class(MemoryDB(), BlockHeader(1, 0, 100))
+    evm = evm_class(get_db_backend(), BlockHeader(1, 0, 100))
     with pytest.raises(EVMNotFound):
         evm.get_vm_class_for_block_number(constants.GENESIS_BLOCK_NUMBER)
 

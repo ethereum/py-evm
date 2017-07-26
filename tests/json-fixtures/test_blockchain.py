@@ -4,8 +4,8 @@ import os
 
 import rlp
 
-from trie.db.memory import (
-    MemoryDB,
+from evm.db import (
+    get_db_backend,
 )
 
 from eth_utils import (
@@ -114,8 +114,8 @@ def test_blockchain_fixtures(fixture_name, fixture):
     # if 'genesisRLP' in fixture:
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
-    db = MemoryDB()
-
+    db = get_db_backend()
+    
     evm = MainnetEVM
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.
