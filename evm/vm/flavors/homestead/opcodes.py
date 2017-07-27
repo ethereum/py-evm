@@ -26,7 +26,7 @@ UPDATED_OPCODES = {
 
 
 HOMESTEAD_OPCODES = {
-    **copy.deepcopy(FRONTIER_OPCODES),
+    **copy.deepcopy(FRONTIER_OPCODES),  # noqa: E999
     **UPDATED_OPCODES,
     **NEW_OPCODES
 }

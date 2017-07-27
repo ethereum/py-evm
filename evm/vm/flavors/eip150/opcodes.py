@@ -66,6 +66,6 @@ UPDATED_OPCODES = {
 
 
 EIP150_OPCODES = {
-    **copy.deepcopy(HOMESTEAD_OPCODES),
+    **copy.deepcopy(HOMESTEAD_OPCODES),  # noqa: E999
     **UPDATED_OPCODES,
 }
