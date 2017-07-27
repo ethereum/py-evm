@@ -16,10 +16,6 @@ from evm.logic import (
 from evm.vm.flavors.homestead.opcodes import HOMESTEAD_OPCODES
 
 
-NEW_OPCODES = {
-}
-
-
 UPDATED_OPCODES = {
     opcode_values.EXTCODESIZE: as_opcode(
         logic_fn=context.extcodesize,
@@ -46,11 +42,11 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.SUICIDE,
         gas_cost=constants.GAS_SUICIDE_EIP150,
     ),
-    opcode_values.CREATE: as_opcode(
-        logic_fn=system.create_eip150,
+    opcode_values.CREATE: system.CreateEIP150.configure(
+        name='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
-    ),
+    )(),
     opcode_values.CALL: call.CallEIP150.configure(
         name='opcode:CALL',
         mnemonic=mnemonics.CALL,
@@ -72,5 +68,4 @@ UPDATED_OPCODES = {
 EIP150_OPCODES = {
     **copy.deepcopy(HOMESTEAD_OPCODES),
     **UPDATED_OPCODES,
-    **NEW_OPCODES
 }

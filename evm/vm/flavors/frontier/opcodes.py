@@ -675,11 +675,11 @@ FRONTIER_OPCODES = {
     #
     # System
     #
-    opcode_values.CREATE: as_opcode(
-        logic_fn=system.create,
+    opcode_values.CREATE: system.Create.configure(
+        name='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
-    ),
+    )(),
     opcode_values.CALL: call.Call.configure(
         name='opcode:CALL',
         mnemonic=mnemonics.CALL,
