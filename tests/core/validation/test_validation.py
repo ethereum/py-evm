@@ -406,3 +406,4 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)
+            
