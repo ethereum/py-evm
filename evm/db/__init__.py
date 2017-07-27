@@ -17,6 +17,6 @@ def get_db_backend_class(import_path=None):
     return import_string(import_path)
 
 
-def get_db_backend(import_path=None):
+def get_db_backend(import_path=None, **init_kwargs):
     backend_class = get_db_backend_class(import_path)
-    return backend_class()
+    return backend_class(**init_kwargs)

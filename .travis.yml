@@ -18,6 +18,7 @@ env:
     - TOX_POSARGS="-e py35-vm-fast"
     - TOX_POSARGS="-e py35-vm-limits"
     - TOX_POSARGS="-e py35-coincurve"
+    - TOX_POSARGS="-e py35-leveldb"
     #- TOX_POSARGS="-e py35-vm-performance"
     - TOX_POSARGS="-e flake8"
 cache:
