@@ -59,7 +59,12 @@ def _apply_homestead_create_message(vm, message):
         return computation
 
 
-HomesteadVM = FrontierVM.configure(
+class MetaHomesteadVM(FrontierVM):
+    support_dao_fork = True
+    dao_fork_block_number = constants.DAO_FORK_BLOCK_NUMBER
+
+
+HomesteadVM = MetaHomesteadVM.configure(
     name='HomesteadVM',
     opcodes=HOMESTEAD_OPCODES,
     _block_class=HomesteadBlock,

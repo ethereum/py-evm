@@ -170,6 +170,13 @@ BLANK_ROOT_HASH = b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n\x5bH\xe
 #
 HOMESTEAD_MAINNET_BLOCK = 1150000
 
+
+#
+# DAO
+#
+DAO_FORK_BLOCK_NUMBER = 1920000
+
+
 #
 # EIP150
 #
