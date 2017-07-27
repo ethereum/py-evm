@@ -18,6 +18,7 @@ from evm.exceptions import (
     ValidationError,
 )
 from evm.vm.flavors import (
+    EIP150VM,
     FrontierVM,
     HomesteadVM,
 )
@@ -42,9 +43,7 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
 def state_fixture_skip_fn(fixture_path, fixture_name, fixture):
     return (
         "Stress" in fixture_path or
-        "Complexity" in fixture_path or
-        "EIP150" in fixture_path or  # TODO: enable
-        "EIP158" in fixture_path  # TODO: enable
+        "Complexity" in fixture_path
     )
 
 
@@ -129,6 +128,10 @@ HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
+EIP150VMForTesting = EIP150VM.configure(
+    name='EIP150VMForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 
 EVMForTesting = EVM.configure(
@@ -136,6 +139,7 @@ EVMForTesting = EVM.configure(
     vm_configuration=(
         (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
+        (constants.EIP150_MAINNET_BLOCK, EIP150VMForTesting),
     ),
 )
 

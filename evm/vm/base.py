@@ -38,7 +38,7 @@ class VM(object):
     db = None
 
     opcodes = None
-    block_class = None
+    _block_class = None
 
     def __init__(self, header, db):
         if db is None:
@@ -238,7 +238,6 @@ class VM(object):
     #
     # Blocks
     #
-    _block_class = None
 
     def get_block_class(self):
         """

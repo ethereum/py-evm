@@ -18,6 +18,7 @@ from evm.exceptions import (
 )
 from evm.vm.flavors import (
     HomesteadVM,
+    EIP150VM,
     MainnetEVM,
 )
 from evm.rlp.headers import (
@@ -54,11 +55,7 @@ def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
     return (
         ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS or
-        fixture_path.startswith('TestNetwork') or  # TODO: enable
-        'EIP150' in fixture_path or  # TODO: enable
-        'EIP150' in fixture_name or  # TODO: enable
-        'EIP158' in fixture_path or  # TODO: enable
-        'EIP158' in fixture_name   # TODO: enable
+        fixture_path.startswith('TestNetwork')  # TODO: enable
     )
 
 
@@ -68,6 +65,9 @@ SLOW_FIXTURE_NAMES = {
     'Homestead/bcExploitTest.json:DelegateCallSpam',
     "Homestead/bcWalletTest.json:walletReorganizeOwners",
     "Homestead/bcShanghaiLove.json:Devcon2Attack",
+    "Homestead/bcForkStressTest.json:ForkStressTest",
+    "EIP150/bcWalletTest.json:walletReorganizeOwners",
+    "EIP150/bcForkStressTest.json:ForkStressTest",
 }
 
 
@@ -123,6 +123,10 @@ def test_blockchain_fixtures(fixture_name, fixture):
         evm = EVM.configure(
             'HomesteadEVM',
             vm_configuration=[(0, HomesteadVM)])
+    elif fixture_name.startswith('EIP150'):
+        evm = EVM.configure(
+            'EIP150VM',
+            vm_configuration=[(0, EIP150VM)])
 
     evm = evm.from_genesis(
         db,
