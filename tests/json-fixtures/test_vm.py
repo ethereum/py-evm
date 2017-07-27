@@ -21,6 +21,7 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.vm.flavors import (
+    EIP150VM,
     FrontierVM,
     HomesteadVM,
 )
@@ -110,6 +111,12 @@ HomesteadVMForTesting = HomesteadVM.configure(
     apply_create_message=apply_create_message_for_testing,
     get_ancestor_hash=get_block_hash_for_testing,
 )
+EIP150VMForTesting = EIP150VM.configure(
+    name='EIP150VMForTesting',
+    apply_message=apply_create_message_for_testing,
+    apply_create_message=apply_create_message_for_testing,
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 
 EVMForTesting = EVM.configure(
@@ -117,6 +124,7 @@ EVMForTesting = EVM.configure(
     vm_configuration=(
         (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
+        (constants.EIP150_MAINNET_BLOCK, EIP150VMForTesting),
     ),
 )
 

@@ -1,5 +1,8 @@
 from evm import constants
 
+from evm.exceptions import (
+    OutOfGas,
+)
 from evm.opcode import (
     Opcode,
 )
@@ -10,11 +13,17 @@ from evm.utils.address import (
 
 
 class BaseCall(Opcode):
-    def compute_msg_gas(self, computation, gas, to, value):
+    def compute_msg_extra_gas(self, computation, gas, to, value):
         raise NotImplementedError("Must be implemented by subclasses")
 
     def get_call_params(self, computation):
         raise NotImplementedError("Must be implemented by subclasses")
+
+    def compute_msg_gas(self, computation, gas, to, value):
+        extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
+        total_fee = gas + extra_gas
+        child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
+        return child_msg_gas, total_fee
 
     def __call__(self, computation):
         computation.gas_meter.consume_gas(
@@ -113,15 +122,11 @@ class BaseCall(Opcode):
 
 
 class Call(BaseCall):
-    def compute_msg_gas(self, computation, gas, to, value):
+    def compute_msg_extra_gas(self, computation, gas, to, value):
         account_exists = computation.state_db.account_exists(to)
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
-
-        total_fee = gas + transfer_gas_fee + create_gas_fee
-
-        child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
-        return child_msg_gas, total_fee
+        return transfer_gas_fee + create_gas_fee
 
     def get_call_params(self, computation):
         gas = computation.stack.pop(type_hint=constants.UINT256)
@@ -150,12 +155,8 @@ class Call(BaseCall):
 
 
 class CallCode(BaseCall):
-    def compute_msg_gas(self, computation, gas, to, value):
-        transfer_gas_cost = constants.GAS_CALLVALUE if value else 0
-
-        total_fee = transfer_gas_cost + gas
-        child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
-        return child_msg_gas, total_fee
+    def compute_msg_extra_gas(self, computation, gas, to, value):
+        return constants.GAS_CALLVALUE if value else 0
 
     def get_call_params(self, computation):
         gas = computation.stack.pop(type_hint=constants.UINT256)
@@ -186,9 +187,12 @@ class CallCode(BaseCall):
         )
 
 
-class DelegateCall(CallCode):
+class DelegateCall(BaseCall):
     def compute_msg_gas(self, computation, gas, to, value):
         return gas, gas
+
+    def compute_msg_extra_gas(self, computation, gas, to, value):
+        return 0
 
     def get_call_params(self, computation):
         gas = computation.stack.pop(type_hint=constants.UINT256)
@@ -217,3 +221,48 @@ class DelegateCall(CallCode):
             memory_output_size,
             False,  # should_transfer_value,
         )
+
+
+class CallEIP150(Call):
+    def compute_msg_gas(self, computation, gas, to, value):
+        extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
+        return compute_eip150_msg_gas(
+            computation, gas, extra_gas, value, self.mnemonic,
+            constants.GAS_CALLSTIPEND)
+
+
+class CallCodeEIP150(CallCode):
+    def compute_msg_gas(self, computation, gas, to, value):
+        extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
+        return compute_eip150_msg_gas(
+            computation, gas, extra_gas, value, self.mnemonic,
+            constants.GAS_CALLSTIPEND)
+
+
+class DelegateCallEIP150(DelegateCall):
+    def compute_msg_gas(self, computation, gas, to, value):
+        extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
+        callstipend = 0
+        return compute_eip150_msg_gas(
+            computation, gas, extra_gas, value, self.mnemonic, callstipend)
+
+
+def max_child_gas_eip150(gas):
+    return gas - (gas // 64)
+
+
+def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callstipend):
+    if computation.gas_meter.gas_remaining < extra_gas:
+        # It feels wrong to raise an OutOfGas exception outside of GasMeter,
+        # but I don't see an easy way around it.
+        raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
+            gas,
+            computation.gas_meter.gas_remaining,
+            mnemonic,
+        ))
+    gas = min(
+        gas,
+        max_child_gas_eip150(computation.gas_meter.gas_remaining - extra_gas))
+    total_fee = gas + extra_gas
+    child_msg_gas = gas + (callstipend if value else 0)
+    return child_msg_gas, total_fee

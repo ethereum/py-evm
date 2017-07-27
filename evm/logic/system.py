@@ -1,9 +1,15 @@
 from evm import constants
+from evm import mnemonics
 
+from evm.opcode import (
+    Opcode,
+)
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
 )
+
+from .call import max_child_gas_eip150
 
 
 def return_op(computation):
@@ -17,7 +23,18 @@ def return_op(computation):
 
 def suicide(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    _suicide(computation, beneficiary)
 
+
+def suicide_eip150(computation):
+    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    if not computation.state_db.account_exists(beneficiary):
+        computation.gas_meter.consume_gas(
+            constants.GAS_SUICIDE_NEWACCOUNT, reason=mnemonics.SUICIDE)
+    _suicide(computation, beneficiary)
+
+
+def _suicide(computation, beneficiary):
     local_balance = computation.state_db.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.state_db.get_balance(beneficiary)
 
@@ -35,47 +52,62 @@ def suicide(computation):
     computation.register_account_for_deletion(computation.msg.storage_address)
 
 
-def create(computation):
-    value, start_position, size = computation.stack.pop(
-        num_items=3,
-        type_hint=constants.UINT256,
-    )
+class Create(Opcode):
+    def max_child_gas_modifier(self, gas):
+        return gas
 
-    computation.extend_memory(start_position, size)
+    def __call__(self, computation):
+        computation.gas_meter.consume_gas(self.gas_cost, reason=self.mnemonic)
 
-    insufficient_funds = computation.state_db.get_balance(computation.msg.storage_address) < value
-    stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
+        value, start_position, size = computation.stack.pop(
+            num_items=3,
+            type_hint=constants.UINT256,
+        )
 
-    if insufficient_funds or stack_too_deep:
-        computation.stack.push(0)
-        return
+        computation.extend_memory(start_position, size)
 
-    call_data = computation.memory.read(start_position, size)
+        insufficient_funds = computation.state_db.get_balance(
+            computation.msg.storage_address) < value
+        stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
-    create_msg_gas = computation.gas_meter.gas_remaining
-    computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
+        if insufficient_funds or stack_too_deep:
+            computation.stack.push(0)
+            return
 
-    creation_nonce = computation.state_db.get_nonce(computation.msg.storage_address)
-    contract_address = generate_contract_address(computation.msg.storage_address, creation_nonce)
+        call_data = computation.memory.read(start_position, size)
 
-    child_msg = computation.prepare_child_message(
-        gas=create_msg_gas,
-        to=constants.CREATE_CONTRACT_ADDRESS,
-        value=value,
-        data=b'',
-        code=call_data,
-        create_address=contract_address,
-    )
+        create_msg_gas = self.max_child_gas_modifier(
+            computation.gas_meter.gas_remaining)
+        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-    if child_msg.is_create:
-        child_computation = computation.vm.apply_create_message(child_msg)
-    else:
-        child_computation = computation.vm.apply_message(child_msg)
+        creation_nonce = computation.state_db.get_nonce(
+            computation.msg.storage_address)
+        contract_address = generate_contract_address(
+            computation.msg.storage_address, creation_nonce)
 
-    computation.children.append(child_computation)
+        child_msg = computation.prepare_child_message(
+            gas=create_msg_gas,
+            to=constants.CREATE_CONTRACT_ADDRESS,
+            value=value,
+            data=b'',
+            code=call_data,
+            create_address=contract_address,
+        )
 
-    if child_computation.error:
-        computation.stack.push(0)
-    else:
-        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
-        computation.stack.push(contract_address)
+        if child_msg.is_create:
+            child_computation = computation.vm.apply_create_message(child_msg)
+        else:
+            child_computation = computation.vm.apply_message(child_msg)
+
+        computation.children.append(child_computation)
+
+        if child_computation.error:
+            computation.stack.push(0)
+        else:
+            computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+            computation.stack.push(contract_address)
+
+
+class CreateEIP150(Create):
+    def max_child_gas_modifier(self, gas):
+        return max_child_gas_eip150(gas)
