@@ -15,7 +15,7 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
-    EVMNotFound,
+    ChainNotFound,
     ValidationError,
 )
 from evm.validation import (
@@ -44,10 +44,10 @@ from evm.utils.hexidecimal import (
 from evm.state import State
 
 
-class EVM(object):
+class Chain(object):
     """
-    An EVM is a combination of one or more VM classes.  Each VM is associated
-    with a range of blocks.  The EVM class acts as a wrapper around these other
+    An Chain is a combination of one or more VM classes.  Each VM is associated
+    with a range of blocks.  The Chain class acts as a wrapper around these other
     VM classes, delegating operations to the appropriate VM depending on the
     current block number.
     """
@@ -58,7 +58,7 @@ class EVM(object):
 
     def __init__(self, db, header):
         if self.vms_by_range is None:
-            raise ValueError("MetaEVM must be configured with block ranges")
+            raise ValueError("MetaChain must be configured with block ranges")
 
         self.db = db
         self.header = header
@@ -68,7 +68,7 @@ class EVM(object):
         if vm_configuration is None:
             vms_by_range = cls.vms_by_range
         else:
-            # Organize the EVM classes by their starting blocks.
+            # Organize the Chain classes by their starting blocks.
             validate_vm_block_numbers(tuple(
                 block_number
                 for block_number, _
@@ -121,7 +121,7 @@ class EVM(object):
         ).create_header_from_parent(parent_header, **header_params)
 
     #
-    # EVM Operations
+    # Chain Operations
     #
     def get_vm_class_for_block_number(self, block_number):
         """
@@ -130,8 +130,8 @@ class EVM(object):
         for n in reversed(self.vms_by_range.keys()):
             if block_number >= n:
                 return self.vms_by_range[n]
-        raise EVMNotFound(
-            "There is no EVM available for block #{0}".format(block_number))
+        raise ChainNotFound(
+            "There is no Chain available for block #{0}".format(block_number))
 
     def get_vm(self, header=None):
         """
@@ -162,8 +162,6 @@ class EVM(object):
     def get_block_by_hash(self, block_hash):
         """
         Returns the requested block as specified by block hash.
-
-        TODO: how do we determine the correct EVM class?
         """
         validate_word(block_hash)
         block_header = self.get_block_header_by_hash(block_hash)
@@ -171,7 +169,7 @@ class EVM(object):
         return vm.get_block_by_header(block_header)
 
     #
-    # EVM Initialization
+    # Chain Initialization
     #
     @classmethod
     def from_genesis(cls,
@@ -179,7 +177,7 @@ class EVM(object):
                      genesis_params,
                      genesis_state=None):
         """
-        Initialize the EVM from a genesis state.
+        Initialize the Chain from a genesis state.
         """
         state_db = State(db)
 
@@ -215,7 +213,7 @@ class EVM(object):
     #
     def apply_transaction(self, transaction):
         """
-        Apply the transaction to the current head block of the EVM.
+        Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
         return vm.apply_transaction(transaction)

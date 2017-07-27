@@ -269,7 +269,7 @@ def _apply_frontier_create_message(vm, message):
                     contract_code_gas_cost,
                     reason="Write contract code for CREATE",
                 )
-            except OutOfGas as err:
+            except OutOfGas:
                 computation.output = b''
             else:
                 if vm.logger:

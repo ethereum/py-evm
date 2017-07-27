@@ -1,5 +1,5 @@
 from evm import constants
-from evm import EVM
+from evm import Chain
 
 from evm.vm.flavors import (
     EIP150VM,
@@ -8,7 +8,7 @@ from evm.vm.flavors import (
 )
 
 
-MainnetEVM = EVM.configure(
+MainnetEVM = Chain.configure(
     'MainnetEVM',
     vm_configuration=(
         (0, FrontierVM),
