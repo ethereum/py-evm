@@ -1,34 +1,34 @@
-class BaseEVMError(Exception):
+class PyEVMError(Exception):
     """
     Base error class for all py-evm errors.
     """
     pass
 
 
-class BlockNotFound(BaseEVMError):
+class BlockNotFound(PyEVMError):
     """
     The block with the given number/hash does not exist.
     """
     pass
 
 
-class ValidationError(BaseEVMError):
+class ValidationError(PyEVMError):
     """
     Error to signal something does not pass a validation check.
     """
     pass
 
 
-class VMError(BaseEVMError):
+class VMError(PyEVMError):
     """
-    Class of errors which can be raised during EVM execution.
+    Class of errors which can be raised during VM execution.
     """
     pass
 
 
 class OutOfGas(VMError):
     """
-    Error signaling that EVM execution has run out of gas.
+    Error signaling that VM execution has run out of gas.
     """
     pass
 
@@ -72,12 +72,5 @@ class InsufficientFunds(VMError):
 class StackDepthLimit(VMError):
     """
     Error signaling that the call stack has exceeded it's maximum allowed depth.
-    """
-    pass
-
-
-class ChainNotFound(BaseEVMError):
-    """
-    Error for when there is no defined Chain for a given block number.
     """
     pass

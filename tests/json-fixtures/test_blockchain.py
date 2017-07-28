@@ -23,7 +23,7 @@ from evm.vm.flavors import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,
-    MainnetEVM,
+    MainnetChain,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -121,12 +121,12 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = get_db_backend()
-    evm = MainnetEVM
+    evm = MainnetChain
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.
     if fixture_name.startswith('Homestead'):
         evm = Chain.configure(
-            'HomesteadEVM',
+            'HomesteadChain',
             vm_configuration=[(0, HomesteadVM)])
     elif fixture_name.startswith('EIP150'):
         evm = Chain.configure(
@@ -134,8 +134,8 @@ def test_blockchain_fixtures(fixture_name, fixture):
             vm_configuration=[(0, EIP150VM)])
     elif fixture_name.startswith('TestNetwork'):
         homestead_vm = HomesteadVM.configure(dao_fork_block_number=8)
-        evm = EVM.configure(
-            'TestNetworkEVM',
+        evm = Chain.configure(
+            'TestNetworkChain',
             vm_configuration=[
                 (0, FrontierVM),
                 (5, homestead_vm),

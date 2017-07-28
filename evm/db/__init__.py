@@ -11,7 +11,7 @@ DEFAULT_DB_BACKEND = 'evm.db.backends.memory.MemoryDB'
 def get_db_backend_class(import_path=None):
     if import_path is None:
         import_path = os.environ.get(
-            'EVM_DB_BACKEND_CLASS',
+            'CHAIN_DB_BACKEND_CLASS',
             DEFAULT_DB_BACKEND,
         )
     return import_string(import_path)

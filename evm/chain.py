@@ -15,7 +15,6 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
-    ChainNotFound,
     ValidationError,
 )
 from evm.validation import (
@@ -57,8 +56,10 @@ class Chain(object):
     vms_by_range = None
 
     def __init__(self, db, header):
-        if self.vms_by_range is None:
-            raise ValueError("MetaChain must be configured with block ranges")
+        if not self.vms_by_range:
+            raise ValueError(
+                "The Chain class cannot be instantiated with an empty `vms_by_range`"
+            )
 
         self.db = db
         self.header = header
@@ -130,8 +131,6 @@ class Chain(object):
         for n in reversed(self.vms_by_range.keys()):
             if block_number >= n:
                 return self.vms_by_range[n]
-        raise ChainNotFound(
-            "There is no Chain available for block #{0}".format(block_number))
 
     def get_vm(self, header=None):
         """

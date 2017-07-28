@@ -31,9 +31,10 @@ from evm.utils.rlp import (
 
 class VM(object):
     """
-    The VM class represents the EVM for a specific protocol definition.
-    Defining an EVM for an ethereum network involves defining individual VM
-    classes for each protocol fork within that network.
+    The VM class represents the Chain rules for a specific protocol definition
+    such as the Frontier or Homestead network.  Defining an Chain  defining
+    individual VM classes for each fork of the protocol rules within that
+    network.
     """
     db = None
 

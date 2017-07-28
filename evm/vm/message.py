@@ -15,7 +15,7 @@ from evm.validation import (
 
 class Message(object):
     """
-    A message for EVM computation.
+    A message for VM computation.
     """
     origin = None
     to = None
