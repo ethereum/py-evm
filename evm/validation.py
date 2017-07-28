@@ -90,9 +90,6 @@ def validate_is_boolean(value):
         raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
 
 
-validate_multiple_of_8 = functools.partial(validate_multiple_of, multiple_of=8)
-
-
 def validate_word(value):
     if not isinstance(value, bytes):
         raise ValidationError("Invalid word:  Must be of bytes type")
