@@ -16,7 +16,7 @@ def validate_is_bytes(value):
 
 
 def validate_is_integer(value):
-    if not type(value) is int:
+    if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError("Value must be a an integer.  Got: {0}".format(type(value)))
 
 
@@ -50,11 +50,13 @@ def validate_gte(value, minimum):
                 value, minimum,
             )
         )
+    validate_is_integer(value)
 
 
 def validate_gt(value, minimum):
     if value <= minimum:
         raise ValidationError("Value {0} is not greater than {1}".format(value, minimum))
+    validate_is_integer(value)
 
 
 def validate_lte(value, maximum):
@@ -64,11 +66,13 @@ def validate_lte(value, maximum):
                 value, maximum,
             )
         )
+    validate_is_integer(value)
 
 
 def validate_lt(value, maximum):
     if value >= maximum:
         raise ValidationError("Value {0} is not less than {1}".format(value, maximum))
+    validate_is_integer(value)
 
 
 def validate_canonical_address(value):
