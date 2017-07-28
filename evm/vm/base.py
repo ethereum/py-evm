@@ -239,14 +239,15 @@ class VM(object):
     # Blocks
     #
 
-    def get_block_class(self):
+    @classmethod
+    def get_block_class(cls):
         """
         Return the class that this VM uses for blocks.
         """
-        if self._block_class is None:
+        if cls._block_class is None:
             raise AttributeError("No `_block_class` has been set for this VM")
 
-        return self._block_class
+        return cls._block_class
 
     def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.db)

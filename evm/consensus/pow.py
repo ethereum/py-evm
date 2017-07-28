@@ -52,7 +52,7 @@ def check_pow(block_number, mining_hash, mix_hash, nonce, difficulty):
     mining_output = hashimoto_light(
         block_number, cache, mining_hash, big_endian_to_int(nonce))
     if mining_output[b'mix digest'] != mix_hash:
-        raise ValidationError("mix hash mistmatch; {0} != {1}".format(
+        raise ValidationError("mix hash mismatch; {0} != {1}".format(
             encode_hex(mining_output[b'mix digest']), encode_hex(mix_hash)))
     result = big_endian_to_int(mining_output[b'result'])
     validate_lte(result, 2**256 // difficulty)
