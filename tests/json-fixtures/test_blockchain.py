@@ -12,13 +12,17 @@ from eth_utils import (
     keccak,
 )
 
-from evm import Chain
+
+from evm import (
+  Chain,
+)
 from evm.exceptions import (
     ValidationError,
 )
 from evm.vm.flavors import (
-    HomesteadVM,
     EIP150VM,
+    FrontierVM,
+    HomesteadVM,
     MainnetEVM,
 )
 from evm.rlp.headers import (
@@ -49,13 +53,15 @@ DISABLED_INDIVIDUAL_TESTS = [
     # travis build to be terminated so it's disabled until we figure out how
     # to make it run faster.
     "Homestead/bcSuicideIssue.json:SuicideIssue",
+    # These tests seem to have issues; they're disabled in geth as well.
+    "TestNetwork/bcTheDaoTest.json:DaoTransactions",
+    "TestNetwork/bcTheDaoTest.json:DaoTransactions_UncleExtradata",
 ]
 
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
     return (
-        ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS or
-        fixture_path.startswith('TestNetwork')  # TODO: enable
+        ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS
     )
 
 
@@ -115,7 +121,6 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = get_db_backend()
-    
     evm = MainnetEVM
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.
@@ -127,6 +132,16 @@ def test_blockchain_fixtures(fixture_name, fixture):
         evm = Chain.configure(
             'EIP150VM',
             vm_configuration=[(0, EIP150VM)])
+    elif fixture_name.startswith('TestNetwork'):
+        homestead_vm = HomesteadVM.configure(dao_fork_block_number=8)
+        evm = EVM.configure(
+            'TestNetworkEVM',
+            vm_configuration=[
+                (0, FrontierVM),
+                (5, homestead_vm),
+                (10, EIP150VM),
+            ]
+        )
 
     evm = evm.from_genesis(
         db,
@@ -152,23 +167,28 @@ def test_blockchain_fixtures(fixture_name, fixture):
             assert not should_be_good_block
             continue
 
+        # The block to import may be in a different block-class-range than the
+        # evm's current one, so we use the block number specified in the
+        # fixture to look up the correct block class.
+        if should_be_good_block:
+            block_number = block_data['blockHeader']['number']
+            block_class = evm.get_vm_class_for_block_number(block_number).get_block_class()
+        else:
+            block_class = evm.get_vm().get_block_class()
+
         try:
-            block = rlp.decode(
-                block_data['rlp'],
-                sedes=evm.get_vm().get_block_class(),
-                db=db,
-            )
+            block = rlp.decode(block_data['rlp'], sedes=block_class, db=db)
         except (TypeError, rlp.DecodingError, rlp.DeserializationError) as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue
 
         try:
             mined_block = evm.import_block(block)
-            assert_rlp_equal(mined_block, block)
         except ValidationError as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue
         else:
+            assert_rlp_equal(mined_block, block)
             assert should_be_good_block, "Block should have caused a validation error"
 
     assert evm.get_canonical_block_by_number(evm.get_block().number - 1).hash == fixture['lastblockhash']
