@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import pytest
 
 from evm.exceptions import (
@@ -21,7 +23,6 @@ from evm.validation import (
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
     validate_multiple_of,
-    validate_multiple_of_8,
     validate_stack_item,
     validate_uint256,
     validate_unique,
@@ -249,23 +250,6 @@ def test_validate_multiple_of(value, multiple_of, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_multiple_of(value, multiple_of) 
-
-
-@pytest.mark.parametrize(
-    "value,is_valid",
-    (
-        (1, False),
-        (8, True),
-        (64, True),
-        (773, False),
-    ),
-)
-def test_validate_multiple_of_8(value, is_valid):
-    if is_valid:
-            validate_multiple_of_8(value)
-    else:
-        with pytest.raises(ValidationError):
-            validate_multiple_of_8(value)
 
 
 @pytest.mark.parametrize(
