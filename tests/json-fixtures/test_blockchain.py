@@ -121,20 +121,20 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
     db = get_db_backend()
-    evm = MainnetChain
+    chain = MainnetChain
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.
     if fixture_name.startswith('Homestead'):
-        evm = Chain.configure(
+        chain = Chain.configure(
             'HomesteadChain',
             vm_configuration=[(0, HomesteadVM)])
     elif fixture_name.startswith('EIP150'):
-        evm = Chain.configure(
+        chain = Chain.configure(
             'EIP150VM',
             vm_configuration=[(0, EIP150VM)])
     elif fixture_name.startswith('TestNetwork'):
         homestead_vm = HomesteadVM.configure(dao_fork_block_number=8)
-        evm = Chain.configure(
+        chain = Chain.configure(
             'TestNetworkChain',
             vm_configuration=[
                 (0, FrontierVM),
@@ -143,13 +143,13 @@ def test_blockchain_fixtures(fixture_name, fixture):
             ]
         )
 
-    evm = evm.from_genesis(
+    chain = chain.from_genesis(
         db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],
     )
 
-    genesis_block = evm.get_canonical_block_by_number(0)
+    genesis_block = chain.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
 
     assert_rlp_equal(genesis_header, expected_genesis_header)
@@ -168,13 +168,13 @@ def test_blockchain_fixtures(fixture_name, fixture):
             continue
 
         # The block to import may be in a different block-class-range than the
-        # evm's current one, so we use the block number specified in the
+        # chain's current one, so we use the block number specified in the
         # fixture to look up the correct block class.
         if should_be_good_block:
             block_number = block_data['blockHeader']['number']
-            block_class = evm.get_vm_class_for_block_number(block_number).get_block_class()
+            block_class = chain.get_vm_class_for_block_number(block_number).get_block_class()
         else:
-            block_class = evm.get_vm().get_block_class()
+            block_class = chain.get_vm().get_block_class()
 
         try:
             block = rlp.decode(block_data['rlp'], sedes=block_class, db=db)
@@ -183,7 +183,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
             continue
 
         try:
-            mined_block = evm.import_block(block)
+            mined_block = chain.import_block(block)
         except ValidationError as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue
@@ -191,6 +191,6 @@ def test_blockchain_fixtures(fixture_name, fixture):
             assert_rlp_equal(mined_block, block)
             assert should_be_good_block, "Block should have caused a validation error"
 
-    assert evm.get_canonical_block_by_number(evm.get_block().number - 1).hash == fixture['lastblockhash']
+    assert chain.get_canonical_block_by_number(chain.get_block().number - 1).hash == fixture['lastblockhash']
 
-    verify_state_db(fixture['postState'], evm.get_state_db())
+    verify_state_db(fixture['postState'], chain.get_state_db())

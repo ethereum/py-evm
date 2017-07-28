@@ -16,10 +16,12 @@ from evm.constants import (
 from evm.exceptions import (
     BlockNotFound,
     ValidationError,
+    VMNotFound,
 )
 from evm.validation import (
-    validate_vm_block_numbers,
+    validate_block_number,
     validate_uint256,
+    validate_vm_block_numbers,
     validate_word,
 )
 
@@ -57,7 +59,7 @@ class Chain(object):
 
     def __init__(self, db, header):
         if not self.vms_by_range:
-            raise ValueError(
+            raise ValidationError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
             )
 
@@ -128,9 +130,12 @@ class Chain(object):
         """
         Return the vm class for the given block number.
         """
+        validate_block_number(block_number)
         for n in reversed(self.vms_by_range.keys()):
             if block_number >= n:
                 return self.vms_by_range[n]
+        else:
+            raise VMNotFound("No vm available for block #{0}".format(block_number))
 
     def get_vm(self, header=None):
         """
@@ -201,11 +206,11 @@ class Chain(object):
                 )
             )
 
-        genesis_evm = cls(db, genesis_header)
-        persist_block_to_db(db, genesis_evm.get_block())
-        add_block_number_to_hash_lookup(db, genesis_evm.get_block())
+        genesis_chain = cls(db, genesis_header)
+        persist_block_to_db(db, genesis_chain.get_block())
+        add_block_number_to_hash_lookup(db, genesis_chain.get_block())
 
-        return cls(db, genesis_evm.create_header_from_parent(genesis_header))
+        return cls(db, genesis_chain.create_header_from_parent(genesis_header))
 
     #
     # Mining and Execution API
@@ -230,8 +235,8 @@ class Chain(object):
                 )
             )
 
-        parent_evm = self.get_parent_evm(block)
-        imported_block = parent_evm.get_vm().import_block(block)
+        parent_chain = self.get_parent_chain(block)
+        imported_block = parent_chain.get_vm().import_block(block)
         # It feels wrong to call validate_block() on self here, but we do that
         # because we want to look up the recent uncles starting from the
         # currenct canonical chain head.
@@ -243,7 +248,7 @@ class Chain(object):
 
         return imported_block
 
-    def get_parent_evm(self, block):
+    def get_parent_chain(self, block):
         try:
             parent_header = self.get_block_header_by_hash(
                 block.header.parent_hash)

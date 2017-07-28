@@ -232,7 +232,7 @@ class VM(object):
 
     def validate_transaction(self, transaction):
         """
-        Perform evm-aware validation checks on the transaction.
+        Perform chain-aware validation checks on the transaction.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 

@@ -5,6 +5,13 @@ class PyEVMError(Exception):
     pass
 
 
+class VMNotFound(PyEVMError):
+    """
+    No VM available for the provided block number.
+    """
+    pass
+
+
 class BlockNotFound(PyEVMError):
     """
     The block with the given number/hash does not exist.
