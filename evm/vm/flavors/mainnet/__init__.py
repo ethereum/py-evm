@@ -8,8 +8,8 @@ from evm.vm.flavors import (
 )
 
 
-MainnetEVM = Chain.configure(
-    'MainnetEVM',
+MainnetChain = Chain.configure(
+    'MainnetChain',
     vm_configuration=(
         (0, FrontierVM),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),

@@ -15,7 +15,7 @@ from evm.utils.numeric import (
 
 class Memory(object):
     """
-    EVM Memory
+    VM Memory
     """
     bytes = None
     logger = logging.getLogger('evm.vm.memory.Memory')

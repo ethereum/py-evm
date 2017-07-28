@@ -23,7 +23,7 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.vm.flavors import (
-    MainnetEVM,
+    MainnetChain,
 )
 
 from evm.utils.ecdsa import (
@@ -58,8 +58,8 @@ def test_transaction_fixtures_smoke_test():
 )
 def test_transaction_fixtures(fixture_name, fixture):
     header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
-    evm = MainnetEVM(get_db_backend(), header=header)
-    vm = evm.get_vm()
+    chain = MainnetChain(get_db_backend(), header=header)
+    vm = chain.get_vm()
     TransactionClass = vm.get_transaction_class()
 
     if 'sender' in fixture:

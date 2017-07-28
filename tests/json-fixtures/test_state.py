@@ -134,8 +134,8 @@ EIP150VMForTesting = EIP150VM.configure(
 )
 
 
-EVMForTesting = Chain.configure(
-    name='EVMForTesting',
+ChainForTesting = Chain.configure(
+    name='ChainForTesting',
     vm_configuration=(
         (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
@@ -161,12 +161,12 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     db = get_db_backend()
-    evm = EVMForTesting(db=db, header=header)
+    chain = ChainForTesting(db=db, header=header)
 
-    state_db = setup_state_db(fixture['pre'], evm.get_state_db())
-    evm.header.state_root = state_db.root_hash
+    state_db = setup_state_db(fixture['pre'], chain.get_state_db())
+    chain.header.state_root = state_db.root_hash
 
-    unsigned_transaction = evm.create_unsigned_transaction(
+    unsigned_transaction = chain.create_unsigned_transaction(
         nonce=fixture['transaction']['nonce'],
         gas_price=fixture['transaction']['gasPrice'],
         gas=fixture['transaction']['gasLimit'],
@@ -179,7 +179,7 @@ def test_state_fixtures(fixture_name, fixture):
     )
 
     try:
-        computation = evm.apply_transaction(transaction)
+        computation = chain.apply_transaction(transaction)
     except ValidationError:
         transaction_error = True
     else:
@@ -202,4 +202,4 @@ def test_state_fixtures(fixture_name, fixture):
         else:
             assert computation.output == expected_output
 
-    verify_state_db(fixture['post'], evm.get_state_db())
+    verify_state_db(fixture['post'], chain.get_state_db())

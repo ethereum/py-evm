@@ -119,8 +119,8 @@ EIP150VMForTesting = EIP150VM.configure(
 )
 
 
-EVMForTesting = Chain.configure(
-    name='EVMForTesting',
+ChainForTesting = Chain.configure(
+    name='ChainForTesting',
     vm_configuration=(
         (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
         (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
@@ -141,9 +141,9 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    evm = EVMForTesting(db=db, header=header)
-    state_db = setup_state_db(fixture['pre'], evm.get_state_db())
-    evm.header.state_root = state_db.root_hash
+    chain = ChainForTesting(db=db, header=header)
+    state_db = setup_state_db(fixture['pre'], chain.get_state_db())
+    chain.header.state_root = state_db.root_hash
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -151,11 +151,11 @@ def test_vm_fixtures(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
-        code=evm.get_state_db().get_code(fixture['exec']['address']),
+        code=chain.get_state_db().get_code(fixture['exec']['address']),
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    vm = evm.get_vm()
+    vm = chain.get_vm()
     computation = vm.apply_computation(message)
 
     if 'post' in fixture:
