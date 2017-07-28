@@ -83,7 +83,6 @@ def test_validate_is_bytes(value, is_valid):
         (set(), False),
         (1234, True),
         ('abc', False),
-        # (True, False),
     ),
 )
 def test_validate_is_integer(value, is_valid):
@@ -255,7 +254,6 @@ def test_validate_multiple_of(value, multiple_of, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        # (0, False),
         (1, False),
         (8, True),
         (64, True),
@@ -406,4 +404,3 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)
-            
