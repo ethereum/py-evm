@@ -16,7 +16,7 @@ def validate_is_bytes(value):
 
 
 def validate_is_integer(value):
-    if not isinstance(value, int):
+    if not type(value) is int:
         raise ValidationError("Value must be a an integer.  Got: {0}".format(type(value)))
 
 

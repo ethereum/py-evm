@@ -84,6 +84,7 @@ def test_validate_is_bytes(value, is_valid):
         (set(), False),
         (1234, True),
         ('abc', False),
+        (True, False),
     ),
 )
 def test_validate_is_integer(value, is_valid):

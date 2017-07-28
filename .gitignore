@@ -49,3 +49,5 @@ fixtures/**
 
 # profiling
 prof/**
+
+pyevm/
