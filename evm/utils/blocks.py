@@ -35,7 +35,7 @@ def add_block_number_to_hash_lookup(db, block):
 
 def get_score(db, block_hash):
     # TODO: This may be a problem as not all chains will start with the same
-    # genesis difficulty. Maybe make it EVM aware so that it can pull the
+    # genesis difficulty. Maybe make it Chain aware so that it can pull the
     # genesis block and pull the genesis difficulty from there.
     if block_hash == GENESIS_PARENT_HASH:
         return GENESIS_DIFFICULTY

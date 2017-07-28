@@ -6,10 +6,10 @@ from evm.db import (
 
 
 from evm import constants
-from evm import EVM
+from evm import Chain
 
 from evm.exceptions import (
-    EVMNotFound,
+    ChainNotFound,
     ValidationError,
 )
 from evm.rlp.headers import (
@@ -20,7 +20,7 @@ from evm.vm.flavors.homestead import HomesteadVM
 
 
 def test_get_vm_class_for_block_number():
-    evm_class = EVM.configure(
+    evm_class = Chain.configure(
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
             (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
@@ -38,18 +38,18 @@ def test_get_vm_class_for_block_number():
 
 
 def test_get_vm_class_for_block_number_evm_not_found():
-    evm_class = EVM.configure(vm_configuration=())
+    evm_class = Chain.configure(vm_configuration=())
     evm = evm_class(get_db_backend(), BlockHeader(1, 0, 100))
-    with pytest.raises(EVMNotFound):
+    with pytest.raises(ChainNotFound):
         evm.get_vm_class_for_block_number(constants.GENESIS_BLOCK_NUMBER)
 
 
 def test_configure_invalid_vm_configuration():
     with pytest.raises(ValidationError):
-        EVM.configure(vm_configuration=[(-1, FrontierVM)])
+        Chain.configure(vm_configuration=[(-1, FrontierVM)])
 
     with pytest.raises(ValidationError):
-        EVM.configure(vm_configuration=[
+        Chain.configure(vm_configuration=[
             (0, FrontierVM),
             (0, HomesteadVM),
             ]

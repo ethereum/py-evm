@@ -12,9 +12,9 @@ from eth_utils import (
     keccak,
 )
 
+
 from evm import (
-    constants,
-    EVM,
+  Chain,
 )
 from evm.exceptions import (
     ValidationError,
@@ -125,11 +125,11 @@ def test_blockchain_fixtures(fixture_name, fixture):
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.
     if fixture_name.startswith('Homestead'):
-        evm = EVM.configure(
+        evm = Chain.configure(
             'HomesteadEVM',
             vm_configuration=[(0, HomesteadVM)])
     elif fixture_name.startswith('EIP150'):
-        evm = EVM.configure(
+        evm = Chain.configure(
             'EIP150VM',
             vm_configuration=[(0, EIP150VM)])
     elif fixture_name.startswith('TestNetwork'):

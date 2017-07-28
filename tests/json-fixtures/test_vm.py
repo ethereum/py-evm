@@ -11,7 +11,7 @@ from eth_utils import (
 )
 
 from evm import (
-    EVM,
+    Chain,
 )
 from evm import constants
 from evm.exceptions import (
@@ -119,7 +119,7 @@ EIP150VMForTesting = EIP150VM.configure(
 )
 
 
-EVMForTesting = EVM.configure(
+EVMForTesting = Chain.configure(
     name='EVMForTesting',
     vm_configuration=(
         (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),

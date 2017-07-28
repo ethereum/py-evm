@@ -76,8 +76,8 @@ class StackDepthLimit(VMError):
     pass
 
 
-class EVMNotFound(BaseEVMError):
+class ChainNotFound(BaseEVMError):
     """
-    Error for when there is no defined EVM for a given block number.
+    Error for when there is no defined Chain for a given block number.
     """
     pass

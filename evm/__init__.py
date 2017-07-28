@@ -6,6 +6,10 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
+from evm.chain import (  # noqa: F401
+    Chain,
+)
+
 from .__version__ import (  # noqa: F401
     __title__,
     __description__,
@@ -33,6 +37,5 @@ sys.setrecursionlimit(1024 * 10)
 
 
 from evm.vm import (  # noqa: F401
-    EVM,
     VM,
 )
