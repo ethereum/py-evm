@@ -160,7 +160,8 @@ def test_validate_length_lte(value, maximum_length, is_valid):
     "value,minimum,is_valid",
     (
         (1, 2, False),
-        ('a','a', True),
+        (1, 1, True),
+        ('a','a', False),
         (3, 2, True),
     ),
 )
@@ -176,6 +177,7 @@ def test_validate_gte(value, minimum, is_valid):
     "value,minimum,is_valid",
     (
         (1, 2, False),
+        (1, 1, False),
         ('a','a', False),
         (3, 2, True),
     ),
@@ -192,7 +194,8 @@ def test_validate_gt(value, minimum, is_valid):
     "value,maximum,is_valid",
     (
         (1, 2, True),
-        ('a', 'a', True),
+        (1, 1, True),
+        ('a', 'a', False),
         (3, 2, False),
     ),
 )
@@ -208,6 +211,7 @@ def test_validate_lte(value, maximum, is_valid):
     "value,maximum,is_valid",
     (
         (1, 2, True),
+        (1, 1, False),
         ('a', 'a', False),
         (3, 2, False),
     ),
