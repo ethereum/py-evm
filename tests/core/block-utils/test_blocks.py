@@ -32,21 +32,20 @@ from evm.utils.db import (
 )
 
 
-
-
-
-
-
-
 @pytest.fixture
 def db():
     return get_db_backend()
+
+
 @pytest.fixture
 def header():
-    return BlockHeader(1,1,1)
+    return BlockHeader(1, 1, 1)
+
+
 @pytest.fixture
 def block(header, db):
     return FrontierBlock(header, db)
+
 
 def test_add_block_number_to_hash_lookup(db, block):
     block_number_to_hash_key = make_block_number_to_hash_lookup_key(1)
@@ -54,11 +53,13 @@ def test_add_block_number_to_hash_lookup(db, block):
     add_block_number_to_hash_lookup(db, block)
     assert db.exists(block_number_to_hash_key)
 
+
 def test_perist_block_to_db(db, block):
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
     assert not db.exists(block_to_hash_key)
     persist_block_to_db(db, block)
     assert db.exists(block_to_hash_key)
+
 
 def test_get_score(db, block):
     persist_block_to_db(db, block)
@@ -66,10 +67,12 @@ def test_get_score(db, block):
     score = rlp.decode(db.get(block_to_hash_key), sedes=rlp.sedes.big_endian_int)
     assert get_score(db, block.hash) == score
 
+
 def test_get_block_header_by_hash(db, block, header):
     persist_block_to_db(db, block)
     block_header = get_block_header_by_hash(db, block.hash)
     assert_rlp_equal(block_header, header)
+
 
 def test_lookup_block_hash(db, block):
     add_block_number_to_hash_lookup(db, block)

@@ -12,10 +12,6 @@ from evm.db import (
     get_db_backend,
 )
 
-from eth_utils import (
-    keccak,
-)
-
 from evm.exceptions import (
     ValidationError,
 )

@@ -105,7 +105,7 @@ def test_validate_is_integer(value, is_valid):
         ('a', False),
         (1, False),
         (True, True),
-        (False ,True),
+        (False, True),
     ),
 )
 def test_validate_is_boolean(value, is_valid):
@@ -114,7 +114,7 @@ def test_validate_is_boolean(value, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_is_boolean(value)
-            
+
 
 @pytest.mark.parametrize(
     "value,length,is_valid",
@@ -125,7 +125,7 @@ def test_validate_is_boolean(value, is_valid):
         (set(['A', 'B', 1, 2]), 4, True),
         ('abcde', 4, False),
         (b'123', 3, True),
-        (range(1,10), 9, True)
+        (range(1, 10), 9, True)
     ),
 )
 def test_validate_length(value, length, is_valid):
@@ -145,7 +145,7 @@ def test_validate_length(value, length, is_valid):
         (set(['A', 'B', 1, 2]), 2, False),
         ('abcde', 5, True),
         (b'123', 3, True),
-        (range(1,10), 15, True),
+        (range(1, 10), 15, True),
     ),
 )
 def test_validate_length_lte(value, maximum_length, is_valid):
@@ -161,14 +161,14 @@ def test_validate_length_lte(value, maximum_length, is_valid):
     (
         (1, 2, False),
         (1, 1, True),
-        ('a','a', False),
+        ('a', 'a', False),
         (3, 2, True),
     ),
 )
 def test_validate_gte(value, minimum, is_valid):
     if is_valid:
         validate_gte(value, minimum)
-    else: 
+    else:
         with pytest.raises(ValidationError):
             validate_gte(value, minimum)
 
@@ -178,14 +178,14 @@ def test_validate_gte(value, minimum, is_valid):
     (
         (1, 2, False),
         (1, 1, False),
-        ('a','a', False),
+        ('a', 'a', False),
         (3, 2, True),
     ),
 )
 def test_validate_gt(value, minimum, is_valid):
     if is_valid:
         validate_gt(value, minimum)
-    else: 
+    else:
         with pytest.raises(ValidationError):
             validate_gt(value, minimum)
 
@@ -202,7 +202,7 @@ def test_validate_gt(value, minimum, is_valid):
 def test_validate_lte(value, maximum, is_valid):
     if is_valid:
         validate_lte(value, maximum)
-    else: 
+    else:
         with pytest.raises(ValidationError):
             validate_lte(value, maximum)
 
@@ -219,7 +219,7 @@ def test_validate_lte(value, maximum, is_valid):
 def test_validate_lt(value, maximum, is_valid):
     if is_valid:
         validate_lt(value, maximum)
-    else: 
+    else:
         with pytest.raises(ValidationError):
             validate_lt(value, maximum)
 
@@ -254,7 +254,7 @@ def test_validate_multiple_of(value, multiple_of, is_valid):
         validate_multiple_of(value, multiple_of)
     else:
         with pytest.raises(ValidationError):
-            validate_multiple_of(value, multiple_of) 
+            validate_multiple_of(value, multiple_of)
 
 
 @pytest.mark.parametrize(
@@ -379,7 +379,7 @@ def test_validate_block_number(block_number, is_valid):
     "vm_block_numbers,is_valid",
     (
         ([], True),
-        ([1], True),        
+        ([1], True),
         ([1, 2, 3], True),
         ([1, 2, 1], False),
         (['a', 'b', 'c'], False),
