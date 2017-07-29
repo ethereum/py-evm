@@ -8,11 +8,6 @@ from evm.db import (
     get_db_backend,
 )
 
-from eth_utils import (
-    keccak,
-)
-
-
 from evm import (
   Chain,
 )
@@ -32,7 +27,6 @@ from evm.rlp.headers import (
 from evm.utils.fixture_tests import (
     find_fixtures,
     normalize_blockchain_fixtures,
-    setup_state_db,
     verify_state_db,
     assert_rlp_equal,
 )
@@ -57,6 +51,7 @@ DISABLED_INDIVIDUAL_TESTS = [
     "TestNetwork/bcTheDaoTest.json:DaoTransactions",
     "TestNetwork/bcTheDaoTest.json:DaoTransactions_UncleExtradata",
 ]
+
 
 def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
     # TODO: enable all tests
@@ -191,6 +186,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
             assert_rlp_equal(mined_block, block)
             assert should_be_good_block, "Block should have caused a validation error"
 
-    assert chain.get_canonical_block_by_number(chain.get_block().number - 1).hash == fixture['lastblockhash']
+    latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
+    assert latest_block_hash == fixture['lastblockhash']
 
     verify_state_db(fixture['postState'], chain.get_state_db())
