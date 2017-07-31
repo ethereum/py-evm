@@ -60,7 +60,6 @@ def test_configure_invalid_block_number_in_vm_configuration():
 def test_configure_duplicate_block_numbers_in_vm_configuration():
     with pytest.raises(ValidationError):
         Chain.configure(vm_configuration=[
-                (0, FrontierVM),
-                (0, HomesteadVM),
-            ]
-        )
+            (0, FrontierVM),
+            (0, HomesteadVM),
+        ])
