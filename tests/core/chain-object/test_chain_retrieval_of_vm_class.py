@@ -9,6 +9,7 @@ from evm import constants
 from evm import Chain
 
 from evm.exceptions import (
+    ValidationError,
     VMNotFound,
 )
 from evm.rlp.headers import (
@@ -52,14 +53,14 @@ def test_vm_not_found_if_no_matching_block_number():
 
 
 def test_configure_invalid_block_number_in_vm_configuration():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         Chain.configure(vm_configuration=[(-1, FrontierVM)])
 
 
 def test_configure_duplicate_block_numbers_in_vm_configuration():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         Chain.configure(vm_configuration=[
-            (0, FrontierVM),
-            (0, HomesteadVM),
+                (0, FrontierVM),
+                (0, HomesteadVM),
             ]
         )
