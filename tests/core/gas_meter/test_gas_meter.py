@@ -8,11 +8,13 @@ from evm.exceptions import (
     OutOfGas,
 )
 
+
 @pytest.fixture
 def gas_meter():
     return GasMeter(10)
 
-@pytest.mark.parametrize (
+
+@pytest.mark.parametrize(
     "value,is_valid",
     (
         (-1, False),
@@ -84,10 +86,21 @@ def test_refund_gas_rejects_negative_values(gas_meter, refund, is_valid):
             gas_meter.refund_gas(refund)
 
 
-def test_consume_gas_raises_out_of_gas_exception(gas_meter):
+@pytest.mark.parametrize(
+    "consume,reason,is_valid",
+    (
+        (10, "Reason", True),
+        (11, "Reason", False),
+    )
+)
+def test_consume_gas_spends_or_raises_exception(gas_meter, consume, reason, is_valid):
     assert gas_meter.gas_remaining == 10
-    with pytest.raises(OutOfGas):
-        gas_meter.consume_gas(11, "Reason")
+    if is_valid:
+        gas_meter.consume_gas(consume, reason)
+        assert gas_meter.gas_remaining == 0
+    else:
+        with pytest.raises(OutOfGas):
+            gas_meter.consume_gas(consume, reason)
 
 
 def test_consumption_return_refund_work_correctly(gas_meter):
@@ -99,4 +112,3 @@ def test_consumption_return_refund_work_correctly(gas_meter):
     assert gas_meter.gas_remaining == 10
     gas_meter.refund_gas(5)
     assert gas_meter.gas_refunded == 5
-    
