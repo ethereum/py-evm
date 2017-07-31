@@ -15,7 +15,6 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
-    ValidationError,
     VMNotFound,
 )
 from evm.validation import (
@@ -59,7 +58,7 @@ class Chain(object):
 
     def __init__(self, db, header):
         if not self.vms_by_range:
-            raise ValidationError(
+            raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
             )
 
