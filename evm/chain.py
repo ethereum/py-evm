@@ -59,7 +59,7 @@ class Chain(object):
 
     def __init__(self, db, header):
         if not self.vms_by_range:
-            raise ValidationError(
+            raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
             )
 
@@ -290,7 +290,8 @@ class Chain(object):
     def validate_uncles(self, block):
         recent_ancestors = dict(
             (ancestor.hash, ancestor)
-            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH+1))
+            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1),
+        )
         recent_uncles = []
         for ancestor in recent_ancestors.values():
             recent_uncles.extend([uncle.hash for uncle in ancestor.uncles])

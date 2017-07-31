@@ -43,7 +43,6 @@ def with_coincurve_ecc_backend(monkeypatch):
 
 
 def test_ecdsa_sign():
-    # Sets ecc backend to coin curve
     signature = get_ecc_backend().ecdsa_sign(MSG, PRIVATE_KEY)
     assert signature == purePython.ecdsa_sign(MSG, PRIVATE_KEY)
 

@@ -75,5 +75,7 @@ class CoinCurveECCBackend(BaseECCBackend):
 
     def __recoverable_to_normal(self, signature):
         return self.ecdsa.cdata_to_der(
-                self.ecdsa.recoverable_convert(
-                    self.ecdsa.deserialize_recoverable(signature)))
+            self.ecdsa.recoverable_convert(
+                self.ecdsa.deserialize_recoverable(signature)
+            )
+        )

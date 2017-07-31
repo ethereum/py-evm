@@ -1,5 +1,16 @@
-import collections
 import functools
+
+from cytoolz.dicttoolz import (
+    valfilter,
+)
+from cytoolz.functoolz import (
+    partial,
+    pipe,
+)
+from cytoolz.itertoolz import (
+    isdistinct,
+    frequencies,
+)
 
 from evm.constants import (
     UINT_256_MAX,
@@ -123,13 +134,14 @@ validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1
 
 
 def validate_unique(values):
-    duplicates = sorted((
-        value
-        for value, count
-        in collections.Counter(values).items()
-        if count > 1
-    ))
-    if duplicates:
+    if not isdistinct(values):
+        duplicates = pipe(
+            values,
+            frequencies,  # get the frequencies
+            partial(valfilter, lambda v: v > 1),  # filter to ones that occure > 1
+            sorted,  # sort them
+            tuple,  # cast them to an immutiable form
+        )
         raise ValidationError(
             "The values provided are not unique.  Duplicates: {0}".format(
                 ', '.join((str(value) for value in duplicates))

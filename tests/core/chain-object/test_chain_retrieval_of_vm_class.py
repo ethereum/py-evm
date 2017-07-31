@@ -39,7 +39,7 @@ def test_get_vm_class_for_block_number():
 
 def test_invalid_if_no_vm_configuration():
     chain_class = Chain.configure(vm_configuration=())
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         chain_class(get_db_backend(), BlockHeader(1, 0, 100))
 
 
@@ -62,5 +62,4 @@ def test_configure_duplicate_block_numbers_in_vm_configuration():
         Chain.configure(vm_configuration=[
             (0, FrontierVM),
             (0, HomesteadVM),
-            ]
-        )
+        ])

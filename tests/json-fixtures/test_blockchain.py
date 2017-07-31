@@ -9,7 +9,7 @@ from evm.db import (
 )
 
 from evm import (
-  Chain,
+    Chain,
 )
 from evm.exceptions import (
     ValidationError,
