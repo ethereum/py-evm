@@ -26,11 +26,12 @@ setup(
     include_package_data=True,
     py_modules=['evm'],
     install_requires=[
+        "cytoolz==0.8.2",
+        "ethereum-bloom>=0.4.0",
         "ethereum-utils>=0.2.0",
+        "pyethash>=0.1.27",
         "rlp==0.4.7",
         "trie>=0.2.4",
-        "ethereum-bloom>=0.4.0",
-        "pyethash>=0.1.27",
     ],
     extra_require={
         'coincurve': [
