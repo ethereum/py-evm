@@ -239,7 +239,7 @@ class Chain(object):
         imported_block = parent_chain.get_vm().import_block(block)
         # It feels wrong to call validate_block() on self here, but we do that
         # because we want to look up the recent uncles starting from the
-        # currenct canonical chain head.
+        # current canonical chain head.
         self.validate_block(imported_block)
 
         persist_block_to_db(self.db, imported_block)

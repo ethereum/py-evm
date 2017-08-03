@@ -21,6 +21,9 @@ from evm.db import (
 from evm.vm.flavors.frontier.blocks import (
     FrontierBlock,
 )
+from evm.vm.flavors.homestead.blocks import (
+    HomesteadBlock,
+)
 
 from evm.rlp.headers import (
     BlockHeader,
@@ -37,18 +40,21 @@ def db():
     return get_db_backend()
 
 
-@pytest.fixture
-def header():
-    return BlockHeader(1, 1, 1)
+@pytest.fixture(params=[0, 10, 999])
+def header(request):
+    block_number = request.param
+    difficulty = 1
+    gas_limit = 1
+    return BlockHeader(difficulty, block_number, gas_limit)
 
 
-@pytest.fixture
-def block(header, db):
-    return FrontierBlock(header, db)
+@pytest.fixture(params=[FrontierBlock, HomesteadBlock])
+def block(request, header, db):
+    return request.param(header, db)
 
 
 def test_add_block_number_to_hash_lookup(db, block):
-    block_number_to_hash_key = make_block_number_to_hash_lookup_key(1)
+    block_number_to_hash_key = make_block_number_to_hash_lookup_key(block.number)
     assert not db.exists(block_number_to_hash_key)
     add_block_number_to_hash_lookup(db, block)
     assert db.exists(block_number_to_hash_key)
@@ -76,5 +82,5 @@ def test_get_block_header_by_hash(db, block, header):
 
 def test_lookup_block_hash(db, block):
     add_block_number_to_hash_lookup(db, block)
-    block_hash = lookup_block_hash(db, 1)
+    block_hash = lookup_block_hash(db, block.number)
     assert block_hash == block.hash

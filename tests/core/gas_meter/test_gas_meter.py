@@ -9,106 +9,77 @@ from evm.exceptions import (
 )
 
 
-@pytest.fixture
-def gas_meter():
-    return GasMeter(10)
+@pytest.fixture(params=[10, 100, 999])
+def gas_meter(request):
+    return GasMeter(request.param)
 
 
-@pytest.mark.parametrize(
-    "value,is_valid",
-    (
-        (-1, False),
-        (0, True),
-        (10, True),
-        (2**256, False),
-        ('a', False),
-    )
-)
-def test_start_gas_on_instantiation(value, is_valid):
-    if is_valid:
-        meter = GasMeter(value)
-        assert meter.start_gas == value
-        assert meter.gas_remaining == value
-        assert meter.gas_refunded == 0
-    else:
-        with pytest.raises(ValidationError):
-            GasMeter(value)
+@pytest.mark.parametrize("value", (0, 10))
+def test_start_gas_on_instantiation(value):
+    meter = GasMeter(value)
+    assert meter.start_gas == value
+    assert meter.gas_remaining == value
+    assert meter.gas_refunded == 0
 
 
-@pytest.mark.parametrize(
-    "consume,reason,is_valid",
-    (
-        (-1, "Reason", False),
-        (0, "Reason", True),
-        (1, "Reason", True),
-    )
-)
-def test_consume_gas_rejects_negative_values(gas_meter, consume, reason, is_valid):
-    if is_valid:
-        gas_meter.consume_gas(consume, reason)
-        assert gas_meter.gas_remaining == gas_meter.start_gas - consume
-    else:
-        with pytest.raises(ValidationError):
-            gas_meter.consume_gas(consume, reason)
+@pytest.mark.parametrize("value", (-1, 2**256, 'a'))
+def test_instantiation_invalid_value(value):
+    with pytest.raises(ValidationError):
+        GasMeter(value)
 
 
-@pytest.mark.parametrize(
-    "return_amt,is_valid",
-    (
-        (-1, False),
-        (0, True),
-        (1, True),
-    )
-)
-def test_return_gas_rejects_negative_values(gas_meter, return_amt, is_valid):
-    if is_valid:
-        gas_meter.return_gas(return_amt)
-        assert gas_meter.gas_remaining == (gas_meter.start_gas + return_amt)
-    else:
-        with pytest.raises(ValidationError):
-            gas_meter.return_gas(return_amt)
+@pytest.mark.parametrize("amount", (0, 1, 10))
+def test_consume_gas(gas_meter, amount):
+    gas_meter.consume_gas(amount, "reason")
+    assert gas_meter.gas_remaining == gas_meter.start_gas - amount
 
 
-@pytest.mark.parametrize(
-    "refund,is_valid",
-    (
-        (-1, False),
-        (0, True),
-        (1, True),
-    )
-)
-def test_refund_gas_rejects_negative_values(gas_meter, refund, is_valid):
-    if is_valid:
-        gas_meter.refund_gas(refund)
-        assert gas_meter.gas_refunded == refund
-    else:
-        with pytest.raises(ValidationError):
-            gas_meter.refund_gas(refund)
+def test_consume_gas_rejects_negative_values(gas_meter):
+    with pytest.raises(ValidationError):
+        gas_meter.consume_gas(-1, "reason")
 
 
-@pytest.mark.parametrize(
-    "consume,reason,is_valid",
-    (
-        (10, "Reason", True),
-        (11, "Reason", False),
-    )
-)
-def test_consume_gas_spends_or_raises_exception(gas_meter, consume, reason, is_valid):
-    assert gas_meter.gas_remaining == 10
-    if is_valid:
-        gas_meter.consume_gas(consume, reason)
-        assert gas_meter.gas_remaining == 0
-    else:
-        with pytest.raises(OutOfGas):
-            gas_meter.consume_gas(consume, reason)
+@pytest.mark.parametrize("amount", (0, 1, 99))
+def test_return_gas(gas_meter, amount):
+    gas_meter.return_gas(amount)
+    assert gas_meter.gas_remaining == (gas_meter.start_gas + amount)
+
+
+def test_return_gas_rejects_negative_values(gas_meter):
+    with pytest.raises(ValidationError):
+        gas_meter.return_gas(-1)
+
+
+@pytest.mark.parametrize("amount", (0, 1, 99))
+def test_refund_gas(gas_meter, amount):
+    gas_meter.refund_gas(amount)
+    assert gas_meter.gas_refunded == amount
+
+
+def test_refund_gas_rejects_negative_values(gas_meter):
+    with pytest.raises(ValidationError):
+        gas_meter.refund_gas(-1)
+
+
+def test_consume_gas_spends(gas_meter):
+    assert gas_meter.gas_remaining == gas_meter.start_gas
+    consume = gas_meter.start_gas
+    gas_meter.consume_gas(consume, "reason")
+    assert gas_meter.gas_remaining == gas_meter.start_gas - consume
+
+
+def test_consume_raises_exception(gas_meter):
+    assert gas_meter.gas_remaining == gas_meter.start_gas
+    with pytest.raises(OutOfGas):
+        gas_meter.consume_gas(gas_meter.start_gas + 1, "reason")
 
 
 def test_consumption_return_refund_work_correctly(gas_meter):
-    assert gas_meter.gas_remaining == 10
+    assert gas_meter.gas_remaining == gas_meter.start_gas
     assert gas_meter.gas_refunded == 0
     gas_meter.consume_gas(5, "Reason")
-    assert gas_meter.gas_remaining == 5
+    assert gas_meter.gas_remaining == gas_meter.start_gas - 5
     gas_meter.return_gas(5)
-    assert gas_meter.gas_remaining == 10
+    assert gas_meter.gas_remaining == gas_meter.start_gas
     gas_meter.refund_gas(5)
     assert gas_meter.gas_refunded == 5
