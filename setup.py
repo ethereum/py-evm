@@ -36,6 +36,9 @@ setup(
     extra_require={
         'coincurve': [
             "coincurve>=4.5.1",
+        ],
+        'leveldb': [
+            "leveldb>=0.194",
         ]
     },
     license=about['__license__'],
