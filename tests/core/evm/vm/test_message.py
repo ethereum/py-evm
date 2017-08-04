@@ -4,12 +4,14 @@ import evm.vm.message as m
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 
 ADDRESS = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff"
 TEST_ADDRESS = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf9"
 
 def _create_message(
-    create_address=None,
     gas=1,
     gas_price=1,
     to=ADDRESS,
@@ -17,7 +19,11 @@ def _create_message(
     value=1,
     data=b"",
     code=b"",
-    origin=ADDRESS):
+    origin=ADDRESS,
+    create_address=None,
+    depth=0,
+    code_address=None,
+    should_transfer_value=True):
     return m.Message(
         gas=gas,
         gas_price=gas_price,
@@ -26,14 +32,49 @@ def _create_message(
         data=data,
         code=code,
         origin=origin,
-        create_address=create_address
+        create_address=create_address,
+        depth=depth,
+        code_address=code_address,
+        should_transfer_value=should_transfer_value
         )
 
-def test_initializes_properly():
+def test_validates_properly():
     """
-    # all __init__ parameters are properly validated.
+    all __init__ parameters are properly validated.
     """
-    #TODO: Needs proper tests here
+
+    with pytest.raises(ValidationError):
+        _create_message(gas='s')
+
+    with pytest.raises(ValidationError):
+        _create_message(to='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(sender='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(value='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(data='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(code='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(origin='z')
+        
+    with pytest.raises(ValidationError):
+        _create_message(create_address='ss')
+
+    with pytest.raises(ValidationError):
+        _create_message(depth='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(code_address='z')
+
+    with pytest.raises(ValidationError):
+        _create_message(should_transfer_value='z')
 
 def test_is_origin():
     #correctly returns True/False for whether this message is the origin message
