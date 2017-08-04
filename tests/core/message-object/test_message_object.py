@@ -66,9 +66,7 @@ def _create_message(gas=1,
         ({'should_transfer_value': 0}, False),
     )
 )
-def test_validates_properly(init_kwargs, is_valid):
-    """
-    """
+def test_parameter_validation(init_kwargs, is_valid):
     if is_valid:
         _create_message(**init_kwargs)
     else:
