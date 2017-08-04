@@ -113,7 +113,7 @@ def validate_word(value):
 
 
 def validate_uint256(value):
-    if not isinstance(value, int):
+    if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError("Invalid UINT256: Must be an integer")
     if value < 0:
         raise ValidationError("Invalid UINT256: Value is negative")
