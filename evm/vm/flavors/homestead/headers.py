@@ -43,10 +43,12 @@ def compute_homestead_difficulty(parent_header, timestamp):
 
 def create_homestead_header_from_parent(parent_header, **header_params):
     if 'difficulty' not in header_params:
-        timestamp = header_params.get('timestamp', parent_header.timestamp + 1)
+        # Use setdefault to ensure the new header has the same timestamp we use to calculate its
+        # difficulty.
+        header_params.setdefault('timestamp', parent_header.timestamp + 1)
         header_params['difficulty'] = compute_homestead_difficulty(
             parent_header,
-            timestamp,
+            header_params['timestamp'],
         )
     return create_frontier_header_from_parent(parent_header, **header_params)
 

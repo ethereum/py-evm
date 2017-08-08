@@ -103,17 +103,14 @@ class BlockHeader(rlp.Serializable):
                     parent,
                     gas_limit,
                     difficulty,
+                    timestamp,
                     coinbase=ZERO_ADDRESS,
-                    timestamp=None,
                     nonce=None,
                     extra_data=None):
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.
         """
-        if timestamp is None:
-            timestamp = int(time.time())
-
         header_kwargs = {
             'parent_hash': parent.hash,
             'coinbase': coinbase,
