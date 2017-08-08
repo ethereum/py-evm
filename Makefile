@@ -25,6 +25,7 @@ clean-pyc:
 
 lint:
 	flake8 evm
+	flake8 tests --exclude=""
 
 test:
 	py.test --tb native tests

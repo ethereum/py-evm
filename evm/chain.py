@@ -4,6 +4,7 @@ import collections
 from operator import itemgetter
 
 from eth_utils import (
+    pad_right,
     to_tuple,
 )
 from evm.consensus.pow import (
@@ -41,6 +42,7 @@ from evm.utils.blocks import (
 from evm.utils.hexidecimal import (
     encode_hex,
 )
+from evm.utils.rlp import diff_rlp_object
 
 from evm.state import State
 
@@ -67,26 +69,29 @@ class Chain(object):
         self.header = header
 
     @classmethod
-    def configure(cls, name=None, vm_configuration=None):
-        if vm_configuration is None:
-            vms_by_range = cls.vms_by_range
-        else:
-            # Organize the Chain classes by their starting blocks.
-            validate_vm_block_numbers(tuple(
-                block_number
-                for block_number, _
-                in vm_configuration
-            ))
+    def configure(cls, name, vm_configuration, **overrides):
+        if 'vms_by_range' in overrides:
+            raise ValueError("Cannot override vms_by_range.")
 
-            vms_by_range = collections.OrderedDict(sorted(vm_configuration, key=itemgetter(0)))
+        for key in overrides:
+            if not hasattr(cls, key):
+                raise TypeError(
+                    "The Chain.configure cannot set attributes that are not "
+                    "already present on the base class.  The attribute `{0}` was "
+                    "not found on the base class `{1}`".format(key, cls)
+                )
 
-        if name is None:
-            name = cls.__name__
+        validate_vm_block_numbers(tuple(
+            block_number
+            for block_number, _
+            in vm_configuration
+        ))
 
-        props = {
-            'vms_by_range': vms_by_range,
-        }
-        return type(name, (cls,), props)
+        # Organize the Chain classes by their starting blocks.
+        overrides['vms_by_range'] = collections.OrderedDict(
+            sorted(vm_configuration, key=itemgetter(0)))
+
+        return type(name, (cls,), overrides)
 
     #
     # Convenience and Helpers
@@ -238,6 +243,7 @@ class Chain(object):
 
         parent_chain = self.get_parent_chain(block)
         imported_block = parent_chain.get_vm().import_block(block)
+        self.ensure_blocks_are_equal(imported_block, block)
         # It feels wrong to call validate_block() on self here, but we do that
         # because we want to look up the recent uncles starting from the
         # current canonical chain head.
@@ -248,6 +254,27 @@ class Chain(object):
             self.add_to_canonical_chain_head(imported_block)
 
         return imported_block
+
+    def ensure_blocks_are_equal(self, block1, block2):
+        if block1 == block2:
+            return
+        diff = diff_rlp_object(block1, block2)
+        longest_field_name = max(len(field_name) for field_name, _, _ in diff)
+        error_message = (
+            "Mismatch between block and imported block on {0} fields:\n - {1}".format(
+                len(diff),
+                "\n - ".join(tuple(
+                    "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
+                        pad_right(field_name, longest_field_name, ' '),
+                        actual,
+                        expected,
+                    )
+                    for field_name, actual, expected
+                    in diff
+                )),
+            )
+        )
+        raise ValidationError(error_message)
 
     def get_parent_chain(self, block):
         try:

@@ -307,6 +307,9 @@ class FrontierBlock(BaseBlock):
         self.header.uncles_hash = keccak(rlp.encode(self.uncles))
         return self
 
+    # TODO: Check with Piper what's the use case for having the mine() method allowing callsites
+    # to override header attributes, since the only place it's used we don't pass any kwarg and
+    # hence it just performs block-level validation.
     def mine(self, **kwargs):
         """
         - `uncles_hash`
