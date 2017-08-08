@@ -28,6 +28,14 @@ Flavors
   :align: center
 
 
+Initialize Block
+=================================
+
+.. image:: images/block-init.png
+  :width: 100 %
+  :align: center
+
+
 
 Apply Transaction
 =================================
