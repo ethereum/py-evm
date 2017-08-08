@@ -117,7 +117,8 @@ class Chain(object):
 
     def create_header_from_parent(self, parent_header, **header_params):
         """
-        Passthrough helper to the current VM class.
+        Passthrough helper to the VM class of the block descending from the
+        given header.
         """
         return self.get_vm_class_for_block_number(
             block_number=parent_header.block_number + 1,
