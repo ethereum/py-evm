@@ -10,13 +10,15 @@ from evm.validation import (
 
 class CodeStream(object):
     stream = None
+    deepest = None
 
     logger = logging.getLogger('evm.vm.CodeStream')
 
     def __init__(self, code_bytes):
         validate_is_bytes(code_bytes)
         self.stream = io.BytesIO(code_bytes)
-        self._validity_cache = {}
+        self._validity_cache = set(range(0))
+        self.deepest = 0
 
     def read(self, size):
         return self.stream.read(size)
@@ -66,28 +68,35 @@ class CodeStream(object):
     _validity_cache = None
 
     def is_valid_opcode(self, position):
+        # if position longer than bytecode return false
         if position >= len(self):
             return False
-
-        if position not in self._validity_cache:
-            with self.seek(max(0, position - 32)):
-                prefix = self.read(min(position, 32))
-
-            for offset, opcode in enumerate(reversed(prefix)):
-                if opcode < opcode_values.PUSH1 or opcode > opcode_values.PUSH32:
-                    continue
-
-                push_size = 1 + opcode - opcode_values.PUSH1
-                if push_size <= offset:
-                    continue
-
-                opcode_position = position - 1 - offset
-                if not self.is_valid_opcode(opcode_position):
-                    continue
-
-                self._validity_cache[position] = False
-                break
+        
+        # return false if position already in val_cache
+        if position in self._validity_cache: 
+            return False
+        # return true if position not in val_cache but has been parsed
+        if position <= self.deepest: 
+            return True
+        else:
+            # set counter to deepest parsed position
+            i = self.deepest
+            while i <= position:
+                # get opcode 
+                with self.seek(i):
+                    opcode = self.next()
+                # if opcode = pushxx
+                if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
+                    # add range(xx) to val_cache
+                    self._validity_cache.update(range((i+1), ((i+1) + (opcode - 95))))
+                    # increment counter to end of invalid bytes
+                    i += (1 + (opcode - 95))
+                else:
+                    # if opcode != pushxx : update deepest processed and increment counter
+                    self.deepest = i
+                    i += 1
+            
+            if position in self._validity_cache:
+                return False
             else:
-                self._validity_cache[position] = True
-
-        return self._validity_cache[position]
+                return True
