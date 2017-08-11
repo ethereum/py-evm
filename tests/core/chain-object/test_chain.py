@@ -20,11 +20,12 @@ def test_import_block_validation(chain):  # noqa: F811
     tx = imported_block.transactions[0]
     assert tx.value == 10
     vm = chain.get_vm()
-    assert vm.state_db.get_balance(
-        decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
-    tx_gas = tx.gas_price * constants.GAS_TX
-    assert vm.state_db.get_balance(chain.funded_address) == (
-        chain.funded_address_initial_balance - tx.value - tx_gas)
+    with vm.state_db(read_only=True) as state_db:
+        assert state_db.get_balance(
+            decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
+        tx_gas = tx.gas_price * constants.GAS_TX
+        assert state_db.get_balance(chain.funded_address) == (
+            chain.funded_address_initial_balance - tx.value - tx_gas)
 
 
 def test_import_block(chain_without_block_validation):  # noqa: F811

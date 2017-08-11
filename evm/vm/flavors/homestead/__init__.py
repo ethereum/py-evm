@@ -19,13 +19,14 @@ from .headers import (
 
 
 def _apply_homestead_create_message(vm, message):
-    if vm.state_db.account_exists(message.storage_address):
-        vm.state_db.set_nonce(message.storage_address, 0)
-        vm.state_db.set_code(message.storage_address, b'')
-        vm.state_db.delete_storage(message.storage_address)
+    with vm.state_db() as state_db:
+        if state_db.account_exists(message.storage_address):
+            state_db.set_nonce(message.storage_address, 0)
+            state_db.set_code(message.storage_address, b'')
+            state_db.delete_storage(message.storage_address)
 
-    if message.sender != message.origin:
-        vm.state_db.increment_nonce(message.sender)
+        if message.sender != message.origin:
+            state_db.increment_nonce(message.sender)
 
     snapshot = vm.snapshot()
 
@@ -55,7 +56,8 @@ def _apply_homestead_create_message(vm, message):
                         encode_hex(message.storage_address),
                         contract_code,
                     )
-                computation.state_db.set_code(message.storage_address, contract_code)
+                with vm.state_db() as state_db:
+                    state_db.set_code(message.storage_address, contract_code)
         return computation
 
 

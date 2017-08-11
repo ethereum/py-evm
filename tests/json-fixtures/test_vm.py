@@ -142,8 +142,10 @@ def test_vm_fixtures(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
     )
     chain = ChainForTesting(db=db, header=header)
-    state_db = setup_state_db(fixture['pre'], chain.get_state_db())
-    chain.header.state_root = state_db.root_hash
+    vm = chain.get_vm()
+    with vm.state_db() as state_db:
+        setup_state_db(fixture['pre'], state_db)
+        code = state_db.get_code(fixture['exec']['address'])
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -151,11 +153,10 @@ def test_vm_fixtures(fixture_name, fixture):
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
-        code=chain.get_state_db().get_code(fixture['exec']['address']),
+        code=code,
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    vm = chain.get_vm()
     computation = vm.apply_computation(message)
 
     if 'post' in fixture:
@@ -207,4 +208,5 @@ def test_vm_fixtures(fixture_name, fixture):
         assert isinstance(computation.error, VMError)
         post_state = fixture['pre']
 
-    verify_state_db(post_state, vm.state_db)
+    with vm.state_db(read_only=True) as state_db:
+        verify_state_db(post_state, state_db)

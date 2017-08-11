@@ -372,7 +372,6 @@ def setup_state_db(desired_state, state_db):
         state_db.set_nonce(account, nonce)
         state_db.set_code(account, code)
         state_db.set_balance(account, balance)
-    return state_db
 
 
 def verify_state_db(expected_state, state_db):

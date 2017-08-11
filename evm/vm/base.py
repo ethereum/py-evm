@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 import logging
 
 from evm.constants import (
@@ -56,19 +57,17 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
-    _block = None
-    state_db = None
-
-    @property
-    def block(self):
-        if self._block is None:
-            raise AttributeError("No block property set")
-        return self._block
-
-    @block.setter
-    def block(self, value):
-        self._block = value
-        self.state_db = State(db=self.db, root_hash=value.header.state_root)
+    @contextmanager
+    def state_db(self, read_only=False):
+        state = State(db=self.db, root_hash=self.block.header.state_root)
+        yield state
+        if read_only:
+            # TODO: This is a bit of a hack; ideally we should raise an error whenever the
+            # callsite tries to call a State method that modifies it.
+            assert state.root_hash == self.block.header.state_root
+        elif self.block.header.state_root != state.root_hash:
+            self.logger.debug("Updating block's state_root to %s", state.root_hash)
+            self.block.header.state_root = state.root_hash
 
     #
     # Logging
@@ -85,12 +84,7 @@ class VM(object):
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
-        # NOTE: mutation. Needed in order to update self.state_db, so we should be able to get rid
-        # of this once we fix https://github.com/pipermerriam/py-evm/issues/67
-        self.block = self.block.add_transaction(
-            transaction=transaction,
-            computation=computation,
-        )
+        self.block.add_transaction(transaction, computation)
         return computation
 
     def execute_transaction(self, transaction):
@@ -151,12 +145,15 @@ class VM(object):
         block = self.block
         block.mine(*args, **kwargs)
 
-        if block.number > 0:
-            block_reward = self.get_block_reward(block.number) + (
-                len(block.uncles) * self.get_nephew_reward(block.number)
-            )
+        if block.number == 0:
+            return block
 
-            self.state_db.delta_balance(block.header.coinbase, block_reward)
+        block_reward = self.get_block_reward(block.number) + (
+            len(block.uncles) * self.get_nephew_reward(block.number)
+        )
+
+        with self.state_db() as state_db:
+            state_db.delta_balance(block.header.coinbase, block_reward)
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",
                 block_reward,
@@ -167,16 +164,12 @@ class VM(object):
                 uncle_reward = BLOCK_REWARD * (
                     UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block.number
                 ) // UNCLE_DEPTH_PENALTY_FACTOR
-                self.state_db.delta_balance(uncle.coinbase, uncle_reward)
+                state_db.delta_balance(uncle.coinbase, uncle_reward)
                 self.logger.debug(
                     "UNCLE REWARD REWARD: %s -> %s",
                     uncle_reward,
                     uncle.coinbase,
                 )
-
-            self.logger.debug('BEFORE ROOT: %s', block.header.state_root)
-            block.header.state_root = self.state_db.root_hash
-            self.logger.debug('STATE_ROOT: %s', block.header.state_root)
 
         return block
 
@@ -264,7 +257,8 @@ class VM(object):
 
         TODO: This needs to do more than just snapshot the state_db but this is a start.
         """
-        return self.state_db.snapshot()
+        with self.state_db(read_only=True) as state_db:
+            return state_db.snapshot()
 
     def revert(self, snapshot):
         """
@@ -272,7 +266,8 @@ class VM(object):
 
         TODO: This needs to do more than just snapshot the state_db but this is a start.
         """
-        return self.state_db.revert(snapshot)
+        with self.state_db() as state_db:
+            return state_db.revert(snapshot)
 
     #
     # Opcode API

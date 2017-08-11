@@ -96,12 +96,6 @@ class Chain(object):
     #
     # Convenience and Helpers
     #
-    def get_state_db(self):
-        """
-        Passthrough helper to the current VM class.
-        """
-        return self.get_vm().state_db
-
     def get_block(self):
         """
         Passthrough helper to the current VM class.

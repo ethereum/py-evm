@@ -68,11 +68,12 @@ def configure_homestead_header(vm, **header_params):
     # there we'd need to manually instantiate the State and update
     # header.state_root after we're done.
     if vm.support_dao_fork and header.block_number == vm.dao_fork_block_number:
-        for account in dao_drain_list:
-            account = decode_hex(account)
-            balance = vm.state_db.get_balance(account)
-            vm.state_db.delta_balance(dao_refund_contract, balance)
-            vm.state_db.set_balance(account, 0)
+        with vm.state_db() as state_db:
+            for account in dao_drain_list:
+                account = decode_hex(account)
+                balance = state_db.get_balance(account)
+                state_db.delta_balance(dao_refund_contract, balance)
+                state_db.set_balance(account, 0)
 
     return header
 

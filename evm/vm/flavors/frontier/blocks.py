@@ -278,7 +278,7 @@ class FrontierBlock(BaseBlock):
         gas_used = self.header.gas_used + tx_gas_used
 
         receipt = Receipt(
-            state_root=computation.state_db.root_hash,
+            state_root=self.header.state_root,
             gas_used=gas_used,
             logs=logs,
         )
@@ -295,7 +295,6 @@ class FrontierBlock(BaseBlock):
         self.bloom_filter |= receipt.bloom
 
         self.header.transaction_root = self.transaction_db.root_hash
-        self.header.state_root = computation.state_db.root_hash
         self.header.receipt_root = self.receipt_db.root_hash
         self.header.bloom = int(self.bloom_filter)
         self.header.gas_used = gas_used
