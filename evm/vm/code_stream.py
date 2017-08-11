@@ -71,31 +71,31 @@ class CodeStream(object):
         # if position longer than bytecode return false
         if position >= len(self):
             return False
-        
+
         # return false if position already in val_cache
-        if position in self._validity_cache: 
+        if position in self._validity_cache:
             return False
         # return true if position not in val_cache but has been parsed
-        if position <= self.deepest: 
+        if position <= self.deepest:
             return True
         else:
             # set counter to deepest parsed position
             i = self.deepest
             while i <= position:
-                # get opcode 
+                # get opcode
                 with self.seek(i):
                     opcode = self.next()
                 # if opcode = pushxx
                 if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
                     # add range(xx) to val_cache
-                    self._validity_cache.update(range((i+1), ((i+1) + (opcode - 95))))
+                    self._validity_cache.update(range((i + 1), ((i + 1) + (opcode - 95))))
                     # increment counter to end of invalid bytes
                     i += (1 + (opcode - 95))
                 else:
                     # if opcode != pushxx : update deepest processed and increment counter
                     self.deepest = i
                     i += 1
-            
+
             if position in self._validity_cache:
                 return False
             else:
