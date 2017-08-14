@@ -10,15 +10,15 @@ from evm.validation import (
 
 class CodeStream(object):
     stream = None
-    deepest = None
+    depth_processed = None
 
     logger = logging.getLogger('evm.vm.CodeStream')
 
     def __init__(self, code_bytes):
         validate_is_bytes(code_bytes)
         self.stream = io.BytesIO(code_bytes)
-        self._validity_cache = set(range(0))
-        self.deepest = 0
+        self.invalid_positions = set()
+        self.depth_processed = 0
 
     def read(self, size):
         return self.stream.read(size)
@@ -31,6 +31,9 @@ class CodeStream(object):
 
     def __next__(self):
         return self.next()
+
+    def __getitem__(self, i):
+        return self.stream.getvalue()[i]
 
     def next(self):
         next_opcode_as_byte = self.read(1)
@@ -65,38 +68,30 @@ class CodeStream(object):
         finally:
             self.pc = anchor_pc
 
-    _validity_cache = None
+    invalid_positions = None
 
     def is_valid_opcode(self, position):
-        # if position longer than bytecode return false
         if position >= len(self):
             return False
-
-        # return false if position already in val_cache
-        if position in self._validity_cache:
+        if position in self.invalid_positions:
             return False
-        # return true if position not in val_cache but has been parsed
-        if position <= self.deepest:
+        if position <= self.depth_processed:
             return True
         else:
-            # set counter to deepest parsed position
-            i = self.deepest
+            i = self.depth_processed
             while i <= position:
-                # get opcode
-                with self.seek(i):
-                    opcode = self.next()
-                # if opcode = pushxx
+                opcode = self.__getitem__(i)
                 if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
-                    # add range(xx) to val_cache
-                    self._validity_cache.update(range((i + 1), ((i + 1) + (opcode - 95))))
-                    # increment counter to end of invalid bytes
-                    i += (1 + (opcode - 95))
+                    left_bound = (i + 1)
+                    right_bound = left_bound + (opcode - 95)
+                    invalid_range = range(left_bound, right_bound)
+                    self.invalid_positions.update(invalid_range)
+                    i = right_bound
                 else:
-                    # if opcode != pushxx : update deepest processed and increment counter
-                    self.deepest = i
+                    self.depth_processed = i
                     i += 1
 
-            if position in self._validity_cache:
+            if position in self.invalid_positions:
                 return False
             else:
                 return True
