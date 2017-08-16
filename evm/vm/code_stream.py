@@ -10,13 +10,15 @@ from evm.validation import (
 
 class CodeStream(object):
     stream = None
+    depth_processed = None
 
     logger = logging.getLogger('evm.vm.CodeStream')
 
     def __init__(self, code_bytes):
         validate_is_bytes(code_bytes)
         self.stream = io.BytesIO(code_bytes)
-        self._validity_cache = {}
+        self.invalid_positions = set()
+        self.depth_processed = 0
 
     def read(self, size):
         return self.stream.read(size)
@@ -29,6 +31,9 @@ class CodeStream(object):
 
     def __next__(self):
         return self.next()
+
+    def __getitem__(self, i):
+        return self.stream.getvalue()[i]
 
     def next(self):
         next_opcode_as_byte = self.read(1)
@@ -63,31 +68,30 @@ class CodeStream(object):
         finally:
             self.pc = anchor_pc
 
-    _validity_cache = None
+    invalid_positions = None
 
     def is_valid_opcode(self, position):
         if position >= len(self):
             return False
+        if position in self.invalid_positions:
+            return False
+        if position <= self.depth_processed:
+            return True
+        else:
+            i = self.depth_processed
+            while i <= position:
+                opcode = self.__getitem__(i)
+                if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
+                    left_bound = (i + 1)
+                    right_bound = left_bound + (opcode - 95)
+                    invalid_range = range(left_bound, right_bound)
+                    self.invalid_positions.update(invalid_range)
+                    i = right_bound
+                else:
+                    self.depth_processed = i
+                    i += 1
 
-        if position not in self._validity_cache:
-            with self.seek(max(0, position - 32)):
-                prefix = self.read(min(position, 32))
-
-            for offset, opcode in enumerate(reversed(prefix)):
-                if opcode < opcode_values.PUSH1 or opcode > opcode_values.PUSH32:
-                    continue
-
-                push_size = 1 + opcode - opcode_values.PUSH1
-                if push_size <= offset:
-                    continue
-
-                opcode_position = position - 1 - offset
-                if not self.is_valid_opcode(opcode_position):
-                    continue
-
-                self._validity_cache[position] = False
-                break
+            if position in self.invalid_positions:
+                return False
             else:
-                self._validity_cache[position] = True
-
-        return self._validity_cache[position]
+                return True
