@@ -101,8 +101,6 @@ class Node(kademlia.Node):
         super(Node, self).__init__(pubkey)
         assert address is None or isinstance(address, Address)
         self.address = address
-        self.reputation = 0
-        self.rlpx_version = 0
 
     @classmethod
     def from_uri(cls, uri):
@@ -176,6 +174,14 @@ def devp2p_ecdsa_recover(message, signature):
     return pk.format(compressed=False)[1:]
 
 
+# TODO(gsalgado): draw a dependency diagram of those things and see how it can be improved;
+# currently:
+#    DiscoveryProtocol contains a KademliaProtocol (.kademlia)
+#        -> also has a reference to NodeDiscovery (.transport)
+#        -> all recv_* methods here delegate to KademliaProtocol
+#    KademliaProtocol contains a DiscoveryProtocol (.wire)
+#        -> .ping(), .recv_ping(), find_node(), recv_neighbours(), recv_find_node()
+#           and _query_neighbours() delegate to DiscoveryProtocol
 class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     """
@@ -184,6 +190,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     The date should be interpreted as a UNIX timestamp.
     The receiver should discard any packet whose `Expiration` value is in the past.
     """
+    bootstrapped = False
     version = 4
     expiration = 60  # let messages expire after N secondes
     cmd_id_map = dict(ping=1, pong=2, find_node=3, neighbours=4)
@@ -199,16 +206,43 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     decoders = dict(cmd_id=safe_ord,
                     expiration=rlp.sedes.big_endian_int.deserialize)
 
-    def __init__(self, transport):
-        self.transport = transport
+    def __init__(self):
         self.privkey = decode_hex(config['privkey_hex'])
         self.pubkey = private_key_to_public_key(self.privkey)
         self.nodes = LRUCache(2048)   # nodeid->Node,  fixme should be loaded
-        self.this_node = Node(self.pubkey, self.transport.address)
+        self.this_node = Node(self.pubkey, Address(config['listen_host'], config['listen_port']))
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
         this_enode = host_port_pubkey_to_uri(
             config['listen_host'], config['listen_port'], self.pubkey)
+        self.nat_upnp = add_portmap(config['listen_port'], 'UDP', 'Ethereum DEVP2P Discovery')
         log.info('starting discovery proto', this_enode=this_enode)
+
+    def connection_made(self, transport):
+        log.info('connection_made()')
+        self.transport = transport
+        if not self.bootstrapped:
+            # XXX: Is this the right place to run the bootstrap?
+            self.bootstrapped = True
+            nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
+            if nodes:
+                asyncio.ensure_future(self.kademlia.bootstrap(nodes))
+
+    def datagram_received(self, data, addr):
+        asyncio.ensure_future(self.receive(
+            Address(ip=addr[0], udp_port=addr[1]), data))
+
+    def error_received(self, exc):
+        log.warn('error received', err=exc)
+
+    @asyncio.coroutine
+    def send(self, node, message):
+        assert node.address
+        self.transport.sendto(message, (node.address.ip, node.address.udp_port))
+
+    def stop(self):
+        log.info('stopping discovery')
+        self.transport.close()
+        remove_portmap(self.nat_upnp, config['listen_port'], 'UDP')
 
     def get_node(self, nodeid, address=None):
         "return node or create new, update address if supplied"
@@ -311,11 +345,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         log.debug("Dispatching received message", local=self.this_node, remoteid=remote,
                   cmd=self.rev_cmd_id_map[cmd_id])
         yield from cmd(nodeid, payload, mdc)
-
-    @asyncio.coroutine
-    def send(self, node, message):
-        assert node.address
-        yield self.transport.send(node.address, message)
 
     @asyncio.coroutine
     def send_ping(self, node):
@@ -496,37 +525,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         yield from self.send(node, message)
 
 
-class NodeDiscovery():
-    bootstrapped = False
-
-    def __init__(self):
-        self.address = Address(config['listen_host'], config['listen_port'])
-        self.protocol = DiscoveryProtocol(transport=self)
-        self.nat_upnp = add_portmap(config['listen_port'], 'UDP', 'Ethereum DEVP2P Discovery')
-
-    def connection_made(self, transport):
-        log.info('connection_made()')
-        self.transport = transport
-        if not self.bootstrapped:
-            # XXX: Is this the right place to run the bootstrap?
-            self.bootstrapped = True
-            nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
-            if nodes:
-                asyncio.ensure_future(self.protocol.kademlia.bootstrap(nodes))
-
-    def send(self, address, message):
-        self.transport.sendto(message, (address.ip, address.udp_port))
-
-    def datagram_received(self, data, addr):
-        asyncio.ensure_future(self.protocol.receive(
-            Address(ip=addr[0], udp_port=addr[1]), data))
-
-    def stop(self):
-        log.info('stopping discovery')
-        self.transport.close()
-        remove_portmap(self.nat_upnp, config['listen_port'], 'UDP')
-
-
 config = {
     'privkey_hex': '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
     # 'privkey_hex': '45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8',
@@ -545,17 +543,31 @@ config = {
 }
 
 
+@asyncio.coroutine
+def show_tasks():
+    while True:
+        tasks = []
+        for task in asyncio.Task.all_tasks():
+            if task._coro.__name__ != "show_tasks":
+                tasks.append(task._coro.__name__)
+        if tasks:
+            log.debug("Active tasks: {}".format(tasks))
+        yield from asyncio.sleep(1)
+
+
 if __name__ == "__main__":
     import logging
-    logging.getLogger('asyncio').setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
+    # logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
+    task_monitor = asyncio.ensure_future(show_tasks())
 
     from structlog import get_logger
     log = get_logger()
 
-    discovery = NodeDiscovery()
+    discovery = DiscoveryProtocol()
     ip = config['listen_host']
     port = config['listen_port']
     listen = loop.create_datagram_endpoint(lambda: discovery, local_addr=(ip, port))
@@ -565,6 +577,7 @@ if __name__ == "__main__":
         loop.run_forever()
     except KeyboardInterrupt:
         pass
-    log.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
+    task_monitor.set_result(None)
     discovery.stop()
+    # log.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
     loop.close()
