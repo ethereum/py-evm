@@ -54,9 +54,6 @@ class Node(object):
             assert k_id_size == 256
             self.id = big_endian_to_int(keccak(pubkey))
 
-    def distance(self, other):
-        return self.id ^ other.id
-
     def id_distance(self, id):
         return self.id ^ id
 
@@ -97,15 +94,8 @@ class KBucket(object):
         self.last_updated = time.time()
 
     @property
-    def range(self):
-        return self.start, self.end
-
-    @property
     def midpoint(self):
         return self.start + (self.end - self.start) // 2
-
-    def distance(self, node):
-        return self.midpoint ^ node.id
 
     def id_distance(self, id):
         return self.midpoint ^ id
@@ -113,11 +103,6 @@ class KBucket(object):
     def nodes_by_id_distance(self, id):
         assert is_integer(id)
         return sorted(self.nodes, key=operator.methodcaller('id_distance', id))
-
-    @property
-    def should_split(self):
-        depth = self.depth
-        return self.is_full and (depth % k_b != 0 and depth != k_id_size)
 
     def split(self):
         "split at the median id"
@@ -177,11 +162,6 @@ class KBucket(object):
     def head(self):
         "least recently seen"
         return self.nodes[0]
-
-    @property
-    def tail(self):
-        "last recently seen"
-        return self.nodes[-1]
 
     @property
     def depth(self):
@@ -259,10 +239,6 @@ class RoutingTable(object):
         assert is_integer(id)
         return sorted(self.buckets, key=operator.methodcaller('id_distance', id))
 
-    def buckets_by_distance(self, node):
-        assert isinstance(node, Node)
-        return self.buckets_by_id_distance(node.id)
-
     def __contains__(self, node):
         return node in self.bucket_by_node(node)
 
@@ -291,17 +267,8 @@ class RoutingTable(object):
                         break
         return sorted(nodes, key=operator.methodcaller('id_distance', node))[:k]
 
-    def neighbours_within_distance(self, id, distance):
-        """
-        naive correct version simply compares all nodes
-        """
-        assert is_integer(id)
-        nodes = list(n for n in self if n.id_distance(id) <= distance)
-        return sorted(nodes, key=operator.methodcaller('id_distance', id))
 
-
-# XXX: Should this be a asyncio.DatagramProtocol?
-class KademliaProtocol(object):
+class KademliaProtocol():
 
     def __init__(self, node, wire):
         assert isinstance(node, Node)  # the local node
