@@ -13,7 +13,6 @@ the idle bucket-refresh interval is 3600 seconds.
 Aside from the previously described exclusions, node discovery closely follows system
 and protocol described by Maymounkov and Mazieres.
 """
-import asyncio
 import operator
 import random
 import time
@@ -279,16 +278,14 @@ class KademliaProtocol():
         self._find_requests = dict()  # nodeid -> timeout
         self._deleted_pingids = set()
 
-    @asyncio.coroutine
     def bootstrap(self, nodes):
         assert isinstance(nodes, list)
         for node in nodes:
             if node == self.this_node:
                 continue
             self.routing.add_node(node)
-            yield from self.find_node(self.this_node.id, via_node=node)
+            self.find_node(self.this_node.id, via_node=node)
 
-    @asyncio.coroutine
     def update(self, node, pingid=None):
         """
         When a Kademlia node receives any message (request or reply) from another node,
@@ -348,12 +345,12 @@ class KademliaProtocol():
         eviction_candidate = self.routing.add_node(node)
         if eviction_candidate:
             # protocol should ping bucket head and evict if there is no response
-            yield from self.ping(eviction_candidate, replacement=node)
+            self.ping(eviction_candidate, replacement=node)
 
         # check for not full buckets and ping replacements
         for bucket in self.routing.not_full_buckets:
             for node in bucket.replacement_cache:
-                yield from self.ping(node)
+                self.ping(node)
 
         # check idle buckets
         """
@@ -363,7 +360,7 @@ class KademliaProtocol():
         """
         for bucket in self.routing.idle_buckets:
             rid = random.randint(bucket.start, bucket.end)
-            yield from self.find_node(rid)
+            self.find_node(rid)
 
         # check and removed timed out find requests
         self._find_requests = {
@@ -376,7 +373,6 @@ class KademliaProtocol():
         pid = str_to_bytes(echoed) + node.pubkey
         return pid
 
-    @asyncio.coroutine
     def ping(self, node, replacement=None):
         """
         successful pings should lead to an update
@@ -385,13 +381,12 @@ class KademliaProtocol():
         """
         assert isinstance(node, Node)
         assert node != self.this_node
-        echoed = yield from self.wire.send_ping(node)
+        echoed = self.wire.send_ping(node)
         pingid = self._mkpingid(echoed, node)
         assert pingid
         timeout = time.time() + k_request_timeout
         self._expected_pongs[pingid] = (timeout, node, replacement)
 
-    @asyncio.coroutine
     def recv_ping(self, remote, echo):
         "udp addresses determined by socket address of revd Ping packets"  # ok
         "tcp addresses determined by contents of Ping packet"  # not yet
@@ -399,10 +394,9 @@ class KademliaProtocol():
         assert isinstance(remote, Node)
         if remote == self.this_node:
             return
-        yield from self.update(remote)
-        yield from self.wire.send_pong(remote, echo)
+        self.update(remote)
+        self.wire.send_pong(remote, echo)
 
-    @asyncio.coroutine
     def recv_pong(self, remote, echoed):
         "tcp addresses are only updated upon receipt of Pong packet"
         log.debug('<<< pong', remoteid=remote)
@@ -414,26 +408,23 @@ class KademliaProtocol():
             if nnodes and nnodes[0] == remote:
                 nnodes[0].address = remote.address  # updated tcp address
         # update rest
-        yield from self.update(remote, pingid)
+        self.update(remote, pingid)
 
-    @asyncio.coroutine
     def _query_neighbours(self, targetid):
         for n in self.routing.neighbours(targetid)[:k_find_concurrency]:
-            yield from self.wire.send_find_node(n, targetid)
+            self.wire.send_find_node(n, targetid)
 
-    @asyncio.coroutine
     def find_node(self, targetid, via_node=None):
         # FIXME, amplification attack (need to ping pong ping pong first)
         assert is_integer(targetid)
         assert not via_node or isinstance(via_node, Node)
         self._find_requests[targetid] = time.time() + k_request_timeout
         if via_node:
-            yield from self.wire.send_find_node(via_node, targetid)
+            self.wire.send_find_node(via_node, targetid)
         else:
-            yield from self._query_neighbours(targetid)
+            self._query_neighbours(targetid)
         # FIXME, should we return the closest node (allow callbacks on find_request)
 
-    @asyncio.coroutine
     def recv_neighbours(self, remote, neighbours):
         """
         if one of the neighbours is closer than the closest known neighbour
@@ -458,18 +449,17 @@ class KademliaProtocol():
                 for close_node in closest[:k_find_concurrency]:
                     if not closest_known or \
                             close_node.id_distance(nodeid) < closest_known.id_distance(nodeid):
-                        yield from self.wire.send_find_node(close_node, nodeid)
+                        self.wire.send_find_node(close_node, nodeid)
 
         # add all nodes to the list
         for node in neighbours:
             if node != self.this_node:
-                yield from self.ping(node)
+                self.ping(node)
 
-    @asyncio.coroutine
     def recv_find_node(self, remote, targetid):
         # FIXME, amplification attack (need to ping pong ping pong first)
         assert isinstance(remote, Node)
         assert is_integer(targetid)
-        yield from self.update(remote)
+        self.update(remote)
         found = self.routing.neighbours(targetid)
-        yield from self.wire.send_neighbours(remote, found)
+        self.wire.send_neighbours(remote, found)
