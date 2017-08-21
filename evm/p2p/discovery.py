@@ -225,16 +225,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.bootstrapped = True
             nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
             if nodes:
-                asyncio.ensure_future(self.kademlia.bootstrap(nodes))
+                self.kademlia.bootstrap(nodes)
 
     def datagram_received(self, data, addr):
-        asyncio.ensure_future(self.receive(
-            Address(ip=addr[0], udp_port=addr[1]), data))
+        self.receive(Address(ip=addr[0], udp_port=addr[1]), data)
 
     def error_received(self, exc):
         log.warn('error received', err=exc)
 
-    @asyncio.coroutine
     def send(self, node, message):
         assert node.address
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
@@ -326,7 +324,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         payload = payload[:self.cmd_elem_count_map.get(cmd, len(payload))]
         return remote_pubkey, cmd_id, payload, mdc
 
-    @asyncio.coroutine
     def receive(self, address, message):
         assert isinstance(address, Address)
         try:
@@ -344,9 +341,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         remote = self.get_node(nodeid, address)
         log.debug("Dispatching received message", local=self.this_node, remoteid=remote,
                   cmd=self.rev_cmd_id_map[cmd_id])
-        yield from cmd(nodeid, payload, mdc)
+        cmd(nodeid, payload, mdc)
 
-    @asyncio.coroutine
     def send_ping(self, node):
         """
         ### Ping (type 0x01)
@@ -385,10 +381,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                    node.address.to_endpoint()]
         assert len(payload) == 3
         message = self.pack(self.cmd_id_map['ping'], payload)
-        yield from self.send(node, message)
+        self.send(node, message)
         return message[:32]  # return the MDC to identify pongs
 
-    @asyncio.coroutine
     def recv_pong(self, nodeid, payload, mdc):
         if not len(payload) == 2:
             log.error('invalid pong payload', payload=payload)
@@ -400,11 +395,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         echoed = payload[1]
         if self.nodes.get(nodeid):
             node = self.get_node(nodeid)
-            yield from self.kademlia.recv_pong(node, echoed)
+            self.kademlia.recv_pong(node, echoed)
         else:
             log.debug('<<< unexpected pong from unkown node')
 
-    @asyncio.coroutine
     def send_find_node(self, node, target_node_id):
         """
         ### Find Node (type 0x03)
@@ -427,9 +421,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         assert len(target_node_id) == kademlia.k_pubkey_size // 8
         log.debug('>>> find_node', remoteid=node)
         message = self.pack(self.cmd_id_map['find_node'], [target_node_id])
-        yield from self.send(node, message)
+        self.send(node, message)
 
-    @asyncio.coroutine
     def recv_neighbours(self, nodeid, payload, mdc):
         remote = self.get_node(nodeid)
         assert len(payload) == 1
@@ -444,10 +437,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             assert node.address
             neighbours.append(node)
 
-        yield from self.kademlia.recv_neighbours(remote, neighbours)
+        self.kademlia.recv_neighbours(remote, neighbours)
 
     # NOTE(gsalgado): Does a light client need to listen/reply to those messages? Need to find out
-    @asyncio.coroutine
     def recv_ping(self, nodeid, payload, mdc):
         """
         update ip, port in node table
@@ -460,9 +452,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         remote_address = Address.from_endpoint(*payload[1])  # from address
         # my_address = Address.from_endpoint(*payload[2])  # my address
         self.get_node(nodeid).address.update(remote_address)
-        yield from self.kademlia.recv_ping(node, echo=mdc)
+        self.kademlia.recv_ping(node, echo=mdc)
 
-    @asyncio.coroutine
     def send_pong(self, node, token):
         """
         ### Pong (type 0x02)
@@ -481,17 +472,15 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         payload = [node.address.to_endpoint(), token]
         assert len(payload[0][0]) in (4, 16), payload
         message = self.pack(self.cmd_id_map['pong'], payload)
-        yield from self.send(node, message)
+        self.send(node, message)
 
-    @asyncio.coroutine
     def recv_find_node(self, nodeid, payload, mdc):
         node = self.get_node(nodeid)
         log.debug('<<< find_node', remoteid=node)
         assert len(payload[0]) == kademlia.k_pubkey_size / 8
         target = big_endian_to_int(payload[0])
-        yield from self.kademlia.recv_find_node(node, target)
+        self.kademlia.recv_find_node(node, target)
 
-    @asyncio.coroutine
     def send_neighbours(self, node, neighbours):
         """
         ### Neighbors (type 0x04)
@@ -522,7 +511,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                   neighbours=neighbours)
         # FIXME: don't brake udp packet size / chunk message / also when receiving
         message = self.pack(self.cmd_id_map['neighbours'], [nodes[:12]])  # FIXME
-        yield from self.send(node, message)
+        self.send(node, message)
 
 
 config = {
@@ -552,17 +541,15 @@ def show_tasks():
                 tasks.append(task._coro.__name__)
         if tasks:
             log.debug("Active tasks: {}".format(tasks))
-        yield from asyncio.sleep(1)
+        yield from asyncio.sleep(3)
 
 
 if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG)
-    # logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
-    task_monitor = asyncio.ensure_future(show_tasks())
 
     from structlog import get_logger
     log = get_logger()
@@ -570,9 +557,13 @@ if __name__ == "__main__":
     discovery = DiscoveryProtocol()
     ip = config['listen_host']
     port = config['listen_port']
-    listen = loop.create_datagram_endpoint(lambda: discovery, local_addr=(ip, port))
-    _, _ = loop.run_until_complete(listen)
 
+    # This will cause DiscoveryProtocol to start listening locally *and* also initiate the
+    # discovery bootstrap process (via the connection_made() method).
+    listen = loop.create_datagram_endpoint(lambda: discovery, local_addr=(ip, port))
+    loop.run_until_complete(listen)
+
+    task_monitor = asyncio.ensure_future(show_tasks())
     try:
         loop.run_forever()
     except KeyboardInterrupt:
