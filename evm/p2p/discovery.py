@@ -164,29 +164,16 @@ All requests time out after are 300ms. Requests are not re-sent.
 
 
 def devp2p_ecdsa_sign(msghash, privkey):
-    from secp256k1 import PrivateKey
-    from rlp.utils import ascii_chr
-    assert len(msghash) == 32
-    pk = PrivateKey(privkey, raw=True)
-    signature = pk.ecdsa_recoverable_serialize(
-        pk.ecdsa_sign_recoverable(
-            msghash, raw=True))
-    new = signature[0] + ascii_chr(signature[1])
-    return new
+    from coincurve import PrivateKey
+    pk = PrivateKey(privkey)
+    return pk.sign_recoverable(msghash, hasher=None)
 
 
 def devp2p_ecdsa_recover(message, signature):
+    from coincurve import PublicKey
     assert len(signature) == 65
-    from secp256k1 import PublicKey, ALL_FLAGS
-    pk = PublicKey(flags=ALL_FLAGS)
-    pk.public_key = pk.ecdsa_recover(
-        message,
-        pk.ecdsa_recoverable_deserialize(
-            signature[:64],
-            safe_ord(signature[64])),
-        raw=True
-    )
-    return pk.serialize(compressed=False)[1:]
+    pk = PublicKey.from_signature_and_message(signature, message, hasher=None)
+    return pk.format(compressed=False)[1:]
 
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
