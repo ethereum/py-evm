@@ -27,4 +27,8 @@ def private_key_to_address(private_key):
 
 
 def public_key_to_address(public_key):
-    return keccak(public_key[1:])[-20:]
+    if len(public_key) != 64:
+        raise ValueError(
+            "Unexpected public key format: {}. Public keys must be 64 bytes long and must not "
+            "include the fixed \x04 prefix".format(public_key))
+    return keccak(public_key)[-20:]

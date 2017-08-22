@@ -49,11 +49,11 @@ class BadSignature(ValueError):
 
 
 def encode_signature(v, r, s):
-    vb = int_to_byte(v)
+    vb = int_to_byte(v - 27)
     rb = pad32(int_to_big_endian(r))
     sb = pad32(int_to_big_endian(s))
 
-    return b''.join((vb, rb, sb))
+    return b''.join((rb, sb, vb))
 
 
 def decode_signature(signature):
@@ -64,13 +64,9 @@ def decode_signature(signature):
             "signature must be exactly 65 bytes in length: got {0}".format(len(signature))
         )
 
-    rb = signature[1:33]
-    sb = signature[33:65]
-
-    v = signature[0]
-    r = big_endian_to_int(rb)
-    s = big_endian_to_int(sb)
-
+    r = big_endian_to_int(signature[0:32])
+    s = big_endian_to_int(signature[32:64])
+    v = signature[64] + 27
     return v, r, s
 
 

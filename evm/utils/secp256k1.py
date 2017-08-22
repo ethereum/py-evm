@@ -19,15 +19,18 @@ from .padding import (
 
 
 def decode_public_key(public_key):
-    left = big_endian_to_int(public_key[1:33])
-    right = big_endian_to_int(public_key[33:65])
+    if len(public_key) != 64:
+        raise ValueError(
+            "Unexpected public key format: {}. Public keys must be 64 bytes long and must not "
+            "include the fixed \x04 prefix".format(public_key))
+    left = big_endian_to_int(public_key[0:32])
+    right = big_endian_to_int(public_key[32:64])
     return left, right
 
 
 def encode_raw_public_key(raw_public_key):
     left, right = raw_public_key
     return b''.join((
-        b'\x04',
         pad32(int_to_big_endian(left)),
         pad32(int_to_big_endian(right)),
     ))
