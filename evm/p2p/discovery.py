@@ -11,6 +11,10 @@ from repoze.lru import LRUCache
 from evm.p2p import kademlia
 from evm.p2p.p2p import host_port_pubkey_to_uri, host_port_pubkey_from_uri
 from evm.p2p.upnp import add_portmap, remove_portmap
+from evm.utils.ecdsa import (
+    ecdsa_recover,
+    ecdsa_sign,
+)
 from evm.utils.secp256k1 import private_key_to_public_key
 from evm.utils.keccak import keccak
 from evm.utils.numeric import (
@@ -161,19 +165,6 @@ All requests time out after are 300ms. Requests are not re-sent.
 """
 
 
-def devp2p_ecdsa_sign(msghash, privkey):
-    from coincurve import PrivateKey
-    pk = PrivateKey(privkey)
-    return pk.sign_recoverable(msghash, hasher=None)
-
-
-def devp2p_ecdsa_recover(message, signature):
-    from coincurve import PublicKey
-    assert len(signature) == 65
-    pk = PublicKey.from_signature_and_message(signature, message, hasher=None)
-    return pk.format(compressed=False)[1:]
-
-
 # TODO(gsalgado): draw a dependency diagram of those things and see how it can be improved;
 # currently:
 #    DiscoveryProtocol contains a KademliaProtocol (.kademlia)
@@ -225,6 +216,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.bootstrapped = True
             nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
             if nodes:
+                # XXX: geth will not process a find_node packet unless a bond exists between the
+                # nodes (introduced in de7af720d6bb10b93d716fb0c6cf3ee0e51dc71a), and to create a
+                # node a node must ping the other, so as a quick hack I ping all nodes before
+                # starting the bootstrap.
+                # list(map(self.send_ping, nodes))
                 self.kademlia.bootstrap(nodes)
 
     def datagram_received(self, data, addr):
@@ -291,9 +287,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         cmd_id = str_to_bytes(self.encoders['cmd_id'](cmd_id))
         expiration = self.encoders['expiration'](int(time.time() + self.expiration))
         encoded_data = cmd_id + rlp.encode(payload + [expiration])
-        # XXX (gsalgado): Need to figure out why we need to use devp2p_ecdsa_sign
-        signature = devp2p_ecdsa_sign(keccak(encoded_data), self.privkey)
-        # signature = ecdsa_sign(encoded_data, self.privkey)
+        signature = ecdsa_sign(encoded_data, self.privkey)
         assert len(signature) == 65
         mdc = keccak(signature + encoded_data)
         assert len(mdc) == 32
@@ -314,7 +308,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         signature = message[32:97]
         assert len(signature) == 65
         signed_data = keccak(message[97:])
-        remote_pubkey = devp2p_ecdsa_recover(signed_data, signature)
+        remote_pubkey = ecdsa_recover(signed_data, signature)
         assert len(remote_pubkey) == 512 / 8
         cmd_id = self.decoders['cmd_id'](message[97])
         cmd = self.rev_cmd_id_map[cmd_id]
@@ -521,8 +515,12 @@ config = {
     'listen_port': 30303,
     'p2p_listen_port': 30303,
     'bootstrap_nodes': [
-        b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
+        # Local geth bootnodes
+        b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
+        # Testnet bootnodes
+        # b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
         # b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
+        # Mainnet bootnodes
         # b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
         # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
         # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
