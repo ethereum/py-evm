@@ -1,26 +1,15 @@
 from .base import BaseECCBackend
 
 from evm.utils.ecdsa import (
+    decode_signature,
     encode_signature,
-)
-
-from evm.utils.numeric import (
-    big_endian_to_int,
-    safe_ord
-)
-
-from evm.constants import (
-    NULL_BYTE,
 )
 
 from evm.utils.keccak import (
     keccak,
 )
 
-from evm.utils.secp256k1 import (
-    decode_public_key,
-    encode_raw_public_key,
-)
+from evm.utils.secp256k1 import decode_public_key
 
 
 class CoinCurveECCBackend(BaseECCBackend):
@@ -40,42 +29,20 @@ class CoinCurveECCBackend(BaseECCBackend):
 
     def ecdsa_raw_sign(self, msg_hash, private_key):
         signature = self.keys.PrivateKey(private_key).sign_recoverable(msg_hash, hasher=None)
-        v = safe_ord(signature[64]) + 27
-        r = big_endian_to_int(signature[0:32])
-        s = big_endian_to_int(signature[32:64])
-        return v, r, s
+        return decode_signature(signature)
 
     def ecdsa_verify(self, msg, signature, public_key):
-        signature = signature[1:] + NULL_BYTE
-        signature = self.__recoverable_to_normal(signature)
-        return self.keys.PublicKey(public_key).verify(signature, msg, hasher=keccak)
+        return self.ecdsa_recover(msg, signature) == public_key
 
     def ecdsa_raw_verify(self, msg_hash, vrs, raw_public_key):
-        v, r, s = vrs
-        signature = encode_signature(v, r, s)[1:] + NULL_BYTE
-        signature = self.__recoverable_to_normal(signature)
-        public_key = encode_raw_public_key(raw_public_key)
-        return self.keys.PublicKey(public_key).verify(signature, msg_hash, hasher=None)
+        return self.ecdsa_raw_recover(msg_hash, vrs) == raw_public_key
 
     def ecdsa_recover(self, msg, signature):
-        signature = signature[1:] + NULL_BYTE
-        return self.keys.PublicKey.from_signature_and_message(signature,
-                                                              msg,
-                                                              hasher=keccak
-                                                              ).format(compressed=False)
+        return self.keys.PublicKey.from_signature_and_message(
+            signature, msg, hasher=keccak).format(compressed=False)[1:]
 
     def ecdsa_raw_recover(self, msg_hash, vrs):
-        v, r, s = vrs
-        signature = encode_signature(v, r, s)[1:] + NULL_BYTE
-        raw_public_key = self.keys.PublicKey.from_signature_and_message(signature,
-                                                                        msg_hash,
-                                                                        hasher=None
-                                                                        ).format(compressed=False)
-        return decode_public_key(raw_public_key)
-
-    def __recoverable_to_normal(self, signature):
-        return self.ecdsa.cdata_to_der(
-            self.ecdsa.recoverable_convert(
-                self.ecdsa.deserialize_recoverable(signature)
-            )
-        )
+        signature = encode_signature(*vrs)
+        public_key = self.keys.PublicKey.from_signature_and_message(
+            signature, msg_hash, hasher=None).format(compressed=False)[1:]
+        return decode_public_key(public_key)
