@@ -21,8 +21,6 @@ from evm.utils.numeric import (
     int_to_big_endian,
 )
 
-# XXX: Most of this code was lifted from pydevp2p
-
 
 class DefectiveMessage(Exception):
     pass
@@ -169,6 +167,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     The receiver should discard any packet whose `Expiration` value is in the past.
     """
     bootstrapped = False
+    transport = None
     version = 4
     expiration = 60  # let messages expire after N secondes
     cmd_id_map = dict(ping=1, pong=2, find_node=3, neighbours=4)
@@ -184,23 +183,35 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     decoders = dict(cmd_id=safe_ord,
                     expiration=rlp.sedes.big_endian_int.deserialize)
 
-    def __init__(self):
-        self.privkey = decode_hex(config['privkey_hex'])
+    def __init__(self, privkey, address, bootstrap_nodes):
+        self.privkey = privkey
         self.pubkey = private_key_to_public_key(self.privkey)
+        self.address = address
+        self.bootstrap_nodes = bootstrap_nodes
+        self.this_node = Node(self.pubkey, address)
         self.nodes = LRUCache(2048)   # nodeid->Node,  fixme should be loaded
-        self.this_node = Node(self.pubkey, Address(config['listen_host'], config['listen_port']))
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
-        self.nat_upnp = add_portmap(config['listen_port'], 'UDP', 'Ethereum DEVP2P Discovery')
+        self.nat_upnp = add_portmap(address.udp_port, 'UDP', 'Ethereum DEVP2P Discovery')
+
+    def listen(self, loop):
+        return loop.create_datagram_endpoint(
+            lambda: self, local_addr=(self.address.ip, self.address.udp_port))
 
     def connection_made(self, transport):
-        log.info('connection_made()')
         self.transport = transport
-        if not self.bootstrapped:
-            # XXX: Is this the right place to run the bootstrap?
-            self.bootstrapped = True
-            nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
-            if nodes:
-                self.kademlia.bootstrap(nodes)
+
+    def bootstrap(self):
+        if self.bootstrapped or len(self.bootstrap_nodes) == 0:
+            return
+        while self.transport is None:
+            yield from asyncio.sleep(1)
+        self.bootstrapped = True
+        # XXX: geth will not process a find_node packet unless a bond exists between the
+        # nodes (introduced in de7af720d6bb10b93d716fb0c6cf3ee0e51dc71a), and to create a
+        # node a node must ping the other, so as a quick hack I ping all nodes before
+        # starting the bootstrap.
+        list(map(self.send_ping, self.bootstrap_nodes))
+        self.kademlia.bootstrap(self.bootstrap_nodes)
 
     def datagram_received(self, data, addr):
         self.receive(Address(ip=addr[0], udp_port=addr[1]), data)
@@ -215,7 +226,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def stop(self):
         log.info('stopping discovery')
         self.transport.close()
-        remove_portmap(self.nat_upnp, config['listen_port'], 'UDP')
+        remove_portmap(self.nat_upnp, self.address.udp_port, 'UDP')
 
     def get_node(self, nodeid, address=None):
         "return node or create new, update address if supplied"
@@ -346,13 +357,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         assert isinstance(node, type(self.this_node)) and node != self.this_node
         log.debug('>>> ping', remoteid=node)
         version = rlp.sedes.big_endian_int.serialize(self.version)
-        ip = config['listen_host']
-        udp_port = config['listen_port']
-        tcp_port = config['p2p_listen_port']
-        payload = [version,
-                   Address(ip, udp_port, tcp_port).to_endpoint(),
-                   node.address.to_endpoint()]
-        assert len(payload) == 3
+        payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
         message = self.pack(self.cmd_id_map['ping'], payload)
         self.send(node, message)
         return message[:32]  # return the MDC to identify pongs
@@ -506,12 +511,12 @@ config = {
     'p2p_listen_port': 30303,
     'bootstrap_nodes': [
         # Local geth bootnodes
-        b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
+        # b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
         # Testnet bootnodes
         # b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
         # b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
         # Mainnet bootnodes
-        # b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
+        b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
         # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
         # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
         # b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
@@ -542,14 +547,15 @@ if __name__ == "__main__":
     from structlog import get_logger
     log = get_logger()
 
-    discovery = DiscoveryProtocol()
-    ip = config['listen_host']
-    port = config['listen_port']
-
+    privkey = decode_hex(config['privkey_hex'])
+    addr = Address(config['listen_host'], config['listen_port'], config['p2p_listen_port'])
+    bootstrap_nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
+    discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
     # This will cause DiscoveryProtocol to start listening locally *and* also initiate the
     # discovery bootstrap process (via the connection_made() method).
-    listen = loop.create_datagram_endpoint(lambda: discovery, local_addr=(ip, port))
-    loop.run_until_complete(listen)
+    loop.run_until_complete(discovery.listen(loop))
+
+    asyncio.ensure_future(discovery.bootstrap())
 
     task_monitor = asyncio.ensure_future(show_tasks())
     try:
