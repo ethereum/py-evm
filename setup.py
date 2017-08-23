@@ -35,7 +35,7 @@ setup(
     ],
     extra_require={
         'coincurve': [
-            "coincurve>=4.5.1",
+            "coincurve>=5.0.1",
         ],
         'leveldb': [
             "leveldb>=0.194",
