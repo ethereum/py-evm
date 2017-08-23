@@ -2,17 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from eth_utils import (
-    pad_right,
-)
-
 from evm.constants import (
     BLOCK_REWARD,
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
-)
-from evm.exceptions import (
-    ValidationError,
 )
 from evm.logic.invalid import (
     InvalidOpcode,
@@ -23,9 +16,6 @@ from evm.state import (
 
 from evm.utils.blocks import (
     get_block_header_by_hash,
-)
-from evm.utils.rlp import (
-    diff_rlp_object,
 )
 
 
@@ -95,7 +85,8 @@ class VM(object):
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
-        # NOTE: mutation
+        # NOTE: mutation. Needed in order to update self.state_db, so we should be able to get rid
+        # of this once we fix https://github.com/pipermerriam/py-evm/issues/67
         self.block = self.block.add_transaction(
             transaction=transaction,
             computation=computation,
@@ -151,27 +142,7 @@ class VM(object):
         for uncle in block.uncles:
             self.block.add_uncle(uncle)
 
-        mined_block = self.mine_block()
-        if mined_block != block:
-            diff = diff_rlp_object(mined_block, block)
-            longest_field_name = max(len(field_name) for field_name, _, _ in diff)
-            error_message = (
-                "Mismatch between block and imported block on {0} fields:\n - {1}".format(
-                    len(diff),
-                    "\n - ".join(tuple(
-                        "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                            pad_right(field_name, longest_field_name, ' '),
-                            actual,
-                            expected,
-                        )
-                        for field_name, actual, expected
-                        in diff
-                    )),
-                )
-            )
-            raise ValidationError(error_message)
-
-        return mined_block
+        return self.mine_block()
 
     def mine_block(self, *args, **kwargs):
         """
