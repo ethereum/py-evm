@@ -74,11 +74,10 @@ class Node(object):
 
 
 class KBucket(object):
-
     """
     Each k-bucket is kept sorted by time last seen—least-recently seen node at the head,
     most-recently seen at the tail. For small values of i, the k-buckets will generally
-    be empty (as no appro- priate nodes will exist). For large values of i, the lists can
+    be empty (as no appropriate nodes will exist). For large values of i, the lists can
     grow up to size k, where k is a system-wide replication parameter.
     k is chosen such that any given k nodes are very unlikely to fail within an hour of
     each other (for example k = 20).
@@ -100,24 +99,19 @@ class KBucket(object):
         return self.midpoint ^ id
 
     def nodes_by_id_distance(self, id):
-        assert is_integer(id)
         return sorted(self.nodes, key=operator.methodcaller('id_distance', id))
 
     def split(self):
-        "split at the median id"
-
+        """Split at the median id"""
         splitid = self.midpoint
         lower = KBucket(self.start, splitid)
         upper = KBucket(splitid + 1, self.end)
-        # distribute nodes
         for node in self.nodes:
             bucket = lower if node.id <= splitid else upper
             bucket.add_node(node)
-        # distribute replacement nodes
         for node in self.replacement_cache:
             bucket = lower if node.id <= splitid else upper
             bucket.replacement_cache.append(node)
-
         return lower, upper
 
     def remove_node(self, node):
@@ -130,23 +124,21 @@ class KBucket(object):
 
     @property
     def is_full(self):
-        return len(self) == k_bucket_size
+        return len(self) == self.k
 
     def add_node(self, node):
         """
-        If the sending node already exists in the recipient’s k- bucket,
+        If the sending node already exists in the recipient’s k-bucket,
         the recipient moves it to the tail of the list.
 
-        If the node is not already in the appropriate k-bucket
-        and the bucket has fewer than k entries,
-        then the recipient just inserts the new sender at the tail of the list.
+        If the node is not already in the appropriate k-bucket and the bucket has fewer than k
+        entries, then the recipient just inserts the new sender at the tail of the list.
 
-        If the  appropriate k-bucket is full, however,
-        then the recipient pings the k-bucket’s least-recently seen node to decide what to do.
+        If the  appropriate k-bucket is full, however, then the recipient pings the k-bucket’s
+        least-recently seen node to decide what to do.
 
         on success: return None
         on bucket full: return least recently seen Node for eviction check
-
         """
         self.last_updated = time.time()
         if node in self.nodes:  # already exists
@@ -159,14 +151,14 @@ class KBucket(object):
 
     @property
     def head(self):
-        "least recently seen"
+        """Least recently seen"""
         return self.nodes[0]
 
     @property
     def depth(self):
-        """
-        depth is the prefix shared by all nodes in bucket
-        i.e. the number of shared leading bits
+        """Depth is the prefix shared by all nodes in the bucket.
+
+        i.e. The number of shared leading bits.
         """
         def to_binary(x):  # left padded bit representation
             b = bin(x)[2:]
@@ -176,10 +168,12 @@ class KBucket(object):
             return k_id_size
 
         bits = [to_binary(n.id) for n in self.nodes]
-        for i in range(k_id_size):
+        for i in range(1, k_id_size + 1):
             if len(set(b[:i] for b in bits)) != 1:
                 return i - 1
-        raise Exception
+        # This means we have at least two nodes with the same ID, so raise an AssertionError
+        # because we don't want it to be caught accidentally.
+        raise AssertionError("Unable to calculate depth")
 
     def __contains__(self, node):
         return node in self.nodes
@@ -188,7 +182,7 @@ class KBucket(object):
         return len(self.nodes)
 
 
-class RoutingTable(object):
+class RoutingTable():
 
     def __init__(self, node):
         self.this_node = node
@@ -223,7 +217,7 @@ class RoutingTable(object):
             if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
                 self.split_bucket(bucket)
                 return self.add_node(node)  # retry
-            # nothing added, ping eviction_candidate
+            # Nothing added, ping eviction_candidate
             return eviction_candidate
         return None  # successfully added to not full bucket
 
@@ -232,6 +226,7 @@ class RoutingTable(object):
             if node.id < bucket.end:
                 assert node.id >= bucket.start
                 return bucket
+        # TODO (gsalgado): Use a meaningful exception.
         raise Exception
 
     def buckets_by_id_distance(self, id):
@@ -270,16 +265,13 @@ class RoutingTable(object):
 class KademliaProtocol():
 
     def __init__(self, node, wire):
-        assert isinstance(node, Node)  # the local node
         self.this_node = node
         self.wire = wire
         self.routing = RoutingTable(node)
         self._expected_pongs = dict()  # pingid -> (timeout, node, replacement_node)
         self._find_requests = dict()  # nodeid -> timeout
-        self._deleted_pingids = set()
 
     def bootstrap(self, nodes):
-        assert isinstance(nodes, list)
         for node in nodes:
             if node == self.this_node:
                 continue
@@ -291,78 +283,70 @@ class KademliaProtocol():
         When a Kademlia node receives any message (request or reply) from another node,
         it updates the appropriate k-bucket for the sender’s node ID.
 
-        If the sending node already exists in the recipient’s k- bucket,
-        the recipient moves it to the tail of the list.
+        If the sending node already exists in the recipient’s k-bucket, the recipient moves it to
+        the tail of the list.
 
-        If the node is not already in the appropriate k-bucket
-        and the bucket has fewer than k entries,
-        then the recipient just inserts the new sender at the tail of the list.
+        If the node is not already in the appropriate k-bucket and the bucket has fewer than k
+        entries, then the recipient just inserts the new sender at the tail of the list.
 
-        If the  appropriate k-bucket is full, however,
-        then the recipient pings the k-bucket’s least-recently seen node to decide what to do.
+        If the appropriate k-bucket is full, however, then the recipient pings the k-bucket’s
+        least-recently seen node to decide what to do.
 
-        If the least-recently seen node fails to respond,
-        it is evicted from the k-bucket and the new sender inserted at the tail.
+        If the least-recently seen node fails to respond, it is evicted from the k-bucket and the
+        new sender inserted at the tail.
 
-        Otherwise, if the least-recently seen node responds,
-        it is moved to the tail of the list, and the new sender’s contact is discarded.
+        Otherwise, if the least-recently seen node responds, it is moved to the tail of the list,
+        and the new sender’s contact is discarded.
 
-        k-buckets effectively implement a least-recently seen eviction policy,
-        except that live nodes are never removed from the list.
+        k-buckets effectively implement a least-recently seen eviction policy, except that live
+        nodes are never removed from the list.
         """
-        assert isinstance(node, Node)
-
         if node == self.this_node:
             return
 
-        def _expected_pongs():
-            return set(v[1] for v in self._expected_pongs.values())
-
-        if pingid and (pingid not in self._expected_pongs):
-            assert pingid not in self._expected_pongs
+        if pingid is not None and (pingid not in self._expected_pongs):
             return
 
-        # check for timed out pings and eventually evict them
+        # Check for timed out pings and eventually evict them
         for _pingid, (timeout, _node, replacement) in list(self._expected_pongs.items()):
             if time.time() > timeout:
-                self._deleted_pingids.add(_pingid)  # FIXME this is for testing
+                log.debug('evicting expected pong', remote=_node)
                 del self._expected_pongs[_pingid]
                 self.routing.remove_node(_node)
                 if replacement:
                     self.update(replacement)
+                    # XXX (gsalgado): Not sure it's correct to return here?
                     return
-                if _node == node:  # prevent node from being added later
+                if _node == node:
+                    # Prevent node from being added later.
+                    # XXX (gsalgado): Not sure it's correct to return here?
                     return
 
         # if we had registered this node for eviction test
         if pingid in self._expected_pongs:
             timeout, _node, replacement = self._expected_pongs[pingid]
             if replacement:
+                # FIXME (gsalgado): Instead of directly accessing the bucket's replacement cache
+                # we should have an API for that.
                 self.routing.bucket_by_node(replacement).replacement_cache.append(replacement)
             del self._expected_pongs[pingid]
 
-        # add node
         eviction_candidate = self.routing.add_node(node)
         if eviction_candidate:
-            # protocol should ping bucket head and evict if there is no response
             self.ping(eviction_candidate, replacement=node)
 
-        # check for not full buckets and ping replacements
+        # Check for not full buckets and ping replacements
         for bucket in self.routing.not_full_buckets:
             for node in bucket.replacement_cache:
                 self.ping(node)
 
-        # check idle buckets
-        """
-        idle bucket refresh:
-        for each bucket which hasn't been touched in 3600 seconds
-            pick a random value in the range of the bucket and perform discovery for that value
-        """
+        # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
+        # range and perform discovery for that value.
         for bucket in self.routing.idle_buckets:
             rid = random.randint(bucket.start, bucket.end)
             self.find_node(rid)
 
-        # check and removed timed out find requests
+        # Check and removed timed out find requests
         self._find_requests = {
             nodeid: timeout
             for nodeid, timeout in self._find_requests.items()
