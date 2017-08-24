@@ -4,7 +4,13 @@ import struct
 import time
 
 import rlp
-from rlp.utils import decode_hex, encode_hex, is_integer, str_to_bytes, safe_ord
+from rlp.utils import (
+    decode_hex,
+    encode_hex,
+    is_integer,
+    str_to_bytes,
+    safe_ord,
+)
 
 from repoze.lru import LRUCache
 
@@ -503,41 +509,39 @@ def host_port_pubkey_from_uri(uri):
     return ip, port, decode_hex(pubkey_hex)
 
 
-config = {
-    'privkey_hex': '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
-    # 'privkey_hex': '45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8',
-    'listen_host': '0.0.0.0',
-    'listen_port': 30303,
-    'p2p_listen_port': 30303,
-    'bootstrap_nodes': [
-        # Local geth bootnodes
-        # b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
-        # Testnet bootnodes
-        # b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
-        # b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
-        # Mainnet bootnodes
-        b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
-        # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
-        # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
-        # b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
-        # b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
-    ],
-}
-
-
-@asyncio.coroutine
-def show_tasks():
-    while True:
-        tasks = []
-        for task in asyncio.Task.all_tasks():
-            if task._coro.__name__ != "show_tasks":
-                tasks.append(task._coro.__name__)
-        if tasks:
-            log.debug("Active tasks: {}".format(tasks))
-        yield from asyncio.sleep(3)
-
-
 if __name__ == "__main__":
+    @asyncio.coroutine
+    def show_tasks():
+        while True:
+            tasks = []
+            for task in asyncio.Task.all_tasks():
+                if task._coro.__name__ != "show_tasks":
+                    tasks.append(task._coro.__name__)
+            if tasks:
+                log.debug("Active tasks: {}".format(tasks))
+            yield from asyncio.sleep(3)
+
+    config = {
+        'privkey_hex': '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
+        # 'privkey_hex': '45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8',
+        'listen_host': '0.0.0.0',
+        'listen_port': 30303,
+        'p2p_listen_port': 30303,
+        'bootstrap_nodes': [
+            # Local geth bootnodes
+            # b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
+            # Testnet bootnodes
+            b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
+            # b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
+            # Mainnet bootnodes
+            b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
+            # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
+            # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
+            # b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
+            # b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
+        ],
+    }
+
     import logging
     logging.basicConfig(level=logging.DEBUG)
 
@@ -557,12 +561,15 @@ if __name__ == "__main__":
 
     asyncio.ensure_future(discovery.bootstrap())
 
-    task_monitor = asyncio.ensure_future(show_tasks())
+    # This helps when debugging asyncio issues.
+    # task_monitor = asyncio.ensure_future(show_tasks())
+
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         pass
-    task_monitor.set_result(None)
+
+    # task_monitor.set_result(None)
     discovery.stop()
     # log.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
     loop.close()
