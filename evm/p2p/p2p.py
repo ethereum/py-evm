@@ -1,12 +1,5 @@
 import rlp
 
-from rlp.utils import (
-    bytes_to_str,
-    decode_hex,
-    encode_hex,
-    str_to_bytes,
-)
-
 from evm.p2p.protocol import (
     BaseProtocol,
     Command,
@@ -123,26 +116,3 @@ class disconnect(Command):
     def receive(self, proto, data):
         proto.peer.report_error('disconnected %s' % self.reason_name(data['reason']))
         proto.peer.stop()
-
-
-node_uri_scheme = 'enode://'
-
-
-def host_port_pubkey_from_uri(uri):
-    b_node_uri_scheme = str_to_bytes(node_uri_scheme)
-    assert uri.startswith(b_node_uri_scheme) and \
-        b'@' in uri and b':' in uri, uri
-    pubkey_hex, ip_port = uri[len(b_node_uri_scheme):].split(b'@')
-    # XXX(gsalgado): commented out because our pubkeys have len == 65
-    # assert len(pubkey_hex) == 2 * 512 // 8
-    ip, port = ip_port.split(b':')
-    return ip, port, decode_hex(pubkey_hex)
-
-
-def host_port_pubkey_to_uri(host, port, pubkey):
-    # XXX(gsalgado): commented out because our pubkeys have len == 65
-    # assert len(pubkey) == 512 // 8
-    uri = '{}{}@{}:{}'.format(node_uri_scheme,
-                              bytes_to_str(encode_hex(pubkey)),
-                              str(host), port)
-    return str_to_bytes(uri)
