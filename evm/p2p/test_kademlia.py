@@ -1,7 +1,54 @@
 import random
 
+import pytest
+
 from evm.p2p import kademlia
 from evm.utils.numeric import int_to_big_endian
+
+
+def test_routingtable_split_bucket():
+    table = kademlia.RoutingTable(random_node())
+    assert len(table.buckets) == 1
+    bucket = table.buckets[0]
+    table.split_bucket(bucket)
+    assert len(table.buckets) == 2
+    assert bucket not in table.buckets
+
+
+def test_routingtable_add_node():
+    table = kademlia.RoutingTable(random_node())
+    for i in range(table.buckets[0].k):
+        # As long as the bucket is not full, the new node is added to the bucket and None is
+        # returned.
+        assert table.add_node(random_node()) is None
+        assert len(table.buckets) == 1
+        assert len(table) == i + 1
+    assert table.buckets[0].is_full
+    # Now that the bucket is full, an add_node() should cause it to be split.
+    assert table.add_node(random_node()) is None
+
+
+def test_routingtable_add_node_error():
+    table = kademlia.RoutingTable(random_node())
+    with pytest.raises(ValueError):
+        table.add_node(random_node(kademlia.k_max_node_id + 1))
+
+
+def test_routingtable_neighbours():
+    table = kademlia.RoutingTable(random_node())
+    for i in range(1000):
+        assert table.add_node(random_node()) is None
+    assert i == len(table) - 1
+
+    for i in range(100):
+        node = random_node()
+        nearest_bucket = table.buckets_by_id_distance(node.id)[0]
+        if not nearest_bucket.nodes:
+            continue
+        # Change nodeid to something in this bucket.
+        node_a = nearest_bucket.nodes[0]
+        node_b = random_node(node_a.id + 1)
+        assert node_a == table.neighbours(node_b.id)[0]
 
 
 def test_kbucket_add_node():
@@ -72,5 +119,8 @@ def random_pubkey():
     return b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk
 
 
-def random_node():
-    return kademlia.Node(random_pubkey())
+def random_node(nodeid=None):
+    node = kademlia.Node(random_pubkey())
+    if nodeid is not None:
+        node.id = nodeid
+    return node
