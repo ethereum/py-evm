@@ -23,7 +23,7 @@ from rlp.utils import is_integer, str_to_bytes
 from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
 
-# XXX: Most of this code was lifted from pydevp2p
+# TODO: Setup a logger using the standard logging module.
 from structlog import get_logger
 log = get_logger()
 
@@ -207,12 +207,13 @@ class RoutingTable():
         self.bucket_by_node(node).remove_node(node)
 
     def add_node(self, node):
-        assert node != self.this_node
+        if node == self.this_node:
+            raise ValueError("Cannot add this_node to routing table")
         bucket = self.bucket_by_node(node)
         eviction_candidate = bucket.add_node(node)
-        if eviction_candidate:  # bucket is full
-            # split if the bucket has the local node in its range
-            # or if the depth is not congruent to 0 mod k_b
+        if eviction_candidate is not None:  # bucket is full
+            # Split if the bucket has the local node in its range or if the depth is not congruent
+            # to 0 mod k_b
             depth = bucket.depth
             if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
                 self.split_bucket(bucket)
@@ -226,11 +227,9 @@ class RoutingTable():
             if node.id < bucket.end:
                 assert node.id >= bucket.start
                 return bucket
-        # TODO (gsalgado): Use a meaningful exception.
-        raise Exception
+        raise ValueError("No bucket found for node with id {}".format(node.id))
 
     def buckets_by_id_distance(self, id):
-        assert is_integer(id)
         return sorted(self.buckets, key=operator.methodcaller('id_distance', id))
 
     def __contains__(self, node):
@@ -244,22 +243,18 @@ class RoutingTable():
             for n in b.nodes:
                 yield n
 
-    def neighbours(self, node, k=k_bucket_size):
-        """
-        sorting by bucket.midpoint does not work in edge cases
-        build a short list of k * 2 nodes and sort and shorten it
-        """
-        assert isinstance(node, Node) or is_integer(node)
-        if isinstance(node, Node):
-            node = node.id
+    def neighbours(self, nodeid, k=k_bucket_size):
+        """Return up to k neighbours of the given node."""
         nodes = []
-        for bucket in self.buckets_by_id_distance(node):
-            for n in bucket.nodes_by_id_distance(node):
-                if n is not node:
+        # Sorting by bucket.midpoint does not work in edge cases, so build a short list of k * 2
+        # nodes and sort it by id_distance.
+        for bucket in self.buckets_by_id_distance(nodeid):
+            for n in bucket.nodes_by_id_distance(nodeid):
+                if n is not nodeid:
                     nodes.append(n)
                     if len(nodes) == k * 2:
                         break
-        return sorted(nodes, key=operator.methodcaller('id_distance', node))[:k]
+        return sorted(nodes, key=operator.methodcaller('id_distance', nodeid))[:k]
 
 
 class KademliaProtocol():
@@ -386,8 +381,10 @@ class KademliaProtocol():
         log.debug('<<< pong', remoteid=remote)
         assert remote != self.this_node
         pingid = self._mkpingid(echoed, remote)
-        # update address (clumsy fixme)
-        if hasattr(remote, 'address'):  # not available in tests
+        # FIXME: This method is called from DiscoveryProtocol, so it is usually passed a
+        # discovery.Node instance, and this is ensuring that is really the case before attempting
+        # to update the node's address. Maybe we should add the .address field to kademlia.Node
+        if hasattr(remote, 'address'):
             nnodes = self.routing.neighbours(remote)
             if nnodes and nnodes[0] == remote:
                 nnodes[0].address = remote.address  # updated tcp address
