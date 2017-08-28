@@ -1,11 +1,14 @@
 import functools
 
+import pylru
+
 from cytoolz.dicttoolz import (
     valfilter,
 )
 from cytoolz.functoolz import (
     partial,
     pipe,
+    memoize,
 )
 from cytoolz.itertoolz import (
     isdistinct,
@@ -21,16 +24,22 @@ from evm.exceptions import (
 )
 
 
+_validation_cache = pylru.lrucache(2048)
+
+
+@memoize(cache=_validation_cache)
 def validate_is_bytes(value):
     if not isinstance(value, bytes):
         raise ValidationError("Value must be a byte string.  Got: {0}".format(type(value)))
 
 
+@memoize(cache=_validation_cache)
 def validate_is_integer(value):
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError("Value must be a an integer.  Got: {0}".format(type(value)))
 
 
+@memoize(cache=_validation_cache)
 def validate_length(value, length):
     if not len(value) == length:
         raise ValidationError(
@@ -42,6 +51,7 @@ def validate_length(value, length):
         )
 
 
+@memoize(cache=_validation_cache)
 def validate_length_lte(value, maximum_length):
     if len(value) > maximum_length:
         raise ValidationError(
@@ -54,6 +64,7 @@ def validate_length_lte(value, maximum_length):
         )
 
 
+@memoize(cache=_validation_cache)
 def validate_gte(value, minimum):
     if value < minimum:
         raise ValidationError(
@@ -64,12 +75,14 @@ def validate_gte(value, minimum):
     validate_is_integer(value)
 
 
+@memoize(cache=_validation_cache)
 def validate_gt(value, minimum):
     if value <= minimum:
         raise ValidationError("Value {0} is not greater than {1}".format(value, minimum))
     validate_is_integer(value)
 
 
+@memoize(cache=_validation_cache)
 def validate_lte(value, maximum):
     if value > maximum:
         raise ValidationError(
@@ -80,12 +93,14 @@ def validate_lte(value, maximum):
     validate_is_integer(value)
 
 
+@memoize(cache=_validation_cache)
 def validate_lt(value, maximum):
     if value >= maximum:
         raise ValidationError("Value {0} is not less than {1}".format(value, maximum))
     validate_is_integer(value)
 
 
+@memoize(cache=_validation_cache)
 def validate_canonical_address(value):
     if not isinstance(value, bytes) or not len(value) == 20:
         raise ValidationError(
@@ -93,6 +108,7 @@ def validate_canonical_address(value):
         )
 
 
+@memoize(cache=_validation_cache)
 def validate_multiple_of(value, multiple_of):
     if not value % multiple_of == 0:
         raise ValidationError(
@@ -100,11 +116,13 @@ def validate_multiple_of(value, multiple_of):
         )
 
 
+@memoize(cache=_validation_cache)
 def validate_is_boolean(value):
     if not isinstance(value, bool):
         raise ValidationError("Value must be an boolean.  Got type: {0}".format(type(value)))
 
 
+@memoize(cache=_validation_cache)
 def validate_word(value):
     if not isinstance(value, bytes):
         raise ValidationError("Invalid word:  Must be of bytes type")
@@ -112,6 +130,7 @@ def validate_word(value):
         raise ValidationError("Invalid word:  Must be 32 bytes in length")
 
 
+@memoize(cache=_validation_cache)
 def validate_uint256(value):
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError("Invalid UINT256: Must be an integer")
@@ -121,6 +140,7 @@ def validate_uint256(value):
         raise ValidationError("Invalid UINT256: Value is greater than 2**256 - 1")
 
 
+@memoize(cache=_validation_cache)
 def validate_stack_item(value):
     if isinstance(value, bytes) and len(value) <= 32:
         return
@@ -133,6 +153,7 @@ validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
 validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
 
 
+@memoize(cache=_validation_cache)
 def validate_unique(values):
     if not isdistinct(values):
         duplicates = pipe(
@@ -149,11 +170,13 @@ def validate_unique(values):
         )
 
 
+@memoize(cache=_validation_cache)
 def validate_block_number(block_number):
     validate_is_integer(block_number)
     validate_gte(block_number, 0)
 
 
+@memoize(cache=_validation_cache)
 def validate_vm_block_numbers(vm_block_numbers):
     validate_unique(vm_block_numbers)
 
