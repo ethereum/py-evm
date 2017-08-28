@@ -18,10 +18,12 @@ import random
 import time
 from functools import total_ordering
 
-from rlp.utils import is_integer, str_to_bytes
+from rlp.utils import str_to_bytes
 
 from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
+
+# TODO: Go through all the asserts and either get rid of them or replace with exceptions.
 
 # TODO: Setup a logger using the standard logging module.
 from structlog import get_logger
@@ -188,6 +190,8 @@ class RoutingTable():
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
+    # TODO: Consider pre-populating self.buckets on __init__, like geth does, to avoid the
+    # extra complexity of having to split them when they get full.
     def split_bucket(self, bucket):
         a, b = bucket.split()
         index = self.buckets.index(bucket)
@@ -201,7 +205,7 @@ class RoutingTable():
 
     @property
     def not_full_buckets(self):
-        return [b for b in self.buckets if len(b) < k_bucket_size]
+        return [b for b in self.buckets if not b.is_full]
 
     def remove_node(self, node):
         self.bucket_by_node(node).remove_node(node)
@@ -300,6 +304,7 @@ class KademliaProtocol():
             return
 
         if pingid is not None and (pingid not in self._expected_pongs):
+            log.debug('surprising pong', remoteid=node, pingid=pingid)
             return
 
         # Check for timed out pings and eventually evict them
@@ -358,22 +363,20 @@ class KademliaProtocol():
         if bucket is not full
         elif least recently seen, does not respond in time
         """
-        assert isinstance(node, Node)
-        assert node != self.this_node
+        if node == self.this_node:
+            raise ValueError("Cannot ping self")
         echoed = self.wire.send_ping(node)
         pingid = self._mkpingid(echoed, node)
-        assert pingid
         timeout = time.time() + k_request_timeout
         self._expected_pongs[pingid] = (timeout, node, replacement)
 
     def recv_ping(self, remote, echo):
-        "udp addresses determined by socket address of revd Ping packets"  # ok
-        "tcp addresses determined by contents of Ping packet"  # not yet
         log.debug('<<< ping', node=remote)
-        assert isinstance(remote, Node)
         if remote == self.this_node:
-            return
+            raise AssertionError("For debugging, trying to confirm if this happens in practice")
+            # return
         self.update(remote)
+        # TODO: Get TCP address from the packet's contents and update the node.
         self.wire.send_pong(remote, echo)
 
     def recv_pong(self, remote, echoed):
@@ -385,7 +388,7 @@ class KademliaProtocol():
         # discovery.Node instance, and this is ensuring that is really the case before attempting
         # to update the node's address. Maybe we should add the .address field to kademlia.Node
         if hasattr(remote, 'address'):
-            nnodes = self.routing.neighbours(remote)
+            nnodes = self.routing.neighbours(remote.id)
             if nnodes and nnodes[0] == remote:
                 nnodes[0].address = remote.address  # updated tcp address
         # update rest
@@ -396,15 +399,13 @@ class KademliaProtocol():
             self.wire.send_find_node(n, targetid)
 
     def find_node(self, targetid, via_node=None):
-        # FIXME, amplification attack (need to ping pong ping pong first)
-        assert is_integer(targetid)
-        assert not via_node or isinstance(via_node, Node)
+        # FIXME: To protect against amplification attacks, nodes will not reply to find_node
+        # requests unless we've pinged them at least once before.
         self._find_requests[targetid] = time.time() + k_request_timeout
-        if via_node:
+        if via_node is not None:
             self.wire.send_find_node(via_node, targetid)
         else:
             self._query_neighbours(targetid)
-        # FIXME, should we return the closest node (allow callbacks on find_request)
 
     def recv_neighbours(self, remote, neighbours):
         """
@@ -414,13 +415,11 @@ class KademliaProtocol():
         add all nodes to the list
         """
         log.debug('<<< neighbours', remoteid=remote, neighbours=neighbours)
-        assert isinstance(neighbours, list)
         neighbours = [n for n in neighbours if n != self.this_node]
         neighbours = [n for n in neighbours if n not in self.routing]
 
         # we don't map requests to responses, thus forwarding to all FIXME
         for nodeid, timeout in self._find_requests.items():
-            assert is_integer(nodeid)
             closest = sorted(neighbours, key=operator.methodcaller('id_distance', nodeid))
             if time.time() < timeout:
                 closest_known = self.routing.neighbours(nodeid)
@@ -438,9 +437,7 @@ class KademliaProtocol():
                 self.ping(node)
 
     def recv_find_node(self, remote, targetid):
-        # FIXME, amplification attack (need to ping pong ping pong first)
-        assert isinstance(remote, Node)
-        assert is_integer(targetid)
+        # FIXME: Add amplification attack protection (need to ping pong ping pong first)
         self.update(remote)
         found = self.routing.neighbours(targetid)
         self.wire.send_neighbours(remote, found)

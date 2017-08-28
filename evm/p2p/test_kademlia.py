@@ -6,6 +6,22 @@ from evm.p2p import kademlia
 from evm.utils.numeric import int_to_big_endian
 
 
+def get_wired_protocol():
+    this_node = random_node()
+    return kademlia.KademliaProtocol(this_node, WireMock(this_node))
+
+
+def test_protocol_bootstrap():
+    proto = get_wired_protocol()
+    node1 = random_node()
+    node2 = random_node()
+    proto.bootstrap(nodes=[node1, node2])
+    assert len(proto.wire.messages) == 2
+    msg1, msg2 = proto.wire.messages
+    assert msg1 == (node1, 'find_node', proto.routing.this_node, proto.routing.this_node.id)
+    assert msg2 == (node2, 'find_node', proto.routing.this_node, proto.routing.this_node.id)
+
+
 def test_routingtable_split_bucket():
     table = kademlia.RoutingTable(random_node())
     assert len(table.buckets) == 1
@@ -124,3 +140,34 @@ def random_node(nodeid=None):
     if nodeid is not None:
         node.id = nodeid
     return node
+
+
+def make_routing_table(num_nodes=1000):
+    node = random_node()
+    table = kademlia.RoutingTable(node)
+    for i in range(num_nodes):
+        table.add_node(random_node())
+    assert i == num_nodes - 1
+    return table
+
+
+class WireMock():
+
+    messages = []
+
+    def __init__(self, sender):
+        self.sender = sender
+
+    def send_ping(self, node):
+        echo = hex(random.randint(0, 2**256))[-32:]
+        self.messages.append((node, 'ping', self.sender, echo))
+        return echo
+
+    def send_pong(self, node, echo):
+        self.messages.append((node, 'pong', self.sender, echo))
+
+    def send_find_node(self, node, nodeid):
+        self.messages.append((node, 'find_node', self.sender, nodeid))
+
+    def send_neighbours(self, node, neighbours):
+        self.messages.append((node, 'neighbours', self.sender, neighbours))
