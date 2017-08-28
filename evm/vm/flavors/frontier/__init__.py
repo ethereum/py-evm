@@ -55,28 +55,29 @@ def _execute_frontier_transaction(vm, transaction):
     vm.validate_transaction(transaction)
 
     gas_cost = transaction.gas * transaction.gas_price
-    sender_balance = vm.state_db.get_balance(transaction.sender)
+    with vm.state_db() as state_db:
+        sender_balance = state_db.get_balance(transaction.sender)
 
-    # Buy Gas
-    vm.state_db.set_balance(transaction.sender, sender_balance - gas_cost)
+        # Buy Gas
+        state_db.set_balance(transaction.sender, sender_balance - gas_cost)
 
-    # Increment Nonce
-    vm.state_db.increment_nonce(transaction.sender)
+        # Increment Nonce
+        state_db.increment_nonce(transaction.sender)
 
-    # Setup VM Message
-    message_gas = transaction.gas - transaction.intrensic_gas
+        # Setup VM Message
+        message_gas = transaction.gas - transaction.intrensic_gas
 
-    if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
-        contract_address = generate_contract_address(
-            transaction.sender,
-            vm.state_db.get_nonce(transaction.sender) - 1,
-        )
-        data = b''
-        code = transaction.data
-    else:
-        contract_address = None
-        data = transaction.data
-        code = vm.state_db.get_code(transaction.to)
+        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
+            contract_address = generate_contract_address(
+                transaction.sender,
+                state_db.get_nonce(transaction.sender) - 1,
+            )
+            data = b''
+            code = transaction.data
+        else:
+            contract_address = None
+            data = transaction.data
+            code = state_db.get_code(transaction.to)
 
     if vm.logger:
         vm.logger.info(
@@ -122,11 +123,12 @@ def _execute_frontier_transaction(vm, transaction):
         transaction_fee = transaction.gas * transaction.gas_price
         if vm.logger:
             vm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
-        coinbase_balance = vm.state_db.get_balance(vm.block.header.coinbase)
-        vm.state_db.set_balance(
-            vm.block.header.coinbase,
-            coinbase_balance + transaction_fee,
-        )
+        with vm.state_db() as state_db:
+            coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
+            state_db.set_balance(
+                vm.block.header.coinbase,
+                coinbase_balance + transaction_fee,
+            )
     else:
         # Suicide Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
@@ -148,8 +150,9 @@ def _execute_frontier_transaction(vm, transaction):
                     encode_hex(message.sender),
                 )
 
-            sender_balance = vm.state_db.get_balance(message.sender)
-            vm.state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
+            with vm.state_db() as state_db:
+                sender_balance = state_db.get_balance(message.sender)
+                state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -159,11 +162,12 @@ def _execute_frontier_transaction(vm, transaction):
                 transaction_fee,
                 encode_hex(vm.block.header.coinbase),
             )
-        coinbase_balance = vm.state_db.get_balance(vm.block.header.coinbase)
-        vm.state_db.set_balance(
-            vm.block.header.coinbase,
-            coinbase_balance + transaction_fee,
-        )
+        with vm.state_db() as state_db:
+            coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
+            state_db.set_balance(
+                vm.block.header.coinbase,
+                coinbase_balance + transaction_fee,
+            )
 
     # Suicides
     for account, beneficiary in computation.get_accounts_for_deletion():
@@ -172,10 +176,9 @@ def _execute_frontier_transaction(vm, transaction):
         if vm.logger is not None:
             vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
-        vm.state_db.set_balance(account, 0)
-        vm.state_db.delete_account(account)
-
-    vm.block.header.state_root = vm.state_db.root_hash
+        with vm.state_db() as state_db:
+            state_db.set_balance(account, 0)
+            state_db.delete_account(account)
 
     return computation
 
@@ -187,19 +190,20 @@ def _apply_frontier_message(vm, message):
         raise StackDepthLimit("Stack depth limit reached")
 
     if message.should_transfer_value and message.value:
-        sender_balance = vm.state_db.get_balance(message.sender)
+        with vm.state_db() as state_db:
+            sender_balance = state_db.get_balance(message.sender)
 
-        if sender_balance < message.value:
-            raise InsufficientFunds(
-                "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
-            )
+            if sender_balance < message.value:
+                raise InsufficientFunds(
+                    "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
+                )
 
-        sender_balance -= message.value
-        vm.state_db.set_balance(message.sender, sender_balance)
+            sender_balance -= message.value
+            state_db.set_balance(message.sender, sender_balance)
 
-        recipient_balance = vm.state_db.get_balance(message.storage_address)
-        recipient_balance += message.value
-        vm.state_db.set_balance(message.storage_address, recipient_balance)
+            recipient_balance = state_db.get_balance(message.storage_address)
+            recipient_balance += message.value
+            state_db.set_balance(message.storage_address, recipient_balance)
 
         if vm.logger is not None:
             vm.logger.debug(
@@ -209,8 +213,9 @@ def _apply_frontier_message(vm, message):
                 encode_hex(message.storage_address),
             )
 
-    if not vm.state_db.account_exists(message.storage_address):
-        vm.state_db.touch_account(message.storage_address)
+    with vm.state_db() as state_db:
+        if not state_db.account_exists(message.storage_address):
+            state_db.touch_account(message.storage_address)
 
     computation = vm.apply_computation(message)
 
@@ -246,14 +251,15 @@ def _apply_frontier_computation(vm, message):
 
 
 def _apply_frontier_create_message(vm, message):
-    if vm.state_db.get_balance(message.storage_address) > 0:
-        vm.state_db.set_nonce(message.storage_address, 0)
-        vm.state_db.set_code(message.storage_address, b'')
-        # TODO: figure out whether the following line is correct.
-        vm.state_db.delete_storage(message.storage_address)
+    with vm.state_db() as state_db:
+        if state_db.get_balance(message.storage_address) > 0:
+            state_db.set_nonce(message.storage_address, 0)
+            state_db.set_code(message.storage_address, b'')
+            # TODO: figure out whether the following line is correct.
+            state_db.delete_storage(message.storage_address)
 
-    if message.sender != message.origin:
-        vm.state_db.increment_nonce(message.sender)
+        if message.sender != message.origin:
+            state_db.increment_nonce(message.sender)
 
     computation = vm.apply_message(message)
 
@@ -278,7 +284,8 @@ def _apply_frontier_create_message(vm, message):
                         encode_hex(message.storage_address),
                         contract_code,
                     )
-                computation.state_db.set_code(message.storage_address, contract_code)
+                with vm.state_db() as state_db:
+                    state_db.set_code(message.storage_address, contract_code)
         return computation
 
 

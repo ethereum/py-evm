@@ -28,25 +28,24 @@ def suicide(computation):
 
 def suicide_eip150(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
-    if not computation.state_db.account_exists(beneficiary):
-        computation.gas_meter.consume_gas(
-            constants.GAS_SUICIDE_NEWACCOUNT, reason=mnemonics.SUICIDE)
+    with computation.vm.state_db(read_only=True) as state_db:
+        if not state_db.account_exists(beneficiary):
+            computation.gas_meter.consume_gas(
+                constants.GAS_SUICIDE_NEWACCOUNT, reason=mnemonics.SUICIDE)
     _suicide(computation, beneficiary)
 
 
 def _suicide(computation, beneficiary):
-    local_balance = computation.state_db.get_balance(computation.msg.storage_address)
-    beneficiary_balance = computation.state_db.get_balance(beneficiary)
+    with computation.vm.state_db() as state_db:
+        local_balance = state_db.get_balance(computation.msg.storage_address)
+        beneficiary_balance = state_db.get_balance(beneficiary)
 
-    # 1st: Transfer to beneficiary
-    computation.state_db.set_balance(
-        beneficiary,
-        local_balance + beneficiary_balance,
-    )
-    # 2nd: Zero the balance of the address being deleted (must come after
-    # sending to beneficiary in case the contract named itself as the
-    # beneficiary.
-    computation.state_db.set_balance(computation.msg.storage_address, 0)
+        # 1st: Transfer to beneficiary
+        state_db.set_balance(beneficiary, local_balance + beneficiary_balance)
+        # 2nd: Zero the balance of the address being deleted (must come after
+        # sending to beneficiary in case the contract named itself as the
+        # beneficiary.
+        state_db.set_balance(computation.msg.storage_address, 0)
 
     # 3rd: Register the account to be deleted
     computation.register_account_for_deletion(computation.msg.storage_address)
@@ -66,8 +65,9 @@ class Create(Opcode):
 
         computation.extend_memory(start_position, size)
 
-        insufficient_funds = computation.state_db.get_balance(
-            computation.msg.storage_address) < value
+        with computation.vm.state_db(read_only=True) as state_db:
+            insufficient_funds = state_db.get_balance(
+                computation.msg.storage_address) < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
@@ -80,8 +80,8 @@ class Create(Opcode):
             computation.gas_meter.gas_remaining)
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-        creation_nonce = computation.state_db.get_nonce(
-            computation.msg.storage_address)
+        with computation.vm.state_db(read_only=True) as state_db:
+            creation_nonce = state_db.get_nonce(computation.msg.storage_address)
         contract_address = generate_contract_address(
             computation.msg.storage_address, creation_nonce)
 

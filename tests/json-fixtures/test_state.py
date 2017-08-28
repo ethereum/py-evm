@@ -163,8 +163,8 @@ def test_state_fixtures(fixture_name, fixture):
     db = get_db_backend()
     chain = ChainForTesting(db=db, header=header)
 
-    state_db = setup_state_db(fixture['pre'], chain.get_state_db())
-    chain.header.state_root = state_db.root_hash
+    with chain.get_vm().state_db() as state_db:
+        setup_state_db(fixture['pre'], state_db)
 
     unsigned_transaction = chain.create_unsigned_transaction(
         nonce=fixture['transaction']['nonce'],
@@ -202,4 +202,5 @@ def test_state_fixtures(fixture_name, fixture):
         else:
             assert computation.output == expected_output
 
-    verify_state_db(fixture['post'], chain.get_state_db())
+    with chain.get_vm().state_db(read_only=True) as state_db:
+        verify_state_db(fixture['post'], state_db)
