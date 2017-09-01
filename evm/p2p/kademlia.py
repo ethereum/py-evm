@@ -13,6 +13,7 @@ the idle bucket-refresh interval is 3600 seconds.
 Aside from the previously described exclusions, node discovery closely follows system
 and protocol described by Maymounkov and Mazieres.
 """
+import asyncio
 import operator
 import random
 import time
@@ -149,6 +150,7 @@ class KBucket(object):
         elif len(self) < self.k:  # add if fewer than k entries
             self.nodes.append(node)
         else:  # bucket is full
+            self.replacement_cache.append(node)
             return self.head
 
     @property
@@ -190,8 +192,6 @@ class RoutingTable():
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
-    # TODO: Consider pre-populating self.buckets on __init__, like geth does, to avoid the
-    # extra complexity of having to split them when they get full.
     def split_bucket(self, bucket):
         a, b = bucket.split()
         index = self.buckets.index(bucket)
@@ -269,15 +269,22 @@ class KademliaProtocol():
         self.routing = RoutingTable(node)
         self._expected_pongs = dict()  # pingid -> (timeout, node, replacement_node)
         self._find_requests = dict()  # nodeid -> timeout
+        self._pending_bond_pongs = []
+        self._pending_bond_pings = []
 
-    def bootstrap(self, nodes):
-        for node in nodes:
-            if node == self.this_node:
-                continue
-            self.routing.add_node(node)
-            self.find_node(self.this_node.id, via_node=node)
+    @asyncio.coroutine
+    def bootstrap(self, node):
+        if node == self.this_node:
+            log.debug("attempted to bootstrap with self")
+            return
+        bonded = yield from self.bond(node)
+        if not bonded:
+            log.debug("Failed to bond with bootstrap node {}".format(node))
+            return
+        self.routing.add_node(node)
+        asyncio.ensure_future(self.find_node(self.this_node.id, node))
 
-    def update(self, node, pingid=None):
+    def update(self, node):
         """
         When a Kademlia node receives any message (request or reply) from another node,
         it updates the appropriate k-bucket for the sender’s node ID.
@@ -303,61 +310,34 @@ class KademliaProtocol():
         if node == self.this_node:
             return
 
-        if pingid is not None and (pingid not in self._expected_pongs):
-            log.debug('surprising pong', remoteid=node, pingid=pingid)
-            return
-
-        # Check for timed out pings and eventually evict them
-        for _pingid, (timeout, _node, replacement) in list(self._expected_pongs.items()):
-            if time.time() > timeout:
-                log.debug('evicting expected pong', remote=_node)
-                del self._expected_pongs[_pingid]
-                self.routing.remove_node(_node)
-                if replacement:
-                    self.update(replacement)
-                    # XXX (gsalgado): Not sure it's correct to return here?
-                    return
-                if _node == node:
-                    # Prevent node from being added later.
-                    # XXX (gsalgado): Not sure it's correct to return here?
-                    return
-
-        # if we had registered this node for eviction test
-        if pingid in self._expected_pongs:
-            timeout, _node, replacement = self._expected_pongs[pingid]
-            if replacement:
-                # FIXME (gsalgado): Instead of directly accessing the bucket's replacement cache
-                # we should have an API for that.
-                self.routing.bucket_by_node(replacement).replacement_cache.append(replacement)
-            del self._expected_pongs[pingid]
-
         eviction_candidate = self.routing.add_node(node)
         if eviction_candidate:
-            self.ping(eviction_candidate, replacement=node)
-
-        # Check for not full buckets and ping replacements
-        for bucket in self.routing.not_full_buckets:
-            for node in bucket.replacement_cache:
-                self.ping(node)
-
-        # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
-        # range and perform discovery for that value.
-        for bucket in self.routing.idle_buckets:
-            rid = random.randint(bucket.start, bucket.end)
-            self.find_node(rid)
-
-        # Check and removed timed out find requests
-        self._find_requests = {
-            nodeid: timeout
-            for nodeid, timeout in self._find_requests.items()
-            if time.time() <= timeout
-        }
+            self.ping(eviction_candidate)
 
     def _mkpingid(self, echoed, node):
         pid = str_to_bytes(echoed) + node.pubkey
         return pid
 
-    def ping(self, node, replacement=None):
+    def populate_not_full_buckets(self):
+        """Go through all buckets that are not full and try to fill them.
+
+        For every node in the replacement cache of every non-full bucket, try to bond.
+        When the bonding succeeds the node is automatically added to the bucket.
+        """
+        for bucket in self.routing.not_full_buckets:
+            for node in bucket.replacement_cache:
+                asyncio.ensure_future(self.bond(node))
+
+    # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
+    # time when the least recently touched bucket will be considered idle.
+    def refresh_idle_buckets(self):
+        # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
+        # range and perform discovery for that value.
+        for bucket in self.routing.idle_buckets:
+            rid = random.randint(bucket.start, bucket.end)
+            asyncio.ensure_future(self.lookup(rid))
+
+    def ping(self, node):
         """
         successful pings should lead to an update
         if bucket is not full
@@ -368,44 +348,50 @@ class KademliaProtocol():
         echoed = self.wire.send_ping(node)
         pingid = self._mkpingid(echoed, node)
         timeout = time.time() + k_request_timeout
-        self._expected_pongs[pingid] = (timeout, node, replacement)
+        self._expected_pongs[pingid] = (timeout, node)
 
     def recv_ping(self, remote, echo):
         log.debug('<<< ping', node=remote)
-        if remote == self.this_node:
-            raise AssertionError("For debugging, trying to confirm if this happens in practice")
-            # return
+        if remote in self._pending_bond_pings:
+            self._pending_bond_pings.remove(remote)
         self.update(remote)
-        # TODO: Get TCP address from the packet's contents and update the node.
         self.wire.send_pong(remote, echo)
 
     def recv_pong(self, remote, echoed):
-        "tcp addresses are only updated upon receipt of Pong packet"
         log.debug('<<< pong', remoteid=remote)
-        assert remote != self.this_node
         pingid = self._mkpingid(echoed, remote)
-        # FIXME: This method is called from DiscoveryProtocol, so it is usually passed a
-        # discovery.Node instance, and this is ensuring that is really the case before attempting
-        # to update the node's address. Maybe we should add the .address field to kademlia.Node
-        if hasattr(remote, 'address'):
-            nnodes = self.routing.neighbours(remote.id)
-            if nnodes and nnodes[0] == remote:
-                nnodes[0].address = remote.address  # updated tcp address
-        # update rest
-        self.update(remote, pingid)
+        if pingid not in self._expected_pongs:
+            log.debug('surprising pong, maybe timed out', remote=remote, pingid=pingid)
+            return
 
-    def _query_neighbours(self, targetid):
-        for n in self.routing.neighbours(targetid)[:k_find_concurrency]:
-            self.wire.send_find_node(n, targetid)
+        # Check for timed out pings and evict them.
+        # TODO: Maybe run this as a separate coroutine that loops forever, to ensure unreachable
+        # nodes get removed as soon as possible.
+        for _pingid, (timeout, _node) in self._expected_pongs.items():
+            if time.time() > timeout:
+                log.debug('evicting expected pong', remote=_node)
+                del self._expected_pongs[_pingid]
+                self.routing.remove_node(_node)
+                asyncio.ensure_future(self.populate_not_full_buckets())
 
-    def find_node(self, targetid, via_node=None):
-        # FIXME: To protect against amplification attacks, nodes will not reply to find_node
-        # requests unless we've pinged them at least once before.
+        if pingid not in self._expected_pongs:
+            # This means this pong came too late and has been handled by the code above.
+            return
+
+        del self._expected_pongs[pingid]
+        if remote in self._pending_bond_pongs:
+            self._pending_bond_pongs.remove(remote)
+        self.update(remote)
+
+    @asyncio.coroutine
+    def find_node(self, targetid, via_node):
         self._find_requests[targetid] = time.time() + k_request_timeout
-        if via_node is not None:
-            self.wire.send_find_node(via_node, targetid)
-        else:
-            self._query_neighbours(targetid)
+        asyncio.ensure_future(self.wire.send_find_node(via_node, targetid))
+
+    @asyncio.coroutine
+    def lookup(self, node_id):
+        for n in self.routing.neighbours(node_id)[:k_find_concurrency]:
+            asyncio.ensure_future(self.find_node(n, node_id))
 
     def recv_neighbours(self, remote, neighbours):
         """
@@ -418,26 +404,72 @@ class KademliaProtocol():
         neighbours = [n for n in neighbours if n != self.this_node]
         neighbours = [n for n in neighbours if n not in self.routing]
 
-        # we don't map requests to responses, thus forwarding to all FIXME
-        for nodeid, timeout in self._find_requests.items():
-            closest = sorted(neighbours, key=operator.methodcaller('id_distance', nodeid))
-            if time.time() < timeout:
-                closest_known = self.routing.neighbours(nodeid)
-                closest_known = closest_known[0] if closest_known else None
-                assert closest_known != self.this_node
-                # send find_node requests to k_find_concurrency closests
-                for close_node in closest[:k_find_concurrency]:
-                    if not closest_known or \
-                            close_node.id_distance(nodeid) < closest_known.id_distance(nodeid):
-                        self.wire.send_find_node(close_node, nodeid)
+        # Check and remove timed out find requests
+        self._find_requests = {
+            nodeid: timeout
+            for nodeid, timeout in self._find_requests.items()
+            if time.time() < timeout
+        }
 
-        # add all nodes to the list
+        # we don't map requests to responses, thus forwarding to all FIXME
+        for nodeid in self._find_requests:
+            closest = sorted(neighbours, key=operator.methodcaller('id_distance', nodeid))
+            closest_known = self.routing.neighbours(nodeid)
+            closest_known = closest_known[0] if closest_known else None
+            assert closest_known != self.this_node
+            # send find_node requests to k_find_concurrency closests
+            for close_node in closest[:k_find_concurrency]:
+                if not closest_known or \
+                        close_node.id_distance(nodeid) < closest_known.id_distance(nodeid):
+                    asyncio.ensure_future(self.wire.send_find_node(close_node, nodeid))
+
         for node in neighbours:
-            if node != self.this_node:
-                self.ping(node)
+            asyncio.ensure_future(self.bond(node))
+
+    @asyncio.coroutine
+    def bond(self, node):
+        log.debug("starting bonding routine", node=node)
+        self._pending_bond_pongs.append(node)
+        self._pending_bond_pings.append(node)
+        self.ping(node)
+
+        # Wait for a pong, which should be handled by recv_pong(), causing our entry to be deleted
+        # from self._pending_bond_pongs.
+        timeout = time.time() + k_request_timeout
+        while time.time() < timeout:
+            if node in self._pending_bond_pongs:
+                yield from asyncio.sleep(0.1)
+            else:
+                break
+
+        if node in self._pending_bond_pongs:
+            # We timed out waiting for a pong.
+            self._pending_bond_pongs.remove(node)
+            log.debug("bonding timed out waiting for a pong", node=node)
+            return False
+
+        # Wait for a ping, which should be handled by recv_ping(), causing our entry to be deleted
+        # from self._pending_bond_pings.
+        timeout = time.time() + k_request_timeout
+        while time.time() < timeout:
+            if node in self._pending_bond_pings:
+                yield from asyncio.sleep(0.1)
+            else:
+                break
+
+        if node in self._pending_bond_pings:
+            # We timed out waiting for a ping, but that's ok because it probably means the remote
+            # node rememebers us.
+            self._pending_bond_pings.remove(node)
+            log.debug("bonding timed out waiting for a ping", node=node)
+
+        log.debug("bonding completed successfully", node=node)
+        return True
 
     def recv_find_node(self, remote, targetid):
-        # FIXME: Add amplification attack protection (need to ping pong ping pong first)
+        if remote not in self.routing:
+            log.debug("Ignoring find_node request from unknown node {}".format(remote))
+            return
         self.update(remote)
         found = self.routing.neighbours(targetid)
         self.wire.send_neighbours(remote, found)

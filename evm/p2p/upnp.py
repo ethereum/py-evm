@@ -4,6 +4,9 @@ import miniupnpc
 def add_portmap(port, proto, label=''):
     u = miniupnpc.UPnP()
     u.discoverdelay = 200
+    if not u.discover():
+        # TODO: log
+        return
     try:
         # select an igd
         u.selectigd()

@@ -14,18 +14,19 @@ from rlp.utils import (
 
 from repoze.lru import LRUCache
 
+from evm.ecc import get_ecc_backend
 from evm.p2p import kademlia
 from evm.p2p.upnp import add_portmap, remove_portmap
-from evm.utils.ecdsa import (
-    ecdsa_recover,
-    ecdsa_sign,
-)
 from evm.utils.secp256k1 import private_key_to_public_key
 from evm.utils.keccak import keccak
 from evm.utils.numeric import (
     big_endian_to_int,
     int_to_big_endian,
 )
+
+
+# coincurve_path = 'evm.ecc.backends.coincurve.CoinCurveECCBackend'
+ecc = get_ecc_backend()
 
 
 class DefectiveMessage(Exception):
@@ -172,7 +173,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     The date should be interpreted as a UNIX timestamp.
     The receiver should discard any packet whose `Expiration` value is in the past.
     """
-    bootstrapped = False
     transport = None
     version = 4
     expiration = 60  # let messages expire after N secondes
@@ -206,18 +206,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport):
         self.transport = transport
 
+    @asyncio.coroutine
     def bootstrap(self):
-        if self.bootstrapped or len(self.bootstrap_nodes) == 0:
-            return
         while self.transport is None:
+            # FIXME: Instead of sleeping here to wait until connection_made() is called to set
+            # .transport we should instead only call it after we know it's been set.
             yield from asyncio.sleep(1)
-        self.bootstrapped = True
-        # XXX: geth will not process a find_node packet unless a bond exists between the
-        # nodes (introduced in de7af720d6bb10b93d716fb0c6cf3ee0e51dc71a), and to create a
-        # node a node must ping the other, so as a quick hack I ping all nodes before
-        # starting the bootstrap.
-        list(map(self.send_ping, self.bootstrap_nodes))
-        self.kademlia.bootstrap(self.bootstrap_nodes)
+        log.debug("boostrapping with", nodes=self.bootstrap_nodes)
+        [asyncio.ensure_future(self.kademlia.bootstrap(n)) for n in self.bootstrap_nodes]
 
     def datagram_received(self, data, addr):
         self.receive(Address(ip=addr[0], udp_port=addr[1]), data)
@@ -284,7 +280,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         cmd_id = str_to_bytes(self.encoders['cmd_id'](cmd_id))
         expiration = self.encoders['expiration'](int(time.time() + self.expiration))
         encoded_data = cmd_id + rlp.encode(payload + [expiration])
-        signature = ecdsa_sign(encoded_data, self.privkey)
+        signature = ecc.ecdsa_sign(encoded_data, self.privkey)
         assert len(signature) == 65
         mdc = keccak(signature + encoded_data)
         assert len(mdc) == 32
@@ -303,9 +299,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             log.debug('packet with wrong mcd')
             raise WrongMAC()
         signature = message[32:97]
-        assert len(signature) == 65
-        signed_data = keccak(message[97:])
-        remote_pubkey = ecdsa_recover(signed_data, signature)
+        signed_data = message[97:]
+        remote_pubkey = ecc.ecdsa_recover(signed_data, signature)
         assert len(remote_pubkey) == 512 / 8
         cmd_id = self.decoders['cmd_id'](message[97])
         cmd = self.rev_cmd_id_map[cmd_id]
@@ -384,6 +379,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         else:
             log.debug('<<< unexpected pong from unkown node')
 
+    @asyncio.coroutine
     def send_find_node(self, node, target_node_id):
         """
         ### Find Node (type 0x03)
@@ -523,7 +519,6 @@ if __name__ == "__main__":
 
     config = {
         'privkey_hex': '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
-        # 'privkey_hex': '45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8',
         'listen_host': '0.0.0.0',
         'listen_port': 30303,
         'p2p_listen_port': 30303,
@@ -531,14 +526,14 @@ if __name__ == "__main__":
             # Local geth bootnodes
             # b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
             # Testnet bootnodes
-            b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
-            b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
+            # b'enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303',  # noqa: E501
+            # b'enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303',  # noqa: E501
             # Mainnet bootnodes
             # b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
             # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
             # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
             # b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
-            # b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
+            b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
         ],
     }
 
@@ -557,6 +552,7 @@ if __name__ == "__main__":
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
     loop.run_until_complete(discovery.listen(loop))
 
+    # There's no need to wait for bootstrap because we run_forever().
     asyncio.ensure_future(discovery.bootstrap())
 
     # This helps when debugging asyncio issues.
