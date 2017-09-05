@@ -159,3 +159,8 @@ def validate_vm_block_numbers(vm_block_numbers):
 
     for block_number in vm_block_numbers:
         validate_block_number(block_number)
+
+
+def validate_raw_public_key(value):
+    if len(value) != 64 or validate_is_bytes(value):
+        raise ValidationError("Unexpected public key format.  Must be length 64 byte")
