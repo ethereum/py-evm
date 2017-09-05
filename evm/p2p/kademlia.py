@@ -22,10 +22,10 @@ import struct
 import time
 from functools import total_ordering
 
-from rlp.utils import (
+from eth_utils import (
     decode_hex,
     encode_hex,
-    str_to_bytes,
+    force_bytes,
 )
 
 from evm.utils.keccak import keccak
@@ -555,7 +555,7 @@ class KademliaProtocol():
             asyncio.ensure_future(self.lookup(rid))
 
     def _mkpingid(self, echoed, node):
-        pid = str_to_bytes(echoed) + node.pubkey
+        pid = force_bytes(echoed) + node.pubkey
         return pid
 
     @asyncio.coroutine
@@ -575,8 +575,7 @@ def sort_by_distance(nodes, target_id):
 
 
 def host_port_pubkey_from_uri(uri):
-    node_uri_scheme = 'enode://'
-    b_node_uri_scheme = str_to_bytes(node_uri_scheme)
-    pubkey_hex, ip_port = uri[len(b_node_uri_scheme):].split(b'@')
+    node_uri_scheme = b'enode://'
+    pubkey_hex, ip_port = uri[len(node_uri_scheme):].split(b'@')
     ip, port = ip_port.split(b':')
     return ip, port, decode_hex(pubkey_hex)

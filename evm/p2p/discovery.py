@@ -3,11 +3,10 @@ import logging
 import time
 
 import rlp
-from rlp.utils import (
+from eth_utils import (
     decode_hex,
     is_integer,
-    str_to_bytes,
-    safe_ord,
+    force_bytes,
 )
 
 from evm.ecc import get_ecc_backend
@@ -17,6 +16,7 @@ from evm.utils.keccak import keccak
 from evm.utils.numeric import (
     big_endian_to_int,
     int_to_big_endian,
+    safe_ord,
 )
 
 
@@ -195,7 +195,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         assert cmd_id in self.cmd_id_map.values()
         assert isinstance(payload, list)
 
-        cmd_id = str_to_bytes(self.encoders['cmd_id'](cmd_id))
+        cmd_id = force_bytes(self.encoders['cmd_id'](cmd_id))
         expiration = self.encoders['expiration'](int(time.time() + self.expiration))
         encoded_data = cmd_id + rlp.encode(payload + [expiration])
         signature = ecc.ecdsa_sign(encoded_data, self.privkey)
