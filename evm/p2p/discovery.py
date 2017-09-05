@@ -1,18 +1,14 @@
 import asyncio
-import ipaddress
-import struct
+import logging
 import time
 
 import rlp
 from rlp.utils import (
     decode_hex,
-    encode_hex,
     is_integer,
     str_to_bytes,
     safe_ord,
 )
-
-from repoze.lru import LRUCache
 
 from evm.ecc import get_ecc_backend
 from evm.p2p import kademlia
@@ -24,6 +20,8 @@ from evm.utils.numeric import (
     int_to_big_endian,
 )
 
+
+logger = logging.getLogger("discovery")
 
 # coincurve_path = 'evm.ecc.backends.coincurve.CoinCurveECCBackend'
 ecc = get_ecc_backend()
@@ -39,84 +37,6 @@ class WrongMAC(DefectiveMessage):
 
 class PacketExpired(DefectiveMessage):
     pass
-
-
-def int_to_big_endian4(integer):
-    ''' 4 bytes big endian integer'''
-    return struct.pack('>I', integer)
-
-
-def enc_port(p):
-    return int_to_big_endian4(p)[-2:]
-
-
-class Address(object):
-
-    def __init__(self, ip, udp_port, tcp_port=0, from_binary=False):
-        tcp_port = tcp_port or udp_port
-        if from_binary:
-            self.udp_port = big_endian_to_int(udp_port)
-            self.tcp_port = big_endian_to_int(tcp_port)
-        else:
-            assert is_integer(udp_port)
-            assert is_integer(tcp_port)
-            self.udp_port = udp_port
-            self.tcp_port = tcp_port
-        try:
-            self._ip = ipaddress.ip_address(ip)
-        except ipaddress.AddressValueError as e:
-            log.debug("failed to parse ip", error=e, ip=ip)
-            raise e
-
-    @property
-    def ip(self):
-        return str(self._ip)
-
-    def update(self, addr):
-        if not self.tcp_port:
-            self.tcp_port = addr.tcp_port
-
-    def __eq__(self, other):
-        # addresses equal if they share ip and udp_port
-        return (self.ip, self.udp_port) == (other.ip, other.udp_port)
-
-    def __repr__(self):
-        return 'Address(%s:%s)' % (self.ip, self.udp_port)
-
-    def to_dict(self):
-        return dict(ip=self.ip, udp_port=self.udp_port, tcp_port=self.tcp_port)
-
-    def to_binary(self):
-        """
-        struct Endpoint
-            unsigned address; // BE encoded 32-bit or 128-bit unsigned
-                                 (layer3 address; size determins ipv4 vs ipv6)
-            unsigned udpPort; // BE encoded 16-bit unsigned
-            unsigned tcpPort; // BE encoded 16-bit unsigned        }
-        """
-        return list((self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)))
-    to_endpoint = to_binary
-
-    @classmethod
-    def from_binary(cls, ip, udp_port, tcp_port='\x00\x00'):
-        return cls(ip, udp_port, tcp_port, from_binary=True)
-    from_endpoint = from_binary
-
-
-class Node(kademlia.Node):
-
-    def __init__(self, pubkey, address=None):
-        super(Node, self).__init__(pubkey)
-        assert address is None or isinstance(address, Address)
-        self.address = address
-
-    @classmethod
-    def from_uri(cls, uri):
-        ip, port, pubkey = host_port_pubkey_from_uri(uri)
-        return cls(pubkey, Address(ip.decode(), int(port)))
-
-    def __repr__(self):
-        return '<Node(%s:%s)>' % (encode_hex(self.pubkey[:4]), self.address.ip)
 
 
 """
@@ -194,8 +114,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.pubkey = private_key_to_public_key(self.privkey)
         self.address = address
         self.bootstrap_nodes = bootstrap_nodes
-        self.this_node = Node(self.pubkey, address)
-        self.nodes = LRUCache(2048)   # nodeid->Node,  fixme should be loaded
+        self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
         self.nat_upnp = add_portmap(address.udp_port, 'UDP', 'Ethereum DEVP2P Discovery')
 
@@ -212,38 +131,39 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # FIXME: Instead of sleeping here to wait until connection_made() is called to set
             # .transport we should instead only call it after we know it's been set.
             yield from asyncio.sleep(1)
-        log.debug("boostrapping with", nodes=self.bootstrap_nodes)
-        [asyncio.ensure_future(self.kademlia.bootstrap(n)) for n in self.bootstrap_nodes]
+        logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
+        yield from self.kademlia.bootstrap(self.bootstrap_nodes)
 
     def datagram_received(self, data, addr):
-        self.receive(Address(ip=addr[0], udp_port=addr[1]), data)
+        self.receive(kademlia.Address(ip=addr[0], udp_port=addr[1]), data)
 
     def error_received(self, exc):
-        log.warn('error received', err=exc)
+        logger.warn('error received: {}'.format(exc))
 
     def send(self, node, message):
         assert node.address
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
     def stop(self):
-        log.info('stopping discovery')
+        logger.info('stopping discovery')
         self.transport.close()
         remove_portmap(self.nat_upnp, self.address.udp_port, 'UDP')
 
-    # FIXME: This method should not update .nodes(), nor update a node's address.
-    def get_node(self, nodeid, address=None):
-        "return node or create new, update address if supplied"
-        assert isinstance(nodeid, bytes)
-        assert len(nodeid) == 512 // 8
-        assert address or self.nodes.get(nodeid)
-        if not self.nodes.get(nodeid):
-            self.nodes.put(nodeid, Node(nodeid, address))
-        node = self.nodes.get(nodeid)
-        if address:
-            assert isinstance(address, Address)
-            node.address = address
-        assert node.address
-        return node
+    def receive(self, address, message):
+        try:
+            remote_pubkey, cmd_id, payload, mdc = self.unpack(message)
+            # Note: as of discovery version 4, expiration is the last element for all
+            # packets. This might not be the case for a later version, but just popping
+            # the last element is good enough for now.
+            expiration = self.decoders['expiration'](payload.pop())
+            if time.time() > expiration:
+                raise PacketExpired()
+        except DefectiveMessage as e:
+            logger.info('error unpacking message: {}'.format(e))
+            return
+        cmd = getattr(self, 'recv_' + self.rev_cmd_id_map[cmd_id])
+        node = kademlia.Node(remote_pubkey, address)
+        cmd(node, payload, mdc)
 
     def pack(self, cmd_id, payload):
         """
@@ -296,7 +216,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         """
         mdc = message[:32]
         if mdc != keccak(message[32:]):
-            log.debug('packet with wrong mcd')
+            logger.error('packet with wrong mdc')
             raise WrongMAC()
         signature = message[32:97]
         signed_data = message[97:]
@@ -310,199 +230,71 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         payload = payload[:self.cmd_elem_count_map.get(cmd, len(payload))]
         return remote_pubkey, cmd_id, payload, mdc
 
-    def receive(self, address, message):
-        assert isinstance(address, Address)
-        try:
-            remote_pubkey, cmd_id, payload, mdc = self.unpack(message)
-            # Note: as of discovery version 4, expiration is the last element for all
-            # packets. This might not be the case for a later version, but just popping
-            # the last element is good enough for now.
-            expiration = self.decoders['expiration'](payload.pop())
-            if time.time() > expiration:
-                raise PacketExpired()
-        except DefectiveMessage:
+    def recv_pong(self, node, payload, mdc):
+        if not len(payload) == 2:
+            logger.error('invalid pong payload: {}'.format(payload))
             return
-        cmd = getattr(self, 'recv_' + self.rev_cmd_id_map[cmd_id])
-        nodeid = remote_pubkey
-        remote = self.get_node(nodeid, address)
-        log.debug("Dispatching received message", local=self.this_node, remoteid=remote,
-                  cmd=self.rev_cmd_id_map[cmd_id])
-        cmd(nodeid, payload, mdc)
+        echoed = payload[1]
+        self.kademlia.recv_pong(node, echoed)
+
+    def recv_neighbours(self, node, payload, mdc):
+        if not len(payload) == 1:
+            logger.error('invalid neighbours payload: {}'.format(payload))
+            return
+        neighbours = []
+        for n in payload[0]:
+            nodeid = n.pop()
+            address = kademlia.Address.from_endpoint(*n)
+            neighbours.append(kademlia.Node(nodeid, address))
+        self.kademlia.recv_neighbours(node, neighbours)
+
+    def recv_ping(self, node, payload, mdc):
+        if len(payload) != 3:
+            logger.error('invalid ping payload: '.format(payload))
+            return
+        self.kademlia.recv_ping(node, mdc)
+
+    def recv_find_node(self, node, payload, mdc):
+        logger.debug('<<< find_node from {}'.format(node))
+        assert len(payload[0]) == kademlia.k_pubkey_size / 8
+        target = big_endian_to_int(payload[0])
+        self.kademlia.recv_find_node(node, target)
 
     def send_ping(self, node):
-        """
-        ### Ping (type 0x01)
-
-        Ping packets can be sent and received at any time. The receiver should
-        reply with a Pong packet and update the IP/Port of the sender in its
-        node table.
-
-        PingNode packet-type: 0x01
-
-        PingNode packet-type: 0x01
-        struct PingNode             <= 59 bytes
-        {
-            h256 version = 0x3;     <= 1
-            Endpoint from;          <= 23
-            Endpoint to;            <= 23
-            unsigned expiration;    <= 9
-        };
-
-        struct Endpoint             <= 24 == [17,3,3]
-        {
-            unsigned address; // BE encoded 32-bit or 128-bit unsigned
-                                 (layer3 address; size determins ipv4 vs ipv6)
-            unsigned udpPort; // BE encoded 16-bit unsigned
-            unsigned tcpPort; // BE encoded 16-bit unsigned
-        }
-        """
         assert isinstance(node, type(self.this_node)) and node != self.this_node
-        log.debug('>>> ping', remoteid=node)
+        logger.debug('>>> pinging {}'.format(node))
         version = rlp.sedes.big_endian_int.serialize(self.version)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
         message = self.pack(self.cmd_id_map['ping'], payload)
         self.send(node, message)
         return message[:32]  # return the MDC to identify pongs
 
-    def recv_pong(self, nodeid, payload, mdc):
-        if not len(payload) == 2:
-            log.error('invalid pong payload', payload=payload)
-            return
-        assert len(payload[0]) == 3, payload
-
-        # Verify address is valid
-        Address.from_endpoint(*payload[0])
-        echoed = payload[1]
-        if self.nodes.get(nodeid):
-            node = self.get_node(nodeid)
-            self.kademlia.recv_pong(node, echoed)
-        else:
-            log.debug('<<< unexpected pong from unkown node')
-
-    @asyncio.coroutine
     def send_find_node(self, node, target_node_id):
-        """
-        ### Find Node (type 0x03)
-
-        Find Node packets are sent to locate nodes close to a given target ID.
-        The receiver should reply with a Neighbors packet containing the `k`
-        nodes closest to target that it knows about.
-
-        FindNode packet-type: 0x03
-        struct FindNode             <= 76 bytes
-        {
-            NodeId target; // Id of a node. The responding node will send back nodes closest
-                              to the target.
-            unsigned expiration;
-        };
-        """
         assert is_integer(target_node_id)
         target_node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         assert len(target_node_id) == kademlia.k_pubkey_size // 8
-        log.debug('>>> find_node', remoteid=node)
+        logger.debug('>>> find_node to {}'.format(node))
         message = self.pack(self.cmd_id_map['find_node'], [target_node_id])
         self.send(node, message)
 
-    def recv_neighbours(self, nodeid, payload, mdc):
-        remote = self.get_node(nodeid)
-        assert len(payload) == 1
-        neighbours_lst = payload[0]
-        assert isinstance(neighbours_lst, list)
-
-        neighbours = []
-        for n in neighbours_lst:
-            nodeid = n.pop()
-            address = Address.from_endpoint(*n)
-            node = self.get_node(nodeid, address)
-            assert node.address
-            neighbours.append(node)
-
-        self.kademlia.recv_neighbours(remote, neighbours)
-
-    def recv_ping(self, nodeid, payload, mdc):
-        """
-        update ip, port in node table
-        Addresses can only be learned by ping messages
-        """
-        if len(payload) != 3:
-            log.error('invalid ping payload', payload=payload)
-            return
-        node = self.get_node(nodeid)
-        remote_address = Address.from_endpoint(*payload[1])
-        # XXX: This only updates the node's tcp_port, and only when it is not already set.
-        self.get_node(nodeid).address.update(remote_address)
-        self.kademlia.recv_ping(node, echo=mdc)
-
     def send_pong(self, node, token):
-        """
-        ### Pong (type 0x02)
-
-        Pong is the reply to a Ping packet.
-
-        Pong packet-type: 0x02
-        struct Pong                 <= 66 bytes
-        {
-            Endpoint to;
-            h256 echo;
-            unsigned expiration;
-        };
-        """
-        log.debug('>>> pong', remoteid=node)
+        logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
         assert len(payload[0][0]) in (4, 16), payload
         message = self.pack(self.cmd_id_map['pong'], payload)
         self.send(node, message)
 
-    def recv_find_node(self, nodeid, payload, mdc):
-        node = self.get_node(nodeid)
-        log.debug('<<< find_node', remoteid=node)
-        assert len(payload[0]) == kademlia.k_pubkey_size / 8
-        target = big_endian_to_int(payload[0])
-        self.kademlia.recv_find_node(node, target)
-
     def send_neighbours(self, node, neighbours):
-        """
-        ### Neighbors (type 0x04)
-
-        Neighbors is the reply to Find Node. It contains up to `k` nodes that
-        the sender knows which are closest to the requested `Target`.
-
-        Neighbors packet-type: 0x04
-        struct Neighbours           <= 1423
-        {
-            list nodes: struct Neighbour    <= 88: 1411; 76: 1219
-            {
-                inline Endpoint endpoint;
-                NodeId node;
-            };
-
-            unsigned expiration;
-        };
-        """
-        assert isinstance(neighbours, list)
-        assert not neighbours or isinstance(neighbours[0], Node)
         nodes = []
         neighbours = sorted(neighbours)
         for n in neighbours:
             l = n.address.to_endpoint() + [n.pubkey]
             nodes.append(l)
-        log.debug('>>> neighbours', remoteid=node, count=len(nodes), local=self.this_node,
-                  neighbours=neighbours)
+        logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
         # FIXME: don't brake udp packet size / chunk message / also when receiving
         message = self.pack(self.cmd_id_map['neighbours'], [nodes[:12]])  # FIXME
         self.send(node, message)
-
-
-def host_port_pubkey_from_uri(uri):
-    node_uri_scheme = 'enode://'
-    b_node_uri_scheme = str_to_bytes(node_uri_scheme)
-    assert uri.startswith(b_node_uri_scheme) and \
-        b'@' in uri and b':' in uri, uri
-    pubkey_hex, ip_port = uri[len(b_node_uri_scheme):].split(b'@')
-    assert len(pubkey_hex) == 2 * 512 // 8
-    ip, port = ip_port.split(b':')
-    return ip, port, decode_hex(pubkey_hex)
 
 
 if __name__ == "__main__":
@@ -514,7 +306,7 @@ if __name__ == "__main__":
                 if task._coro.__name__ != "show_tasks":
                     tasks.append(task._coro.__name__)
             if tasks:
-                log.debug("Active tasks: {}".format(tasks))
+                logger.debug("Active tasks: {}".format(tasks))
             yield from asyncio.sleep(3)
 
     config = {
@@ -531,8 +323,8 @@ if __name__ == "__main__":
             # Mainnet bootnodes
             # b'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
             # b'enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303',  # noqa: E501
-            # b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
-            # b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
+            b'enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303',  # noqa: E501
+            b'enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303',  # noqa: E501
             b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
         ],
     }
@@ -543,12 +335,9 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    from structlog import get_logger
-    log = get_logger()
-
     privkey = decode_hex(config['privkey_hex'])
-    addr = Address(config['listen_host'], config['listen_port'], config['p2p_listen_port'])
-    bootstrap_nodes = [Node.from_uri(x) for x in config['bootstrap_nodes']]
+    addr = kademlia.Address(config['listen_host'], config['listen_port'], config['p2p_listen_port'])
+    bootstrap_nodes = [kademlia.Node.from_uri(x) for x in config['bootstrap_nodes']]
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
     loop.run_until_complete(discovery.listen(loop))
 
@@ -565,5 +354,5 @@ if __name__ == "__main__":
 
     # task_monitor.set_result(None)
     discovery.stop()
-    # log.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
+    # logger.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
     loop.close()

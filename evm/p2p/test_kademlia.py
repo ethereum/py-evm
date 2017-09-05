@@ -15,7 +15,7 @@ def test_protocol_bootstrap():
     proto = get_wired_protocol()
     node1 = random_node()
     node2 = random_node()
-    proto.bootstrap(nodes=[node1, node2])
+    proto.bootstrap([node1, node2])
     assert len(proto.wire.messages) == 2
     msg1, msg2 = proto.wire.messages
     assert msg1 == (node1, 'find_node', proto.routing.this_node, proto.routing.this_node.id)
@@ -67,24 +67,24 @@ def test_routingtable_neighbours():
         assert node_a == table.neighbours(node_b.id)[0]
 
 
-def test_kbucket_add_node():
+def test_kbucket_add():
     bucket = kademlia.KBucket(0, 100)
     node = random_node()
-    assert bucket.add_node(node) is None
+    assert bucket.add(node) is None
     assert bucket.nodes == [node]
 
     node2 = random_node()
-    assert bucket.add_node(node2) is None
+    assert bucket.add(node2) is None
     assert bucket.nodes == [node, node2]
     assert bucket.head == node
 
-    assert bucket.add_node(node) is None
+    assert bucket.add(node) is None
     assert bucket.nodes == [node2, node]
     assert bucket.head == node2
 
     bucket.k = 2
     node3 = random_node()
-    assert bucket.add_node(node3) == node2
+    assert bucket.add(node3) == node2
     assert bucket.nodes == [node2, node]
     assert bucket.head == node2
 
@@ -99,7 +99,7 @@ def test_kbucket_split():
             node.id = bucket.midpoint + i
         else:
             node.id = bucket.midpoint - i
-        bucket.add_node(node)
+        bucket.add(node)
     assert bucket.is_full
     bucket1, bucket2 = bucket.split()
     assert bucket1.start == 0
@@ -115,12 +115,12 @@ def test_kbucket_depth():
 
     # For buckets with less than 2 nodes, the depth is k_id_size.
     assert bucket.depth == kademlia.k_id_size
-    assert bucket.add_node(random_node()) is None
+    assert bucket.add(random_node()) is None
     assert bucket.depth == kademlia.k_id_size
 
     # Otherwise the depth is the number of leading bits (in the left-padded binary representation)
     # shared by all node IDs.
-    assert bucket.add_node(random_node()) is None
+    assert bucket.add(random_node()) is None
     bucket.nodes[0].id = int('0b1', 2)
     bucket.nodes[1].id = int('0b0', 2)
     assert bucket.depth == kademlia.k_id_size - 1
@@ -136,7 +136,7 @@ def random_pubkey():
 
 
 def random_node(nodeid=None):
-    node = kademlia.Node(random_pubkey())
+    node = kademlia.Node(random_pubkey(), address=None)
     if nodeid is not None:
         node.id = nodeid
     return node
