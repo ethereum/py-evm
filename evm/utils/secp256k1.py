@@ -23,10 +23,10 @@ from evm.validation import (
 
 
 def decode_public_key(public_key):
-    if validate_raw_public_key(public_key):
-        left = big_endian_to_int(public_key[0:32])
-        right = big_endian_to_int(public_key[32:64])
-        return left, right
+    validate_raw_public_key(public_key)
+    left = big_endian_to_int(public_key[0:32])
+    right = big_endian_to_int(public_key[32:64])
+    return left, right
 
 
 def encode_raw_public_key(raw_public_key):

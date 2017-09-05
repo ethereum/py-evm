@@ -31,5 +31,5 @@ def private_key_to_address(private_key):
 
 
 def public_key_to_address(public_key):
-    if validate_raw_public_key(public_key):
-        return keccak(public_key)[-20:]
+    validate_raw_public_key(public_key)
+    return keccak(public_key)[-20:]
