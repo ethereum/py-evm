@@ -249,8 +249,8 @@ class RoutingTable():
 
     @property
     def idle_buckets(self):
-        one_hour_ago = time.time() - k_idle_bucket_refresh_interval
-        return [b for b in self.buckets if b.last_updated < one_hour_ago]
+        idle_cutoff_time = time.time() - k_idle_bucket_refresh_interval
+        return [b for b in self.buckets if b.last_updated < idle_cutoff_time]
 
     @property
     def not_full_buckets(self):

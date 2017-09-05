@@ -12,7 +12,6 @@ from rlp.utils import (
 
 from evm.ecc import get_ecc_backend
 from evm.p2p import kademlia
-from evm.p2p.upnp import add_portmap, remove_portmap
 from evm.utils.secp256k1 import private_key_to_public_key
 from evm.utils.keccak import keccak
 from evm.utils.numeric import (
@@ -116,7 +115,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.bootstrap_nodes = bootstrap_nodes
         self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
-        self.nat_upnp = add_portmap(address.udp_port, 'UDP', 'Ethereum DEVP2P Discovery')
 
     def listen(self, loop):
         return loop.create_datagram_endpoint(
@@ -147,7 +145,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def stop(self):
         logger.info('stopping discovery')
         self.transport.close()
-        remove_portmap(self.nat_upnp, self.address.udp_port, 'UDP')
 
     def receive(self, address, message):
         try:
@@ -165,6 +162,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         node = kademlia.Node(remote_pubkey, address)
         cmd(node, payload, mdc)
 
+    # TODO: Try to extract this into a standalone function.
     def pack(self, cmd_id, payload):
         """
         UDP packets are structured as follows:
@@ -206,6 +204,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         assert len(mdc) == 32
         return mdc + signature + encoded_data
 
+    # TODO: Try to extract this into a standalone function.
     def unpack(self, message):
         """
         macSize  = 256 / 8 = 32
