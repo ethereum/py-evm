@@ -117,6 +117,34 @@ def test_wait_neighbours():
     assert node not in proto.neighbours_callbacks
 
 
+@pytest.mark.asyncio
+def test_bond():
+    proto = get_wired_protocol()
+    node = random_node()
+
+    # Do not send pings, instead simply return the pingid we'd expect back together with the pong.
+    proto.ping = lambda remote: proto._mkpingid("echoed", remote)
+
+    # Pretend we get a pong from the node we are bonding with.
+    expected_pingid = proto._mkpingid("echoed", node)
+    proto.wait_pong = asyncio.coroutine(lambda pingid: pingid == expected_pingid)
+
+    bonded = yield from proto.bond(node)
+
+    assert bonded
+
+    # If we try to bond with any other nodes we'll timeout and bond() will return False.
+    node2 = random_node()
+    bonded = yield from proto.bond(node2)
+
+    assert not bonded
+
+
+def test_update_routing_table():
+    # TODO
+    pass
+
+
 def test_routingtable_split_bucket():
     table = kademlia.RoutingTable(random_node())
     assert len(table.buckets) == 1

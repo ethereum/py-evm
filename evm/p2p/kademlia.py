@@ -300,9 +300,9 @@ class KademliaProtocol():
         self.neighbours_callbacks = {}
 
     def recv_neighbours(self, remote, neighbours):
-        """Process a neighbours packet.
+        """Process a neighbours response.
 
-        Neighbours packets should only be received as a response to a find_node, and that is only
+        Neighbours responses should only be received as a reply to a find_node, and that is only
         done as part of node lookup, so the actual processing is left to the callback from
         neighbours_callbacks, which is added (and removed after it's done or timed out) in
         wait_neighbours().
