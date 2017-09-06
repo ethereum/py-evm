@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import pytest
@@ -6,20 +7,30 @@ from evm.p2p import kademlia
 from evm.utils.numeric import int_to_big_endian
 
 
-def get_wired_protocol():
-    this_node = random_node()
-    return kademlia.KademliaProtocol(this_node, WireMock(this_node))
+# Force our tests to fail quickly if they accidentally make network requests.
+@pytest.fixture(autouse=True)
+def short_timeout(monkeypatch):
+    monkeypatch.setattr(kademlia, 'k_request_timeout', 0.01)
 
 
+@pytest.mark.asyncio
 def test_protocol_bootstrap():
     proto = get_wired_protocol()
-    node1 = random_node()
-    node2 = random_node()
-    proto.bootstrap([node1, node2])
+
+    @asyncio.coroutine
+    def bond(node):
+        proto.routing.add_node(node)
+        return True
+
+    proto.bond = bond
+    node1, node2 = [random_node(), random_node()]
+    yield from proto.bootstrap([node1, node2])
     assert len(proto.wire.messages) == 2
-    msg1, msg2 = proto.wire.messages
-    assert msg1 == (node1, 'find_node', proto.routing.this_node, proto.routing.this_node.id)
-    assert msg2 == (node2, 'find_node', proto.routing.this_node, proto.routing.this_node.id)
+    # We don't care in which order the bootstrap nodes are contacted, so we sort them both in the
+    # assert here.
+    assert sorted(proto.wire.messages) == sorted([
+        (node1, 'find_node', proto.routing.this_node.id),
+        (node2, 'find_node', proto.routing.this_node.id)])
 
 
 def test_routingtable_split_bucket():
@@ -127,13 +138,19 @@ def test_compute_shared_prefix_bits():
     assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
 
 
+def get_wired_protocol():
+    this_node = random_node()
+    return kademlia.KademliaProtocol(this_node, WireMock(this_node))
+
+
 def random_pubkey():
     pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
     return b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk
 
 
 def random_node(nodeid=None):
-    node = kademlia.Node(random_pubkey(), address=None)
+    address = kademlia.Address('127.0.0.1', 30303)
+    node = kademlia.Node(random_pubkey(), address)
     if nodeid is not None:
         node.id = nodeid
     return node
@@ -157,14 +174,14 @@ class WireMock():
 
     def send_ping(self, node):
         echo = hex(random.randint(0, 2**256))[-32:]
-        self.messages.append((node, 'ping', self.sender, echo))
+        self.messages.append((node, 'ping', echo))
         return echo
 
     def send_pong(self, node, echo):
-        self.messages.append((node, 'pong', self.sender, echo))
+        self.messages.append((node, 'pong', echo))
 
     def send_find_node(self, node, nodeid):
-        self.messages.append((node, 'find_node', self.sender, nodeid))
+        self.messages.append((node, 'find_node', nodeid))
 
     def send_neighbours(self, node, neighbours):
-        self.messages.append((node, 'neighbours', self.sender, neighbours))
+        self.messages.append((node, 'neighbours', neighbours))

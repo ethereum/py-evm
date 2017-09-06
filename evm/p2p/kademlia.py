@@ -105,7 +105,7 @@ class Node():
         return cls(pubkey, Address(ip.decode(), int(port)))
 
     def __repr__(self):
-        return '<Node(%s:%s)>' % (encode_hex(self.pubkey[:4]), self.address.ip)
+        return '<Node(%s@%s)>' % (encode_hex(self.pubkey[:4]), self.address.ip)
 
     def distance_to(self, id):
         return self.id ^ id
