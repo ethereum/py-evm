@@ -59,6 +59,10 @@ def enc_port(p):
     return int_to_big_endian4(p)[-2:]
 
 
+class AlreadyWaiting(Exception):
+    pass
+
+
 class Address():
 
     def __init__(self, ip, udp_port, tcp_port=0):
@@ -397,6 +401,10 @@ class KademliaProtocol():
         called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
         a ping was received from the given node.
         """
+        if remote in self.ping_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a ping packet from {}".format(remote))
+
         event = asyncio.Event()
         self.ping_callbacks[remote] = event.set
         got_ping = False
@@ -405,6 +413,7 @@ class KademliaProtocol():
             logger.debug('got expected ping from {}'.format(remote))
         except asyncio.futures.TimeoutError:
             logger.debug('timed out waiting for ping from {}'.format(remote))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.ping_callbacks[remote]
         return got_ping
 
@@ -416,6 +425,10 @@ class KademliaProtocol():
         called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
         a pong was received with the given pingid.
         """
+        if pingid in self.pong_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a pong packet with id {}".format(pingid))
+
         event = asyncio.Event()
         self.pong_callbacks[pingid] = event.set
         got_pong = False
@@ -424,6 +437,7 @@ class KademliaProtocol():
             logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
         except asyncio.futures.TimeoutError:
             logger.debug('timed out waiting for pong with pingid {}'.format(encode_hex(pingid)))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.pong_callbacks[pingid]
         return got_pong
 
@@ -433,6 +447,10 @@ class KademliaProtocol():
 
         Returns the list of neighbours received.
         """
+        if remote in self.neighbours_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a neighbours packet from {}".format(remote))
+
         event = asyncio.Event()
         neighbours = []
 
@@ -451,6 +469,7 @@ class KademliaProtocol():
         except asyncio.futures.TimeoutError:
             pass
             logger.debug('timed out waiting for neighbours response from {}'.format(remote))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.neighbours_callbacks[remote]
         return [n for n in neighbours if n != self.this_node]
 
