@@ -20,6 +20,7 @@ import operator
 import random
 import struct
 import time
+import urllib
 from functools import total_ordering
 
 from eth_utils import (
@@ -31,7 +32,6 @@ from eth_utils import (
 from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
 
-logger = logging.getLogger("discovery")
 
 # TODO: Go through all the asserts and either get rid of them or replace with exceptions.
 
@@ -44,10 +44,6 @@ k_find_concurrency = 3                   # parallel find node lookups
 k_pubkey_size = 512
 k_id_size = 256
 k_max_node_id = 2 ** k_id_size - 1
-
-
-def random_nodeid():
-    return random.randint(0, k_max_node_id)
 
 
 def int_to_big_endian4(integer):
@@ -111,7 +107,7 @@ class Node():
     def __repr__(self):
         return '<Node(%s:%s)>' % (encode_hex(self.pubkey[:4]), self.address.ip)
 
-    def id_distance(self, id):
+    def distance_to(self, id):
         return self.id ^ id
 
     def __lt__(self, other):
@@ -153,11 +149,11 @@ class KBucket():
     def midpoint(self):
         return self.start + (self.end - self.start) // 2
 
-    def id_distance(self, id):
+    def distance_to(self, id):
         return self.midpoint ^ id
 
-    def nodes_by_id_distance(self, id):
-        return sorted(self.nodes, key=operator.methodcaller('id_distance', id))
+    def nodes_by_distance_to(self, id):
+        return sorted(self.nodes, key=operator.methodcaller('distance_to', id))
 
     def split(self):
         """Split at the median id"""
@@ -211,27 +207,6 @@ class KBucket():
         """Least recently seen"""
         return self.nodes[0]
 
-    @property
-    def depth(self):
-        """Depth is the prefix shared by all nodes in the bucket.
-
-        i.e. The number of shared leading bits.
-        """
-        def to_binary(x):  # left padded bit representation
-            b = bin(x)[2:]
-            return '0' * (k_id_size - len(b)) + b
-
-        if len(self.nodes) < 2:
-            return k_id_size
-
-        bits = [to_binary(n.id) for n in self.nodes]
-        for i in range(1, k_id_size + 1):
-            if len(set(b[:i] for b in bits)) != 1:
-                return i - 1
-        # This means we have at least two nodes with the same ID, so raise an AssertionError
-        # because we don't want it to be caught accidentally.
-        raise AssertionError("Unable to calculate depth")
-
     def __contains__(self, node):
         return node in self.nodes
 
@@ -245,9 +220,9 @@ class RoutingTable():
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
-    def split_bucket(self, bucket):
+    def split_bucket(self, index):
+        bucket = self.buckets[index]
         a, b = bucket.split()
-        index = self.buckets.index(bucket)
         self.buckets[index] = a
         self.buckets.insert(index + 1, b)
 
@@ -261,36 +236,35 @@ class RoutingTable():
         return [b for b in self.buckets if not b.is_full]
 
     def remove_node(self, node):
-        self.bucket_by_node(node).remove_node(node)
+        self.get_bucket_for_node(node).remove_node(node)
 
     def add_node(self, node):
         if node == self.this_node:
             raise ValueError("Cannot add this_node to routing table")
-        bucket = self.bucket_by_node(node)
+        bucket = self.get_bucket_for_node(node)
         eviction_candidate = bucket.add(node)
         if eviction_candidate is not None:  # bucket is full
             # Split if the bucket has the local node in its range or if the depth is not congruent
             # to 0 mod k_b
-            depth = bucket.depth
+            depth = compute_shared_prefix_bits(bucket.nodes)
             if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
-                self.split_bucket(bucket)
+                self.split_bucket(self.buckets.index(bucket))
                 return self.add_node(node)  # retry
             # Nothing added, ping eviction_candidate
             return eviction_candidate
         return None  # successfully added to not full bucket
 
-    def bucket_by_node(self, node):
+    def get_bucket_for_node(self, node):
         for bucket in self.buckets:
             if node.id < bucket.end:
-                assert node.id >= bucket.start
                 return bucket
         raise ValueError("No bucket found for node with id {}".format(node.id))
 
-    def buckets_by_id_distance(self, id):
-        return sorted(self.buckets, key=operator.methodcaller('id_distance', id))
+    def buckets_by_distance_to(self, id):
+        return sorted(self.buckets, key=operator.methodcaller('distance_to', id))
 
     def __contains__(self, node):
-        return node in self.bucket_by_node(node)
+        return node in self.get_bucket_for_node(node)
 
     def __len__(self):
         return sum(len(b) for b in self.buckets)
@@ -304,9 +278,9 @@ class RoutingTable():
         """Return up to k neighbours of the given node."""
         nodes = []
         # Sorting by bucket.midpoint does not work in edge cases, so build a short list of k * 2
-        # nodes and sort it by id_distance.
-        for bucket in self.buckets_by_id_distance(node_id):
-            for n in bucket.nodes_by_id_distance(node_id):
+        # nodes and sort it by distance_to.
+        for bucket in self.buckets_by_distance_to(node_id):
+            for n in bucket.nodes_by_distance_to(node_id):
                 if n is not node_id:
                     nodes.append(n)
                     if len(nodes) == k * 2:
@@ -315,6 +289,7 @@ class RoutingTable():
 
 
 class KademliaProtocol():
+    logger = logging.getLogger("evm.p2p.discovery.KademliaProtocol")
 
     def __init__(self, node, wire):
         self.this_node = node
@@ -332,12 +307,13 @@ class KademliaProtocol():
         neighbours_callbacks, which is added (and removed after it's done or timed out) in
         wait_neighbours().
         """
-        logger.debug('<<< neighbours from {}: {}'.format(remote, neighbours))
+        self.logger.debug('<<< neighbours from {}: {}'.format(remote, neighbours))
         callback = self.neighbours_callbacks.get(remote)
         if callback is not None:
             callback(neighbours)
         else:
-            logger.debug('unexpected neighbours from {}, probably came too late'.format(remote))
+            self.logger.debug(
+                'unexpected neighbours from {}, probably came too late'.format(remote))
 
     def recv_pong(self, remote, echoed):
         """Process a pong packet.
@@ -346,13 +322,13 @@ class KademliaProtocol():
         left to the callback from pong_callbacks, which is added (and removed after it's done
         or timed out) in wait_pong().
         """
-        logger.debug('<<< pong from {}'.format(remote))
+        self.logger.debug('<<< pong from {}'.format(remote))
         pingid = self._mkpingid(echoed, remote)
         callback = self.pong_callbacks.get(pingid)
         if callback is not None:
             callback()
         else:
-            logger.debug(
+            self.logger.debug(
                 'unexpected pong from {} with pingid {}, probably came too late'.format(
                     remote, encode_hex(pingid)))
 
@@ -363,7 +339,7 @@ class KademliaProtocol():
         new node. In the former case we'll just update the sender's entry in our routing table and
         reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
         """
-        logger.debug('<<< ping from {}'.format(remote))
+        self.logger.debug('<<< ping from {}'.format(remote))
         self.update_routing_table(remote)
         self.wire.send_pong(remote, echo)
         # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
@@ -377,7 +353,7 @@ class KademliaProtocol():
             # FIXME: This is not correct; a node we've bonded before may have become unavailable
             # and thus removed from self.routing, but once it's back online we should accept
             # find_nodes from them.
-            logger.debug("Ignoring find_node request from unknown node {}".format(remote))
+            self.logger.debug("Ignoring find_node request from unknown node {}".format(remote))
             return
         self.update_routing_table(remote)
         found = self.routing.neighbours(targetid)
@@ -410,9 +386,9 @@ class KademliaProtocol():
         got_ping = False
         try:
             got_ping = yield from asyncio.wait_for(event.wait(), k_request_timeout)
-            logger.debug('got expected ping from {}'.format(remote))
+            self.logger.debug('got expected ping from {}'.format(remote))
         except asyncio.futures.TimeoutError:
-            logger.debug('timed out waiting for ping from {}'.format(remote))
+            self.logger.debug('timed out waiting for ping from {}'.format(remote))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.ping_callbacks[remote]
         return got_ping
@@ -434,9 +410,10 @@ class KademliaProtocol():
         got_pong = False
         try:
             got_pong = yield from asyncio.wait_for(event.wait(), k_request_timeout)
-            logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
+            self.logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
         except asyncio.futures.TimeoutError:
-            logger.debug('timed out waiting for pong with pingid {}'.format(encode_hex(pingid)))
+            self.logger.debug(
+                'timed out waiting for pong with pingid {}'.format(encode_hex(pingid)))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.pong_callbacks[pingid]
         return got_pong
@@ -465,10 +442,10 @@ class KademliaProtocol():
         self.neighbours_callbacks[remote] = process
         try:
             yield from asyncio.wait_for(event.wait(), k_request_timeout)
-            logger.debug('got expected neighbours response from {}'.format(remote))
+            self.logger.debug('got expected neighbours response from {}'.format(remote))
         except asyncio.futures.TimeoutError:
             pass
-            logger.debug('timed out waiting for neighbours response from {}'.format(remote))
+            self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.neighbours_callbacks[remote]
         return [n for n in neighbours if n != self.this_node]
@@ -494,7 +471,7 @@ class KademliaProtocol():
 
         got_pong = yield from self.wait_pong(pingid)
         if not got_pong:
-            logger.debug("bonding failed, didn't receive pong from {}".format(node))
+            self.logger.debug("bonding failed, didn't receive pong from {}".format(node))
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
             # fill its spot.
             self.routing.remove_node(node)
@@ -506,15 +483,15 @@ class KademliaProtocol():
         # the remote remembers us.
         yield from self.wait_ping(node)
 
-        logger.debug("bonding completed successfully with {}".format(node))
+        self.logger.debug("bonding completed successfully with {}".format(node))
         self.update_routing_table(node)
         return True
 
     @asyncio.coroutine
     def bootstrap(self, bootstrap_nodes):
         bonded = yield from asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
-        if bonded.count(True) == 0:
-            logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
+        if not any(bonded):
+            self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
             return
         yield from self.lookup(self.this_node.id)
 
@@ -526,23 +503,23 @@ class KademliaProtocol():
         It approaches the target by querying nodes that are closer to it on each iteration.  The
         given target does not need to be an actual node identifier.
         """
-        nodes_asked = []
-        nodes_seen = []
+        nodes_asked = set()
+        nodes_seen = set()
 
         @asyncio.coroutine
         def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
             candidates = yield from self.wait_neighbours(remote)
             if len(candidates) == 0:
-                logger.info("got no candidates from {}, returning".format(remote))
+                self.logger.info("got no candidates from {}, returning".format(remote))
                 return candidates
             candidates = [c for c in candidates if c not in nodes_seen]
-            logger.info("got {} new candidates".format(len(candidates)))
+            self.logger.info("got {} new candidates".format(len(candidates)))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
-            nodes_seen.extend(candidates)
+            nodes_seen.update(candidates)
             bonded = yield from asyncio.gather(*[self.bond(c) for c in candidates])
-            logger.info("bonded with {} candidates".format(bonded.count(True)))
+            self.logger.info("bonded with {} candidates".format(bonded.count(True)))
             return [c for c in candidates if bonded[candidates.index(c)]]
 
         def _exclude_if_asked(nodes):
@@ -550,18 +527,19 @@ class KademliaProtocol():
             return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
 
         closest = self.routing.neighbours(node_id)
-        logger.info("starting lookup; initial neighbours: {}".format(closest))
+        self.logger.info("starting lookup; initial neighbours: {}".format(closest))
         nodes_to_ask = _exclude_if_asked(closest)
         while nodes_to_ask:
-            logger.info("node lookup; querying {}".format(nodes_to_ask))
-            nodes_asked.extend(nodes_to_ask)
+            self.logger.info("node lookup; querying {}".format(nodes_to_ask))
+            nodes_asked.update(nodes_to_ask)
             results = yield from asyncio.gather(
                 *[_find_node(node_id, n) for n in nodes_to_ask])
-            [closest.extend(candidates) for candidates in results]
+            for candidates in results:
+                closest.extend(candidates)
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        logger.info("lookup finished: {}".format(closest))
+        self.logger.info("lookup finished for {}: {}".format(node_id, closest))
         return closest
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
@@ -589,12 +567,28 @@ class KademliaProtocol():
                 asyncio.ensure_future(self.bond(node))
 
 
+def compute_shared_prefix_bits(nodes):
+    """Count the number of prefix bits shared by all nodes."""
+    def to_binary(x):  # left padded bit representation
+        b = bin(x)[2:]
+        return '0' * (k_id_size - len(b)) + b
+
+    if len(nodes) < 2:
+        return k_id_size
+
+    bits = [to_binary(n.id) for n in nodes]
+    for i in range(1, k_id_size + 1):
+        if len(set(b[:i] for b in bits)) != 1:
+            return i - 1
+    # This means we have at least two nodes with the same ID, so raise an AssertionError
+    # because we don't want it to be caught accidentally.
+    raise AssertionError("Unable to calculate number of shared prefix bits")
+
+
 def sort_by_distance(nodes, target_id):
-    return sorted(nodes, key=operator.methodcaller('id_distance', target_id))
+    return sorted(nodes, key=operator.methodcaller('distance_to', target_id))
 
 
 def host_port_pubkey_from_uri(uri):
-    node_uri_scheme = b'enode://'
-    pubkey_hex, ip_port = uri[len(node_uri_scheme):].split(b'@')
-    ip, port = ip_port.split(b':')
-    return ip, port, decode_hex(pubkey_hex)
+    uri = urllib.parse.urlparse(uri)
+    return uri.hostname, uri.port, decode_hex(uri.username)

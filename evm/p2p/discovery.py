@@ -20,12 +20,6 @@ from evm.utils.numeric import (
 )
 
 
-logger = logging.getLogger("discovery")
-
-# coincurve_path = 'evm.ecc.backends.coincurve.CoinCurveECCBackend'
-ecc = get_ecc_backend()
-
-
 class DefectiveMessage(Exception):
     pass
 
@@ -92,6 +86,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     The date should be interpreted as a UNIX timestamp.
     The receiver should discard any packet whose `Expiration` value is in the past.
     """
+    logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")
     transport = None
     version = 4
     expiration = 60  # let messages expire after N secondes
@@ -129,21 +124,22 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # FIXME: Instead of sleeping here to wait until connection_made() is called to set
             # .transport we should instead only call it after we know it's been set.
             yield from asyncio.sleep(1)
-        logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
+        self.logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
         yield from self.kademlia.bootstrap(self.bootstrap_nodes)
 
     def datagram_received(self, data, addr):
-        self.receive(kademlia.Address(ip=addr[0], udp_port=addr[1]), data)
+        ip_address, udp_port = addr
+        self.receive(kademlia.Address(ip_address, udp_port), data)
 
     def error_received(self, exc):
-        logger.warn('error received: {}'.format(exc))
+        self.logger.error('error received: {}'.format(exc))
 
     def send(self, node, message):
         assert node.address
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
     def stop(self):
-        logger.info('stopping discovery')
+        self.logger.info('stopping discovery')
         self.transport.close()
 
     def receive(self, address, message):
@@ -156,7 +152,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             if time.time() > expiration:
                 raise PacketExpired()
         except DefectiveMessage as e:
-            logger.info('error unpacking message: {}'.format(e))
+            self.logger.info('error unpacking message: {}'.format(e))
             return
         cmd = getattr(self, 'recv_' + self.rev_cmd_id_map[cmd_id])
         node = kademlia.Node(remote_pubkey, address)
@@ -198,7 +194,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         cmd_id = force_bytes(self.encoders['cmd_id'](cmd_id))
         expiration = self.encoders['expiration'](int(time.time() + self.expiration))
         encoded_data = cmd_id + rlp.encode(payload + [expiration])
-        signature = ecc.ecdsa_sign(encoded_data, self.privkey)
+        signature = get_ecc_backend().ecdsa_sign(encoded_data, self.privkey)
         assert len(signature) == 65
         mdc = keccak(signature + encoded_data)
         assert len(mdc) == 32
@@ -215,11 +211,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         """
         mdc = message[:32]
         if mdc != keccak(message[32:]):
-            logger.error('packet with wrong mdc')
+            self.logger.error('packet with wrong mdc')
             raise WrongMAC()
         signature = message[32:97]
         signed_data = message[97:]
-        remote_pubkey = ecc.ecdsa_recover(signed_data, signature)
+        remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
         assert len(remote_pubkey) == 512 / 8
         cmd_id = self.decoders['cmd_id'](message[97])
         cmd = self.rev_cmd_id_map[cmd_id]
@@ -231,37 +227,37 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def recv_pong(self, node, payload, mdc):
         if not len(payload) == 2:
-            logger.error('invalid pong payload: {}'.format(payload))
+            self.logger.error('invalid pong payload: {}'.format(payload))
             return
         echoed = payload[1]
         self.kademlia.recv_pong(node, echoed)
 
     def recv_neighbours(self, node, payload, mdc):
         if not len(payload) == 1:
-            logger.error('invalid neighbours payload: {}'.format(payload))
+            self.logger.error('invalid neighbours payload: {}'.format(payload))
             return
         neighbours = []
         for n in payload[0]:
-            nodeid = n.pop()
-            address = kademlia.Address.from_endpoint(*n)
-            neighbours.append(kademlia.Node(nodeid, address))
+            ip, udp_port, tcp_port, node_id = n
+            address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
+            neighbours.append(kademlia.Node(node_id, address))
         self.kademlia.recv_neighbours(node, neighbours)
 
     def recv_ping(self, node, payload, mdc):
         if len(payload) != 3:
-            logger.error('invalid ping payload: '.format(payload))
+            self.logger.error('invalid ping payload: '.format(payload))
             return
         self.kademlia.recv_ping(node, mdc)
 
     def recv_find_node(self, node, payload, mdc):
-        logger.debug('<<< find_node from {}'.format(node))
+        self.logger.debug('<<< find_node from {}'.format(node))
         assert len(payload[0]) == kademlia.k_pubkey_size / 8
         target = big_endian_to_int(payload[0])
         self.kademlia.recv_find_node(node, target)
 
     def send_ping(self, node):
         assert isinstance(node, type(self.this_node)) and node != self.this_node
-        logger.debug('>>> pinging {}'.format(node))
+        self.logger.debug('>>> pinging {}'.format(node))
         version = rlp.sedes.big_endian_int.serialize(self.version)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
         message = self.pack(self.cmd_id_map['ping'], payload)
@@ -273,12 +269,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         target_node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         assert len(target_node_id) == kademlia.k_pubkey_size // 8
-        logger.debug('>>> find_node to {}'.format(node))
+        self.logger.debug('>>> find_node to {}'.format(node))
         message = self.pack(self.cmd_id_map['find_node'], [target_node_id])
         self.send(node, message)
 
     def send_pong(self, node, token):
-        logger.debug('>>> ponging {}'.format(node))
+        self.logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
         assert len(payload[0][0]) in (4, 16), payload
         message = self.pack(self.cmd_id_map['pong'], payload)
@@ -290,7 +286,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         for n in neighbours:
             l = n.address.to_endpoint() + [n.pubkey]
             nodes.append(l)
-        logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
+        self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
         # FIXME: don't brake udp packet size / chunk message / also when receiving
         message = self.pack(self.cmd_id_map['neighbours'], [nodes[:12]])  # FIXME
         self.send(node, message)
@@ -328,8 +324,8 @@ if __name__ == "__main__":
         ],
     }
 
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger("evm.p2p.discovery")
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)

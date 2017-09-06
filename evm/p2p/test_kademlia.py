@@ -25,10 +25,10 @@ def test_protocol_bootstrap():
 def test_routingtable_split_bucket():
     table = kademlia.RoutingTable(random_node())
     assert len(table.buckets) == 1
-    bucket = table.buckets[0]
-    table.split_bucket(bucket)
+    old_bucket = table.buckets[0]
+    table.split_bucket(0)
     assert len(table.buckets) == 2
-    assert bucket not in table.buckets
+    assert old_bucket not in table.buckets
 
 
 def test_routingtable_add_node():
@@ -58,7 +58,7 @@ def test_routingtable_neighbours():
 
     for i in range(100):
         node = random_node()
-        nearest_bucket = table.buckets_by_id_distance(node.id)[0]
+        nearest_bucket = table.buckets_by_distance_to(node.id)[0]
         if not nearest_bucket.nodes:
             continue
         # Change nodeid to something in this bucket.
@@ -110,24 +110,21 @@ def test_kbucket_split():
     assert len(bucket2) == bucket.k / 2
 
 
-def test_kbucket_depth():
-    bucket = kademlia.KBucket(0, 100)
-
-    # For buckets with less than 2 nodes, the depth is k_id_size.
-    assert bucket.depth == kademlia.k_id_size
-    assert bucket.add(random_node()) is None
-    assert bucket.depth == kademlia.k_id_size
+def test_compute_shared_prefix_bits():
+    # When we have less than 2 nodes, the depth is k_id_size.
+    nodes = [random_node()]
+    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size
 
     # Otherwise the depth is the number of leading bits (in the left-padded binary representation)
     # shared by all node IDs.
-    assert bucket.add(random_node()) is None
-    bucket.nodes[0].id = int('0b1', 2)
-    bucket.nodes[1].id = int('0b0', 2)
-    assert bucket.depth == kademlia.k_id_size - 1
+    nodes.append(random_node())
+    nodes[0].id = int('0b1', 2)
+    nodes[1].id = int('0b0', 2)
+    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 1
 
-    bucket.nodes[0].id = int('0b010', 2)
-    bucket.nodes[1].id = int('0b110', 2)
-    assert bucket.depth == kademlia.k_id_size - 3
+    nodes[0].id = int('0b010', 2)
+    nodes[1].id = int('0b110', 2)
+    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
 
 
 def random_pubkey():
