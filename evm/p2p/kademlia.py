@@ -1,18 +1,3 @@
-"""
-Node discovery and network formation are implemented via a kademlia-like protocol.
-The major differences are that packets are signed, node ids are the public keys, and
-DHT-related features are excluded. The FIND_VALUE and STORE packets are not implemented.
-The parameters necessary to implement the protocol are a
-bucket size of 16 (denoted k in Kademlia),
-concurrency of 3 (denoted alpha in Kademlia),
-and 8 bits per hop (denoted b in Kademlia) for routing.
-The eviction check interval is 75 milliseconds,
-request timeouts are 300ms, and
-the idle bucket-refresh interval is 3600 seconds.
-
-Aside from the previously described exclusions, node discovery closely follows system
-and protocol described by Maymounkov and Mazieres.
-"""
 import asyncio
 import ipaddress
 import logging
@@ -33,12 +18,10 @@ from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
 
 
-# TODO: Go through all the asserts and either get rid of them or replace with exceptions.
-
 k_b = 8  # 8 bits per hop
 
 k_bucket_size = 16
-k_request_timeout = 3 * 300 / 1000.      # timeout of message round trips
+k_request_timeout = 0.9                  # timeout of message round trips
 k_idle_bucket_refresh_interval = 3600    # ping all nodes in bucket if bucket was idle
 k_find_concurrency = 3                   # parallel find node lookups
 k_pubkey_size = 512
@@ -93,11 +76,7 @@ class Node:
     def __init__(self, pubkey, address):
         self.pubkey = pubkey
         self.address = address
-        if k_id_size == 512:
-            self.id = big_endian_to_int(pubkey)
-        else:
-            assert k_id_size == 256
-            self.id = big_endian_to_int(keccak(pubkey))
+        self.id = big_endian_to_int(keccak(pubkey))
 
     @classmethod
     def from_uri(cls, uri):
@@ -128,13 +107,10 @@ class Node:
 
 
 class KBucket:
-    """
-    Each k-bucket is kept sorted by time last seen—least-recently seen node at the head,
-    most-recently seen at the tail. For small values of i, the k-buckets will generally
-    be empty (as no appropriate nodes will exist). For large values of i, the lists can
-    grow up to size k, where k is a system-wide replication parameter.
-    k is chosen such that any given k nodes are very unlikely to fail within an hour of
-    each other (for example k = 20).
+    """A bucket of nodes whose IDs fall between the bucket's start and end.
+
+    The bucket is kept sorted by time last seen—least-recently seen node at the head,
+    most-recently seen at the tail.
     """
     k = k_bucket_size
 

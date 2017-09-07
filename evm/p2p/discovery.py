@@ -1,3 +1,10 @@
+"""
+The Node Discovery protocol provides a way to find RLPx nodes that can be connected to. It uses a
+Kademlia-like protocol to maintain a distributed database of the IDs and endpoints of all
+listening nodes.
+
+More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery
+"""
 import asyncio
 import logging
 import time
@@ -5,8 +12,8 @@ import time
 import rlp
 from eth_utils import (
     decode_hex,
-    is_integer,
     force_bytes,
+    is_integer,
 )
 
 from evm.ecc import get_ecc_backend
@@ -32,76 +39,31 @@ class PacketExpired(DefectiveMessage):
     pass
 
 
-"""
-# Node Discovery Protocol
+class Command():
+    def __init__(self, name, id, elem_count):
+        self.name = name
+        self.id = id
+        # Number of required top-level list elements for this cmd.
+        # Elements beyond this length must be trimmed.
+        self.elem_count = elem_count
 
-**Node**: an entity on the network
-**Node ID**: 512 bit public key of node
+    def __repr__(self):
+        return 'Command(%s:%d)' % (self.name, self.id)
 
-The Node Discovery protocol provides a way to find RLPx nodes
-that can be connected to. It uses a Kademlia-like protocol to maintain a
-distributed database of the IDs and endpoints of all listening nodes.
 
-Each node keeps a node table as described in the Kademlia paper
-[[Maymounkov, Mazières 2002][kad-paper]]. The node table is configured
-with a bucket size of 16 (denoted `k` in Kademlia), concurrency of 3
-(denoted `α` in Kademlia), and 8 bits per hop (denoted `b` in
-Kademlia) for routing. The eviction check interval is 75 milliseconds,
-and the idle bucket-refresh interval is
-3600 seconds.
-
-In order to maintain a well-formed network, RLPx nodes should try to connect
-to an unspecified number of close nodes. To increase resilience against Sybil attacks,
-nodes should also connect to randomly chosen, non-close nodes.
-
-Each node runs the UDP-based RPC protocol defined below. The
-`FIND_DATA` and `STORE` requests from the Kademlia paper are not part
-of the protocol since the Node Discovery Protocol does not provide DHT
-functionality.
-
-[kad-paper]: http://www.cs.rice.edu/Conferences/IPTPS02/109.pdf
-
-## Joining the network
-
-When joining the network, fills its node table by perfoming a
-recursive Find Node operation with its own ID as the `Target`. The
-initial Find Node request is sent to one or more bootstrap nodes.
-
-## RPC Protocol
-
-RLPx nodes that want to accept incoming connections should listen on
-the same port number for UDP packets (Node Discovery Protocol) and
-TCP connections (RLPx protocol).
-
-All requests time out after are 300ms. Requests are not re-sent.
-
-"""
+CMD_PING = Command("ping", 1, 4)
+CMD_PONG = Command("pong", 2, 3)
+CMD_FIND_NODE = Command("find_node", 3, 2)
+CMD_NEIGHBOURS = Command("neighbours", 4, 2)
+CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, CMD_NEIGHBOURS])
 
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
-
-    """
-    ## Packet Data
-    All packets contain an `Expiration` date to guard against replay attacks.
-    The date should be interpreted as a UNIX timestamp.
-    The receiver should discard any packet whose `Expiration` value is in the past.
-    """
+    """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")
     transport = None
     version = 4
     expiration = 60  # let messages expire after N secondes
-    cmd_id_map = dict(ping=1, pong=2, find_node=3, neighbours=4)
-    rev_cmd_id_map = dict((v, k) for k, v in cmd_id_map.items())
-
-    # number of required top-level list elements for each cmd_id.
-    # elements beyond this length are trimmed.
-    cmd_elem_count_map = dict(ping=4, pong=3, find_node=2, neighbours=2)
-
-    encoders = dict(cmd_id=chr,
-                    expiration=rlp.sedes.big_endian_int.serialize)
-
-    decoders = dict(cmd_id=safe_ord,
-                    expiration=rlp.sedes.big_endian_int.deserialize)
 
     def __init__(self, privkey, address, bootstrap_nodes):
         self.privkey = privkey
@@ -110,6 +72,18 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.bootstrap_nodes = bootstrap_nodes
         self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
+
+    def _get_handler(self, cmd):
+        if cmd == CMD_PING:
+            return self.recv_ping
+        elif cmd == CMD_PONG:
+            return self.recv_pong
+        elif cmd == CMD_FIND_NODE:
+            return self.recv_find_node
+        elif cmd == CMD_NEIGHBOURS:
+            return self.recv_neighbours
+        else:
+            raise ValueError("Unknwon command: {}".format(cmd))
 
     def listen(self, loop):
         return loop.create_datagram_endpoint(
@@ -148,15 +122,15 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # Note: as of discovery version 4, expiration is the last element for all
             # packets. This might not be the case for a later version, but just popping
             # the last element is good enough for now.
-            expiration = self.decoders['expiration'](payload.pop())
+            expiration = rlp.sedes.big_endian_int.deserialize(payload.pop())
             if time.time() > expiration:
                 raise PacketExpired()
         except DefectiveMessage as e:
             self.logger.info('error unpacking message: {}'.format(e))
             return
-        cmd = getattr(self, 'recv_' + self.rev_cmd_id_map[cmd_id])
         node = kademlia.Node(remote_pubkey, address)
-        cmd(node, payload, mdc)
+        handler = self._get_handler(CMD_ID_MAP[cmd_id])
+        handler(node, payload, mdc)
 
     # TODO: Try to extract this into a standalone function.
     def pack(self, cmd_id, payload):
@@ -188,11 +162,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         the UDP sending address and compute MDC before recovering the sender ID.
         If the MDC values do not match, the packet can be dropped.
         """
-        assert cmd_id in self.cmd_id_map.values()
-        assert isinstance(payload, list)
-
-        cmd_id = force_bytes(self.encoders['cmd_id'](cmd_id))
-        expiration = self.encoders['expiration'](int(time.time() + self.expiration))
+        cmd_id = force_bytes(chr(cmd_id))
+        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + self.expiration))
         encoded_data = cmd_id + rlp.encode(payload + [expiration])
         signature = get_ecc_backend().ecdsa_sign(encoded_data, self.privkey)
         assert len(signature) == 65
@@ -217,12 +188,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         signed_data = message[97:]
         remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
         assert len(remote_pubkey) == 512 / 8
-        cmd_id = self.decoders['cmd_id'](message[97])
-        cmd = self.rev_cmd_id_map[cmd_id]
+        cmd_id = safe_ord(message[97])
+        cmd = CMD_ID_MAP[cmd_id]
         payload = rlp.decode(message[98:], strict=False)
         assert isinstance(payload, list)
         # ignore excessive list elements as required by EIP-8.
-        payload = payload[:self.cmd_elem_count_map.get(cmd, len(payload))]
+        payload = payload[:cmd.elem_count]
         return remote_pubkey, cmd_id, payload, mdc
 
     def recv_pong(self, node, payload, mdc):
@@ -260,7 +231,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.logger.debug('>>> pinging {}'.format(node))
         version = rlp.sedes.big_endian_int.serialize(self.version)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
-        message = self.pack(self.cmd_id_map['ping'], payload)
+        message = self.pack(CMD_PING.id, payload)
         self.send(node, message)
         return message[:32]  # return the MDC to identify pongs
 
@@ -270,14 +241,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         assert len(target_node_id) == kademlia.k_pubkey_size // 8
         self.logger.debug('>>> find_node to {}'.format(node))
-        message = self.pack(self.cmd_id_map['find_node'], [target_node_id])
+        message = self.pack(CMD_FIND_NODE.id, [target_node_id])
         self.send(node, message)
 
     def send_pong(self, node, token):
         self.logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
         assert len(payload[0][0]) in (4, 16), payload
-        message = self.pack(self.cmd_id_map['pong'], payload)
+        message = self.pack(CMD_PONG.id, payload)
         self.send(node, message)
 
     def send_neighbours(self, node, neighbours):
@@ -288,7 +259,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             nodes.append(l)
         self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
         # FIXME: don't brake udp packet size / chunk message / also when receiving
-        message = self.pack(self.cmd_id_map['neighbours'], [nodes[:12]])  # FIXME
+        message = self.pack(CMD_NEIGHBOURS.id, [nodes[:12]])  # FIXME
         self.send(node, message)
 
 
