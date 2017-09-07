@@ -141,8 +141,38 @@ def test_bond():
 
 
 def test_update_routing_table():
-    # TODO
-    pass
+    proto = get_wired_protocol()
+    node = random_node()
+
+    proto.update_routing_table(node) is None
+
+    assert node in proto.routing
+
+
+@pytest.mark.asyncio
+def test_update_routing_table_triggers_bond_if_eviction_candidate():
+    proto = get_wired_protocol()
+    old_node, new_node = random_node(), random_node()
+
+    bond_called = False
+
+    def bond(node):
+        nonlocal bond_called
+        bond_called = True
+        assert node == old_node
+
+    proto.bond = asyncio.coroutine(bond)
+    # Pretend our routing table failed to add the new node by returning the least recently seen
+    # node for an eviction check.
+    proto.routing.add_node = lambda n: old_node
+
+    proto.update_routing_table(new_node)
+
+    assert new_node not in proto.routing
+    # The update_routing_table() call above will have scheduled a future call to proto.bond() so
+    # we need to yield here to give it a chance to run.
+    yield from asyncio.sleep(0.001)
+    assert bond_called
 
 
 def test_routingtable_split_bucket():
@@ -184,7 +214,7 @@ def test_routingtable_neighbours():
         nearest_bucket = table.buckets_by_distance_to(node.id)[0]
         if not nearest_bucket.nodes:
             continue
-        # Change nodeid to something in this bucket.
+        # Change nodeid to something that is in this bucket's range.
         node_a = nearest_bucket.nodes[0]
         node_b = random_node(node_a.id + 1)
         assert node_a == table.neighbours(node_b.id)[0]
@@ -236,18 +266,18 @@ def test_kbucket_split():
 def test_compute_shared_prefix_bits():
     # When we have less than 2 nodes, the depth is k_id_size.
     nodes = [random_node()]
-    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size
+    assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size
 
     # Otherwise the depth is the number of leading bits (in the left-padded binary representation)
     # shared by all node IDs.
     nodes.append(random_node())
     nodes[0].id = int('0b1', 2)
     nodes[1].id = int('0b0', 2)
-    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 1
+    assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 1
 
     nodes[0].id = int('0b010', 2)
     nodes[1].id = int('0b110', 2)
-    assert kademlia.compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
+    assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
 
 
 def get_wired_protocol():

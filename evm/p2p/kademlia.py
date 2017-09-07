@@ -59,7 +59,7 @@ class AlreadyWaiting(Exception):
     pass
 
 
-class Address():
+class Address:
 
     def __init__(self, ip, udp_port, tcp_port=0):
         tcp_port = tcp_port or udp_port
@@ -88,7 +88,7 @@ class Address():
 
 
 @total_ordering
-class Node():
+class Node:
 
     def __init__(self, pubkey, address):
         self.pubkey = pubkey
@@ -127,7 +127,7 @@ class Node():
         return hash(self.pubkey)
 
 
-class KBucket():
+class KBucket:
     """
     Each k-bucket is kept sorted by time last seen—least-recently seen node at the head,
     most-recently seen at the tail. For small values of i, the k-buckets will generally
@@ -214,7 +214,7 @@ class KBucket():
         return len(self.nodes)
 
 
-class RoutingTable():
+class RoutingTable:
 
     def __init__(self, node):
         self.this_node = node
@@ -246,7 +246,7 @@ class RoutingTable():
         if eviction_candidate is not None:  # bucket is full
             # Split if the bucket has the local node in its range or if the depth is not congruent
             # to 0 mod k_b
-            depth = compute_shared_prefix_bits(bucket.nodes)
+            depth = _compute_shared_prefix_bits(bucket.nodes)
             if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
                 self.split_bucket(self.buckets.index(bucket))
                 return self.add_node(node)  # retry
@@ -288,7 +288,7 @@ class RoutingTable():
         return sort_by_distance(nodes, node_id)[:k]
 
 
-class KademliaProtocol():
+class KademliaProtocol:
     logger = logging.getLogger("evm.p2p.discovery.KademliaProtocol")
 
     def __init__(self, node, wire):
@@ -497,8 +497,7 @@ class KademliaProtocol():
 
     @asyncio.coroutine
     def lookup(self, node_id):
-        """Lookup the closest nodes to the given node.
-        Lookup performs a network search for nodes close to the given target.
+        """Lookup performs a network search for nodes close to the given target.
 
         It approaches the target by querying nodes that are closer to it on each iteration.  The
         given target does not need to be an actual node identifier.
@@ -567,7 +566,7 @@ class KademliaProtocol():
                 asyncio.ensure_future(self.bond(node))
 
 
-def compute_shared_prefix_bits(nodes):
+def _compute_shared_prefix_bits(nodes):
     """Count the number of prefix bits shared by all nodes."""
     def to_binary(x):  # left padded bit representation
         b = bin(x)[2:]
