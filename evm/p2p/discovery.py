@@ -26,10 +26,12 @@ from evm.utils.numeric import (
     safe_ord,
 )
 
-# UDP packet sizes
+# UDP packet constants.
 MAC_SIZE = 256 // 8  # 32
 SIG_SIZE = 520 // 8  # 65
 HEAD_SIZE = MAC_SIZE + SIG_SIZE  # 97
+EXPIRATION = 60  # let messages expire after N secondes
+PROTO_VERSION = 4
 
 
 class DefectiveMessage(Exception):
@@ -67,8 +69,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")
     transport = None
-    version = 4
-    expiration = 60  # let messages expire after N secondes
     _max_neighbours_per_packet_cache = None
 
     def __init__(self, privkey, address, bootstrap_nodes):
@@ -103,7 +103,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         addr = kademlia.Address('::1', 30303, 30303)
         node_data = addr.to_endpoint() + [b'\x00' * (kademlia.k_pubkey_size // 8)]
         neighbours = [node_data]
-        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + self.expiration))
+        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
         payload = rlp.encode([neighbours] + [expiration])
         while HEAD_SIZE + len(payload) <= 1280:
             neighbours.append(node_data)
@@ -144,7 +144,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def receive(self, address, message):
         try:
-            remote_pubkey, cmd_id, payload, mdc = self.unpack(message)
+            remote_pubkey, cmd_id, payload, mdc = _unpack(message)
             # Note: as of discovery version 4, expiration is the last element for all
             # packets. This might not be the case for a later version, but just popping
             # the last element is good enough for now.
@@ -152,87 +152,22 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             if time.time() > expiration:
                 raise PacketExpired()
         except DefectiveMessage as e:
-            self.logger.info('error unpacking message: {}'.format(e))
+            self.logger.error('error unpacking message: {}'.format(e))
+            return
+
+        cmd = CMD_ID_MAP[cmd_id]
+        if len(payload) != cmd.elem_count - 1:
+            self.logger.error('invalid {} payload: {}'.format(cmd.name, payload))
             return
         node = kademlia.Node(remote_pubkey, address)
-        handler = self._get_handler(CMD_ID_MAP[cmd_id])
+        handler = self._get_handler(cmd)
         handler(node, payload, mdc)
 
-    # TODO: Try to extract this into a standalone function.
-    def pack(self, cmd_id, payload):
-        """
-        UDP packets are structured as follows:
-
-        hash || signature || packet-type || packet-data
-        packet-type: single byte < 2**7 // valid values are [1,4]
-        packet-data: RLP encoded list. Packet properties are serialized in the order in
-                    which they're defined. See packet-data below.
-
-        Offset  |
-        0       | MDC       | Ensures integrity of packet,
-        65      | signature | Ensures authenticity of sender, `SIGN(sender-privkey, MDC)`
-        97      | type      | Single byte in range [1, 4] that determines the structure of Data
-        98      | data      | RLP encoded, see section Packet Data
-
-        The packets are signed and authenticated. The sender's Node ID is determined by
-        recovering the public key from the signature.
-
-            sender-pubkey = ECRECOVER(Signature)
-
-        The integrity of the packet can then be verified by computing the
-        expected MDC of the packet as:
-
-            MDC = SHA3(sender-pubkey || type || data)
-
-        As an optimization, implementations may look up the public key by
-        the UDP sending address and compute MDC before recovering the sender ID.
-        If the MDC values do not match, the packet can be dropped.
-        """
-        cmd_id = force_bytes(chr(cmd_id))
-        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + self.expiration))
-        encoded_data = cmd_id + rlp.encode(payload + [expiration])
-        signature = get_ecc_backend().ecdsa_sign(encoded_data, self.privkey)
-        assert len(signature) == 65
-        mdc = keccak(signature + encoded_data)
-        assert len(mdc) == 32
-        return mdc + signature + encoded_data
-
-    # TODO: Try to extract this into a standalone function.
-    def unpack(self, message):
-        """
-        macSize  = 256 / 8 = 32
-        sigSize  = 520 / 8 = 65
-        headSize = macSize + sigSize = 97
-        hash, sig, sigdata := buf[:macSize], buf[macSize:headSize], buf[headSize:]
-        shouldhash := keccak(buf[macSize:])
-        """
-        mdc = message[:MAC_SIZE]
-        if mdc != keccak(message[MAC_SIZE:]):
-            self.logger.error('packet with wrong mdc')
-            raise WrongMAC()
-        signature = message[MAC_SIZE:HEAD_SIZE]
-        signed_data = message[HEAD_SIZE:]
-        remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
-        assert len(remote_pubkey) == 512 / 8
-        cmd_id = safe_ord(message[HEAD_SIZE])
-        cmd = CMD_ID_MAP[cmd_id]
-        payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
-        assert isinstance(payload, list)
-        # ignore excessive list elements as required by EIP-8.
-        payload = payload[:cmd.elem_count]
-        return remote_pubkey, cmd_id, payload, mdc
-
     def recv_pong(self, node, payload, mdc):
-        if not len(payload) == 2:
-            self.logger.error('invalid pong payload: {}'.format(payload))
-            return
         echoed = payload[1]
         self.kademlia.recv_pong(node, echoed)
 
     def recv_neighbours(self, node, payload, mdc):
-        if not len(payload) == 1:
-            self.logger.error('invalid neighbours payload: {}'.format(payload))
-            return
         neighbours = []
         for n in payload[0]:
             ip, udp_port, tcp_port, node_id = n
@@ -241,9 +176,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.kademlia.recv_neighbours(node, neighbours)
 
     def recv_ping(self, node, payload, mdc):
-        if len(payload) != 3:
-            self.logger.error('invalid ping payload: '.format(payload))
-            return
         self.kademlia.recv_ping(node, mdc)
 
     def recv_find_node(self, node, payload, mdc):
@@ -255,9 +187,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send_ping(self, node):
         assert isinstance(node, type(self.this_node)) and node != self.this_node
         self.logger.debug('>>> pinging {}'.format(node))
-        version = rlp.sedes.big_endian_int.serialize(self.version)
+        version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
-        message = self.pack(CMD_PING.id, payload)
+        message = _pack(CMD_PING.id, payload, self.privkey)
         self.send(node, message)
         return message[:32]  # return the MDC to identify pongs
 
@@ -267,14 +199,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         assert len(target_node_id) == kademlia.k_pubkey_size // 8
         self.logger.debug('>>> find_node to {}'.format(node))
-        message = self.pack(CMD_FIND_NODE.id, [target_node_id])
+        message = _pack(CMD_FIND_NODE.id, [target_node_id], self.privkey)
         self.send(node, message)
 
     def send_pong(self, node, token):
         self.logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
         assert len(payload[0][0]) in (4, 16), payload
-        message = self.pack(CMD_PONG.id, payload)
+        message = _pack(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
 
     def send_neighbours(self, node, neighbours):
@@ -286,15 +218,48 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         max_neighbours = self._get_max_neighbours_per_packet()
         if len(nodes) <= max_neighbours:
-            message = self.pack(CMD_NEIGHBOURS.id, [nodes])
+            message = _pack(CMD_NEIGHBOURS.id, [nodes], self.privkey)
             self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
             self.send(node, message)
         else:
             for i in range(0, len(nodes), max_neighbours):
-                message = self.pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]])
+                message = _pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
                 self.logger.debug('>>> neighbours to {}: {}'.format(
                     node, neighbours[i:i + max_neighbours]))
                 self.send(node, message)
+
+
+def _pack(cmd_id, payload, privkey):
+    """Create and sign a UDP message to be sent to a remote node.
+
+    See https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery for information on
+    how UDP packets are structured.
+    """
+    cmd_id = force_bytes(chr(cmd_id))
+    expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
+    encoded_data = cmd_id + rlp.encode(payload + [expiration])
+    signature = get_ecc_backend().ecdsa_sign(encoded_data, privkey)
+    mdc = keccak(signature + encoded_data)
+    return mdc + signature + encoded_data
+
+
+def _unpack(message):
+    """Unpack a UDP message received from a remote node.
+
+    Returns the public key used to sign the message, the cmd ID, payload and mdc.
+    """
+    mdc = message[:MAC_SIZE]
+    if mdc != keccak(message[MAC_SIZE:]):
+        raise WrongMAC()
+    signature = message[MAC_SIZE:HEAD_SIZE]
+    signed_data = message[HEAD_SIZE:]
+    remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
+    cmd_id = safe_ord(message[HEAD_SIZE])
+    cmd = CMD_ID_MAP[cmd_id]
+    payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
+    # Ignore excessive list elements as required by EIP-8.
+    payload = payload[:cmd.elem_count]
+    return remote_pubkey, cmd_id, payload, mdc
 
 
 if __name__ == "__main__":
