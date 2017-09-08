@@ -1,14 +1,69 @@
+import random
+import string
+
 import rlp
 
 from eth_utils import (
     decode_hex,
     encode_hex,
+    force_bytes,
 )
 
 from evm.p2p import discovery
 from evm.p2p import kademlia
+from evm.utils.keccak import keccak
 from evm.utils.numeric import safe_ord
 from evm.utils.secp256k1 import private_key_to_public_key
+
+
+def test_ping_pong():
+    alice = get_discovery_protocol(b"alice")
+    bob = get_discovery_protocol(b"bob")
+
+    # Connect alice's and bob's transports directly so we don't need to deal with the complexities
+    # of going over the wire.
+    link_transports(alice, bob)
+    # Collect all pongs received by alice in a list for later inspection.
+    received_pongs = []
+    alice.recv_pong = lambda node, payload, mdc: received_pongs.append((node, payload))
+
+    echo = alice.send_ping(bob.this_node)
+
+    assert len(received_pongs) == 1
+    node, payload = received_pongs[0]
+    assert node.id == bob.this_node.id
+    assert echo == payload[1]
+
+
+def test_find_node_neighbours():
+    alice = get_discovery_protocol(b"alice")
+    bob = get_discovery_protocol(b"bob")
+    # Add some nodes to bob's routing table so that it has something to use when replying to
+    # alice's find_node.
+    for _ in range(kademlia.k_bucket_size * 2):
+        bob.kademlia.update_routing_table(random_node())
+
+    # Connect alice's and bob's transports directly so we don't need to deal with the complexities
+    # of going over the wire.
+    link_transports(alice, bob)
+    # Collect all neighbours packets received by alice in a list for later inspection.
+    received_neighbours = []
+    alice.recv_neighbours = lambda node, payload, mdc: received_neighbours.append((node, payload))
+    # Pretend that bob and alice have already bonded, otherwise bob will ignore alice's find_node.
+    bob.kademlia.update_routing_table(alice.this_node)
+
+    alice.send_find_node(bob.this_node, alice.this_node.id)
+
+    # Bob should have sent two neighbours packets in order to keep the total packet size under the
+    # 1280 bytes limit.
+    assert len(received_neighbours) == 2
+    packet1, packet2 = received_neighbours
+    neighbours = []
+    for packet in [packet1, packet2]:
+        node, payload = packet
+        assert node == bob.this_node
+        neighbours.extend(discovery._extract_nodes_from_payload(payload[0]))
+    assert len(neighbours) == kademlia.k_bucket_size
 
 
 def test_get_max_neighbours_per_packet():
@@ -19,11 +74,10 @@ def test_get_max_neighbours_per_packet():
 
 
 def test_pack():
-    privkey = decode_hex('65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b')
-    sender = kademlia.Address('127.0.0.1', 30303)
-    recipient = kademlia.Address('127.0.0.2', 30303)
+    sender, recipient = random_address(), random_address()
     version = rlp.sedes.big_endian_int.serialize(discovery.PROTO_VERSION)
     payload = [version, sender.to_endpoint(), recipient.to_endpoint()]
+    privkey = keccak(b"seed")
 
     message = discovery._pack(discovery.CMD_PING.id, payload, privkey)
 
@@ -116,7 +170,31 @@ eip8_packets = {
 }
 
 
-def get_discovery_protocol():
-    privkey = decode_hex('65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b')
-    addr = kademlia.Address('127.0.0.1', 30303)
-    return discovery.DiscoveryProtocol(privkey, addr, bootstrap_nodes=[])
+def get_discovery_protocol(seed=b"seed"):
+    privkey = keccak(seed)
+    return discovery.DiscoveryProtocol(privkey, random_address(), bootstrap_nodes=[])
+
+
+def link_transports(proto1, proto2):
+    # Link both protocol's transports directly by having one's sendto() call the other's
+    # datagram_received().
+    proto1.transport = type(
+        "mock-transport",
+        (object,),
+        {"sendto": lambda msg, addr: proto2.datagram_received(msg, addr)},
+    )
+    proto2.transport = type(
+        "mock-transport",
+        (object,),
+        {"sendto": lambda msg, addr: proto1.datagram_received(msg, addr)},
+    )
+
+
+def random_address():
+    return kademlia.Address(
+        '10.0.0.{}'.format(random.randint(0, 255)), random.randint(0, 9999))
+
+
+def random_node():
+    seed = force_bytes("".join(random.sample(string.ascii_lowercase, 10)))
+    return kademlia.Node(keccak(seed), random_address())

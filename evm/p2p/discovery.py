@@ -13,7 +13,7 @@ import rlp
 from eth_utils import (
     decode_hex,
     force_bytes,
-    is_integer,
+    to_list,
 )
 
 from evm.ecc import get_ecc_backend
@@ -135,7 +135,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.logger.error('error received: {}'.format(exc))
 
     def send(self, node, message):
-        assert node.address
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
     def stop(self):
@@ -168,24 +167,17 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.kademlia.recv_pong(node, echoed)
 
     def recv_neighbours(self, node, payload, mdc):
-        neighbours = []
-        for n in payload[0]:
-            ip, udp_port, tcp_port, node_id = n
-            address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
-            neighbours.append(kademlia.Node(node_id, address))
-        self.kademlia.recv_neighbours(node, neighbours)
+        self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(payload[0]))
 
     def recv_ping(self, node, payload, mdc):
         self.kademlia.recv_ping(node, mdc)
 
     def recv_find_node(self, node, payload, mdc):
         self.logger.debug('<<< find_node from {}'.format(node))
-        assert len(payload[0]) == kademlia.k_pubkey_size / 8
         target = big_endian_to_int(payload[0])
         self.kademlia.recv_find_node(node, target)
 
     def send_ping(self, node):
-        assert isinstance(node, type(self.this_node)) and node != self.this_node
         self.logger.debug('>>> pinging {}'.format(node))
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
@@ -194,10 +186,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         return message[:32]  # return the MDC to identify pongs
 
     def send_find_node(self, node, target_node_id):
-        assert is_integer(target_node_id)
         target_node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
-        assert len(target_node_id) == kademlia.k_pubkey_size // 8
         self.logger.debug('>>> find_node to {}'.format(node))
         message = _pack(CMD_FIND_NODE.id, [target_node_id], self.privkey)
         self.send(node, message)
@@ -205,7 +195,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send_pong(self, node, token):
         self.logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
-        assert len(payload[0][0]) in (4, 16), payload
         message = _pack(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
 
@@ -227,6 +216,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 self.logger.debug('>>> neighbours to {}: {}'.format(
                     node, neighbours[i:i + max_neighbours]))
                 self.send(node, message)
+
+
+@to_list
+def _extract_nodes_from_payload(payload):
+    for item in payload:
+        ip, udp_port, tcp_port, node_id = item
+        address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
+        yield kademlia.Node(node_id, address)
 
 
 def _pack(cmd_id, payload, privkey):
