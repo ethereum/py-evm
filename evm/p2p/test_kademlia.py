@@ -263,6 +263,39 @@ def test_kbucket_split():
     assert len(bucket2) == bucket.k / 2
 
 
+def test_bucket_ordering():
+    first = kademlia.KBucket(51,100)
+    second = kademlia.KBucket(0, 50)
+    assert first > second
+ 
+
+@pytest.mark.parametrize(
+    "bucket_list, node_id, correct", 
+    (
+        (list([]), 5, None),
+        # test for node.id < bucket.end
+        (list([kademlia.KBucket(0, 4)]), 5, None),
+        # test for node.id > bucket.start
+        (list([kademlia.KBucket(6, 10)]), 5, None),
+        # test multiple buckets that don't contain node.id
+        (list([kademlia.KBucket(0, 1), kademlia.KBucket(50, 100), kademlia.KBucket(6, 49)]), 5, None),
+        # test single bucket
+        (list([kademlia.KBucket(0, 100)]), 5, 0),
+        (list([kademlia.KBucket(50, 100), kademlia.KBucket(0, 49)]), 5, 1),
+        # test multiple unordered buckets
+        (list([kademlia.KBucket(50, 100), kademlia.KBucket(0, 1), kademlia.KBucket(2, 5), kademlia.KBucket(6, 49) ]), 5, 2),
+    )
+)
+def test_binary_get_bucket_for_node(bucket_list, node_id, correct):
+    node = random_node()
+    node.id = node_id
+    if correct is None:
+        with pytest.raises(ValueError):
+            kademlia.binary_get_bucket_for_node(bucket_list, node)
+    else:
+        assert kademlia.binary_get_bucket_for_node(bucket_list, node) == bucket_list[correct]
+
+
 def test_compute_shared_prefix_bits():
     # When we have less than 2 nodes, the depth is k_id_size.
     nodes = [random_node()]
