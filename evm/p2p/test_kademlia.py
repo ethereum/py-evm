@@ -298,15 +298,6 @@ def random_node(nodeid=None):
     return node
 
 
-def make_routing_table(num_nodes=1000):
-    node = random_node()
-    table = kademlia.RoutingTable(node)
-    for i in range(num_nodes):
-        table.add_node(random_node())
-    assert i == num_nodes - 1
-    return table
-
-
 class WireMock():
 
     messages = []
