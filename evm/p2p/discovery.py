@@ -26,6 +26,11 @@ from evm.utils.numeric import (
     safe_ord,
 )
 
+# UDP packet sizes
+MAC_SIZE = 256 // 8  # 32
+SIG_SIZE = 520 // 8  # 65
+HEAD_SIZE = MAC_SIZE + SIG_SIZE  # 97
+
 
 class DefectiveMessage(Exception):
     pass
@@ -64,6 +69,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     transport = None
     version = 4
     expiration = 60  # let messages expire after N secondes
+    _max_neighbours_per_packet_cache = None
 
     def __init__(self, privkey, address, bootstrap_nodes):
         self.privkey = privkey
@@ -84,6 +90,26 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             return self.recv_neighbours
         else:
             raise ValueError("Unknwon command: {}".format(cmd))
+
+    def _get_max_neighbours_per_packet(self):
+        # As defined in https://github.com/ethereum/devp2p/blob/master/rlpx.md, the max size of a
+        # datagram must be 1280 bytes, so when sending neighbours packets we must include up to
+        # _max_neighbours_per_packet and if there's more than that split them across multiple
+        # packets.
+        if self._max_neighbours_per_packet_cache is not None:
+            return self._max_neighbours_per_packet_cache
+        # Use an IPv6 address here as we're interested in the size of the biggest possible node
+        # representation.
+        addr = kademlia.Address('::1', 30303, 30303)
+        node_data = addr.to_endpoint() + [b'\x00' * (kademlia.k_pubkey_size // 8)]
+        neighbours = [node_data]
+        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + self.expiration))
+        payload = rlp.encode([neighbours] + [expiration])
+        while HEAD_SIZE + len(payload) <= 1280:
+            neighbours.append(node_data)
+            payload = rlp.encode([neighbours] + [expiration])
+        self._max_neighbours_per_packet_cache = len(neighbours) - 1
+        return self._max_neighbours_per_packet_cache
 
     def listen(self, loop):
         return loop.create_datagram_endpoint(
@@ -180,17 +206,17 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         hash, sig, sigdata := buf[:macSize], buf[macSize:headSize], buf[headSize:]
         shouldhash := keccak(buf[macSize:])
         """
-        mdc = message[:32]
-        if mdc != keccak(message[32:]):
+        mdc = message[:MAC_SIZE]
+        if mdc != keccak(message[MAC_SIZE:]):
             self.logger.error('packet with wrong mdc')
             raise WrongMAC()
-        signature = message[32:97]
-        signed_data = message[97:]
+        signature = message[MAC_SIZE:HEAD_SIZE]
+        signed_data = message[HEAD_SIZE:]
         remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
         assert len(remote_pubkey) == 512 / 8
-        cmd_id = safe_ord(message[97])
+        cmd_id = safe_ord(message[HEAD_SIZE])
         cmd = CMD_ID_MAP[cmd_id]
-        payload = rlp.decode(message[98:], strict=False)
+        payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
         assert isinstance(payload, list)
         # ignore excessive list elements as required by EIP-8.
         payload = payload[:cmd.elem_count]
@@ -257,10 +283,18 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         for n in neighbours:
             l = n.address.to_endpoint() + [n.pubkey]
             nodes.append(l)
-        self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
-        # FIXME: don't brake udp packet size / chunk message / also when receiving
-        message = self.pack(CMD_NEIGHBOURS.id, [nodes[:12]])  # FIXME
-        self.send(node, message)
+
+        max_neighbours = self._get_max_neighbours_per_packet()
+        if len(nodes) <= max_neighbours:
+            message = self.pack(CMD_NEIGHBOURS.id, [nodes])
+            self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
+            self.send(node, message)
+        else:
+            for i in range(0, len(nodes), max_neighbours):
+                message = self.pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]])
+                self.logger.debug('>>> neighbours to {}: {}'.format(
+                    node, neighbours[i:i + max_neighbours]))
+                self.send(node, message)
 
 
 if __name__ == "__main__":
