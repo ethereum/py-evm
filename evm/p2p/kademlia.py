@@ -191,10 +191,13 @@ class KBucket:
     def __len__(self):
         return len(self.nodes)
 
-    def __le__(self, other):
+    def __lt__(self, other):
         if not isinstance(other, self.__class__):
             raise TypeError("Cannot compare KBucket with type {}.".format(other.__class__))
-        return self.end <= other.end
+        # Check for invalid state of KBuckets
+        if not self.end < other.start:
+            raise ValueError("Invalid Buckets.")
+        return self.end < other.start
 
 
 class RoutingTable:
@@ -270,15 +273,14 @@ class RoutingTable:
 
 def binary_get_bucket_for_node(buckets, node):
     """Return the bucket for a given node."""
-    sorted_buckets = sorted(buckets)
-    bucket_ends = [bucket.end for bucket in sorted_buckets]
+    bucket_ends = [bucket.end for bucket in buckets]
     bucket_position = bisect.bisect_left(bucket_ends, node.id)
     # Prevents edge cases where bisect_left returns an out of range index
     try:
-        bucket = sorted_buckets[bucket_position]
+        bucket = buckets[bucket_position]
     except IndexError:
         raise ValueError("No bucket found for node with id {}".format(node.id))
-    bucket = sorted_buckets[bucket_position]
+    bucket = buckets[bucket_position]
     if not bucket.start <= node.id <= bucket.end:
         raise ValueError("No bucket found for node with id {}".format(node.id))
     return bucket

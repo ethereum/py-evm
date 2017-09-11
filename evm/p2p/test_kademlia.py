@@ -264,52 +264,56 @@ def test_kbucket_split():
 
 
 def test_bucket_ordering():
-    first = kademlia.KBucket(51, 100)
-    second = kademlia.KBucket(0, 50)
+    first = kademlia.KBucket(0, 50)
+    second = kademlia.KBucket(51, 100)
     third = random_node()
-    assert first > second
+    assert first < second
     with pytest.raises(TypeError):
             first > third
 
 
 @pytest.mark.parametrize(
-    "bucket_list, node_id, correct",
+    "bucket_list, node_id",
     (
-        (list([]), 5, None),
+        (list([]), 5),
         # test for node.id < bucket.end
-        (list([kademlia.KBucket(0, 4)]), 5, None),
+        (list([kademlia.KBucket(0, 4)]), 5),
         # test for node.id > bucket.start
-        (list([kademlia.KBucket(6, 10)]), 5, None),
+        (list([kademlia.KBucket(6, 10)]), 5),
         # test multiple buckets that don't contain node.id
         (list(
             [
-                kademlia.KBucket(0, 1),
+                kademlia.KBucket(1, 5),
+                kademlia.KBucket(6, 49),
                 kademlia.KBucket(50, 100),
-                kademlia.KBucket(6, 49)
             ]
-        ), 5, None),
-        # test single bucket
-        (list([kademlia.KBucket(0, 100)]), 5, 0),
-        (list([kademlia.KBucket(50, 100), kademlia.KBucket(0, 49)]), 5, 1),
-        # test multiple unordered buckets
-        (list(
-            [
-                kademlia.KBucket(50, 100),
-                kademlia.KBucket(0, 1),
-                kademlia.KBucket(2, 5),
-                kademlia.KBucket(6, 49)
-            ]
-        ), 5, 2),
+        ), 0),
     )
 )
-def test_binary_get_bucket_for_node(bucket_list, node_id, correct):
-    node = random_node()
-    node.id = node_id
-    if correct is None:
-        with pytest.raises(ValueError):
-            kademlia.binary_get_bucket_for_node(bucket_list, node)
-    else:
-        assert kademlia.binary_get_bucket_for_node(bucket_list, node) == bucket_list[correct]
+def test_binary_get_bucket_for_node_error(bucket_list, node_id):
+    node = random_node(nodeid=node_id)
+    with pytest.raises(ValueError):
+        kademlia.binary_get_bucket_for_node(bucket_list, node)
+
+
+@pytest.mark.parametrize(
+    "bucket_list, node_id, correct_position",
+    (
+        (list([kademlia.KBucket(0, 100)]), 5, 0),
+        (list([kademlia.KBucket(0, 49), kademlia.KBucket(50, 100)]), 5, 0),
+        (list(
+            [
+                kademlia.KBucket(0, 1),
+                kademlia.KBucket(2, 5),
+                kademlia.KBucket(6, 49),
+                kademlia.KBucket(50, 100)
+            ]
+        ), 5, 1),
+    )
+)
+def test_binary_get_bucket_for_node(bucket_list, node_id, correct_position):
+    node = random_node(nodeid=node_id)
+    assert kademlia.binary_get_bucket_for_node(bucket_list, node) == bucket_list[correct_position]
 
 
 def test_compute_shared_prefix_bits():
