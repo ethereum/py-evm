@@ -269,7 +269,7 @@ def test_bucket_ordering():
     third = random_node()
     assert first < second
     with pytest.raises(TypeError):
-            first > third
+        first > third
 
 
 @pytest.mark.parametrize(

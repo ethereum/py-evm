@@ -194,9 +194,6 @@ class KBucket:
     def __lt__(self, other):
         if not isinstance(other, self.__class__):
             raise TypeError("Cannot compare KBucket with type {}.".format(other.__class__))
-        # Check for invalid state of KBuckets
-        if not self.end < other.start:
-            raise ValueError("Invalid Buckets.")
         return self.end < other.start
 
 
@@ -272,18 +269,16 @@ class RoutingTable:
 
 
 def binary_get_bucket_for_node(buckets, node):
-    """Return the bucket for a given node."""
+    """Given a list of ordered buckets, returns the bucket for a given node."""
     bucket_ends = [bucket.end for bucket in buckets]
     bucket_position = bisect.bisect_left(bucket_ends, node.id)
     # Prevents edge cases where bisect_left returns an out of range index
     try:
         bucket = buckets[bucket_position]
-    except IndexError:
+        assert bucket.start <= node.id <= bucket.end
+        return bucket
+    except (IndexError, AssertionError):
         raise ValueError("No bucket found for node with id {}".format(node.id))
-    bucket = buckets[bucket_position]
-    if not bucket.start <= node.id <= bucket.end:
-        raise ValueError("No bucket found for node with id {}".format(node.id))
-    return bucket
 
 
 class KademliaProtocol:
