@@ -291,7 +291,7 @@ class KademliaProtocol:
             self.logger.debug(
                 'unexpected neighbours from {}, probably came too late'.format(remote))
 
-    def recv_pong(self, remote, echoed):
+    def recv_pong(self, remote, token):
         """Process a pong packet.
 
         Pong packets should only be received as a response to a ping, so the actual processing is
@@ -299,7 +299,7 @@ class KademliaProtocol:
         or timed out) in wait_pong().
         """
         self.logger.debug('<<< pong from {}'.format(remote))
-        pingid = self._mkpingid(echoed, remote)
+        pingid = self._mkpingid(token, remote)
         callback = self.pong_callbacks.get(pingid)
         if callback is not None:
             callback()
@@ -308,7 +308,7 @@ class KademliaProtocol:
                 'unexpected pong from {} with pingid {}, probably came too late'.format(
                     remote, encode_hex(pingid)))
 
-    def recv_ping(self, remote, echo):
+    def recv_ping(self, remote, hash_):
         """Process a received ping packet.
 
         A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
@@ -317,7 +317,7 @@ class KademliaProtocol:
         """
         self.logger.debug('<<< ping from {}'.format(remote))
         self.update_routing_table(remote)
-        self.wire.send_pong(remote, echo)
+        self.wire.send_pong(remote, hash_)
         # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
         # see a node, and it is in those cases that a callback will exist.
         callback = self.ping_callbacks.get(remote)
@@ -429,8 +429,8 @@ class KademliaProtocol:
     def ping(self, node):
         if node == self.this_node:
             raise ValueError("Cannot ping self")
-        echoed = self.wire.send_ping(node)
-        pingid = self._mkpingid(echoed, node)
+        token = self.wire.send_ping(node)
+        pingid = self._mkpingid(token, node)
         return pingid
 
     @asyncio.coroutine
@@ -526,8 +526,8 @@ class KademliaProtocol:
             rid = random.randint(bucket.start, bucket.end)
             asyncio.ensure_future(self.lookup(rid))
 
-    def _mkpingid(self, echoed, node):
-        pid = force_bytes(echoed) + node.pubkey
+    def _mkpingid(self, token, node):
+        pid = force_bytes(token) + node.pubkey
         return pid
 
     @asyncio.coroutine

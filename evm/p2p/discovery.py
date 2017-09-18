@@ -42,10 +42,6 @@ class WrongMAC(DefectiveMessage):
     pass
 
 
-class PacketExpired(DefectiveMessage):
-    pass
-
-
 class Command():
     def __init__(self, name, id, elem_count):
         self.name = name
@@ -92,23 +88,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             raise ValueError("Unknwon command: {}".format(cmd))
 
     def _get_max_neighbours_per_packet(self):
-        # As defined in https://github.com/ethereum/devp2p/blob/master/rlpx.md, the max size of a
-        # datagram must be 1280 bytes, so when sending neighbours packets we must include up to
-        # _max_neighbours_per_packet and if there's more than that split them across multiple
-        # packets.
         if self._max_neighbours_per_packet_cache is not None:
             return self._max_neighbours_per_packet_cache
-        # Use an IPv6 address here as we're interested in the size of the biggest possible node
-        # representation.
-        addr = kademlia.Address('::1', 30303, 30303)
-        node_data = addr.to_endpoint() + [b'\x00' * (kademlia.k_pubkey_size // 8)]
-        neighbours = [node_data]
-        expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
-        payload = rlp.encode([neighbours] + [expiration])
-        while HEAD_SIZE + len(payload) <= 1280:
-            neighbours.append(node_data)
-            payload = rlp.encode([neighbours] + [expiration])
-        self._max_neighbours_per_packet_cache = len(neighbours) - 1
+        self._max_neighbours_per_packet_cache = _get_max_neighbours_per_packet()
         return self._max_neighbours_per_packet_cache
 
     def listen(self, loop):
@@ -143,36 +125,41 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def receive(self, address, message):
         try:
-            remote_pubkey, cmd_id, payload, mdc = _unpack(message)
-            # Note: as of discovery version 4, expiration is the last element for all
-            # packets. This might not be the case for a later version, but just popping
-            # the last element is good enough for now.
-            expiration = rlp.sedes.big_endian_int.deserialize(payload.pop())
-            if time.time() > expiration:
-                raise PacketExpired()
+            remote_pubkey, cmd_id, payload, hash_ = _unpack(message)
         except DefectiveMessage as e:
             self.logger.error('error unpacking message: {}'.format(e))
             return
 
+        # Note: as of discovery version 4, expiration is the last element for all
+        # packets. This might not be the case for a later version, but just popping
+        # the last element is good enough for now.
+        expiration = rlp.sedes.big_endian_int.deserialize(payload.pop())
+        if time.time() > expiration:
+            self.logger.error('received message already expired')
+            return
+
         cmd = CMD_ID_MAP[cmd_id]
+        # We check that the number of elements in the payload is equal to elem_count
+        # minus 1 because we've pop()ed the expiration (which is included in all
+        # packets) from the payload a few lines above.
         if len(payload) != cmd.elem_count - 1:
             self.logger.error('invalid {} payload: {}'.format(cmd.name, payload))
             return
         node = kademlia.Node(remote_pubkey, address)
         handler = self._get_handler(cmd)
-        handler(node, payload, mdc)
+        handler(node, payload, hash_)
 
-    def recv_pong(self, node, payload, mdc):
-        echoed = payload[1]
-        self.kademlia.recv_pong(node, echoed)
+    def recv_pong(self, node, payload, hash_):
+        token = payload[1]
+        self.kademlia.recv_pong(node, token)
 
-    def recv_neighbours(self, node, payload, mdc):
+    def recv_neighbours(self, node, payload, hash_):
         self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(payload[0]))
 
-    def recv_ping(self, node, payload, mdc):
-        self.kademlia.recv_ping(node, mdc)
+    def recv_ping(self, node, payload, hash_):
+        self.kademlia.recv_ping(node, hash_)
 
-    def recv_find_node(self, node, payload, mdc):
+    def recv_find_node(self, node, payload, hash_):
         self.logger.debug('<<< find_node from {}'.format(node))
         target = big_endian_to_int(payload[0])
         self.kademlia.recv_find_node(node, target)
@@ -183,7 +170,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
         message = _pack(CMD_PING.id, payload, self.privkey)
         self.send(node, message)
-        return message[:32]  # return the MDC to identify pongs
+        # Return the msg hash, which is used as a token to identify pongs.
+        return message[:MAC_SIZE]
 
     def send_find_node(self, node, target_node_id):
         target_node_id = int_to_big_endian(
@@ -206,16 +194,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             nodes.append(l)
 
         max_neighbours = self._get_max_neighbours_per_packet()
-        if len(nodes) <= max_neighbours:
-            message = _pack(CMD_NEIGHBOURS.id, [nodes], self.privkey)
-            self.logger.debug('>>> neighbours to {}: {}'.format(node, neighbours))
+        for i in range(0, len(nodes), max_neighbours):
+            message = _pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
+            self.logger.debug('>>> neighbours to {}: {}'.format(
+                node, neighbours[i:i + max_neighbours]))
             self.send(node, message)
-        else:
-            for i in range(0, len(nodes), max_neighbours):
-                message = _pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
-                self.logger.debug('>>> neighbours to {}: {}'.format(
-                    node, neighbours[i:i + max_neighbours]))
-                self.send(node, message)
 
 
 @to_list
@@ -224,6 +207,24 @@ def _extract_nodes_from_payload(payload):
         ip, udp_port, tcp_port, node_id = item
         address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
         yield kademlia.Node(node_id, address)
+
+
+def _get_max_neighbours_per_packet():
+    # As defined in https://github.com/ethereum/devp2p/blob/master/rlpx.md, the max size of a
+    # datagram must be 1280 bytes, so when sending neighbours packets we must include up to
+    # _max_neighbours_per_packet and if there's more than that split them across multiple
+    # packets.
+    # Use an IPv6 address here as we're interested in the size of the biggest possible node
+    # representation.
+    addr = kademlia.Address('::1', 30303, 30303)
+    node_data = addr.to_endpoint() + [b'\x00' * (kademlia.k_pubkey_size // 8)]
+    neighbours = [node_data]
+    expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
+    payload = rlp.encode([neighbours] + [expiration])
+    while HEAD_SIZE + len(payload) <= 1280:
+        neighbours.append(node_data)
+        payload = rlp.encode([neighbours] + [expiration])
+    return len(neighbours) - 1
 
 
 def _pack(cmd_id, payload, privkey):
@@ -236,17 +237,17 @@ def _pack(cmd_id, payload, privkey):
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
     signature = get_ecc_backend().ecdsa_sign(encoded_data, privkey)
-    mdc = keccak(signature + encoded_data)
-    return mdc + signature + encoded_data
+    hash_ = keccak(signature + encoded_data)
+    return hash_ + signature + encoded_data
 
 
 def _unpack(message):
     """Unpack a UDP message received from a remote node.
 
-    Returns the public key used to sign the message, the cmd ID, payload and mdc.
+    Returns the public key used to sign the message, the cmd ID, payload and hash.
     """
-    mdc = message[:MAC_SIZE]
-    if mdc != keccak(message[MAC_SIZE:]):
+    hash_ = message[:MAC_SIZE]
+    if hash_ != keccak(message[MAC_SIZE:]):
         raise WrongMAC()
     signature = message[MAC_SIZE:HEAD_SIZE]
     signed_data = message[HEAD_SIZE:]
@@ -256,7 +257,7 @@ def _unpack(message):
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
     # Ignore excessive list elements as required by EIP-8.
     payload = payload[:cmd.elem_count]
-    return remote_pubkey, cmd_id, payload, mdc
+    return remote_pubkey, cmd_id, payload, hash_
 
 
 if __name__ == "__main__":

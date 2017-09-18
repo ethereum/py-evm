@@ -25,14 +25,14 @@ def test_ping_pong():
     link_transports(alice, bob)
     # Collect all pongs received by alice in a list for later inspection.
     received_pongs = []
-    alice.recv_pong = lambda node, payload, mdc: received_pongs.append((node, payload))
+    alice.recv_pong = lambda node, payload, hash_: received_pongs.append((node, payload))
 
-    echo = alice.send_ping(bob.this_node)
+    token = alice.send_ping(bob.this_node)
 
     assert len(received_pongs) == 1
     node, payload = received_pongs[0]
     assert node.id == bob.this_node.id
-    assert echo == payload[1]
+    assert token == payload[1]
 
 
 def test_find_node_neighbours():
@@ -48,7 +48,7 @@ def test_find_node_neighbours():
     link_transports(alice, bob)
     # Collect all neighbours packets received by alice in a list for later inspection.
     received_neighbours = []
-    alice.recv_neighbours = lambda node, payload, mdc: received_neighbours.append((node, payload))
+    alice.recv_neighbours = lambda node, payload, hash_: received_neighbours.append((node, payload))
     # Pretend that bob and alice have already bonded, otherwise bob will ignore alice's find_node.
     bob.kademlia.update_routing_table(alice.this_node)
 
@@ -81,7 +81,7 @@ def test_pack():
 
     message = discovery._pack(discovery.CMD_PING.id, payload, privkey)
 
-    pubkey, cmd_id, payload, mdc = discovery._unpack(message)
+    pubkey, cmd_id, payload, hash_ = discovery._unpack(message)
     assert pubkey == private_key_to_public_key(privkey)
     assert cmd_id == discovery.CMD_PING.id
     assert len(payload) == discovery.CMD_PING.elem_count
