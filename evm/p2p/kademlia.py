@@ -1,0 +1,569 @@
+import asyncio
+import ipaddress
+import logging
+import operator
+import random
+import struct
+import time
+import urllib
+from functools import total_ordering
+
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+    force_bytes,
+)
+
+from evm.utils.keccak import keccak
+from evm.utils.numeric import big_endian_to_int
+
+
+k_b = 8  # 8 bits per hop
+
+k_bucket_size = 16
+k_request_timeout = 0.9                  # timeout of message round trips
+k_idle_bucket_refresh_interval = 3600    # ping all nodes in bucket if bucket was idle
+k_find_concurrency = 3                   # parallel find node lookups
+k_pubkey_size = 512
+k_id_size = 256
+k_max_node_id = 2 ** k_id_size - 1
+
+
+def int_to_big_endian4(integer):
+    ''' 4 bytes big endian integer'''
+    return struct.pack('>I', integer)
+
+
+def enc_port(p):
+    return int_to_big_endian4(p)[-2:]
+
+
+class AlreadyWaiting(Exception):
+    pass
+
+
+class Address:
+
+    def __init__(self, ip, udp_port, tcp_port=0):
+        tcp_port = tcp_port or udp_port
+        self.udp_port = udp_port
+        self.tcp_port = tcp_port
+        self._ip = ipaddress.ip_address(ip)
+
+    @property
+    def ip(self):
+        return str(self._ip)
+
+    def __eq__(self, other):
+        return (self.ip, self.udp_port) == (other.ip, other.udp_port)
+
+    def __repr__(self):
+        return 'Address(%s:%s)' % (self.ip, self.udp_port)
+
+    def to_endpoint(self):
+        return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
+
+    @classmethod
+    def from_endpoint(cls, ip, udp_port, tcp_port='\x00\x00'):
+        udp_port = big_endian_to_int(udp_port)
+        tcp_port = big_endian_to_int(tcp_port)
+        return cls(ip, udp_port, tcp_port)
+
+
+@total_ordering
+class Node:
+
+    def __init__(self, pubkey, address):
+        self.pubkey = pubkey
+        self.address = address
+        self.id = big_endian_to_int(keccak(pubkey))
+
+    @classmethod
+    def from_uri(cls, uri):
+        ip, port, pubkey = host_port_pubkey_from_uri(uri)
+        return cls(pubkey, Address(ip.decode(), int(port)))
+
+    def __repr__(self):
+        return '<Node(%s@%s)>' % (encode_hex(self.pubkey[:4]), self.address.ip)
+
+    def distance_to(self, id):
+        return self.id ^ id
+
+    def __lt__(self, other):
+        if not isinstance(other, self.__class__):
+            return super(Node, self).__lt__(other)
+        return self.id < other.id
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return super(Node, self).__eq__(other)
+        return self.pubkey == other.pubkey
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self.pubkey)
+
+
+class KBucket:
+    """A bucket of nodes whose IDs fall between the bucket's start and end.
+
+    The bucket is kept sorted by time last seen—least-recently seen node at the head,
+    most-recently seen at the tail.
+    """
+    k = k_bucket_size
+
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+        self.nodes = []
+        self.replacement_cache = []
+        self.last_updated = time.time()
+
+    @property
+    def midpoint(self):
+        return self.start + (self.end - self.start) // 2
+
+    def distance_to(self, id):
+        return self.midpoint ^ id
+
+    def nodes_by_distance_to(self, id):
+        return sorted(self.nodes, key=operator.methodcaller('distance_to', id))
+
+    def split(self):
+        """Split at the median id"""
+        splitid = self.midpoint
+        lower = KBucket(self.start, splitid)
+        upper = KBucket(splitid + 1, self.end)
+        for node in self.nodes:
+            bucket = lower if node.id <= splitid else upper
+            bucket.add(node)
+        for node in self.replacement_cache:
+            bucket = lower if node.id <= splitid else upper
+            bucket.replacement_cache.append(node)
+        return lower, upper
+
+    def remove_node(self, node):
+        if node not in self.nodes:
+            return
+        self.nodes.remove(node)
+
+    def in_range(self, node):
+        return self.start <= node.id <= self.end
+
+    @property
+    def is_full(self):
+        return len(self) == self.k
+
+    def add(self, node):
+        """Try to add the given node to this bucket.
+
+        If the node is already present, it is moved to the tail of the list, and we return None.
+
+        If the node is not already present and the bucket has fewer than k entries, it is inserted
+        at the tail of the list, and we return None.
+
+        If the bucket is full, we add the node to the bucket's replacement cache and return the
+        node at the head of the list (i.e. the least recently seen), which should be evicted if it
+        fails to respond to a ping.
+        """
+        self.last_updated = time.time()
+        if node in self.nodes:
+            self.nodes.remove(node)
+            self.nodes.append(node)
+        elif len(self) < self.k:
+            self.nodes.append(node)
+        else:
+            self.replacement_cache.append(node)
+            return self.head
+
+    @property
+    def head(self):
+        """Least recently seen"""
+        return self.nodes[0]
+
+    def __contains__(self, node):
+        return node in self.nodes
+
+    def __len__(self):
+        return len(self.nodes)
+
+
+class RoutingTable:
+
+    def __init__(self, node):
+        self.this_node = node
+        self.buckets = [KBucket(0, k_max_node_id)]
+
+    def split_bucket(self, index):
+        bucket = self.buckets[index]
+        a, b = bucket.split()
+        self.buckets[index] = a
+        self.buckets.insert(index + 1, b)
+
+    @property
+    def idle_buckets(self):
+        idle_cutoff_time = time.time() - k_idle_bucket_refresh_interval
+        return [b for b in self.buckets if b.last_updated < idle_cutoff_time]
+
+    @property
+    def not_full_buckets(self):
+        return [b for b in self.buckets if not b.is_full]
+
+    def remove_node(self, node):
+        self.get_bucket_for_node(node).remove_node(node)
+
+    def add_node(self, node):
+        if node == self.this_node:
+            raise ValueError("Cannot add this_node to routing table")
+        bucket = self.get_bucket_for_node(node)
+        eviction_candidate = bucket.add(node)
+        if eviction_candidate is not None:  # bucket is full
+            # Split if the bucket has the local node in its range or if the depth is not congruent
+            # to 0 mod k_b
+            depth = _compute_shared_prefix_bits(bucket.nodes)
+            if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
+                self.split_bucket(self.buckets.index(bucket))
+                return self.add_node(node)  # retry
+            # Nothing added, ping eviction_candidate
+            return eviction_candidate
+        return None  # successfully added to not full bucket
+
+    def get_bucket_for_node(self, node):
+        for bucket in self.buckets:
+            if node.id < bucket.end:
+                return bucket
+        raise ValueError("No bucket found for node with id {}".format(node.id))
+
+    def buckets_by_distance_to(self, id):
+        return sorted(self.buckets, key=operator.methodcaller('distance_to', id))
+
+    def __contains__(self, node):
+        return node in self.get_bucket_for_node(node)
+
+    def __len__(self):
+        return sum(len(b) for b in self.buckets)
+
+    def __iter__(self):
+        for b in self.buckets:
+            for n in b.nodes:
+                yield n
+
+    def neighbours(self, node_id, k=k_bucket_size):
+        """Return up to k neighbours of the given node."""
+        nodes = []
+        # Sorting by bucket.midpoint does not work in edge cases, so build a short list of k * 2
+        # nodes and sort it by distance_to.
+        for bucket in self.buckets_by_distance_to(node_id):
+            for n in bucket.nodes_by_distance_to(node_id):
+                if n is not node_id:
+                    nodes.append(n)
+                    if len(nodes) == k * 2:
+                        break
+        return sort_by_distance(nodes, node_id)[:k]
+
+
+class KademliaProtocol:
+    logger = logging.getLogger("evm.p2p.discovery.KademliaProtocol")
+
+    def __init__(self, node, wire):
+        self.this_node = node
+        self.wire = wire
+        self.routing = RoutingTable(node)
+        self.pong_callbacks = {}
+        self.ping_callbacks = {}
+        self.neighbours_callbacks = {}
+
+    def recv_neighbours(self, remote, neighbours):
+        """Process a neighbours response.
+
+        Neighbours responses should only be received as a reply to a find_node, and that is only
+        done as part of node lookup, so the actual processing is left to the callback from
+        neighbours_callbacks, which is added (and removed after it's done or timed out) in
+        wait_neighbours().
+        """
+        self.logger.debug('<<< neighbours from {}: {}'.format(remote, neighbours))
+        callback = self.neighbours_callbacks.get(remote)
+        if callback is not None:
+            callback(neighbours)
+        else:
+            self.logger.debug(
+                'unexpected neighbours from {}, probably came too late'.format(remote))
+
+    def recv_pong(self, remote, token):
+        """Process a pong packet.
+
+        Pong packets should only be received as a response to a ping, so the actual processing is
+        left to the callback from pong_callbacks, which is added (and removed after it's done
+        or timed out) in wait_pong().
+        """
+        self.logger.debug('<<< pong from {}'.format(remote))
+        pingid = self._mkpingid(token, remote)
+        callback = self.pong_callbacks.get(pingid)
+        if callback is not None:
+            callback()
+        else:
+            self.logger.debug(
+                'unexpected pong from {} with pingid {}, probably came too late'.format(
+                    remote, encode_hex(pingid)))
+
+    def recv_ping(self, remote, hash_):
+        """Process a received ping packet.
+
+        A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
+        new node. In the former case we'll just update the sender's entry in our routing table and
+        reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
+        """
+        self.logger.debug('<<< ping from {}'.format(remote))
+        self.update_routing_table(remote)
+        self.wire.send_pong(remote, hash_)
+        # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
+        # see a node, and it is in those cases that a callback will exist.
+        callback = self.ping_callbacks.get(remote)
+        if callback is not None:
+            callback()
+
+    def recv_find_node(self, remote, targetid):
+        if remote not in self.routing:
+            # FIXME: This is not correct; a node we've bonded before may have become unavailable
+            # and thus removed from self.routing, but once it's back online we should accept
+            # find_nodes from them.
+            self.logger.debug("Ignoring find_node request from unknown node {}".format(remote))
+            return
+        self.update_routing_table(remote)
+        found = self.routing.neighbours(targetid)
+        self.wire.send_neighbours(remote, found)
+
+    def update_routing_table(self, node):
+        """Update the routing table entry for the given node."""
+        eviction_candidate = self.routing.add_node(node)
+        if eviction_candidate:
+            # This means we couldn't add the node because its bucket is full, so schedule a bond()
+            # with the least recently seen node on that bucket. If the bonding fails the node will
+            # be removed from the bucket and a new one will be picked from the bucket's
+            # replacement cache.
+            asyncio.ensure_future(self.bond(eviction_candidate))
+
+    @asyncio.coroutine
+    def wait_ping(self, remote):
+        """Wait for a ping from the given remote.
+
+        This coroutine adds a callback to ping_callbacks and yields control until that callback is
+        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
+        a ping was received from the given node.
+        """
+        if remote in self.ping_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a ping packet from {}".format(remote))
+
+        event = asyncio.Event()
+        self.ping_callbacks[remote] = event.set
+        got_ping = False
+        try:
+            got_ping = yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            self.logger.debug('got expected ping from {}'.format(remote))
+        except asyncio.futures.TimeoutError:
+            self.logger.debug('timed out waiting for ping from {}'.format(remote))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
+        del self.ping_callbacks[remote]
+        return got_ping
+
+    @asyncio.coroutine
+    def wait_pong(self, pingid):
+        """Wait for a pong with the given pingid.
+
+        This coroutine adds a callback to pong_callbacks and yields control until that callback is
+        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
+        a pong was received with the given pingid.
+        """
+        if pingid in self.pong_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a pong packet with id {}".format(pingid))
+
+        event = asyncio.Event()
+        self.pong_callbacks[pingid] = event.set
+        got_pong = False
+        try:
+            got_pong = yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            self.logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
+        except asyncio.futures.TimeoutError:
+            self.logger.debug(
+                'timed out waiting for pong with pingid {}'.format(encode_hex(pingid)))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
+        del self.pong_callbacks[pingid]
+        return got_pong
+
+    @asyncio.coroutine
+    def wait_neighbours(self, remote):
+        """Wait for a neihgbours packet from the given node.
+
+        Returns the list of neighbours received.
+        """
+        if remote in self.neighbours_callbacks:
+            raise AlreadyWaiting(
+                "There's another coroutine waiting for a neighbours packet from {}".format(remote))
+
+        event = asyncio.Event()
+        neighbours = []
+
+        def process(response):
+            neighbours.extend(response)
+            # This callback is expected to be called multiple times because nodes usually
+            # split the neighbours replies into multiple packets, so we only call event.set() once
+            # we've received enough neighbours.
+            if len(neighbours) == k_bucket_size:
+                event.set()
+
+        self.neighbours_callbacks[remote] = process
+        try:
+            yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            self.logger.debug('got expected neighbours response from {}'.format(remote))
+        except asyncio.futures.TimeoutError:
+            pass
+            self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
+        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
+        del self.neighbours_callbacks[remote]
+        return [n for n in neighbours if n != self.this_node]
+
+    def ping(self, node):
+        if node == self.this_node:
+            raise ValueError("Cannot ping self")
+        token = self.wire.send_ping(node)
+        pingid = self._mkpingid(token, node)
+        return pingid
+
+    @asyncio.coroutine
+    def bond(self, node):
+        """Bond with the given node.
+
+        Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
+        It is necessary to do this at least once before we send find_node requests to a node.
+        """
+        if node in self.routing:
+            return True
+
+        pingid = self.ping(node)
+
+        got_pong = yield from self.wait_pong(pingid)
+        if not got_pong:
+            self.logger.debug("bonding failed, didn't receive pong from {}".format(node))
+            # Drop the failing node and schedule a populate_not_full_buckets() call to try and
+            # fill its spot.
+            self.routing.remove_node(node)
+            asyncio.ensure_future(self.populate_not_full_buckets())
+            return False
+
+        # Give the remote node a chance to ping us before we move on and start sending find_node
+        # requests. It is ok for wait_ping() to timeout and return false here as that just means
+        # the remote remembers us.
+        yield from self.wait_ping(node)
+
+        self.logger.debug("bonding completed successfully with {}".format(node))
+        self.update_routing_table(node)
+        return True
+
+    @asyncio.coroutine
+    def bootstrap(self, bootstrap_nodes):
+        bonded = yield from asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
+        if not any(bonded):
+            self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
+            return
+        yield from self.lookup(self.this_node.id)
+
+    @asyncio.coroutine
+    def lookup(self, node_id):
+        """Lookup performs a network search for nodes close to the given target.
+
+        It approaches the target by querying nodes that are closer to it on each iteration.  The
+        given target does not need to be an actual node identifier.
+        """
+        nodes_asked = set()
+        nodes_seen = set()
+
+        @asyncio.coroutine
+        def _find_node(node_id, remote):
+            self.wire.send_find_node(remote, node_id)
+            candidates = yield from self.wait_neighbours(remote)
+            if len(candidates) == 0:
+                self.logger.info("got no candidates from {}, returning".format(remote))
+                return candidates
+            candidates = [c for c in candidates if c not in nodes_seen]
+            self.logger.info("got {} new candidates".format(len(candidates)))
+            # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
+            # in the future.
+            nodes_seen.update(candidates)
+            bonded = yield from asyncio.gather(*[self.bond(c) for c in candidates])
+            self.logger.info("bonded with {} candidates".format(bonded.count(True)))
+            return [c for c in candidates if bonded[candidates.index(c)]]
+
+        def _exclude_if_asked(nodes):
+            nodes_to_ask = list(set(nodes).difference(nodes_asked))
+            return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
+
+        closest = self.routing.neighbours(node_id)
+        self.logger.info("starting lookup; initial neighbours: {}".format(closest))
+        nodes_to_ask = _exclude_if_asked(closest)
+        while nodes_to_ask:
+            self.logger.info("node lookup; querying {}".format(nodes_to_ask))
+            nodes_asked.update(nodes_to_ask)
+            results = yield from asyncio.gather(
+                *[_find_node(node_id, n) for n in nodes_to_ask])
+            for candidates in results:
+                closest.extend(candidates)
+            closest = sort_by_distance(closest, node_id)[:k_bucket_size]
+            nodes_to_ask = _exclude_if_asked(closest)
+
+        self.logger.info("lookup finished for {}: {}".format(node_id, closest))
+        return closest
+
+    # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
+    # time when the least recently touched bucket will be considered idle.
+    def refresh_idle_buckets(self):
+        # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
+        # range and perform discovery for that value.
+        for bucket in self.routing.idle_buckets:
+            rid = random.randint(bucket.start, bucket.end)
+            asyncio.ensure_future(self.lookup(rid))
+
+    def _mkpingid(self, token, node):
+        pid = force_bytes(token) + node.pubkey
+        return pid
+
+    @asyncio.coroutine
+    def populate_not_full_buckets(self):
+        """Go through all buckets that are not full and try to fill them.
+
+        For every node in the replacement cache of every non-full bucket, try to bond.
+        When the bonding succeeds the node is automatically added to the bucket.
+        """
+        for bucket in self.routing.not_full_buckets:
+            for node in bucket.replacement_cache:
+                asyncio.ensure_future(self.bond(node))
+
+
+def _compute_shared_prefix_bits(nodes):
+    """Count the number of prefix bits shared by all nodes."""
+    def to_binary(x):  # left padded bit representation
+        b = bin(x)[2:]
+        return '0' * (k_id_size - len(b)) + b
+
+    if len(nodes) < 2:
+        return k_id_size
+
+    bits = [to_binary(n.id) for n in nodes]
+    for i in range(1, k_id_size + 1):
+        if len(set(b[:i] for b in bits)) != 1:
+            return i - 1
+    # This means we have at least two nodes with the same ID, so raise an AssertionError
+    # because we don't want it to be caught accidentally.
+    raise AssertionError("Unable to calculate number of shared prefix bits")
+
+
+def sort_by_distance(nodes, target_id):
+    return sorted(nodes, key=operator.methodcaller('distance_to', target_id))
+
+
+def host_port_pubkey_from_uri(uri):
+    uri = urllib.parse.urlparse(uri)
+    return uri.hostname, uri.port, decode_hex(uri.username)
