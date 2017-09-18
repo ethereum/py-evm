@@ -125,44 +125,45 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def receive(self, address, message):
         try:
-            remote_pubkey, cmd_id, payload, hash_ = _unpack(message)
+            remote_pubkey, cmd_id, payload, message_hash = _unpack(message)
         except DefectiveMessage as e:
             self.logger.error('error unpacking message: {}'.format(e))
             return
 
-        # Note: as of discovery version 4, expiration is the last element for all
-        # packets. This might not be the case for a later version, but just popping
-        # the last element is good enough for now.
-        expiration = rlp.sedes.big_endian_int.deserialize(payload.pop())
+        # As of discovery version 4, expiration is the last element for all packets, so
+        # we can validate that here, but if it changes we may have to do so on the
+        # handler methods.
+        expiration = rlp.sedes.big_endian_int.deserialize(payload[-1])
         if time.time() > expiration:
             self.logger.error('received message already expired')
             return
 
         cmd = CMD_ID_MAP[cmd_id]
-        # We check that the number of elements in the payload is equal to elem_count
-        # minus 1 because we've pop()ed the expiration (which is included in all
-        # packets) from the payload a few lines above.
-        if len(payload) != cmd.elem_count - 1:
+        if len(payload) != cmd.elem_count:
             self.logger.error('invalid {} payload: {}'.format(cmd.name, payload))
             return
         node = kademlia.Node(remote_pubkey, address)
         handler = self._get_handler(cmd)
-        handler(node, payload, hash_)
+        handler(node, payload, message_hash)
 
-    def recv_pong(self, node, payload, hash_):
-        token = payload[1]
+    def recv_pong(self, node, payload, message_hash):
+        # The pong payload should have 3 elements: to, token, expiration
+        _, token, _ = payload
         self.kademlia.recv_pong(node, token)
 
-    def recv_neighbours(self, node, payload, hash_):
-        self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(payload[0]))
+    def recv_neighbours(self, node, payload, message_hash):
+        # The neighbours payload should have 2 elements: nodes, expiration
+        nodes, _ = payload
+        self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(nodes))
 
-    def recv_ping(self, node, payload, hash_):
-        self.kademlia.recv_ping(node, hash_)
+    def recv_ping(self, node, payload, message_hash):
+        self.kademlia.recv_ping(node, message_hash)
 
-    def recv_find_node(self, node, payload, hash_):
+    def recv_find_node(self, node, payload, message_hash):
+        # The find_node payload should have 2 elements: node_id, expiration
         self.logger.debug('<<< find_node from {}'.format(node))
-        target = big_endian_to_int(payload[0])
-        self.kademlia.recv_find_node(node, target)
+        node_id, _ = payload
+        self.kademlia.recv_find_node(node, big_endian_to_int(node_id))
 
     def send_ping(self, node):
         self.logger.debug('>>> pinging {}'.format(node))
@@ -237,8 +238,8 @@ def _pack(cmd_id, payload, privkey):
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
     signature = get_ecc_backend().ecdsa_sign(encoded_data, privkey)
-    hash_ = keccak(signature + encoded_data)
-    return hash_ + signature + encoded_data
+    message_hash = keccak(signature + encoded_data)
+    return message_hash + signature + encoded_data
 
 
 def _unpack(message):
@@ -246,8 +247,8 @@ def _unpack(message):
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
     """
-    hash_ = message[:MAC_SIZE]
-    if hash_ != keccak(message[MAC_SIZE:]):
+    message_hash = message[:MAC_SIZE]
+    if message_hash != keccak(message[MAC_SIZE:]):
         raise WrongMAC()
     signature = message[MAC_SIZE:HEAD_SIZE]
     signed_data = message[HEAD_SIZE:]
@@ -257,7 +258,7 @@ def _unpack(message):
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
     # Ignore excessive list elements as required by EIP-8.
     payload = payload[:cmd.elem_count]
-    return remote_pubkey, cmd_id, payload, hash_
+    return remote_pubkey, cmd_id, payload, message_hash
 
 
 if __name__ == "__main__":
