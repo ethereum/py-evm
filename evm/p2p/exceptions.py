@@ -4,3 +4,7 @@ class AuthenticationError(Exception):
 
 class DecryptionError(Exception):
     pass
+
+
+class PeerDisconnected(Exception):
+    pass

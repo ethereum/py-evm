@@ -1,3 +1,5 @@
+CLIENT_VERSION_STRING = "Py-EVM"
+
 SUPPORTED_RLPX_VERSION = 4
 
 # Overhead added by ECIES encryption
@@ -23,3 +25,9 @@ ENCRYPTED_AUTH_MSG_LEN = AUTH_MSG_LEN + ENCRYPT_OVERHEAD_LENGTH
 
 # Length of encrypted pre-EIP-8 handshake reply
 ENCRYPTED_AUTH_ACK_LEN = AUTH_ACK_LEN + ENCRYPT_OVERHEAD_LENGTH
+
+# Length of an RLPx packet's header
+HEADER_LEN = 16
+
+# Length of an RLPx header's/frame's MAC
+MAC_LEN = 16

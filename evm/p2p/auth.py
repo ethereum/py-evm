@@ -13,9 +13,6 @@ from eth_keys import keys
 from evm.utils.keccak import (
     keccak,
 )
-from evm.utils.numeric import (
-    int_to_big_endian,
-)
 from evm.p2p import ecies
 from evm.p2p.constants import (
     AUTH_ACK_LEN,
@@ -42,7 +39,7 @@ def handshake(remote, privkey):
     initiator = HandshakeInitiator(remote, privkey)
     reader, writer = yield from initiator.connect()
 
-    initiator_nonce = keccak(int_to_big_endian(random.randint(0, 2 ** 256 - 1)))
+    initiator_nonce = keccak(os.urandom(HASH_LEN))
     auth_msg = initiator.create_auth_message(initiator_nonce)
     auth_init = initiator.encrypt_auth_message(auth_msg)
     writer.write(auth_init)
@@ -51,12 +48,17 @@ def handshake(remote, privkey):
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
-        initiator_nonce, responder_nonce, ephemeral_pubkey, auth_init, auth_ack)
+        initiator_nonce,
+        responder_nonce,
+        ephemeral_pubkey,
+        auth_init,
+        auth_ack
+    )
 
-    peer = Peer(remote, privkey, reader, writer, aes_secret,
-                mac_secret, egress_mac, ingress_mac)
-    # TODO: Decode the hello packet we received to do the capabilities matching
-    # TODO: Use the peer created above to send a hello packet.
+    peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
+                aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
+                ingress_mac=ingress_mac)
+    peer.send_hello()
     return peer
 
 
