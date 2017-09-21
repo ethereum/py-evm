@@ -1,7 +1,8 @@
 import hashlib
 
+from eth_keys import KeyAPI
+
 from evm import constants
-from evm.ecc import get_ecc_backend
 from evm.exceptions import (
     ValidationError,
 )
@@ -65,12 +66,12 @@ def precompile_ecrecover(computation):
         return computation
 
     try:
-        raw_public_key = get_ecc_backend().ecdsa_raw_recover(message_hash, (v, r, s))
+        signature = KeyAPI().Signature(vrs=(v, r, s))
+        public_key = signature.recover_msg_hash(message_hash)
     except BadSignature:
         return computation
 
-    public_key = encode_raw_public_key(raw_public_key)
-    address = public_key_to_address(public_key)
+    address = public_key.to_canonical_address()
     padded_address = pad32(address)
 
     computation.output = padded_address
