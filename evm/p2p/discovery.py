@@ -16,9 +16,9 @@ from eth_utils import (
     to_list,
 )
 
-from evm.ecc import get_ecc_backend
+from eth_keys import KeyAPI
+
 from evm.p2p import kademlia
-from evm.utils.secp256k1 import private_key_to_public_key
 from evm.utils.keccak import keccak
 from evm.utils.numeric import (
     big_endian_to_int,
@@ -69,11 +69,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def __init__(self, privkey, address, bootstrap_nodes):
         self.privkey = privkey
-        self.pubkey = private_key_to_public_key(self.privkey)
         self.address = address
         self.bootstrap_nodes = bootstrap_nodes
         self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
+
+    @property
+    def pubkey(self):
+        return self.privkey.public_key
 
     def _get_handler(self, cmd):
         if cmd == CMD_PING:
@@ -237,9 +240,9 @@ def _pack(cmd_id, payload, privkey):
     cmd_id = force_bytes(chr(cmd_id))
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
-    signature = get_ecc_backend().ecdsa_sign(encoded_data, privkey)
-    message_hash = keccak(signature + encoded_data)
-    return message_hash + signature + encoded_data
+    signature = privkey.sign(encoded_data)
+    message_hash = keccak(bytes(signature) + encoded_data)
+    return message_hash + bytes(signature) + encoded_data
 
 
 def _unpack(message):
@@ -250,9 +253,9 @@ def _unpack(message):
     message_hash = message[:MAC_SIZE]
     if message_hash != keccak(message[MAC_SIZE:]):
         raise WrongMAC()
-    signature = message[MAC_SIZE:HEAD_SIZE]
+    signature = KeyAPI().Signature(message[MAC_SIZE:HEAD_SIZE])
     signed_data = message[HEAD_SIZE:]
-    remote_pubkey = get_ecc_backend().ecdsa_recover(signed_data, signature)
+    remote_pubkey = signature.recover_msg_hash(signed_data)
     cmd_id = safe_ord(message[HEAD_SIZE])
     cmd = CMD_ID_MAP[cmd_id]
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
@@ -299,7 +302,7 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    privkey = decode_hex(config['privkey_hex'])
+    privkey = KeyAPI().PrivateKey(decode_hex(config['privkey_hex']))
     addr = kademlia.Address(config['listen_host'], config['listen_port'], config['p2p_listen_port'])
     bootstrap_nodes = [kademlia.Node.from_uri(x) for x in config['bootstrap_nodes']]
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)

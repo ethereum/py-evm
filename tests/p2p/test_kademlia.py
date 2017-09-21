@@ -3,6 +3,8 @@ import random
 
 import pytest
 
+from eth_keys import KeyAPI
+
 from evm.p2p import kademlia
 from evm.utils.numeric import int_to_big_endian
 
@@ -287,7 +289,7 @@ def get_wired_protocol():
 
 def random_pubkey():
     pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
-    return b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk
+    return KeyAPI().PublicKey(b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk)
 
 
 def random_node(nodeid=None):
