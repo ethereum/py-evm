@@ -24,7 +24,7 @@ from evm.utils.keccak import (
 
 
 def create_transaction_signature(unsigned_txn, private_key):
-    signature = private_key.sign(keccak(rlp.encode(unsigned_txn)))
+    signature = private_key.sign(rlp.encode(unsigned_txn))
     v, r, s = signature.vrs
     return v, r, s
 
