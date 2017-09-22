@@ -2,6 +2,8 @@ import pytest
 
 import os
 
+from eth_keys import KeyAPI
+
 from evm.db import (
     get_db_backend,
 )
@@ -174,9 +176,8 @@ def test_state_fixtures(fixture_name, fixture):
         value=fixture['transaction']['value'],
         data=fixture['transaction']['data'],
     )
-    transaction = unsigned_transaction.as_signed_transaction(
-        private_key=fixture['transaction']['secretKey']
-    )
+    private_key = KeyAPI().PrivateKey(fixture['transaction']['secretKey'])
+    transaction = unsigned_transaction.as_signed_transaction(private_key=private_key)
 
     try:
         computation = chain.apply_transaction(transaction)
