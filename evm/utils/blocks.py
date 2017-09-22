@@ -84,7 +84,7 @@ def get_block_header_by_hash(db, block_hash):
 
     Raises BlockNotFound if it is not present in the db.
     """
-    validate_word(block_hash)
+    validate_word(block_hash, title="Block Hash")
     try:
         block = db.get(block_hash)
     except KeyError:
@@ -97,7 +97,7 @@ def lookup_block_hash(db, block_number):
     """
     Return the block hash for the given block number.
     """
-    validate_uint256(block_number)
+    validate_uint256(block_number, title="Block Number")
     number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
     # TODO: can raise KeyError
     block_hash = rlp.decode(

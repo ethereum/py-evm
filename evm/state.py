@@ -82,9 +82,9 @@ class State(object):
         return self._trie.root_hash
 
     def set_storage(self, address, slot, value):
-        validate_uint256(value)
-        validate_uint256(slot)
-        validate_canonical_address(address)
+        validate_uint256(value, title="Storage Value")
+        validate_uint256(slot, title="Storage Slot")
+        validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         storage = HashTrie(Trie(self.db, account.storage_root))
@@ -101,8 +101,8 @@ class State(object):
         self._set_account(address, account)
 
     def get_storage(self, address, slot):
-        validate_canonical_address(address)
-        validate_uint256(slot)
+        validate_canonical_address(address, title="Storage Address")
+        validate_uint256(slot, title="Storage Slot")
 
         account = self._get_account(address)
         storage = HashTrie(Trie(self.db, account.storage_root))
@@ -116,15 +116,15 @@ class State(object):
             return 0
 
     def delete_storage(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         account.storage_root = BLANK_ROOT_HASH
         self._set_account(address, account)
 
     def set_balance(self, address, balance):
-        validate_canonical_address(address)
-        validate_uint256(balance)
+        validate_canonical_address(address, title="Storage Address")
+        validate_uint256(balance, title="Account Balance")
 
         account = self._get_account(address)
         account.balance = balance
@@ -135,14 +135,14 @@ class State(object):
         self.set_balance(address, self.get_balance(address) + delta)
 
     def get_balance(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.balance
 
     def set_nonce(self, address, nonce):
-        validate_canonical_address(address)
-        validate_uint256(nonce)
+        validate_canonical_address(address, title="Storage Address")
+        validate_uint256(nonce, title="Nonce")
 
         account = self._get_account(address)
         account.nonce = nonce
@@ -150,14 +150,14 @@ class State(object):
         self._set_account(address, account)
 
     def get_nonce(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.nonce
 
     def set_code(self, address, code):
-        validate_canonical_address(address)
-        validate_is_bytes(code)
+        validate_canonical_address(address, title="Storage Address")
+        validate_is_bytes(code, title="Code")
 
         account = self._get_account(address)
 
@@ -166,7 +166,7 @@ class State(object):
         self._set_account(address, account)
 
     def get_code(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
         account = self._get_account(address)
         try:
             return self.db[account.code_hash]
@@ -174,7 +174,7 @@ class State(object):
             return b''
 
     def delete_code(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
         account = self._get_account(address)
         del self.db[account.code_hash]
         account.code_hash = EMPTY_SHA3
@@ -187,7 +187,7 @@ class State(object):
         del self._trie[address]
 
     def account_exists(self, address):
-        validate_canonical_address(address)
+        validate_canonical_address(address, title="Storage Address")
         return bool(self._trie[address])
 
     def touch_account(self, address):

@@ -21,7 +21,7 @@ def compute_frontier_difficulty(parent_header, timestamp):
     """
     Computes the difficulty for a frontier block based on the parent block.
     """
-    validate_gt(timestamp, parent_header.timestamp)
+    validate_gt(timestamp, parent_header.timestamp, title="Header timestamp")
 
     offset = parent_header.difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
 

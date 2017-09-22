@@ -24,7 +24,7 @@ def compute_homestead_difficulty(parent_header, timestamp):
     Computes the difficulty for a homestead block based on the parent block.
     """
     parent_tstamp = parent_header.timestamp
-    validate_gt(timestamp, parent_tstamp)
+    validate_gt(timestamp, parent_tstamp, title="Header.timestamp")
     offset = parent_header.difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
     sign = max(
         1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFF_ADJUSTMENT_CUTOFF,
