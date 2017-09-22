@@ -255,7 +255,7 @@ def _unpack(message):
         raise WrongMAC()
     signature = KeyAPI().Signature(message[MAC_SIZE:HEAD_SIZE])
     signed_data = message[HEAD_SIZE:]
-    remote_pubkey = signature.recover_msg_hash(signed_data)
+    remote_pubkey = signature.recover_msg(signed_data)
     cmd_id = safe_ord(message[HEAD_SIZE])
     cmd = CMD_ID_MAP[cmd_id]
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
