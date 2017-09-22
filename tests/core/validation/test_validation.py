@@ -23,7 +23,6 @@ from evm.validation import (
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
     validate_multiple_of,
-    validate_raw_public_key,
     validate_stack_item,
     validate_uint256,
     validate_unique,
@@ -397,19 +396,3 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)
-
-
-@pytest.mark.parametrize(
-    "public_key_value,is_valid",
-    (
-        (byte, False),
-        (("1" * 64), False),
-        (byte * 64, True),
-    ),
-)
-def test_validate_raw_public_key(public_key_value, is_valid):
-    if is_valid:
-        validate_raw_public_key(public_key_value)
-    else:
-        with pytest.raises(ValidationError):
-            validate_raw_public_key(public_key_value)
