@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 
 import rlp
@@ -29,36 +31,7 @@ from evm.utils.padding import (
     pad32,
 )
 
-
-class HashTrie(object):
-    _trie = None
-
-    logger = logging.getLogger('evm.state.HashTrie')
-
-    def __init__(self, trie):
-        self._trie = trie
-
-    def __setitem__(self, key, value):
-        self._trie[keccak(key)] = value
-
-    def __getitem__(self, key):
-        return self._trie[keccak(key)]
-
-    def __delitem__(self, key):
-        del self._trie[keccak(key)]
-
-    def __contains__(self, key):
-        return keccak(key) in self._trie
-
-    @property
-    def root_hash(self):
-        return self._trie.root_hash
-
-    def snapshot(self):
-        return self._trie.snapshot()
-
-    def revert(self, snapshot):
-        return self._trie.revert(snapshot)
+from .hash_trie import HashTrie
 
 
 class State(object):
@@ -80,6 +53,10 @@ class State(object):
     @property
     def root_hash(self):
         return self._trie.root_hash
+
+    @root_hash.setter
+    def root_hash(self, value):
+        self._trie.root_hash = value
 
     def set_storage(self, address, slot, value):
         validate_uint256(value, title="Storage Value")
@@ -197,15 +174,6 @@ class State(object):
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
         self.set_nonce(address, current_nonce + 1)
-
-    #
-    # Internal
-    #
-    def snapshot(self):
-        return self._trie.snapshot()
-
-    def revert(self, snapshot):
-        return self._trie.revert(snapshot)
 
     #
     # Internal

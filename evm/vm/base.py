@@ -8,11 +8,14 @@ from evm.constants import (
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.db.journal import (
+    JournalDB,
+)
+from evm.db.state import (
+    State,
+)
 from evm.logic.invalid import (
     InvalidOpcode,
-)
-from evm.state import (
-    State,
 )
 
 from evm.utils.blocks import (
@@ -37,6 +40,7 @@ class VM(object):
             raise ValueError("VM classes must have a `db`")
 
         self.db = db
+        self.journal_db = JournalDB(self.db)
 
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, db=db)
@@ -59,7 +63,7 @@ class VM(object):
 
     @contextmanager
     def state_db(self, read_only=False):
-        state = State(db=self.db, root_hash=self.block.header.state_root)
+        state = State(db=self.journal_db, root_hash=self.block.header.state_root)
         yield state
         if read_only:
             # TODO: This is a bit of a hack; ideally we should raise an error whenever the
@@ -255,19 +259,25 @@ class VM(object):
         """
         Perform a full snapshot of the current state of the VM.
 
-        TODO: This needs to do more than just snapshot the state_db but this is a start.
+        Snapshots are a combination of the state_root at the time of the
+        snapshot and the indices of the journaled DB.
         """
-        with self.state_db(read_only=True) as state_db:
-            return state_db.snapshot()
+        return (self.block.header.state_root, self.journal_db.snapshot())
 
     def revert(self, snapshot):
         """
-        Revert the VM to the state
-
-        TODO: This needs to do more than just snapshot the state_db but this is a start.
+        Revert the VM to the state at the snapshot
         """
+        state_root, journal_index = snapshot
+
         with self.state_db() as state_db:
-            return state_db.revert(snapshot)
+            # first revert the database state root.
+            state_db.root_hash = state_root
+            # now roll the underlying database back
+            self.journal_db.revert(journal_index)
+
+    def commit(self):
+        self.journal_db.clear_journal()
 
     #
     # Opcode API

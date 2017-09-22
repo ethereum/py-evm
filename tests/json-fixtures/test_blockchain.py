@@ -114,8 +114,8 @@ def test_blockchain_fixtures(fixture_name, fixture):
     # TODO: find out if this is supposed to pass?
     # if 'genesisRLP' in fixture:
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
-
     db = get_db_backend()
+
     chain = MainnetChain
     # TODO: It would be great if we can figure out an API for re-configuring
     # start block numbers that was more elegant.

@@ -44,7 +44,7 @@ from evm.utils.hexadecimal import (
 )
 from evm.utils.rlp import diff_rlp_object
 
-from evm.state import State
+from evm.db.state import State
 
 
 class Chain(object):
