@@ -160,14 +160,14 @@ class Chain(object):
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        validate_uint256(block_number)
+        validate_uint256(block_number, title="Block Number")
         return self.get_block_by_hash(lookup_block_hash(self.db, block_number))
 
     def get_block_by_hash(self, block_hash):
         """
         Returns the requested block as specified by block hash.
         """
-        validate_word(block_hash)
+        validate_word(block_hash, title="Block Hash")
         block_header = self.get_block_header_by_hash(block_hash)
         vm = self.get_vm(block_header)
         return vm.get_block_by_header(block_header)

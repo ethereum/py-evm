@@ -57,10 +57,10 @@ def precompile_ecrecover(computation):
     s = big_endian_to_int(s_bytes)
 
     try:
-        validate_lt_secpk1n(r)
-        validate_lt_secpk1n(s)
-        validate_lte(v, 28)
-        validate_gte(v, 27)
+        validate_lt_secpk1n(r, title="ECRecover: R")
+        validate_lt_secpk1n(s, title="ECRecover: S")
+        validate_lte(v, 28, title="ECRecover: V")
+        validate_gte(v, 27, title="ECRecover: V")
     except ValidationError:
         return computation
 

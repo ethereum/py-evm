@@ -45,9 +45,9 @@ def get_cache(block_number):
 
 
 def check_pow(block_number, mining_hash, mix_hash, nonce, difficulty):
-    validate_length(mix_hash, 32)
-    validate_length(mining_hash, 32)
-    validate_length(nonce, 8)
+    validate_length(mix_hash, 32, title="Mix Hash")
+    validate_length(mining_hash, 32, title="Mining Hash")
+    validate_length(nonce, 8, title="POW Nonce")
     cache = get_cache(block_number)
     mining_output = hashimoto_light(
         block_number, cache, mining_hash, big_endian_to_int(nonce))
@@ -55,4 +55,4 @@ def check_pow(block_number, mining_hash, mix_hash, nonce, difficulty):
         raise ValidationError("mix hash mismatch; {0} != {1}".format(
             encode_hex(mining_output[b'mix digest']), encode_hex(mix_hash)))
     result = big_endian_to_int(mining_output[b'result'])
-    validate_lte(result, 2**256 // difficulty)
+    validate_lte(result, 2**256 // difficulty, title="POW Difficulty")

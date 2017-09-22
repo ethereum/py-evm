@@ -124,8 +124,8 @@ class Computation(object):
     # Memory Management
     #
     def extend_memory(self, start_position, size):
-        validate_uint256(start_position)
-        validate_uint256(size)
+        validate_uint256(start_position, title="Memory start position")
+        validate_uint256(size, title="Memory size")
 
         before_size = ceil32(len(self.memory))
         after_size = ceil32(start_position + size)
@@ -172,7 +172,7 @@ class Computation(object):
         self._output = value
 
     def register_account_for_deletion(self, beneficiary):
-        validate_canonical_address(beneficiary)
+        validate_canonical_address(beneficiary, title="Suicide beneficiary address")
 
         if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(
@@ -191,10 +191,10 @@ class Computation(object):
             )).items())
 
     def add_log_entry(self, account, topics, data):
-        validate_canonical_address(account)
+        validate_canonical_address(account, title="Log entry address")
         for topic in topics:
-            validate_uint256(topic)
-        validate_is_bytes(data)
+            validate_uint256(topic, title="Log entry topic")
+        validate_is_bytes(data, title="Log entry data")
         self.log_entries.append((account, topics, data))
 
     #

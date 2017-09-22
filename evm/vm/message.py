@@ -49,45 +49,45 @@ class Message(object):
                  create_address=None,
                  code_address=None,
                  should_transfer_value=True):
-        validate_uint256(gas)
+        validate_uint256(gas, title="Message.gas")
         self.gas = gas
 
-        validate_uint256(gas_price)
+        validate_uint256(gas_price, title="Message.gas_price")
         self.gas_price = gas_price
 
         if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to)
+            validate_canonical_address(to, title="Message.to")
         self.to = to
 
-        validate_canonical_address(sender)
+        validate_canonical_address(sender, title="Message.sender")
         self.sender = sender
 
-        validate_uint256(value)
+        validate_uint256(value, title="Message.value")
         self.value = value
 
-        validate_is_bytes(data)
+        validate_is_bytes(data, title="Message.data")
         self.data = data
 
         if origin is not None:
-            validate_canonical_address(origin)
+            validate_canonical_address(origin, title="Message.origin")
         self.origin = origin
 
-        validate_is_integer(depth)
-        validate_gte(depth, minimum=0)
+        validate_is_integer(depth, title="Message.depth")
+        validate_gte(depth, minimum=0, title="Message.depth")
         self.depth = depth
 
-        validate_is_bytes(code)
+        validate_is_bytes(code, title="Message.code")
         self.code = code
 
         if create_address is not None:
-            validate_canonical_address(create_address)
+            validate_canonical_address(create_address, title="Message.storage_address")
         self.storage_address = create_address
 
         if code_address is not None:
-            validate_canonical_address(code_address)
+            validate_canonical_address(code_address, title="Message.code_address")
         self.code_address = code_address
 
-        validate_is_boolean(should_transfer_value)
+        validate_is_boolean(should_transfer_value, title="Message.should_transfer_value")
         self.should_transfer_value = should_transfer_value
 
     @property

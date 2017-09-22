@@ -48,25 +48,25 @@ class FrontierTransaction(BaseTransaction):
     ]
 
     def validate(self):
-        validate_uint256(self.nonce)
-        validate_uint256(self.gas_price)
-        validate_uint256(self.gas)
+        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint256(self.gas_price, title="Transaction.gas_price")
+        validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(self.to)
-        validate_uint256(self.value)
-        validate_is_bytes(self.data)
+            validate_canonical_address(self.to, title="Transaction.to")
+        validate_uint256(self.value, title="Transaction.value")
+        validate_is_bytes(self.data, title="Transaction.data")
 
-        validate_uint256(self.v)
-        validate_uint256(self.r)
-        validate_uint256(self.s)
+        validate_uint256(self.v, title="Transaction.v")
+        validate_uint256(self.r, title="Transaction.r")
+        validate_uint256(self.s, title="Transaction.s")
 
-        validate_lt_secpk1n(self.r)
-        validate_gte(self.r, minimum=1)
-        validate_lt_secpk1n(self.s)
-        validate_gte(self.s, minimum=1)
+        validate_lt_secpk1n(self.r, title="Transaction.r")
+        validate_gte(self.r, minimum=1, title="Transaction.r")
+        validate_lt_secpk1n(self.s, title="Transaction.s")
+        validate_gte(self.s, minimum=1, title="Transaction.s")
 
-        validate_gte(self.v, minimum=27)
-        validate_lte(self.v, maximum=28)
+        validate_gte(self.v, minimum=27, title="Transaction.v")
+        validate_lte(self.v, maximum=28, title="Transaction.v")
 
         super(FrontierTransaction, self).validate()
 
@@ -105,13 +105,13 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     ]
 
     def validate(self):
-        validate_uint256(self.nonce)
-        validate_is_integer(self.gas_price)
-        validate_uint256(self.gas)
+        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_is_integer(self.gas_price, title="Transaction.gas_price")
+        validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(self.to)
-        validate_uint256(self.value)
-        validate_is_bytes(self.data)
+            validate_canonical_address(self.to, title="Transaction.to")
+        validate_uint256(self.value, title="Transaction.value")
+        validate_is_bytes(self.data, title="Transaction.data")
         super(FrontierUnsignedTransaction, self).validate()
 
     def as_signed_transaction(self, private_key):

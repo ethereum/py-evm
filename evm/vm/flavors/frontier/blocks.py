@@ -101,7 +101,7 @@ class FrontierBlock(BaseBlock):
             parent_header = self.get_parent_header()
 
             self.validate_gas_limit()
-            validate_length_lte(self.header.extra_data, 32)
+            validate_length_lte(self.header.extra_data, 32, title="BlockHeader.extra_data")
 
             # timestamp
             if self.header.timestamp < parent_header.timestamp:

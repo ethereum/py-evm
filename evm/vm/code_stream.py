@@ -15,7 +15,7 @@ class CodeStream(object):
     logger = logging.getLogger('evm.vm.CodeStream')
 
     def __init__(self, code_bytes):
-        validate_is_bytes(code_bytes)
+        validate_is_bytes(code_bytes, title="CodeStream bytes")
         self.stream = io.BytesIO(code_bytes)
         self.invalid_positions = set()
         self.depth_processed = 0

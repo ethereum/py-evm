@@ -18,7 +18,7 @@ class GasMeter(object):
     logger = logging.getLogger('evm.gas.GasMeter')
 
     def __init__(self, start_gas):
-        validate_uint256(start_gas)
+        validate_uint256(start_gas, title="Start Gas")
 
         self.start_gas = start_gas
 
