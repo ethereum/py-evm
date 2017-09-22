@@ -194,7 +194,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         nodes = []
         neighbours = sorted(neighbours)
         for n in neighbours:
-            l = n.address.to_endpoint() + [n.pubkey]
+            l = n.address.to_endpoint() + [bytes(n.pubkey)]
             nodes.append(l)
 
         max_neighbours = self._get_max_neighbours_per_packet()
