@@ -15,7 +15,7 @@ from evm.constants import (
     BLANK_ROOT_HASH,
 )
 
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.keccak import (

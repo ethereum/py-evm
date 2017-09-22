@@ -3,7 +3,7 @@ from evm.exceptions import (
     OutOfGas,
 )
 
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 

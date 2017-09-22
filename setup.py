@@ -35,9 +35,6 @@ setup(
         "ethereum-keys==0.1.0a2",
     ],
     extra_require={
-        'coincurve': [
-            "coincurve>=5.0.1",
-        ],
         'leveldb': [
             "leveldb>=0.194",
         ]

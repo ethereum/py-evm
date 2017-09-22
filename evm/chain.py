@@ -39,7 +39,7 @@ from evm.utils.blocks import (
 from evm.utils.blocks import (
     persist_block_to_db,
 )
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.rlp import diff_rlp_object

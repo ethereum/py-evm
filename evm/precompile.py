@@ -1,6 +1,9 @@
 import hashlib
 
 from eth_keys import KeyAPI
+from eth_keys.exceptions import (
+    BadSignature,
+)
 
 from evm import constants
 from evm.exceptions import (
@@ -14,10 +17,6 @@ from evm.validation import (
 
 from evm.utils.address import (
     force_bytes_to_address,
-    public_key_to_address,
-)
-from evm.utils.ecdsa import (
-    BadSignature,
 )
 from evm.utils.numeric import (
     ceil32,
@@ -26,9 +25,6 @@ from evm.utils.numeric import (
 from evm.utils.padding import (
     pad32,
     pad32r,
-)
-from evm.utils.secp256k1 import (
-    encode_raw_public_key,
 )
 
 

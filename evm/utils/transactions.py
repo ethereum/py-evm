@@ -7,17 +7,14 @@ from eth_utils import (
 )
 
 from eth_keys import KeyAPI
+from eth_keys.exceptions import (
+    BadSignature,
+)
 
 from evm.exceptions import (
     ValidationError,
 )
 
-from evm.utils.ecdsa import (
-    BadSignature,
-)
-from evm.utils.hexidecimal import (
-    decode_hex,
-)
 from evm.utils.keccak import (
     keccak,
 )
@@ -36,7 +33,7 @@ def validate_transaction_signature(transaction):
     unsigned_transaction = transaction.as_unsigned_transaction()
     msg_hash = keccak(rlp.encode(unsigned_transaction))
     try:
-        public_key = key_api.ecdsa_recover(msg_hash, signature)
+        public_key = signature.recover_msg_hash(msg_hash)
     except BadSignature as e:
         raise ValidationError("Bad Signature: {0}".format(str(e)))
 
@@ -50,7 +47,7 @@ def extract_transaction_sender(transaction):
     signature = key_api.Signature(vrs=(transaction.v, transaction.r, transaction.s))
     unsigned_transaction = transaction.as_unsigned_transaction()
     public_key = signature.recover_msg_hash(keccak(rlp.encode(unsigned_transaction)))
-    sender = decode_hex(public_key.as_address())
+    sender = public_key.to_canonical_address()
     return sender
 
 
