@@ -49,3 +49,6 @@ fixtures/**
 
 # profiling
 prof/**
+
+# hypothesis
+.hypothesis/

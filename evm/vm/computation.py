@@ -14,7 +14,7 @@ from evm.validation import (
     validate_is_bytes,
 )
 
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.numeric import (

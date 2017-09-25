@@ -1,6 +1,6 @@
 from evm import constants
 
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 

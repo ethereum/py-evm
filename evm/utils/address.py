@@ -6,13 +6,6 @@ from .keccak import (
 from .padding import (
     pad_left,
 )
-from .secp256k1 import (
-    private_key_to_public_key,
-)
-
-from evm.validation import (
-    validate_raw_public_key
-)
 
 
 def force_bytes_to_address(value):
@@ -23,13 +16,3 @@ def force_bytes_to_address(value):
 
 def generate_contract_address(address, nonce):
     return keccak(rlp.encode([address, nonce]))[-20:]
-
-
-def private_key_to_address(private_key):
-    public_key = private_key_to_public_key(private_key)
-    return public_key_to_address(public_key)
-
-
-def public_key_to_address(public_key):
-    validate_raw_public_key(public_key)
-    return keccak(public_key)[-20:]

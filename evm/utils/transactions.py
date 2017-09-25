@@ -6,59 +6,44 @@ from eth_utils import (
     to_list,
 )
 
+from eth_keys import keys
+from eth_keys.exceptions import (
+    BadSignature,
+)
+
 from evm.exceptions import (
     ValidationError,
 )
 
-from evm.utils.address import (
-    public_key_to_address,
-)
-
-from evm.ecc import (
-    get_ecc_backend,
-)
-
-from evm.utils.ecdsa import (
-    BadSignature,
-)
 from evm.utils.keccak import (
     keccak,
-)
-from evm.utils.secp256k1 import (
-    encode_raw_public_key,
 )
 
 
 def create_transaction_signature(unsigned_txn, private_key):
-    v, r, s = get_ecc_backend().ecdsa_raw_sign(
-        keccak(rlp.encode(unsigned_txn)),
-        private_key
-    )
+    signature = private_key.sign_msg(rlp.encode(unsigned_txn))
+    v, r, s = signature.vrs
     return v, r, s
 
 
 def validate_transaction_signature(transaction):
-    vrs = (transaction.v, transaction.r, transaction.s)
+    signature = keys.Signature(vrs=(transaction.v, transaction.r, transaction.s))
     unsigned_transaction = transaction.as_unsigned_transaction()
     msg_hash = keccak(rlp.encode(unsigned_transaction))
     try:
-        public_key = get_ecc_backend().ecdsa_raw_recover(msg_hash, vrs)
+        public_key = signature.recover_public_key_from_msg_hash(msg_hash)
     except BadSignature as e:
         raise ValidationError("Bad Signature: {0}".format(str(e)))
 
-    if not get_ecc_backend().ecdsa_raw_verify(msg_hash, vrs, public_key):
+    if not signature.verify_msg_hash(msg_hash, public_key):
         raise ValidationError("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):
-    vrs = (transaction.v, transaction.r, transaction.s)
+    signature = keys.Signature(vrs=(transaction.v, transaction.r, transaction.s))
     unsigned_transaction = transaction.as_unsigned_transaction()
-    raw_public_key = get_ecc_backend().ecdsa_raw_recover(
-        keccak(rlp.encode(unsigned_transaction)),
-        vrs,
-    )
-    public_key = encode_raw_public_key(raw_public_key)
-    sender = public_key_to_address(public_key)
+    public_key = signature.recover_public_key_from_msg(rlp.encode(unsigned_transaction))
+    sender = public_key.to_canonical_address()
     return sender
 
 

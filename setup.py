@@ -32,11 +32,9 @@ setup(
         "pyethash>=0.1.27",
         "rlp==0.4.7",
         "trie==0.2.4",
+        "ethereum-keys==0.1.0a6",
     ],
     extra_require={
-        'coincurve': [
-            "coincurve>=5.0.1",
-        ],
         'leveldb': [
             "leveldb>=0.194",
         ]

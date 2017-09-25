@@ -5,15 +5,15 @@ import rlp
 
 from eth_utils import (
     decode_hex,
-    encode_hex,
     force_bytes,
 )
+
+from eth_keys import keys
 
 from evm.p2p import discovery
 from evm.p2p import kademlia
 from evm.utils.keccak import keccak
 from evm.utils.numeric import safe_ord
-from evm.utils.secp256k1 import private_key_to_public_key
 
 
 def test_ping_pong():
@@ -77,12 +77,12 @@ def test_pack():
     sender, recipient = random_address(), random_address()
     version = rlp.sedes.big_endian_int.serialize(discovery.PROTO_VERSION)
     payload = [version, sender.to_endpoint(), recipient.to_endpoint()]
-    privkey = keccak(b"seed")
+    privkey = keys.PrivateKey(keccak(b"seed"))
 
     message = discovery._pack(discovery.CMD_PING.id, payload, privkey)
 
     pubkey, cmd_id, payload, hash_ = discovery._unpack(message)
-    assert pubkey == private_key_to_public_key(privkey)
+    assert pubkey == privkey.public_key
     assert cmd_id == discovery.CMD_PING.id
     assert len(payload) == discovery.CMD_PING.elem_count
 
@@ -93,7 +93,7 @@ def test_unpack_eip8_packets():
     for cmd, packets in eip8_packets.items():
         for name, packet in packets.items():
             pubkey, cmd_id, payload, _ = discovery._unpack(packet)
-            assert encode_hex(pubkey) == '0xca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31387574077f301b421bc84df7266c44e9e6d569fc56be00812904767bf5ccd1fc7f'  # noqa: E501
+            assert pubkey.to_hex() == '0xca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31387574077f301b421bc84df7266c44e9e6d569fc56be00812904767bf5ccd1fc7f'  # noqa: E501
             assert cmd.id == cmd_id
             assert cmd.elem_count == len(payload)
 
@@ -171,7 +171,7 @@ eip8_packets = {
 
 
 def get_discovery_protocol(seed=b"seed"):
-    privkey = keccak(seed)
+    privkey = keys.PrivateKey(keccak(seed))
     return discovery.DiscoveryProtocol(privkey, random_address(), bootstrap_nodes=[])
 
 
@@ -197,4 +197,5 @@ def random_address():
 
 def random_node():
     seed = force_bytes("".join(random.sample(string.ascii_lowercase, 10)))
-    return kademlia.Node(keccak(seed), random_address())
+    priv_key = keys.PrivateKey(keccak(seed))
+    return kademlia.Node(priv_key.public_key, random_address())

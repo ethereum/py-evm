@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 import rlp
@@ -6,7 +8,9 @@ from eth_utils import (
     to_canonical_address,
 )
 
-import os
+from eth_keys.exceptions import (
+    BadSignature,
+)
 
 from evm.db import (
     get_db_backend,
@@ -20,10 +24,6 @@ from evm.rlp.headers import (
 )
 from evm.vm.flavors import (
     MainnetChain,
-)
-
-from evm.utils.ecdsa import (
-    BadSignature,
 )
 
 from evm.utils.fixture_tests import (

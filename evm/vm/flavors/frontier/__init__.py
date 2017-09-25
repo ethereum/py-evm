@@ -24,7 +24,7 @@ from evm.vm.computation import (
 from evm.utils.address import (
     generate_contract_address,
 )
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 

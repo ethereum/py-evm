@@ -10,7 +10,7 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.validation import (

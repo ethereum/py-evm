@@ -5,10 +5,11 @@ from eth_utils import (
     to_canonical_address,
 )
 
+from eth_keys import KeyAPI
+
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
-from evm.utils.address import private_key_to_address
 from evm.vm.flavors.frontier import FrontierVM
 
 
@@ -97,8 +98,10 @@ def chain_without_block_validation():
         ),
         **overrides,
     )
-    private_key = decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
-    funded_addr = private_key_to_address(private_key)
+    private_key = KeyAPI().PrivateKey(
+        decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+    )
+    funded_addr = private_key.public_key.to_canonical_address()
     initial_balance = 100000000
     genesis_params = {
         'block_number': constants.GENESIS_BLOCK_NUMBER,
