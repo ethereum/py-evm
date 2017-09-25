@@ -210,7 +210,7 @@ def _extract_nodes_from_payload(payload):
     for item in payload:
         ip, udp_port, tcp_port, node_id = item
         address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
-        yield kademlia.Node(node_id, address)
+        yield kademlia.Node(keys.PublicKey(node_id), address)
 
 
 def _get_max_neighbours_per_packet():
@@ -240,7 +240,7 @@ def _pack(cmd_id, payload, privkey):
     cmd_id = force_bytes(chr(cmd_id))
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
-    signature = privkey.sign(encoded_data)
+    signature = privkey.sign_msg(encoded_data)
     message_hash = keccak(signature.to_bytes() + encoded_data)
     return message_hash + signature.to_bytes() + encoded_data
 
@@ -255,7 +255,7 @@ def _unpack(message):
         raise WrongMAC()
     signature = keys.Signature(message[MAC_SIZE:HEAD_SIZE])
     signed_data = message[HEAD_SIZE:]
-    remote_pubkey = signature.recover_msg(signed_data)
+    remote_pubkey = signature.recover_public_key_from_msg(signed_data)
     cmd_id = safe_ord(message[HEAD_SIZE])
     cmd = CMD_ID_MAP[cmd_id]
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)

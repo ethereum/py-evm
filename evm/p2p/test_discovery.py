@@ -197,4 +197,5 @@ def random_address():
 
 def random_node():
     seed = force_bytes("".join(random.sample(string.ascii_lowercase, 10)))
-    return kademlia.Node(keccak(seed), random_address())
+    priv_key = keys.PrivateKey(keccak(seed))
+    return kademlia.Node(priv_key.public_key, random_address())
