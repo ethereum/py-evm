@@ -57,9 +57,12 @@ def _apply_homestead_create_message(vm, message):
                         encode_hex(message.storage_address),
                         contract_code,
                     )
+
                 with vm.state_db() as state_db:
                     state_db.set_code(message.storage_address, contract_code)
-        vm.commit(snapshot)
+                vm.commit(snapshot)
+        else:
+            vm.commit(snapshot)
         return computation
 
 
