@@ -68,7 +68,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
-    snapshot = journal_db.snapshot()
+    snapshot_a = journal_db.snapshot()
 
     journal_db.set(b'1', b'test-b')
     journal_db.delete(b'1')
@@ -76,14 +76,22 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-c'
 
-    journal_db.revert(snapshot)
+    snapshot_b = journal_db.snapshot()
 
-    assert journal_db.get(b'1') == b'test-a'
+    journal_db.set(b'1', b'test-d')
+    journal_db.delete(b'1')
+    journal_db.set(b'1', b'test-e')
+
+    assert journal_db.get(b'1') == b'test-e'
+
+    journal_db.revert(snapshot_b)
+
+    assert journal_db.get(b'1') == b'test-c'
 
     journal_db.delete(b'1')
 
     assert journal_db.exists(b'1') is False
 
-    journal_db.revert(snapshot)
+    journal_db.revert(snapshot_a)
 
     assert journal_db.get(b'1') == b'test-a'

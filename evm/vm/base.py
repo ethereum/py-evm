@@ -88,6 +88,7 @@ class VM(object):
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
+        self.clear_journal()
         self.block.add_transaction(transaction, computation)
         return computation
 
@@ -277,8 +278,20 @@ class VM(object):
             self.journal_db.revert(journal_index)
 
     def commit(self, snapshot):
-        _, journal_index = snapshot
-        self.journal_db.clear_journal(journal_index)
+        """
+        Commits the journal to the point where the snapshot was taken.  This
+        will destroy any journal checkpoints *after* the snapshot checkpoint.
+        """
+        _, checkpoint_id = snapshot
+        self.journal_db.commit(checkpoint_id)
+
+    def clear_journal(self):
+        """
+        Cleare the journal.  This should be called at any point of VM execution
+        where the statedb is being committed, such as after a transaction has
+        been applied to a block.
+        """
+        self.journal_db.clear()
 
     #
     # Opcode API
