@@ -14,7 +14,7 @@ from eth_utils import (
     force_bytes,
 )
 
-from eth_keys import KeyAPI
+from eth_keys import keys
 
 from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
@@ -78,16 +78,16 @@ class Node:
     def __init__(self, pubkey, address):
         self.pubkey = pubkey
         self.address = address
-        self.id = big_endian_to_int(keccak(bytes(pubkey)))
+        self.id = big_endian_to_int(keccak(pubkey.to_bytes()))
 
     @classmethod
     def from_uri(cls, uri):
         ip, port, pubkey_bytes = host_port_pubkey_from_uri(uri)
-        pubkey = KeyAPI().PublicKey(pubkey_bytes)
+        pubkey = keys.PublicKey(pubkey_bytes)
         return cls(pubkey, Address(ip.decode(), int(port)))
 
     def __repr__(self):
-        return '<Node(%s@%s)>' % (encode_hex(bytes(self.pubkey)[:4]), self.address.ip)
+        return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
 
     def distance_to(self, id):
         return self.id ^ id
@@ -530,7 +530,7 @@ class KademliaProtocol:
             asyncio.ensure_future(self.lookup(rid))
 
     def _mkpingid(self, token, node):
-        pid = force_bytes(token) + bytes(node.pubkey)
+        pid = force_bytes(token) + node.pubkey.to_bytes()
         return pid
 
     @asyncio.coroutine

@@ -16,7 +16,7 @@ from eth_utils import (
     to_list,
 )
 
-from eth_keys import KeyAPI
+from eth_keys import keys
 
 from evm.p2p import kademlia
 from evm.utils.keccak import keccak
@@ -194,7 +194,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         nodes = []
         neighbours = sorted(neighbours)
         for n in neighbours:
-            l = n.address.to_endpoint() + [bytes(n.pubkey)]
+            l = n.address.to_endpoint() + [n.pubkey.to_bytes()]
             nodes.append(l)
 
         max_neighbours = self._get_max_neighbours_per_packet()
@@ -241,8 +241,8 @@ def _pack(cmd_id, payload, privkey):
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
     signature = privkey.sign(encoded_data)
-    message_hash = keccak(bytes(signature) + encoded_data)
-    return message_hash + bytes(signature) + encoded_data
+    message_hash = keccak(signature.to_bytes() + encoded_data)
+    return message_hash + signature.to_bytes() + encoded_data
 
 
 def _unpack(message):
@@ -253,7 +253,7 @@ def _unpack(message):
     message_hash = message[:MAC_SIZE]
     if message_hash != keccak(message[MAC_SIZE:]):
         raise WrongMAC()
-    signature = KeyAPI().Signature(message[MAC_SIZE:HEAD_SIZE])
+    signature = keys.Signature(message[MAC_SIZE:HEAD_SIZE])
     signed_data = message[HEAD_SIZE:]
     remote_pubkey = signature.recover_msg(signed_data)
     cmd_id = safe_ord(message[HEAD_SIZE])
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    privkey = KeyAPI().PrivateKey(decode_hex(config['privkey_hex']))
+    privkey = keys.PrivateKey(decode_hex(config['privkey_hex']))
     addr = kademlia.Address(config['listen_host'], config['listen_port'], config['p2p_listen_port'])
     bootstrap_nodes = [kademlia.Node.from_uri(x) for x in config['bootstrap_nodes']]
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)

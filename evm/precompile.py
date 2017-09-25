@@ -1,6 +1,6 @@
 import hashlib
 
-from eth_keys import KeyAPI
+from eth_keys import keys
 from eth_keys.exceptions import (
     BadSignature,
 )
@@ -62,8 +62,8 @@ def precompile_ecrecover(computation):
         return computation
 
     try:
-        signature = KeyAPI().Signature(vrs=(v, r, s))
-        public_key = signature.recover_msg_hash(message_hash)
+        signature = keys.Signature(vrs=(v, r, s))
+        public_key = signature.recover_public_key_from_msg_hash(message_hash)
     except BadSignature:
         return computation
 
