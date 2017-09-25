@@ -59,13 +59,16 @@ class JournalDB(BaseDB):
     #
     # Snapshot API
     #
+    def _validate_snapshot(self, snapshot):
+        validate_is_integer(snapshot, title="Journal index")
+        validate_gte(snapshot, 0, title="Journal index")
+        validate_lte(snapshot, len(self.journal), title="Journal index")
+
     def snapshot(self):
         return len(self.journal)
 
     def revert(self, snapshot):
-        validate_is_integer(snapshot, title="Journal index")
-        validate_gte(snapshot, 0, title="Journal index")
-        validate_lte(snapshot, len(self.journal), title="Journal index")
+        self._validate_snapshot(snapshot)
 
         while len(self.journal) > snapshot:
             key, previous_value = self.journal.pop()
@@ -74,8 +77,9 @@ class JournalDB(BaseDB):
             else:
                 self.wrapped_db.set(key, previous_value)
 
-    def clear_journal(self):
-        self.journal = []
+    def clear_journal(self, snapshot):
+        self._validate_snapshot(snapshot)
+        self.journal = self.journal[snapshot:]
 
     #
     # Dictionary API
