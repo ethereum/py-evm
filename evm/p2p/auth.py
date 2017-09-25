@@ -13,6 +13,9 @@ from eth_keys import keys
 from evm.utils.keccak import (
     keccak,
 )
+from evm.utils.numeric import (
+    int_to_big_endian,
+)
 from evm.p2p import ecies
 from evm.p2p.constants import (
     AUTH_ACK_LEN,
@@ -24,9 +27,37 @@ from evm.p2p.constants import (
     SIGNATURE_LEN,
     SUPPORTED_RLPX_VERSION,
 )
+from evm.p2p.peer import Peer
 from evm.p2p.utils import (
     sxor,
 )
+
+
+@asyncio.coroutine
+def handshake(remote, privkey):
+    """Perform the auth handshake with the given remote and return a Peer ready to be used.
+
+    The Peer will be configured with the shared secrets established during the handshake.
+    """
+    initiator = HandshakeInitiator(remote, privkey)
+    reader, writer = yield from initiator.connect()
+
+    initiator_nonce = keccak(int_to_big_endian(random.randint(0, 2 ** 256 - 1)))
+    auth_msg = initiator.create_auth_message(initiator_nonce)
+    auth_init = initiator.encrypt_auth_message(auth_msg)
+    writer.write(auth_init)
+
+    auth_ack = yield from reader.read(ENCRYPTED_AUTH_ACK_LEN)
+
+    ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
+    aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
+        initiator_nonce, responder_nonce, ephemeral_pubkey, auth_init, auth_ack)
+
+    peer = Peer(remote, privkey, reader, writer, aes_secret,
+                mac_secret, egress_mac, ingress_mac)
+    # TODO: Decode the hello packet we received to do the capabilities matching
+    # TODO: Use the peer created above to send a hello packet.
+    return peer
 
 
 class HandshakeBase:

@@ -10,6 +10,7 @@ from evm.p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
+from evm.p2p.peer import Peer
 
 
 def test_handshake():
@@ -100,6 +101,12 @@ def test_handshake():
     assert initiator_mac_secret == mac_secret
     assert initiator_ingress_mac.digest() == test_values['initial_ingress_MAC']
     assert initiator_egress_mac.digest() == test_values['initial_egress_MAC']
+
+    # Finally, check that a Peer configured with the secrets generated above can decrypt the hello
+    # package.  TODO: Not implemented yet
+    reader, writer = None, None
+    Peer(responder.remote, responder.privkey, reader, writer,
+         aes_secret, mac_secret, egress_mac, ingress_mac)
 
 
 def test_handshake_eip8():
