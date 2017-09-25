@@ -276,8 +276,9 @@ class VM(object):
             # now roll the underlying database back
             self.journal_db.revert(journal_index)
 
-    def commit(self):
-        self.journal_db.clear_journal()
+    def commit(self, snapshot):
+        _, journal_index = snapshot
+        self.journal_db.clear_journal(journal_index)
 
     #
     # Opcode API
