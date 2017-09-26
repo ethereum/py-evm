@@ -138,6 +138,8 @@ class VM(object):
         for transaction in block.transactions:
             self.apply_transaction(transaction)
 
+        # TODO: this is weird and should probably be done by just setting the
+        # uncleshash on the header in the call to `configure_header` above.
         for uncle in block.uncles:
             self.block.add_uncle(uncle)
 
@@ -177,6 +179,10 @@ class VM(object):
                 )
 
         return block
+
+    def validate_block(self, block, chain):
+        """
+        """
 
     #
     # Transactions
