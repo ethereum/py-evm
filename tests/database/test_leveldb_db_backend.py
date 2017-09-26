@@ -57,14 +57,3 @@ def test_delete(level_db, memory_db):
     level_db.delete(b'1')
     memory_db.delete(b'1')
     assert level_db.exists(b'1') == memory_db.exists(b'1')
-
-
-def test_snapshot_and_revert(level_db):
-    snapshot = level_db.snapshot()
-    level_db.set(b'1', b'1')
-    assert level_db.get(b'1')
-    with pytest.raises(KeyError):
-        snapshot.get(b'1')
-    level_db.revert(snapshot)
-    with pytest.raises(KeyError):
-        level_db.get(b'1')

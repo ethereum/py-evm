@@ -1,4 +1,5 @@
 import shutil
+
 from .base import (
     BaseDB,
 )
@@ -32,29 +33,6 @@ class LevelDB(BaseDB):
     def delete(self, key):
         self.db.Delete(key)
 
-    #
-    # Snapshot API
-    #
-    def snapshot(self):
-        return Snapshot(self.db.CreateSnapshot())
-
-    def revert(self, snapshot):
-        for item in self.db.RangeIter(include_value=False):
-            self.db.Delete(item)
-        for key, val in snapshot.items():
-            self.db.Put(key, val)
-
     # Clears the leveldb
     def __del__(self):
         shutil.rmtree(self.db_path, ignore_errors=True)
-
-
-class Snapshot(object):
-    def __init__(self, snapshot):
-        self.db = snapshot
-
-    def get(self, key):
-        return self.db.Get(key)
-
-    def items(self):
-        return self.db.RangeIter(include_value=True, reverse=True)

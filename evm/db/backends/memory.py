@@ -1,4 +1,3 @@
-import copy
 from .base import (
     BaseDB,
 )
@@ -21,12 +20,3 @@ class MemoryDB(BaseDB):
 
     def delete(self, key):
         del self.kv_store[key]
-
-    #
-    # Snapshot API
-    #
-    def snapshot(self):
-        return copy.copy(self.kv_store)
-
-    def revert(self, snapshot):
-        self.kv_store = snapshot

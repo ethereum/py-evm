@@ -20,19 +20,6 @@ class BaseDB(object):
         )
 
     #
-    # Snapshot API
-    #
-    def snapshot(self):
-        raise NotImplementedError(
-            "The `snapshot` method must be implemented by subclasses of BaseDB"
-        )
-
-    def revert(self, snapshot):
-        raise NotImplementedError(
-            "The `revert` method must be implemented by subclasses of BaseDB"
-        )
-
-    #
     # Dictionary API
     #
     def __getitem__(self, key):

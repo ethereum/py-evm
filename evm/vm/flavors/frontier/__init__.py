@@ -221,6 +221,9 @@ def _apply_frontier_message(vm, message):
 
     if computation.error:
         vm.revert(snapshot)
+    else:
+        vm.commit(snapshot)
+
     return computation
 
 
