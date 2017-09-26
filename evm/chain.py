@@ -4,7 +4,6 @@ import collections
 from operator import itemgetter
 
 from eth_utils import (
-    pad_right,
     to_tuple,
 )
 from evm.consensus.pow import (
@@ -42,7 +41,9 @@ from evm.utils.blocks import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.utils.rlp import diff_rlp_object
+from evm.utils.rlp import (
+    ensure_imported_block_unchanged,
+)
 
 from evm.db.state import State
 
@@ -237,7 +238,7 @@ class Chain(object):
 
         parent_chain = self.get_parent_chain(block)
         imported_block = parent_chain.get_vm().import_block(block)
-        self.ensure_blocks_are_equal(imported_block, block)
+        ensure_imported_block_unchanged(imported_block, block)
         # It feels wrong to call validate_block() on self here, but we do that
         # because we want to look up the recent uncles starting from the
         # current canonical chain head.
@@ -258,27 +259,6 @@ class Chain(object):
         if self.should_be_canonical_chain_head(mined_block):
             self.add_to_canonical_chain_head(mined_block)
         return mined_block
-
-    def ensure_blocks_are_equal(self, block1, block2):
-        if block1 == block2:
-            return
-        diff = diff_rlp_object(block1, block2)
-        longest_field_name = max(len(field_name) for field_name, _, _ in diff)
-        error_message = (
-            "Mismatch between block and imported block on {0} fields:\n - {1}".format(
-                len(diff),
-                "\n - ".join(tuple(
-                    "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                        pad_right(field_name, longest_field_name, ' '),
-                        actual,
-                        expected,
-                    )
-                    for field_name, actual, expected
-                    in diff
-                )),
-            )
-        )
-        raise ValidationError(error_message)
 
     def get_parent_chain(self, block):
         try:
