@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import collections
-from operator import itemgetter
+from cytoolz import (
+    assoc,
+)
 
 from eth_utils import (
     to_tuple,
@@ -21,7 +22,6 @@ from evm.exceptions import (
 from evm.validation import (
     validate_block_number,
     validate_uint256,
-    validate_vm_block_numbers,
     validate_word,
 )
 
@@ -37,6 +37,9 @@ from evm.utils.blocks import (
 )
 from evm.utils.blocks import (
     persist_block_to_db,
+)
+from evm.utils.chain import (
+    generate_vms_by_range,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -82,15 +85,8 @@ class Chain(object):
                     "not found on the base class `{1}`".format(key, cls)
                 )
 
-        validate_vm_block_numbers(tuple(
-            block_number
-            for block_number, _
-            in vm_configuration
-        ))
-
         # Organize the Chain classes by their starting blocks.
-        overrides['vms_by_range'] = collections.OrderedDict(
-            sorted(vm_configuration, key=itemgetter(0)))
+        overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
 
         return type(name, (cls,), overrides)
 
@@ -197,16 +193,22 @@ class Chain(object):
             for slot, value in account_data['storage'].items():
                 state_db.set_storage(account, slot, value)
 
-        genesis_header = BlockHeader(**genesis_params)
-        if genesis_header.state_root != state_db.root_hash:
+        if 'state_root' not in genesis_params:
+            # If the genesis state_root was not specified, use the value
+            # computed from the initialized state database.
+            genesis_params = assoc(genesis_params, 'state_root', state_db.root_hash)
+        elif genesis_params['state_root'] != state_db.root_hash:
+            # If the genesis state_root was specified, validate that it matches
+            # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
                     state_db.root_hash,
-                    genesis_header.state_root,
+                    genesis_params['state_root'],
                 )
             )
 
+        genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(db, genesis_header)
         persist_block_to_db(db, genesis_chain.get_block())
         add_block_number_to_hash_lookup(db, genesis_chain.get_block())

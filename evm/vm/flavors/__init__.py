@@ -10,3 +10,6 @@ from .homestead import (  # noqa: F401
 from .mainnet import (  # noqa: F401
     MainnetChain,
 )
+from .tester import (  # noqa: F401
+    MainnetTesterChain,
+)
