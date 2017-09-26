@@ -105,11 +105,17 @@ class Journal(object):
 class JournalDB(BaseDB):
     """
     A wrapper around the basic DB objects that keeps a journal of all changes.
-    Snapshots are simply indices into the list of journal entries.  Reversion
-    involves replaying the journal entries in reverse until we reach the
-    snapshot indices.
+    Each time a snapshot is taken, the underlying journal creates a new
+    checkpoint.  The journal then keeps track of the original value for any
+    keys changed.  Reverting to a checkpoint involves merging the original key
+    data from any subsequent checkpoints into the given checkpoint giving
+    precidence earlier checkpoints.  Then the keys from this merged data set
+    are reset to their original values.
 
-    This allows for linear runtime reversions to the state database.
+    The added memory footprint for a JournalDB is one key/value stored per
+    database key which is changed.  Subsequent changes to the same key within
+    the same checkpoint will not increase the journal size since we only need
+    to track the original value for any given key within any given checkpoint.
     """
     wrapped_db = None
     journal = None
