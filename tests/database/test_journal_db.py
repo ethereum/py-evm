@@ -4,13 +4,8 @@ from evm.db.journal import JournalDB
 
 
 @pytest.fixture
-def memory_db():
-    return MemoryDB()
-
-
-@pytest.fixture
-def journal_db(memory_db):
-    return JournalDB(memory_db)
+def journal_db():
+    return JournalDB(MemoryDB())
 
 
 def test_set_and_get(journal_db):
