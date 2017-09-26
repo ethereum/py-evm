@@ -249,6 +249,16 @@ class Chain(object):
 
         return imported_block
 
+    def mine_block(self, *args, **kwargs):
+        mined_block = self.get_vm().mine_block(*args, **kwargs)
+
+        self.validate_block(mined_block)
+
+        persist_block_to_db(self.db, mined_block)
+        if self.should_be_canonical_chain_head(mined_block):
+            self.add_to_canonical_chain_head(mined_block)
+        return mined_block
+
     def ensure_blocks_are_equal(self, block1, block2):
         if block1 == block2:
             return
