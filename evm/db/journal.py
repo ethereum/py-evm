@@ -13,11 +13,17 @@ class Journal(object):
     A Journal is an ordered list of checkpoints.  A checkpoint is a dictionary
     of database keys and values.  The values are the "original" value of that
     key at the time the checkpoint was created.
+
+    Checkpoints are referenced by a random uuid4.
     """
     checkpoints = None
 
     def __init__(self):
+        # contains an array of `uuid4` instances
         self.checkpoints = []
+        # contains a mapping from all of the `uuid4` in the `checkpoints` array
+        # to a dictionary of key:value pairs wher the `value` is the original
+        # value for the given key at the moment this checkpoint was created.
         self.journal_data = {}
 
     @property
@@ -56,7 +62,8 @@ class Journal(object):
 
     def create_checkpoint(self):
         """
-        Creates a new checkpoint.
+        Creates a new checkpoint.  Checkpoints are referenced by a random uuid4
+        to prevent collisions between multiple checkpoints.
         """
         checkpoint_id = uuid.uuid4()
         self.checkpoints.append(checkpoint_id)
@@ -65,7 +72,9 @@ class Journal(object):
 
     def pop_checkpoint(self, checkpoint_id):
         """
-        Returns all changes from the given checkpoint_id.
+        Returns all changes from the given checkpoint.  This includes all of
+        the changes from any subsequent checkpoints, giving precidence to
+        earlier checkpoints.
         """
         idx = self.checkpoints.index(checkpoint_id)
 
@@ -75,7 +84,7 @@ class Journal(object):
 
         # we pull all of the checkpoints *after* the checkpoint we are
         # reverting to and collapse them to a single set of keys that need to
-        # be reverted.
+        # be reverted (giving precidence to earlier checkpoints).
         revert_data = merge(*(
             self.journal_data.pop(c_id)
             for c_id
