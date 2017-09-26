@@ -261,7 +261,7 @@ class VM(object):
         Perform a full snapshot of the current state of the VM.
 
         Snapshots are a combination of the state_root at the time of the
-        snapshot and the indices of the journaled DB.
+        snapshot and the checkpoint_id returned from the journaled DB.
         """
         return (self.block.header.state_root, self.journal_db.snapshot())
 
@@ -269,13 +269,13 @@ class VM(object):
         """
         Revert the VM to the state at the snapshot
         """
-        state_root, journal_index = snapshot
+        state_root, checkpoint_id = snapshot
 
         with self.state_db() as state_db:
             # first revert the database state root.
             state_db.root_hash = state_root
             # now roll the underlying database back
-            self.journal_db.revert(journal_index)
+            self.journal_db.revert(checkpoint_id)
 
     def commit(self, snapshot):
         """
