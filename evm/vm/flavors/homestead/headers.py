@@ -4,6 +4,7 @@ from eth_utils import (
 
 from evm.validation import (
     validate_gt,
+    validate_header_parames_for_configuration,
 )
 from evm.constants import (
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
@@ -14,7 +15,6 @@ from evm.constants import (
 )
 
 from evm.vm.flavors.frontier.headers import (
-    configure_frontier_header,
     create_frontier_header_from_parent,
 )
 
@@ -54,10 +54,14 @@ def create_homestead_header_from_parent(parent_header, **header_params):
 
 
 def configure_homestead_header(vm, **header_params):
-    header = configure_frontier_header(vm, **header_params)
-    if 'timestamp' in header_params and header.block_number > 0:
+    validate_header_parames_for_configuration(header_params)
+
+    for field_name, value in header_params.items():
+        setattr(vm.block.header, field_name, value)
+
+    if 'timestamp' in header_params and vm.block.header.block_number > 0:
         parent_header = vm.block.get_parent_header()
-        header.difficulty = compute_homestead_difficulty(
+        vm.block.header.difficulty = compute_homestead_difficulty(
             parent_header,
             header_params['timestamp'],
         )
@@ -67,7 +71,7 @@ def configure_homestead_header(vm, **header_params):
     # get to that. Another alternative would be to do it in Block.mine(), but
     # there we'd need to manually instantiate the State and update
     # header.state_root after we're done.
-    if vm.support_dao_fork and header.block_number == vm.dao_fork_block_number:
+    if vm.support_dao_fork and vm.block.header.block_number == vm.dao_fork_block_number:
         with vm.state_db() as state_db:
             for account in dao_drain_list:
                 account = decode_hex(account)
@@ -75,7 +79,7 @@ def configure_homestead_header(vm, **header_params):
                 state_db.delta_balance(dao_refund_contract, balance)
                 state_db.set_balance(account, 0)
 
-    return header
+    return vm.block.header
 
 
 dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')

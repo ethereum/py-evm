@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import rlp
+
 from contextlib import contextmanager
 import logging
 
@@ -20,6 +22,9 @@ from evm.logic.invalid import (
 
 from evm.utils.blocks import (
     get_block_header_by_hash,
+)
+from evm.utils.keccak import (
+    keccak,
 )
 
 
@@ -133,15 +138,15 @@ class VM(object):
             extra_data=block.header.extra_data,
             mix_hash=block.header.mix_hash,
             nonce=block.header.nonce,
+            uncles_hash=keccak(rlp.encode(block.uncles)),
         )
 
+        # run all of the transactions.
         for transaction in block.transactions:
             self.apply_transaction(transaction)
 
-        # TODO: this is weird and should probably be done by just setting the
-        # uncleshash on the header in the call to `configure_header` above.
-        for uncle in block.uncles:
-            self.block.add_uncle(uncle)
+        # transfer the list of uncles.
+        self.block.uncles = block.uncles
 
         return self.mine_block()
 

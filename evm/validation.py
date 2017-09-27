@@ -204,3 +204,26 @@ def validate_vm_block_numbers(vm_block_numbers):
 
     for block_number in vm_block_numbers:
         validate_block_number(block_number)
+
+
+ALLOWED_HEADER_FIELDS = {
+    'coinbase',
+    'gas_limit',
+    'timestamp',
+    'extra_data',
+    'mix_hash',
+    'nonce',
+    'uncle_hash',
+}
+
+
+def validate_header_parames_for_configuration(header_params):
+    extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
+    if extra_fields:
+        raise ValidationError(
+            "The `configure_header` method may only be used with the fields ({0}). "
+            "The provided fields ({1}) are not supported".format(
+                ", ".join(tuple(sorted(ALLOWED_HEADER_FIELDS))),
+                ", ".join(tuple(sorted(extra_fields))),
+            )
+        )

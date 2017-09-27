@@ -238,10 +238,9 @@ class Chain(object):
 
         parent_chain = self.get_parent_chain(block)
         imported_block = parent_chain.get_vm().import_block(block)
+
+        # Validate the imported block.
         ensure_imported_block_unchanged(imported_block, block)
-        # It feels wrong to call validate_block() on self here, but we do that
-        # because we want to look up the recent uncles starting from the
-        # current canonical chain head.
         self.validate_block(imported_block)
 
         persist_block_to_db(self.db, imported_block)
@@ -258,6 +257,7 @@ class Chain(object):
         persist_block_to_db(self.db, mined_block)
         if self.should_be_canonical_chain_head(mined_block):
             self.add_to_canonical_chain_head(mined_block)
+
         return mined_block
 
     def get_parent_chain(self, block):
@@ -296,6 +296,15 @@ class Chain(object):
             b = self.get_block_by_hash(b.header.parent_hash)
 
     def validate_block(self, block):
+        """
+        Performs validation on a block that is either being mined or imported.
+
+        Since block validation (specifically the uncle validation must have
+        access to the ancestor blocks, this validation must occur at the Chain
+        level.
+
+        TODO: move the `seal` validation down into the vm.
+        """
         self.validate_seal(block.header)
         self.validate_uncles(block)
 

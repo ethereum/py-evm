@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from evm.validation import (
     validate_gt,
+    validate_header_parames_for_configuration,
 )
 from evm.constants import (
     GENESIS_GAS_LIMIT,
@@ -77,26 +78,8 @@ def create_frontier_header_from_parent(parent_header, **header_params):
     return header
 
 
-ALLOWED_HEADER_FIELDS = {
-    'coinbase',
-    'gas_limit',
-    'timestamp',
-    'extra_data',
-    'mix_hash',
-    'nonce',
-}
-
-
 def configure_frontier_header(vm, **header_params):
-    extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
-    if extra_fields:
-        raise ValueError(
-            "The `configure_header` method may only be used with the fields ({0}). "
-            "The provided fields ({1}) are not supported".format(
-                ", ".join(tuple(sorted(ALLOWED_HEADER_FIELDS))),
-                ", ".join(tuple(sorted(extra_fields))),
-            )
-        )
+    validate_header_parames_for_configuration(header_params)
 
     for field_name, value in header_params.items():
         setattr(vm.block.header, field_name, value)
