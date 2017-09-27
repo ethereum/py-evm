@@ -213,7 +213,7 @@ ALLOWED_HEADER_FIELDS = {
     'extra_data',
     'mix_hash',
     'nonce',
-    'uncle_hash',
+    'uncles_hash',
 }
 
 
