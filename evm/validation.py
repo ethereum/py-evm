@@ -217,7 +217,7 @@ ALLOWED_HEADER_FIELDS = {
 }
 
 
-def validate_header_parames_for_configuration(header_params):
+def validate_header_params_for_configuration(header_params):
     extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
     if extra_fields:
         raise ValidationError(

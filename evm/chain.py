@@ -223,7 +223,7 @@ class Chain(object):
         vm = self.get_vm()
         return vm.apply_transaction(transaction)
 
-    def import_block(self, block):
+    def import_block(self, block, perform_validation=True):
         """
         Import a complete block.
         """
@@ -240,48 +240,65 @@ class Chain(object):
         imported_block = parent_chain.get_vm().import_block(block)
 
         # Validate the imported block.
-        ensure_imported_block_unchanged(imported_block, block)
-        self.validate_block(imported_block)
+        if perform_validation:
+            ensure_imported_block_unchanged(imported_block, block)
+            self.validate_block(imported_block)
 
         persist_block_to_db(self.db, imported_block)
         if self.should_be_canonical_chain_head(imported_block):
-            self.add_to_canonical_chain_head(imported_block)
+            self.set_as_canonical_chain_head(imported_block)
 
         return imported_block
 
     def mine_block(self, *args, **kwargs):
+        """
+        TODO: fill this in.
+        """
         mined_block = self.get_vm().mine_block(*args, **kwargs)
 
         self.validate_block(mined_block)
 
         persist_block_to_db(self.db, mined_block)
         if self.should_be_canonical_chain_head(mined_block):
-            self.add_to_canonical_chain_head(mined_block)
+            self.set_as_canonical_chain_head(mined_block)
 
         return mined_block
 
     def get_parent_chain(self, block):
+        """
+        TODO: fill this in.
+        """
         try:
-            parent_header = self.get_block_header_by_hash(
-                block.header.parent_hash)
+            parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         except BlockNotFound:
             raise ValidationError("Parent ({0}) of block {1} not found".format(
-                block.header.parent_hash, block.header.hash))
+                block.header.parent_hash,
+                block.header.hash
+            ))
 
         init_header = self.create_header_from_parent(parent_header)
         return type(self)(self.db, init_header)
 
     def should_be_canonical_chain_head(self, block):
+        """
+        TODO: fill this in.
+        """
         current_head = self.get_block_by_hash(self.header.parent_hash)
         return get_score(self.db, block.hash) > get_score(self.db, current_head.hash)
 
-    def add_to_canonical_chain_head(self, block):
+    def set_as_canonical_chain_head(self, block):
+        """
+        Sets the block as the canonical chain HEAD.
+        """
         for b in reversed(self.find_common_ancestor(block)):
             add_block_number_to_hash_lookup(self.db, b)
         self.header = self.create_header_from_parent(block.header)
 
     @to_tuple
     def find_common_ancestor(self, block):
+        """
+        TODO: fill this in.
+        """
         b = block
         while b.number >= GENESIS_BLOCK_NUMBER:
             yield b
@@ -295,6 +312,15 @@ class Chain(object):
                 pass
             b = self.get_block_by_hash(b.header.parent_hash)
 
+    @to_tuple
+    def get_ancestors(self, limit):
+        lower_limit = max(self.header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, self.header.block_number)):
+            yield self.get_canonical_block_by_number(n)
+
+    #
+    # Validation API
+    #
     def validate_block(self, block):
         """
         Performs validation on a block that is either being mined or imported.
@@ -342,10 +368,3 @@ class Chain(object):
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
-
-    def get_ancestors(self, limit):
-        blocks = []
-        lower_limit = max(self.header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, self.header.block_number)):
-            blocks.append(self.get_canonical_block_by_number(n))
-        return blocks

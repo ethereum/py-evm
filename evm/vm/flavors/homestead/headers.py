@@ -4,7 +4,7 @@ from eth_utils import (
 
 from evm.validation import (
     validate_gt,
-    validate_header_parames_for_configuration,
+    validate_header_params_for_configuration,
 )
 from evm.constants import (
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
@@ -54,7 +54,7 @@ def create_homestead_header_from_parent(parent_header, **header_params):
 
 
 def configure_homestead_header(vm, **header_params):
-    validate_header_parames_for_configuration(header_params)
+    validate_header_params_for_configuration(header_params)
 
     for field_name, value in header_params.items():
         setattr(vm.block.header, field_name, value)
