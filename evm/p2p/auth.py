@@ -24,7 +24,6 @@ from evm.p2p.constants import (
     SIGNATURE_LEN,
     SUPPORTED_RLPX_VERSION,
 )
-from evm.p2p.exceptions import AuthenticationError
 from evm.p2p.utils import (
     sxor,
 )
@@ -54,7 +53,7 @@ class HandshakeBase:
         return reader, writer
 
     def derive_secrets(self, initiator_nonce, responder_nonce,
-                       remote_ephemeral_pubkey, auth_init, auth_ack):
+                       remote_ephemeral_pubkey, auth_init_ciphertext, auth_ack_ciphertext):
         """Derive base secrets from ephemeral key agreement."""
         # ecdhe-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
         ecdhe_shared_secret = ecies.ecdh_agree(
@@ -72,9 +71,9 @@ class HandshakeBase:
 
         # setup sha3 instances for the MACs
         # egress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-sent-init)
-        mac1 = sha3.keccak_256(sxor(mac_secret, responder_nonce) + auth_init)
+        mac1 = sha3.keccak_256(sxor(mac_secret, responder_nonce) + auth_init_ciphertext)
         # ingress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-recvd-ack)
-        mac2 = sha3.keccak_256(sxor(mac_secret, initiator_nonce) + auth_ack)
+        mac2 = sha3.keccak_256(sxor(mac_secret, initiator_nonce) + auth_ack_ciphertext)
 
         if self._is_initiator:
             egress_mac, ingress_mac = mac1, mac2
@@ -88,8 +87,7 @@ class HandshakeInitiator(HandshakeBase):
     _is_initiator = True
 
     def encrypt_auth_message(self, auth_message):
-        auth_init = ecies.encrypt(auth_message, self.remote.pubkey)
-        return auth_init
+        return ecies.encrypt(auth_message, self.remote.pubkey)
 
     def create_auth_message(self, nonce):
         ecdh_shared_secret = ecies.ecdh_agree(self.privkey, self.remote.pubkey)
@@ -108,9 +106,11 @@ class HandshakeInitiator(HandshakeBase):
         )
 
     def decode_auth_ack_message(self, ciphertext):
-        try:
+        if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
+            raise ValueError("Auth ack msg too short: {}".format(len(ciphertext)))
+        elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
             eph_pubkey, nonce, version = decode_ack_plain(ciphertext, self.privkey)
-        except AuthenticationError:
+        else:
             eph_pubkey, nonce, version = decode_ack_eip8(ciphertext, self.privkey)
             self.got_eip8_auth = True
         return eph_pubkey, nonce
@@ -147,14 +147,14 @@ class HandshakeResponder(HandshakeBase):
     def decode_authentication(self, ciphertext):
         """Decrypts and decodes the auth_init message.
 
-        Returns the initiator's ephemeral pubkey and nonce, plus the auth_init message.
+        Returns the initiator's ephemeral pubkey and nonce.
         """
         if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
-            raise ValueError("Ciphertext too short: {}".format(len(ciphertext)))
-        try:
+            raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
+        elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
             sig, initiator_pubkey, initiator_nonce, version = decode_auth_plain(
                 ciphertext, self.privkey)
-        except ecies.DecryptionError:
+        else:
             sig, initiator_pubkey, initiator_nonce, version = decode_auth_eip8(
                 ciphertext, self.privkey)
             self.got_eip8_auth = True
@@ -166,8 +166,7 @@ class HandshakeResponder(HandshakeBase):
         ephem_pubkey = sig.recover_public_key_from_msg_hash(
             sxor(shared_secret, initiator_nonce))
 
-        auth_init = ciphertext
-        return ephem_pubkey, initiator_nonce, auth_init
+        return ephem_pubkey, initiator_nonce
 
 
 eip8_ack_sedes = sedes.List(
@@ -190,10 +189,7 @@ def decode_ack_plain(ciphertext, privkey):
 
     Returns the remote's ephemeral pubkey, nonce and protocol version.
     """
-    try:
-        message = ecies.decrypt(ciphertext[:ENCRYPTED_AUTH_ACK_LEN], privkey)
-    except ecies.DecryptionError as e:
-        raise AuthenticationError(e)
+    message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_ACK_LEN:
         raise ValueError("Unexpected size for ack message: {}".format(len(message)))
     eph_pubkey = keys.PublicKey(message[:PUBKEY_LEN])
@@ -206,10 +202,10 @@ def decode_ack_eip8(ciphertext, privkey):
 
     Returns the remote's ephemeral pubkey, nonce and protocol version.
     """
-    size = struct.unpack('>H', ciphertext[:2])[0] + 2
-    if len(ciphertext) != size:
-        raise ValueError("Invalid auth ack message size")
-    message = ecies.decrypt(ciphertext[2:size], privkey, shared_mac_data=ciphertext[:2])
+    # The length of the actual msg is stored in plaintext on the first two bytes.
+    encoded_size = ciphertext[:2]
+    auth_ack = ciphertext[2:]
+    message = ecies.decrypt(auth_ack, privkey, shared_mac_data=encoded_size)
     values = rlp.decode(message, sedes=eip8_ack_sedes, strict=False)
     pubkey_bytes, nonce, version = values[:3]
     return keys.PublicKey(pubkey_bytes), nonce, version
@@ -217,7 +213,7 @@ def decode_ack_eip8(ciphertext, privkey):
 
 def decode_auth_plain(ciphertext, privkey):
     """Decode legacy pre-EIP-8 auth message format"""
-    message = ecies.decrypt(ciphertext[:ENCRYPTED_AUTH_MSG_LEN], privkey)
+    message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_MSG_LEN:
         raise ValueError("Unexpected size for auth message: {}".format(len(message)))
     signature = keys.Signature(signature_bytes=message[:SIGNATURE_LEN])
@@ -230,10 +226,10 @@ def decode_auth_plain(ciphertext, privkey):
 
 def decode_auth_eip8(ciphertext, privkey):
     """Decode EIP-8 auth message format"""
-    size = struct.unpack('>H', ciphertext[:2])[0] + 2
-    if len(ciphertext) < size:
-        raise ValueError("Message shorter than specified size")
-    message = ecies.decrypt(ciphertext[2:size], privkey, shared_mac_data=ciphertext[:2])
+    # The length of the actual msg is stored in plaintext on the first two bytes.
+    encoded_size = ciphertext[:2]
+    auth_msg = ciphertext[2:]
+    message = ecies.decrypt(auth_msg, privkey, shared_mac_data=encoded_size)
     values = rlp.decode(message, sedes=eip8_auth_sedes, strict=False)
     signature_bytes, pubkey_bytes, nonce, version = values[:4]
     return (
