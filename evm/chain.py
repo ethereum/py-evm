@@ -236,7 +236,7 @@ class Chain(object):
                 )
             )
 
-        parent_chain = self.get_parent_chain(block)
+        parent_chain = self.get_chain_at_block_parent(block)
         imported_block = parent_chain.get_vm().import_block(block)
 
         # Validate the imported block.
@@ -252,7 +252,7 @@ class Chain(object):
 
     def mine_block(self, *args, **kwargs):
         """
-        TODO: fill this in.
+        Mines the current block.
         """
         mined_block = self.get_vm().mine_block(*args, **kwargs)
 
@@ -264,9 +264,9 @@ class Chain(object):
 
         return mined_block
 
-    def get_parent_chain(self, block):
+    def get_chain_at_block_parent(self, block):
         """
-        TODO: fill this in.
+        Returns a `Chain` instance with this block's parent at the chain head.
         """
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)

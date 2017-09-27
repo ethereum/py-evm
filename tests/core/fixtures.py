@@ -10,14 +10,8 @@ from eth_keys import KeyAPI
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
-from evm.exceptions import (
-    ValidationError,
-)
 from evm.vm.flavors.frontier import FrontierVM
 
-from evm.utils.blocks import (
-    persist_block_to_db,
-)
 
 
 @pytest.fixture
@@ -84,26 +78,7 @@ valid_block_rlp = decode_hex(
 
 
 def import_block_without_validation(chain, block):
-    """
-    A copy of `Chain.import_block` without the block validation.
-    """
-    if block.number > chain.header.block_number:
-        raise ValidationError(
-            "Attempt to import block #{0}.  Cannot import block with number "
-            "greater than current block #{1}.".format(
-                block.number,
-                chain.header.block_number,
-            )
-        )
-
-    parent_chain = chain.get_parent_chain(block)
-    imported_block = parent_chain.get_vm().import_block(block)
-
-    persist_block_to_db(chain.db, imported_block)
-    if chain.should_be_canonical_chain_head(imported_block):
-        chain.add_to_canonical_chain_head(imported_block)
-
-    return imported_block
+    return Chain.import_block(chain, block, perform_validation=False)
 
 
 @pytest.fixture
