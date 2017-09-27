@@ -185,10 +185,6 @@ class VM(object):
 
         return block
 
-    def validate_block(self, block, chain):
-        """
-        """
-
     #
     # Transactions
     #

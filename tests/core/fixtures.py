@@ -10,7 +10,14 @@ from eth_keys import KeyAPI
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
+from evm.exceptions import (
+    ValidationError,
+)
 from evm.vm.flavors.frontier import FrontierVM
+
+from evm.utils.blocks import (
+    persist_block_to_db,
+)
 
 
 @pytest.fixture
