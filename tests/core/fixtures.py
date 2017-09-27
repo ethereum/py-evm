@@ -13,7 +13,6 @@ from evm.db import get_db_backend
 from evm.vm.flavors.frontier import FrontierVM
 
 
-
 @pytest.fixture
 def chain():
     """
