@@ -19,6 +19,9 @@ from evm.p2p.exceptions import DecryptionError
 from evm.utils.numeric import (
     int_to_big_endian,
 )
+from evm.utils.padding import (
+    pad32,
+)
 
 
 CIPHER = algorithms.AES
@@ -31,7 +34,7 @@ KEY_LEN = 32
 def generate_privkey():
     """Generate a new SECP256K1 private key and return it"""
     privkey = ec.generate_private_key(CURVE, default_backend())
-    return keys.PrivateKey(int_to_big_endian(privkey.private_numbers().private_value))
+    return keys.PrivateKey(pad32(int_to_big_endian(privkey.private_numbers().private_value)))
 
 
 def ecdh_agree(privkey, pubkey):
