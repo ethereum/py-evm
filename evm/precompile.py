@@ -61,8 +61,10 @@ def precompile_ecrecover(computation):
     except ValidationError:
         return computation
 
+    canonical_v = v - 27
+
     try:
-        signature = keys.Signature(vrs=(v, r, s))
+        signature = keys.Signature(vrs=(canonical_v, r, s))
         public_key = signature.recover_public_key_from_msg_hash(message_hash)
     except BadSignature:
         return computation
