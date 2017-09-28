@@ -32,7 +32,7 @@ setup(
         "ethereum-utils>=0.2.0",
         "pyethash>=0.1.27",
         "rlp==0.4.7",
-        "ethereum-keys==0.1.0a6",
+        "ethereum-keys==0.1.0a7",
         "trie>=0.3.0",
     ],
     extra_require={
