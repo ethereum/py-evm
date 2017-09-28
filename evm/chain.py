@@ -4,7 +4,6 @@ import collections
 from operator import itemgetter
 
 from eth_utils import (
-    pad_right,
     to_tuple,
 )
 from evm.consensus.pow import (
@@ -42,7 +41,9 @@ from evm.utils.blocks import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.utils.rlp import diff_rlp_object
+from evm.utils.rlp import (
+    ensure_imported_block_unchanged,
+)
 
 from evm.db.state import State
 
@@ -222,7 +223,7 @@ class Chain(object):
         vm = self.get_vm()
         return vm.apply_transaction(transaction)
 
-    def import_block(self, block):
+    def import_block(self, block, perform_validation=True):
         """
         Import a complete block.
         """
@@ -235,63 +236,69 @@ class Chain(object):
                 )
             )
 
-        parent_chain = self.get_parent_chain(block)
+        parent_chain = self.get_chain_at_block_parent(block)
         imported_block = parent_chain.get_vm().import_block(block)
-        self.ensure_blocks_are_equal(imported_block, block)
-        # It feels wrong to call validate_block() on self here, but we do that
-        # because we want to look up the recent uncles starting from the
-        # current canonical chain head.
-        self.validate_block(imported_block)
+
+        # Validate the imported block.
+        if perform_validation:
+            ensure_imported_block_unchanged(imported_block, block)
+            self.validate_block(imported_block)
 
         persist_block_to_db(self.db, imported_block)
         if self.should_be_canonical_chain_head(imported_block):
-            self.add_to_canonical_chain_head(imported_block)
+            self.set_as_canonical_chain_head(imported_block)
 
         return imported_block
 
-    def ensure_blocks_are_equal(self, block1, block2):
-        if block1 == block2:
-            return
-        diff = diff_rlp_object(block1, block2)
-        longest_field_name = max(len(field_name) for field_name, _, _ in diff)
-        error_message = (
-            "Mismatch between block and imported block on {0} fields:\n - {1}".format(
-                len(diff),
-                "\n - ".join(tuple(
-                    "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                        pad_right(field_name, longest_field_name, ' '),
-                        actual,
-                        expected,
-                    )
-                    for field_name, actual, expected
-                    in diff
-                )),
-            )
-        )
-        raise ValidationError(error_message)
+    def mine_block(self, *args, **kwargs):
+        """
+        Mines the current block.
+        """
+        mined_block = self.get_vm().mine_block(*args, **kwargs)
 
-    def get_parent_chain(self, block):
+        self.validate_block(mined_block)
+
+        persist_block_to_db(self.db, mined_block)
+        if self.should_be_canonical_chain_head(mined_block):
+            self.set_as_canonical_chain_head(mined_block)
+
+        return mined_block
+
+    def get_chain_at_block_parent(self, block):
+        """
+        Returns a `Chain` instance with this block's parent at the chain head.
+        """
         try:
-            parent_header = self.get_block_header_by_hash(
-                block.header.parent_hash)
+            parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         except BlockNotFound:
             raise ValidationError("Parent ({0}) of block {1} not found".format(
-                block.header.parent_hash, block.header.hash))
+                block.header.parent_hash,
+                block.header.hash
+            ))
 
         init_header = self.create_header_from_parent(parent_header)
         return type(self)(self.db, init_header)
 
     def should_be_canonical_chain_head(self, block):
+        """
+        TODO: fill this in.
+        """
         current_head = self.get_block_by_hash(self.header.parent_hash)
         return get_score(self.db, block.hash) > get_score(self.db, current_head.hash)
 
-    def add_to_canonical_chain_head(self, block):
+    def set_as_canonical_chain_head(self, block):
+        """
+        Sets the block as the canonical chain HEAD.
+        """
         for b in reversed(self.find_common_ancestor(block)):
             add_block_number_to_hash_lookup(self.db, b)
         self.header = self.create_header_from_parent(block.header)
 
     @to_tuple
     def find_common_ancestor(self, block):
+        """
+        TODO: fill this in.
+        """
         b = block
         while b.number >= GENESIS_BLOCK_NUMBER:
             yield b
@@ -305,7 +312,25 @@ class Chain(object):
                 pass
             b = self.get_block_by_hash(b.header.parent_hash)
 
+    @to_tuple
+    def get_ancestors(self, limit):
+        lower_limit = max(self.header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, self.header.block_number)):
+            yield self.get_canonical_block_by_number(n)
+
+    #
+    # Validation API
+    #
     def validate_block(self, block):
+        """
+        Performs validation on a block that is either being mined or imported.
+
+        Since block validation (specifically the uncle validation must have
+        access to the ancestor blocks, this validation must occur at the Chain
+        level.
+
+        TODO: move the `seal` validation down into the vm.
+        """
         self.validate_seal(block.header)
         self.validate_uncles(block)
 
@@ -343,10 +368,3 @@ class Chain(object):
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
-
-    def get_ancestors(self, limit):
-        blocks = []
-        lower_limit = max(self.header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, self.header.block_number)):
-            blocks.append(self.get_canonical_block_by_number(n))
-        return blocks
