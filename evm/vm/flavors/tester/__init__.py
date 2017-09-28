@@ -21,35 +21,29 @@ from evm.utils.chain import (
 )
 
 
-def chfp_method_factory(parent_class):
-    def create_tester_header_from_parent(vm_class, parent_header, **header_params):
+class MaintainGasLimitMixin(object):
+    @classmethod
+    def create_tester_header_from_parent(cls, parent_header, **header_params):
         """
-        Creates and initializes a new block header from the provided
-        `parent_header`.
+        Call the parent class method maintaining the same gas_limit as the
+        previous block.
         """
-        return parent_class.create_header_from_parent(
+        return super(MaintainGasLimitMixin, cls).create_header_from_parent(
             parent_header,
             **assoc(header_params, 'gas_limit', parent_header.gas_limit)
         )
-    return create_tester_header_from_parent
 
 
-FrontierTesterVM = BaseFrontierVM.configure(
-    name='FrontierTesterVM',
-    create_header_from_parent=classmethod(chfp_method_factory(BaseFrontierVM)),
-)
+class FrontierTesterVM(MaintainGasLimitMixin, BaseFrontierVM):
+    pass
 
 
-BaseHomesteadTesterVM = BaseHomesteadVM.configure(
-    name='HomesteadTesterVM',
-    create_header_from_parent=classmethod(chfp_method_factory(BaseHomesteadVM)),
-)
+class BaseHomesteadTesterVM(MaintainGasLimitMixin, BaseHomesteadVM):
+    pass
 
 
-EIP150TesterVM = BaseEIP150VM.configure(
-    name='EIP150TesterVM',
-    create_header_from_parent=classmethod(chfp_method_factory(BaseEIP150VM)),
-)
+class EIP150TesterVM(MaintainGasLimitMixin, BaseEIP150VM):
+    pass
 
 
 INVALID_FORK_ACTIVATION_MSG = (
