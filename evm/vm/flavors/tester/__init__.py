@@ -23,7 +23,7 @@ from evm.utils.chain import (
 
 class MaintainGasLimitMixin(object):
     @classmethod
-    def create_tester_header_from_parent(cls, parent_header, **header_params):
+    def create_header_from_parent(cls, parent_header, **header_params):
         """
         Call the parent class method maintaining the same gas_limit as the
         previous block.
