@@ -1,6 +1,7 @@
 import asyncio
 import ipaddress
 import logging
+import bisect
 import operator
 import random
 import struct
@@ -109,6 +110,7 @@ class Node:
         return hash(self.pubkey)
 
 
+@total_ordering
 class KBucket:
     """A bucket of nodes whose IDs fall between the bucket's start and end.
 
@@ -192,6 +194,11 @@ class KBucket:
     def __len__(self):
         return len(self.nodes)
 
+    def __lt__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError("Cannot compare KBucket with type {}.".format(other.__class__))
+        return self.end < other.start
+
 
 class RoutingTable:
 
@@ -215,12 +222,12 @@ class RoutingTable:
         return [b for b in self.buckets if not b.is_full]
 
     def remove_node(self, node):
-        self.get_bucket_for_node(node).remove_node(node)
+        binary_get_bucket_for_node(self.buckets, node)
 
     def add_node(self, node):
         if node == self.this_node:
             raise ValueError("Cannot add this_node to routing table")
-        bucket = self.get_bucket_for_node(node)
+        bucket = binary_get_bucket_for_node(self.buckets, node)
         eviction_candidate = bucket.add(node)
         if eviction_candidate is not None:  # bucket is full
             # Split if the bucket has the local node in its range or if the depth is not congruent
@@ -234,10 +241,7 @@ class RoutingTable:
         return None  # successfully added to not full bucket
 
     def get_bucket_for_node(self, node):
-        for bucket in self.buckets:
-            if node.id < bucket.end:
-                return bucket
-        raise ValueError("No bucket found for node with id {}".format(node.id))
+        return binary_get_bucket_for_node(self.buckets, node)
 
     def buckets_by_distance_to(self, id):
         return sorted(self.buckets, key=operator.methodcaller('distance_to', id))
@@ -265,6 +269,19 @@ class RoutingTable:
                     if len(nodes) == k * 2:
                         break
         return sort_by_distance(nodes, node_id)[:k]
+
+
+def binary_get_bucket_for_node(buckets, node):
+    """Given a list of ordered buckets, returns the bucket for a given node."""
+    bucket_ends = [bucket.end for bucket in buckets]
+    bucket_position = bisect.bisect_left(bucket_ends, node.id)
+    # Prevents edge cases where bisect_left returns an out of range index
+    try:
+        bucket = buckets[bucket_position]
+        assert bucket.start <= node.id <= bucket.end
+        return bucket
+    except (IndexError, AssertionError):
+        raise ValueError("No bucket found for node with id {}".format(node.id))
 
 
 class KademliaProtocol:
