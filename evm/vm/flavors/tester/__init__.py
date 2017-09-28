@@ -84,7 +84,8 @@ def _generate_vm_configuration(homestead_start_block=None,
                 dao_fork_block_number=dao_start_block,
             )
         else:
-            # Otherwise, default to the homestead_start_block block as the start of the dao_start_block fork.
+            # Otherwise, default to the homestead_start_block block as the
+            # start of the dao_start_block fork.
             HomesteadTesterVM = BaseHomesteadTesterVM.configure(
                 dao_fork_block_number=homestead_start_block,
             )
