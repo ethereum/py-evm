@@ -17,12 +17,17 @@ class Command:
         if isinstance(data, dict):  # convert dict to ordered list
             if not isinstance(cls.structure, list):
                 raise ValueError("Command.structure must be a list when data is a dict")
-            data = [data[name] for (name, _) in cls.structure]
+            expected_keys = sorted(name for name, _ in cls.structure)
+            data_keys = sorted(data.keys())
+            if data_keys != expected_keys:
+                raise rlp.EncodingError(
+                    "Keys in data dict ({}) do not match expected keys ({})".format(
+                        data_keys, expected_keys))
+            data = [data[name] for name, _ in cls.structure]
         if isinstance(cls.structure, sedes.CountableList):
             encoder = cls.structure
         else:
-            assert len(data) == len(cls.structure)
-            encoder = sedes.List([type_ for (name, type_) in cls.structure])
+            encoder = sedes.List([type_ for _, type_ in cls.structure])
         return rlp.encode(data, sedes=encoder)
 
     @classmethod
@@ -31,12 +36,16 @@ class Command:
             decoder = cls.structure
         else:
             decoder = sedes.List(
-                [type_ for (name, type_) in cls.structure], strict=cls.decode_strict)
+                [type_ for _, type_ in cls.structure], strict=cls.decode_strict)
         data = rlp.decode(rlp_data, sedes=decoder)
         if isinstance(cls.structure, sedes.CountableList):
             return data
         else:
-            return dict((cls.structure[i][0], v) for i, v in enumerate(data))
+            return {
+                field_name: value
+                for ((field_name, _), value)
+                in zip(cls.structure, data)
+            }
 
     @classmethod
     def decode(cls, data):
@@ -55,9 +64,9 @@ class Command:
 
         # Drop the first byte as, per the spec, frame_size must be a 3-byte int.
         header = struct.pack('>I', frame_size)[1:]
-        header = pad_to_16_byte_boundary(header)
+        header = _pad_to_16_byte_boundary(header)
 
-        body = pad_to_16_byte_boundary(enc_cmd_id + payload)
+        body = _pad_to_16_byte_boundary(enc_cmd_id + payload)
         return header, body
 
 
@@ -79,17 +88,9 @@ class Protocol:
         self.peer.send(header, body)
 
 
-def pad_to_16_byte_boundary(data):
+def _pad_to_16_byte_boundary(data):
     """Pad the given data with NULL_BYTE up to the next 16-byte boundary."""
     remainder = len(data) % 16
     if remainder != 0:
         data += NULL_BYTE * (16 - remainder)
     return data
-
-
-def roundup_16(x):
-    """Rounds up the given value to the next multiple of 16."""
-    remainder = x % 16
-    if remainder != 0:
-        x += 16 - remainder
-    return x

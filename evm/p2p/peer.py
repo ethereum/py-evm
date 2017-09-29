@@ -7,6 +7,7 @@ from rlp import sedes
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
     decode_hex,
@@ -24,10 +25,10 @@ from evm.p2p.exceptions import (
     PeerDisconnected,
 )
 from evm.p2p.utils import (
+    roundup_16,
     sxor,
 )
 from evm.p2p.les import LESProtocol
-from evm.p2p.protocol import roundup_16
 from evm.p2p.p2p_proto import (
     Hello,
     P2PProtocol,
@@ -40,10 +41,8 @@ class Peer:
     # FIXME: Must be configurable.
     listen_port = 30303
 
-    # We use keyword arguments here because there are too many arguments and it's very easy
-    # for callers to get them wrong.
-    def __init__(self, remote=None, privkey=None, reader=None, writer=None, aes_secret=None,
-                 mac_secret=None, egress_mac=None, ingress_mac=None):
+    def __init__(self, remote, privkey, reader, writer, aes_secret, mac_secret,
+                 egress_mac, ingress_mac):
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -52,7 +51,7 @@ class Peer:
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
-        # Yes, the encryption is insecure, see: https://github.com/ethereum/devp2p/issues/32
+        # FIXME: Yes, the encryption is insecure, see: https://github.com/ethereum/devp2p/issues/32
         iv = b"\x00" * 16
         aes_cipher = Cipher(algorithms.AES(aes_secret), modes.CTR(iv), default_backend())
         self.aes_enc = aes_cipher.encryptor()
@@ -127,13 +126,10 @@ class Peer:
 
         header_ciphertext = self.aes_enc.update(header)
         mac_secret = self.egress_mac.digest()[:HEADER_LEN]
-        # egress-mac.update(aes(mac-secret,egress-mac) ^ header-ciphertext).digest
         self.egress_mac.update(sxor(self.mac_enc(mac_secret), header_ciphertext))
         header_mac = self.egress_mac.digest()[:HEADER_LEN]
 
         frame_ciphertext = self.aes_enc.update(frame)
-        # egress-mac.update(aes(mac-secret,egress-mac) ^
-        # left128(egress-mac.update(frame-ciphertext).digest))
         self.egress_mac.update(frame_ciphertext)
         fmac_seed = self.egress_mac.digest()[:HEADER_LEN]
 
@@ -153,7 +149,7 @@ class Peer:
         aes = self.mac_enc(mac_secret)[:HEADER_LEN]
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
-        if expected_header_mac != header_mac:
+        if not bytes_eq(expected_header_mac, header_mac):
             raise AuthenticationError('Invalid header mac')
         return self.aes_dec.update(header_ciphertext)
 
@@ -170,7 +166,7 @@ class Peer:
         fmac_seed = self.ingress_mac.digest()[:MAC_LEN]
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
-        if frame_mac != expected_frame_mac:
+        if not bytes_eq(expected_frame_mac, frame_mac):
             raise AuthenticationError('Invalid frame mac')
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
