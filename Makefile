@@ -9,7 +9,6 @@ help:
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
-	@echo "sdist - package"
 
 clean: clean-build clean-pyc
 
@@ -48,8 +47,8 @@ docs:
 	open docs/_build/html/index.html
 
 release: clean
-	python setup.py bdist bdist_wheel upload
+	python setup.py sdist bdist_wheel upload
 
 sdist: clean
-	python setup.py bdist bdist_wheel
+	python setup.py sdist bdist_wheel
 	ls -l dist
