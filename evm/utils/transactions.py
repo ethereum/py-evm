@@ -22,12 +22,16 @@ from evm.utils.keccak import (
 
 def create_transaction_signature(unsigned_txn, private_key):
     signature = private_key.sign_msg(rlp.encode(unsigned_txn))
-    v, r, s = signature.vrs
+    canonical_v, r, s = signature.vrs
+    v = canonical_v + 27
     return v, r, s
 
 
 def validate_transaction_signature(transaction):
-    signature = keys.Signature(vrs=(transaction.v, transaction.r, transaction.s))
+    v, r, s = transaction.v, transaction.r, transaction.s
+    canonical_v = v - 27
+    vrs = (canonical_v, r, s)
+    signature = keys.Signature(vrs=vrs)
     unsigned_transaction = transaction.as_unsigned_transaction()
     msg_hash = keccak(rlp.encode(unsigned_transaction))
     try:
@@ -40,7 +44,10 @@ def validate_transaction_signature(transaction):
 
 
 def extract_transaction_sender(transaction):
-    signature = keys.Signature(vrs=(transaction.v, transaction.r, transaction.s))
+    v, r, s = transaction.v, transaction.r, transaction.s
+    canonical_v = v - 27
+    vrs = (canonical_v, r, s)
+    signature = keys.Signature(vrs=vrs)
     unsigned_transaction = transaction.as_unsigned_transaction()
     public_key = signature.recover_public_key_from_msg(rlp.encode(unsigned_transaction))
     sender = public_key.to_canonical_address()
