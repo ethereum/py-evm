@@ -8,7 +8,7 @@ from evm.logic import (
     call,
 )
 
-from evm.vm.flavors.frontier.opcodes import FRONTIER_OPCODES
+from evm.vm.forks.frontier.opcodes import FRONTIER_OPCODES
 
 
 NEW_OPCODES = {

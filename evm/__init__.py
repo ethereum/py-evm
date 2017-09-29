@@ -6,7 +6,7 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
-from evm.chain import (  # noqa: F401
+from evm.chains.chain import (  # noqa: F401
     Chain,
 )
 

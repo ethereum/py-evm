@@ -13,7 +13,7 @@ from evm.logic import (
     system,
 )
 
-from evm.vm.flavors.homestead.opcodes import HOMESTEAD_OPCODES
+from evm.vm.forks.homestead.opcodes import HOMESTEAD_OPCODES
 
 
 UPDATED_OPCODES = {

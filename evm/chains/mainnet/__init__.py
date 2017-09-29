@@ -1,7 +1,7 @@
 from evm import constants
-from evm import Chain
+from evm.chains.chain import Chain
 
-from evm.vm.flavors import (
+from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,

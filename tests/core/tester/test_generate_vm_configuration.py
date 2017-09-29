@@ -2,7 +2,7 @@ import pytest
 
 import enum
 
-from evm.vm.flavors.tester import (
+from evm.vm.forks.tester import (
     _generate_vm_configuration,
 )
 

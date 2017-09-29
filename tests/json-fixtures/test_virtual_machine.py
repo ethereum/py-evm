@@ -20,7 +20,7 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.flavors import (
+from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,

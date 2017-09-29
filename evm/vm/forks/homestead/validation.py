@@ -5,7 +5,7 @@ from evm.exceptions import (
     ValidationError,
 )
 
-from evm.vm.flavors.frontier.validation import (
+from evm.vm.forks.frontier.validation import (
     validate_frontier_transaction,
 )
 

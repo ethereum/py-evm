@@ -14,7 +14,7 @@ from evm.constants import (
     HOMESTEAD_DIFF_ADJUSTMENT_CUTOFF,
 )
 
-from evm.vm.flavors.frontier.headers import (
+from evm.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
 )
 
