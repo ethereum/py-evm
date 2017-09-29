@@ -226,11 +226,12 @@ class Peer:
 
 
 if __name__ == "__main__":
-    # Run geth like this to be able to do a handshake and get a Peer connected to it.
-    # ./build/bin/geth -verbosity 9 \
-    #   --nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
-    #   --port 30301 --nat none --testnet --nodiscover --light
-
+    """
+    Run geth like this to be able to do a handshake and get a Peer connected to it.
+    ./build/bin/geth -vmodule p2p=4,p2p/discv5=0,eth/*=0 \
+      -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
+      -port 30301 -nat none -testnet -lightserv 90
+    """
     from evm.p2p import kademlia
     from evm.p2p import auth
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
