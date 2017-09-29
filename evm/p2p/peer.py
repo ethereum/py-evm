@@ -37,7 +37,7 @@ from evm.p2p.p2p_proto import (
 
 class Peer:
     logger = logging.getLogger("evm.p2p.peer.Peer")
-    _sub_protocols = [LESProtocol]
+    _available_sub_protocols = [LESProtocol]
     # FIXME: Must be configurable.
     listen_port = 30303
 
@@ -48,6 +48,9 @@ class Peer:
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
+        # The list of sub_protocols that have been enabled for this peer; will be populated when
+        # we receive the initial hello msg.
+        self.sub_protocols = []
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -61,13 +64,15 @@ class Peer:
 
     @property
     def capabilities(self):
-        return [(klass.name, klass.version) for klass in self._sub_protocols]
+        return [(klass.name, klass.version) for klass in self._available_sub_protocols]
 
     def get_protocol_for(self, cmd_id):
-        if cmd_id >= self.base_protocol.cmd_length:
-            # TODO: Return the appropriate sub-protocol
-            return None
-        return self.base_protocol
+        if cmd_id < self.base_protocol.cmd_length:
+            return self.base_protocol
+        for proto in self.sub_protocols:
+            if cmd_id >= proto.cmd_id_offset and cmd_id < (proto.cmd_id_offset + proto.cmd_length):
+                return proto
+        return None
 
     @asyncio.coroutine
     def read(self, n):
@@ -115,10 +120,9 @@ class Peer:
             self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
             return
         decoded_msg = proto.process(cmd_id, msg)
-        if cmd_id == Hello.id:
-            # TODO: Populate self.sub_protocols based on self.capabilities and
-            # hello['capabilities']
+        if cmd_id == Hello._id:
             self.logger.debug("Got hello: {}".format(decoded_msg))
+            self.match_protocols(decoded_msg['capabilities'])
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -185,6 +189,21 @@ class Peer:
     def send_hello(self):
         header, body = self.base_protocol.get_hello_message()
         self.send(header, body)
+
+    def match_protocols(self, remote_capabilities):
+        matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
+        # Doing this on the sorted list of matching capabilities will give us a dict containing
+        # just the higher version of each matching protocol.
+        higher_matching = dict(
+            (name, version) for name, version in sorted(matching_capabilities))
+        sub_protocols_by_name_and_version = dict(
+            ((klass.name, klass.version), klass) for klass in self._available_sub_protocols)
+        offset = self.base_protocol.cmd_length
+        for name, version in sorted(higher_matching.items()):
+            proto_klass = sub_protocols_by_name_and_version[(name, version)]
+            self.sub_protocols.append(proto_klass(self, offset))
+            offset += proto_klass.cmd_length
+        self.logger.debug("Matching protocols: {}".format(matching_capabilities))
 
 
 if __name__ == "__main__":

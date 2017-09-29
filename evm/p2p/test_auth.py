@@ -137,7 +137,7 @@ def test_handshake():
     msg = yield from responder_peer.read_msg()
 
     cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-    assert cmd_id == Hello.id
+    assert cmd_id == Hello(id_offset=0).id
     responder_peer.process_msg(msg)
 
 
@@ -236,4 +236,4 @@ def test_eip8_hello():
         "f87137916b6e6574682f76302e39312f706c616e39cdc5836574683dc6846d6f726b1682270fb840"
         "fda1cff674c90c9a197539fe3dfb53086ace64f83ed7c6eabec741f7f381cc803e52ab2cd55d5569"
         "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304")
-    Hello.decode_payload(payload)
+    Hello(id_offset=0).decode_payload(payload)
