@@ -1,3 +1,10 @@
+import asyncio
+
+import pytest
+
+import rlp
+from rlp import sedes
+
 from eth_utils import (
     decode_hex,
 )
@@ -6,12 +13,15 @@ from eth_keys import keys
 
 from evm.p2p import ecies
 from evm.p2p import kademlia
+from evm.p2p.p2p_proto import Hello
 from evm.p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
+from evm.p2p.peer import Peer
 
 
+@pytest.mark.asyncio
 def test_handshake():
     # This data comes from https://gist.github.com/fjl/3a78780d17c755d22df2
     test_values = {
@@ -101,6 +111,35 @@ def test_handshake():
     assert initiator_ingress_mac.digest() == test_values['initial_ingress_MAC']
     assert initiator_egress_mac.digest() == test_values['initial_egress_MAC']
 
+    # Finally, check that two Peers configured with the secrets generated above understand each
+    # other.
+    responder_reader = asyncio.StreamReader()
+    responder_writer = None
+    initiator_reader = None
+    # Link the initiator's writer to the responder's reader.
+    initiator_writer = type(
+        "mock-streamwriter",
+        (object,),
+        {"write": lambda data: responder_reader.feed_data(data)}
+    )
+    initiator_peer = Peer(
+        remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
+        writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
+        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac)
+    responder_peer = Peer(
+        remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
+        writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
+        egress_mac=egress_mac, ingress_mac=ingress_mac)
+
+    # The hello msg sent by the initiator is going to be fed directly into the responder's
+    # reader, and thus read_msg() will return immediately.
+    initiator_peer.send_hello()
+    msg = yield from responder_peer.read_msg()
+
+    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
+    assert cmd_id == Hello.id
+    responder_peer.process_msg(msg)
+
 
 def test_handshake_eip8():
     # Data taken from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md
@@ -189,3 +228,12 @@ def test_handshake_eip8():
     # Check that the secrets derived by the initiator match the expected values.
     assert initiator_aes_secret == expected_aes_secret
     assert initiator_mac_secret == expected_mac_secret
+
+
+def test_eip8_hello():
+    # Data taken from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md
+    payload = decode_hex(
+        "f87137916b6e6574682f76302e39312f706c616e39cdc5836574683dc6846d6f726b1682270fb840"
+        "fda1cff674c90c9a197539fe3dfb53086ace64f83ed7c6eabec741f7f381cc803e52ab2cd55d5569"
+        "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304")
+    Hello.decode_payload(payload)

@@ -24,9 +24,42 @@ from evm.p2p.constants import (
     SIGNATURE_LEN,
     SUPPORTED_RLPX_VERSION,
 )
+from evm.p2p.peer import Peer
 from evm.p2p.utils import (
     sxor,
 )
+
+
+@asyncio.coroutine
+def handshake(remote, privkey):
+    """Perform the auth handshake with the given remote and return a Peer ready to be used.
+
+    The Peer will be configured with the shared secrets established during the handshake.
+    """
+    initiator = HandshakeInitiator(remote, privkey)
+    reader, writer = yield from initiator.connect()
+
+    initiator_nonce = keccak(os.urandom(HASH_LEN))
+    auth_msg = initiator.create_auth_message(initiator_nonce)
+    auth_init = initiator.encrypt_auth_message(auth_msg)
+    writer.write(auth_init)
+
+    auth_ack = yield from reader.read(ENCRYPTED_AUTH_ACK_LEN)
+
+    ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
+    aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
+        initiator_nonce,
+        responder_nonce,
+        ephemeral_pubkey,
+        auth_init,
+        auth_ack
+    )
+
+    peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
+                aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
+                ingress_mac=ingress_mac)
+    peer.send_hello()
+    return peer
 
 
 class HandshakeBase:
