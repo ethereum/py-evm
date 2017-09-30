@@ -10,7 +10,7 @@ from evm.db import (
 
 from evm import (
     Chain,
-    MainnetTesterChain,
+    MainnetChain,
 )
 from evm.exceptions import (
     ValidationError,
