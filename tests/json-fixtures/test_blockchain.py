@@ -10,6 +10,7 @@ from evm.db import (
 
 from evm import (
     Chain,
+    MainnetTesterChain,
 )
 from evm.exceptions import (
     ValidationError,
@@ -18,7 +19,6 @@ from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,
-    MainnetChain,
 )
 from evm.rlp.headers import (
     BlockHeader,

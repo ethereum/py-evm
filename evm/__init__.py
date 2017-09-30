@@ -6,8 +6,13 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
-from evm.chains.chain import (  # noqa: F401
+from evm.vm import (  # noqa: F401
+    VM,
+)
+from evm.chains import (  # noqa: F401
     Chain,
+    MainnetChain,
+    MainnetTesterChain,
 )
 
 from .__version__ import (  # noqa: F401
@@ -34,8 +39,3 @@ logging.Logger.trace = trace
 #  Ensure we can reach 1024 frames of recursion
 #
 sys.setrecursionlimit(1024 * 10)
-
-
-from evm.vm import (  # noqa: F401
-    VM,
-)

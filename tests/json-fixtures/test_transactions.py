@@ -12,6 +12,9 @@ from eth_keys.exceptions import (
     BadSignature,
 )
 
+from evm import (
+    MainnetChain,
+)
 from evm.db import (
     get_db_backend,
 )
@@ -21,9 +24,6 @@ from evm.exceptions import (
 )
 from evm.rlp.headers import (
     BlockHeader,
-)
-from evm.vm.forks import (
-    MainnetChain,
 )
 
 from evm.utils.fixture_tests import (

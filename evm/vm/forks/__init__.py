@@ -7,9 +7,3 @@ from .frontier import (  # noqa: F401
 from .homestead import (  # noqa: F401
     HomesteadVM,
 )
-from .mainnet import (  # noqa: F401
-    MainnetChain,
-)
-from .tester import (  # noqa: F401
-    MainnetTesterChain,
-)
