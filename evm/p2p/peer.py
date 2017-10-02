@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import operator
 import struct
+
+from cytoolz import reduceby
 
 import rlp
 from rlp import sedes
@@ -208,14 +211,14 @@ class Peer:
         protocol) plus the protocol's cmd length (i.e. number of commands).
         """
         matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
-        # Doing this on the sorted list of matching capabilities will give us a dict containing
-        # just the higher version of each matching protocol.
-        higher_matching = dict(
-            (name, version) for name, version in sorted(matching_capabilities))
+        higher_matching = reduceby(
+            key=operator.itemgetter(0),
+            binop=lambda a, b: a if a[1] > b[1] else b,
+            seq=matching_capabilities)
         sub_protocols_by_name_and_version = dict(
             ((klass.name, klass.version), klass) for klass in self._supported_sub_protocols)
         offset = self.base_protocol.cmd_length
-        for name, version in sorted(higher_matching.items()):
+        for name, version in sorted(higher_matching.values()):
             proto_klass = sub_protocols_by_name_and_version[(name, version)]
             self.enabled_sub_protocols.append(proto_klass(self, offset))
             offset += proto_klass.cmd_length
