@@ -28,27 +28,28 @@ class Hello(Command):
 class Disconnect(Command):
     _id = 1
     structure = [('reason', sedes.big_endian_int)]
+    reason_names = {
+        0: "disconnect requested",
+        1: "tcp sub system error",
+        2: "bad protocol",
+        3: "useless peer",
+        4: "too many peers",
+        5: "already connected",
+        6: "incompatibel p2p version",
+        7: "null node identity received",
+        8: "client quitting",
+        9: "unexpected identity",
+        10: "connected to self",
+        11: "timeout",
+        12: "subprotocol error",
+        16: "other",
+    }
 
     def get_reason_name(self, reason_id):
-        names = {
-            0: "disconnect requested",
-            1: "tcp sub system error",
-            2: "bad protocol",
-            3: "useless peer",
-            4: "too many peers",
-            5: "already connected",
-            6: "incompatibel p2p version",
-            7: "null node identity received",
-            8: "client quitting",
-            9: "unexpected identity",
-            10: "connected to self",
-            11: "timeout",
-            12: "subprotocol error",
-            16: "other",
-        }
-        if reason_id in names:
-            return names[reason_id]
-        return "unknown reason"
+        try:
+            return self.reason_names[reason_id]
+        except KeyError:
+            return "unknown reason"
 
     def handle(self, proto, data):
         decoded = self.decode(data)

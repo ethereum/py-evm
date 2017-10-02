@@ -15,8 +15,8 @@ def test_sub_protocol_matching():
         ('unknown', 1),
     ])
 
-    assert len(peer.sub_protocols) == 2
-    eth_proto, les_proto = peer.sub_protocols
+    assert len(peer.enabled_sub_protocols) == 2
+    eth_proto, les_proto = peer.enabled_sub_protocols
     assert isinstance(eth_proto, ETHProtocol63)
     assert eth_proto.cmd_id_offset == peer.base_protocol.cmd_length
 
@@ -40,7 +40,7 @@ class ETHProtocol63(Protocol):
 
 class ProtoMatchingPeer(Peer):
 
-    def __init__(self, available_sub_protocols):
-        self._available_sub_protocols = available_sub_protocols
+    def __init__(self, supported_sub_protocols):
+        self._supported_sub_protocols = supported_sub_protocols
         self.base_protocol = P2PProtocol(self)
-        self.sub_protocols = []
+        self.enabled_sub_protocols = []

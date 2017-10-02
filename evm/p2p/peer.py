@@ -37,7 +37,7 @@ from evm.p2p.p2p_proto import (
 
 class Peer:
     logger = logging.getLogger("evm.p2p.peer.Peer")
-    _available_sub_protocols = [LESProtocol]
+    _supported_sub_protocols = [LESProtocol]
     # FIXME: Must be configurable.
     listen_port = 30303
 
@@ -48,9 +48,9 @@ class Peer:
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
-        # The list of sub_protocols that have been enabled for this peer; will be populated when
+        # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
-        self.sub_protocols = []
+        self.enabled_sub_protocols = []
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -64,12 +64,19 @@ class Peer:
 
     @property
     def capabilities(self):
-        return [(klass.name, klass.version) for klass in self._available_sub_protocols]
+        return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
     def get_protocol_for(self, cmd_id):
+        """Return the protocol to which the cmd_id belongs.
+
+        Every sub-protocol enabled for a peer defines a cmd ID offset, which is agreed on by both
+        sides during the base protocol's handshake. Here we use that to look up the protocol to
+        which cmd_id belongs. See the match_protocols() method for the details on how the peers
+        agree on which sub protocols to enable and what cmd ID offsets to use for them.
+        """
         if cmd_id < self.base_protocol.cmd_length:
             return self.base_protocol
-        for proto in self.sub_protocols:
+        for proto in self.enabled_sub_protocols:
             if cmd_id >= proto.cmd_id_offset and cmd_id < (proto.cmd_id_offset + proto.cmd_length):
                 return proto
         return None
@@ -191,17 +198,26 @@ class Peer:
         self.send(header, body)
 
     def match_protocols(self, remote_capabilities):
+        """Match the sub-protocols supported by this Peer with the given remote capabilities.
+
+        Every sub-protocol and remote-capability are defined by a protocol name and version. This
+        method will get the match with the highest version for every protocol, sort them
+        in ascending alphabetical order and add a Protocol instance for the protocol with that
+        name/version to this peer's list of enabled sub protocols. Each Protocol instance will
+        also have a cmd ID offset, defined as the offset of the previous item (0 for the base
+        protocol) plus the protocol's cmd length (i.e. number of commands).
+        """
         matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
         # Doing this on the sorted list of matching capabilities will give us a dict containing
         # just the higher version of each matching protocol.
         higher_matching = dict(
             (name, version) for name, version in sorted(matching_capabilities))
         sub_protocols_by_name_and_version = dict(
-            ((klass.name, klass.version), klass) for klass in self._available_sub_protocols)
+            ((klass.name, klass.version), klass) for klass in self._supported_sub_protocols)
         offset = self.base_protocol.cmd_length
         for name, version in sorted(higher_matching.items()):
             proto_klass = sub_protocols_by_name_and_version[(name, version)]
-            self.sub_protocols.append(proto_klass(self, offset))
+            self.enabled_sub_protocols.append(proto_klass(self, offset))
             offset += proto_klass.cmd_length
         self.logger.debug("Matching protocols: {}".format(matching_capabilities))
 
