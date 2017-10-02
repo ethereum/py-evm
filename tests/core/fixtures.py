@@ -10,7 +10,7 @@ from eth_keys import KeyAPI
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
-from evm.vm.flavors.frontier import FrontierVM
+from evm.vm.forks.frontier import FrontierVM
 
 
 @pytest.fixture

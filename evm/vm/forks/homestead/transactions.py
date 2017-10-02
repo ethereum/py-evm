@@ -9,7 +9,7 @@ from evm.validation import (
     validate_lt_secpk1n2,
 )
 
-from evm.vm.flavors.frontier.transactions import (
+from evm.vm.forks.frontier.transactions import (
     FrontierTransaction,
     FrontierUnsignedTransaction,
 )

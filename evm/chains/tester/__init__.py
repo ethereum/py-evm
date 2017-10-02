@@ -6,11 +6,9 @@ from eth_utils import (
     reversed_return,
 )
 
-from evm import (
-    Chain,
-)
+from evm.chains.chain import Chain
 
-from evm.vm.flavors import (
+from evm.vm.forks import (
     FrontierVM as BaseFrontierVM,
     HomesteadVM as BaseHomesteadVM,
     EIP150VM as BaseEIP150VM,

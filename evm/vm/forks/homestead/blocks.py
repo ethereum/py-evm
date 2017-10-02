@@ -4,7 +4,7 @@ from rlp.sedes import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.flavors.frontier.blocks import (
+from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
 from .transactions import (

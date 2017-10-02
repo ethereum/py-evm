@@ -19,7 +19,7 @@ from evm import constants
 from evm.exceptions import (
     ValidationError,
 )
-from evm.vm.flavors import (
+from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,

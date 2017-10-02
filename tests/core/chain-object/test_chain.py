@@ -3,7 +3,7 @@ import rlp
 from eth_utils import decode_hex
 
 from evm import constants
-from evm.vm.flavors.frontier.blocks import FrontierBlock
+from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from tests.core.fixtures import (  # noqa: F401
     chain,

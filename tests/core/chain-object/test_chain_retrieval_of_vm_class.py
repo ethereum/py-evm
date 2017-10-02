@@ -15,8 +15,8 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.flavors.frontier import FrontierVM
-from evm.vm.flavors.homestead import HomesteadVM
+from evm.vm.forks.frontier import FrontierVM
+from evm.vm.forks.homestead import HomesteadVM
 
 
 def test_get_vm_class_for_block_number():
