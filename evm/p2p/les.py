@@ -5,7 +5,7 @@ from evm.p2p.protocol import (
 
 
 class Status(Command):
-    _id = 0
+    _cmd_id = 0
 
     def handle(self, proto, data):
         proto.logger.debug("Got LES/Status msg")

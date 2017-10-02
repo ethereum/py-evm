@@ -8,7 +8,7 @@ from evm.constants import NULL_BYTE
 
 
 class Command:
-    _id = None
+    _cmd_id = None
     decode_strict = True
     structure = []
 
@@ -16,8 +16,8 @@ class Command:
         self.id_offset = id_offset
 
     @property
-    def id(self):
-        return self.id_offset + self._id
+    def cmd_id(self):
+        return self.id_offset + self._cmd_id
 
     def encode_payload(self, data):
         if isinstance(data, dict):  # convert dict to ordered list
@@ -54,13 +54,13 @@ class Command:
 
     def decode(self, data):
         packet_type = rlp.decode(data[:1], sedes=sedes.big_endian_int)
-        if packet_type != self.id:
+        if packet_type != self.cmd_id:
             raise ValueError("Wrong packet type: {}".format(packet_type))
         return self.decode_payload(data[1:])
 
     def encode(self, data):
         payload = self.encode_payload(data)
-        enc_cmd_id = rlp.encode(self.id, sedes=rlp.sedes.big_endian_int)
+        enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
         frame_size = len(enc_cmd_id) + len(payload)
         if frame_size.bit_length() > 24:
             raise ValueError("Frame size has to fit in a 3-byte integer")
@@ -84,7 +84,7 @@ class Protocol:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
-        self.cmd_by_id = dict((cmd.id, cmd) for cmd in self.commands)
+        self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
 
     def process(self, cmd_id, msg):
         cmd = self.cmd_by_id[cmd_id]

@@ -127,7 +127,7 @@ class Peer:
             self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
             return
         decoded_msg = proto.process(cmd_id, msg)
-        if cmd_id == Hello._id:
+        if cmd_id == Hello._cmd_id:
             self.logger.debug("Got hello: {}".format(decoded_msg))
             self.match_protocols(decoded_msg['capabilities'])
 

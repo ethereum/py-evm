@@ -10,7 +10,7 @@ from evm.p2p.protocol import (
 
 
 class Hello(Command):
-    _id = 0
+    _cmd_id = 0
     decode_strict = False
     structure = [
         ('version', sedes.big_endian_int),
@@ -26,7 +26,7 @@ class Hello(Command):
 
 
 class Disconnect(Command):
-    _id = 1
+    _cmd_id = 1
     structure = [('reason', sedes.big_endian_int)]
     reason_names = {
         0: "disconnect requested",
@@ -61,7 +61,7 @@ class Disconnect(Command):
 
 
 class Ping(Command):
-    _id = 2
+    _cmd_id = 2
 
     def handle(self, proto, data):
         proto.send_pong()
@@ -69,7 +69,7 @@ class Ping(Command):
 
 
 class Pong(Command):
-    _id = 3
+    _cmd_id = 3
 
     def handle(self, proto, data):
         return None

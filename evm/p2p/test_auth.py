@@ -137,7 +137,7 @@ def test_handshake():
     msg = yield from responder_peer.read_msg()
 
     cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-    assert cmd_id == Hello(id_offset=0).id
+    assert cmd_id == Hello(id_offset=0).cmd_id
     responder_peer.process_msg(msg)
 
 
