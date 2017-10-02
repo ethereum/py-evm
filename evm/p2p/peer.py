@@ -124,15 +124,16 @@ class Peer:
 
     def process_msg(self, msg):
         cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-        self.logger.debug("Processing msg with cmd_id: {}".format(cmd_id))
+        self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
             self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
             return
         decoded_msg = proto.process(cmd_id, msg)
         if cmd_id == Hello._cmd_id:
-            self.logger.debug("Got hello: {}".format(decoded_msg))
             self.match_protocols(decoded_msg['capabilities'])
+            for proto in self.enabled_sub_protocols:
+                proto.handshake()
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -199,6 +200,10 @@ class Peer:
     def send_hello(self):
         header, body = self.base_protocol.get_hello_message()
         self.send(header, body)
+
+    def disconnect(self, reason):
+        self.base_protocol.send_disconnect(reason)
+        self.stop()
 
     def match_protocols(self, remote_capabilities):
         """Match the sub-protocols supported by this Peer with the given remote capabilities.

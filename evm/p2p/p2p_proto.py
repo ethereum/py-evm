@@ -85,6 +85,10 @@ class P2PProtocol(Protocol):
         # For the base protocol the cmd_id_offset is always 0.
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
+    def send_disconnect(self, reason):
+        header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
+        self.send(header, body)
+
     def send_pong(self):
         header, body = Pong(self.cmd_id_offset).encode({})
         self.send(header, body)

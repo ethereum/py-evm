@@ -85,10 +85,17 @@ class Protocol:
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
+        self.cmd_by_class = dict((cmd.__class__, cmd) for cmd in self.commands)
+
+    def handshake(self):
+        raise NotImplementedError()
 
     def process(self, cmd_id, msg):
         cmd = self.cmd_by_id[cmd_id]
-        return cmd.handle(self, msg)
+        decoded = cmd.handle(self, msg)
+        self.logger.debug("Successfully processed {}(cmd_id={}) msg: {}".format(
+            cmd.__class__.__name__, cmd_id, decoded))
+        return decoded
 
     def send(self, header, body):
         self.peer.send(header, body)
