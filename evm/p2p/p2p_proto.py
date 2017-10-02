@@ -10,7 +10,7 @@ from evm.p2p.protocol import (
 
 
 class Hello(Command):
-    id = 0
+    _cmd_id = 0
     decode_strict = False
     structure = [
         ('version', sedes.big_endian_int),
@@ -20,42 +20,40 @@ class Hello(Command):
         ('remote_pubkey', sedes.binary)
     ]
 
-    @classmethod
-    def handle(cls, proto, data):
-        hello = cls.decode(data)
+    def handle(self, proto, data):
+        hello = self.decode(data)
         return hello
 
 
 class Disconnect(Command):
-    id = 1
+    _cmd_id = 1
     structure = [('reason', sedes.big_endian_int)]
+    reason_names = {
+        0: "disconnect requested",
+        1: "tcp sub system error",
+        2: "bad protocol",
+        3: "useless peer",
+        4: "too many peers",
+        5: "already connected",
+        6: "incompatibel p2p version",
+        7: "null node identity received",
+        8: "client quitting",
+        9: "unexpected identity",
+        10: "connected to self",
+        11: "timeout",
+        12: "subprotocol error",
+        16: "other",
+    }
 
-    @classmethod
-    def get_reason_name(cls, reason_id):
-        names = {
-            0: "disconnect requested",
-            1: "tcp sub system error",
-            2: "bad protocol",
-            3: "useless peer",
-            4: "too many peers",
-            5: "already connected",
-            6: "incompatibel p2p version",
-            7: "null node identity received",
-            8: "client quitting",
-            9: "unexpected identity",
-            10: "connected to self",
-            11: "timeout",
-            12: "subprotocol error",
-            16: "other",
-        }
-        if reason_id in names:
-            return names[reason_id]
-        return "unknown reason"
+    def get_reason_name(self, reason_id):
+        try:
+            return self.reason_names[reason_id]
+        except KeyError:
+            return "unknown reason"
 
-    @classmethod
-    def handle(cls, proto, data):
-        decoded = cls.decode(data)
-        reason_name = cls.get_reason_name(decoded['reason'])
+    def handle(self, proto, data):
+        decoded = self.decode(data)
+        reason_name = self.get_reason_name(decoded['reason'])
         proto.logger.debug(
             "Peer {} disconnected; reason given: {}".format(proto.peer.remote, reason_name))
         proto.peer.stop()
@@ -63,28 +61,33 @@ class Disconnect(Command):
 
 
 class Ping(Command):
-    id = 2
+    _cmd_id = 2
 
-    @classmethod
-    def handle(cls, proto, data):
-        header, body = Pong.encode({})
-        proto.send(header, body)
+    def handle(self, proto, data):
+        proto.send_pong()
         return None
 
 
 class Pong(Command):
-    id = 3
+    _cmd_id = 3
 
-    @classmethod
-    def handle(cls, proto, data):
+    def handle(self, proto, data):
         return None
 
 
 class P2PProtocol(Protocol):
     name = b'p2p'
     version = 4
-    commands = [Hello, Ping, Pong, Disconnect]
+    _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
+
+    def __init__(self, peer):
+        # For the base protocol the cmd_id_offset is always 0.
+        super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
+
+    def send_pong(self):
+        header, body = Pong(self.cmd_id_offset).encode({})
+        self.send(header, body)
 
     def get_hello_message(self):
         data = dict(version=self.version,
@@ -92,4 +95,4 @@ class P2PProtocol(Protocol):
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        return Hello.encode(data)
+        return Hello(self.cmd_id_offset).encode(data)

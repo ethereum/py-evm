@@ -8,56 +8,59 @@ from evm.constants import NULL_BYTE
 
 
 class Command:
-    id = None
+    _cmd_id = None
     decode_strict = True
     structure = []
 
-    @classmethod
-    def encode_payload(cls, data):
+    def __init__(self, id_offset):
+        self.id_offset = id_offset
+
+    @property
+    def cmd_id(self):
+        return self.id_offset + self._cmd_id
+
+    def encode_payload(self, data):
         if isinstance(data, dict):  # convert dict to ordered list
-            if not isinstance(cls.structure, list):
+            if not isinstance(self.structure, list):
                 raise ValueError("Command.structure must be a list when data is a dict")
-            expected_keys = sorted(name for name, _ in cls.structure)
+            expected_keys = sorted(name for name, _ in self.structure)
             data_keys = sorted(data.keys())
             if data_keys != expected_keys:
                 raise rlp.EncodingError(
                     "Keys in data dict ({}) do not match expected keys ({})".format(
                         data_keys, expected_keys))
-            data = [data[name] for name, _ in cls.structure]
-        if isinstance(cls.structure, sedes.CountableList):
-            encoder = cls.structure
+            data = [data[name] for name, _ in self.structure]
+        if isinstance(self.structure, sedes.CountableList):
+            encoder = self.structure
         else:
-            encoder = sedes.List([type_ for _, type_ in cls.structure])
+            encoder = sedes.List([type_ for _, type_ in self.structure])
         return rlp.encode(data, sedes=encoder)
 
-    @classmethod
-    def decode_payload(cls, rlp_data):
-        if isinstance(cls.structure, sedes.CountableList):
-            decoder = cls.structure
+    def decode_payload(self, rlp_data):
+        if isinstance(self.structure, sedes.CountableList):
+            decoder = self.structure
         else:
             decoder = sedes.List(
-                [type_ for _, type_ in cls.structure], strict=cls.decode_strict)
+                [type_ for _, type_ in self.structure], strict=self.decode_strict)
         data = rlp.decode(rlp_data, sedes=decoder)
-        if isinstance(cls.structure, sedes.CountableList):
+        if isinstance(self.structure, sedes.CountableList):
             return data
         else:
             return {
                 field_name: value
                 for ((field_name, _), value)
-                in zip(cls.structure, data)
+                in zip(self.structure, data)
             }
 
-    @classmethod
-    def decode(cls, data):
+    def decode(self, data):
         packet_type = rlp.decode(data[:1], sedes=sedes.big_endian_int)
-        if packet_type != cls.id:
+        if packet_type != self.cmd_id:
             raise ValueError("Wrong packet type: {}".format(packet_type))
-        return cls.decode_payload(data[1:])
+        return self.decode_payload(data[1:])
 
-    @classmethod
-    def encode(cls, data):
-        payload = cls.encode_payload(data)
-        enc_cmd_id = rlp.encode(cls.id, sedes=rlp.sedes.big_endian_int)
+    def encode(self, data):
+        payload = self.encode_payload(data)
+        enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
         frame_size = len(enc_cmd_id) + len(payload)
         if frame_size.bit_length() > 24:
             raise ValueError("Frame size has to fit in a 3-byte integer")
@@ -74,11 +77,14 @@ class Protocol:
     logger = logging.getLogger("evm.p2p.protocol.Protocol")
     name = None
     version = None
-    commands = []
+    # List of Command classes that this protocol supports.
+    _commands = []
 
-    def __init__(self, peer):
+    def __init__(self, peer, cmd_id_offset):
         self.peer = peer
-        self.cmd_by_id = dict((cmd.id, cmd) for cmd in self.commands)
+        self.cmd_id_offset = cmd_id_offset
+        self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
+        self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
 
     def process(self, cmd_id, msg):
         cmd = self.cmd_by_id[cmd_id]

@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import operator
 import struct
+
+from cytoolz import reduceby
 
 import rlp
 from rlp import sedes
@@ -37,7 +40,7 @@ from evm.p2p.p2p_proto import (
 
 class Peer:
     logger = logging.getLogger("evm.p2p.peer.Peer")
-    _sub_protocols = [LESProtocol]
+    _supported_sub_protocols = [LESProtocol]
     # FIXME: Must be configurable.
     listen_port = 30303
 
@@ -48,6 +51,9 @@ class Peer:
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
+        # The sub protocols that have been enabled for this peer; will be populated when
+        # we receive the initial hello msg.
+        self.enabled_sub_protocols = []
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -61,13 +67,22 @@ class Peer:
 
     @property
     def capabilities(self):
-        return [(klass.name, klass.version) for klass in self._sub_protocols]
+        return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
     def get_protocol_for(self, cmd_id):
-        if cmd_id >= self.base_protocol.cmd_length:
-            # TODO: Return the appropriate sub-protocol
-            return None
-        return self.base_protocol
+        """Return the protocol to which the cmd_id belongs.
+
+        Every sub-protocol enabled for a peer defines a cmd ID offset, which is agreed on by both
+        sides during the base protocol's handshake. Here we use that to look up the protocol to
+        which cmd_id belongs. See the match_protocols() method for the details on how the peers
+        agree on which sub protocols to enable and what cmd ID offsets to use for them.
+        """
+        if cmd_id < self.base_protocol.cmd_length:
+            return self.base_protocol
+        for proto in self.enabled_sub_protocols:
+            if cmd_id >= proto.cmd_id_offset and cmd_id < (proto.cmd_id_offset + proto.cmd_length):
+                return proto
+        return None
 
     @asyncio.coroutine
     def read(self, n):
@@ -115,10 +130,9 @@ class Peer:
             self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
             return
         decoded_msg = proto.process(cmd_id, msg)
-        if cmd_id == Hello.id:
-            # TODO: Populate self.sub_protocols based on self.capabilities and
-            # hello['capabilities']
+        if cmd_id == Hello._cmd_id:
             self.logger.debug("Got hello: {}".format(decoded_msg))
+            self.match_protocols(decoded_msg['capabilities'])
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -185,6 +199,30 @@ class Peer:
     def send_hello(self):
         header, body = self.base_protocol.get_hello_message()
         self.send(header, body)
+
+    def match_protocols(self, remote_capabilities):
+        """Match the sub-protocols supported by this Peer with the given remote capabilities.
+
+        Every sub-protocol and remote-capability are defined by a protocol name and version. This
+        method will get the match with the highest version for every protocol, sort them
+        in ascending alphabetical order and add a Protocol instance for the protocol with that
+        name/version to this peer's list of enabled sub protocols. Each Protocol instance will
+        also have a cmd ID offset, defined as the offset of the previous item (0 for the base
+        protocol) plus the protocol's cmd length (i.e. number of commands).
+        """
+        matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
+        higher_matching = reduceby(
+            key=operator.itemgetter(0),
+            binop=lambda a, b: a if a[1] > b[1] else b,
+            seq=matching_capabilities)
+        sub_protocols_by_name_and_version = dict(
+            ((klass.name, klass.version), klass) for klass in self._supported_sub_protocols)
+        offset = self.base_protocol.cmd_length
+        for name, version in sorted(higher_matching.values()):
+            proto_klass = sub_protocols_by_name_and_version[(name, version)]
+            self.enabled_sub_protocols.append(proto_klass(self, offset))
+            offset += proto_klass.cmd_length
+        self.logger.debug("Matching protocols: {}".format(matching_capabilities))
 
 
 if __name__ == "__main__":
