@@ -33,6 +33,7 @@ from evm.p2p.utils import (
 )
 from evm.p2p.les import LESProtocol
 from evm.p2p.p2p_proto import (
+    DisconnectReason,
     Hello,
     P2PProtocol,
 )
@@ -202,7 +203,14 @@ class Peer:
         self.send(header, body)
 
     def disconnect(self, reason):
-        self.base_protocol.send_disconnect(reason)
+        """Send a disconnect msg to the remote node and stop this Peer.
+
+        :param reason: An item from the DisconnectReason enum.
+        """
+        if not isinstance(reason, DisconnectReason):
+            raise ValueError(
+                "Reason must be an item of DisconnectReason, got {}".format(reason))
+        self.base_protocol.send_disconnect(reason.value)
         self.stop()
 
     def match_protocols(self, remote_capabilities):

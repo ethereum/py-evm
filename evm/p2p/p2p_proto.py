@@ -1,3 +1,5 @@
+import enum
+
 from rlp import sedes
 
 from evm.p2p.constants import (
@@ -25,30 +27,32 @@ class Hello(Command):
         return hello
 
 
+@enum.unique
+class DisconnectReason(enum.Enum):
+    disconnect_requested = 0
+    tcp_sub_system_error = 1
+    bad_protocol = 2
+    useless_peer = 3
+    too_many_peers = 4
+    already_connected = 5
+    incompatible_p2p_version = 6
+    null_node_identity_received = 7
+    client_quitting = 8
+    unexpected_identity = 9
+    connected_to_self = 10
+    timeout = 11
+    subprotocol_error = 12
+    other = 16
+
+
 class Disconnect(Command):
     _cmd_id = 1
     structure = [('reason', sedes.big_endian_int)]
-    reason_names = {
-        0: "disconnect requested",
-        1: "tcp sub system error",
-        2: "bad protocol",
-        3: "useless peer",
-        4: "too many peers",
-        5: "already connected",
-        6: "incompatibel p2p version",
-        7: "null node identity received",
-        8: "client quitting",
-        9: "unexpected identity",
-        10: "connected to self",
-        11: "timeout",
-        12: "subprotocol error",
-        16: "other",
-    }
 
     def get_reason_name(self, reason_id):
         try:
-            return self.reason_names[reason_id]
-        except KeyError:
+            return DisconnectReason(reason_id).name
+        except ValueError:
             return "unknown reason"
 
     def handle(self, proto, data):
