@@ -137,10 +137,8 @@ def test_handshake():
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac)
 
-    # The hello msgs sent by each peer are going to be fed directly into their remote's
-    # reader, and thus the read_msg() calls will return immediately.
-    initiator_peer.send_hello()
-    responder_peer.send_hello()
+    # The hello msgs sent by each peer (when we instantiated them above) are going to be fed
+    # directly into their remote's reader, and thus the read_msg() calls will return immediately.
     responder_hello = yield from responder_peer.read_msg()
     initiator_hello = yield from initiator_peer.read_msg()
 

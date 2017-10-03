@@ -68,11 +68,7 @@ class Status(Command):
         return super(Status, self).encode_payload(response)
 
     def handle(self, proto, data):
-        decoded = self.decode(data)
-        # TODO: Disconnect if protocolVersion != proto.version
-        # TODO: Disconnect if 'serveHeaders' is not present
-        # TODO: Disconnect if networkId doesn't match ours.
-        return decoded
+        return self.decode(data)
 
 
 class Announce(Command):
@@ -123,7 +119,7 @@ class BlockHeaders(Command):
     def handle(self, proto, data):
         decoded = self.decode(data)
         last_header_seen = decoded['headers'][0].block_number
-        proto.logger.debug("Last header received: {}".format(last_header_seen))
+        proto.logger.debug("Last block header received: {}".format(last_header_seen))
         return decoded
 
 
@@ -133,10 +129,11 @@ class LESProtocol(Protocol):
     _commands = [Status, Announce, BlockHeaders]
     _req_id = 0
     max_headers = 10
+    handshake_msg_type = Status
     # FIXME: Need to find out the correct value for this
     cmd_length = 21
 
-    def handshake(self):
+    def send_handshake(self):
         resp = {
             'protocolVersion': self.version,
             # FIXME: Need a Chain instance to get the values below from.
@@ -150,6 +147,10 @@ class LESProtocol(Protocol):
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: {}".format(resp))
+
+    def process_handshake(self, decoded_msg):
+        # TODO:
+        pass
 
     def next_req_id(self):
         self._req_id += 1

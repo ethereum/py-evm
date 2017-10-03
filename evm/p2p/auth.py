@@ -43,7 +43,6 @@ def handshake(remote, privkey):
     peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
                 aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
                 ingress_mac=ingress_mac)
-    peer.send_hello()
     return peer
 
 

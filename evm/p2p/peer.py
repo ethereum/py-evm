@@ -34,7 +34,6 @@ from evm.p2p.utils import (
 from evm.p2p.les import LESProtocol
 from evm.p2p.p2p_proto import (
     DisconnectReason,
-    Hello,
     P2PProtocol,
 )
 
@@ -51,7 +50,6 @@ class Peer:
         self.privkey = privkey
         self.reader = reader
         self.writer = writer
-        self.base_protocol = P2PProtocol(self)
         # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
         self.enabled_sub_protocols = []
@@ -65,6 +63,10 @@ class Peer:
         self.aes_dec = aes_cipher.decryptor()
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
+
+        # The Protocol constructor will send the handshake msg, so it must be the last thing we do
+        # here.
+        self.base_protocol = P2PProtocol(self)
 
     @property
     def capabilities(self):
@@ -130,11 +132,12 @@ class Peer:
         if proto is None:
             self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
             return
-        decoded_msg = proto.process(cmd_id, msg)
-        if cmd_id == Hello._cmd_id:
-            self.match_protocols(decoded_msg['capabilities'])
-            for proto in self.enabled_sub_protocols:
-                proto.handshake()
+        proto.process(cmd_id, msg)
+
+    def process_p2p_handshake(self, decoded_msg):
+        self.match_protocols(decoded_msg['capabilities'])
+        if len(self.enabled_sub_protocols) == 0:
+            self.disconnect(DisconnectReason.useless_peer)
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -197,10 +200,6 @@ class Peer:
         cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
         self.logger.debug("Sending msg with cmd_id: {}".format(cmd_id))
         self.writer.write(self.encrypt(header, body))
-
-    def send_hello(self):
-        header, body = self.base_protocol.get_hello_message()
-        self.send(header, body)
 
     def disconnect(self, reason):
         """Send a disconnect msg to the remote node and stop this Peer.

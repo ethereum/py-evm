@@ -15,6 +15,9 @@ class Command:
     def __init__(self, id_offset):
         self.id_offset = id_offset
 
+    def handle(self, proto, data):
+        raise NotImplementedError()
+
     @property
     def cmd_id(self):
         return self.id_offset + self._cmd_id
@@ -77,17 +80,25 @@ class Protocol:
     logger = logging.getLogger("evm.p2p.protocol.Protocol")
     name = None
     version = None
+    handshake_msg_type = None
     # List of Command classes that this protocol supports.
     _commands = []
 
     def __init__(self, peer, cmd_id_offset):
+        """Initialize this protocol and send its handshake msg."""
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
         self.cmd_by_class = dict((cmd.__class__, cmd) for cmd in self.commands)
+        self.send_handshake()
 
-    def handshake(self):
+    def send_handshake(self):
+        """Send the handshake msg for this protocol."""
+        raise NotImplementedError()
+
+    def process_handshake(self, decoded_msg):
+        """Process the handshake msg for this protocol."""
         raise NotImplementedError()
 
     def process(self, cmd_id, msg):
@@ -95,6 +106,8 @@ class Protocol:
         decoded = cmd.handle(self, msg)
         self.logger.debug("Successfully processed {}(cmd_id={}) msg: {}".format(
             cmd.__class__.__name__, cmd_id, decoded))
+        if isinstance(cmd, self.handshake_msg_type):
+            self.process_handshake(decoded)
         return decoded
 
     def send(self, header, body):

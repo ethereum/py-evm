@@ -23,8 +23,7 @@ class Hello(Command):
     ]
 
     def handle(self, proto, data):
-        hello = self.decode(data)
-        return hello
+        return self.decode(data)
 
 
 @enum.unique
@@ -84,10 +83,23 @@ class P2PProtocol(Protocol):
     version = 4
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
+    handshake_msg_type = Hello
 
     def __init__(self, peer):
         # For the base protocol the cmd_id_offset is always 0.
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
+
+    def send_handshake(self):
+        data = dict(version=self.version,
+                    client_version_string=CLIENT_VERSION_STRING,
+                    capabilities=self.peer.capabilities,
+                    listen_port=self.peer.listen_port,
+                    remote_pubkey=self.peer.privkey.public_key.to_bytes())
+        header, body = Hello(self.cmd_id_offset).encode(data)
+        self.peer.send(header, body)
+
+    def process_handshake(self, decoded_msg):
+        self.peer.process_p2p_handshake(decoded_msg)
 
     def send_disconnect(self, reason):
         header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
@@ -96,11 +108,3 @@ class P2PProtocol(Protocol):
     def send_pong(self):
         header, body = Pong(self.cmd_id_offset).encode({})
         self.send(header, body)
-
-    def get_hello_message(self):
-        data = dict(version=self.version,
-                    client_version_string=CLIENT_VERSION_STRING,
-                    capabilities=self.peer.capabilities,
-                    listen_port=self.peer.listen_port,
-                    remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        return Hello(self.cmd_id_offset).encode(data)
