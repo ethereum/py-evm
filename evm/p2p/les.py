@@ -48,9 +48,9 @@ class Status(Command):
         # know about.
         decoded = {}
         for key, value in data:
-            # The sedes.binary we use above will give us a bytes value here, but using bytes as
-            # dictionary keys makes it impossible to use the dict() constructor with keyword
-            # arguments, so we convert them to strings here.
+            # The sedes.binary we use in .structure above will give us a bytes value here, but
+            # using bytes as dictionary keys makes it impossible to use the dict() constructor
+            # with keyword arguments, so we convert them to strings here.
             key = key.decode('ascii')
             if key not in self.items_sedes:
                 continue
@@ -93,9 +93,10 @@ class Announce(Command):
         return decoded
 
 
-# XXX: Figure out how to use this instead of the sedes.List in GetBlockHeaders
 class GetBlockHeadersQuery(rlp.Serializable):
     fields = [
+        # FIXME: It should be possible to specify the block either by its number or hash, but
+        # for now only the number is supported.
         ('block', sedes.big_endian_int),
         ('maxHeaders', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
@@ -107,14 +108,7 @@ class GetBlockHeaders(Command):
     _cmd_id = 2
     structure = [
         ('request_id', sedes.big_endian_int),
-        ('query', sedes.List([
-            # FIXME: It should be possible to specify the block either by its number or hash, but
-            # for now only the number is supported.
-            sedes.big_endian_int,  # start block
-            sedes.big_endian_int,  # maxHeaders
-            sedes.big_endian_int,  # skip
-            sedes.big_endian_int,  # reverse
-        ])),
+        ('query', GetBlockHeadersQuery),
     ]
 
 
@@ -169,6 +163,7 @@ class LESProtocol(Protocol):
         reverse = True
         data = {
             'request_id': req_id,
-            'query': [end_at, self.max_headers, skip, reverse]
+            'query': GetBlockHeadersQuery(end_at, self.max_headers, skip, reverse),
         }
-        return self.send(*cmd.encode(data))
+        header, body = cmd.encode(data)
+        return self.send(header, body)
