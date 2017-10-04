@@ -38,7 +38,22 @@ def handshake(remote, privkey):
     """
     initiator = HandshakeInitiator(remote, privkey)
     reader, writer = yield from initiator.connect()
+    aes_secret, mac_secret, egress_mac, ingress_mac = yield from _handshake(
+        initiator, reader, writer)
+    peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
+                aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
+                ingress_mac=ingress_mac)
+    peer.send_hello()
+    return peer
 
+
+@asyncio.coroutine
+def _handshake(initiator, reader, writer):
+    """See the handshake() function above.
+
+    This code was factored out into this helper so that we can create Peers with directly
+    connected readers/writers for our tests.
+    """
     initiator_nonce = keccak(os.urandom(HASH_LEN))
     auth_msg = initiator.create_auth_message(initiator_nonce)
     auth_init = initiator.encrypt_auth_message(auth_msg)
@@ -55,11 +70,7 @@ def handshake(remote, privkey):
         auth_ack
     )
 
-    peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
-                aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-                ingress_mac=ingress_mac)
-    peer.send_hello()
-    return peer
+    return aes_secret, mac_secret, egress_mac, ingress_mac
 
 
 class HandshakeBase:
