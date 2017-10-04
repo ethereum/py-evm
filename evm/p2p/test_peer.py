@@ -3,6 +3,9 @@ import os
 
 import pytest
 
+import rlp
+from rlp import sedes
+
 from evm.utils.keccak import (
     keccak,
 )
@@ -10,7 +13,10 @@ from evm.p2p import auth
 from evm.p2p import constants
 from evm.p2p import ecies
 from evm.p2p import kademlia
-from evm.p2p.les import LESProtocol
+from evm.p2p.les import (
+    LESProtocol,
+    Status,
+)
 from evm.p2p.peer import Peer
 from evm.p2p.protocol import Protocol
 from evm.p2p.p2p_proto import P2PProtocol
@@ -95,10 +101,22 @@ def directly_linked_peers():
 def test_directly_linked_peers(directly_linked_peers):
     peer1, peer2 = yield from directly_linked_peers
     assert len(peer1.enabled_sub_protocols) == 1
-    assert peer1.enabled_sub_protocols[0].name == b'les'
-    assert peer1.enabled_sub_protocols[0].version == 1
+    assert peer1.enabled_sub_protocols[0].name == LESProtocol.name
+    assert peer1.enabled_sub_protocols[0].version == LESProtocol.version
     assert [(proto.name, proto.version) for proto in peer1.enabled_sub_protocols] == [
         (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
+
+
+@pytest.mark.asyncio
+def test_les_handshake_after_protocol_agreement(directly_linked_peers):
+    peer1, peer2 = yield from directly_linked_peers
+    # The peers above have already performed the sub-protocol agreement, and as part of that they
+    # send the handshake msg for each enabled sub protocol -- in this case that's the Status msg
+    # of the LES protocol.
+    msg = yield from peer1.read_msg()
+    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
+    proto = peer1.get_protocol_for(cmd_id)
+    assert cmd_id == proto.cmd_by_class[Status].cmd_id
 
 
 def test_sub_protocol_matching():

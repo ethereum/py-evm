@@ -26,6 +26,7 @@ from evm.p2p.constants import (
 from evm.p2p.exceptions import (
     AuthenticationError,
     PeerDisconnected,
+    UnknownProtocolCommand,
 )
 from evm.p2p.utils import (
     roundup_16,
@@ -130,8 +131,8 @@ class Peer:
         self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
-            self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
-            return
+            raise UnknownProtocolCommand(
+                "No protocol found for cmd_id {}".format(cmd_id))
         proto.process(cmd_id, msg)
 
     def process_p2p_handshake(self, decoded_msg):

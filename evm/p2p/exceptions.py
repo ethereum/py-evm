@@ -8,3 +8,7 @@ class DecryptionError(Exception):
 
 class PeerDisconnected(Exception):
     pass
+
+
+class UnknownProtocolCommand(Exception):
+    pass

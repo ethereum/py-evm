@@ -132,6 +132,8 @@ class LESProtocol(Protocol):
     handshake_msg_type = Status
     # FIXME: Need to find out the correct value for this
     cmd_length = 21
+    # FIXME: This is just a quick hack to keep track of the remote's current head.
+    _remote_head_num = None
 
     def send_handshake(self):
         resp = {
@@ -149,8 +151,7 @@ class LESProtocol(Protocol):
         self.logger.debug("Sending LES/Status msg: {}".format(resp))
 
     def process_handshake(self, decoded_msg):
-        # TODO:
-        pass
+        self._remote_head_num = decoded_msg['headNum']
 
     def next_req_id(self):
         self._req_id += 1

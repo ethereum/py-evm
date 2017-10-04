@@ -13,7 +13,6 @@ from eth_keys import keys
 
 from evm.p2p import ecies
 from evm.p2p import kademlia
-from evm.p2p.les import Status
 from evm.p2p.p2p_proto import Hello
 from evm.p2p.auth import (
     HandshakeInitiator,
@@ -149,25 +148,6 @@ def test_handshake():
     cmd_id = rlp.decode(initiator_hello[:1], sedes=sedes.big_endian_int)
     proto = initiator_peer.get_protocol_for(cmd_id)
     assert cmd_id == proto.cmd_by_class[Hello].cmd_id
-
-    responder_peer.process_msg(responder_hello)
-    initiator_peer.process_msg(initiator_hello)
-
-    # After processing the hello msg, the peers should end up with identical lists of enabled sub
-    # protocols.
-    responder_protos = [
-        (proto.name, proto.version) for proto in responder_peer.enabled_sub_protocols]
-    initiator_protos = [
-        (proto.name, proto.version) for proto in initiator_peer.enabled_sub_protocols]
-    assert responder_protos == initiator_protos
-    assert responder_protos == [(b'les', 1)]
-
-    # And as part of the sub-protocol agreement, they also send the handshake msg for each enabled
-    # sub protocol -- in this case that's the Status msg of the LES protocol.
-    msg = yield from initiator_peer.read_msg()
-    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-    proto = initiator_peer.get_protocol_for(cmd_id)
-    assert cmd_id == proto.cmd_by_class[Status].cmd_id
 
 
 def test_handshake_eip8():
