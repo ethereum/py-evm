@@ -43,12 +43,12 @@ def directly_linked_peers():
     peer2_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: peer1_reader.feed_data(data)}
+        {"write": peer1_reader.feed_data}
     )
     peer1_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: peer2_reader.feed_data(data)}
+        {"write": peer2_reader.feed_data}
     )
 
     peer1, peer2 = None, None

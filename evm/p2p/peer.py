@@ -94,6 +94,7 @@ class Peer:
         try:
             data = yield from self.reader.readexactly(n)
         except asyncio.IncompleteReadError:
+            self.logger.debug("EOF reading from {}'s stream".format(self.remote))
             raise PeerDisconnected()
         return data
 
@@ -110,7 +111,6 @@ class Peer:
             try:
                 msg = yield from self.read_msg()
             except PeerDisconnected:
-                self.logger.debug("Remote disconnected, stopping: {}".format(self.remote))
                 self.stop()
                 return
             self.process_msg(msg)
@@ -139,6 +139,10 @@ class Peer:
         self.match_protocols(decoded_msg['capabilities'])
         if len(self.enabled_sub_protocols) == 0:
             self.disconnect(DisconnectReason.useless_peer)
+        self.logger.info(
+            "Finished P2P handshake with {}; matching protocols: {}".format(
+                self.remote,
+                [(p.name, p.version) for p in self.enabled_sub_protocols]))
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -210,6 +214,7 @@ class Peer:
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
+            self.logger.info("Disconnecting from remote peer; reason: {}".format(reason.value))
         self.base_protocol.send_disconnect(reason.value)
         self.stop()
 
@@ -235,7 +240,6 @@ class Peer:
             proto_klass = sub_protocols_by_name_and_version[(name, version)]
             self.enabled_sub_protocols.append(proto_klass(self, offset))
             offset += proto_klass.cmd_length
-        self.logger.debug("Matching protocols: {}".format(matching_capabilities))
 
 
 if __name__ == "__main__":

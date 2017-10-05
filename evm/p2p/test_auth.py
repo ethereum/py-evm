@@ -120,12 +120,12 @@ def test_handshake():
     responder_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: initiator_reader.feed_data(data)}
+        {"write": initiator_reader.feed_data}
     )
     initiator_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: responder_reader.feed_data(data)}
+        {"write": responder_reader.feed_data}
     )
     initiator_peer = Peer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,

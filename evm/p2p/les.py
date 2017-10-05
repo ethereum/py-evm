@@ -20,7 +20,8 @@ class Status(Command):
     _cmd_id = 0
     decode_strict = False
     # A list of (key, value) pairs is all a Status msg contains, but since the values can be of
-    # any type, we need to decode them using the raw sedes.
+    # any type, we need to use the raw sedes here and do the actual deserialization in
+    # decode_payload().
     structure = sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))
     # The sedes used for each key in the list above.
     items_sedes = {
@@ -80,18 +81,19 @@ class Announce(Command):
         ('reorgDepth', sedes.big_endian_int),
         ('params', sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))),
     ]
-    # TODO: Any of the values from the handshake may be included here too. Need to extend this
-    # command to process that.
+    # TODO: The params CountableList above may contain any of the values from the Status msg.
+    # Need to extend this command to process that too.
 
     def handle(self, proto, data):
         decoded = self.decode(data)
-        proto.get_headers(decoded['headNumber'])  # XXX: Quick hack
+        # FIXME: Should ask only for block headers we don't have yet.
+        proto.send_get_block_headers(decoded['headNumber'])
         return decoded
 
 
 class GetBlockHeadersQuery(rlp.Serializable):
     fields = [
-        # FIXME: It should be possible to specify the block either by its number or hash, but
+        # TODO: It should be possible to specify the block either by its number or hash, but
         # for now only the number is supported.
         ('block', sedes.big_endian_int),
         ('maxHeaders', sedes.big_endian_int),
@@ -130,10 +132,7 @@ class LESProtocol(Protocol):
     _req_id = 0
     max_headers = 10
     handshake_msg_type = Status
-    # FIXME: Need to find out the correct value for this
-    cmd_length = 21
-    # FIXME: This is just a quick hack to keep track of the remote's current head.
-    _remote_head_num = None
+    cmd_length = 15
 
     def send_handshake(self):
         resp = {
@@ -151,21 +150,27 @@ class LESProtocol(Protocol):
         self.logger.debug("Sending LES/Status msg: {}".format(resp))
 
     def process_handshake(self, decoded_msg):
-        self._remote_head_num = decoded_msg['headNum']
+        # TODO: Possibly disconnect if any of
+        # 1. remote doesn't serve headers
+        # 2. genesis hash does not match
+        pass
 
     def next_req_id(self):
         self._req_id += 1
         return self._req_id
 
-    # XXX: Maybe rename this to request_headers?
-    def get_headers(self, end_at):
+    def send_get_block_headers(self, block_number, reverse=True, max_headers=max_headers):
+        """Send a GetBlockHeaders msg to the remote.
+
+        This requests that the remote send us up to max_headers, starting from block_number if
+        reverse is False or ending at block_number if reverse is True.
+        """
         cmd = GetBlockHeaders(self.cmd_id_offset)
         req_id = self.next_req_id()
         skip = 0
-        reverse = True
         data = {
             'request_id': req_id,
-            'query': GetBlockHeadersQuery(end_at, self.max_headers, skip, reverse),
+            'query': GetBlockHeadersQuery(block_number, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
         return self.send(header, body)
