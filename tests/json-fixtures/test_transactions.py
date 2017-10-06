@@ -18,6 +18,7 @@ from evm import (
 from evm.db import (
     get_db_backend,
 )
+from evm.db.chain import BaseChainDB
 
 from evm.exceptions import (
     ValidationError,
@@ -54,7 +55,7 @@ def test_transaction_fixtures_smoke_test():
 )
 def test_transaction_fixtures(fixture_name, fixture):
     header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
-    chain = MainnetChain(get_db_backend(), header=header)
+    chain = MainnetChain(BaseChainDB(get_db_backend()), header=header)
     vm = chain.get_vm()
     TransactionClass = vm.get_transaction_class()
 

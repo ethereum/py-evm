@@ -7,10 +7,6 @@ from eth_bloom import (
     BloomFilter,
 )
 
-from trie import (
-    Trie,
-)
-
 from evm.constants import (
     EMPTY_UNCLE_HASH,
     GAS_LIMIT_ADJUSTMENT_FACTOR,
@@ -19,6 +15,7 @@ from evm.constants import (
     MAX_UNCLES,
 )
 from evm.exceptions import (
+    BlockNotFound,
     ValidationError,
 )
 from evm.rlp.logs import (
@@ -37,12 +34,6 @@ from evm.rlp.headers import (
 from evm.utils.keccak import (
     keccak,
 )
-from evm.utils.transactions import (
-    get_transactions_from_db,
-)
-from evm.utils.receipts import (
-    get_receipts_from_db,
-)
 from evm.validation import (
     validate_length_lte,
 )
@@ -59,11 +50,11 @@ class FrontierBlock(BaseBlock):
         ('uncles', CountableList(BlockHeader))
     ]
 
-    db = None
+    chaindb = None
     bloom_filter = None
 
-    def __init__(self, header, db, transactions=None, uncles=None):
-        self.db = db
+    def __init__(self, header, chaindb, transactions=None, uncles=None):
+        self.chaindb = chaindb
 
         if transactions is None:
             transactions = []
@@ -71,8 +62,6 @@ class FrontierBlock(BaseBlock):
             uncles = []
 
         self.bloom_filter = BloomFilter(header.bloom)
-        self.transaction_db = Trie(db=self.db, root_hash=header.transaction_root)
-        self.receipt_db = Trie(db=self.db, root_hash=header.receipt_root)
 
         super(FrontierBlock, self).__init__(
             header=header,
@@ -134,7 +123,7 @@ class FrontierBlock(BaseBlock):
         for uncle in self.uncles:
             self.validate_uncle(uncle)
 
-        if self.header.state_root not in self.db:
+        if not self.chaindb.exists(self.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
                 "- state_root: {0}".format(
@@ -162,11 +151,10 @@ class FrontierBlock(BaseBlock):
                 "Uncle number ({0}) is higher than block number ({1})".format(
                     uncle.block_number, self.number))
         try:
-            uncle_parent = self.db.get(uncle.parent_hash)
-        except KeyError:
+            parent_header = self.chaindb.get_block_header_by_hash(uncle.parent_hash)
+        except BlockNotFound:
             raise ValidationError(
                 "Uncle ancestor not found: {0}".format(uncle.parent_hash))
-        parent_header = rlp.decode(uncle_parent, sedes=BlockHeader)
         if uncle.block_number != parent_header.block_number + 1:
             raise ValidationError(
                 "Uncle number ({0}) is not one above ancestor's number ({1})".format(
@@ -192,11 +180,7 @@ class FrontierBlock(BaseBlock):
         return self.header.hash
 
     def get_parent_header(self):
-        parent_header = rlp.decode(
-            self.db.get(self.header.parent_hash),
-            sedes=BlockHeader,
-        )
-        return parent_header
+        return self.chaindb.get_block_header_by_hash(self.header.parent_hash)
 
     #
     # Transaction class for this block class
@@ -225,32 +209,28 @@ class FrontierBlock(BaseBlock):
     #
     @property
     def receipts(self):
-        return get_receipts_from_db(self.receipt_db, Receipt)
+        return self.chaindb.get_receipts(self.header, Receipt)
 
     #
     # Header API
     #
     @classmethod
-    def from_header(cls, header, db):
+    def from_header(cls, header, chaindb):
         """
         Returns the block denoted by the given block header.
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
             uncles = []
         else:
-            uncles = rlp.decode(
-                db.get(header.uncles_hash),
-                sedes=CountableList(BlockHeader),
-            )
+            uncles = chaindb.get_block_uncles(header.uncles_hash)
 
-        transaction_db = Trie(db, root_hash=header.transaction_root)
-        transactions = get_transactions_from_db(transaction_db, cls.get_transaction_class())
+        transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
 
         return cls(
             header=header,
             transactions=transactions,
             uncles=uncles,
-            db=db,
+            chaindb=chaindb,
         )
 
     #
@@ -289,13 +269,13 @@ class FrontierBlock(BaseBlock):
 
         self.transactions.append(transaction)
 
-        self.transaction_db[index_key] = rlp.encode(transaction)
-        self.receipt_db[index_key] = rlp.encode(receipt)
+        tx_root_hash = self.chaindb.add_transaction(self.header, index_key, transaction)
+        receipt_root_hash = self.chaindb.add_receipt(self.header, index_key, receipt)
 
         self.bloom_filter |= receipt.bloom
 
-        self.header.transaction_root = self.transaction_db.root_hash
-        self.header.receipt_root = self.receipt_db.root_hash
+        self.header.transaction_root = tx_root_hash
+        self.header.receipt_root = receipt_root_hash
         self.header.bloom = int(self.bloom_filter)
         self.header.gas_used = gas_used
 
