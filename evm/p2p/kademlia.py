@@ -61,7 +61,7 @@ class Address:
         return (self.ip, self.udp_port) == (other.ip, other.udp_port)
 
     def __repr__(self):
-        return 'Address(%s:%s)' % (self.ip, self.udp_port)
+        return 'Address(%s:udp:%s|tcp:%s)' % (self.ip, self.udp_port, self.tcp_port)
 
     def to_endpoint(self):
         return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
@@ -222,7 +222,7 @@ class RoutingTable:
         return [b for b in self.buckets if not b.is_full]
 
     def remove_node(self, node):
-        binary_get_bucket_for_node(self.buckets, node)
+        binary_get_bucket_for_node(self.buckets, node).remove_node(node)
 
     def add_node(self, node):
         if node == self.this_node:
@@ -439,7 +439,7 @@ class KademliaProtocol:
         try:
             yield from asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected neighbours response from {}'.format(remote))
-        except asyncio.futures.TimeoutError:
+        except asyncio.TimeoutError:
             pass
             self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
@@ -506,15 +506,15 @@ class KademliaProtocol:
             self.wire.send_find_node(remote, node_id)
             candidates = yield from self.wait_neighbours(remote)
             if len(candidates) == 0:
-                self.logger.info("got no candidates from {}, returning".format(remote))
+                self.logger.debug("got no candidates from {}, returning".format(remote))
                 return candidates
             candidates = [c for c in candidates if c not in nodes_seen]
-            self.logger.info("got {} new candidates".format(len(candidates)))
+            self.logger.debug("got {} new candidates".format(len(candidates)))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
             bonded = yield from asyncio.gather(*[self.bond(c) for c in candidates])
-            self.logger.info("bonded with {} candidates".format(bonded.count(True)))
+            self.logger.debug("bonded with {} candidates".format(bonded.count(True)))
             return [c for c in candidates if bonded[candidates.index(c)]]
 
         def _exclude_if_asked(nodes):
@@ -522,10 +522,10 @@ class KademliaProtocol:
             return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
 
         closest = self.routing.neighbours(node_id)
-        self.logger.info("starting lookup; initial neighbours: {}".format(closest))
+        self.logger.debug("starting lookup; initial neighbours: {}".format(closest))
         nodes_to_ask = _exclude_if_asked(closest)
         while nodes_to_ask:
-            self.logger.info("node lookup; querying {}".format(nodes_to_ask))
+            self.logger.debug("node lookup; querying {}".format(nodes_to_ask))
             nodes_asked.update(nodes_to_ask)
             results = yield from asyncio.gather(
                 *[_find_node(node_id, n) for n in nodes_to_ask])

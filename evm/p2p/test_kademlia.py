@@ -199,6 +199,17 @@ def test_routingtable_add_node():
     assert table.add_node(random_node()) is None
 
 
+def test_routingtable_remove_node():
+    table = kademlia.RoutingTable(random_node())
+    node1 = random_node()
+    assert table.add_node(node1) is None
+    assert node1 in table
+
+    table.remove_node(node1)
+
+    assert node1 not in table
+
+
 def test_routingtable_add_node_error():
     table = kademlia.RoutingTable(random_node())
     with pytest.raises(ValueError):
