@@ -26,6 +26,7 @@ from evm.p2p.constants import (
 from evm.p2p.exceptions import (
     AuthenticationError,
     PeerDisconnected,
+    UnknownProtocolCommand,
 )
 from evm.p2p.utils import (
     roundup_16,
@@ -33,7 +34,7 @@ from evm.p2p.utils import (
 )
 from evm.p2p.les import LESProtocol
 from evm.p2p.p2p_proto import (
-    Hello,
+    DisconnectReason,
     P2PProtocol,
 )
 
@@ -50,7 +51,6 @@ class Peer:
         self.privkey = privkey
         self.reader = reader
         self.writer = writer
-        self.base_protocol = P2PProtocol(self)
         # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
         self.enabled_sub_protocols = []
@@ -64,6 +64,10 @@ class Peer:
         self.aes_dec = aes_cipher.decryptor()
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
+
+        # The Protocol constructor will send the handshake msg, so it must be the last thing we do
+        # here.
+        self.base_protocol = P2PProtocol(self)
 
     @property
     def capabilities(self):
@@ -90,6 +94,7 @@ class Peer:
         try:
             data = yield from self.reader.readexactly(n)
         except asyncio.IncompleteReadError:
+            self.logger.debug("EOF reading from {}'s stream".format(self.remote))
             raise PeerDisconnected()
         return data
 
@@ -106,7 +111,6 @@ class Peer:
             try:
                 msg = yield from self.read_msg()
             except PeerDisconnected:
-                self.logger.debug("Remote disconnected, stopping: {}".format(self.remote))
                 self.stop()
                 return
             self.process_msg(msg)
@@ -124,15 +128,21 @@ class Peer:
 
     def process_msg(self, msg):
         cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-        self.logger.debug("Processing msg with cmd_id: {}".format(cmd_id))
+        self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
-            self.logger.warn("No protocol found for cmd_id {}".format(cmd_id))
-            return
-        decoded_msg = proto.process(cmd_id, msg)
-        if cmd_id == Hello._cmd_id:
-            self.logger.debug("Got hello: {}".format(decoded_msg))
-            self.match_protocols(decoded_msg['capabilities'])
+            raise UnknownProtocolCommand(
+                "No protocol found for cmd_id {}".format(cmd_id))
+        proto.process(cmd_id, msg)
+
+    def process_p2p_handshake(self, decoded_msg):
+        self.match_protocols(decoded_msg['capabilities'])
+        if len(self.enabled_sub_protocols) == 0:
+            self.disconnect(DisconnectReason.useless_peer)
+        self.logger.info(
+            "Finished P2P handshake with {}; matching protocols: {}".format(
+                self.remote,
+                [(p.name, p.version) for p in self.enabled_sub_protocols]))
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -196,9 +206,17 @@ class Peer:
         self.logger.debug("Sending msg with cmd_id: {}".format(cmd_id))
         self.writer.write(self.encrypt(header, body))
 
-    def send_hello(self):
-        header, body = self.base_protocol.get_hello_message()
-        self.send(header, body)
+    def disconnect(self, reason):
+        """Send a disconnect msg to the remote node and stop this Peer.
+
+        :param reason: An item from the DisconnectReason enum.
+        """
+        if not isinstance(reason, DisconnectReason):
+            raise ValueError(
+                "Reason must be an item of DisconnectReason, got {}".format(reason))
+            self.logger.info("Disconnecting from remote peer; reason: {}".format(reason.value))
+        self.base_protocol.send_disconnect(reason.value)
+        self.stop()
 
     def match_protocols(self, remote_capabilities):
         """Match the sub-protocols supported by this Peer with the given remote capabilities.
@@ -222,15 +240,15 @@ class Peer:
             proto_klass = sub_protocols_by_name_and_version[(name, version)]
             self.enabled_sub_protocols.append(proto_klass(self, offset))
             offset += proto_klass.cmd_length
-        self.logger.debug("Matching protocols: {}".format(matching_capabilities))
 
 
 if __name__ == "__main__":
-    # Run geth like this to be able to do a handshake and get a Peer connected to it.
-    # ./build/bin/geth -verbosity 9 \
-    #   --nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
-    #   --port 30301 --nat none --testnet --nodiscover --light
-
+    """
+    Run geth like this to be able to do a handshake and get a Peer connected to it.
+    ./build/bin/geth -vmodule p2p=4,p2p/discv5=0,eth/*=0 \
+      -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
+      -port 30301 -nat none -testnet -lightserv 90
+    """
     from evm.p2p import kademlia
     from evm.p2p import auth
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')

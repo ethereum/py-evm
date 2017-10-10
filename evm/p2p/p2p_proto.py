@@ -1,3 +1,5 @@
+import enum
+
 from rlp import sedes
 
 from evm.p2p.constants import (
@@ -21,40 +23,41 @@ class Hello(Command):
     ]
 
     def handle(self, proto, data):
-        hello = self.decode(data)
-        return hello
+        return self.decode(data)
+
+
+@enum.unique
+class DisconnectReason(enum.Enum):
+    disconnect_requested = 0
+    tcp_sub_system_error = 1
+    bad_protocol = 2
+    useless_peer = 3
+    too_many_peers = 4
+    already_connected = 5
+    incompatible_p2p_version = 6
+    null_node_identity_received = 7
+    client_quitting = 8
+    unexpected_identity = 9
+    connected_to_self = 10
+    timeout = 11
+    subprotocol_error = 12
+    other = 16
 
 
 class Disconnect(Command):
     _cmd_id = 1
     structure = [('reason', sedes.big_endian_int)]
-    reason_names = {
-        0: "disconnect requested",
-        1: "tcp sub system error",
-        2: "bad protocol",
-        3: "useless peer",
-        4: "too many peers",
-        5: "already connected",
-        6: "incompatibel p2p version",
-        7: "null node identity received",
-        8: "client quitting",
-        9: "unexpected identity",
-        10: "connected to self",
-        11: "timeout",
-        12: "subprotocol error",
-        16: "other",
-    }
 
     def get_reason_name(self, reason_id):
         try:
-            return self.reason_names[reason_id]
-        except KeyError:
+            return DisconnectReason(reason_id).name
+        except ValueError:
             return "unknown reason"
 
     def handle(self, proto, data):
         decoded = self.decode(data)
         reason_name = self.get_reason_name(decoded['reason'])
-        proto.logger.debug(
+        proto.logger.info(
             "Peer {} disconnected; reason given: {}".format(proto.peer.remote, reason_name))
         proto.peer.stop()
         return decoded
@@ -80,19 +83,28 @@ class P2PProtocol(Protocol):
     version = 4
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
+    handshake_msg_type = Hello
 
     def __init__(self, peer):
         # For the base protocol the cmd_id_offset is always 0.
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
-    def send_pong(self):
-        header, body = Pong(self.cmd_id_offset).encode({})
-        self.send(header, body)
-
-    def get_hello_message(self):
+    def send_handshake(self):
         data = dict(version=self.version,
                     client_version_string=CLIENT_VERSION_STRING,
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        return Hello(self.cmd_id_offset).encode(data)
+        header, body = Hello(self.cmd_id_offset).encode(data)
+        self.peer.send(header, body)
+
+    def process_handshake(self, decoded_msg):
+        self.peer.process_p2p_handshake(decoded_msg)
+
+    def send_disconnect(self, reason):
+        header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
+        self.send(header, body)
+
+    def send_pong(self):
+        header, body = Pong(self.cmd_id_offset).encode({})
+        self.send(header, body)

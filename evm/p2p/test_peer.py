@@ -3,6 +3,9 @@ import os
 
 import pytest
 
+import rlp
+from rlp import sedes
+
 from evm.utils.keccak import (
     keccak,
 )
@@ -10,7 +13,10 @@ from evm.p2p import auth
 from evm.p2p import constants
 from evm.p2p import ecies
 from evm.p2p import kademlia
-from evm.p2p.les import LESProtocol
+from evm.p2p.les import (
+    LESProtocol,
+    Status,
+)
 from evm.p2p.peer import Peer
 from evm.p2p.protocol import Protocol
 from evm.p2p.p2p_proto import P2PProtocol
@@ -37,12 +43,12 @@ def directly_linked_peers():
     peer2_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: peer1_reader.feed_data(data)}
+        {"write": peer1_reader.feed_data}
     )
     peer1_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: peer2_reader.feed_data(data)}
+        {"write": peer2_reader.feed_data}
     )
 
     peer1, peer2 = None, None
@@ -69,8 +75,6 @@ def directly_linked_peers():
             writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
             egress_mac=peer2_egress, ingress_mac=peer2_ingress)
 
-        peer1.send_hello()
-        peer2.send_hello()
         handshake_finished.set()
 
     asyncio.ensure_future(do_handshake())
@@ -97,10 +101,22 @@ def directly_linked_peers():
 def test_directly_linked_peers(directly_linked_peers):
     peer1, peer2 = yield from directly_linked_peers
     assert len(peer1.enabled_sub_protocols) == 1
-    assert peer1.enabled_sub_protocols[0].name == b'les'
-    assert peer1.enabled_sub_protocols[0].version == 1
+    assert peer1.enabled_sub_protocols[0].name == LESProtocol.name
+    assert peer1.enabled_sub_protocols[0].version == LESProtocol.version
     assert [(proto.name, proto.version) for proto in peer1.enabled_sub_protocols] == [
         (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
+
+
+@pytest.mark.asyncio
+def test_les_handshake_after_protocol_agreement(directly_linked_peers):
+    peer1, peer2 = yield from directly_linked_peers
+    # The peers above have already performed the sub-protocol agreement, and as part of that they
+    # send the handshake msg for each enabled sub protocol -- in this case that's the Status msg
+    # of the LES protocol.
+    msg = yield from peer1.read_msg()
+    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
+    proto = peer1.get_protocol_for(cmd_id)
+    assert cmd_id == proto.cmd_by_class[Status].cmd_id
 
 
 def test_sub_protocol_matching():
@@ -126,9 +142,15 @@ def test_sub_protocol_matching():
 class LESProtocolV2(LESProtocol):
     version = 2
 
+    def send_handshake(self):
+        pass
+
 
 class LESProtocolV3(LESProtocol):
     version = 3
+
+    def send_handshake(self):
+        pass
 
 
 class ETHProtocol63(Protocol):
@@ -136,10 +158,19 @@ class ETHProtocol63(Protocol):
     version = 63
     cmd_length = 15
 
+    def send_handshake(self):
+        pass
+
 
 class ProtoMatchingPeer(Peer):
 
     def __init__(self, supported_sub_protocols):
         self._supported_sub_protocols = supported_sub_protocols
-        self.base_protocol = P2PProtocol(self)
+        self.base_protocol = MockP2PProtocol(self)
         self.enabled_sub_protocols = []
+
+
+class MockP2PProtocol(P2PProtocol):
+
+    def send_handshake(self):
+        pass

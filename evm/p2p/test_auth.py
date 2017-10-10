@@ -114,13 +114,18 @@ def test_handshake():
     # Finally, check that two Peers configured with the secrets generated above understand each
     # other.
     responder_reader = asyncio.StreamReader()
-    responder_writer = None
-    initiator_reader = None
-    # Link the initiator's writer to the responder's reader.
+    initiator_reader = asyncio.StreamReader()
+    # Link the initiator's writer to the responder's reader, and the responder's writer to the
+    # initiator's reader.
+    responder_writer = type(
+        "mock-streamwriter",
+        (object,),
+        {"write": initiator_reader.feed_data}
+    )
     initiator_writer = type(
         "mock-streamwriter",
         (object,),
-        {"write": lambda data: responder_reader.feed_data(data)}
+        {"write": responder_reader.feed_data}
     )
     initiator_peer = Peer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
@@ -131,14 +136,18 @@ def test_handshake():
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac)
 
-    # The hello msg sent by the initiator is going to be fed directly into the responder's
-    # reader, and thus read_msg() will return immediately.
-    initiator_peer.send_hello()
-    msg = yield from responder_peer.read_msg()
+    # The hello msgs sent by each peer (when we instantiated them above) are going to be fed
+    # directly into their remote's reader, and thus the read_msg() calls will return immediately.
+    responder_hello = yield from responder_peer.read_msg()
+    initiator_hello = yield from initiator_peer.read_msg()
 
-    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-    assert cmd_id == Hello(id_offset=0).cmd_id
-    responder_peer.process_msg(msg)
+    cmd_id = rlp.decode(responder_hello[:1], sedes=sedes.big_endian_int)
+    proto = responder_peer.get_protocol_for(cmd_id)
+    assert cmd_id == proto.cmd_by_class[Hello].cmd_id
+
+    cmd_id = rlp.decode(initiator_hello[:1], sedes=sedes.big_endian_int)
+    proto = initiator_peer.get_protocol_for(cmd_id)
+    assert cmd_id == proto.cmd_by_class[Hello].cmd_id
 
 
 def test_handshake_eip8():
