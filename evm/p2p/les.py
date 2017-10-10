@@ -1,5 +1,9 @@
+import itertools
+
 import rlp
 from rlp import sedes
+
+from eth_utils import to_dict
 
 from evm.constants import (
     GENESIS_BLOCK_NUMBER,
@@ -41,13 +45,13 @@ class Status(Command):
         'flowControl/MRR': sedes.big_endian_int,
     }
 
+    @to_dict
     def decode_payload(self, rlp_data):
         data = super(Status, self).decode_payload(rlp_data)
         # The LES/Status msg contains an arbitrary list of (key, value) pairs, where values can
         # have different types and unknown keys should be ignored for forward compatibility
         # reasons, so here we need an extra pass to deserialize each of the key/value pairs we
         # know about.
-        decoded = {}
         for key, value in data:
             # The sedes.binary we use in .structure above will give us a bytes value here, but
             # using bytes as dictionary keys makes it impossible to use the dict() constructor
@@ -57,15 +61,16 @@ class Status(Command):
                 continue
             item_sedes = self.items_sedes[key]
             if item_sedes is not None:
-                decoded[key] = item_sedes.deserialize(value)
+                yield key, item_sedes.deserialize(value)
             else:
-                decoded[key] = value
-        return decoded
+                yield key, value
 
     def encode_payload(self, data):
-        response = []
-        for key, value in data.items():
-            response.append((key, self.items_sedes[key].serialize(value)))
+        response = [
+            (key, self.items_sedes[key].serialize(value))
+            for key, value
+            in sorted(data.items())
+        ]
         return super(Status, self).encode_payload(response)
 
     def handle(self, proto, data):
@@ -129,7 +134,9 @@ class LESProtocol(Protocol):
     name = b'les'
     version = 1
     _commands = [Status, Announce, BlockHeaders]
-    _req_id = 0
+    _req_id = itertools.count()
+    # By default, whenever we send a GetBlockHeaders we'll expect max_headers in response.
+    # FIXME: Should be a config value somewhere, maybe?
     max_headers = 10
     handshake_msg_type = Status
     cmd_length = 15
@@ -155,9 +162,9 @@ class LESProtocol(Protocol):
         # 2. genesis hash does not match
         pass
 
+    @property
     def next_req_id(self):
-        self._req_id += 1
-        return self._req_id
+        return next(self._req_id)
 
     def send_get_block_headers(self, block_number, reverse=True, max_headers=max_headers):
         """Send a GetBlockHeaders msg to the remote.
@@ -166,10 +173,10 @@ class LESProtocol(Protocol):
         reverse is False or ending at block_number if reverse is True.
         """
         cmd = GetBlockHeaders(self.cmd_id_offset)
-        req_id = self.next_req_id()
+        # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
-            'request_id': req_id,
+            'request_id': self.next_req_id,
             'query': GetBlockHeadersQuery(block_number, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
