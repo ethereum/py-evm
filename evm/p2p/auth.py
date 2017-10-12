@@ -24,7 +24,6 @@ from evm.p2p.constants import (
     SIGNATURE_LEN,
     SUPPORTED_RLPX_VERSION,
 )
-from evm.p2p.peer import Peer
 from evm.p2p.utils import (
     sxor,
 )
@@ -36,6 +35,8 @@ def handshake(remote, privkey):
 
     The Peer will be configured with the shared secrets established during the handshake.
     """
+    # Local import to avoid circular dependencies.
+    from evm.p2p.peer import Peer
     initiator = HandshakeInitiator(remote, privkey)
     reader, writer = yield from initiator.connect()
     aes_secret, mac_secret, egress_mac, ingress_mac = yield from _handshake(

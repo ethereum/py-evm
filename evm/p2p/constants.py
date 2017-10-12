@@ -31,3 +31,9 @@ HEADER_LEN = 16
 
 # Length of an RLPx header's/frame's MAC
 MAC_LEN = 16
+
+# The amount of seconds a connection can be idle.
+CONN_IDLE_TIMEOUT = 30
+
+# Total time, in seconds, for a complete encryption/P2P handshake, both ways.
+HANDSHAKE_TIMEOUT = 5

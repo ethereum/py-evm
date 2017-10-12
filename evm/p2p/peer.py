@@ -18,8 +18,11 @@ from eth_utils import (
 
 from eth_keys import keys
 
+from evm.p2p import auth
 from evm.p2p import ecies
 from evm.p2p.constants import (
+    CONN_IDLE_TIMEOUT,
+    HANDSHAKE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
 )
@@ -27,6 +30,8 @@ from evm.p2p.exceptions import (
     AuthenticationError,
     PeerDisconnected,
     UnknownProtocolCommand,
+    UnreachablePeer,
+    UselessPeer,
 )
 from evm.p2p.utils import (
     roundup_16,
@@ -37,6 +42,27 @@ from evm.p2p.p2p_proto import (
     DisconnectReason,
     P2PProtocol,
 )
+
+
+@asyncio.coroutine
+def handshake(remote, privkey):
+    """Perform the auth and P2P handshakes with the given remote.
+
+    Return a Peer connected to that remote in case both handshakes are successful and at least one
+    of the sub-protocols supported by us is also supported by the remote.
+
+    Raises UnreachablePeer if we cannot connect to the peer or UselessPeer if none of the
+    sub-protocols supported by us is also supported by the remote.
+    """
+    try:
+        peer = yield from auth.handshake(remote, privkey)
+    except (ConnectionRefusedError, OSError) as e:
+        raise UnreachablePeer(e)
+    msg = yield from peer.read_msg()
+    peer.process_msg(msg)
+    if len(peer.enabled_sub_protocols) == 0:
+        raise UselessPeer()
+    return peer
 
 
 class Peer:
@@ -51,6 +77,7 @@ class Peer:
         self.privkey = privkey
         self.reader = reader
         self.writer = writer
+        self._finished = asyncio.Event()
         # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
         self.enabled_sub_protocols = []
@@ -92,26 +119,34 @@ class Peer:
     def read(self, n):
         self.logger.debug("Waiting for {} bytes from {}".format(n, self.remote))
         try:
-            data = yield from self.reader.readexactly(n)
-        except asyncio.IncompleteReadError:
+            data = yield from asyncio.wait_for(self.reader.readexactly(n), CONN_IDLE_TIMEOUT)
+        except (asyncio.IncompleteReadError, ConnectionResetError):
             self.logger.debug("EOF reading from {}'s stream".format(self.remote))
             raise PeerDisconnected()
         return data
 
     @asyncio.coroutine
     def start(self):
-        yield from self.read_loop()
+        try:
+            yield from self.read_loop()
+        except Exception as e:
+            self.logger.error("Unexpected error when handling remote msg: {}".format(e))
+        finally:
+            self._finished.set()
 
+    @asyncio.coroutine
     def stop(self):
+        self.reader.feed_eof()
         self.writer.close()
+        yield from self._finished.wait()
 
     @asyncio.coroutine
     def read_loop(self):
         while True:
             try:
                 msg = yield from self.read_msg()
-            except PeerDisconnected:
-                self.stop()
+            except (PeerDisconnected, asyncio.TimeoutError):
+                self.logger.debug("Peer {} stopped responding, disconnecting".format(self.remote))
                 return
             self.process_msg(msg)
 
@@ -139,10 +174,13 @@ class Peer:
         self.match_protocols(decoded_msg['capabilities'])
         if len(self.enabled_sub_protocols) == 0:
             self.disconnect(DisconnectReason.useless_peer)
-        self.logger.info(
-            "Finished P2P handshake with {}; matching protocols: {}".format(
-                self.remote,
-                [(p.name, p.version) for p in self.enabled_sub_protocols]))
+            self.logger.debug(
+                "No matching protocols with {}, disconnecting".format(self.remote))
+        else:
+            self.logger.debug(
+                "Finished P2P handshake with {}; matching protocols: {}".format(
+                    self.remote,
+                    [(p.name, p.version) for p in self.enabled_sub_protocols]))
 
     def encrypt(self, header, frame):
         if len(header) != HEADER_LEN:
@@ -214,7 +252,7 @@ class Peer:
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
-            self.logger.info("Disconnecting from remote peer; reason: {}".format(reason.value))
+            self.logger.debug("Disconnecting from remote peer; reason: {}".format(reason.value))
         self.base_protocol.send_disconnect(reason.value)
         self.stop()
 
@@ -250,7 +288,6 @@ if __name__ == "__main__":
       -port 30301 -nat none -testnet -lightserv 90
     """
     from evm.p2p import kademlia
-    from evm.p2p import auth
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
     remote_pubkey = keys.PrivateKey(decode_hex(
         "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")).public_key
@@ -263,8 +300,19 @@ if __name__ == "__main__":
 
     @asyncio.coroutine
     def do_handshake():
-        peer = yield from auth.handshake(remote, ecies.generate_privkey())
-        peers.append(peer)
+        try:
+            peer = yield from asyncio.wait_for(
+                handshake(remote, ecies.generate_privkey()),
+                HANDSHAKE_TIMEOUT)
+            peers.append(peer)
+        except UnreachablePeer as e:
+            print("Failed to connect to {}: {}".format(remote, e))
+        except UselessPeer:
+            print("No matching capabilities with {}".format(remote))
+        except asyncio.TimeoutError as e:
+            print("Timeout performing handshake with {}: {}".format(remote, e))
+        except Exception as e:
+            print("Unexpected error during auth/p2p handhsake with {}: {}".format(remote, e))
 
     count = 1  # Number of peers to start
     try:
@@ -275,6 +323,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
-    for peer in peers:
-        peer.stop()
+    loop.run_until_complete(asyncio.gather(*[peer.stop() for peer in peers]))
     loop.close()

@@ -12,3 +12,11 @@ class PeerDisconnected(Exception):
 
 class UnknownProtocolCommand(Exception):
     pass
+
+
+class UselessPeer(Exception):
+    pass
+
+
+class UnreachablePeer(Exception):
+    pass
