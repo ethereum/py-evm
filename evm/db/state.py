@@ -10,6 +10,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from evm.db.immutable import (
+    ImmutableDB,
+)
 from evm.rlp.accounts import (
     Account,
 )
@@ -32,7 +35,7 @@ from evm.utils.padding import (
 from .hash_trie import HashTrie
 
 
-class State(object):
+class State:
     """
     High level API around account storage.
     """
@@ -41,9 +44,12 @@ class State(object):
 
     logger = logging.getLogger('evm.state.State')
 
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH):
-        self.db = db
-        self._trie = HashTrie(Trie(db, root_hash))
+    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+        if read_only:
+            self.db = ImmutableDB(db)
+        else:
+            self.db = db
+        self._trie = HashTrie(Trie(self.db, root_hash))
 
     #
     # Base API
