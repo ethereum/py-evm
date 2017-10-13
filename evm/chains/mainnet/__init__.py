@@ -8,11 +8,14 @@ from evm.vm.forks import (
 )
 
 
+MAINNET_VM_CONFIGURATION = (
+    (0, FrontierVM),
+    (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+    (constants.EIP150_MAINNET_BLOCK, EIP150VM),
+)
+
+
 MainnetChain = Chain.configure(
     'MainnetChain',
-    vm_configuration=(
-        (0, FrontierVM),
-        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
-        (constants.EIP150_MAINNET_BLOCK, EIP150VM)
-    )
+    vm_configuration=MAINNET_VM_CONFIGURATION,
 )

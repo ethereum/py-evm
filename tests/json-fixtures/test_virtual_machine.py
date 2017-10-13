@@ -1,6 +1,6 @@
-import pytest
-
 import os
+
+import pytest
 
 from evm.db import (
     get_db_backend,
@@ -11,10 +11,6 @@ from eth_utils import (
     keccak,
 )
 
-from evm import (
-    Chain,
-)
-from evm import constants
 from evm.exceptions import (
     VMError,
 )
@@ -22,8 +18,6 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.vm.forks import (
-    EIP150VM,
-    FrontierVM,
     HomesteadVM,
 )
 from evm.vm import (
@@ -33,9 +27,12 @@ from evm.vm import (
 
 from evm.utils.fixture_tests import (
     normalize_vmtest_fixture,
-    find_fixtures,
+    generate_fixture_tests,
+    load_fixture,
+    filter_fixtures,
     setup_state_db,
     verify_state_db,
+    hash_log_entries,
 )
 
 
@@ -45,25 +42,35 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
 
-def vm_fixture_skip_fn(fixture_path, fixture_name, fixture):
-    return False
+def vm_fixture_mark_fn(fixture_path, fixture_name):
+    if fixture_path.startswith('vmPerformance'):
+        return pytest.mark.skip('Performance tests are really slow')
+    elif fixture_path == 'vmSystemOperations/createNameRegistrator.json':
+        return pytest.mark.skip(
+            'Skipped in go-ethereum due to failure without parallel processing'
+        )
 
 
-def vm_fixture_mark_fn(fixture_name):
-    if 'Performance' in fixture_name:
-        return pytest.mark.vm_performance
-    elif 'vmInputLimits' in fixture_name:
-        return pytest.mark.vm_limits
-    else:
-        return None
+def pytest_generate_tests(metafunc):
+    generate_fixture_tests(
+        metafunc=metafunc,
+        base_fixture_path=BASE_FIXTURE_PATH,
+        filter_fn=filter_fixtures(
+            fixtures_base_dir=BASE_FIXTURE_PATH,
+            mark_fn=vm_fixture_mark_fn,
+        )
+    )
 
 
-FIXTURES = find_fixtures(
-    BASE_FIXTURE_PATH,
-    normalize_vmtest_fixture,
-    skip_fn=vm_fixture_skip_fn,
-    mark_fn=vm_fixture_mark_fn,
-)
+@pytest.fixture
+def fixture(fixture_data):
+    fixture_path, fixture_key = fixture_data
+    fixture = load_fixture(
+        fixture_path,
+        fixture_key,
+        normalize_vmtest_fixture,
+    )
+    return fixture
 
 
 #
@@ -100,40 +107,27 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-FrontierVMForTesting = FrontierVM.configure(
-    name='FrontierVMForTesting',
-    apply_message=apply_create_message_for_testing,
-    apply_create_message=apply_create_message_for_testing,
-    get_ancestor_hash=get_block_hash_for_testing,
-)
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     apply_message=apply_create_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
     get_ancestor_hash=get_block_hash_for_testing,
 )
-EIP150VMForTesting = EIP150VM.configure(
-    name='EIP150VMForTesting',
-    apply_message=apply_create_message_for_testing,
-    apply_create_message=apply_create_message_for_testing,
-    get_ancestor_hash=get_block_hash_for_testing,
-)
 
 
-ChainForTesting = Chain.configure(
-    name='ChainForTesting',
-    vm_configuration=(
-        (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
-        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
-        (constants.EIP150_MAINNET_BLOCK, EIP150VMForTesting),
-    ),
-)
+@pytest.fixture(params=['Frontier', 'Homestead', 'EIP150'])
+def vm_class(request):
+    if request.param == 'Frontier':
+        pytest.skip('Only the Homestead VM rules are currently supported')
+    elif request.param == 'Homestead':
+        return HomesteadVMForTesting
+    elif request.param == 'EIP150':
+        pytest.skip('Only the Homestead VM rules are currently supported')
+    else:
+        assert False, "Unsupported VM: {0}".format(request.param)
 
 
-@pytest.mark.parametrize(
-    'fixture_name,fixture', FIXTURES,
-)
-def test_vm_fixtures(fixture_name, fixture):
+def test_vm_fixtures(fixture, vm_class):
     chaindb = BaseChainDB(get_db_backend())
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
@@ -142,8 +136,8 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    chain = ChainForTesting(chaindb=chaindb, header=header)
-    vm = chain.get_vm()
+    vm = vm_class(header=header, db=chaindb)
+
     with vm.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
@@ -166,15 +160,13 @@ def test_vm_fixtures(fixture_name, fixture):
         #
         assert computation.error is None
 
-        expected_logs = [
-            {
-                'address': log_entry[0],
-                'topics': log_entry[1],
-                'data': log_entry[2],
-            }
-            for log_entry in computation.get_log_entries()
-        ]
-        expected_logs == fixture['logs']
+        log_entries = computation.get_log_entries()
+        if 'logs' in fixture:
+            actual_logs_hash = hash_log_entries(log_entries)
+            expected_logs_hash = fixture['logs']
+            assert expected_logs_hash == actual_logs_hash
+        elif log_entries:
+            raise AssertionError("Got log entries: {0}".format(log_entries))
 
         expected_output = fixture['out']
         assert computation.output == expected_output

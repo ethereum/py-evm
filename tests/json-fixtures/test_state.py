@@ -1,8 +1,8 @@
-import pytest
-
 import os
 
-from eth_keys import KeyAPI
+import pytest
+
+from eth_keys import keys
 
 from evm.db import (
     get_db_backend,
@@ -10,12 +10,9 @@ from evm.db import (
 
 from eth_utils import (
     keccak,
+    to_tuple,
 )
 
-from evm import (
-    Chain,
-)
-from evm import constants
 from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     ValidationError,
@@ -28,90 +25,67 @@ from evm.vm.forks import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-
 from evm.utils.fixture_tests import (
-    find_fixtures,
+    load_fixture,
     normalize_statetest_fixture,
     setup_state_db,
-    verify_state_db,
+    filter_fixtures,
+    generate_fixture_tests,
+    hash_log_entries,
 )
 
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'StateTests')
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'GeneralStateTests')
 
 
-def state_fixture_skip_fn(fixture_path, fixture_name, fixture):
-    return (
-        "Stress" in fixture_path or
-        "Complexity" in fixture_path
+@to_tuple
+def expand_fixtures_forks(all_fixtures):
+    """
+    The statetest fixtures have different definitions for each fork and must be
+    expanded one step further to have one fixture for each defined fork within
+    the fixture.
+    """
+    for fixture_path, fixture_key in all_fixtures:
+        fixture = load_fixture(fixture_path, fixture_key)
+        for fixture_fork, post_states in sorted(fixture['post'].items()):
+            for post_state_index in range(len(post_states)):
+                yield fixture_path, fixture_key, fixture_fork, post_state_index
+
+
+def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
+    if fixture_path.startswith('stTransactionTest/zeroSigTransa'):
+        return pytest.mark.skip("EIP-86 not supported.")
+
+
+def pytest_generate_tests(metafunc):
+    generate_fixture_tests(
+        metafunc=metafunc,
+        base_fixture_path=BASE_FIXTURE_PATH,
+        preprocess_fn=expand_fixtures_forks,
+        filter_fn=filter_fixtures(
+            fixtures_base_dir=BASE_FIXTURE_PATH,
+            mark_fn=mark_statetest_fixtures,
+        ),
     )
 
 
-# These tests all take more than 1 second to run.
-SLOW_FIXTURE_NAMES = {
-    'Homestead/stCallCreateCallCodeTest.json:Call1024OOG',
-    'Homestead/stCallCreateCallCodeTest.json:CallRecursiveBombPreCall',
-    'Homestead/stCallCreateCallCodeTest.json:Callcode1024OOG',
-    'Homestead/stCallCreateCallCodeTest.json:callcodeWithHighValueAndGasOOG',
-    'Homestead/stCallCreateCallCodeTest.json:createInitFailStackSizeLargerThan1024',
-    'Homestead/stDelegatecallTest.json:Call1024OOG',
-    'Homestead/stDelegatecallTest.json:CallRecursiveBombPreCall',
-    'Homestead/stDelegatecallTest.json:Delegatecall1024OOG',
-    'Homestead/stMemoryTest.json:stackLimitGas_1023',
-    'Homestead/stRecursiveCreate.json:recursiveCreateReturnValue',
-    'Homestead/stSpecialTest.json:JUMPDEST_Attack',
-    'Homestead/stSpecialTest.json:JUMPDEST_AttackwithJump',
-    'Homestead/stSystemOperationsTest.json:ABAcalls1',
-    'Homestead/stSystemOperationsTest.json:ABAcalls2',
-    'Homestead/stSystemOperationsTest.json:ABAcalls3',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb0',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb1',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb2',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBomb3',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBombLog',
-    'Homestead/stSystemOperationsTest.json:CallRecursiveBombLog2',
-    'Homestead/stWalletTest.json:walletAddOwnerRemovePendingTransaction',
-    'stBlockHashTest.json:blockhashDOS-sec71',
-    'stCallCreateCallCodeTest.json:Call1024OOG',
-    'stCallCreateCallCodeTest.json:CallRecursiveBombPreCall',
-    'stCallCreateCallCodeTest.json:Callcode1024OOG',
-    'stRecursiveCreate.json:recursiveCreateReturnValue',
-    'stSolidityTest.json:CallInfiniteLoop',
-    'stSpecialTest.json:JUMPDEST_Attack',
-    'stSpecialTest.json:JUMPDEST_AttackwithJump',
-    'stSpecialTest.json:block504980',
-    'stSystemOperationsTest.json:ABAcalls1',
-    'stSystemOperationsTest.json:ABAcalls2',
-    'stSystemOperationsTest.json:ABAcalls3',
-    'stSystemOperationsTest.json:CallRecursiveBomb0',
-    'stSystemOperationsTest.json:CallRecursiveBomb0_OOG_atMaxCallDepth',
-    'stSystemOperationsTest.json:CallRecursiveBomb1',
-    'stSystemOperationsTest.json:CallRecursiveBomb2',
-    'stSystemOperationsTest.json:CallRecursiveBomb3',
-    'stSystemOperationsTest.json:CallRecursiveBombLog',
-    'stSystemOperationsTest.json:CallRecursiveBombLog2',
-}
+@pytest.fixture
+def fixture(fixture_data):
+    fixture_path, fixture_key, fixture_fork, post_state_index = fixture_data
+    fixture = load_fixture(
+        fixture_path,
+        fixture_key,
+        normalize_statetest_fixture(fork=fixture_fork, post_state_index=post_state_index),
+    )
+    return fixture
 
 
-def state_fixture_mark_fn(fixture_name):
-    if fixture_name in SLOW_FIXTURE_NAMES:
-        return pytest.mark.state_slow
-    else:
-        return None
-
-
-FIXTURES = find_fixtures(
-    BASE_FIXTURE_PATH,
-    normalize_statetest_fixture,
-    skip_fn=state_fixture_skip_fn,
-    mark_fn=state_fixture_mark_fn,
-)
-
-
+#
+# Test Chain Setup
+#
 def get_block_hash_for_testing(self, block_number):
     if block_number >= self.block.header.block_number:
         return b''
@@ -137,24 +111,28 @@ EIP150VMForTesting = EIP150VM.configure(
 )
 
 
-ChainForTesting = Chain.configure(
-    name='ChainForTesting',
-    vm_configuration=(
-        (constants.GENESIS_BLOCK_NUMBER, FrontierVMForTesting),
-        (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVMForTesting),
-        (constants.EIP150_MAINNET_BLOCK, EIP150VMForTesting),
-    ),
-)
+@pytest.fixture
+def fixture_vm_class(fixture_data):
+    _, _, fork_name, _ = fixture_data
+    if fork_name == 'Frontier':
+        return FrontierVMForTesting
+    elif fork_name == 'Homestead':
+        return HomesteadVMForTesting
+    elif fork_name == 'EIP150':
+        return EIP150VMForTesting
+    elif fork_name == 'EIP158':
+        pytest.skip("EIP158 VM has not been implemented")
+    elif fork_name == 'Byzantium':
+        pytest.skip("Byzantium VM has not been implemented")
+    elif fork_name == 'Constantinople':
+        pytest.skip("Constantinople VM has not been implemented")
+    elif fork_name == 'Metropolis':
+        pytest.skip("Metropolis VM has not been implemented")
+    else:
+        raise ValueError("Unknown Fork Name: {0}".format(fork_name))
 
 
-def test_found_state_fixtures():
-    assert len(FIXTURES) != 0
-
-
-@pytest.mark.parametrize(
-    'fixture_name,fixture', FIXTURES,
-)
-def test_state_fixtures(fixture_name, fixture):
+def test_state_fixtures(fixture, fixture_vm_class):
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -164,45 +142,64 @@ def test_state_fixtures(fixture_name, fixture):
         parent_hash=fixture['env']['previousHash'],
     )
     chaindb = BaseChainDB(get_db_backend())
-    chain = ChainForTesting(chaindb=chaindb, header=header)
+    vm = fixture_vm_class(header=header, db=chaindb)
 
-    with chain.get_vm().state_db() as state_db:
+    with vm.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
 
-    unsigned_transaction = chain.create_unsigned_transaction(
-        nonce=fixture['transaction']['nonce'],
-        gas_price=fixture['transaction']['gasPrice'],
-        gas=fixture['transaction']['gasLimit'],
-        to=fixture['transaction']['to'],
-        value=fixture['transaction']['value'],
-        data=fixture['transaction']['data'],
-    )
-    private_key = KeyAPI().PrivateKey(fixture['transaction']['secretKey'])
-    transaction = unsigned_transaction.as_signed_transaction(private_key=private_key)
+    if 'secretKey' in fixture['transaction']:
+        unsigned_transaction = vm.create_unsigned_transaction(
+            nonce=fixture['transaction']['nonce'],
+            gas_price=fixture['transaction']['gasPrice'],
+            gas=fixture['transaction']['gasLimit'],
+            to=fixture['transaction']['to'],
+            value=fixture['transaction']['value'],
+            data=fixture['transaction']['data'],
+        )
+        private_key = keys.PrivateKey(fixture['transaction']['secretKey'])
+        transaction = unsigned_transaction.as_signed_transaction(private_key=private_key)
+    elif 'vrs' in fixture['transaction']:
+        v, r, s = (
+            fixture['transaction']['v'],
+            fixture['transaction']['r'],
+            fixture['transaction']['s'],
+        )
+        transaction = vm.create_transaction(
+            nonce=fixture['transaction']['nonce'],
+            gas_price=fixture['transaction']['gasPrice'],
+            gas=fixture['transaction']['gasLimit'],
+            to=fixture['transaction']['to'],
+            value=fixture['transaction']['value'],
+            data=fixture['transaction']['data'],
+            v=v,
+            r=r,
+            s=s,
+        )
 
     try:
-        computation = chain.apply_transaction(transaction)
+        computation = vm.apply_transaction(transaction)
     except ValidationError:
         transaction_error = True
     else:
         transaction_error = False
 
     if not transaction_error:
-        expected_logs = [
-            {
-                'address': log_entry[0],
-                'topics': log_entry[1],
-                'data': log_entry[2],
-            }
-            for log_entry in computation.get_log_entries()
-        ]
-        expected_logs == fixture['logs']
+        log_entries = computation.get_log_entries()
+        actual_logs_hash = hash_log_entries(log_entries)
+        if 'logs' in fixture['post']:
+            expected_logs_hash = fixture['post']['logs']
+            assert expected_logs_hash == actual_logs_hash
+        elif log_entries:
+            raise AssertionError("Got log {0} entries. hash:{1}".format(
+                len(log_entries),
+                actual_logs_hash,
+            ))
 
-        expected_output = fixture['out']
-        if isinstance(expected_output, int):
-            assert len(computation.output) == expected_output
-        else:
-            assert computation.output == expected_output
+        if 'out' in fixture:
+            expected_output = fixture['out']
+            if isinstance(expected_output, int):
+                assert len(computation.output) == expected_output
+            else:
+                assert computation.output == expected_output
 
-    with chain.get_vm().state_db(read_only=True) as state_db:
-        verify_state_db(fixture['post'], state_db)
+    assert vm.block.header.state_root == fixture['post']['hash']

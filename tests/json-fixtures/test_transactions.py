@@ -28,7 +28,8 @@ from evm.rlp.headers import (
 )
 
 from evm.utils.fixture_tests import (
-    find_fixtures,
+    generate_fixture_tests,
+    load_fixture,
     normalize_transactiontest_fixture,
     normalize_signed_transaction,
 )
@@ -40,20 +41,25 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
 
 
-FIXTURES = find_fixtures(
-    BASE_FIXTURE_PATH,
-    normalize_transactiontest_fixture,
-)
+def pytest_generate_tests(metafunc):
+    generate_fixture_tests(
+        metafunc=metafunc,
+        base_fixture_path=BASE_FIXTURE_PATH,
+    )
 
 
-def test_transaction_fixtures_smoke_test():
-    assert FIXTURES
+@pytest.fixture
+def fixture(fixture_data):
+    fixture_path, fixture_key = fixture_data
+    fixture = load_fixture(
+        fixture_path,
+        fixture_key,
+        normalize_transactiontest_fixture,
+    )
+    return fixture
 
 
-@pytest.mark.parametrize(
-    'fixture_name,fixture', FIXTURES,
-)
-def test_transaction_fixtures(fixture_name, fixture):
+def test_transaction_fixtures(fixture):
     header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
     chain = MainnetChain(BaseChainDB(get_db_backend()), header=header)
     vm = chain.get_vm()

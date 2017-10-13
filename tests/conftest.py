@@ -1,7 +1,7 @@
-import pytest
-
 import logging
 import sys
+
+import pytest
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -28,6 +28,8 @@ def vm_logger():
 @pytest.yield_fixture(autouse=True)
 def vm_file_logger(request):
     import datetime
+    import os
+
     logger = logging.getLogger('evm')
 
     level = logging.TRACE
@@ -36,10 +38,13 @@ def vm_file_logger(request):
 
     logger.setLevel(level)
 
-    fixture_name = request.getfuncargvalue('fixture_name')
-    _, _, safe_fixture_name = fixture_name.rpartition('/')
+    fixture_data = request.getfuncargvalue('fixture_data')
+    fixture_path = fixture_data[0]
     logfile_name = 'logs/{0}-{1}.log'.format(
-        safe_fixture_name,
+        '-'.join(
+            [os.path.basename(fixture_path)] +
+            [str(value) for value in fixture_data[1:]]
+        ),
         datetime.datetime.now().isoformat(),
     )
 
