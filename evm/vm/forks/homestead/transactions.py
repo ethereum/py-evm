@@ -1,3 +1,5 @@
+import rlp
+
 from evm.constants import (
     GAS_TX,
     GAS_TXCREATE,
@@ -27,15 +29,15 @@ class HomesteadTransaction(FrontierTransaction):
     def get_intrensic_gas(self):
         return _get_homestead_intrensic_gas(self)
 
-    def as_unsigned_transaction(self):
-        return HomesteadUnsignedTransaction(
+    def get_message_for_signing(self):
+        return rlp.encode(HomesteadUnsignedTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
             gas=self.gas,
             to=self.to,
             value=self.value,
             data=self.data,
-        )
+        ))
 
     @classmethod
     def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):

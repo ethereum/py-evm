@@ -1,3 +1,4 @@
+import rlp
 from rlp.sedes import (
     big_endian_int,
     binary,
@@ -79,15 +80,15 @@ class FrontierTransaction(BaseTransaction):
     def get_intrensic_gas(self):
         return _get_frontier_intrensic_gas(self.data)
 
-    def as_unsigned_transaction(self):
-        return FrontierUnsignedTransaction(
+    def get_message_for_signing(self):
+        return rlp.encode(FrontierUnsignedTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
             gas=self.gas,
             to=self.to,
             value=self.value,
             data=self.data,
-        )
+        ))
 
     @classmethod
     def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):

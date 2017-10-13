@@ -88,9 +88,9 @@ class BaseTransaction(rlp.Serializable):
     #
     # Conversion to and creation of unsigned transactions.
     #
-    def as_unsigned_transaction(self):
+    def get_message_for_signing(self):
         """
-        Return an unsigned version of this transaction.
+        Return the bytestring that should be signed in order to create a signed transactions
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
