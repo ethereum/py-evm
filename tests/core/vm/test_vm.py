@@ -59,7 +59,7 @@ def test_state_db(chain_without_block_validation):  # noqa: F811
     with vm.state_db() as state_db:
         pass
 
-    with pytest.raises(Exception):  # TODO: fix this to be a real exception
+    with pytest.raises(TypeError):
         state_db.increment_nonce(address)
 
     with vm.state_db(read_only=True) as state_db:
