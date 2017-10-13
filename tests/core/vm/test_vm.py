@@ -55,6 +55,13 @@ def test_state_db(chain_without_block_validation):  # noqa: F811
     address = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     initial_state_root = vm.block.header.state_root
 
+    # test cannot write to state_db after context exits
+    with vm.state_db() as state_db:
+        pass
+
+    with pytest.raises(Exception):  # TODO: fix this to be a real exception
+        state_db.increment_nonce(address)
+
     with vm.state_db(read_only=True) as state_db:
         state_db.get_balance(address)
     assert vm.block.header.state_root == initial_state_root
@@ -63,6 +70,6 @@ def test_state_db(chain_without_block_validation):  # noqa: F811
         state_db.set_balance(address, 10)
     assert vm.block.header.state_root != initial_state_root
 
-    with pytest.raises(AssertionError):
-        with vm.state_db(read_only=True) as state_db:
+    with vm.state_db(read_only=True) as state_db:
+        with pytest.raises(TypeError):
             state_db.set_balance(address, 0)
