@@ -15,10 +15,6 @@ from evm.exceptions import (
     ValidationError,
 )
 
-from evm.utils.keccak import (
-    keccak,
-)
-
 
 def create_transaction_signature(unsigned_txn, private_key):
     signature = private_key.sign_msg(rlp.encode(unsigned_txn))
@@ -32,24 +28,24 @@ def validate_transaction_signature(transaction):
     canonical_v = v - 27
     vrs = (canonical_v, r, s)
     signature = keys.Signature(vrs=vrs)
-    unsigned_transaction = transaction.as_unsigned_transaction()
-    msg_hash = keccak(rlp.encode(unsigned_transaction))
+    message = transaction.get_message_for_signing()
     try:
-        public_key = signature.recover_public_key_from_msg_hash(msg_hash)
+        public_key = signature.recover_public_key_from_msg(message)
     except BadSignature as e:
         raise ValidationError("Bad Signature: {0}".format(str(e)))
 
-    if not signature.verify_msg_hash(msg_hash, public_key):
+    if not signature.verify_msg(message, public_key):
         raise ValidationError("Invalid Signature")
 
 
 def extract_transaction_sender(transaction):
     v, r, s = transaction.v, transaction.r, transaction.s
+
     canonical_v = v - 27
     vrs = (canonical_v, r, s)
     signature = keys.Signature(vrs=vrs)
-    unsigned_transaction = transaction.as_unsigned_transaction()
-    public_key = signature.recover_public_key_from_msg(rlp.encode(unsigned_transaction))
+    message = transaction.get_message_for_signing()
+    public_key = signature.recover_public_key_from_msg(message)
     sender = public_key.to_canonical_address()
     return sender
 
