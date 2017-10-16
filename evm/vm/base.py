@@ -26,6 +26,9 @@ from evm.utils.blocks import (
 from evm.utils.keccak import (
     keccak,
 )
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 
 class VM(object):
@@ -68,15 +71,26 @@ class VM(object):
 
     @contextmanager
     def state_db(self, read_only=False):
-        state = State(db=self.journal_db, root_hash=self.block.header.state_root)
+        state = State(
+            db=self.journal_db,
+            root_hash=self.block.header.state_root,
+            read_only=read_only,
+        )
         yield state
+
         if read_only:
-            # TODO: This is a bit of a hack; ideally we should raise an error whenever the
-            # callsite tries to call a State method that modifies it.
+            # This acts as a secondary check that no mutation took place for
+            # read_only databases.
             assert state.root_hash == self.block.header.state_root
         elif self.block.header.state_root != state.root_hash:
-            self.logger.debug("Updating block's state_root to %s", state.root_hash)
+            self.logger.debug("Updating block's state_root to %s", encode_hex(state.root_hash))
             self.block.header.state_root = state.root_hash
+
+        # remove the reference to the underlying `db` object to ensure that no
+        # further modifications can occur using the `State` object after
+        # leaving the context.
+        state.db = None
+        state._trie = None
 
     #
     # Logging

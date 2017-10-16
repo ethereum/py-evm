@@ -1,4 +1,4 @@
-class BaseDB(object):
+class BaseDB:
     def get(self, key):
         raise NotImplementedError(
             "The `get` method must be implemented by subclasses of BaseDB"
