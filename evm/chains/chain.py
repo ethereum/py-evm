@@ -11,6 +11,7 @@ from evm.consensus.pow import (
     check_pow,
 )
 from evm.constants import (
+    BLANK_ROOT_HASH,
     GENESIS_BLOCK_NUMBER,
     MAX_UNCLE_DEPTH,
 )
@@ -29,15 +30,6 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
-from evm.utils.blocks import (
-    add_block_number_to_hash_lookup,
-    get_score,
-    get_block_header_by_hash,
-    lookup_block_hash,
-)
-from evm.utils.blocks import (
-    persist_block_to_db,
-)
 from evm.utils.chain import (
     generate_vms_by_range,
 )
@@ -47,8 +39,6 @@ from evm.utils.hexadecimal import (
 from evm.utils.rlp import (
     ensure_imported_block_unchanged,
 )
-
-from evm.db.state import State
 
 
 class Chain(object):
@@ -63,13 +53,13 @@ class Chain(object):
 
     vms_by_range = None
 
-    def __init__(self, db, header):
+    def __init__(self, chaindb, header):
         if not self.vms_by_range:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
             )
 
-        self.db = db
+        self.chaindb = chaindb
         self.header = header
 
     @classmethod
@@ -142,13 +132,13 @@ class Chain(object):
             header = self.header
 
         vm_class = self.get_vm_class_for_block_number(header.block_number)
-        return vm_class(header=header, db=self.db)
+        return vm_class(header=header, chaindb=self.chaindb)
 
     #
     # Block Retrieval
     #
     def get_block_header_by_hash(self, block_hash):
-        return get_block_header_by_hash(self.db, block_hash)
+        return self.chaindb.get_block_header_by_hash(block_hash)
 
     def get_canonical_block_by_number(self, block_number):
         """
@@ -158,7 +148,7 @@ class Chain(object):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(lookup_block_hash(self.db, block_number))
+        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
 
     def get_block_by_hash(self, block_hash):
         """
@@ -174,13 +164,13 @@ class Chain(object):
     #
     @classmethod
     def from_genesis(cls,
-                     db,
+                     chaindb,
                      genesis_params,
                      genesis_state=None):
         """
         Initialize the Chain from a genesis state.
         """
-        state_db = State(db)
+        state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
 
         if genesis_state is None:
             genesis_state = {}
@@ -209,11 +199,11 @@ class Chain(object):
             )
 
         genesis_header = BlockHeader(**genesis_params)
-        genesis_chain = cls(db, genesis_header)
-        persist_block_to_db(db, genesis_chain.get_block())
-        add_block_number_to_hash_lookup(db, genesis_chain.get_block())
+        genesis_chain = cls(chaindb, genesis_header)
+        chaindb.persist_block_to_db(genesis_chain.get_block())
+        chaindb.add_block_number_to_hash_lookup(genesis_chain.get_block())
 
-        return cls(db, genesis_chain.create_header_from_parent(genesis_header))
+        return cls(chaindb, genesis_chain.create_header_from_parent(genesis_header))
 
     #
     # Mining and Execution API
@@ -246,7 +236,7 @@ class Chain(object):
             ensure_imported_block_unchanged(imported_block, block)
             self.validate_block(imported_block)
 
-        persist_block_to_db(self.db, imported_block)
+        self.chaindb.persist_block_to_db(imported_block)
         if self.should_be_canonical_chain_head(imported_block):
             self.set_as_canonical_chain_head(imported_block)
 
@@ -260,7 +250,7 @@ class Chain(object):
 
         self.validate_block(mined_block)
 
-        persist_block_to_db(self.db, mined_block)
+        self.chaindb.persist_block_to_db(mined_block)
         if self.should_be_canonical_chain_head(mined_block):
             self.set_as_canonical_chain_head(mined_block)
 
@@ -279,21 +269,21 @@ class Chain(object):
             ))
 
         init_header = self.create_header_from_parent(parent_header)
-        return type(self)(self.db, init_header)
+        return type(self)(self.chaindb, init_header)
 
     def should_be_canonical_chain_head(self, block):
         """
         TODO: fill this in.
         """
         current_head = self.get_block_by_hash(self.header.parent_hash)
-        return get_score(self.db, block.hash) > get_score(self.db, current_head.hash)
+        return self.chaindb.get_score(block.hash) > self.chaindb.get_score(current_head.hash)
 
     def set_as_canonical_chain_head(self, block):
         """
         Sets the block as the canonical chain HEAD.
         """
         for b in reversed(self.find_common_ancestor(block)):
-            add_block_number_to_hash_lookup(self.db, b)
+            self.chaindb.add_block_number_to_hash_lookup(b)
         self.header = self.create_header_from_parent(block.header)
 
     @to_tuple

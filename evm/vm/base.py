@@ -10,19 +10,10 @@ from evm.constants import (
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
-from evm.db.journal import (
-    JournalDB,
-)
-from evm.db.state import (
-    State,
-)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
 
-from evm.utils.blocks import (
-    get_block_header_by_hash,
-)
 from evm.utils.keccak import (
     keccak,
 )
@@ -38,20 +29,17 @@ class VM(object):
     individual VM classes for each fork of the protocol rules within that
     network.
     """
-    db = None
-
     opcodes = None
     _block_class = None
 
-    def __init__(self, header, db):
-        if db is None:
+    def __init__(self, header, chaindb):
+        if chaindb is None:
             raise ValueError("VM classes must have a `db`")
 
-        self.db = db
-        self.journal_db = JournalDB(self.db)
+        self.chaindb = chaindb
 
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=header, db=db)
+        self.block = block_class.from_header(header=header, chaindb=chaindb)
 
     @classmethod
     def configure(cls,
@@ -71,11 +59,7 @@ class VM(object):
 
     @contextmanager
     def state_db(self, read_only=False):
-        state = State(
-            db=self.journal_db,
-            root_hash=self.block.header.state_root,
-            read_only=read_only,
-        )
+        state = self.chaindb.get_state_db(self.block.header.state_root, read_only)
         yield state
 
         if read_only:
@@ -241,7 +225,7 @@ class VM(object):
         return cls._block_class
 
     def get_block_by_header(self, block_header):
-        return self.get_block_class().from_header(block_header, self.db)
+        return self.get_block_class().from_header(block_header, self.chaindb)
 
     def get_ancestor_hash(self, block_number):
         """
@@ -250,9 +234,9 @@ class VM(object):
         ancestor_depth = self.block.number - block_number
         if ancestor_depth > 256 or ancestor_depth < 1:
             return b''
-        h = get_block_header_by_hash(self.db, self.block.header.parent_hash)
+        h = self.chaindb.get_block_header_by_hash(self.block.header.parent_hash)
         while h.block_number != block_number:
-            h = get_block_header_by_hash(self.db, h.parent_hash)
+            h = self.chaindb.get_block_header_by_hash(h.parent_hash)
         return h.hash
 
     #
@@ -284,7 +268,7 @@ class VM(object):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the checkpoint_id returned from the journaled DB.
         """
-        return (self.block.header.state_root, self.journal_db.snapshot())
+        return (self.block.header.state_root, self.chaindb.snapshot())
 
     def revert(self, snapshot):
         """
@@ -296,7 +280,7 @@ class VM(object):
             # first revert the database state root.
             state_db.root_hash = state_root
             # now roll the underlying database back
-            self.journal_db.revert(checkpoint_id)
+            self.chaindb.revert(checkpoint_id)
 
     def commit(self, snapshot):
         """
@@ -304,7 +288,7 @@ class VM(object):
         will destroy any journal checkpoints *after* the snapshot checkpoint.
         """
         _, checkpoint_id = snapshot
-        self.journal_db.commit(checkpoint_id)
+        self.chaindb.commit(checkpoint_id)
 
     def clear_journal(self):
         """
@@ -312,7 +296,7 @@ class VM(object):
         where the statedb is being committed, such as after a transaction has
         been applied to a block.
         """
-        self.journal_db.clear()
+        self.chaindb.clear()
 
     #
     # Opcode API

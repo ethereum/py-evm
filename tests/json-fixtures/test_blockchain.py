@@ -12,6 +12,7 @@ from evm import (
     Chain,
     MainnetChain,
 )
+from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     ValidationError,
 )
@@ -114,7 +115,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
     # TODO: find out if this is supposed to pass?
     # if 'genesisRLP' in fixture:
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
-    db = get_db_backend()
+    db = BaseChainDB(get_db_backend())
 
     chain = MainnetChain
     # TODO: It would be great if we can figure out an API for re-configuring
@@ -172,7 +173,7 @@ def test_blockchain_fixtures(fixture_name, fixture):
             block_class = chain.get_vm().get_block_class()
 
         try:
-            block = rlp.decode(block_data['rlp'], sedes=block_class, db=db)
+            block = rlp.decode(block_data['rlp'], sedes=block_class, chaindb=chain.chaindb)
         except (TypeError, rlp.DecodingError, rlp.DeserializationError) as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
             continue

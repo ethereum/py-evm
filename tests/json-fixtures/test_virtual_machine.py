@@ -5,6 +5,7 @@ import os
 from evm.db import (
     get_db_backend,
 )
+from evm.db.chain import BaseChainDB
 
 from eth_utils import (
     keccak,
@@ -133,7 +134,7 @@ ChainForTesting = Chain.configure(
     'fixture_name,fixture', FIXTURES,
 )
 def test_vm_fixtures(fixture_name, fixture):
-    db = get_db_backend()
+    chaindb = BaseChainDB(get_db_backend())
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -141,7 +142,7 @@ def test_vm_fixtures(fixture_name, fixture):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    chain = ChainForTesting(db=db, header=header)
+    chain = ChainForTesting(chaindb=chaindb, header=header)
     vm = chain.get_vm()
     with vm.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)

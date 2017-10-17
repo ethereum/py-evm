@@ -16,6 +16,7 @@ from evm import (
     Chain,
 )
 from evm import constants
+from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     ValidationError,
 )
@@ -162,8 +163,8 @@ def test_state_fixtures(fixture_name, fixture):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    db = get_db_backend()
-    chain = ChainForTesting(db=db, header=header)
+    chaindb = BaseChainDB(get_db_backend())
+    chain = ChainForTesting(chaindb=chaindb, header=header)
 
     with chain.get_vm().state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
