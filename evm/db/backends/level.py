@@ -1,5 +1,3 @@
-import shutil
-
 from .base import (
     BaseDB,
 )
@@ -32,7 +30,3 @@ class LevelDB(BaseDB):
 
     def delete(self, key):
         self.db.Delete(key)
-
-    # Clears the leveldb
-    def __del__(self):
-        shutil.rmtree(self.db_path, ignore_errors=True)
