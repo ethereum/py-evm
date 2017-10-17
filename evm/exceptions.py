@@ -19,6 +19,13 @@ class BlockNotFound(PyEVMError):
     pass
 
 
+class CanonicalHeadNotFound(PyEVMError):
+    """
+    The chain has no canonical head.
+    """
+    pass
+
+
 class ValidationError(PyEVMError):
     """
     Error to signal something does not pass a validation check.

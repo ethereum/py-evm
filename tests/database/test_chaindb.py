@@ -12,6 +12,7 @@ from evm.db import (
 from evm.db.chain import (
     BaseChainDB,
 )
+from evm.exceptions import BlockNotFound
 
 from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -51,8 +52,20 @@ def block(request, header, chaindb):
 def test_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
-    chaindb.add_block_number_to_hash_lookup(block)
+    chaindb.add_block_number_to_hash_lookup(block.header)
     assert chaindb.exists(block_number_to_hash_key)
+
+
+def test_persist_header_to_db(chaindb, header):
+    with pytest.raises(BlockNotFound):
+        chaindb.get_block_header_by_hash(header.hash)
+    number_to_hash_key = make_block_hash_to_score_lookup_key(header.hash)
+    assert not chaindb.exists(number_to_hash_key)
+
+    chaindb.persist_header_to_db(header)
+
+    assert chaindb.get_block_header_by_hash(header.hash) == header
+    assert chaindb.exists(number_to_hash_key)
 
 
 def test_persist_block_to_db(chaindb, block):
@@ -76,6 +89,6 @@ def test_get_block_header_by_hash(chaindb, block, header):
 
 
 def test_lookup_block_hash(chaindb, block):
-    chaindb.add_block_number_to_hash_lookup(block)
+    chaindb.add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash

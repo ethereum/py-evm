@@ -41,3 +41,21 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     assert block.transactions == [tx]
     assert chain.get_block_by_hash(block.hash) == block
     assert chain.get_canonical_block_by_number(block.number) == block
+
+
+def test_canonical_chain(chain):  # noqa: F811
+    genesis_header = chain.get_canonical_block_header_by_number(constants.GENESIS_BLOCK_NUMBER)
+
+    # Our chain fixture is created with only the genesis header, so initially that's the head of
+    # the canonical chain.
+    assert chain.get_canonical_head() == genesis_header
+
+    block = rlp.decode(valid_block_rlp, sedes=FrontierBlock, chaindb=chain.chaindb)
+    chain.chaindb.persist_header_to_db(block.header)
+
+    chain.set_as_canonical_chain_head(block.header)
+
+    assert chain.get_canonical_head() == block.header
+    canonical_block_1 = chain.get_canonical_block_header_by_number(
+        constants.GENESIS_BLOCK_NUMBER + 1)
+    assert canonical_block_1 == block.header

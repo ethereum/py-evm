@@ -17,6 +17,7 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
+    CanonicalHeadNotFound,
 )
 from evm.db.journal import (
     JournalDB,
@@ -40,6 +41,9 @@ from evm.utils.db import (
 )
 
 
+CANONICAL_HEAD_HASH_DB_KEY = b'canonical_head_hash'
+
+
 class BaseChainDB:
 
     def __init__(self, db):
@@ -47,6 +51,19 @@ class BaseChainDB:
 
     def exists(self, key):
         return self.db.exists(key)
+
+    def get_canonical_head(self):
+        if not self.exists(CANONICAL_HEAD_HASH_DB_KEY):
+            raise CanonicalHeadNotFound("No canonical head set for this chain")
+        return self.get_block_header_by_hash(self.db.get(CANONICAL_HEAD_HASH_DB_KEY))
+
+    def set_canonical_head(self, head_hash):
+        try:
+            self.get_block_header_by_hash(head_hash)
+        except BlockNotFound:
+            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
+                head_hash))
+        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, head_hash)
 
     def get_score(self, block_hash):
         # TODO: This may be a problem as not all chains will start with the same
@@ -111,26 +128,28 @@ class BaseChainDB:
             else:
                 break
 
-    def add_block_number_to_hash_lookup(self, block):
+    def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
-            block.header.block_number
+            header.block_number
         )
         self.db.set(
             block_number_to_hash_key,
-            rlp.encode(block.hash, sedes=rlp.sedes.binary),
+            rlp.encode(header.hash, sedes=rlp.sedes.binary),
         )
+
+    def persist_header_to_db(self, header):
+        self.db.set(
+            header.hash,
+            rlp.encode(header),
+        )
+
+        score = self.get_score(header.parent_hash) + header.difficulty
+        self.db.set(
+            make_block_hash_to_score_lookup_key(header.hash),
+            rlp.encode(score, sedes=rlp.sedes.big_endian_int))
 
     def persist_block_to_db(self, block):
-        # Persist the block header
-        self.db.set(
-            block.header.hash,
-            rlp.encode(block.header),
-        )
-
-        score = self.get_score(block.header.parent_hash) + block.header.difficulty
-        self.db.set(
-            make_block_hash_to_score_lookup_key(block.hash),
-            rlp.encode(score, sedes=rlp.sedes.big_endian_int))
+        self.persist_header_to_db(block.header)
 
         # Persist the transactions
         transaction_db = Trie(self.db, root_hash=BLANK_ROOT_HASH)
