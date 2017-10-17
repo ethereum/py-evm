@@ -8,6 +8,9 @@ from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
 )
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 from .call import max_child_gas_eip150
 
@@ -80,10 +83,24 @@ class Create(Opcode):
             computation.gas_meter.gas_remaining)
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-        with computation.vm.state_db(read_only=True) as state_db:
+        with computation.vm.state_db() as state_db:
             creation_nonce = state_db.get_nonce(computation.msg.storage_address)
-        contract_address = generate_contract_address(
-            computation.msg.storage_address, creation_nonce)
+            state_db.increment_nonce(computation.msg.storage_address)
+
+            contract_address = generate_contract_address(
+                computation.msg.storage_address,
+                creation_nonce,
+            )
+
+            is_collision = state_db.account_has_code_or_nonce(contract_address)
+
+        if is_collision:
+            computation.vm.logger.debug(
+                "Address collision while creating contract: %s",
+                encode_hex(contract_address),
+            )
+            computation.stack.push(0)
+            return
 
         child_msg = computation.prepare_child_message(
             gas=create_msg_gas,
@@ -94,10 +111,7 @@ class Create(Opcode):
             create_address=contract_address,
         )
 
-        if child_msg.is_create:
-            child_computation = computation.vm.apply_create_message(child_msg)
-        else:
-            child_computation = computation.vm.apply_message(child_msg)
+        child_computation = computation.vm.apply_create_message(child_msg)
 
         computation.children.append(child_computation)
 

@@ -9,6 +9,7 @@ from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
+    ContractCreationCollision,
 )
 from evm.precompile import (
     PRECOMPILES,
@@ -111,7 +112,24 @@ def _execute_frontier_transaction(vm, transaction):
     # 2) Apply the message to the VM.
     #
     if message.is_create:
-        computation = vm.apply_create_message(message)
+        with vm.state_db(read_only=True) as state_db:
+            is_collision = state_db.account_has_code_or_nonce(contract_address)
+
+        if is_collision:
+            # The address of the newly created contract has *somehow* collided
+            # with an existing contract address.
+            computation = Computation(vm, message)
+            computation.error = ContractCreationCollision(
+                "Address collision while creating contract: {0}".format(
+                    encode_hex(contract_address),
+                )
+            )
+            vm.logger.debug(
+                "Address collision while creating contract: %s",
+                encode_hex(contract_address),
+            )
+        else:
+            computation = vm.apply_create_message(message)
     else:
         computation = vm.apply_message(message)
 
@@ -254,16 +272,6 @@ def _apply_frontier_computation(vm, message):
 
 
 def _apply_frontier_create_message(vm, message):
-    with vm.state_db() as state_db:
-        if state_db.get_balance(message.storage_address) > 0:
-            state_db.set_nonce(message.storage_address, 0)
-            state_db.set_code(message.storage_address, b'')
-            # TODO: figure out whether the following line is correct.
-            state_db.delete_storage(message.storage_address)
-
-        if message.sender != message.origin:
-            state_db.increment_nonce(message.sender)
-
     computation = vm.apply_message(message)
 
     if computation.error:

@@ -58,6 +58,8 @@ def expand_fixtures_forks(all_fixtures):
 def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
     if fixture_path.startswith('stTransactionTest/zeroSigTransa'):
         return pytest.mark.skip("EIP-86 not supported.")
+    elif fixture_path.startswith('stQuadraticComplexityTest'):
+        return pytest.mark.skip("Quadratic complexity tests are SLOWWWWWW")
 
 
 def pytest_generate_tests(metafunc):
