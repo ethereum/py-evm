@@ -11,6 +11,7 @@ from eth_utils import (
 )
 
 from evm.constants import (
+    BLANK_ROOT_HASH,
     GENESIS_DIFFICULTY,
     GENESIS_PARENT_HASH,
 )
@@ -132,25 +133,17 @@ class BaseChainDB:
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
 
         # Persist the transactions
-        for transaction in block.transactions:
-            self.db.set(
-                transaction.hash,
-                rlp.encode(transaction),
-            )
+        transaction_db = Trie(self.db, root_hash=BLANK_ROOT_HASH)
+        for i in range(len(block.transactions)):
+            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
+            transaction_db[index_key] = rlp.encode(block.transactions[i])
+        assert transaction_db.root_hash == block.header.transaction_root
 
         # Persist the uncles list
         self.db.set(
             block.header.uncles_hash,
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
-
-        # Persist each individual uncle
-        # TODO: is this necessary?
-        for uncle in block.uncles:
-            self.db.set(
-                uncle.hash,
-                rlp.encode(uncle),
-            )
 
     def add_transaction(self, block_header, index_key, transaction):
         transaction_db = Trie(self.db, root_hash=block_header.transaction_root)
