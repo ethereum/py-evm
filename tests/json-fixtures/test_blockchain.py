@@ -43,30 +43,16 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
-# A list of individual tests (fixture_path:fixture_name) that are disable
-# because of any reasons.
-DISABLED_INDIVIDUAL_TESTS = [
-    "bcInvalidHeaderTest.json:ExtraData1024",
-    "bcInvalidHeaderTest.json:DifferentExtraData1025",
-    # This test alone takes more than 10 minutes to run, and that causes the
-    # travis build to be terminated so it's disabled until we figure out how
-    # to make it run faster.
-    "Homestead/bcSuicideIssue.json:SuicideIssue",
-]
-
-
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):
-    # TODO: enable all tests
-    is_disabled = (
-        ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS
-    )
-    if is_disabled:
-        return pytest.mark.skip("Test in disabled list")
     if fixture_path.startswith('GeneralStateTests'):
         return pytest.mark.skip(
             "General state tests are also exported as blockchain tests.  We "
             "skip them here so we don't run them twice"
         )
+    elif fixture_path.startswith('bcExploitTest'):
+        return pytest.mark.skip("Exploit tests are slow")
+    elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
+        return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
 
 
 def blockchain_fixture_ignore_fn(fixture_path, fixture_name):

@@ -144,7 +144,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         parent_hash=fixture['env']['previousHash'],
     )
     chaindb = BaseChainDB(get_db_backend())
-    vm = fixture_vm_class(header=header, db=chaindb)
+    vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     with vm.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)

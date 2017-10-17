@@ -136,7 +136,7 @@ def test_vm_fixtures(fixture, vm_class):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    vm = vm_class(header=header, db=chaindb)
+    vm = vm_class(header=header, chaindb=chaindb)
 
     with vm.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
