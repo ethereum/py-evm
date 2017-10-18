@@ -89,7 +89,7 @@ class P2PProtocol(Protocol):
         # For the base protocol the cmd_id_offset is always 0.
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
-    def send_handshake(self):
+    def send_handshake(self, head_info=None):
         data = dict(version=self.version,
                     client_version_string=CLIENT_VERSION_STRING,
                     capabilities=self.peer.capabilities,

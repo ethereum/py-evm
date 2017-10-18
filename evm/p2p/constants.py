@@ -37,3 +37,15 @@ CONN_IDLE_TIMEOUT = 30
 
 # Total time, in seconds, for a complete encryption/P2P handshake, both ways.
 HANDSHAKE_TIMEOUT = 5
+
+# Timeout used when waiting for a reply from a remote node.
+REPLY_TIMEOUT = 2
+
+# Max number of items we can ask for in LES requests. These are the values used in geth and if we
+# ask for more than this the peers will disconnect from us.
+MAX_HEADERS_FETCH = 192
+MAX_BODIES_FETCH = 32
+MAX_RECEIPTS_FETCH = 128
+MAX_CODE_FETCH = 64
+MAX_PROOFS_FETCH = 64
+MAX_HEADER_PROOFS_FETCH = 64

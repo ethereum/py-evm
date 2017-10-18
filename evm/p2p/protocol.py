@@ -91,9 +91,8 @@ class Protocol:
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
         self.cmd_by_class = dict((cmd.__class__, cmd) for cmd in self.commands)
-        self.send_handshake()
 
-    def send_handshake(self):
+    def send_handshake(self, head_info):
         """Send the handshake msg for this protocol."""
         raise NotImplementedError()
 
