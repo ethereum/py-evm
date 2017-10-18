@@ -181,3 +181,16 @@ DAO_FORK_BLOCK_NUMBER = 1920000
 # EIP150
 #
 EIP150_MAINNET_BLOCK = 2463000
+
+
+#
+# Spurious Dragon
+#
+SPURIOUS_DRAGON_MAINNET_BLOCK = 2675000
+
+# https://github.com/ethereum/EIPs/issues/160
+GAS_EXP_EIP160 = 10
+GAS_EXPBYTE_EIP160 = 50
+
+# https://github.com/ethereum/EIPs/issues/170
+EIP170_CODE_SIZE_LIMIT = 24577

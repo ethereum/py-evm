@@ -115,13 +115,15 @@ HomesteadVMForTesting = HomesteadVM.configure(
 )
 
 
-@pytest.fixture(params=['Frontier', 'Homestead', 'EIP150'])
+@pytest.fixture(params=['Frontier', 'Homestead', 'EIP150', 'SpuriousDragon'])
 def vm_class(request):
     if request.param == 'Frontier':
         pytest.skip('Only the Homestead VM rules are currently supported')
     elif request.param == 'Homestead':
         return HomesteadVMForTesting
     elif request.param == 'EIP150':
+        pytest.skip('Only the Homestead VM rules are currently supported')
+    elif request.param == 'SpuriousDragon':
         pytest.skip('Only the Homestead VM rules are currently supported')
     else:
         assert False, "Unsupported VM: {0}".format(request.param)

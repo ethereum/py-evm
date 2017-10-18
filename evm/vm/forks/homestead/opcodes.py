@@ -1,5 +1,7 @@
 import copy
 
+from cytoolz import merge
+
 from evm import constants
 from evm import opcode_values
 from evm import mnemonics
@@ -20,13 +22,7 @@ NEW_OPCODES = {
 }
 
 
-UPDATED_OPCODES = {
-    # TODO: suicide?
-}
-
-
-HOMESTEAD_OPCODES = {
-    **copy.deepcopy(FRONTIER_OPCODES),  # noqa: E999
-    **UPDATED_OPCODES,
-    **NEW_OPCODES
-}
+HOMESTEAD_OPCODES = merge(
+    copy.deepcopy(FRONTIER_OPCODES),
+    NEW_OPCODES
+)

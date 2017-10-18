@@ -1,3 +1,7 @@
+from cytoolz import (
+    curry,
+)
+
 from evm import constants
 
 from evm.utils.numeric import (
@@ -133,7 +137,8 @@ def sdiv(computation):
     computation.stack.push(signed_to_unsigned(result))
 
 
-def exp(computation):
+@curry
+def exp(computation, gas_per_byte):
     """
     Exponentiation
     """
@@ -148,7 +153,7 @@ def exp(computation):
         result = pow(base, exponent, constants.UINT_256_CEILING)
 
     computation.gas_meter.consume_gas(
-        constants.GAS_EXPBYTE * byte_size,
+        gas_per_byte * byte_size,
         reason="EXP: exponent bytes",
     )
 

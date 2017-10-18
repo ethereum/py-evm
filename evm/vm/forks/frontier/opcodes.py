@@ -76,7 +76,7 @@ FRONTIER_OPCODES = {
         gas_cost=constants.GAS_MID,
     ),
     opcode_values.EXP: as_opcode(
-        logic_fn=arithmetic.exp,
+        logic_fn=arithmetic.exp(gas_per_byte=constants.GAS_EXPBYTE),
         mnemonic=mnemonics.EXP,
         gas_cost=constants.GAS_EXP,
     ),

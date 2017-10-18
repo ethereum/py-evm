@@ -31,6 +31,7 @@ class VM(object):
     """
     opcodes = None
     _block_class = None
+    _precompiles = None
 
     def __init__(self, header, chaindb):
         if chaindb is None:
@@ -75,6 +76,13 @@ class VM(object):
         # leaving the context.
         state.db = None
         state._trie = None
+
+    @property
+    def precompiles(self):
+        if self._precompiles is None:
+            return set()
+        else:
+            return self._precompiles
 
     #
     # Logging

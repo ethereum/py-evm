@@ -224,6 +224,9 @@ class DelegateCall(BaseCall):
         )
 
 
+#
+# EIP150
+#
 class CallEIP150(Call):
     def compute_msg_gas(self, computation, gas, to, value):
         extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
@@ -257,7 +260,7 @@ def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callsti
         # It feels wrong to raise an OutOfGas exception outside of GasMeter,
         # but I don't see an easy way around it.
         raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
-            gas,
+            extra_gas,
             computation.gas_meter.gas_remaining,
             mnemonic,
         ))
@@ -267,3 +270,18 @@ def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callsti
     total_fee = gas + extra_gas
     child_msg_gas = gas + (callstipend if value else 0)
     return child_msg_gas, total_fee
+
+
+#
+# EIP161
+#
+class CallEIP161(CallEIP150):
+    def compute_msg_extra_gas(self, computation, gas, to, value):
+        with computation.vm.state_db(read_only=True) as state_db:
+            account_is_dead = (
+                not state_db.account_exists(to) or
+                state_db.account_is_empty(to)
+            )
+        transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
+        create_gas_fee = constants.GAS_NEWACCOUNT if (account_is_dead and value) else 0
+        return transfer_gas_fee + create_gas_fee

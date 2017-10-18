@@ -28,6 +28,9 @@ from evm.utils.address import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
+from evm.utils.keccak import (
+    keccak,
+)
 
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
@@ -84,7 +87,7 @@ def _execute_frontier_transaction(vm, transaction):
         vm.logger.info(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "gas-price: %s | s: %s | r: %s | v: %s | data: %s"
+                "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
             ),
             encode_hex(transaction.sender),
             encode_hex(transaction.to),
@@ -94,7 +97,7 @@ def _execute_frontier_transaction(vm, transaction):
             transaction.s,
             transaction.r,
             transaction.v,
-            encode_hex(transaction.data),
+            encode_hex(keccak(transaction.data)),
         )
 
     message = Message(
@@ -188,13 +191,15 @@ def _execute_frontier_transaction(vm, transaction):
             )
 
     # Suicides
-    for account, beneficiary in computation.get_accounts_for_deletion():
-        # TODO: need to figure out how we prevent multiple suicides from
-        # the same account and if this is the right place to put this.
-        if vm.logger is not None:
-            vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+    with vm.state_db() as state_db:
+        for account, beneficiary in computation.get_accounts_for_deletion():
+            # TODO: need to figure out how we prevent multiple suicides from
+            # the same account and if this is the right place to put this.
+            if vm.logger is not None:
+                vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
-        with vm.state_db() as state_db:
+            # TODO: this balance setting is likely superflous and can be
+            # removed since `delete_account` does this.
             state_db.set_balance(account, 0)
             state_db.delete_account(account)
 
@@ -250,8 +255,8 @@ def _apply_frontier_computation(vm, message):
 
     with computation:
         # Early exit on pre-compiles
-        if computation.msg.code_address in PRECOMPILES:
-            return PRECOMPILES[computation.msg.code_address](computation)
+        if computation.msg.code_address in vm.precompiles:
+            return vm.precompiles[computation.msg.code_address](computation)
 
         for opcode in computation.code:
             opcode_fn = computation.vm.get_opcode_fn(opcode)
@@ -291,9 +296,10 @@ def _apply_frontier_create_message(vm, message):
             else:
                 if vm.logger:
                     vm.logger.debug(
-                        "SETTING CODE: %s -> %s",
+                        "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(message.storage_address),
-                        contract_code,
+                        len(contract_code),
+                        encode_hex(keccak(contract_code))
                     )
                 with vm.state_db() as state_db:
                     state_db.set_code(message.storage_address, contract_code)
@@ -306,6 +312,7 @@ FrontierVM = VM.configure(
     opcodes=FRONTIER_OPCODES,
     # classes
     _block_class=FrontierBlock,
+    _precompiles=PRECOMPILES,
     # helpers
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     configure_header=configure_frontier_header,

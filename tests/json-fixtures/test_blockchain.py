@@ -22,6 +22,7 @@ from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
+    SpuriousDragonVM,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -120,7 +121,9 @@ def chain_vm_configuration(fixture_data, fixture):
             (0, EIP150VM),
         )
     elif 'EIP158' in fixture_key or fixture_key.endswith('EIP158'):
-        pytest.skip('Spurious Dragon VM rules not yet supported')
+        return (
+            (0, SpuriousDragonVM),
+        )
     elif fixture_key.endswith('Metropolis'):
         pytest.skip('Metropolis VM rules not yet supported')
     elif fixture_key.endswith('Byzantium'):

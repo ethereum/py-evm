@@ -22,6 +22,16 @@ from evm.utils.transactions import (
 )
 
 
+from evm.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction,
+)
+
+from evm.utils.transactions import (
+    is_eip_155_signed_transaction,
+    validate_eip155_transaction_signature,
+)
+
+
 @pytest.mark.parametrize(
     "txn_class",
     (FrontierTransaction, HomesteadTransaction),
@@ -31,6 +41,15 @@ def test_pre_EIP155_transaction_signature_validation(txn_class, txn_fixture):
         pytest.skip("Only testng non-EIP155 transactions")
     transaction = rlp.decode(decode_hex(txn_fixture['signed']), sedes=txn_class)
     validate_transaction_signature(transaction)
+    transaction.check_signature_validity()
+
+
+def test_EIP155_transaction_signature_validation(txn_fixture):
+    transaction = rlp.decode(decode_hex(txn_fixture['signed']), sedes=SpuriousDragonTransaction)
+    if is_eip_155_signed_transaction(transaction):
+        validate_eip155_transaction_signature(transaction)
+    else:
+        validate_transaction_signature(transaction)
     transaction.check_signature_validity()
 
 
@@ -44,4 +63,12 @@ def test_pre_EIP155_transaction_sender_extraction(txn_class, txn_fixture):
     key = keys.PrivateKey(decode_hex(txn_fixture['key']))
     transaction = rlp.decode(decode_hex(txn_fixture['signed']), sedes=txn_class)
     sender = extract_transaction_sender(transaction)
+    assert is_same_address(sender, key.public_key.to_canonical_address())
+
+
+def test_EIP155_transaction_sender_extraction(txn_fixture):
+    key = keys.PrivateKey(decode_hex(txn_fixture['key']))
+    transaction = rlp.decode(decode_hex(txn_fixture['signed']), sedes=SpuriousDragonTransaction)
+    sender = extract_transaction_sender(transaction)
+    assert is_same_address(sender, transaction.sender)
     assert is_same_address(sender, key.public_key.to_canonical_address())

@@ -11,6 +11,7 @@ class Forks(enum.Enum):
     Frontier = 0
     Homestead = 1
     EIP150 = 2
+    SpuriousDragon = 3
 
 
 @pytest.mark.parametrize(
@@ -18,7 +19,32 @@ class Forks(enum.Enum):
     (
         (
             dict(),
-            ((0, Forks.EIP150),),
+            ((0, Forks.SpuriousDragon),),
+        ),
+        (
+            dict(spurious_dragon_block=1),
+            ((0, Forks.EIP150), (1, Forks.SpuriousDragon)),
+        ),
+        (
+            dict(eip150_start_block=1, spurious_dragon_block=2),
+            ((0, Forks.Homestead), (1, Forks.EIP150), (2, Forks.SpuriousDragon)),
+        ),
+        (
+            dict(homestead_start_block=1, eip150_start_block=2, spurious_dragon_block=3),
+            (
+                (0, Forks.Frontier),
+                (1, Forks.Homestead),
+                (2, Forks.EIP150),
+                (3, Forks.SpuriousDragon),
+            ),
+        ),
+        (
+            dict(homestead_start_block=1, spurious_dragon_block=3),
+            (
+                (0, Forks.Frontier),
+                (1, Forks.Homestead),
+                (3, Forks.SpuriousDragon),
+            ),
         ),
         (
             dict(eip150_start_block=1),
@@ -67,5 +93,7 @@ def test_generate_vm_configuration(kwargs, expected):
                 assert left_vm.dao_fork_block_number == dao_start_block
         elif right_vm == Forks.EIP150:
             assert 'EIP150' in left_vm.__name__
+        elif right_vm == Forks.SpuriousDragon:
+            assert 'SpuriousDragon' in left_vm.__name__
         else:
             assert False, "Invariant"

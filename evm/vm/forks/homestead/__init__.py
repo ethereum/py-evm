@@ -6,6 +6,9 @@ from evm.exceptions import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
+from evm.utils.keccak import (
+    keccak,
+)
 
 from ..frontier import FrontierVM
 
@@ -24,7 +27,7 @@ def _apply_homestead_create_message(vm, message):
     computation = vm.apply_message(message)
 
     if computation.error:
-        vm.commit(snapshot)
+        vm.revert(snapshot)
         return computation
     else:
         contract_code = computation.output
@@ -44,9 +47,10 @@ def _apply_homestead_create_message(vm, message):
             else:
                 if vm.logger:
                     vm.logger.debug(
-                        "SETTING CODE: %s -> %s",
+                        "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(message.storage_address),
-                        contract_code,
+                        len(contract_code),
+                        encode_hex(keccak(contract_code))
                     )
 
                 with vm.state_db() as state_db:

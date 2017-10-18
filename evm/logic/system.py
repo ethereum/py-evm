@@ -34,7 +34,24 @@ def suicide_eip150(computation):
     with computation.vm.state_db(read_only=True) as state_db:
         if not state_db.account_exists(beneficiary):
             computation.gas_meter.consume_gas(
-                constants.GAS_SUICIDE_NEWACCOUNT, reason=mnemonics.SUICIDE)
+                constants.GAS_SUICIDE_NEWACCOUNT,
+                reason=mnemonics.SUICIDE,
+            )
+    _suicide(computation, beneficiary)
+
+
+def suicide_eip161(computation):
+    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    with computation.vm.state_db(read_only=True) as state_db:
+        is_dead = (
+            not state_db.account_exists(beneficiary) or
+            state_db.account_is_empty(beneficiary)
+        )
+        if is_dead and state_db.get_balance(computation.msg.storage_address):
+            computation.gas_meter.consume_gas(
+                constants.GAS_SUICIDE_NEWACCOUNT,
+                reason=mnemonics.SUICIDE,
+            )
     _suicide(computation, beneficiary)
 
 
@@ -50,8 +67,15 @@ def _suicide(computation, beneficiary):
         # beneficiary.
         state_db.set_balance(computation.msg.storage_address, 0)
 
+    computation.vm.logger.debug(
+        "SUICIDE: %s (%s) -> %s",
+        encode_hex(computation.msg.storage_address),
+        local_balance,
+        encode_hex(beneficiary),
+    )
+
     # 3rd: Register the account to be deleted
-    computation.register_account_for_deletion(computation.msg.storage_address)
+    computation.register_account_for_deletion(beneficiary)
 
 
 class Create(Opcode):
@@ -80,7 +104,8 @@ class Create(Opcode):
         call_data = computation.memory.read(start_position, size)
 
         create_msg_gas = self.max_child_gas_modifier(
-            computation.gas_meter.gas_remaining)
+            computation.gas_meter.gas_remaining
+        )
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
         with computation.vm.state_db() as state_db:
@@ -112,7 +137,6 @@ class Create(Opcode):
         )
 
         child_computation = computation.vm.apply_create_message(child_msg)
-
         computation.children.append(child_computation)
 
         if child_computation.error:
