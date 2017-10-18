@@ -81,3 +81,10 @@ class StackDepthLimit(VMError):
     Error signaling that the call stack has exceeded it's maximum allowed depth.
     """
     pass
+
+
+class ContractCreationCollision(VMError):
+    """
+    Error signaling that there was an address collision during contract creation.
+    """
+    pass

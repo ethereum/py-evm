@@ -19,15 +19,6 @@ from .headers import (
 
 
 def _apply_homestead_create_message(vm, message):
-    with vm.state_db() as state_db:
-        if state_db.account_exists(message.storage_address):
-            state_db.set_nonce(message.storage_address, 0)
-            state_db.set_code(message.storage_address, b'')
-            state_db.delete_storage(message.storage_address)
-
-        if message.sender != message.origin:
-            state_db.increment_nonce(message.sender)
-
     snapshot = vm.snapshot()
 
     computation = vm.apply_message(message)

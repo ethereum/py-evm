@@ -9,24 +9,28 @@ from evm.db import (
 )
 
 from evm import (
-    Chain,
     MainnetChain,
 )
 from evm.db.chain import BaseChainDB
+from evm.chains.mainnet import (
+    MAINNET_VM_CONFIGURATION,
+)
 from evm.exceptions import (
     ValidationError,
 )
 from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
-    HomesteadVM,
+    HomesteadVM as BaseHomesteadVM,
 )
 from evm.rlp.headers import (
     BlockHeader,
 )
 
 from evm.utils.fixture_tests import (
-    find_fixtures,
+    load_fixture,
+    generate_fixture_tests,
+    filter_fixtures,
     normalize_blockchain_fixtures,
     verify_state_db,
     assert_rlp_equal,
@@ -39,60 +43,102 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
-# A list of individual tests (fixture_path:fixture_name) that are disable
-# because of any reasons.
-DISABLED_INDIVIDUAL_TESTS = [
-    "bcInvalidHeaderTest.json:ExtraData1024",
-    "bcInvalidHeaderTest.json:DifferentExtraData1025",
-    # This test alone takes more than 10 minutes to run, and that causes the
-    # travis build to be terminated so it's disabled until we figure out how
-    # to make it run faster.
-    "Homestead/bcSuicideIssue.json:SuicideIssue",
-    # These tests seem to have issues; they're disabled in geth as well.
-    "TestNetwork/bcTheDaoTest.json:DaoTransactions",
-    "TestNetwork/bcTheDaoTest.json:DaoTransactions_UncleExtradata",
-]
+def blockchain_fixture_mark_fn(fixture_path, fixture_name):
+    if fixture_path.startswith('GeneralStateTests'):
+        return pytest.mark.skip(
+            "General state tests are also exported as blockchain tests.  We "
+            "skip them here so we don't run them twice"
+        )
+    elif fixture_path.startswith('bcExploitTest'):
+        return pytest.mark.skip("Exploit tests are slow")
+    elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
+        return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
 
 
-def blockchain_fixture_skip_fn(fixture_path, fixture_name, fixture):
-    # TODO: enable all tests
-    return (
-        ":".join([fixture_path, fixture_name]) in DISABLED_INDIVIDUAL_TESTS
+def blockchain_fixture_ignore_fn(fixture_path, fixture_name):
+    if fixture_path.startswith('GeneralStateTests'):
+        # General state tests are also exported as blockchain tests.  We
+        # skip them here so we don't run them twice"
+        return True
+
+
+def pytest_generate_tests(metafunc):
+    generate_fixture_tests(
+        metafunc=metafunc,
+        base_fixture_path=BASE_FIXTURE_PATH,
+        filter_fn=filter_fixtures(
+            fixtures_base_dir=BASE_FIXTURE_PATH,
+            mark_fn=blockchain_fixture_mark_fn,
+            ignore_fn=blockchain_fixture_ignore_fn,
+        ),
     )
 
 
-SLOW_FIXTURE_NAMES = {
-    'bcForkStressTest.json:ForkStressTest',
-    'bcWalletTest.json:walletReorganizeOwners',
-    'Homestead/bcExploitTest.json:DelegateCallSpam',
-    "Homestead/bcWalletTest.json:walletReorganizeOwners",
-    "Homestead/bcShanghaiLove.json:Devcon2Attack",
-    "Homestead/bcForkStressTest.json:ForkStressTest",
-    "EIP150/bcWalletTest.json:walletReorganizeOwners",
-    "EIP150/bcForkStressTest.json:ForkStressTest",
-}
+@pytest.fixture
+def fixture(fixture_data):
+    fixture_path, fixture_key = fixture_data
+    fixture = load_fixture(
+        fixture_path,
+        fixture_key,
+        normalize_blockchain_fixtures,
+    )
+    return fixture
 
 
-def blockchain_fixture_mark_fn(fixture_name):
-    if fixture_name in SLOW_FIXTURE_NAMES:
-        return pytest.mark.blockchain_slow
+@pytest.fixture
+def chain_vm_configuration(fixture_data, fixture):
+    fixture_path, fixture_key = fixture_data
+    if 'bcTheDaoTest' in fixture_key:
+        HomesteadVM = BaseHomesteadVM.configure(dao_fork_block_number=8)
+    elif 'bcHomesteadToDao' in fixture_path:
+        HomesteadVM = BaseHomesteadVM.configure(dao_fork_block_number=5)
     else:
-        return None
+        HomesteadVM = BaseHomesteadVM
+
+    if 'TransitionTests/bcFrontierToHomestead' in fixture_path:
+        return (
+            (0, FrontierVM),
+            (5, HomesteadVM),
+        )
+    elif 'TransitionTests/bcHomesteadToEIP150' in fixture_path:
+        return (
+            (0, HomesteadVM),
+            (5, EIP150VM),
+        )
+    elif 'TransitionTests/bcHomesteadToDao' in fixture_path:
+        return (
+            (0, HomesteadVM),
+        )
+    elif 'TransitionTests/bcEIP158ToByzantium' in fixture_path:
+        pytest.skip('Byzantium VM rules not yet supported')
+    elif '/Homestead/' in fixture_path or fixture_key.endswith('Homestead'):
+        return (
+            (0, HomesteadVM),
+        )
+    elif '/EIP150/' in fixture_path or fixture_key.endswith('EIP150'):
+        return (
+            (0, EIP150VM),
+        )
+    elif 'EIP158' in fixture_key or fixture_key.endswith('EIP158'):
+        pytest.skip('Spurious Dragon VM rules not yet supported')
+    elif fixture_key.endswith('Metropolis'):
+        pytest.skip('Metropolis VM rules not yet supported')
+    elif fixture_key.endswith('Byzantium'):
+        pytest.skip('Byzantium VM rules not yet supported')
+    elif fixture_key.endswith('Constantinople'):
+        pytest.skip('Constantinople VM rules not yet supported')
+    elif fixture_key.endswith('Frontier') or fixture['network'] == 'Frontier':
+        return MAINNET_VM_CONFIGURATION
+    else:
+        raise AssertionError(
+            "Test fixture did not match any configuration rules: {0}:{1}".format(
+                fixture_path,
+                fixture_key,
+            )
+        )
 
 
-FIXTURES = find_fixtures(
-    BASE_FIXTURE_PATH,
-    normalize_blockchain_fixtures,
-    skip_fn=blockchain_fixture_skip_fn,
-    ignore_fn=blockchain_fixture_skip_fn,  # TODO: remove
-    mark_fn=blockchain_fixture_mark_fn,
-)
-
-
-@pytest.mark.parametrize(
-    'fixture_name,fixture', FIXTURES,
-)
-def test_blockchain_fixtures(fixture_name, fixture):
+def test_blockchain_fixtures(fixture, chain_vm_configuration):
     genesis_params = {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
         'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
@@ -117,29 +163,12 @@ def test_blockchain_fixtures(fixture_name, fixture):
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
     db = BaseChainDB(get_db_backend())
 
-    chain = MainnetChain
-    # TODO: It would be great if we can figure out an API for re-configuring
-    # start block numbers that was more elegant.
-    if fixture_name.startswith('Homestead'):
-        chain = Chain.configure(
-            'HomesteadChain',
-            vm_configuration=[(0, HomesteadVM)])
-    elif fixture_name.startswith('EIP150'):
-        chain = Chain.configure(
-            'EIP150VM',
-            vm_configuration=[(0, EIP150VM)])
-    elif fixture_name.startswith('TestNetwork'):
-        homestead_vm = HomesteadVM.configure(dao_fork_block_number=8)
-        chain = Chain.configure(
-            'TestNetworkChain',
-            vm_configuration=[
-                (0, FrontierVM),
-                (5, homestead_vm),
-                (10, EIP150VM),
-            ]
-        )
+    ChainForTesting = MainnetChain.configure(
+        'ChainForTesting',
+        vm_configuration=chain_vm_configuration,
+    )
 
-    chain = chain.from_genesis(
+    chain = ChainForTesting.from_genesis(
         db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],

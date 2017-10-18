@@ -147,12 +147,15 @@ class State:
         self._set_account(address, account)
 
     def get_code(self, address):
-        validate_canonical_address(address, title="Storage Address")
-        account = self._get_account(address)
         try:
-            return self.db[account.code_hash]
+            return self.db[self.get_code_hash(address)]
         except KeyError:
             return b''
+
+    def get_code_hash(self, address):
+        validate_canonical_address(address, title="Storage Address")
+        account = self._get_account(address)
+        return account.code_hash
 
     def delete_code(self, address):
         validate_canonical_address(address, title="Storage Address")
@@ -170,6 +173,17 @@ class State:
     def account_exists(self, address):
         validate_canonical_address(address, title="Storage Address")
         return bool(self._trie[address])
+
+    def account_has_code_or_nonce(self, address):
+        if not self.account_exists(address):
+            return False
+        account = self._get_account(address)
+        if account.nonce != 0:
+            return True
+        elif account.code_hash != EMPTY_SHA3:
+            return True
+        else:
+            return False
 
     def touch_account(self, address):
         account = self._get_account(address)
