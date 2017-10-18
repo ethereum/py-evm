@@ -17,7 +17,6 @@ from cytoolz import (
 from eth_utils import (
     decode_hex,
     is_0x_prefixed,
-    is_list_like,
     keccak,
     pad_left,
     remove_0x_prefix,
