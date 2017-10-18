@@ -26,6 +26,8 @@ setup(
     include_package_data=True,
     py_modules=['evm'],
     install_requires=[
+        "aiohttp==2.3.1",
+        "async_lru>=0.1.0",
         "cryptography>=2.0.3",
         "cytoolz==0.8.2",
         "ethereum-bloom>=0.4.0",
