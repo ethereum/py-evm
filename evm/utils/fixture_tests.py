@@ -61,11 +61,8 @@ def find_fixture_files(fixtures_base_dir):
 @to_tuple
 def find_fixtures(fixtures_base_dir):
     """
-    Helper function for JSON based fixture test suite.
-
-    - `fixtures_base_dir`: the filesystem path under which JSON fixtures can be found.
-    - `normalize_fn`: callback to normalize json fixture to internal format.
-    - `skip_fn`: callback to skip any tests that should not be run.
+    Finds all of the (fixture_path, fixture_key) pairs for a given path under
+    the JSON test fixtures directory.
     """
     all_fixture_paths = find_fixture_files(fixtures_base_dir)
 
@@ -79,6 +76,14 @@ def find_fixtures(fixtures_base_dir):
 
 @curry
 def filter_fixtures(all_fixtures, fixtures_base_dir, mark_fn=None, ignore_fn=None):
+    """
+    Helper function for filtering test fixtures.
+
+    - `fixtures_base_dir` should be the base directory that the fixtures were collected from.
+    - `mark_fn` should be a function which either returns `None` or a `pytest.mark` object.
+    - `ignore_fn` should be a function which returns `True` for any fixture
+       which should be ignored.
+    """
     for fixture_data in all_fixtures:
         fixture_path = fixture_data[0]
         fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
@@ -100,6 +105,10 @@ def filter_fixtures(all_fixtures, fixtures_base_dir, mark_fn=None, ignore_fn=Non
 
 
 def hash_log_entries(log_entries):
+    """
+    Helper function for computing the RLP hash of the logs from transaction
+    execution.
+    """
     from evm.rlp.logs import Log
     logs = [Log(*entry) for entry in log_entries]
     encoded_logs = rlp.encode(logs)
@@ -112,12 +121,19 @@ def hash_log_entries(log_entries):
 # a small rolling cache of the loaded fixture files.
 @functools.lru_cache(maxsize=4)
 def load_json_fixture(fixture_path):
+    """
+    Loads a fixture file, caching the most recent files it loaded.
+    """
     with open(fixture_path) as fixture_file:
         file_fixtures = json.load(fixture_file)
     return file_fixtures
 
 
 def load_fixture(fixture_path, fixture_key, normalize_fn=identity):
+    """
+    Loads a specific fixture from a fixture file, optionally passing it through
+    a normalization function.
+    """
     file_fixtures = load_json_fixture(fixture_path)
     fixture = normalize_fn(file_fixtures[fixture_key])
     return fixture
@@ -127,6 +143,10 @@ def load_fixture(fixture_path, fixture_key, normalize_fn=identity):
 # RLP Diffing
 #
 def assert_rlp_equal(left, right):
+    """
+    Helper for asserting two RPL objects are equal, producing a helpful error
+    message with what fields are not equal.
+    """
     if left == right:
         return
     mismatched_fields = diff_rlp_object(left, right)
@@ -146,17 +166,14 @@ def assert_rlp_equal(left, right):
 
 
 #
-# Fixture Normalization Primatives
+# Fixture Normalization Primitives
 #
-def map_if_array(normalizer, value):
-    if is_list_like(value):
-        return [normalizer(item) for item in value]
-    else:
-        return normalizer(value)
-
-
 @functools.lru_cache(maxsize=1024)
 def to_int(value):
+    """
+    Robust to integer conversion, handling hex values, string representations,
+    and special cases like `0x`.
+    """
     if is_0x_prefixed(value):
         if len(value) == 2:
             return 0
@@ -166,14 +183,36 @@ def to_int(value):
         return int(value)
 
 
+@functools.lru_cache(maxsize=128)
+def normalize_to_address(value):
+    if value:
+        return to_canonical_address(value)
+    else:
+        return CREATE_CONTRACT_ADDRESS
+
+
+def robust_decode_hex(value):
+    unprefixed_value = remove_0x_prefix(value)
+    if len(unprefixed_value) % 2:
+        return decode_hex(pad_left(unprefixed_value, len(unprefixed_value) + 1, b'0'))
+    else:
+        return decode_hex(unprefixed_value)
+
+
 #
 # Pytest fixture generation
 #
 def idfn(fixture_params):
+    """
+    Function for pytest to produce uniform names for fixtures.
+    """
     return ":".join((str(item) for item in fixture_params))
 
 
 def get_fixtures_file_hash(all_fixture_paths):
+    """
+    Returns the MD5 hash of the fixture files.  Used for cache busting.
+    """
     hasher = hashlib.md5()
     for fixture_path in sorted(all_fixture_paths):
         with open(fixture_path, 'rb') as fixture_file:
@@ -186,6 +225,17 @@ def generate_fixture_tests(metafunc,
                            base_fixture_path,
                            filter_fn=identity,
                            preprocess_fn=identity):
+    """
+    Helper function for use with `pytest_generate_tests` which will use the
+    pytest caching facilities to reduce the load time for fixture tests.
+
+    - `metafunc` is the parameter from `pytest_generate_tests`
+    - `base_fixture_path` is the base path that fixture files will be collected from.
+    - `filter_fn` handles ignoring or marking the various fixtures.  See `filter_fixtures`.
+    - `preprocess_fn` handles any preprocessing that should be done on the raw
+       fixtures (such as expanding the statetest fixtures to be multiple tests for
+       each fork.
+    """
     fixture_namespace = os.path.basename(base_fixture_path)
 
     if 'fixture_data' in metafunc.fixturenames:
@@ -234,14 +284,6 @@ def normalize_env(env):
         'currentTimestamp': to_int(env['currentTimestamp']),
         'previousHash': decode_hex(env.get('previousHash', '00' * 32)),
     }
-
-
-@functools.lru_cache(maxsize=128)
-def normalize_to_address(value):
-    if value:
-        return to_canonical_address(value)
-    else:
-        return CREATE_CONTRACT_ADDRESS
 
 
 @to_dict
@@ -299,13 +341,6 @@ def normalize_statetest_fixture(fixture, fork, post_state_index):
         ),
     }
 
-    if 'out' in fixture:
-        assert False
-        if fixture['out'].startswith('#'):
-            normalized_fixture['out'] = int(fixture['out'][1:])
-        else:
-            normalized_fixture['out'] = decode_hex(fixture['out'])
-
     return normalized_fixture
 
 
@@ -356,14 +391,6 @@ def normalize_vmtest_fixture(fixture):
 
     if 'logs' in fixture:
         yield 'logs', decode_hex(fixture['logs'])
-
-
-def robust_decode_hex(value):
-    unprefixed_value = remove_0x_prefix(value)
-    if len(unprefixed_value) % 2:
-        return decode_hex(pad_left(unprefixed_value, len(unprefixed_value) + 1, b'0'))
-    else:
-        return decode_hex(unprefixed_value)
 
 
 def normalize_signed_transaction(transaction):
