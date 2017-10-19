@@ -28,16 +28,16 @@ def is_eip_155_signed_transaction(transaction):
 
 def extract_chain_id(v):
     if is_even(v):
-        return (v - EIP155_CHAIN_ID_OFFSET) // 2
+        return (v - EIP155_CHAIN_ID_OFFSET - 1) // 2
     else:
         return (v - EIP155_CHAIN_ID_OFFSET) // 2
 
 
 def extract_signature_v(v):
     if is_even(v):
-        return 28
+        return V_OFFSET + 1
     else:
-        return 27
+        return V_OFFSET
 
 
 def create_transaction_signature(unsigned_txn, private_key, chain_id=None):

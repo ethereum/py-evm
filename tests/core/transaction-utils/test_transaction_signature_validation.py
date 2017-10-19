@@ -26,16 +26,9 @@ from evm.utils.transactions import (
 )
 
 
-@pytest.fixture(params=['Frontier', 'Homestead', 'SpuriousDragon'])
+@pytest.fixture(params=[FrontierTransaction, HomesteadTransaction, SpuriousDragonTransaction])
 def transaction_class(request):
-    if request.param == 'Frontier':
-        return FrontierTransaction
-    elif request.param == 'Homestead':
-        return HomesteadTransaction
-    elif request.param == 'SpuriousDragon':
-        return SpuriousDragonTransaction
-    else:
-        raise AssertionError("Unknown param: {0}".format(request.param))
+    return request.param
 
 
 def test_pre_EIP155_transaction_signature_validation(transaction_class, txn_fixture):
@@ -112,3 +105,4 @@ def test_unsigned_to_eip155_signed_transaction(txn_fixture, transaction_class):
     signed_txn = unsigned_txn.as_signed_transaction(key, chain_id=txn_fixture['chainId'])
 
     assert is_same_address(signed_txn.sender, key.public_key.to_canonical_address())
+    assert signed_txn.chain_id == txn_fixture['chainId']

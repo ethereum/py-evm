@@ -38,7 +38,10 @@ class SpuriousDragonTransaction(HomesteadTransaction):
 
     @property
     def chain_id(self):
-        return extract_chain_id(self)
+        if is_eip_155_signed_transaction(self):
+            return extract_chain_id(self.v)
+        else:
+            return None
 
 
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
