@@ -7,13 +7,6 @@ env:
   global:
     - PYTEST_ADDOPTS="-n 3"
   matrix:
-    # TODO: py27
-    # TODO: py34
-    - TOX_POSARGS="-e py35-blockchain-frontier"
-    - TOX_POSARGS="-e py35-blockchain-homestead"
-    - TOX_POSARGS="-e py35-blockchain-eip150"
-    #- TOX_POSARGS="-e py35-blockchain-eip158"
-    #- TOX_POSARGS="-e py35-blockchain-metropolis"
     - TOX_POSARGS="-e py35-state-frontier"
     - TOX_POSARGS="-e py35-state-homestead"
     - TOX_POSARGS="-e py35-state-eip150"
@@ -21,6 +14,7 @@ env:
     #- TOX_POSARGS="-e py35-state-byzantium"
     #- TOX_POSARGS="-e py35-state-constantinople"
     #- TOX_POSARGS="-e py35-state-metropolis"
+    - TOX_POSARGS="-e py35-blockchain"
     - TOX_POSARGS="-e py35-vm"
     - TOX_POSARGS="-e py35-core"
     - TOX_POSARGS="-e py35-transactions"
