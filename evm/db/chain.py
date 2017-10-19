@@ -41,7 +41,7 @@ from evm.utils.db import (
 )
 
 
-CANONICAL_HEAD_HASH_DB_KEY = b'canonical_head_hash'
+CANONICAL_HEAD_HASH_DB_KEY = b'v1:canonical_head_hash'
 
 
 class BaseChainDB:

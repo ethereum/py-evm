@@ -160,6 +160,11 @@ class Chain(object):
         return self.chaindb.get_block_header_by_hash(self.chaindb.lookup_block_hash(block_number))
 
     def get_canonical_head(self):
+        """
+        Returns the block header at the canonical chain head.
+
+        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
+        """
         return self.chaindb.get_canonical_head()
 
     def get_canonical_block_by_number(self, block_number):
