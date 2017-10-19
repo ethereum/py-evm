@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import logging
 
 from cytoolz import (
     assoc,
@@ -48,12 +49,12 @@ class Chain(object):
     VM classes, delegating operations to the appropriate VM depending on the
     current block number.
     """
-    db = None
+    logger = logging.getLogger("evm.chain.chain.Chain")
     header = None
-
+    network_id = None
     vms_by_range = None
 
-    def __init__(self, chaindb, header):
+    def __init__(self, chaindb, header=None):
         if not self.vms_by_range:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
@@ -61,6 +62,8 @@ class Chain(object):
 
         self.chaindb = chaindb
         self.header = header
+        if self.header is None:
+            self.header = self.create_header_from_parent(chaindb.get_canonical_head())
 
     @classmethod
     def configure(cls, name, vm_configuration, **overrides):
@@ -135,10 +138,34 @@ class Chain(object):
         return vm_class(header=header, chaindb=self.chaindb)
 
     #
-    # Block Retrieval
+    # Header/Block Retrieval
     #
     def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Raises BlockNotFound if there's no block header with the given hash in the db.
+        """
+        validate_word(block_hash, title="Block Hash")
         return self.chaindb.get_block_header_by_hash(block_hash)
+
+    def get_canonical_block_header_by_number(self, block_number):
+        """
+        Returns the block header with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block header with the given number in the
+        canonical chain.
+        """
+        validate_uint256(block_number, title="Block Number")
+        return self.chaindb.get_block_header_by_hash(self.chaindb.lookup_block_hash(block_number))
+
+    def get_canonical_head(self):
+        """
+        Returns the block header at the canonical chain head.
+
+        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
+        """
+        return self.chaindb.get_canonical_head()
 
     def get_canonical_block_by_number(self, block_number):
         """
@@ -201,9 +228,14 @@ class Chain(object):
         genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(chaindb, genesis_header)
         chaindb.persist_block_to_db(genesis_chain.get_block())
-        chaindb.add_block_number_to_hash_lookup(genesis_chain.get_block())
+        return cls.from_genesis_header(chaindb, genesis_header)
 
-        return cls(chaindb, genesis_chain.create_header_from_parent(genesis_header))
+    @classmethod
+    def from_genesis_header(cls, chaindb, genesis_header):
+        chaindb.persist_header_to_db(genesis_header)
+        chaindb.add_block_number_to_hash_lookup(genesis_header)
+        chaindb.set_canonical_head(genesis_header.hash)
+        return cls(chaindb)
 
     #
     # Mining and Execution API
@@ -238,7 +270,7 @@ class Chain(object):
 
         self.chaindb.persist_block_to_db(imported_block)
         if self.should_be_canonical_chain_head(imported_block):
-            self.set_as_canonical_chain_head(imported_block)
+            self.set_as_canonical_chain_head(imported_block.header)
 
         return imported_block
 
@@ -252,13 +284,13 @@ class Chain(object):
 
         self.chaindb.persist_block_to_db(mined_block)
         if self.should_be_canonical_chain_head(mined_block):
-            self.set_as_canonical_chain_head(mined_block)
+            self.set_as_canonical_chain_head(mined_block.header)
 
         return mined_block
 
     def get_chain_at_block_parent(self, block):
         """
-        Returns a `Chain` instance with this block's parent at the chain head.
+        Returns a `Chain` instance with the given block's parent at the chain head.
         """
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
@@ -278,31 +310,32 @@ class Chain(object):
         current_head = self.get_block_by_hash(self.header.parent_hash)
         return self.chaindb.get_score(block.hash) > self.chaindb.get_score(current_head.hash)
 
-    def set_as_canonical_chain_head(self, block):
+    def set_as_canonical_chain_head(self, header):
         """
         Sets the block as the canonical chain HEAD.
         """
-        for b in reversed(self.find_common_ancestor(block)):
-            self.chaindb.add_block_number_to_hash_lookup(b)
-        self.header = self.create_header_from_parent(block.header)
+        for h in reversed(self.find_common_ancestor(header)):
+            self.chaindb.add_block_number_to_hash_lookup(h)
+        self.chaindb.set_canonical_head(header.hash)
+        self.header = self.create_header_from_parent(header)
 
     @to_tuple
-    def find_common_ancestor(self, block):
+    def find_common_ancestor(self, header):
         """
         TODO: fill this in.
         """
-        b = block
-        while b.number >= GENESIS_BLOCK_NUMBER:
-            yield b
+        h = header
+        while h.block_number >= GENESIS_BLOCK_NUMBER:
+            yield h
             try:
-                orig = self.get_canonical_block_by_number(b.number)
-                if orig.hash == b.hash:
+                orig = self.get_canonical_block_header_by_number(h.block_number)
+                if orig.hash == h.hash:
                     # Found the common ancestor, stop.
                     break
             except KeyError:
                 # This just means the block is not on the canonical chain.
                 pass
-            b = self.get_block_by_hash(b.header.parent_hash)
+            h = self.get_block_header_by_hash(h.parent_hash)
 
     @to_tuple
     def get_ancestors(self, limit):

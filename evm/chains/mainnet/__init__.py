@@ -18,4 +18,5 @@ MAINNET_VM_CONFIGURATION = (
 MainnetChain = Chain.configure(
     'MainnetChain',
     vm_configuration=MAINNET_VM_CONFIGURATION,
+    network_id=1,
 )
