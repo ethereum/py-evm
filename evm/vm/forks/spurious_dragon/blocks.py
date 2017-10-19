@@ -4,16 +4,16 @@ from rlp.sedes import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.forks.frontier.blocks import (
-    FrontierBlock,
+from evm.vm.forks.homestead.blocks import (
+    HomesteadBlock,
 )
 from .transactions import (
-    HomesteadTransaction,
+    SpuriousDragonTransaction,
 )
 
 
-class HomesteadBlock(FrontierBlock):
-    transaction_class = HomesteadTransaction
+class SpuriousDragonBlock(HomesteadBlock):
+    transaction_class = SpuriousDragonTransaction
     fields = [
         ('header', BlockHeader),
         ('transactions', CountableList(transaction_class)),

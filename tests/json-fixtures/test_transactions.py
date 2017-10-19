@@ -60,7 +60,7 @@ def fixture(fixture_data):
 
 
 def test_transaction_fixtures(fixture):
-    header = BlockHeader(1, fixture.get('blocknumber', 0), 100)
+    header = BlockHeader(1, fixture['blocknumber'], 100)
     chain = MainnetChain(BaseChainDB(get_db_backend()), header=header)
     vm = chain.get_vm()
     TransactionClass = vm.get_transaction_class()

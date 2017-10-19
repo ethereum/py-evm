@@ -160,7 +160,6 @@ class State:
     def delete_code(self, address):
         validate_canonical_address(address, title="Storage Address")
         account = self._get_account(address)
-        del self.db[account.code_hash]
         account.code_hash = EMPTY_SHA3
         self._set_account(address, account)
 
@@ -184,6 +183,18 @@ class State:
             return True
         else:
             return False
+
+    def account_is_empty(self, address):
+        validate_canonical_address(address, title="Storage Address")
+        account = self._get_account(address)
+        if account.code_hash != EMPTY_SHA3:
+            return False
+        elif account.balance != 0:
+            return False
+        elif account.nonce != 0:
+            return False
+        else:
+            return True
 
     def touch_account(self, address):
         account = self._get_account(address)

@@ -7,3 +7,6 @@ from .frontier import (  # noqa: F401
 from .homestead import (  # noqa: F401
     HomesteadVM,
 )
+from .spurious_dragon import (  # noqa: F401
+    SpuriousDragonVM,
+)

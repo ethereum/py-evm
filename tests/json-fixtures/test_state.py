@@ -21,17 +21,18 @@ from evm.vm.forks import (
     EIP150VM,
     FrontierVM,
     HomesteadVM,
+    SpuriousDragonVM,
 )
 from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.utils.fixture_tests import (
-    load_fixture,
-    normalize_statetest_fixture,
-    setup_state_db,
     filter_fixtures,
     generate_fixture_tests,
     hash_log_entries,
+    load_fixture,
+    normalize_statetest_fixture,
+    setup_state_db,
 )
 
 
@@ -111,6 +112,10 @@ EIP150VMForTesting = EIP150VM.configure(
     name='EIP150VMForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
+SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
+    name='SpuriousDragonVMForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 
 @pytest.fixture
@@ -123,7 +128,7 @@ def fixture_vm_class(fixture_data):
     elif fork_name == 'EIP150':
         return EIP150VMForTesting
     elif fork_name == 'EIP158':
-        pytest.skip("EIP158 VM has not been implemented")
+        return SpuriousDragonVMForTesting
     elif fork_name == 'Byzantium':
         pytest.skip("Byzantium VM has not been implemented")
     elif fork_name == 'Constantinople':

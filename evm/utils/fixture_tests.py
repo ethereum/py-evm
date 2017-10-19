@@ -21,9 +21,9 @@ from eth_utils import (
     pad_left,
     remove_0x_prefix,
     to_canonical_address,
-    to_dict,
     to_normalized_address,
     to_tuple,
+    to_dict,
 )
 
 from evm.constants import (
@@ -291,6 +291,7 @@ def normalize_unsigned_transaction(transaction, indexes):
     yield 'gasLimit', to_int(transaction['gasLimit'][indexes['gas']])
     yield 'gasPrice', to_int(transaction['gasPrice'])
     yield 'nonce', to_int(transaction['nonce'])
+
     if 'secretKey' in transaction:
         yield 'secretKey', decode_hex(transaction['secretKey'])
     elif 'v' in transaction and 'r' in transaction and 's' in transaction:
@@ -301,6 +302,7 @@ def normalize_unsigned_transaction(transaction, indexes):
         )
     else:
         raise KeyError("transaction missing secret key or vrs values")
+
     yield 'to', normalize_to_address(transaction['to'])
     yield 'value', to_int(transaction['value'][indexes['value']])
 

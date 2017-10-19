@@ -12,6 +12,7 @@ from evm.vm.forks import (
     FrontierVM as BaseFrontierVM,
     HomesteadVM as BaseHomesteadVM,
     EIP150VM as BaseEIP150VM,
+    SpuriousDragonVM as BaseSpuriousDragonVM,
 )
 
 from evm.utils.chain import (
@@ -44,6 +45,10 @@ class EIP150TesterVM(MaintainGasLimitMixin, BaseEIP150VM):
     pass
 
 
+class SpuriousDragonTesterVM(MaintainGasLimitMixin, BaseSpuriousDragonVM):
+    pass
+
+
 INVALID_FORK_ACTIVATION_MSG = (
     "The {0}-fork activation block may not be null if the {1}-fork block "
     "is non null"
@@ -53,11 +58,27 @@ INVALID_FORK_ACTIVATION_MSG = (
 @reversed_return
 def _generate_vm_configuration(homestead_start_block=None,
                                dao_start_block=None,
-                               eip150_start_block=None):
+                               eip150_start_block=None,
+                               spurious_dragon_block=None):
     # If no explicit configuration has been passed, configure the vm to start
     # with the latest fork rules at block 0
-    if eip150_start_block is None and homestead_start_block is None:
-        yield (0, EIP150TesterVM)
+    no_declared_blocks = (
+        spurious_dragon_block is None and
+        eip150_start_block is None and
+        homestead_start_block is None
+    )
+    if no_declared_blocks:
+        yield (0, SpuriousDragonTesterVM)
+
+    if spurious_dragon_block is not None:
+        yield (spurious_dragon_block, SpuriousDragonTesterVM)
+
+        remaining_blocks_not_declared = (
+            homestead_start_block is None and
+            eip150_start_block is None
+        )
+        if spurious_dragon_block > 0 and remaining_blocks_not_declared:
+            yield (0, EIP150TesterVM)
 
     if eip150_start_block is not None:
         yield (eip150_start_block, EIP150TesterVM)
@@ -111,7 +132,8 @@ class MainnetTesterChain(BaseMainnetTesterChain):
     def configure_forks(self,
                         homestead_start_block=None,
                         dao_start_block=None,
-                        eip150_start_block=0):
+                        eip150_start_block=None,
+                        spurious_dragon_block=None):
         """
         TODO: add support for state_cleanup
         """
@@ -119,5 +141,6 @@ class MainnetTesterChain(BaseMainnetTesterChain):
             homestead_start_block=homestead_start_block,
             dao_start_block=dao_start_block,
             eip150_start_block=eip150_start_block,
+            spurious_dragon_block=spurious_dragon_block,
         )
         self.vms_by_range = generate_vms_by_range(vm_configuration)

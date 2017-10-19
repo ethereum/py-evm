@@ -44,9 +44,10 @@ from .transactions import (
 
 
 class FrontierBlock(BaseBlock):
+    transaction_class = FrontierTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(FrontierTransaction)),
+        ('transactions', CountableList(transaction_class)),
         ('uncles', CountableList(BlockHeader))
     ]
 
@@ -185,8 +186,6 @@ class FrontierBlock(BaseBlock):
     #
     # Transaction class for this block class
     #
-    transaction_class = FrontierTransaction
-
     @classmethod
     def get_transaction_class(cls):
         return cls.transaction_class

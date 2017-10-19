@@ -181,15 +181,6 @@ class Computation(object):
             )
         self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
-    def get_accounts_for_deletion(self):
-        if self.error:
-            return tuple(dict().items())
-        else:
-            return tuple(dict(itertools.chain(
-                self.accounts_to_delete.items(),
-                *(child.get_accounts_for_deletion() for child in self.children)
-            )).items())
-
     def add_log_entry(self, account, topics, data):
         validate_canonical_address(account, title="Log entry address")
         for topic in topics:
@@ -200,6 +191,15 @@ class Computation(object):
     #
     # Getters
     #
+    def get_accounts_for_deletion(self):
+        if self.error:
+            return tuple()
+        else:
+            return tuple(dict(itertools.chain(
+                self.accounts_to_delete.items(),
+                *(child.get_accounts_for_deletion() for child in self.children)
+            )).items())
+
     def get_log_entries(self):
         if self.error:
             return tuple()
@@ -236,11 +236,12 @@ class Computation(object):
     def __enter__(self):
         if self.logger is not None:
             self.logger.debug(
-                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s",
+                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s | depth %s",
                 self.msg.gas,
                 encode_hex(self.msg.sender),
                 encode_hex(self.msg.to),
                 self.msg.value,
+                self.msg.depth,
             )
 
         return self
@@ -249,11 +250,12 @@ class Computation(object):
         if exc_value and isinstance(exc_value, VMError):
             if self.logger is not None:
                 self.logger.debug(
-                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | error: %s",
+                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | depth: %s | error: %s",  # noqa: E501
                     self.msg.gas,
                     encode_hex(self.msg.sender),
                     encode_hex(self.msg.to),
                     self.msg.value,
+                    self.msg.depth,
                     exc_value,
                 )
             self.error = exc_value
@@ -271,12 +273,13 @@ class Computation(object):
             if self.logger is not None:
                 self.logger.debug(
                     (
-                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
+                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | depth: %s | "
                         "gas-used: %s | gas-remaining: %s"
                     ),
                     encode_hex(self.msg.sender),
                     encode_hex(self.msg.to),
                     self.msg.value,
+                    self.msg.depth,
                     self.msg.gas - self.gas_meter.gas_remaining,
                     self.gas_meter.gas_remaining,
                 )
