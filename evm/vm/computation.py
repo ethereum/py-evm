@@ -193,7 +193,7 @@ class Computation(object):
     #
     def get_accounts_for_deletion(self):
         if self.error:
-            return tuple(dict().items())
+            return tuple()
         else:
             return tuple(dict(itertools.chain(
                 self.accounts_to_delete.items(),

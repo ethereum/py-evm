@@ -16,6 +16,6 @@ class HomesteadBlock(FrontierBlock):
     transaction_class = HomesteadTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(HomesteadTransaction)),
+        ('transactions', CountableList(transaction_class)),
         ('uncles', CountableList(BlockHeader))
     ]

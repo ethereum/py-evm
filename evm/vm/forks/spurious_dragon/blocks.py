@@ -16,6 +16,6 @@ class SpuriousDragonBlock(HomesteadBlock):
     transaction_class = SpuriousDragonTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(SpuriousDragonTransaction)),
+        ('transactions', CountableList(transaction_class)),
         ('uncles', CountableList(BlockHeader))
     ]

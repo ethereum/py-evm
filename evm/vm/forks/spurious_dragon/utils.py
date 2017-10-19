@@ -15,6 +15,8 @@ def collect_touched_accounts(computation):
     Collect all of the accounts that *may* need to be deleted based on EIP161:
 
     https://github.com/ethereum/EIPs/blob/master/EIPS/eip-161.md
+
+    also see: https://github.com/ethereum/EIPs/issues/716
     """
     if computation.is_origin_computation and computation.msg.gas_price == 0:
         yield computation.vm.block.header.coinbase
@@ -22,6 +24,7 @@ def collect_touched_accounts(computation):
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
         if computation.error and computation.is_origin_computation:
             # Special case to account for geth+parity bug
+            # https://github.com/ethereum/EIPs/issues/716
             if beneficiary == THREE:
                 yield beneficiary
             continue
@@ -31,6 +34,7 @@ def collect_touched_accounts(computation):
     if computation.msg.to != constants.CREATE_CONTRACT_ADDRESS:
         if computation.error and computation.is_origin_computation:
             # Special case to account for geth+parity bug
+            # https://github.com/ethereum/EIPs/issues/716
             if computation.msg.to == THREE:
                 yield computation.msg.to
         else:
