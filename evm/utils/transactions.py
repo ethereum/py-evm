@@ -9,57 +9,18 @@ from eth_keys.exceptions import (
 from evm.exceptions import (
     ValidationError,
 )
-from evm.validation import (
-    validate_gt,
-)
-
 from evm.utils.numeric import (
     is_even,
     int_to_big_endian,
 )
 
 
-def create_transaction_signature(unsigned_txn, private_key):
-    signature = private_key.sign_msg(rlp.encode(unsigned_txn))
-    canonical_v, r, s = signature.vrs
-    v = canonical_v + 27
-    return v, r, s
-
-
-def create_eip155_transaction_signature(unsigned_txn, chain_id, private_key):
-    transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
-    transaction_parts_for_signature = (
-        transaction_parts[:-3] + [int_to_big_endian(chain_id), b'', b'']
-    )
-    message = rlp.encode(transaction_parts_for_signature)
-
-    signature = private_key.sign_msg(message)
-    canonical_v, r, s = signature.vrs
-    v = canonical_v + 27
-    if v == 27:
-        eip155_v = chain_id * 2 + 36
-    else:
-        eip155_v = chain_id * 2 + 35
-    return eip155_v, r, s
-
-
-def validate_transaction_signature(transaction):
-    v, r, s = transaction.v, transaction.r, transaction.s
-    canonical_v = v - 27
-    vrs = (canonical_v, r, s)
-    signature = keys.Signature(vrs=vrs)
-    message = transaction.get_message_for_signing()
-    try:
-        public_key = signature.recover_public_key_from_msg(message)
-    except BadSignature as e:
-        raise ValidationError("Bad Signature: {0}".format(str(e)))
-
-    if not signature.verify_msg(message, public_key):
-        raise ValidationError("Invalid Signature")
+EIP155_CHAIN_ID_OFFSET = 35
+V_OFFSET = 27
 
 
 def is_eip_155_signed_transaction(transaction):
-    if transaction.v >= 35:
+    if transaction.v >= EIP155_CHAIN_ID_OFFSET:
         return True
     else:
         return False
@@ -67,9 +28,9 @@ def is_eip_155_signed_transaction(transaction):
 
 def extract_chain_id(v):
     if is_even(v):
-        return (v - 36) // 2
+        return (v - EIP155_CHAIN_ID_OFFSET) // 2
     else:
-        return (v - 35) // 2
+        return (v - EIP155_CHAIN_ID_OFFSET) // 2
 
 
 def extract_signature_v(v):
@@ -79,16 +40,39 @@ def extract_signature_v(v):
         return 27
 
 
-def validate_eip155_transaction_signature(transaction):
-    validate_gt(transaction.v, 34, title="Transaction.v")
+def create_transaction_signature(unsigned_txn, private_key, chain_id=None):
+    transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 
-    v = extract_signature_v(transaction.v)
+    if chain_id:
+        transaction_parts_for_signature = (
+            transaction_parts + [int_to_big_endian(chain_id), b'', b'']
+        )
+    else:
+        transaction_parts_for_signature = transaction_parts
+
+    message = rlp.encode(transaction_parts_for_signature)
+    signature = private_key.sign_msg(message)
+
+    canonical_v, r, s = signature.vrs
+
+    if chain_id:
+        v = canonical_v + chain_id * 2 + EIP155_CHAIN_ID_OFFSET
+    else:
+        v = canonical_v + V_OFFSET
+
+    return v, r, s
+
+
+def validate_transaction_signature(transaction):
+    if is_eip_155_signed_transaction(transaction):
+        v = extract_signature_v(transaction.v)
+    else:
+        v = transaction.v
 
     canonical_v = v - 27
     vrs = (canonical_v, transaction.r, transaction.s)
     signature = keys.Signature(vrs=vrs)
     message = transaction.get_message_for_signing()
-
     try:
         public_key = signature.recover_public_key_from_msg(message)
     except BadSignature as e:
