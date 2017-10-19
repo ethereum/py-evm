@@ -1,5 +1,8 @@
 from evm import constants
 from evm import mnemonics
+from evm.exceptions import (
+    Halt,
+)
 
 from evm.opcode import (
     Opcode,
@@ -22,6 +25,7 @@ def return_op(computation):
 
     output = computation.memory.read(start_position, size)
     computation.output = bytes(output)
+    raise Halt('RETURN')
 
 
 def suicide(computation):
@@ -76,6 +80,7 @@ def _suicide(computation, beneficiary):
 
     # 3rd: Register the account to be deleted
     computation.register_account_for_deletion(beneficiary)
+    raise Halt('SUICIDE')
 
 
 class Create(Opcode):

@@ -10,15 +10,21 @@ from evm.constants import (
     NEPHEW_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.exceptions import (
+    Halt,
+)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
-
 from evm.utils.keccak import (
     keccak,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
+)
+
+from .computation import (
+    Computation,
 )
 
 
@@ -125,7 +131,26 @@ class VM(object):
         """
         Perform the computation that would be triggered by the VM message.
         """
-        raise NotImplementedError("Must be implemented by subclasses")
+        with Computation(self, message) as computation:
+            # Early exit on pre-compiles
+            if message.code_address in self.precompiles:
+                self.precompiles[message.code_address](computation)
+                return computation
+
+            for opcode in computation.code:
+                opcode_fn = self.get_opcode_fn(opcode)
+
+                computation.logger.trace(
+                    "OPCODE: 0x%x (%s)",
+                    opcode,
+                    opcode_fn.mnemonic,
+                )
+
+                try:
+                    opcode_fn(computation=computation)
+                except Halt:
+                    break
+        return computation
 
     #
     # Mining

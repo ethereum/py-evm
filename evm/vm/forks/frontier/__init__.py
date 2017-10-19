@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from evm import VM
 from evm import constants
 
-from evm import opcode_values
 from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
@@ -39,13 +38,6 @@ from .headers import (
     create_frontier_header_from_parent,
     configure_frontier_header,
 )
-
-
-BREAK_OPCODES = {
-    opcode_values.RETURN,
-    opcode_values.STOP,
-    opcode_values.SUICIDE,
-}
 
 
 def _execute_frontier_transaction(vm, transaction):
@@ -250,32 +242,6 @@ def _apply_frontier_message(vm, message):
     return computation
 
 
-def _apply_frontier_computation(vm, message):
-    computation = Computation(vm, message)
-
-    with computation:
-        # Early exit on pre-compiles
-        if computation.msg.code_address in vm.precompiles:
-            return vm.precompiles[computation.msg.code_address](computation)
-
-        for opcode in computation.code:
-            opcode_fn = computation.vm.get_opcode_fn(opcode)
-
-            if computation.logger is not None:
-                computation.logger.trace(
-                    "OPCODE: 0x%x (%s)",
-                    opcode,
-                    opcode_fn.mnemonic,
-                )
-
-            opcode_fn(computation=computation)
-
-            if opcode in BREAK_OPCODES:
-                break
-
-    return computation
-
-
 def _apply_frontier_create_message(vm, message):
     computation = vm.apply_message(message)
 
@@ -322,5 +288,4 @@ FrontierVM = VM.configure(
     execute_transaction=_execute_frontier_transaction,
     apply_create_message=_apply_frontier_create_message,
     apply_message=_apply_frontier_message,
-    apply_computation=_apply_frontier_computation,
 )
