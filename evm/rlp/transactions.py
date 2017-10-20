@@ -1,19 +1,33 @@
 import rlp
+from rlp.sedes import (
+    big_endian_int,
+    binary,
+)
 
 from evm.exceptions import (
     ValidationError,
 )
 
+from evm.rlp.sedes import (
+    address,
+)
 from evm.utils.keccak import (
     keccak,
 )
 
 
 class BaseTransaction(rlp.Serializable):
-    def __init__(self, *args, **kwargs):
-        super(BaseTransaction, self).__init__(*args, **kwargs)
-        if not self.fields:
-            raise TypeError("Subclasses of `BaseTransaction` must declare `fields`")
+    fields = [
+        ('nonce', big_endian_int),
+        ('gas_price', big_endian_int),
+        ('gas', big_endian_int),
+        ('to', address),
+        ('value', big_endian_int),
+        ('data', binary),
+        ('v', big_endian_int),
+        ('r', big_endian_int),
+        ('s', big_endian_int),
+    ]
 
     @property
     def hash(self):
@@ -103,10 +117,14 @@ class BaseTransaction(rlp.Serializable):
 
 
 class BaseUnsignedTransaction(rlp.Serializable):
-    def __init__(self, *args, **kwargs):
-        super(BaseUnsignedTransaction, self).__init__(*args, **kwargs)
-        if not self.fields:
-            raise TypeError("Subclasses of `BaseUnsignedTransaction` must declare `fields`")
+    fields = [
+        ('nonce', big_endian_int),
+        ('gas_price', big_endian_int),
+        ('gas', big_endian_int),
+        ('to', address),
+        ('value', big_endian_int),
+        ('data', binary),
+    ]
 
     #
     # API that must be implemented by all Transaction subclasses.

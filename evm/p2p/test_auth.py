@@ -18,7 +18,7 @@ from evm.p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
-from evm.p2p.peer import Peer
+from evm.p2p.peer import BasePeer
 
 
 @pytest.mark.asyncio
@@ -127,17 +127,20 @@ def test_handshake():
         (object,),
         {"write": responder_reader.feed_data}
     )
-    initiator_peer = Peer(
+    initiator_peer = BasePeer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
-        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac)
-    responder_peer = Peer(
+        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, chaindb=None,
+        network_id=1)
+    initiator_peer.base_protocol.send_handshake()
+    responder_peer = BasePeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac)
+        egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=None, network_id=1)
+    responder_peer.base_protocol.send_handshake()
 
-    # The hello msgs sent by each peer (when we instantiated them above) are going to be fed
-    # directly into their remote's reader, and thus the read_msg() calls will return immediately.
+    # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
+    # reader, and thus the read_msg() calls will return immediately.
     responder_hello = yield from responder_peer.read_msg()
     initiator_hello = yield from initiator_peer.read_msg()
 

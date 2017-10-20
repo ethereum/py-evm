@@ -1,18 +1,19 @@
-import itertools
+import asyncio
 
 import rlp
 from rlp import sedes
 
 from eth_utils import to_dict
 
-from evm.constants import (
-    GENESIS_BLOCK_NUMBER,
-    GENESIS_DIFFICULTY,
-    ZERO_HASH32,
-)
-from evm.utils.hexadecimal import decode_hex
 from evm.rlp.headers import (
     BlockHeader,
+)
+from evm.rlp.transactions import (
+    BaseTransaction,
+)
+from evm.p2p.constants import (
+    MAX_BODIES_FETCH,
+    MAX_HEADERS_FETCH,
 )
 from evm.p2p.protocol import (
     Command,
@@ -74,16 +75,18 @@ class Status(Command):
         return super(Status, self).encode_payload(response)
 
     def handle(self, proto, data):
-        return self.decode(data)
+        decoded = self.decode(data)
+        asyncio.ensure_future(proto.peer.fetch_headers(decoded['headNum']))
+        return decoded
 
 
 class Announce(Command):
     _cmd_id = 1
     structure = [
-        ('headHash', sedes.binary),
-        ('headNumber', sedes.big_endian_int),
-        ('headTd', sedes.big_endian_int),
-        ('reorgDepth', sedes.big_endian_int),
+        ('head_hash', sedes.binary),
+        ('head_number', sedes.big_endian_int),
+        ('head_td', sedes.big_endian_int),
+        ('reorg_depth', sedes.big_endian_int),
         ('params', sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))),
     ]
     # TODO: The params CountableList above may contain any of the values from the Status msg.
@@ -91,8 +94,8 @@ class Announce(Command):
 
     def handle(self, proto, data):
         decoded = self.decode(data)
-        # FIXME: Should ask only for block headers we don't have yet.
-        proto.send_get_block_headers(decoded['headNumber'])
+        asyncio.ensure_future(
+            proto.peer.fetch_headers(decoded['head_number'], decoded['reorg_depth']))
         return decoded
 
 
@@ -125,32 +128,51 @@ class BlockHeaders(Command):
 
     def handle(self, proto, data):
         decoded = self.decode(data)
-        last_header_seen = decoded['headers'][0].block_number
-        proto.logger.debug("Last block header received: {}".format(last_header_seen))
         return decoded
+
+
+class GetBlockBodies(Command):
+    _cmd_id = 4
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('block_hashes', sedes.CountableList(sedes.binary)),
+    ]
+
+
+class LESBlockBody(rlp.Serializable):
+    fields = [
+        ('transactions', rlp.sedes.CountableList(BaseTransaction)),
+        ('uncles', rlp.sedes.CountableList(BlockHeader))
+    ]
+
+
+class BlockBodies(Command):
+    _cmd_id = 5
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('buffer_value', sedes.big_endian_int),
+        ('bodies', sedes.CountableList(LESBlockBody)),
+    ]
+
+    def handle(self, proto, data):
+        return self.decode(data)
 
 
 class LESProtocol(Protocol):
     name = b'les'
     version = 1
-    _commands = [Status, Announce, BlockHeaders]
-    _req_id = itertools.count()
-    # By default, whenever we send a GetBlockHeaders we'll expect max_headers in response.
-    # FIXME: Should be a config value somewhere, maybe?
-    max_headers = 10
+    _commands = [Status, Announce, BlockHeaders, BlockBodies]
     handshake_msg_type = Status
     cmd_length = 15
 
-    def send_handshake(self):
+    def send_handshake(self, head_info):
         resp = {
             'protocolVersion': self.version,
-            # FIXME: Need a Chain instance to get the values below from.
-            'networkId': 3,
-            'headTd': GENESIS_DIFFICULTY,
-            'headHash': ZERO_HASH32,
-            'headNum': GENESIS_BLOCK_NUMBER,
-            'genesisHash': decode_hex(
-                '0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d'),
+            'networkId': self.peer.network_id,
+            'headTd': head_info.total_difficulty,
+            'headHash': head_info.block_hash,
+            'headNum': head_info.block_number,
+            'genesisHash': head_info.genesis_hash,
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
@@ -162,22 +184,34 @@ class LESProtocol(Protocol):
         # 2. genesis hash does not match
         pass
 
-    @property
-    def next_req_id(self):
-        return next(self._req_id)
+    def send_get_block_bodies(self, block_hashes, request_id):
+        if len(block_hashes) > MAX_BODIES_FETCH:
+            raise ValueError(
+                "Cannot ask for more than {} blocks in a single request".format(
+                    MAX_BODIES_FETCH))
+        data = {
+            'request_id': request_id,
+            'block_hashes': block_hashes,
+        }
+        header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
+        self.send(header, body)
 
-    def send_get_block_headers(self, block_number, reverse=True, max_headers=max_headers):
+    def send_get_block_headers(self, block_number, max_headers, request_id, reverse=True):
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from block_number if
         reverse is False or ending at block_number if reverse is True.
         """
+        if max_headers > MAX_HEADERS_FETCH:
+            raise ValueError(
+                "Cannot ask for more than {} block headers in a single request".format(
+                    MAX_HEADERS_FETCH))
         cmd = GetBlockHeaders(self.cmd_id_offset)
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
-            'request_id': self.next_req_id,
+            'request_id': request_id,
             'query': GetBlockHeadersQuery(block_number, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
-        return self.send(header, body)
+        self.send(header, body)

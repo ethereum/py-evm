@@ -1,8 +1,4 @@
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-    binary,
-)
 
 from evm.constants import (
     GAS_TX,
@@ -24,9 +20,6 @@ from evm.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from evm.rlp.sedes import (
-    address,
-)
 
 from evm.utils.transactions import (
     create_transaction_signature,
@@ -36,17 +29,6 @@ from evm.utils.transactions import (
 
 
 class FrontierTransaction(BaseTransaction):
-    fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('v', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
-    ]
 
     def validate(self):
         validate_uint256(self.nonce, title="Transaction.nonce")
@@ -96,14 +78,6 @@ class FrontierTransaction(BaseTransaction):
 
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
-    fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-    ]
 
     def validate(self):
         validate_uint256(self.nonce, title="Transaction.nonce")

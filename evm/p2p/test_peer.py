@@ -6,6 +6,11 @@ import pytest
 import rlp
 from rlp import sedes
 
+from evm.constants import (
+    GENESIS_BLOCK_NUMBER,
+    GENESIS_DIFFICULTY,
+    ZERO_HASH32,
+)
 from evm.utils.keccak import (
     keccak,
 )
@@ -17,7 +22,10 @@ from evm.p2p.les import (
     LESProtocol,
     Status,
 )
-from evm.p2p.peer import Peer
+from evm.p2p.peer import (
+    HeadInfo,
+    LESPeer,
+)
 from evm.p2p.protocol import Protocol
 from evm.p2p.p2p_proto import P2PProtocol
 
@@ -25,7 +33,7 @@ from evm.p2p.p2p_proto import P2PProtocol
 @pytest.fixture
 @asyncio.coroutine
 def directly_linked_peers():
-    """Create two Peers with their readers/writers connected directly.
+    """Create two LESPeers with their readers/writers connected directly.
 
     The first peer's reader will write directly to the second's writer, and vice-versa.
     """
@@ -65,15 +73,17 @@ def directly_linked_peers():
         peer2_ingress = egress_mac.copy()
         peer2_egress = ingress_mac.copy()
 
-        peer1 = Peer(
+        peer1 = LESPeer(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
             writer=peer1_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=egress_mac, ingress_mac=ingress_mac)
+            egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=None,
+            network_id=1)
 
-        peer2 = Peer(
+        peer2 = LESPeer(
             remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
             writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=peer2_egress, ingress_mac=peer2_ingress)
+            egress_mac=peer2_egress, ingress_mac=peer2_ingress, chaindb=None,
+            network_id=1)
 
         handshake_finished.set()
 
@@ -90,10 +100,24 @@ def directly_linked_peers():
 
     yield from handshake_finished.wait()
 
+    # Perform the base protocol (P2P) handshake.
+    peer1.base_protocol.send_handshake()
+    peer2.base_protocol.send_handshake()
     msg1 = yield from peer1.read_msg()
     peer1.process_msg(msg1)
     msg2 = yield from peer2.read_msg()
     peer2.process_msg(msg2)
+
+    # Now send the handshake msg for each enabled sub-protocol.
+    head_info = HeadInfo(
+        block_number=GENESIS_BLOCK_NUMBER,
+        block_hash=ZERO_HASH32,
+        total_difficulty=GENESIS_DIFFICULTY,
+        genesis_hash=ZERO_HASH32)
+    for proto in peer1.enabled_sub_protocols:
+        proto.send_handshake(head_info)
+    for proto in peer2.enabled_sub_protocols:
+        proto.send_handshake(head_info)
     return peer1, peer2
 
 
@@ -101,18 +125,18 @@ def directly_linked_peers():
 def test_directly_linked_peers(directly_linked_peers):
     peer1, peer2 = yield from directly_linked_peers
     assert len(peer1.enabled_sub_protocols) == 1
-    assert peer1.enabled_sub_protocols[0].name == LESProtocol.name
-    assert peer1.enabled_sub_protocols[0].version == LESProtocol.version
+    assert peer1.les_proto is not None
+    assert peer1.les_proto.name == LESProtocol.name
+    assert peer1.les_proto.version == LESProtocol.version
     assert [(proto.name, proto.version) for proto in peer1.enabled_sub_protocols] == [
         (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
 
 
 @pytest.mark.asyncio
-def test_les_handshake_after_protocol_agreement(directly_linked_peers):
+def test_les_handshake(directly_linked_peers):
     peer1, peer2 = yield from directly_linked_peers
-    # The peers above have already performed the sub-protocol agreement, and as part of that they
-    # send the handshake msg for each enabled sub protocol -- in this case that's the Status msg
-    # of the LES protocol.
+    # The peers above have already performed the sub-protocol agreement, and sent the handshake
+    # msg for each enabled sub protocol -- in this case that's the Status msg of the LES protocol.
     msg = yield from peer1.read_msg()
     cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
     proto = peer1.get_protocol_for(cmd_id)
@@ -162,7 +186,7 @@ class ETHProtocol63(Protocol):
         pass
 
 
-class ProtoMatchingPeer(Peer):
+class ProtoMatchingPeer(LESPeer):
 
     def __init__(self, supported_sub_protocols):
         self._supported_sub_protocols = supported_sub_protocols

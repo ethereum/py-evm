@@ -1,3 +1,8 @@
+import os
+
+from evm.utils.numeric import big_endian_to_int
+
+
 def sxor(s1, s2):
     if len(s1) != len(s2):
         raise ValueError("Cannot sxor strings of different length")
@@ -10,3 +15,7 @@ def roundup_16(x):
     if remainder != 0:
         x += 16 - remainder
     return x
+
+
+def gen_request_id():
+    return big_endian_to_int(os.urandom(8))

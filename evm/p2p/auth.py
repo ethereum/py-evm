@@ -31,20 +31,17 @@ from evm.p2p.utils import (
 
 @asyncio.coroutine
 def handshake(remote, privkey):
-    """Perform the auth handshake with the given remote and return a Peer ready to be used.
-
-    The Peer will be configured with the shared secrets established during the handshake.
     """
-    # Local import to avoid circular dependencies.
-    from evm.p2p.peer import Peer
+    Perform the auth handshake with given remote.
+
+    Returns the established secrets and the StreamReader/StreamWriter pair already connected to
+    the remote.
+    """
     initiator = HandshakeInitiator(remote, privkey)
     reader, writer = yield from initiator.connect()
     aes_secret, mac_secret, egress_mac, ingress_mac = yield from _handshake(
         initiator, reader, writer)
-    peer = Peer(remote=remote, privkey=privkey, reader=reader, writer=writer,
-                aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-                ingress_mac=ingress_mac)
-    return peer
+    return aes_secret, mac_secret, egress_mac, ingress_mac, reader, writer
 
 
 @asyncio.coroutine
