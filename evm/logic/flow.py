@@ -2,6 +2,7 @@ from evm import constants
 from evm.exceptions import (
     InvalidJumpDestination,
     InvalidInstruction,
+    Halt,
 )
 from evm.opcode_values import (
     JUMPDEST,
@@ -9,7 +10,7 @@ from evm.opcode_values import (
 
 
 def stop(computation):
-    pass
+    raise Halt('STOP')
 
 
 def jump(computation):

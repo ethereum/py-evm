@@ -33,6 +33,13 @@ class ValidationError(PyEVMError):
     pass
 
 
+class Halt(PyEVMError):
+    """
+    Raised by opcode function to halt vm execution.
+    """
+    pass
+
+
 class VMError(PyEVMError):
     """
     Class of errors which can be raised during VM execution.
