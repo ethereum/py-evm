@@ -63,8 +63,6 @@ class CodeStream(object):
         self.pc = pc
         try:
             yield self
-        except:
-            raise
         finally:
             self.pc = anchor_pc
 
