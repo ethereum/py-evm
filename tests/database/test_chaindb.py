@@ -75,11 +75,22 @@ def test_persist_block_to_db(chaindb, block):
     assert chaindb.exists(block_to_hash_key)
 
 
-def test_get_score(chaindb, block):
-    chaindb.persist_block_to_db(block)
-    block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
-    score = rlp.decode(chaindb.db.get(block_to_hash_key), sedes=rlp.sedes.big_endian_int)
-    assert chaindb.get_score(block.hash) == score
+def test_get_score(chaindb):
+    genesis = BlockHeader(difficulty=1, block_number=0, gas_limit=0)
+    chaindb.persist_header_to_db(genesis)
+
+    genesis_score_key = make_block_hash_to_score_lookup_key(genesis.hash)
+    genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
+    assert genesis_score == 1
+    assert chaindb.get_score(genesis.hash) == 1
+
+    block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
+    chaindb.persist_header_to_db(block1)
+
+    block1_score_key = make_block_hash_to_score_lookup_key(block1.hash)
+    block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
+    assert block1_score == 11
+    assert chaindb.get_score(block1.hash) == 11
 
 
 def test_get_block_header_by_hash(chaindb, block, header):

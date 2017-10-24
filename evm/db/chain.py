@@ -12,7 +12,6 @@ from eth_utils import (
 
 from evm.constants import (
     BLANK_ROOT_HASH,
-    GENESIS_DIFFICULTY,
     GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
@@ -66,11 +65,6 @@ class BaseChainDB:
         self.db.set(CANONICAL_HEAD_HASH_DB_KEY, head_hash)
 
     def get_score(self, block_hash):
-        # TODO: This may be a problem as not all chains will start with the same
-        # genesis difficulty. Maybe make it Chain aware so that it can pull the
-        # genesis block and pull the genesis difficulty from there.
-        if block_hash == GENESIS_PARENT_HASH:
-            return GENESIS_DIFFICULTY
         return rlp.decode(
             self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
             sedes=rlp.sedes.big_endian_int)
@@ -143,7 +137,10 @@ class BaseChainDB:
             rlp.encode(header),
         )
 
-        score = self.get_score(header.parent_hash) + header.difficulty
+        if header.parent_hash == GENESIS_PARENT_HASH:
+            score = header.difficulty
+        else:
+            score = self.get_score(header.parent_hash) + header.difficulty
         self.db.set(
             make_block_hash_to_score_lookup_key(header.hash),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
