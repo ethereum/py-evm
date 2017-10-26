@@ -337,6 +337,9 @@ class BasePeer:
             self.enabled_sub_protocols.append(proto_klass(self, offset))
             offset += proto_klass.cmd_length
 
+    def __str__(self):
+        return "{} {}".format(self.__class__.__name__, self.remote)
+
 
 class LESPeer(BasePeer):
     _les_proto = None

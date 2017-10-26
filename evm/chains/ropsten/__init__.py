@@ -6,10 +6,13 @@ from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.rlp.headers import BlockHeader
 
 
+ROPSTEN_NETWORK_ID = 3
+
+
 RopstenChain = Chain.configure(
     'RopstenChain',
     vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=3,
+    network_id=ROPSTEN_NETWORK_ID,
 )
 
 
