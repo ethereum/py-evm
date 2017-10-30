@@ -8,6 +8,7 @@ from trie import (
 
 from eth_utils import (
     to_list,
+    to_tuple,
 )
 
 from evm.constants import (
@@ -56,18 +57,56 @@ class BaseChainDB:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
         return self.get_block_header_by_hash(self.db.get(CANONICAL_HEAD_HASH_DB_KEY))
 
-    def set_canonical_head(self, head_hash):
-        try:
-            self.get_block_header_by_hash(head_hash)
-        except BlockNotFound:
-            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
-                head_hash))
-        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, head_hash)
+    def get_canonical_block_header_by_number(self, block_number):
+        """
+        Returns the block header with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block header with the given number in the
+        canonical chain.
+        """
+        validate_uint256(block_number, title="Block Number")
+        return self.get_block_header_by_hash(self.lookup_block_hash(block_number))
 
     def get_score(self, block_hash):
         return rlp.decode(
             self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
             sedes=rlp.sedes.big_endian_int)
+
+    def set_as_canonical_chain_head(self, header):
+        """
+        Sets the header as the canonical chain HEAD.
+        """
+        for h in reversed(self.find_common_ancestor(header)):
+            self.add_block_number_to_hash_lookup(h)
+
+        try:
+            self.get_block_header_by_hash(header.hash)
+        except BlockNotFound:
+            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
+                header.hash))
+        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
+
+    @to_tuple
+    def find_common_ancestor(self, header):
+        """
+        Returns the chain leading up from the given header until the first ancestor it has in
+        common with our canonical chain.
+        """
+        h = header
+        while True:
+            yield h
+            if h.parent_hash == GENESIS_PARENT_HASH:
+                break
+            try:
+                orig = self.get_canonical_block_header_by_number(h.block_number)
+            except KeyError:
+                # This just means the block is not on the canonical chain.
+                pass
+            else:
+                if orig.hash == h.hash:
+                    # Found the common ancestor, stop.
+                    break
+            h = self.get_block_header_by_hash(h.parent_hash)
 
     def get_block_header_by_hash(self, block_hash):
         """
@@ -131,6 +170,8 @@ class BaseChainDB:
             rlp.encode(header.hash, sedes=rlp.sedes.binary),
         )
 
+    # TODO: This method sould take a chain of headers as that's the most common use case
+    # and it'd be much faster than inserting each header individually.
     def persist_header_to_db(self, header):
         self.db.set(
             header.hash,
@@ -144,6 +185,14 @@ class BaseChainDB:
         self.db.set(
             make_block_hash_to_score_lookup_key(header.hash),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
+
+        try:
+            head_score = self.get_score(self.get_canonical_head().hash)
+        except CanonicalHeadNotFound:
+            self.set_as_canonical_chain_head(header)
+        else:
+            if score > head_score:
+                self.set_as_canonical_chain_head(header)
 
     def persist_block_to_db(self, block):
         self.persist_header_to_db(block.header)
