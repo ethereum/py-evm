@@ -20,3 +20,7 @@ class UselessPeer(Exception):
 
 class UnreachablePeer(Exception):
     pass
+
+
+class EmptyGetBlockHeadersReply(Exception):
+    pass

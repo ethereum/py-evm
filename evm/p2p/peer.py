@@ -20,7 +20,6 @@ from eth_utils import (
 from eth_keys import keys
 
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.exceptions import CanonicalHeadNotFound
 from evm.p2p import auth
 from evm.p2p import ecies
 from evm.p2p.constants import (
@@ -33,6 +32,7 @@ from evm.p2p.constants import (
 )
 from evm.p2p.exceptions import (
     AuthenticationError,
+    EmptyGetBlockHeadersReply,
     PeerDisconnected,
     UnknownProtocolCommand,
     UnreachablePeer,
@@ -43,7 +43,11 @@ from evm.p2p.utils import (
     roundup_16,
     sxor,
 )
-from evm.p2p.les import LESProtocol
+from evm.p2p.les import (
+    Announce,
+    LESProtocol,
+    Status,
+)
 from evm.p2p.p2p_proto import (
     DisconnectReason,
     P2PProtocol,
@@ -87,6 +91,9 @@ def handshake(remote, privkey, peer_class, chaindb, network_id):
 
 class BasePeer:
     logger = logging.getLogger("evm.p2p.peer.Peer")
+    conn_idle_timeout = CONN_IDLE_TIMEOUT
+    reply_timeout = REPLY_TIMEOUT
+    max_headers_fetch = MAX_HEADERS_FETCH
     # Must be defined in subclasses.
     _supported_sub_protocols = []
     # FIXME: Must be configurable.
@@ -129,6 +136,14 @@ class BasePeer:
             genesis_hash=genesis_header.hash,
         )
 
+    def handle_msg(self, cmd, msg):
+        """Peer-specific handling of incoming messages.
+
+        This method is called once the sub-protocol's process() method is done, so that custom
+        Peer implementations can appy extra processing to incoming messages.
+        """
+        pass
+
     @property
     def capabilities(self):
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
@@ -144,7 +159,7 @@ class BasePeer:
             got_reply.set()
 
         self._pending_replies[request_id] = callback
-        yield from asyncio.wait_for(got_reply.wait(), REPLY_TIMEOUT)
+        yield from asyncio.wait_for(got_reply.wait(), self.reply_timeout)
         return reply
 
     def get_protocol_for(self, cmd_id):
@@ -166,7 +181,7 @@ class BasePeer:
     def read(self, n):
         self.logger.debug("Waiting for {} bytes from {}".format(n, self.remote))
         try:
-            data = yield from asyncio.wait_for(self.reader.readexactly(n), CONN_IDLE_TIMEOUT)
+            data = yield from asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
             self.logger.debug("EOF reading from {}'s stream".format(self.remote))
             raise PeerDisconnected()
@@ -350,36 +365,98 @@ class LESPeer(BasePeer):
         super(LESPeer, self).__init__(
             remote, privkey, reader, writer, aes_secret, mac_secret,
             egress_mac, ingress_mac, chaindb, network_id)
-        self._header_fetching_lock = asyncio.Lock()
+        self._header_sync_lock = asyncio.Lock()
+        # The block number for the last header we fetched from the remote.
+        self.synced_block_height = None
+
+    def handle_msg(self, cmd, msg):
+        if isinstance(cmd, Announce):
+            self.handle_announce(msg)
+        elif isinstance(cmd, Status):
+            self.handle_status(msg)
+        else:
+            self.logger.debug("No custom LESPeer handler for %s", cmd)
+
+    def handle_announce(self, msg):
+        self.logger.info(
+            "New LES/Announce by %s; head_number==%s, reorg_depth==%s",
+            self, msg['head_number'], msg['reorg_depth'])
+        asyncio.ensure_future(
+            self.sync(msg['head_hash'], msg['head_number'], msg['reorg_depth']))
+
+    def handle_status(self, msg):
+        self.logger.info(
+            "New LES/Status by %s; head_number==%s", self, msg['headNum'])
+        asyncio.ensure_future(self.sync(msg['headHash'], msg['headNum']))
 
     @asyncio.coroutine
-    def fetch_headers(self, block_number, reorg_depth=0):
-        """Fetch all headers from our canonical chain head up to block_number.
+    def sync(self, head_hash, head_number, reorg_depth=0):
+        if self.chaindb.header_exists(head_hash):
+            self.logger.debug("Already have head announced by %s", self)
+            self.synced_block_height = head_number
+            return
 
-        If reorg_depth is provided, fetch headers from (current_head - reorg_depth) up to
-        block_number.
+        with (yield from self._header_sync_lock):
+            try:
+                yield from self._sync(head_number, reorg_depth)
+            except asyncio.TimeoutError:
+                # TODO: Implement a retry mechanism and only disconnect after retrying a few
+                # times.
+                self.logger.warn("Timeout when syncing, disconnecting from %s", self)
+                yield from self.stop()
+
+    @asyncio.coroutine
+    def _sync(self, head_number, reorg_depth):
+        """Ensure our chaindb contains all block headers until the given number.
+
+        Callers must aquire self._header_sync_lock in order to serialize processing of announce
+        messages from the same remote peer.
         """
-        with (yield from self._header_fetching_lock):
-            self.logger.info("fetch_headers({}, reorg_depth={}) called".format(
-                block_number, reorg_depth))
-            head_number = self.chaindb.get_canonical_head().block_number
-            head_number -= reorg_depth
-            announced_head_number = block_number
-            while announced_head_number > head_number:
-                request_id = gen_request_id()
-                target_head = min(head_number + MAX_HEADERS_FETCH, announced_head_number)
-                self.les_proto.send_get_block_headers(
-                    target_head, MAX_HEADERS_FETCH, request_id, reverse=True)
-                reply = yield from self.wait_for_reply(request_id)
-                for header in reversed(reply['headers']):
-                    self.chaindb.persist_header_to_db(header)
-                    # FIXME: The reference to the canonical chain head should not be stored in the
-                    # chaindb as that is shared by all peers -- instead, that should be kept on a
-                    # peer-specific db.
-                    self.chaindb.add_block_number_to_hash_lookup(header)
-                    self.chaindb.set_canonical_head(header.hash)
-                    head_number = header.block_number
-                self.logger.info("synced headers up to block {}".format(head_number))
+        if self.synced_block_height is None:
+            # It's the first time we hear from this peer, need to figure out which headers to
+            # get from it.  We can't simply fetch headers starting from our current head
+            # number because there may have been a chain reorg, so we fetch some headers prior
+            # to our head from the peer, and insert any missing ones in our DB, essentially
+            # making our canonical chain identical to the peer's up to
+            # chain_head.block_number.
+            chain_head = self.chaindb.get_canonical_head()
+            oldest_ancestor_to_consider = max(
+                0, chain_head.block_number - self.max_headers_fetch + 1)
+            headers = yield from self._fetch_headers_starting_at(oldest_ancestor_to_consider)
+            if len(headers) == 0 or not self.chaindb.header_exists(headers[0].hash):
+                self.logger.warn("No common ancestors between us and remote, disconnecting")
+                self.disconnect(DisconnectReason.other)
+                return
+            for header in headers:
+                self.chaindb.persist_header_to_db(header)
+            self.synced_block_height = chain_head.block_number
+        else:
+            self.synced_block_height = self.synced_block_height - reorg_depth
+
+        while self.synced_block_height < head_number:
+            batch = yield from self._fetch_headers_starting_at(self.synced_block_height + 1)
+            for header in batch:
+                self.chaindb.persist_header_to_db(header)
+                self.synced_block_height = header.block_number
+            self.logger.info("synced headers up to #%s", self.synced_block_height)
+
+    @asyncio.coroutine
+    def _fetch_headers_starting_at(self, start_block):
+        """Fetches up to self.max_headers_fetch starting at start_block.
+
+        Returns a tuple containing those headers in ascending order of block number.
+        """
+        request_id = gen_request_id()
+        self.les_proto.send_get_block_headers(
+            start_block, self.max_headers_fetch, request_id, reverse=False)
+        reply = yield from self.wait_for_reply(request_id)
+        if len(reply['headers']) == 0:
+            raise EmptyGetBlockHeadersReply(
+                "No headers in reply. start_block=={}".format(start_block))
+        self.logger.info(
+            "fetched headers from %s to %s", reply['headers'][0].block_number,
+            reply['headers'][-1].block_number)
+        return reply['headers']
 
     @property
     def les_proto(self):
@@ -419,6 +496,10 @@ if __name__ == "__main__":
       -port 30301 -nat none -testnet -lightserv 90
     """
     import argparse
+    from evm.chains.mainnet import (
+        MainnetChain,
+        MAINNET_GENESIS_HEADER,
+    )
     from evm.chains.ropsten import (
         RopstenChain,
         ROPSTEN_GENESIS_HEADER,
@@ -426,29 +507,43 @@ if __name__ == "__main__":
     from evm.db.backends.memory import MemoryDB
     from evm.db.backends.level import LevelDB
     from evm.db.chain import BaseChainDB
+    from evm.exceptions import CanonicalHeadNotFound
     from evm.p2p import kademlia
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    remote_pubkey = keys.PrivateKey(decode_hex(
-        "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")).public_key
-    remote = kademlia.Node(remote_pubkey, kademlia.Address('127.0.0.1', 30301, 30301))
 
+    # The default remoteid can be used if you pass nodekeyhex as above to geth.
+    nodekey = keys.PrivateKey(decode_hex(
+        "45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"))
+    remoteid = nodekey.public_key.to_hex()
     parser = argparse.ArgumentParser()
+    parser.add_argument('-remoteid', type=str, default=remoteid)
     parser.add_argument('-db', type=str)
+    parser.add_argument('-mainnet', action="store_true")
     args = parser.parse_args()
 
-    genesis_header = ROPSTEN_GENESIS_HEADER
+    remote = kademlia.Node(
+        keys.PublicKey(decode_hex(args.remoteid)),
+        kademlia.Address('127.0.0.1', 30303, 30303))
+
     if args.db is not None:
         chaindb = BaseChainDB(LevelDB(args.db))
     else:
         chaindb = BaseChainDB(MemoryDB())
+
+    genesis_header = ROPSTEN_GENESIS_HEADER
+    chain_class = RopstenChain
+    if args.mainnet:
+        genesis_header = MAINNET_GENESIS_HEADER
+        chain_class = MainnetChain
+
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         # We're starting with a fresh DB.
-        chain = RopstenChain.from_genesis_header(chaindb, genesis_header)
+        chain = chain_class.from_genesis_header(chaindb, genesis_header)
     else:
         # We're reusing an existing db.
-        chain = RopstenChain(chaindb)
+        chain = chain_class(chaindb)
     print("Current chain head: {}".format(chaindb.get_canonical_head().block_number))
 
     loop = asyncio.get_event_loop()

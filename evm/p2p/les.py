@@ -1,5 +1,3 @@
-import asyncio
-
 import rlp
 from rlp import sedes
 
@@ -74,11 +72,6 @@ class Status(Command):
         ]
         return super(Status, self).encode_payload(response)
 
-    def handle(self, proto, data):
-        decoded = self.decode(data)
-        asyncio.ensure_future(proto.peer.fetch_headers(decoded['headNum']))
-        return decoded
-
 
 class Announce(Command):
     _cmd_id = 1
@@ -92,19 +85,13 @@ class Announce(Command):
     # TODO: The params CountableList above may contain any of the values from the Status msg.
     # Need to extend this command to process that too.
 
-    def handle(self, proto, data):
-        decoded = self.decode(data)
-        asyncio.ensure_future(
-            proto.peer.fetch_headers(decoded['head_number'], decoded['reorg_depth']))
-        return decoded
-
 
 class GetBlockHeadersQuery(rlp.Serializable):
     fields = [
         # TODO: It should be possible to specify the block either by its number or hash, but
         # for now only the number is supported.
         ('block', sedes.big_endian_int),
-        ('maxHeaders', sedes.big_endian_int),
+        ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
         ('reverse', sedes.big_endian_int),
     ]
@@ -125,10 +112,6 @@ class BlockHeaders(Command):
         ('buffer_value', sedes.big_endian_int),
         ('headers', sedes.CountableList(BlockHeader)),
     ]
-
-    def handle(self, proto, data):
-        decoded = self.decode(data)
-        return decoded
 
 
 class GetBlockBodies(Command):
@@ -153,9 +136,6 @@ class BlockBodies(Command):
         ('buffer_value', sedes.big_endian_int),
         ('bodies', sedes.CountableList(LESBlockBody)),
     ]
-
-    def handle(self, proto, data):
-        return self.decode(data)
 
 
 class LESProtocol(Protocol):

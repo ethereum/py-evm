@@ -96,7 +96,7 @@ class P2PProtocol(Protocol):
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
         header, body = Hello(self.cmd_id_offset).encode(data)
-        self.peer.send(header, body)
+        self.send(header, body)
 
     def process_handshake(self, decoded_msg):
         self.peer.process_p2p_handshake(decoded_msg)
