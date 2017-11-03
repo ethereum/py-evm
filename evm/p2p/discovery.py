@@ -7,6 +7,7 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 """
 import asyncio
 import logging
+import random
 import time
 
 import rlp
@@ -109,7 +110,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # .transport we should instead only call it after we know it's been set.
             await asyncio.sleep(1)
         self.logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
-        await self.kademlia.bootstrap(self.bootstrap_nodes)
+        return await self.kademlia.bootstrap(self.bootstrap_nodes)
+
+    async def lookup_random_node(self):
+        return await self.lookup(random.randint(0, kademlia.k_max_node_id))
+
+    async def lookup(self, node_id):
+        return await self.kademlia.lookup(node_id)
 
     def datagram_received(self, data, addr):
         ip_address, udp_port = addr
