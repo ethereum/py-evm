@@ -123,7 +123,7 @@ class KBucket:
         self.start = start
         self.end = end
         self.nodes = []
-        self.replacement_cache = []
+        self.replacement_cache = set()
         self.last_updated = time.time()
 
     @property
@@ -146,7 +146,7 @@ class KBucket:
             bucket.add(node)
         for node in self.replacement_cache:
             bucket = lower if node.id <= splitid else upper
-            bucket.replacement_cache.append(node)
+            bucket.replacement_cache.add(node)
         return lower, upper
 
     def remove_node(self, node):
@@ -180,7 +180,7 @@ class KBucket:
         elif len(self) < self.k:
             self.nodes.append(node)
         else:
-            self.replacement_cache.append(node)
+            self.replacement_cache.add(node)
             return self.head
 
     @property
@@ -437,7 +437,6 @@ class KademliaProtocol:
             await asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected neighbours response from {}'.format(remote))
         except asyncio.TimeoutError:
-            pass
             self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.neighbours_callbacks[remote]
@@ -461,7 +460,12 @@ class KademliaProtocol:
 
         pingid = self.ping(node)
 
-        got_pong = await self.wait_pong(pingid)
+        try:
+            got_pong = await self.wait_pong(pingid)
+        except AlreadyWaiting:
+            # This is expected as there might be concurrent lookup() and
+            # populate_not_full_buckets() calls that try to bond with the same peer.
+            return False
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from {}".format(node))
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
@@ -484,7 +488,7 @@ class KademliaProtocol:
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
             return
-        await self.lookup(self.this_node.id)
+        return await self.lookup(self.this_node.id)
 
     async def lookup(self, node_id):
         """Lookup performs a network search for nodes close to the given target.
@@ -527,7 +531,7 @@ class KademliaProtocol:
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        self.logger.info("lookup finished for {}: {}".format(node_id, closest))
+        self.logger.debug("lookup finished for {}: {}".format(node_id, closest))
         return closest
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
