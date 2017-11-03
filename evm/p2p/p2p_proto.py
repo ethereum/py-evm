@@ -1,5 +1,7 @@
 import enum
 
+from cytoolz import assoc
+
 from rlp import sedes
 
 from evm.p2p.constants import (
@@ -54,12 +56,15 @@ class Disconnect(Command):
         except ValueError:
             return "unknown reason"
 
+    def decode(self, data):
+        raw_decoded = super(Disconnect, self).decode(data)
+        return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
+
     def handle(self, proto, data):
         decoded = self.decode(data)
-        reason_name = self.get_reason_name(decoded['reason'])
         proto.logger.info(
-            "Peer {} disconnected; reason given: {}".format(proto.peer.remote, reason_name))
-        proto.peer.stop()
+            "{} disconnected; reason given: {}".format(proto.peer, decoded['reason_name']))
+        proto.peer.close()
         return decoded
 
 

@@ -227,8 +227,8 @@ def get_linked_and_running_peers(request, event_loop, chaindb1=None, chaindb2=No
     def finalizer():
         @asyncio.coroutine
         def afinalizer():
-            yield from peer1.stop()
-            yield from peer2.stop()
+            yield from peer1.stop_and_wait_until_finished()
+            yield from peer2.stop_and_wait_until_finished()
         event_loop.run_until_complete(afinalizer())
     request.addfinalizer(finalizer)
 

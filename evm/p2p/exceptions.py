@@ -6,6 +6,10 @@ class DecryptionError(Exception):
     pass
 
 
+class PeerConnectionLost(Exception):
+    pass
+
+
 class PeerDisconnected(Exception):
     pass
 

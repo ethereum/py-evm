@@ -1,5 +1,7 @@
 import os
 
+import rlp
+
 from evm.utils.numeric import big_endian_to_int
 
 
@@ -19,3 +21,12 @@ def roundup_16(x):
 
 def gen_request_id():
     return big_endian_to_int(os.urandom(8))
+
+
+def get_devp2p_cmd_id(msg):
+    """Return the cmd_id for the given devp2p msg.
+
+    The cmd_id, also known as the payload type, is always the first entry of the RLP, interpreted
+    as an integer.
+    """
+    return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
