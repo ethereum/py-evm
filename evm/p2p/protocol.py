@@ -16,7 +16,10 @@ class Command:
         self.id_offset = id_offset
 
     def handle(self, proto, data):
-        raise NotImplementedError()
+        return self.decode(data)
+
+    def __str__(self):
+        return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
     @property
     def cmd_id(self):
@@ -107,6 +110,7 @@ class Protocol:
             cmd.__class__.__name__, cmd_id, decoded))
         if isinstance(cmd, self.handshake_msg_type):
             self.process_handshake(decoded)
+        self.peer.handle_msg(cmd, decoded)
         return decoded
 
     def send(self, header, body):

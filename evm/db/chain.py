@@ -122,6 +122,10 @@ class BaseChainDB:
                 encode_hex(block_hash)))
         return rlp.decode(block, sedes=BlockHeader)
 
+    def header_exists(self, block_hash):
+        """Returns True if the header with the given block hash is in our DB."""
+        return self.db.exists(block_hash)
+
     def lookup_block_hash(self, block_number):
         """
         Return the block hash for the given block number.
