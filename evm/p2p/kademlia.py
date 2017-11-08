@@ -365,8 +365,7 @@ class KademliaProtocol:
             # replacement cache.
             asyncio.ensure_future(self.bond(eviction_candidate))
 
-    @asyncio.coroutine
-    def wait_ping(self, remote):
+    async def wait_ping(self, remote):
         """Wait for a ping from the given remote.
 
         This coroutine adds a callback to ping_callbacks and yields control until that callback is
@@ -381,7 +380,7 @@ class KademliaProtocol:
         self.ping_callbacks[remote] = event.set
         got_ping = False
         try:
-            got_ping = yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            got_ping = await asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected ping from {}'.format(remote))
         except asyncio.futures.TimeoutError:
             self.logger.debug('timed out waiting for ping from {}'.format(remote))
@@ -389,8 +388,7 @@ class KademliaProtocol:
         del self.ping_callbacks[remote]
         return got_ping
 
-    @asyncio.coroutine
-    def wait_pong(self, pingid):
+    async def wait_pong(self, pingid):
         """Wait for a pong with the given pingid.
 
         This coroutine adds a callback to pong_callbacks and yields control until that callback is
@@ -405,7 +403,7 @@ class KademliaProtocol:
         self.pong_callbacks[pingid] = event.set
         got_pong = False
         try:
-            got_pong = yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            got_pong = await asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
         except asyncio.futures.TimeoutError:
             self.logger.debug(
@@ -414,8 +412,7 @@ class KademliaProtocol:
         del self.pong_callbacks[pingid]
         return got_pong
 
-    @asyncio.coroutine
-    def wait_neighbours(self, remote):
+    async def wait_neighbours(self, remote):
         """Wait for a neihgbours packet from the given node.
 
         Returns the list of neighbours received.
@@ -437,7 +434,7 @@ class KademliaProtocol:
 
         self.neighbours_callbacks[remote] = process
         try:
-            yield from asyncio.wait_for(event.wait(), k_request_timeout)
+            await asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected neighbours response from {}'.format(remote))
         except asyncio.TimeoutError:
             pass
@@ -453,8 +450,7 @@ class KademliaProtocol:
         pingid = self._mkpingid(token, node)
         return pingid
 
-    @asyncio.coroutine
-    def bond(self, node):
+    async def bond(self, node):
         """Bond with the given node.
 
         Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
@@ -465,7 +461,7 @@ class KademliaProtocol:
 
         pingid = self.ping(node)
 
-        got_pong = yield from self.wait_pong(pingid)
+        got_pong = await self.wait_pong(pingid)
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from {}".format(node))
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
@@ -477,22 +473,20 @@ class KademliaProtocol:
         # Give the remote node a chance to ping us before we move on and start sending find_node
         # requests. It is ok for wait_ping() to timeout and return false here as that just means
         # the remote remembers us.
-        yield from self.wait_ping(node)
+        await self.wait_ping(node)
 
         self.logger.debug("bonding completed successfully with {}".format(node))
         self.update_routing_table(node)
         return True
 
-    @asyncio.coroutine
-    def bootstrap(self, bootstrap_nodes):
-        bonded = yield from asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
+    async def bootstrap(self, bootstrap_nodes):
+        bonded = await asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
             return
-        yield from self.lookup(self.this_node.id)
+        await self.lookup(self.this_node.id)
 
-    @asyncio.coroutine
-    def lookup(self, node_id):
+    async def lookup(self, node_id):
         """Lookup performs a network search for nodes close to the given target.
 
         It approaches the target by querying nodes that are closer to it on each iteration.  The
@@ -501,10 +495,9 @@ class KademliaProtocol:
         nodes_asked = set()
         nodes_seen = set()
 
-        @asyncio.coroutine
-        def _find_node(node_id, remote):
+        async def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
-            candidates = yield from self.wait_neighbours(remote)
+            candidates = await self.wait_neighbours(remote)
             if len(candidates) == 0:
                 self.logger.debug("got no candidates from {}, returning".format(remote))
                 return candidates
@@ -513,7 +506,7 @@ class KademliaProtocol:
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
-            bonded = yield from asyncio.gather(*[self.bond(c) for c in candidates])
+            bonded = await asyncio.gather(*[self.bond(c) for c in candidates])
             self.logger.debug("bonded with {} candidates".format(bonded.count(True)))
             return [c for c in candidates if bonded[candidates.index(c)]]
 
@@ -527,7 +520,7 @@ class KademliaProtocol:
         while nodes_to_ask:
             self.logger.debug("node lookup; querying {}".format(nodes_to_ask))
             nodes_asked.update(nodes_to_ask)
-            results = yield from asyncio.gather(
+            results = await asyncio.gather(
                 *[_find_node(node_id, n) for n in nodes_to_ask])
             for candidates in results:
                 closest.extend(candidates)
@@ -550,8 +543,7 @@ class KademliaProtocol:
         pid = force_bytes(token) + node.pubkey.to_bytes()
         return pid
 
-    @asyncio.coroutine
-    def populate_not_full_buckets(self):
+    async def populate_not_full_buckets(self):
         """Go through all buckets that are not full and try to fill them.
 
         For every node in the replacement cache of every non-full bucket, try to bond.

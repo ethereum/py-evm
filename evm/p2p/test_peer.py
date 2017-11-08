@@ -112,8 +112,7 @@ class LESPeerServing(LESPeer):
         self.les_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
 
-@asyncio.coroutine
-def get_directly_linked_peers(chaindb1=None, chaindb2=None):
+async def get_directly_linked_peers(chaindb1=None, chaindb2=None):
     """Create two LESPeers with their readers/writers connected directly.
 
     The first peer's reader will write directly to the second's writer, and vice-versa.
@@ -151,10 +150,9 @@ def get_directly_linked_peers(chaindb1=None, chaindb2=None):
     peer1, peer2 = None, None
     handshake_finished = asyncio.Event()
 
-    @asyncio.coroutine
-    def do_handshake():
+    async def do_handshake():
         nonlocal peer1, peer2
-        aes_secret, mac_secret, egress_mac, ingress_mac = yield from auth._handshake(
+        aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
             initiator, peer1_reader, peer1_writer)
 
         # Need to copy those before we pass them on to the Peer constructor because they're
@@ -179,7 +177,7 @@ def get_directly_linked_peers(chaindb1=None, chaindb2=None):
     asyncio.ensure_future(do_handshake())
 
     responder = auth.HandshakeResponder(peer2_remote, peer2_private_key)
-    auth_msg = yield from peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
+    auth_msg = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
     peer1_ephemeral_pubkey, peer1_nonce = responder.decode_authentication(auth_msg)
 
     peer2_nonce = keccak(os.urandom(constants.HASH_LEN))
@@ -187,14 +185,14 @@ def get_directly_linked_peers(chaindb1=None, chaindb2=None):
     auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
     peer2_writer.write(auth_ack_ciphertext)
 
-    yield from handshake_finished.wait()
+    await handshake_finished.wait()
 
     # Perform the base protocol (P2P) handshake.
     peer1.base_protocol.send_handshake()
     peer2.base_protocol.send_handshake()
-    msg1 = yield from peer1.read_msg()
+    msg1 = await peer1.read_msg()
     peer1.process_msg(msg1)
-    msg2 = yield from peer2.read_msg()
+    msg2 = await peer2.read_msg()
     peer2.process_msg(msg2)
 
     # Now send the handshake msg for each enabled sub-protocol.
@@ -207,9 +205,8 @@ def get_directly_linked_peers(chaindb1=None, chaindb2=None):
 
 
 @pytest.mark.asyncio
-@asyncio.coroutine
-def test_directly_linked_peers():
-    peer1, peer2 = yield from get_directly_linked_peers()
+async def test_directly_linked_peers():
+    peer1, peer2 = await get_directly_linked_peers()
     assert len(peer1.enabled_sub_protocols) == 1
     assert peer1.les_proto is not None
     assert peer1.les_proto.name == LESProtocol.name
@@ -218,17 +215,15 @@ def test_directly_linked_peers():
         (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
 
 
-@asyncio.coroutine
-def get_linked_and_running_peers(request, event_loop, chaindb1=None, chaindb2=None):
-    peer1, peer2 = yield from get_directly_linked_peers(chaindb1, chaindb2)
+async def get_linked_and_running_peers(request, event_loop, chaindb1=None, chaindb2=None):
+    peer1, peer2 = await get_directly_linked_peers(chaindb1, chaindb2)
     asyncio.ensure_future(peer1.start())
     asyncio.ensure_future(peer2.start())
 
     def finalizer():
-        @asyncio.coroutine
-        def afinalizer():
-            yield from peer1.stop_and_wait_until_finished()
-            yield from peer2.stop_and_wait_until_finished()
+        async def afinalizer():
+            await peer1.stop_and_wait_until_finished()
+            await peer2.stop_and_wait_until_finished()
         event_loop.run_until_complete(afinalizer())
     request.addfinalizer(finalizer)
 
@@ -236,12 +231,11 @@ def get_linked_and_running_peers(request, event_loop, chaindb1=None, chaindb2=No
 
 
 @pytest.mark.asyncio
-@asyncio.coroutine
-def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100):
+async def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100):
     # Here, server will be a peer with a pre-populated chaindb, and we'll use it to send Announce
     # msgs to the client, which will then ask the server for any headers it's missing until their
     # chaindbs are in sync.
-    server, client = yield from get_linked_and_running_peers(
+    server, client = await get_linked_and_running_peers(
         request, event_loop, chaindb1=None, chaindb2=None)
 
     # We start the client/server with fresh chaindbs above because we don't want them to start
@@ -255,7 +249,7 @@ def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100):
     # ... and we wait for the client to process that and request all headers it's missing up to
     # block #10.
     header_10 = server.chaindb.get_canonical_block_header_by_number(10)
-    yield from wait_for_head(client.chaindb, header_10)
+    await wait_for_head(client.chaindb, header_10)
     assert_canonical_chains_are_equal(client.chaindb, server.chaindb, 10)
 
     # Now the server announces block 100 as its current head...
@@ -263,21 +257,20 @@ def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100):
 
     # ... and the client should then fetch headers from 10-100.
     header_100 = server.chaindb.get_canonical_block_header_by_number(100)
-    yield from wait_for_head(client.chaindb, header_100)
+    await wait_for_head(client.chaindb, header_100)
     assert_canonical_chains_are_equal(client.chaindb, server.chaindb, 100)
 
 
 @pytest.mark.asyncio
-@asyncio.coroutine
-def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_100):
+async def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_100):
     # Here we create our server with a populated chaindb, so upon startup it will announce its
     # chain head and the client will fetch all headers
-    server, client = yield from get_linked_and_running_peers(
+    server, client = await get_linked_and_running_peers(
         request, event_loop, chaindb1=chaindb_mainnet_100, chaindb2=None)
 
     # ... and our client should then fetch all headers.
     head = server.chaindb.get_canonical_head()
-    yield from wait_for_head(client.chaindb, head)
+    await wait_for_head(client.chaindb, head)
     assert_canonical_chains_are_equal(client.chaindb, server.chaindb, head.block_number)
 
     head_parent = server.chaindb.get_block_header_by_hash(head.parent_hash)
@@ -289,20 +282,19 @@ def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_100):
     assert server.chaindb.get_canonical_head() == new_head
     server.send_announce(head_number=head.block_number, reorg_depth=1)
 
-    yield from wait_for_head(client.chaindb, new_head)
+    await wait_for_head(client.chaindb, new_head)
     assert_canonical_chains_are_equal(client.chaindb, server.chaindb, new_head.block_number)
 
 
 @pytest.mark.asyncio
-@asyncio.coroutine
-def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet_100):
+async def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet_100):
     # In this test we start with one of our peers announcing block #100, and we sync all
     # headers up to that...
-    server, client = yield from get_linked_and_running_peers(
+    server, client = await get_linked_and_running_peers(
         request, event_loop, chaindb1=chaindb_mainnet_100, chaindb2=None)
 
     head = server.chaindb.get_canonical_head()
-    yield from wait_for_head(client.chaindb, head)
+    await wait_for_head(client.chaindb, head)
     assert_canonical_chains_are_equal(client.chaindb, server.chaindb, head.block_number)
 
     # Now a second peer comes along and announces block #100 as well, but it's different
@@ -316,20 +308,19 @@ def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet_100):
         timestamp=head.timestamp, coinbase=head.coinbase)
     server2_chaindb.persist_header_to_db(new_head)
     assert server2_chaindb.get_canonical_head() == new_head
-    server2, client2 = yield from get_linked_and_running_peers(
+    server2, client2 = await get_linked_and_running_peers(
         request, event_loop, chaindb1=server2_chaindb, chaindb2=client.chaindb)
 
-    yield from wait_for_head(client.chaindb, new_head)
+    await wait_for_head(client.chaindb, new_head)
     assert_canonical_chains_are_equal(client.chaindb, server2.chaindb, new_head.block_number)
 
 
 @pytest.mark.asyncio
-@asyncio.coroutine
-def test_les_handshake():
-    peer1, peer2 = yield from get_directly_linked_peers()
+async def test_les_handshake():
+    peer1, peer2 = await get_directly_linked_peers()
     # The peers above have already performed the sub-protocol agreement, and sent the handshake
     # msg for each enabled sub protocol -- in this case that's the Status msg of the LES protocol.
-    msg = yield from peer1.read_msg()
+    msg = await peer1.read_msg()
     cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
     proto = peer1.get_protocol_for(cmd_id)
     assert cmd_id == proto.cmd_by_class[Status].cmd_id
@@ -414,9 +405,8 @@ def chaindb_mainnet_100():
     return chaindb
 
 
-@asyncio.coroutine
-def wait_for_head(chaindb, header):
-    def wait_loop():
+async def wait_for_head(chaindb, header):
+    async def wait_loop():
         while chaindb.get_canonical_head() != header:
-            yield from asyncio.sleep(0.1)
-    yield from asyncio.wait_for(wait_loop(), HEADER_SYNC_TIMEOUT)
+            await asyncio.sleep(0.1)
+    await asyncio.wait_for(wait_loop(), HEADER_SYNC_TIMEOUT)

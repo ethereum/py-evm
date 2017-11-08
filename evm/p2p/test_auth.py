@@ -22,7 +22,7 @@ from evm.p2p.peer import BasePeer
 
 
 @pytest.mark.asyncio
-def test_handshake():
+async def test_handshake():
     # This data comes from https://gist.github.com/fjl/3a78780d17c755d22df2
     test_values = {
         "initiator_private_key": "5e173f6ac3c669587538e7727cf19b782a4f2fda07c1eaa662c593e5e85e3051",
@@ -141,8 +141,8 @@ def test_handshake():
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
     # reader, and thus the read_msg() calls will return immediately.
-    responder_hello = yield from responder_peer.read_msg()
-    initiator_hello = yield from initiator_peer.read_msg()
+    responder_hello = await responder_peer.read_msg()
+    initiator_hello = await initiator_peer.read_msg()
 
     cmd_id = rlp.decode(responder_hello[:1], sedes=sedes.big_endian_int)
     proto = responder_peer.get_protocol_for(cmd_id)
