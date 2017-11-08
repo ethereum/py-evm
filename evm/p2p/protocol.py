@@ -5,6 +5,7 @@ import rlp
 from rlp import sedes
 
 from evm.constants import NULL_BYTE
+from evm.p2p.utils import get_devp2p_cmd_id
 
 
 class Command:
@@ -59,7 +60,7 @@ class Command:
             }
 
     def decode(self, data):
-        packet_type = rlp.decode(data[:1], sedes=sedes.big_endian_int)
+        packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise ValueError("Wrong packet type: {}".format(packet_type))
         return self.decode_payload(data[1:])

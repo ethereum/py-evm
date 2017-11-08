@@ -33,6 +33,7 @@ from evm.p2p.constants import (
 from evm.p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
+    PeerConnectionLost,
     PeerDisconnected,
     UnknownProtocolCommand,
     UnreachablePeer,
@@ -40,6 +41,7 @@ from evm.p2p.exceptions import (
 )
 from evm.p2p.utils import (
     gen_request_id,
+    get_devp2p_cmd_id,
     roundup_16,
     sxor,
 )
@@ -49,6 +51,7 @@ from evm.p2p.les import (
     Status,
 )
 from evm.p2p.p2p_proto import (
+    Disconnect,
     DisconnectReason,
     P2PProtocol,
 )
@@ -81,7 +84,13 @@ def handshake(remote, privkey, peer_class, chaindb, network_id):
         ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
     peer.base_protocol.send_handshake()
     msg = yield from peer.read_msg()
-    peer.process_msg(msg)
+    decoded = peer.process_msg(msg)
+    if get_devp2p_cmd_id(msg) == Disconnect._cmd_id:
+        # Peers may send a disconnect msg before they send the initial P2P handshake (e.g. when
+        # they're not accepting more peers), so we special case that here because it's important
+        # to distinguish this from a failed handshake (e.g. no matching protocols, etc).
+        raise PeerDisconnected("{} disconnected before handshake: {}".format(
+            peer, decoded['reason_name']))
     if len(peer.enabled_sub_protocols) == 0:
         raise UselessPeer("No matching sub-protocols with {}".format(peer))
     for proto in peer.enabled_sub_protocols:
@@ -184,7 +193,7 @@ class BasePeer:
             data = yield from asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
             self.logger.debug("EOF reading from {}'s stream".format(self.remote))
-            raise PeerDisconnected()
+            raise PeerConnectionLost()
         return data
 
     @asyncio.coroutine
@@ -197,22 +206,25 @@ class BasePeer:
         finally:
             self._finished.set()
 
-    @asyncio.coroutine
-    def stop(self):
+    def close(self):
+        """Close this peer's reader/writer streams.
+
+        This will cause the peer to stop in case it is running.
+        """
         self.reader.feed_eof()
         self.writer.close()
-        yield from self._finished.wait()
 
-    @property
-    def is_finished(self):
-        return self._finished.is_set()
+    @asyncio.coroutine
+    def stop_and_wait_until_finished(self):
+        self.close()
+        yield from self._finished.wait()
 
     @asyncio.coroutine
     def read_loop(self):
         while True:
             try:
                 msg = yield from self.read_msg()
-            except (PeerDisconnected, asyncio.TimeoutError):
+            except (PeerConnectionLost, asyncio.TimeoutError):
                 self.logger.debug("Peer {} stopped responding, disconnecting".format(self.remote))
                 return
             self.process_msg(msg)
@@ -229,7 +241,7 @@ class BasePeer:
         return self.decrypt_body(frame_data, frame_size)
 
     def process_msg(self, msg):
-        cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
+        cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
@@ -238,10 +250,13 @@ class BasePeer:
         decoded = proto.process(cmd_id, msg)
         if decoded is None:
             return
+        # Check if this is a reply we're waiting for and, if so, call the callback for this
+        # request_id.
         request_id = decoded.get('request_id')
         if request_id is not None and request_id in self._pending_replies:
             callback = self._pending_replies.pop(request_id)
             callback(decoded)
+        return decoded
 
     def process_p2p_handshake(self, decoded_msg):
         self.match_protocols(decoded_msg['capabilities'])
@@ -327,7 +342,7 @@ class BasePeer:
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
             self.logger.debug("Disconnecting from remote peer; reason: {}".format(reason.value))
         self.base_protocol.send_disconnect(reason.value)
-        self.stop()
+        self.close()
 
     def match_protocols(self, remote_capabilities):
         """Match the sub-protocols supported by this Peer with the given remote capabilities.
@@ -403,7 +418,10 @@ class LESPeer(BasePeer):
                 # TODO: Implement a retry mechanism and only disconnect after retrying a few
                 # times.
                 self.logger.warn("Timeout when syncing, disconnecting from %s", self)
-                yield from self.stop()
+                yield from self.stop_and_wait_until_finished()
+            except Exception:
+                self.logger.error(
+                    "Unexpected error when syncing headers: {}".format(traceback.format_exc()))
 
     @asyncio.coroutine
     def _sync(self, head_number, reorg_depth):
@@ -556,5 +574,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
-    loop.run_until_complete(peer.stop())
+    loop.run_until_complete(peer.stop_and_wait_until_finished())
     loop.close()
