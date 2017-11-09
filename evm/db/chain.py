@@ -18,6 +18,7 @@ from evm.constants import (
 from evm.exceptions import (
     BlockNotFound,
     CanonicalHeadNotFound,
+    ParentNotFound,
 )
 from evm.db.journal import (
     JournalDB,
@@ -177,6 +178,11 @@ class BaseChainDB:
     # TODO: This method sould take a chain of headers as that's the most common use case
     # and it'd be much faster than inserting each header individually.
     def persist_header_to_db(self, header):
+        if header.parent_hash != GENESIS_PARENT_HASH and not self.header_exists(header.parent_hash):
+            raise ParentNotFound(
+                "Cannot persist block header ({}) with unknown parent ({})".format(
+                    encode_hex(header.hash), encode_hex(header.parent_hash)))
+
         self.db.set(
             header.hash,
             rlp.encode(header),

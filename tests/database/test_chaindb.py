@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 import rlp
@@ -12,7 +14,10 @@ from evm.db import (
 from evm.db.chain import (
     BaseChainDB,
 )
-from evm.exceptions import BlockNotFound
+from evm.exceptions import (
+    BlockNotFound,
+    ParentNotFound,
+)
 
 from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -28,6 +33,9 @@ from evm.rlp.headers import (
 from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
+)
+from evm.utils.keccak import (
+    keccak,
 )
 
 
@@ -66,6 +74,12 @@ def test_persist_header_to_db(chaindb, header):
 
     assert chaindb.get_block_header_by_hash(header.hash) == header
     assert chaindb.exists(number_to_hash_key)
+
+
+def test_persist_header_to_db_unknown_parent(chaindb, header):
+    header.parent_hash = keccak(os.urandom(32))
+    with pytest.raises(ParentNotFound):
+        chaindb.persist_header_to_db(header)
 
 
 def test_persist_block_to_db(chaindb, block):
