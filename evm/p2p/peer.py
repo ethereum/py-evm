@@ -443,7 +443,10 @@ class LESPeer(BasePeer):
             self.synced_block_height = self.synced_block_height - reorg_depth
 
         while self.synced_block_height < head_number:
-            batch = await self._fetch_headers_starting_at(self.synced_block_height + 1)
+            # This should be "self.synced_block_height + 1", but we always re-fetch the last
+            # synced block to work aaround https://github.com/ethereum/go-ethereum/issues/15447
+            start_block = self.synced_block_height
+            batch = await self._fetch_headers_starting_at(start_block)
             for header in batch:
                 self.chaindb.persist_header_to_db(header)
                 self.synced_block_height = header.block_number
