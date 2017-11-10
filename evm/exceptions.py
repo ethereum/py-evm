@@ -19,6 +19,13 @@ class BlockNotFound(PyEVMError):
     pass
 
 
+class ParentNotFound(PyEVMError):
+    """
+    The parent of a given block does not exist.
+    """
+    pass
+
+
 class CanonicalHeadNotFound(PyEVMError):
     """
     The chain has no canonical head.
