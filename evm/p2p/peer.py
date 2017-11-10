@@ -210,6 +210,9 @@ class BasePeer:
         self.reader.feed_eof()
         self.writer.close()
 
+    def is_finished(self):
+        return self._finished.is_set()
+
     async def stop_and_wait_until_finished(self):
         self.close()
         await self._finished.wait()
