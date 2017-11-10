@@ -1,6 +1,9 @@
-import os
-
 import pytest
+
+from hypothesis import (
+    given,
+    strategies as st,
+)
 
 import rlp
 
@@ -76,8 +79,9 @@ def test_persist_header_to_db(chaindb, header):
     assert chaindb.exists(number_to_hash_key)
 
 
-def test_persist_header_to_db_unknown_parent(chaindb, header):
-    header.parent_hash = keccak(os.urandom(32))
+@given(seed=st.binary(min_size=32, max_size=32))
+def test_persist_header_to_db_unknown_parent(chaindb, header, seed):
+    header.parent_hash = keccak(seed)
     with pytest.raises(ParentNotFound):
         chaindb.persist_header_to_db(header)
 
