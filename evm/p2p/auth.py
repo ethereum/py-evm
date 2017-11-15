@@ -29,8 +29,7 @@ from evm.p2p.utils import (
 )
 
 
-@asyncio.coroutine
-def handshake(remote, privkey):
+async def handshake(remote, privkey):
     """
     Perform the auth handshake with given remote.
 
@@ -38,14 +37,13 @@ def handshake(remote, privkey):
     the remote.
     """
     initiator = HandshakeInitiator(remote, privkey)
-    reader, writer = yield from initiator.connect()
-    aes_secret, mac_secret, egress_mac, ingress_mac = yield from _handshake(
+    reader, writer = await initiator.connect()
+    aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
         initiator, reader, writer)
     return aes_secret, mac_secret, egress_mac, ingress_mac, reader, writer
 
 
-@asyncio.coroutine
-def _handshake(initiator, reader, writer):
+async def _handshake(initiator, reader, writer):
     """See the handshake() function above.
 
     This code was factored out into this helper so that we can create Peers with directly
@@ -56,7 +54,7 @@ def _handshake(initiator, reader, writer):
     auth_init = initiator.encrypt_auth_message(auth_msg)
     writer.write(auth_init)
 
-    auth_ack = yield from reader.read(ENCRYPTED_AUTH_ACK_LEN)
+    auth_ack = await reader.read(ENCRYPTED_AUTH_ACK_LEN)
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
@@ -87,11 +85,9 @@ class HandshakeBase:
     def pubkey(self):
         return self.privkey.public_key
 
-    @asyncio.coroutine
-    def connect(self):
-        reader, writer = yield from asyncio.open_connection(
+    async def connect(self):
+        return await asyncio.open_connection(
             host=self.remote.address.ip, port=self.remote.address.tcp_port)
-        return reader, writer
 
     def derive_secrets(self, initiator_nonce, responder_nonce,
                        remote_ephemeral_pubkey, auth_init_ciphertext, auth_ack_ciphertext):

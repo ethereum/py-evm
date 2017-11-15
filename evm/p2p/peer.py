@@ -55,10 +55,10 @@ from evm.p2p.p2p_proto import (
     DisconnectReason,
     P2PProtocol,
 )
+from evm.utils.hexadecimal import encode_hex
 
 
-@asyncio.coroutine
-def handshake(remote, privkey, peer_class, chaindb, network_id):
+async def handshake(remote, privkey, peer_class, chaindb, network_id, peermanager):
     """Perform the auth and P2P handshakes with the given remote.
 
     Return an instance of the given peer_class (must be a subclass of BasePeer) connected to that
@@ -75,15 +75,16 @@ def handshake(remote, privkey, peer_class, chaindb, network_id):
          ingress_mac,
          reader,
          writer
-         ) = yield from auth.handshake(remote, privkey)
+         ) = await auth.handshake(remote, privkey)
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer(e)
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
+        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id,
+        manager=peermanager)
     peer.base_protocol.send_handshake()
-    msg = yield from peer.read_msg()
+    msg = await peer.read_msg()
     decoded = peer.process_msg(msg)
     if get_devp2p_cmd_id(msg) == Disconnect._cmd_id:
         # Peers may send a disconnect msg before they send the initial P2P handshake (e.g. when
@@ -107,15 +108,18 @@ class BasePeer:
     _supported_sub_protocols = []
     # FIXME: Must be configurable.
     listen_port = 30303
+    # XXX: quick hack, not to be committed
+    _disconnected = False
 
     def __init__(self, remote, privkey, reader, writer, aes_secret, mac_secret,
-                 egress_mac, ingress_mac, chaindb, network_id):
+                 egress_mac, ingress_mac, chaindb, network_id, manager=None):
         self._finished = asyncio.Event()
         self._pending_replies = {}
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
         self.writer = writer
+        self.manager = manager
         self.base_protocol = P2PProtocol(self)
         self.chaindb = chaindb
         self.network_id = network_id
@@ -157,8 +161,7 @@ class BasePeer:
     def capabilities(self):
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
-    @asyncio.coroutine
-    def wait_for_reply(self, request_id):
+    async def wait_for_reply(self, request_id):
         reply = None
         got_reply = asyncio.Event()
 
@@ -168,7 +171,15 @@ class BasePeer:
             got_reply.set()
 
         self._pending_replies[request_id] = callback
-        yield from asyncio.wait_for(got_reply.wait(), self.reply_timeout)
+        # XXX: quick hack to retry on timeouts
+        for i in range(3):
+            try:
+                await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
+            except asyncio.TimeoutError:
+                self.logger.info("Timeout waiting for reply, retry #{}".format(i))
+
+        if not got_reply.is_set():
+            raise asyncio.TimeoutError()
         return reply
 
     def get_protocol_for(self, cmd_id):
@@ -186,24 +197,24 @@ class BasePeer:
                 return proto
         return None
 
-    @asyncio.coroutine
-    def read(self, n):
+    async def read(self, n):
         self.logger.debug("Waiting for {} bytes from {}".format(n, self.remote))
         try:
-            data = yield from asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
+            data = await asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
             self.logger.debug("EOF reading from {}'s stream".format(self.remote))
             raise PeerConnectionLost()
         return data
 
-    @asyncio.coroutine
-    def start(self):
+    async def start(self):
         try:
-            yield from self.read_loop()
+            await self.read_loop()
         except Exception as e:
             self.logger.error(
                 "Unexpected error when handling remote msg: {}".format(traceback.format_exc()))
         finally:
+            if self.manager is not None:
+                self.manager.peer_disconnected(self)
             self._finished.set()
 
     def close(self):
@@ -214,30 +225,27 @@ class BasePeer:
         self.reader.feed_eof()
         self.writer.close()
 
-    @asyncio.coroutine
-    def stop_and_wait_until_finished(self):
+    async def stop_and_wait_until_finished(self):
         self.close()
-        yield from self._finished.wait()
+        await self._finished.wait()
 
-    @asyncio.coroutine
-    def read_loop(self):
+    async def read_loop(self):
         while True:
             try:
-                msg = yield from self.read_msg()
+                msg = await self.read_msg()
             except (PeerConnectionLost, asyncio.TimeoutError):
                 self.logger.debug("Peer {} stopped responding, disconnecting".format(self.remote))
                 return
             self.process_msg(msg)
 
-    @asyncio.coroutine
-    def read_msg(self):
-        header_data = yield from self.read(HEADER_LEN + MAC_LEN)
+    async def read_msg(self):
+        header_data = await self.read(HEADER_LEN + MAC_LEN)
         header = self.decrypt_header(header_data)
         frame_size = self.get_frame_size(header)
         # The frame_size specified in the header does not include the padding to 16-byte boundary,
         # so need to do this here to ensure we read all the frame's data.
         read_size = roundup_16(frame_size)
-        frame_data = yield from self.read(read_size + MAC_LEN)
+        frame_data = await self.read(read_size + MAC_LEN)
         return self.decrypt_body(frame_data, frame_size)
 
     def process_msg(self, msg):
@@ -376,10 +384,10 @@ class LESPeer(BasePeer):
     _supported_sub_protocols = [LESProtocol]
 
     def __init__(self, remote, privkey, reader, writer, aes_secret, mac_secret,
-                 egress_mac, ingress_mac, chaindb, network_id):
+                 egress_mac, ingress_mac, chaindb, network_id, manager=None):
         super(LESPeer, self).__init__(
             remote, privkey, reader, writer, aes_secret, mac_secret,
-            egress_mac, ingress_mac, chaindb, network_id)
+            egress_mac, ingress_mac, chaindb, network_id, manager=manager)
         self._header_sync_lock = asyncio.Lock()
         # The block number for the last header we fetched from the remote.
         self.synced_block_height = None
@@ -394,8 +402,8 @@ class LESPeer(BasePeer):
 
     def handle_announce(self, msg):
         self.logger.info(
-            "New LES/Announce by %s; head_number==%s, reorg_depth==%s",
-            self, msg['head_number'], msg['reorg_depth'])
+            "New LES/Announce by %s; head_number==%s, head_hash==%s, reorg_depth==%s",
+            self, msg['head_number'], encode_hex(msg['head_hash']), msg['reorg_depth'])
         asyncio.ensure_future(
             self.sync(msg['head_hash'], msg['head_number'], msg['reorg_depth']))
 
@@ -404,27 +412,25 @@ class LESPeer(BasePeer):
             "New LES/Status by %s; head_number==%s", self, msg['headNum'])
         asyncio.ensure_future(self.sync(msg['headHash'], msg['headNum']))
 
-    @asyncio.coroutine
-    def sync(self, head_hash, head_number, reorg_depth=0):
+    async def sync(self, head_hash, head_number, reorg_depth=0):
         if self.chaindb.header_exists(head_hash):
             self.logger.debug("Already have head announced by %s", self)
             self.synced_block_height = head_number
             return
 
-        with (yield from self._header_sync_lock):
+        with await self._header_sync_lock:
             try:
-                yield from self._sync(head_number, reorg_depth)
+                await self._sync(head_number, reorg_depth)
             except asyncio.TimeoutError:
                 # TODO: Implement a retry mechanism and only disconnect after retrying a few
                 # times.
                 self.logger.warn("Timeout when syncing, disconnecting from %s", self)
-                yield from self.stop_and_wait_until_finished()
+                await self.stop_and_wait_until_finished()
             except Exception:
                 self.logger.error(
                     "Unexpected error when syncing headers: {}".format(traceback.format_exc()))
 
-    @asyncio.coroutine
-    def _sync(self, head_number, reorg_depth):
+    async def _sync(self, head_number, reorg_depth):
         """Ensure our chaindb contains all block headers until the given number.
 
         Callers must aquire self._header_sync_lock in order to serialize processing of announce
@@ -440,7 +446,7 @@ class LESPeer(BasePeer):
             chain_head = self.chaindb.get_canonical_head()
             oldest_ancestor_to_consider = max(
                 0, chain_head.block_number - self.max_headers_fetch + 1)
-            headers = yield from self._fetch_headers_starting_at(oldest_ancestor_to_consider)
+            headers = await self._fetch_headers_starting_at(oldest_ancestor_to_consider)
             if len(headers) == 0 or not self.chaindb.header_exists(headers[0].hash):
                 self.logger.warn("No common ancestors between us and remote, disconnecting")
                 self.disconnect(DisconnectReason.other)
@@ -452,14 +458,17 @@ class LESPeer(BasePeer):
             self.synced_block_height = self.synced_block_height - reorg_depth
 
         while self.synced_block_height < head_number:
-            batch = yield from self._fetch_headers_starting_at(self.synced_block_height + 1)
+            # This should be "self.synced_block_height + 1", but we always re-fetch the last
+            # synced block to work aaround https://github.com/ethereum/go-ethereum/issues/15447
+            start_block = self.synced_block_height
+            batch = await self._fetch_headers_starting_at(start_block)
             for header in batch:
+                self.logger.info("Persisted header %s", header.hex_hash)
                 self.chaindb.persist_header_to_db(header)
                 self.synced_block_height = header.block_number
             self.logger.info("synced headers up to #%s", self.synced_block_height)
 
-    @asyncio.coroutine
-    def _fetch_headers_starting_at(self, start_block):
+    async def _fetch_headers_starting_at(self, start_block):
         """Fetches up to self.max_headers_fetch starting at start_block.
 
         Returns a tuple containing those headers in ascending order of block number.
@@ -467,7 +476,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.les_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
-        reply = yield from self.wait_for_reply(request_id)
+        reply = await self.wait_for_reply(request_id)
         if len(reply['headers']) == 0:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
@@ -568,7 +577,8 @@ if __name__ == "__main__":
     try:
         peer = loop.run_until_complete(
             asyncio.wait_for(
-                handshake(remote, ecies.generate_privkey(), LESPeer, chaindb, chain.network_id),
+                handshake(remote, ecies.generate_privkey(), LESPeer, chaindb, chain.network_id,
+                          peermanager=None),
                 HANDSHAKE_TIMEOUT))
         loop.run_until_complete(peer.start())
     except KeyboardInterrupt:
