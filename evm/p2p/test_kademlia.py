@@ -16,19 +16,18 @@ def short_timeout(monkeypatch):
 
 
 @pytest.mark.asyncio
-def test_protocol_bootstrap():
+async def test_protocol_bootstrap():
     proto = get_wired_protocol()
     node1, node2 = [random_node(), random_node()]
 
-    @asyncio.coroutine
-    def bond(node):
+    async def bond(node):
         assert proto.routing.add_node(node) is None
         return True
 
     # Pretend we bonded successfully with our bootstrap nodes.
     proto.bond = bond
 
-    yield from proto.bootstrap([node1, node2])
+    await proto.bootstrap([node1, node2])
 
     assert len(proto.wire.messages) == 2
     # We don't care in which order the bootstrap nodes are contacted, so we sort them both in the
@@ -39,7 +38,7 @@ def test_protocol_bootstrap():
 
 
 @pytest.mark.asyncio
-def test_wait_ping():
+async def test_wait_ping():
     proto = get_wired_protocol()
     node = random_node()
     echo = "echo"
@@ -48,7 +47,7 @@ def test_wait_ping():
     recv_ping_coroutine = asyncio.coroutine(lambda: proto.recv_ping(node, echo))
     asyncio.ensure_future(recv_ping_coroutine())
 
-    got_ping = yield from proto.wait_ping(node)
+    got_ping = await proto.wait_ping(node)
 
     assert got_ping
     # Ensure wait_ping() cleaned up after itself.
@@ -60,14 +59,14 @@ def test_wait_ping():
     asyncio.ensure_future(recv_ping_coroutine())
 
     node2 = random_node()
-    got_ping = yield from proto.wait_ping(node2)
+    got_ping = await proto.wait_ping(node2)
 
     assert not got_ping
     assert node2 not in proto.ping_callbacks
 
 
 @pytest.mark.asyncio
-def test_wait_pong():
+async def test_wait_pong():
     proto = get_wired_protocol()
     node = random_node()
     echoed = "echoed"
@@ -77,7 +76,7 @@ def test_wait_pong():
     recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, echoed))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = yield from proto.wait_pong(pingid)
+    got_pong = await proto.wait_pong(pingid)
 
     assert got_pong
     # Ensure wait_pong() cleaned up after itself.
@@ -89,14 +88,14 @@ def test_wait_pong():
     recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, wrong_echo))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = yield from proto.wait_pong(pingid)
+    got_pong = await proto.wait_pong(pingid)
 
     assert not got_pong
     assert pingid not in proto.pong_callbacks
 
 
 @pytest.mark.asyncio
-def test_wait_neighbours():
+async def test_wait_neighbours():
     proto = get_wired_protocol()
     node = random_node()
 
@@ -106,21 +105,21 @@ def test_wait_neighbours():
     recv_neighbours_coroutine = asyncio.coroutine(lambda: proto.recv_neighbours(node, neighbours))
     asyncio.ensure_future(recv_neighbours_coroutine())
 
-    received_neighbours = yield from proto.wait_neighbours(node)
+    received_neighbours = await proto.wait_neighbours(node)
 
     assert neighbours == received_neighbours
     # Ensure wait_neighbours() cleaned up after itself.
     assert node not in proto.neighbours_callbacks
 
     # If wait_neighbours() times out, we get an empty list of neighbours.
-    received_neighbours = yield from proto.wait_neighbours(node)
+    received_neighbours = await proto.wait_neighbours(node)
 
     assert received_neighbours == []
     assert node not in proto.neighbours_callbacks
 
 
 @pytest.mark.asyncio
-def test_bond():
+async def test_bond():
     proto = get_wired_protocol()
     node = random_node()
 
@@ -131,13 +130,13 @@ def test_bond():
     expected_pingid = proto._mkpingid("echoed", node)
     proto.wait_pong = asyncio.coroutine(lambda pingid: pingid == expected_pingid)
 
-    bonded = yield from proto.bond(node)
+    bonded = await proto.bond(node)
 
     assert bonded
 
     # If we try to bond with any other nodes we'll timeout and bond() will return False.
     node2 = random_node()
-    bonded = yield from proto.bond(node2)
+    bonded = await proto.bond(node2)
 
     assert not bonded
 
@@ -152,7 +151,7 @@ def test_update_routing_table():
 
 
 @pytest.mark.asyncio
-def test_update_routing_table_triggers_bond_if_eviction_candidate():
+async def test_update_routing_table_triggers_bond_if_eviction_candidate():
     proto = get_wired_protocol()
     old_node, new_node = random_node(), random_node()
 
@@ -173,7 +172,7 @@ def test_update_routing_table_triggers_bond_if_eviction_candidate():
     assert new_node not in proto.routing
     # The update_routing_table() call above will have scheduled a future call to proto.bond() so
     # we need to yield here to give it a chance to run.
-    yield from asyncio.sleep(0.001)
+    await asyncio.sleep(0.001)
     assert bond_called
 
 

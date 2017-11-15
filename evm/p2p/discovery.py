@@ -103,14 +103,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport):
         self.transport = transport
 
-    @asyncio.coroutine
-    def bootstrap(self):
+    async def bootstrap(self):
         while self.transport is None:
             # FIXME: Instead of sleeping here to wait until connection_made() is called to set
             # .transport we should instead only call it after we know it's been set.
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
         self.logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
-        yield from self.kademlia.bootstrap(self.bootstrap_nodes)
+        await self.kademlia.bootstrap(self.bootstrap_nodes)
 
     def datagram_received(self, data, addr):
         ip_address, udp_port = addr
@@ -264,8 +263,7 @@ def _unpack(message):
 
 
 if __name__ == "__main__":
-    @asyncio.coroutine
-    def show_tasks():
+    async def show_tasks():
         while True:
             tasks = []
             for task in asyncio.Task.all_tasks():
@@ -273,7 +271,7 @@ if __name__ == "__main__":
                     tasks.append(task._coro.__name__)
             if tasks:
                 logger.debug("Active tasks: {}".format(tasks))
-            yield from asyncio.sleep(3)
+            await asyncio.sleep(3)
 
     config = {
         'privkey_hex': '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
