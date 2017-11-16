@@ -4,6 +4,7 @@ import rlp
 from rlp.sedes import (
     big_endian_int,
     CountableList,
+    binary,
 )
 
 from eth_bloom import BloomFilter
@@ -11,7 +12,6 @@ from eth_bloom import BloomFilter
 from evm.exceptions import ValidationError
 
 from .sedes import (
-    trie_root,
     int256,
     int32,
 )
@@ -22,7 +22,7 @@ from .logs import Log
 class Receipt(rlp.Serializable):
 
     fields = [
-        ('state_root', trie_root),
+        ('state_root', binary),
         ('gas_used', big_endian_int),
         ('bloom', int256),
         ('logs', CountableList(Log))
