@@ -210,6 +210,31 @@ class FrontierBlock(BaseBlock):
     def receipts(self):
         return self.chaindb.get_receipts(self.header, Receipt)
 
+    def make_receipt(self, transaction, computation):
+        logs = [
+            Log(address, topics, data)
+            for address, topics, data
+            in computation.get_log_entries()
+        ]
+
+        gas_remaining = computation.get_gas_remaining()
+        gas_refund = computation.get_gas_refund()
+        tx_gas_used = (
+            transaction.gas - gas_remaining
+        ) - min(
+            gas_refund,
+            (transaction.gas - gas_remaining) // 2,
+        )
+
+        gas_used = self.header.gas_used + tx_gas_used
+
+        receipt = Receipt(
+            state_root=self.header.state_root,
+            gas_used=gas_used,
+            logs=logs,
+        )
+        return receipt
+
     #
     # Header API
     #
@@ -236,31 +261,7 @@ class FrontierBlock(BaseBlock):
     # Execution API
     #
     def add_transaction(self, transaction, computation):
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in computation.get_log_entries()
-        ]
-
-        if computation.error:
-            tx_gas_used = transaction.gas
-        else:
-            gas_remaining = computation.get_gas_remaining()
-            gas_refund = computation.get_gas_refund()
-            tx_gas_used = (
-                transaction.gas - gas_remaining
-            ) - min(
-                gas_refund,
-                (transaction.gas - gas_remaining) // 2,
-            )
-
-        gas_used = self.header.gas_used + tx_gas_used
-
-        receipt = Receipt(
-            state_root=self.header.state_root,
-            gas_used=gas_used,
-            logs=logs,
-        )
+        receipt = self.make_receipt(transaction, computation)
 
         transaction_idx = len(self.transactions)
 
@@ -276,7 +277,7 @@ class FrontierBlock(BaseBlock):
         self.header.transaction_root = tx_root_hash
         self.header.receipt_root = receipt_root_hash
         self.header.bloom = int(self.bloom_filter)
-        self.header.gas_used = gas_used
+        self.header.gas_used = receipt.gas_used
 
         return self
 
