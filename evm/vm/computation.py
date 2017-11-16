@@ -169,6 +169,7 @@ class Computation(object):
 
     @output.setter
     def output(self, value):
+        validate_is_bytes(value)
         self._output = value
 
     def register_account_for_deletion(self, beneficiary):
