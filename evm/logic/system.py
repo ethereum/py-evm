@@ -141,8 +141,7 @@ class Create(Opcode):
             create_address=contract_address,
         )
 
-        child_computation = computation.vm.apply_create_message(child_msg)
-        computation.children.append(child_computation)
+        child_computation = computation.apply_child_computation(child_msg)
 
         if child_computation.error:
             computation.stack.push(0)
