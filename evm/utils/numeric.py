@@ -1,4 +1,5 @@
 import functools
+import itertools
 import math
 
 from evm.constants import (
@@ -62,3 +63,11 @@ def is_even(value):
 
 def is_odd(value):
     return value % 2 == 1
+
+
+def get_highest_bit_index(value):
+    value >>= 1
+    for bit_length in itertools.count():
+        if not value:
+            return bit_length
+        value >>= 1

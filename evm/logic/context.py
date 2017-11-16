@@ -1,4 +1,7 @@
 from evm import constants
+from evm.exceptions import (
+    OutOfBoundsRead,
+)
 
 from evm.utils.address import (
     force_bytes_to_address,
@@ -138,3 +141,38 @@ def extcodecopy(computation):
     padded_code_bytes = pad_right(code_bytes, size, b'\x00')
 
     computation.memory.write(mem_start_position, size, padded_code_bytes)
+
+
+def returndatasize(computation):
+    size = len(computation.return_data)
+    computation.stack.push(size)
+
+
+def returndatacopy(computation):
+    (
+        mem_start_position,
+        returndata_start_position,
+        size,
+    ) = computation.stack.pop(num_items=3, type_hint=constants.UINT256)
+
+    if returndata_start_position + size > len(computation.return_data):
+        raise OutOfBoundsRead(
+            "Return data length is not sufficient to satisfy request.  Asked "
+            "for data from index {0} to {1}.  Return data is {2} bytes in "
+            "length.".format(
+                returndata_start_position,
+                returndata_start_position + size,
+                len(computation.return_data),
+            )
+        )
+
+    computation.extend_memory(mem_start_position, size)
+
+    word_count = ceil32(size) // 32
+    copy_gas_cost = word_count * constants.GAS_COPY
+
+    computation.gas_meter.consume_gas(copy_gas_cost, reason="RETURNDATACOPY fee")
+
+    value = computation.return_data[returndata_start_position: returndata_start_position + size]
+
+    computation.memory.write(mem_start_position, size, value)

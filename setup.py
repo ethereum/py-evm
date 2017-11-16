@@ -33,6 +33,7 @@ setup(
         "ethereum-bloom>=0.4.0",
         "ethereum-utils>=0.2.0",
         "pyethash>=0.1.27",
+        "py-ecc==1.4.2",
         "rlp==0.4.7",
         "ethereum-keys==0.1.0a7",
         "trie>=0.3.0",

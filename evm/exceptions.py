@@ -51,7 +51,8 @@ class VMError(PyEVMError):
     """
     Class of errors which can be raised during VM execution.
     """
-    pass
+    burns_gas = True
+    zeros_return_data = True
 
 
 class OutOfGas(VMError):
@@ -107,5 +108,29 @@ class StackDepthLimit(VMError):
 class ContractCreationCollision(VMError):
     """
     Error signaling that there was an address collision during contract creation.
+    """
+    pass
+
+
+class Revert(VMError):
+    """
+    Error used by the REVERT opcode
+    """
+    burns_gas = False
+    zeros_return_data = False
+
+
+class WriteProtection(VMError):
+    """
+    Error raised if an attempt to modify the state database is made while
+    operating inside of a STATICCALL context.
+    """
+    pass
+
+
+class OutOfBoundsRead(VMError):
+    """
+    Error raised to indicate an attempt was made to read data beyond then
+    boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass

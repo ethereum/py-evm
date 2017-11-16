@@ -63,6 +63,7 @@ class Computation(object):
     children = None
 
     _output = b''
+    return_data = b''
     error = None
 
     logs = None
@@ -157,11 +158,11 @@ class Computation(object):
             self.memory.extend(start_position, size)
 
     #
-    # Runtime Operations
+    # Computed properties.
     #
     @property
     def output(self):
-        if self.error:
+        if self.error and self.error.zeros_return_data:
             return b''
         else:
             return self._output
@@ -184,6 +185,18 @@ class Computation(object):
         return child_computation
 
     def add_child_computation(self, child_computation):
+        if child_computation.error:
+            if child_computation.msg.is_create:
+                self.return_data = child_computation.output
+            elif child_computation.error.zeros_return_data:
+                self.return_data = b''
+            else:
+                self.return_data = child_computation.output
+        else:
+            if child_computation.msg.is_create:
+                self.return_data = b''
+            else:
+                self.return_data = child_computation.output
         self.children.append(child_computation)
 
     def register_account_for_deletion(self, beneficiary):
@@ -231,7 +244,7 @@ class Computation(object):
             return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
     def get_gas_used(self):
-        if self.error:
+        if self.error and self.error.burns_gas:
             return self.msg.gas
         else:
             return max(
@@ -240,7 +253,7 @@ class Computation(object):
             )
 
     def get_gas_remaining(self):
-        if self.error:
+        if self.error and self.error.burns_gas:
             return 0
         else:
             return self.gas_meter.gas_remaining
@@ -252,13 +265,14 @@ class Computation(object):
         self.logger.debug(
             (
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
-                "| depth %s"
+                "| depth %s | static: %s"
             ),
             self.msg.gas,
             encode_hex(self.msg.sender),
             encode_hex(self.msg.to),
             self.msg.value,
             self.msg.depth,
+            "y" if self.msg.is_static else "n",
         )
 
         return self
@@ -268,23 +282,25 @@ class Computation(object):
             self.logger.debug(
                 (
                     "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
-                    "depth: %s | error: %s"
+                    "depth: %s | static: %s | error: %s"
                 ),
                 self.msg.gas,
                 encode_hex(self.msg.sender),
                 encode_hex(self.msg.to),
                 self.msg.value,
                 self.msg.depth,
+                "y" if self.msg.is_static else "n",
                 exc_value,
             )
             self.error = exc_value
-            self.gas_meter.consume_gas(
-                self.gas_meter.gas_remaining,
-                reason=" ".join((
-                    "Zeroing gas due to VM Exception:",
-                    str(exc_value),
-                )),
-            )
+            if self.error.burns_gas:
+                self.gas_meter.consume_gas(
+                    self.gas_meter.gas_remaining,
+                    reason=" ".join((
+                        "Zeroing gas due to VM Exception:",
+                        str(exc_value),
+                    )),
+                )
 
             # suppress VM exceptions
             return True
@@ -292,12 +308,13 @@ class Computation(object):
             self.logger.debug(
                 (
                     "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
-                    "depth: %s | gas-used: %s | gas-remaining: %s"
+                    "depth: %s | static: %s | gas-used: %s | gas-remaining: %s"
                 ),
                 encode_hex(self.msg.sender),
                 encode_hex(self.msg.to),
                 self.msg.value,
                 self.msg.depth,
+                "y" if self.msg.is_static else "n",
                 self.msg.gas - self.gas_meter.gas_remaining,
                 self.gas_meter.gas_remaining,
             )
