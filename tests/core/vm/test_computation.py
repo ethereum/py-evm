@@ -1,5 +1,8 @@
 import pytest
 
+from evm.exceptions import (
+    VMError,
+)
 from evm.vm import (
     Computation,
     Message,
@@ -41,16 +44,6 @@ def computation(message):
         message=message
     )
     return computation
-
-
-@pytest.fixture
-def create_error():
-    def computation_error(computation):
-        with computation:
-            computation.gas_meter.consume_gas(computation.get_gas_remaining() + 1,
-                                              'Create an out of gas error for testing')
-        return computation
-    return computation_error
 
 
 def test_prepare_child_message(computation):
@@ -167,7 +160,7 @@ def test_add_log_entry_raises_if_data_isnt_in_bytes(computation):
 def test_add_log_entry(computation):
     # Adds log entry to log entries
     computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
-    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l{^\xc6',
+    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6',
                                         [1, 2, 3],
                                         b'')]
     # Can add multiple entries
@@ -176,43 +169,75 @@ def test_add_log_entry(computation):
     assert len(computation.log_entries) == 3
 
 
-def test_get_log_entries(computation, create_error):
+def test_get_log_entries(computation):
     computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
-    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l{^\xc6',
+    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6',
                                         [1, 2, 3],
                                         b'')]
+
+
+def test_get_log_entries_with_vmerror(computation):
     # Trigger an out of gas error causing get log entries to be ()
-    computation = create_error(computation)
+    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.error
     assert computation.get_log_entries() == ()
 
 
-def test_get_gas_refund(computation, create_error):
+def test_get_gas_refund(computation):
     computation.gas_meter.refund_gas(100)
     assert computation.get_gas_refund() == 100
+
+
+def test_get_gas_refund_with_vmerror(computation):
     # Trigger an out of gas error causing get gas refund to be 0
-    computation = create_error(computation)
+    computation.gas_meter.refund_gas(100)
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.error
     assert computation.get_gas_refund() == 0
 
 
-def test_output(computation, create_error):
+def test_output(computation):
     computation.output = b'1'
     assert computation.output == b'1'
+
+
+def test_output_with_vmerror(computation):
     # Trigger an out of gas error causing output to be b''
-    computation = create_error(computation)
+    computation.output = b'1'
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.error
     assert computation.output == b''
 
 
-def test_get_gas_remaining(computation, create_error):
+def test_get_gas_remaining(computation):
+    assert computation.get_gas_remaining() == 100
+
+
+def test_get_gas_remaining_with_vmerror(computation):
     assert computation.get_gas_remaining() == 100
     # Trigger an out of gas error causing get gas remaining to be 0
-    computation = create_error(computation)
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.error
     assert computation.get_gas_remaining() == 0
 
 
-def test_get_gas_used(computation, create_error):
+def test_get_gas_used(computation):
     # User 3 gas to extend memory
-    computation.extend_memory(0, 1)
-    assert computation.get_gas_used() == 3
+    computation.gas_meter.consume_gas(3, reason='testing')
+    computation.gas_meter.consume_gas(2, reason='testing')
+    assert computation.get_gas_used() == 5
+
+
+def test_get_gas_used_with_vmerror(computation):
     # Trigger an out of gas error causing get gas used to be 150
-    computation = create_error(computation)
+    computation.gas_meter.consume_gas(3, reason='testing')
+    computation.gas_meter.consume_gas(2, reason='testing')
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.error
     assert computation.get_gas_used() == 100
