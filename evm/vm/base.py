@@ -13,9 +13,6 @@ from evm.constants import (
 from evm.exceptions import (
     Halt,
 )
-from evm.logic.invalid import (
-    InvalidOpcode,
-)
 from evm.utils.keccak import (
     keccak,
 )
@@ -138,7 +135,7 @@ class VM(object):
                 return computation
 
             for opcode in computation.code:
-                opcode_fn = self.get_opcode_fn(opcode)
+                opcode_fn = computation.get_opcode_fn(opcode)
 
                 computation.logger.trace(
                     "OPCODE: 0x%x (%s)",
@@ -330,12 +327,3 @@ class VM(object):
         been applied to a block.
         """
         self.chaindb.clear()
-
-    #
-    # Opcode API
-    #
-    def get_opcode_fn(self, opcode):
-        try:
-            return self.opcodes[opcode]
-        except KeyError:
-            return InvalidOpcode(opcode)
