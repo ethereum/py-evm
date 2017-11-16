@@ -172,7 +172,7 @@ class Computation(object):
         self._output = value
 
     def register_account_for_deletion(self, beneficiary):
-        validate_canonical_address(beneficiary, title="Suicide beneficiary address")
+        validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
         if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(

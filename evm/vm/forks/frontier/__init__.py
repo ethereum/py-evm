@@ -143,10 +143,10 @@ def _execute_frontier_transaction(vm, transaction):
                 coinbase_balance + transaction_fee,
             )
     else:
-        # Suicide Refunds
+        # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
-            computation.gas_meter.refund_gas(constants.REFUND_SUICIDE * num_deletions)
+            computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
 
         # Gas Refunds
         gas_remaining = computation.get_gas_remaining()
@@ -182,10 +182,10 @@ def _execute_frontier_transaction(vm, transaction):
                 coinbase_balance + transaction_fee,
             )
 
-    # Suicides
+    # Process Self Destructs
     with vm.state_db() as state_db:
         for account, beneficiary in computation.get_accounts_for_deletion():
-            # TODO: need to figure out how we prevent multiple suicides from
+            # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
             if vm.logger is not None:
                 vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))

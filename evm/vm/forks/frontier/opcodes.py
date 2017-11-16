@@ -695,9 +695,9 @@ FRONTIER_OPCODES = {
         mnemonic=mnemonics.RETURN,
         gas_cost=constants.GAS_ZERO,
     ),
-    opcode_values.SUICIDE: as_opcode(
-        logic_fn=system.suicide,
-        mnemonic=mnemonics.SUICIDE,
-        gas_cost=constants.GAS_SUICIDE,
+    opcode_values.SELFDESTRUCT: as_opcode(
+        logic_fn=system.selfdestruct,
+        mnemonic=mnemonics.SELFDESTRUCT,
+        gas_cost=constants.GAS_SELFDESTRUCT,
     ),
 }

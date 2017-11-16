@@ -23,10 +23,10 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.EXP,
         gas_cost=constants.GAS_EXP_EIP160,
     ),
-    opcode_values.SUICIDE: as_opcode(
-        logic_fn=system.suicide_eip161,
-        mnemonic=mnemonics.SUICIDE,
-        gas_cost=constants.GAS_SUICIDE_EIP150,
+    opcode_values.SELFDESTRUCT: as_opcode(
+        logic_fn=system.selfdestruct_eip161,
+        mnemonic=mnemonics.SELFDESTRUCT,
+        gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
     ),
     opcode_values.CALL: call.CallEIP161.configure(
         name='opcode:CALL',
