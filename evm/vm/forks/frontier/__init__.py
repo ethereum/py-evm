@@ -75,22 +75,21 @@ def _execute_frontier_transaction(vm, transaction):
             data = transaction.data
             code = state_db.get_code(transaction.to)
 
-    if vm.logger:
-        vm.logger.info(
-            (
-                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
-            ),
-            encode_hex(transaction.sender),
-            encode_hex(transaction.to),
-            transaction.value,
-            transaction.gas,
-            transaction.gas_price,
-            transaction.s,
-            transaction.r,
-            transaction.v,
-            encode_hex(keccak(transaction.data)),
-        )
+    vm.logger.info(
+        (
+            "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
+            "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
+        ),
+        encode_hex(transaction.sender),
+        encode_hex(transaction.to),
+        transaction.value,
+        transaction.gas,
+        transaction.gas_price,
+        transaction.s,
+        transaction.r,
+        transaction.v,
+        encode_hex(keccak(transaction.data)),
+    )
 
     message = Message(
         gas=message_gas,
@@ -134,8 +133,7 @@ def _execute_frontier_transaction(vm, transaction):
     if computation.error:
         # Miner Fees
         transaction_fee = transaction.gas * transaction.gas_price
-        if vm.logger:
-            vm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
+        vm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
         with vm.state_db() as state_db:
             coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
             state_db.set_balance(
@@ -156,12 +154,11 @@ def _execute_frontier_transaction(vm, transaction):
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
         if gas_refund_amount:
-            if vm.logger:
-                vm.logger.debug(
-                    'TRANSACTION REFUND: %s -> %s',
-                    gas_refund_amount,
-                    encode_hex(message.sender),
-                )
+            vm.logger.debug(
+                'TRANSACTION REFUND: %s -> %s',
+                gas_refund_amount,
+                encode_hex(message.sender),
+            )
 
             with vm.state_db() as state_db:
                 sender_balance = state_db.get_balance(message.sender)
@@ -169,12 +166,12 @@ def _execute_frontier_transaction(vm, transaction):
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
-        if vm.logger:
-            vm.logger.debug(
-                'TRANSACTION FEE: %s -> %s',
-                transaction_fee,
-                encode_hex(vm.block.header.coinbase),
-            )
+        vm.logger.debug(
+            'TRANSACTION REFUND: %s -> %s',
+            gas_refund_amount,
+            encode_hex(message.sender),
+        )
+
         with vm.state_db() as state_db:
             coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
             state_db.set_balance(
@@ -187,8 +184,7 @@ def _execute_frontier_transaction(vm, transaction):
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple suicides from
             # the same account and if this is the right place to put this.
-            if vm.logger is not None:
-                vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+            vm.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.
@@ -220,13 +216,12 @@ def _apply_frontier_message(vm, message):
             recipient_balance += message.value
             state_db.set_balance(message.storage_address, recipient_balance)
 
-        if vm.logger is not None:
-            vm.logger.debug(
-                "TRANSFERRED: %s from %s -> %s",
-                message.value,
-                encode_hex(message.sender),
-                encode_hex(message.storage_address),
-            )
+        vm.logger.debug(
+            "TRANSFERRED: %s from %s -> %s",
+            message.value,
+            encode_hex(message.sender),
+            encode_hex(message.storage_address),
+        )
 
     with vm.state_db() as state_db:
         if not state_db.account_exists(message.storage_address):
@@ -260,13 +255,12 @@ def _apply_frontier_create_message(vm, message):
             except OutOfGas:
                 computation.output = b''
             else:
-                if vm.logger:
-                    vm.logger.debug(
-                        "SETTING CODE: %s -> length: %s | hash: %s",
-                        encode_hex(message.storage_address),
-                        len(contract_code),
-                        encode_hex(keccak(contract_code))
-                    )
+                vm.logger.debug(
+                    "SETTING CODE: %s -> length: %s | hash: %s",
+                    encode_hex(message.storage_address),
+                    len(contract_code),
+                    encode_hex(keccak(contract_code))
+                )
                 with vm.state_db() as state_db:
                     state_db.set_code(message.storage_address, contract_code)
         return computation
