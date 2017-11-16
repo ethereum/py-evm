@@ -12,9 +12,6 @@ from evm import (
     MainnetChain,
 )
 from evm.db.chain import BaseChainDB
-from evm.chains.mainnet import (
-    MAINNET_VM_CONFIGURATION,
-)
 from evm.exceptions import (
     ValidationError,
 )
@@ -88,51 +85,53 @@ def fixture(fixture_data):
 
 @pytest.fixture
 def chain_vm_configuration(fixture_data, fixture):
-    fixture_path, fixture_key = fixture_data
-    if 'bcTheDaoTest' in fixture_key:
-        HomesteadVM = BaseHomesteadVM.configure(dao_fork_block_number=8)
-    elif 'bcHomesteadToDao' in fixture_path:
-        HomesteadVM = BaseHomesteadVM.configure(dao_fork_block_number=5)
-    else:
-        HomesteadVM = BaseHomesteadVM
+    network = fixture['network']
 
-    if 'TransitionTests/bcFrontierToHomestead' in fixture_path:
+    if network == 'Frontier':
+        return (
+            (0, FrontierVM),
+        )
+    elif network == 'Homestead':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
+        return (
+            (0, HomesteadVM),
+        )
+    elif network == 'EIP150':
+        return (
+            (0, EIP150VM),
+        )
+    elif network == 'EIP158':
+        return (
+            (0, SpuriousDragonVM),
+        )
+    elif network == 'Byzantium':
+        pytest.skip('Byzantium VM rules not yet supported')
+    elif network == 'Constantinople':
+        pytest.skip('Constantinople VM rules not yet supported')
+    elif network == 'FrontierToHomesteadAt5':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
             (0, FrontierVM),
             (5, HomesteadVM),
         )
-    elif 'TransitionTests/bcHomesteadToEIP150' in fixture_path:
+    elif network == 'HomesteadToEIP150At5':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
             (0, HomesteadVM),
             (5, EIP150VM),
         )
-    elif 'TransitionTests/bcHomesteadToDao' in fixture_path:
+    elif network == 'HomesteadToDaoAt5':
+        HomesteadVM = BaseHomesteadVM.configure(
+            support_dao_fork=True,
+            dao_fork_block_number=5,
+        )
         return (
             (0, HomesteadVM),
         )
-    elif 'TransitionTests/bcEIP158ToByzantium' in fixture_path:
+    elif network == 'EIP158ToByzantiumAt5':
         pytest.skip('Byzantium VM rules not yet supported')
-    elif '/Homestead/' in fixture_path or fixture_key.endswith('Homestead'):
-        return (
-            (0, HomesteadVM),
-        )
-    elif '/EIP150/' in fixture_path or fixture_key.endswith('EIP150'):
-        return (
-            (0, EIP150VM),
-        )
-    elif 'EIP158' in fixture_key or fixture_key.endswith('EIP158'):
-        return (
-            (0, SpuriousDragonVM),
-        )
-    elif fixture_key.endswith('Metropolis'):
-        pytest.skip('Metropolis VM rules not yet supported')
-    elif fixture_key.endswith('Byzantium'):
-        pytest.skip('Byzantium VM rules not yet supported')
-    elif fixture_key.endswith('Constantinople'):
-        pytest.skip('Constantinople VM rules not yet supported')
-    elif fixture_key.endswith('Frontier') or fixture['network'] == 'Frontier':
-        return MAINNET_VM_CONFIGURATION
     else:
+        fixture_path, fixture_key = fixture_data
         raise AssertionError(
             "Test fixture did not match any configuration rules: {0}:{1}".format(
                 fixture_path,
