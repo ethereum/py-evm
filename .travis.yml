@@ -5,7 +5,7 @@ python:
 dist: trusty
 env:
   global:
-    - PYTEST_ADDOPTS="-n 3"
+    - PYTEST_ADDOPTS="-n 2"
   matrix:
     - TOX_POSARGS="-e py35-state-frontier"
     - TOX_POSARGS="-e py35-state-homestead"
