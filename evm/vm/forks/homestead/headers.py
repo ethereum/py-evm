@@ -11,7 +11,7 @@ from evm.constants import (
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
-    HOMESTEAD_DIFF_ADJUSTMENT_CUTOFF,
+    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 
 from evm.vm.forks.frontier.headers import (
@@ -27,7 +27,7 @@ def compute_homestead_difficulty(parent_header, timestamp):
     validate_gt(timestamp, parent_tstamp, title="Header.timestamp")
     offset = parent_header.difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
     sign = max(
-        1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFF_ADJUSTMENT_CUTOFF,
+        1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
         -99)
     difficulty = int(max(
         parent_header.difficulty + offset * sign,
