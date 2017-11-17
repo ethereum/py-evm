@@ -8,6 +8,9 @@ from evm.constants import (
 from evm.exceptions import (
     VMError,
 )
+from evm.logic.invalid import (
+    InvalidOpcode,
+)
 from evm.validation import (
     validate_canonical_address,
     validate_uint256,
@@ -172,6 +175,9 @@ class Computation(object):
         validate_is_bytes(value)
         self._output = value
 
+    #
+    # Runtime operations
+    #
     def register_account_for_deletion(self, beneficiary):
         validate_canonical_address(beneficiary, title="Suicide beneficiary address")
 
@@ -188,6 +194,12 @@ class Computation(object):
             validate_uint256(topic, title="Log entry topic")
         validate_is_bytes(data, title="Log entry data")
         self.log_entries.append((account, topics, data))
+
+    def get_opcode_fn(self, opcode):
+        try:
+            return self.vm.opcodes[opcode]
+        except KeyError:
+            return InvalidOpcode(opcode)
 
     #
     # Getters
