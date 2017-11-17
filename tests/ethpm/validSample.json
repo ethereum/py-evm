@@ -1,0 +1,100 @@
+{
+  "lockfile_version": "1",
+  "version": "1.0.0",
+  "package_name": "wallet",
+  "sources": {
+    "./contracts/Wallet.sol": "ipfs://QmYKibsXPSTR5UjywQHX8SM4za1K3QHadtFGWmZqGA4uE9"
+  },
+  "contract_types": {
+    "Wallet": {
+      "bytecode": "0x60606040525b60008054600160a060020a0319166c01000000000000000000000000338102041790555b5b610224806100386000396000f3606060405236156100355760e060020a6000350463095ea7b381146100435780632e1a7d4d1461006a578063d0679d341461008e575b34610000576100415b5b565b005b34610000576100566004356024356100b5565b604080519115158252519081900360200190f35b34610000576100566004356100f8565b604080519115158252519081900360200190f35b34610000576100566004356024356101da565b604080519115158252519081900360200190f35b6000805433600160a060020a039081169116146100d157610000565b50600160a060020a03821660009081526001602081905260409091208290555b5b92915050565b600160a060020a0333166000908152600160209081526040808320548151830184905281517fa293d1e8000000000000000000000000000000000000000000000000000000008152600481019190915260248101859052905173__SafeMathLib___________________________9263a293d1e89260448082019391829003018186803b156100005760325a03f415610000575050604080518051600160a060020a0333166000818152600160205293842091909155925084156108fc0291859190818181858888f1935050505015156101d157610000565b5060015b919050565b6000805433600160a060020a039081169116146101f657610000565b604051600160a060020a0384169083156108fc029084906000818181858888f19450505050505b5b9291505056",
+      "runtime_bytecode": "0x606060405236156100355760e060020a6000350463095ea7b381146100435780632e1a7d4d1461006a578063d0679d341461008e575b34610000576100415b5b565b005b34610000576100566004356024356100b5565b604080519115158252519081900360200190f35b34610000576100566004356100f8565b604080519115158252519081900360200190f35b34610000576100566004356024356101da565b604080519115158252519081900360200190f35b6000805433600160a060020a039081169116146100d157610000565b50600160a060020a03821660009081526001602081905260409091208290555b5b92915050565b600160a060020a0333166000908152600160209081526040808320548151830184905281517fa293d1e8000000000000000000000000000000000000000000000000000000008152600481019190915260248101859052905173__SafeMathLib___________________________9263a293d1e89260448082019391829003018186803b156100005760325a03f415610000575050604080518051600160a060020a0333166000818152600160205293842091909155925084156108fc0291859190818181858888f1935050505015156101d157610000565b5060015b919050565b6000805433600160a060020a039081169116146101f657610000565b604051600160a060020a0384169083156108fc029084906000818181858888f19450505050505b5b9291505056",
+      "abi": [
+        {
+          "constant": false,
+          "inputs": [
+            {"name": "recipient", "type": "address"},
+            {"name": "value", "type": "uint256"}
+          ],
+          "name": "approve",
+          "outputs": [
+            {"name": "", "type": "bool"}
+          ],
+          "payable": false,
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {"name": "value", "type": "uint256"}
+          ],
+          "name": "withdraw",
+          "outputs": [
+            {"name": "", "type": "bool"}
+          ],
+          "payable": false,
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {"name": "recipient", "type": "address"},
+            {"name": "value", "type": "uint256"}
+          ],
+          "name": "send",
+          "outputs": [
+            {"name": "", "type": "bool"}
+          ],
+          "payable": false,
+          "type": "function"
+        },
+        {
+          "payable": false,
+          "type": "fallback"
+        }
+      ],
+      "natspec": {
+        "compiler": {
+          "type": "solc",
+          "version": "0.4.6+commit.2dabbdf0.Darwin.appleclang",
+          "settings": {
+            "optimize": true
+          }
+        },
+        "author": "Piper Merriam <pipermerriam@gmail.com>",
+        "methods": {
+          "approve(address,uint256)": {
+            "details": "Sets recipient to be approved to withdraw the specified amount",
+            "notice": "This will set the recipient to be approved to withdraw the specified amount."
+          },
+          "send(address,uint256)": {
+            "details": "Sends the recipient the specified amount",
+            "notice": "This will send the reciepient the specified amount."
+          },
+          "withdraw(uint256)": {
+            "details": "Lets caller withdraw up to their approved amount",
+            "notice": "This will withdraw provided value, deducting it from your total allowance."
+          }
+        },
+        "title": "Contract for holding funds in escrow between two semi trusted parties."
+      }
+    }
+  },
+  "deployments": {
+    "blockchain://41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d/block/3ececfa0e03bce2d348279316100913c42ca2dcd51b8bc8d2d87ef2dc6a479ff": {
+      "Wallet": {
+        "contract_type": "Wallet",
+        "address": "0xcd0f8d7dab6c682d3726693ef3c7aaacc6431d1c",
+        "transaction": "0x5c113857925ae0d866341513bb0732cd799ebc1c18fcec253bbc41d2a029acd4",
+        "block": "0xccd130623ad3b25a357ead2ecfd22d38756b2e6ac09b77a37bd0ecdf16249765",
+        "link_dependencies": [
+          {"offset": 678, "value": "safe-math-lib:SafeMathLib"}
+        ]
+      }
+    }
+  },
+  "build_dependencies": {
+    "owned": "ipfs://QmUwVUMVtkVctrLDeL12SoeCPUacELBU8nAxRtHUzvtjND",
+    "safe-math-lib": "ipfs://QmfUwis9K2SLwnUh62PDb929JzU5J2aFKd4kS1YErYajdq"
+  }
+}
