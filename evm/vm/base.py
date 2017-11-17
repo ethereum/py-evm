@@ -31,18 +31,15 @@ class VM(object):
     individual VM classes for each fork of the protocol rules within that
     network.
     """
+    chaindb = None
     opcodes = None
     _block_class = None
     _precompiles = None
 
     def __init__(self, header, chaindb):
-        if chaindb is None:
-            raise ValueError("VM classes must have a `db`")
-
         self.chaindb = chaindb
-
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=header, chaindb=chaindb)
+        self.block = block_class.from_header(header=header, chaindb=self.chaindb)
 
     @classmethod
     def configure(cls,
