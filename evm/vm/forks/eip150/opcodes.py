@@ -39,10 +39,10 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.SLOAD,
         gas_cost=constants.GAS_SLOAD_EIP150,
     ),
-    opcode_values.SUICIDE: as_opcode(
-        logic_fn=system.suicide_eip150,
-        mnemonic=mnemonics.SUICIDE,
-        gas_cost=constants.GAS_SUICIDE_EIP150,
+    opcode_values.SELFDESTRUCT: as_opcode(
+        logic_fn=system.selfdestruct_eip150,
+        mnemonic=mnemonics.SELFDESTRUCT,
+        gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
     ),
     opcode_values.CREATE: system.CreateEIP150.configure(
         name='opcode:CREATE',
