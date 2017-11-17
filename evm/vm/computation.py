@@ -133,14 +133,13 @@ class Computation(object):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        if self.logger is not None:
-            self.logger.debug(
-                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-                before_size,
-                after_size,
-                before_cost,
-                after_cost,
-            )
+        self.logger.debug(
+            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+            before_size,
+            after_size,
+            before_cost,
+            after_cost,
+        )
 
         if size:
             if before_cost < after_cost:
@@ -235,30 +234,34 @@ class Computation(object):
     # Context Manager API
     #
     def __enter__(self):
-        if self.logger is not None:
-            self.logger.debug(
-                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s | depth %s",
-                self.msg.gas,
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.to),
-                self.msg.value,
-                self.msg.depth,
-            )
+        self.logger.debug(
+            (
+                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
+                "| depth %s"
+            ),
+            self.msg.gas,
+            encode_hex(self.msg.sender),
+            encode_hex(self.msg.to),
+            self.msg.value,
+            self.msg.depth,
+        )
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_value and isinstance(exc_value, VMError):
-            if self.logger is not None:
-                self.logger.debug(
-                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | depth: %s | error: %s",  # noqa: E501
-                    self.msg.gas,
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.depth,
-                    exc_value,
-                )
+            self.logger.debug(
+                (
+                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
+                    "depth: %s | error: %s"
+                ),
+                self.msg.gas,
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                exc_value,
+            )
             self.error = exc_value
             self.gas_meter.consume_gas(
                 self.gas_meter.gas_remaining,
@@ -271,16 +274,15 @@ class Computation(object):
             # suppress VM exceptions
             return True
         elif exc_type is None:
-            if self.logger is not None:
-                self.logger.debug(
-                    (
-                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | depth: %s | "
-                        "gas-used: %s | gas-remaining: %s"
-                    ),
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.depth,
-                    self.msg.gas - self.gas_meter.gas_remaining,
-                    self.gas_meter.gas_remaining,
-                )
+            self.logger.debug(
+                (
+                    "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
+                    "depth: %s | gas-used: %s | gas-remaining: %s"
+                ),
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                self.msg.gas - self.gas_meter.gas_remaining,
+                self.gas_meter.gas_remaining,
+            )

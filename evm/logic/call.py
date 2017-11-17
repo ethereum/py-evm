@@ -62,22 +62,21 @@ class BaseCall(Opcode):
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
-            if self.logger:
-                if insufficient_funds:
-                    err_message = "Insufficient Funds: have: {0} | need: {1}".format(
-                        sender_balance,
-                        value,
-                    )
-                elif stack_too_deep:
-                    err_message = "Stack Limit Reached"
-                else:
-                    raise Exception("Invariant: Unreachable code path")
-
-                self.logger.debug(
-                    "%s failure: %s",
-                    self.mnemonic,
-                    err_message,
+            if insufficient_funds:
+                err_message = "Insufficient Funds: have: {0} | need: {1}".format(
+                    sender_balance,
+                    value,
                 )
+            elif stack_too_deep:
+                err_message = "Stack Limit Reached"
+            else:
+                raise Exception("Invariant: Unreachable code path")
+
+            self.logger.debug(
+                "%s failure: %s",
+                self.mnemonic,
+                err_message,
+            )
             computation.gas_meter.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:

@@ -257,6 +257,11 @@ class Chain(object):
 
         self.chaindb.persist_block_to_db(imported_block)
         self.header = self.create_header_from_parent(self.get_canonical_head())
+        self.logger.debug(
+            'IMPORTED_BLOCK: number %s | hash %s',
+            imported_block.number,
+            encode_hex(imported_block.hash),
+        )
         return imported_block
 
     def mine_block(self, *args, **kwargs):
