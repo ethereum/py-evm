@@ -59,10 +59,8 @@ def _execute_frontier_transaction(vm, transaction):
 
     gas_fee = transaction.gas * transaction.gas_price
     with vm.state_db() as state_db:
-        sender_balance = state_db.get_balance(transaction.sender)
-
         # Buy Gas
-        state_db.set_balance(transaction.sender, sender_balance - gas_fee)
+        state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
         # Increment Nonce
         state_db.increment_nonce(transaction.sender)
@@ -142,11 +140,7 @@ def _execute_frontier_transaction(vm, transaction):
         transaction_fee = transaction.gas * transaction.gas_price
         vm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
         with vm.state_db() as state_db:
-            coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
-            state_db.set_balance(
-                vm.block.header.coinbase,
-                coinbase_balance + transaction_fee,
-            )
+            state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
     else:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
@@ -168,8 +162,7 @@ def _execute_frontier_transaction(vm, transaction):
             )
 
             with vm.state_db() as state_db:
-                sender_balance = state_db.get_balance(message.sender)
-                state_db.set_balance(message.sender, sender_balance + gas_refund_amount)
+                state_db.delta_balance(message.sender, gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -180,11 +173,7 @@ def _execute_frontier_transaction(vm, transaction):
         )
 
         with vm.state_db() as state_db:
-            coinbase_balance = state_db.get_balance(vm.block.header.coinbase)
-            state_db.set_balance(
-                vm.block.header.coinbase,
-                coinbase_balance + transaction_fee,
-            )
+            state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
 
     # Process Self Destructs
     with vm.state_db() as state_db:
@@ -216,12 +205,8 @@ def _apply_frontier_message(vm, message):
                     "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
                 )
 
-            sender_balance -= message.value
-            state_db.set_balance(message.sender, sender_balance)
-
-            recipient_balance = state_db.get_balance(message.storage_address)
-            recipient_balance += message.value
-            state_db.set_balance(message.storage_address, recipient_balance)
+            state_db.delta_balance(message.sender, -1 * message.value)
+            state_db.delta_balance(message.storage_address, message.value)
 
         vm.logger.debug(
             "TRANSFERRED: %s from %s -> %s",
