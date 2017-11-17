@@ -55,7 +55,6 @@ def _execute_frontier_transaction(vm, transaction):
         # Buy Gas
         state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
-
         # Increment Nonce
         state_db.increment_nonce(transaction.sender)
 
