@@ -1,6 +1,9 @@
-import functools
+from cytoolz import (
+    curry,
+)
 
 
+@curry
 def pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
@@ -15,6 +18,7 @@ def pad_left(value, to_size, pad_with):
         return value
 
 
+@curry
 def pad_right(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
@@ -29,5 +33,8 @@ def pad_right(value, to_size, pad_with):
         return value
 
 
-pad32 = functools.partial(pad_left, to_size=32, pad_with=b'\x00')
-pad32r = functools.partial(pad_right, to_size=32, pad_with=b'\x00')
+zpad_right = pad_right(pad_with=b'\x00')
+zpad_left = pad_left(pad_with=b'\x00')
+
+pad32 = zpad_left(to_size=32)
+pad32r = zpad_right(to_size=32)
