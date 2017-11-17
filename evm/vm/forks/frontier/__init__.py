@@ -10,9 +10,7 @@ from evm.exceptions import (
     StackDepthLimit,
     ContractCreationCollision,
 )
-from evm.precompile import (
-    PRECOMPILES,
-)
+from evm import precompiles
 
 from evm.vm.message import (
     Message,
@@ -22,6 +20,7 @@ from evm.vm.computation import (
 )
 
 from evm.utils.address import (
+    force_bytes_to_address,
     generate_contract_address,
 )
 from evm.utils.hexadecimal import (
@@ -38,6 +37,14 @@ from .headers import (
     create_frontier_header_from_parent,
     configure_frontier_header,
 )
+
+
+FRONTIER_PRECOMPILES = {
+    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
+    force_bytes_to_address(b'\x02'): precompiles.sha256,
+    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
+    force_bytes_to_address(b'\x04'): precompiles.identity,
+}
 
 
 def _execute_frontier_transaction(vm, transaction):
@@ -272,7 +279,7 @@ FrontierVM = VM.configure(
     opcodes=FRONTIER_OPCODES,
     # classes
     _block_class=FrontierBlock,
-    _precompiles=PRECOMPILES,
+    _precompiles=FRONTIER_PRECOMPILES,
     # helpers
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     configure_header=configure_frontier_header,
