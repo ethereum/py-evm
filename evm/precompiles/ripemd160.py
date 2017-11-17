@@ -10,7 +10,7 @@ from evm.utils.padding import (
 )
 
 
-def precompile_ripemd160(computation):
+def ripemd160(computation):
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_RIPEMD160 + word_count * constants.GAS_RIPEMD160WORD
 

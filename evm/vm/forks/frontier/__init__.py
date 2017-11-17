@@ -40,10 +40,10 @@ from .headers import (
 
 
 FRONTIER_PRECOMPILES = {
-    force_bytes_to_address(b'\x01'): precompiles.precompile_ecrecover,
-    force_bytes_to_address(b'\x02'): precompiles.precompile_sha256,
-    force_bytes_to_address(b'\x03'): precompiles.precompile_ripemd160,
-    force_bytes_to_address(b'\x04'): precompiles.precompile_identity,
+    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
+    force_bytes_to_address(b'\x02'): precompiles.sha256,
+    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
+    force_bytes_to_address(b'\x04'): precompiles.identity,
 }
 
 

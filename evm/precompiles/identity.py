@@ -4,7 +4,7 @@ from evm.utils.numeric import (
 )
 
 
-def precompile_identity(computation):
+def identity(computation):
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_IDENTITY + word_count * constants.GAS_IDENTITYWORD
 
