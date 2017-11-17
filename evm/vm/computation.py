@@ -171,6 +171,21 @@ class Computation(object):
         validate_is_bytes(value)
         self._output = value
 
+    #
+    # Runtime operations
+    #
+    def apply_child_computation(self, child_msg):
+        if child_msg.is_create:
+            child_computation = self.vm.apply_create_message(child_msg)
+        else:
+            child_computation = self.vm.apply_message(child_msg)
+
+        self.add_child_computation(child_computation)
+        return child_computation
+
+    def add_child_computation(self, child_computation):
+        self.children.append(child_computation)
+
     def register_account_for_deletion(self, beneficiary):
         validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
