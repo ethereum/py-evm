@@ -64,7 +64,7 @@ def calldatacopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = word_count * constants.GAS_COPY
 
-    computation.gas_meter.consume_gas(copy_gas_cost, reason="Data copy fee")
+    computation.gas_meter.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
     value = computation.msg.data[calldata_start_position: calldata_start_position + size]
     padded_value = pad_right(value, size, b'\x00')

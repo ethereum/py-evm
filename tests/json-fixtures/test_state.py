@@ -185,8 +185,8 @@ def test_state_fixtures(fixture, fixture_vm_class):
 
     try:
         computation = vm.apply_transaction(transaction)
-    except ValidationError:
-        transaction_error = True
+    except ValidationError as err:
+        transaction_error = err
     else:
         transaction_error = False
 

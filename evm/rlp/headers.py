@@ -85,6 +85,12 @@ class BlockHeader(rlp.Serializable):
             nonce=nonce,
         )
 
+    def __repr__(self):
+        return '<BlockHeader #{0} {1}>'.format(
+            self.block_number,
+            encode_hex(self.hash)[2:10],
+        )
+
     @property
     def hash(self):
         return keccak(rlp.encode(self))

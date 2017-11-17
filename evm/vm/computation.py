@@ -133,14 +133,13 @@ class Computation(object):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        if self.logger is not None:
-            self.logger.debug(
-                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-                before_size,
-                after_size,
-                before_cost,
-                after_cost,
-            )
+        self.logger.debug(
+            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+            before_size,
+            after_size,
+            before_cost,
+            after_cost,
+        )
 
         if size:
             if before_cost < after_cost:
@@ -169,10 +168,26 @@ class Computation(object):
 
     @output.setter
     def output(self, value):
+        validate_is_bytes(value)
         self._output = value
 
+    #
+    # Runtime operations
+    #
+    def apply_child_computation(self, child_msg):
+        if child_msg.is_create:
+            child_computation = self.vm.apply_create_message(child_msg)
+        else:
+            child_computation = self.vm.apply_message(child_msg)
+
+        self.add_child_computation(child_computation)
+        return child_computation
+
+    def add_child_computation(self, child_computation):
+        self.children.append(child_computation)
+
     def register_account_for_deletion(self, beneficiary):
-        validate_canonical_address(beneficiary, title="Suicide beneficiary address")
+        validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
         if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(
@@ -234,30 +249,34 @@ class Computation(object):
     # Context Manager API
     #
     def __enter__(self):
-        if self.logger is not None:
-            self.logger.debug(
-                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s | depth %s",
-                self.msg.gas,
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.to),
-                self.msg.value,
-                self.msg.depth,
-            )
+        self.logger.debug(
+            (
+                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
+                "| depth %s"
+            ),
+            self.msg.gas,
+            encode_hex(self.msg.sender),
+            encode_hex(self.msg.to),
+            self.msg.value,
+            self.msg.depth,
+        )
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_value and isinstance(exc_value, VMError):
-            if self.logger is not None:
-                self.logger.debug(
-                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | depth: %s | error: %s",  # noqa: E501
-                    self.msg.gas,
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.depth,
-                    exc_value,
-                )
+            self.logger.debug(
+                (
+                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
+                    "depth: %s | error: %s"
+                ),
+                self.msg.gas,
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                exc_value,
+            )
             self.error = exc_value
             self.gas_meter.consume_gas(
                 self.gas_meter.gas_remaining,
@@ -270,16 +289,15 @@ class Computation(object):
             # suppress VM exceptions
             return True
         elif exc_type is None:
-            if self.logger is not None:
-                self.logger.debug(
-                    (
-                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | depth: %s | "
-                        "gas-used: %s | gas-remaining: %s"
-                    ),
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.depth,
-                    self.msg.gas - self.gas_meter.gas_remaining,
-                    self.gas_meter.gas_remaining,
-                )
+            self.logger.debug(
+                (
+                    "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
+                    "depth: %s | gas-used: %s | gas-remaining: %s"
+                ),
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                self.msg.gas - self.gas_meter.gas_remaining,
+                self.gas_meter.gas_remaining,
+            )

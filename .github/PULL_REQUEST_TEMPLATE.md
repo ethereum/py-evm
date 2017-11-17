@@ -8,4 +8,4 @@
 
 #### Cute Animal Picture
 
-> put a cute animal picture here.
+![put a cute animal picture link inside the parentheses]()
