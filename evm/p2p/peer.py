@@ -193,7 +193,7 @@ class BasePeer:
             raise PeerConnectionLost()
         return data
 
-    async def start(self):
+    async def start(self, finished_callback=None):
         try:
             await self.read_loop()
         except Exception as e:
@@ -201,6 +201,8 @@ class BasePeer:
                 "Unexpected error when handling remote msg: {}".format(traceback.format_exc()))
         finally:
             self._finished.set()
+            if finished_callback is not None:
+                finished_callback(self)
 
     def close(self):
         """Close this peer's reader/writer streams.
@@ -219,7 +221,7 @@ class BasePeer:
             try:
                 msg = await self.read_msg()
             except (PeerConnectionLost, asyncio.TimeoutError):
-                self.logger.debug("Peer {} stopped responding, disconnecting".format(self.remote))
+                self.logger.debug("Peer %s stopped responding, disconnecting", self.remote)
                 return
             self.process_msg(msg)
 
@@ -520,7 +522,7 @@ if __name__ == "__main__":
     from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
     from evm.p2p import kademlia
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
     nodekey = keys.PrivateKey(decode_hex(
