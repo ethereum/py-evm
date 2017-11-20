@@ -13,35 +13,15 @@ from aiohttp.web_exceptions import HTTPMethodNotAllowed
 
 from eth_utils import decode_hex, encode_hex
 
-from eth_keys import keys
-
-from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
-from evm.chains.ropsten import (
-    ROPSTEN_GENESIS_HEADER,
-    ROPSTEN_NETWORK_ID,
-)
-from evm.p2p import ecies
-from evm.p2p import kademlia
-from evm.p2p.constants import HANDSHAKE_TIMEOUT
-from evm.p2p.lightchain import (
-    LightChain,
-    OnDemandDataBackend,
-)
-from evm.p2p.peer import (
-    handshake,
-    LESPeer,
-)
+from evm.chains.mainnet import (
+    MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
+from evm.p2p.lightchain import LightChain
 from evm.utils.numeric import int_to_big_endian
 
 
 # Change the values below to connect to a node on a different network or IP address.
-GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
-NETWORK_ID = ROPSTEN_NETWORK_ID
-# The pubkey for the local node we'll connect to. Simply pass the hex string below to
-# geth using the "-nodekeyhex" argument.
-NODE_ID = keys.PrivateKey(decode_hex(
-    "45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")).public_key
-NODE_ADDR = kademlia.Address('127.0.0.1', 30303, 30303)
+GENESIS_HEADER = MAINNET_GENESIS_HEADER
+NETWORK_ID = MAINNET_NETWORK_ID
 
 
 class App(web.Application):
@@ -51,12 +31,11 @@ class App(web.Application):
         super(App, self).__init__()
         self.chain = chain
         self.router.add_post('/', self.handle)
-        self.on_startup.append(self.connect_peer)
+        self.on_startup.append(self.run_chain)
         self.on_shutdown.append(self.stop_chain)
 
-    @asyncio.coroutine
-    def handle(self, request):
-        body = yield from request.json()
+    async def handle(self, request):
+        body = await request.json()
         req_id = body['id']
         method = body['method']
         hash_or_number, _ = body['params']
@@ -66,10 +45,10 @@ class App(web.Application):
                 number = head.block_number
             else:
                 number = int(hash_or_number, 16)
-            block = yield from self.chain.get_canonical_block_by_number(number)
+            block = await self.chain.get_canonical_block_by_number(number)
         elif method == 'eth_getBlockByHash':
             block_hash = decode_hex(hash_or_number)
-            block = yield from self.chain.get_block_by_hash(block_hash)
+            block = await self.chain.get_block_by_hash(block_hash)
         else:
             raise HTTPMethodNotAllowed(method, self.allowed_methods)
 
@@ -77,13 +56,11 @@ class App(web.Application):
         response = {"jsonrpc": "2.0", "id": req_id, "result": block_dict}
         return web.json_response(response)
 
-    @asyncio.coroutine
-    def connect_peer(self, app):
-        return self.chain.on_demand_data_backend.get_peer()
+    async def run_chain(self, app):
+        asyncio.ensure_future(self.chain.run())
 
-    @asyncio.coroutine
-    def stop_chain(self, app):
-        return self.chain.stop()
+    async def stop_chain(self, app):
+        await self.chain.stop()
 
     def _block_to_dict(self, block):
         logs_bloom = encode_hex(int_to_big_endian(block.header.bloom))[2:]
@@ -112,33 +89,9 @@ class App(web.Application):
         }
 
 
-class SinglePeerOnDemandDataBackend(OnDemandDataBackend):
-
-    def __init__(self, chaindb):
-        self.chaindb = chaindb
-        self.privkey = ecies.generate_privkey()
-        self._peer = None
-
-    @asyncio.coroutine
-    def get_peer(self):
-        remote = kademlia.Node(NODE_ID, NODE_ADDR)
-        if self._peer is None or self._peer.is_finished:
-            self._peer = yield from asyncio.wait_for(
-                handshake(remote, self.privkey, LESPeer, self.chaindb, NETWORK_ID),
-                HANDSHAKE_TIMEOUT)
-            asyncio.ensure_future(self._peer.start())
-        return self._peer
-
-    @asyncio.coroutine
-    def stop(self):
-        if self._peer is not None and not self._peer.is_finished:
-            yield from self._peer.stop()
-
-
 DemoLightChain = LightChain.configure(
     'RPCDemoLightChain',
     vm_configuration=MAINNET_VM_CONFIGURATION,
-    on_demand_data_backend_class=SinglePeerOnDemandDataBackend,
     network_id=NETWORK_ID,
 )
 
@@ -149,6 +102,7 @@ if __name__ == '__main__':
     from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.getLogger("evm.p2p.lightchain").setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)

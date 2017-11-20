@@ -62,8 +62,8 @@ class Disconnect(Command):
 
     def handle(self, proto, data):
         decoded = self.decode(data)
-        proto.logger.info(
-            "{} disconnected; reason given: {}".format(proto.peer, decoded['reason_name']))
+        proto.logger.debug(
+            "%s disconnected; reason given: %s", proto.peer, decoded['reason_name'])
         proto.peer.close()
         return decoded
 
