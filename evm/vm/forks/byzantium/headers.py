@@ -18,7 +18,6 @@ from evm.vm.forks.frontier.headers import (
 def compute_byzantium_difficulty(parent_header, timestamp):
     """
     https://github.com/ethereum/EIPs/issues/100
-    TODO: figure out how to know about uncles in this context...
     """
     parent_timestamp = parent_header.timestamp
     validate_gt(timestamp, parent_timestamp, title="Header.timestamp")

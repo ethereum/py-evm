@@ -23,7 +23,7 @@ from evm.logic import (
 from evm.vm.forks.spurious_dragon.opcodes import SPURIOUS_DRAGON_OPCODES
 
 
-def no_static(opcode_fn):
+def ensure_no_static(opcode_fn):
     @functools.wraps(opcode_fn)
     def inner(computation):
         if computation.msg.is_static:
@@ -68,27 +68,27 @@ UPDATED_OPCODES = {
     # Logging
     #
     opcode_values.LOG0: as_opcode(
-        logic_fn=no_static(logging.log0),
+        logic_fn=ensure_no_static(logging.log0),
         mnemonic=mnemonics.LOG0,
         gas_cost=constants.GAS_LOG,
     ),
     opcode_values.LOG1: as_opcode(
-        logic_fn=no_static(logging.log1),
+        logic_fn=ensure_no_static(logging.log1),
         mnemonic=mnemonics.LOG1,
         gas_cost=constants.GAS_LOG,
     ),
     opcode_values.LOG2: as_opcode(
-        logic_fn=no_static(logging.log2),
+        logic_fn=ensure_no_static(logging.log2),
         mnemonic=mnemonics.LOG2,
         gas_cost=constants.GAS_LOG,
     ),
     opcode_values.LOG3: as_opcode(
-        logic_fn=no_static(logging.log3),
+        logic_fn=ensure_no_static(logging.log3),
         mnemonic=mnemonics.LOG3,
         gas_cost=constants.GAS_LOG,
     ),
     opcode_values.LOG4: as_opcode(
-        logic_fn=no_static(logging.log4),
+        logic_fn=ensure_no_static(logging.log4),
         mnemonic=mnemonics.LOG4,
         gas_cost=constants.GAS_LOG,
     ),
@@ -105,7 +105,7 @@ UPDATED_OPCODES = {
     # Storage
     #
     opcode_values.SSTORE: as_opcode(
-        logic_fn=no_static(storage.sstore),
+        logic_fn=ensure_no_static(storage.sstore),
         mnemonic=mnemonics.SSTORE,
         gas_cost=constants.GAS_NULL,
     ),
@@ -113,7 +113,7 @@ UPDATED_OPCODES = {
     # Self Destruct
     #
     opcode_values.SELFDESTRUCT: as_opcode(
-        logic_fn=no_static(system.selfdestruct_eip161),
+        logic_fn=ensure_no_static(system.selfdestruct_eip161),
         mnemonic=mnemonics.SELFDESTRUCT,
         gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
     ),

@@ -154,7 +154,7 @@ class Call(BaseCall):
             memory_output_start_position,
             memory_output_size,
             True,  # should_transfer_value,
-            computation.msg.is_static,  # is_static
+            computation.msg.is_static,
         )
 
 
@@ -188,7 +188,7 @@ class CallCode(BaseCall):
             memory_output_start_position,
             memory_output_size,
             True,  # should_transfer_value,
-            computation.msg.is_static,  # is_static
+            computation.msg.is_static,
         )
 
 
@@ -225,7 +225,7 @@ class DelegateCall(BaseCall):
             memory_output_start_position,
             memory_output_size,
             False,  # should_transfer_value,
-            computation.msg.is_static,  # is_static
+            computation.msg.is_static,
         )
 
 

@@ -37,7 +37,7 @@ def revert(computation):
 
     output = computation.memory.read(start_position, size)
     computation.output = bytes(output)
-    raise Revert(bytes(output))
+    raise Revert(computation.output)
 
 
 def selfdestruct(computation):

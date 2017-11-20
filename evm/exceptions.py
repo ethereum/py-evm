@@ -130,7 +130,7 @@ class WriteProtection(VMError):
 
 class OutOfBoundsRead(VMError):
     """
-    Error raised to indicate an attempt was made to read data beyond then
+    Error raised to indicate an attempt was made to read data beyond the
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
