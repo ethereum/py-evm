@@ -2,6 +2,8 @@ from evm import constants
 from evm import mnemonics
 from evm.exceptions import (
     Halt,
+    Revert,
+    WriteProtection,
 )
 
 from evm.opcode import (
@@ -26,6 +28,16 @@ def return_op(computation):
     output = computation.memory.read(start_position, size)
     computation.output = bytes(output)
     raise Halt('RETURN')
+
+
+def revert(computation):
+    start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+
+    computation.extend_memory(start_position, size)
+
+    output = computation.memory.read(start_position, size)
+    computation.output = bytes(output)
+    raise Revert(computation.output)
 
 
 def selfdestruct(computation):
@@ -147,10 +159,17 @@ class Create(Opcode):
         if child_computation.error:
             computation.stack.push(0)
         else:
-            computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
             computation.stack.push(contract_address)
+        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
 
 
 class CreateEIP150(Create):
     def max_child_gas_modifier(self, gas):
         return max_child_gas_eip150(gas)
+
+
+class CreateByzantium(CreateEIP150):
+    def __call__(self, computation):
+        if computation.msg.is_static:
+            raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
+        return super(CreateEIP150, self).__call__(computation)

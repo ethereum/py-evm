@@ -135,37 +135,19 @@ def _execute_frontier_transaction(vm, transaction):
     #
     # 2) Post Computation
     #
-    if computation.error:
-        # Miner Fees
-        transaction_fee = transaction.gas * transaction.gas_price
-        vm.logger.debug('TRANSACTION FEE: %s', transaction_fee)
-        with vm.state_db() as state_db:
-            state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
-    else:
-        # Self Destruct Refunds
-        num_deletions = len(computation.get_accounts_for_deletion())
-        if num_deletions:
-            computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
+    # Self Destruct Refunds
+    num_deletions = len(computation.get_accounts_for_deletion())
+    if num_deletions:
+        computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
 
-        # Gas Refunds
-        gas_remaining = computation.get_gas_remaining()
-        gas_refunded = computation.get_gas_refund()
-        gas_used = transaction.gas - gas_remaining
-        gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
+    # Gas Refunds
+    gas_remaining = computation.get_gas_remaining()
+    gas_refunded = computation.get_gas_refund()
+    gas_used = transaction.gas - gas_remaining
+    gas_refund = min(gas_refunded, gas_used // 2)
+    gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
-        if gas_refund_amount:
-            vm.logger.debug(
-                'TRANSACTION REFUND: %s -> %s',
-                gas_refund_amount,
-                encode_hex(message.sender),
-            )
-
-            with vm.state_db() as state_db:
-                state_db.delta_balance(message.sender, gas_refund_amount)
-
-        # Miner Fees
-        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+    if gas_refund_amount:
         vm.logger.debug(
             'TRANSACTION REFUND: %s -> %s',
             gas_refund_amount,
@@ -173,7 +155,17 @@ def _execute_frontier_transaction(vm, transaction):
         )
 
         with vm.state_db() as state_db:
-            state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
+            state_db.delta_balance(message.sender, gas_refund_amount)
+
+    # Miner Fees
+    transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+    vm.logger.debug(
+        'TRANSACTION FEE: %s -> %s',
+        transaction_fee,
+        encode_hex(vm.block.header.coinbase),
+    )
+    with vm.state_db() as state_db:
+        state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
 
     # Process Self Destructs
     with vm.state_db() as state_db:

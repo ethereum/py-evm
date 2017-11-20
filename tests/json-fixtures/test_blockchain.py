@@ -20,6 +20,7 @@ from evm.vm.forks import (
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
+    ByzantiumVM,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -105,7 +106,9 @@ def chain_vm_configuration(fixture_data, fixture):
             (0, SpuriousDragonVM),
         )
     elif network == 'Byzantium':
-        pytest.skip('Byzantium VM rules not yet supported')
+        return (
+            (0, ByzantiumVM),
+        )
     elif network == 'Constantinople':
         pytest.skip('Constantinople VM rules not yet supported')
     elif network == 'FrontierToHomesteadAt5':
@@ -129,7 +132,10 @@ def chain_vm_configuration(fixture_data, fixture):
             (0, HomesteadVM),
         )
     elif network == 'EIP158ToByzantiumAt5':
-        pytest.skip('Byzantium VM rules not yet supported')
+        return (
+            (0, SpuriousDragonVM),
+            (5, ByzantiumVM),
+        )
     else:
         fixture_path, fixture_key = fixture_data
         raise AssertionError(

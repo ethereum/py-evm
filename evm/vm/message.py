@@ -33,6 +33,7 @@ class Message(object):
     create_address = None
 
     should_transfer_value = None
+    is_static = None
 
     logger = logging.getLogger('evm.vm.message.Message')
 
@@ -48,7 +49,8 @@ class Message(object):
                  depth=0,
                  create_address=None,
                  code_address=None,
-                 should_transfer_value=True):
+                 should_transfer_value=True,
+                 is_static=False):
         validate_uint256(gas, title="Message.gas")
         self.gas = gas
 
@@ -89,6 +91,9 @@ class Message(object):
 
         validate_is_boolean(should_transfer_value, title="Message.should_transfer_value")
         self.should_transfer_value = should_transfer_value
+
+        validate_is_boolean(is_static, title="Message.is_static")
+        self.is_static = is_static
 
     @property
     def is_origin(self):

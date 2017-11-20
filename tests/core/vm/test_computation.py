@@ -2,6 +2,7 @@ import pytest
 
 from evm.exceptions import (
     VMError,
+    Revert,
 )
 from evm.vm import (
     Computation,
@@ -185,6 +186,15 @@ def test_get_log_entries_with_vmerror(computation):
     assert computation.get_log_entries() == ()
 
 
+def test_get_log_entries_with_revert(computation):
+    # Trigger an out of gas error causing get log entries to be ()
+    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert computation.error
+    assert computation.get_log_entries() == ()
+
+
 def test_get_gas_refund(computation):
     computation.gas_meter.refund_gas(100)
     assert computation.get_gas_refund() == 100
@@ -195,6 +205,15 @@ def test_get_gas_refund_with_vmerror(computation):
     computation.gas_meter.refund_gas(100)
     with computation:
         raise VMError('Triggered VMError for tests')
+    assert computation.error
+    assert computation.get_gas_refund() == 0
+
+
+def test_get_gas_refund_with_revert(computation):
+    # Trigger an out of gas error causing get gas refund to be 0
+    computation.gas_meter.refund_gas(100)
+    with computation:
+        raise Revert('Triggered VMError for tests')
     assert computation.error
     assert computation.get_gas_refund() == 0
 
@@ -213,6 +232,15 @@ def test_output_with_vmerror(computation):
     assert computation.output == b''
 
 
+def test_output_with_revert(computation):
+    # Trigger an out of gas error causing output to be b''
+    computation.output = b'1'
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert computation.error
+    assert computation.output == b'1'
+
+
 def test_get_gas_remaining(computation):
     assert computation.get_gas_remaining() == 100
 
@@ -224,6 +252,15 @@ def test_get_gas_remaining_with_vmerror(computation):
         raise VMError('Triggered VMError for tests')
     assert computation.error
     assert computation.get_gas_remaining() == 0
+
+
+def test_get_gas_remaining_with_revert(computation):
+    assert computation.get_gas_remaining() == 100
+    # Trigger an out of gas error causing get gas remaining to be 0
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert computation.error
+    assert computation.get_gas_remaining() == 100
 
 
 def test_get_gas_used(computation):
@@ -241,3 +278,13 @@ def test_get_gas_used_with_vmerror(computation):
         raise VMError('Triggered VMError for tests')
     assert computation.error
     assert computation.get_gas_used() == 100
+
+
+def test_get_gas_used_with_revert(computation):
+    # Trigger an out of gas error causing get gas used to be 150
+    computation.gas_meter.consume_gas(3, reason='testing')
+    computation.gas_meter.consume_gas(2, reason='testing')
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert computation.error
+    assert computation.get_gas_used() == 5

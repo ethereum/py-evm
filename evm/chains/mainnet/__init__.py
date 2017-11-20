@@ -9,6 +9,7 @@ from evm.vm.forks import (
     FrontierVM,
     HomesteadVM,
     SpuriousDragonVM,
+    ByzantiumVM,
 )
 
 
@@ -17,6 +18,7 @@ MAINNET_VM_CONFIGURATION = (
     (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
     (constants.EIP150_MAINNET_BLOCK, EIP150VM),
     (constants.SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
+    (constants.BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
 )
 
 

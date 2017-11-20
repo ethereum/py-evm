@@ -7,11 +7,12 @@ env:
   global:
     - PYTEST_ADDOPTS="-n 2"
   matrix:
+    # byzantium goes first because it takes the longest.
+    - TOX_POSARGS="-e py35-state-byzantium"
     - TOX_POSARGS="-e py35-state-frontier"
     - TOX_POSARGS="-e py35-state-homestead"
     - TOX_POSARGS="-e py35-state-eip150"
     - TOX_POSARGS="-e py35-state-eip158"
-    #- TOX_POSARGS="-e py35-state-byzantium"
     #- TOX_POSARGS="-e py35-state-constantinople"
     #- TOX_POSARGS="-e py35-state-metropolis"
     - TOX_POSARGS="-e py35-blockchain"
