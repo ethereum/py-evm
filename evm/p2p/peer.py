@@ -3,6 +3,7 @@ import logging
 import operator
 import struct
 import traceback
+from typing import (List, Type)  # noqa: F401
 
 from cytoolz import reduceby
 
@@ -22,6 +23,7 @@ from eth_keys import keys
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.p2p import auth
 from evm.p2p import ecies
+from evm.p2p import protocol  # noqa: F401
 from evm.p2p.constants import (
     CONN_IDLE_TIMEOUT,
     HANDSHAKE_TIMEOUT,
@@ -103,7 +105,7 @@ class BasePeer:
     reply_timeout = REPLY_TIMEOUT
     max_headers_fetch = MAX_HEADERS_FETCH
     # Must be defined in subclasses.
-    _supported_sub_protocols = []
+    _supported_sub_protocols = []  # type: List[Type[protocol.Protocol]]
     # FIXME: Must be configurable.
     listen_port = 30303
 

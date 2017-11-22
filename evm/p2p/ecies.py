@@ -1,6 +1,7 @@
 import os
 import struct
 from hashlib import sha256
+from typing import cast
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
@@ -11,6 +12,7 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import force_bytes
 
 from eth_keys import keys
+from eth_keys import datatypes
 
 from evm.p2p.constants import (
     PUBKEY_LEN,
@@ -37,16 +39,16 @@ def generate_privkey():
     return keys.PrivateKey(pad32(int_to_big_endian(privkey.private_numbers().private_value)))
 
 
-def ecdh_agree(privkey, pubkey):
+def ecdh_agree(privkey: datatypes.PrivateKey, pubkey: datatypes.PublicKey) -> bytes:
     """Performs a key exchange operation using the ECDH algorithm."""
-    privkey = ec.derive_private_key(int(privkey), CURVE, default_backend())
+    ec_privkey = ec.derive_private_key(int(cast(int, privkey)), CURVE, default_backend())
     pubkey_bytes = b'\x04' + pubkey.to_bytes()
     pubkey_nums = ec.EllipticCurvePublicNumbers.from_encoded_point(CURVE, pubkey_bytes)
-    pubkey = pubkey_nums.public_key(default_backend())
-    return privkey.exchange(ec.ECDH(), pubkey)
+    ec_pubkey = pubkey_nums.public_key(default_backend())
+    return ec_privkey.exchange(ec.ECDH(), ec_pubkey)
 
 
-def encrypt(data, pubkey, shared_mac_data=''):
+def encrypt(data: bytes, pubkey: datatypes.PublicKey, shared_mac_data: bytes = b'') -> bytes:
     """Encrypt data with ECIES method to the given public key
 
     1) generate r = random value
@@ -80,7 +82,7 @@ def encrypt(data, pubkey, shared_mac_data=''):
     return msg + tag
 
 
-def decrypt(data, privkey, shared_mac_data=b''):
+def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes = b''):
     """Decrypt data with ECIES method using the given private key
 
     1) generate shared-secret = kdf( ecdhAgree(myPrivKey, msg[1:65]) )

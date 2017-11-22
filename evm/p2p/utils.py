@@ -5,7 +5,7 @@ import rlp
 from evm.utils.numeric import big_endian_to_int
 
 
-def sxor(s1, s2):
+def sxor(s1: bytes, s2: bytes) -> bytes:
     if len(s1) != len(s2):
         raise ValueError("Cannot sxor strings of different length")
     return bytes(x ^ y for x, y in zip(s1, s2))

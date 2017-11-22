@@ -23,6 +23,7 @@ env:
     - TOX_POSARGS="-e py35-database"
     #- TOX_POSARGS="-e py35-vm-performance"
     - TOX_POSARGS="-e flake8"
+    - TOX_POSARGS="-e mypy"
 cache:
   pip: true
 install:

@@ -365,7 +365,7 @@ def random_node(nodeid=None):
 
 class WireMock():
 
-    messages = []
+    messages = []  # type: ignore
 
     def __init__(self, sender):
         self.sender = sender

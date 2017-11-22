@@ -1,5 +1,6 @@
 import logging
 import struct
+from typing import (Any, List, Tuple, Type)  # noqa: F401
 
 import rlp
 from rlp import sedes
@@ -9,9 +10,9 @@ from evm.p2p.utils import get_devp2p_cmd_id
 
 
 class Command:
-    _cmd_id = None
+    _cmd_id = None  # type: int
     decode_strict = True
-    structure = []
+    structure = []  # type: List[Tuple[str, Any]]
 
     def __init__(self, id_offset):
         self.id_offset = id_offset
@@ -82,11 +83,11 @@ class Command:
 
 class Protocol:
     logger = logging.getLogger("evm.p2p.protocol.Protocol")
-    name = None
-    version = None
-    handshake_msg_type = None
+    name = None  # type: bytes
+    version = None  # type: int
+    handshake_msg_type = None  # type: Type[Command]
     # List of Command classes that this protocol supports.
-    _commands = []
+    _commands = []  # type: List[Type[Command]]
 
     def __init__(self, peer, cmd_id_offset):
         """Initialize this protocol and send its handshake msg."""
