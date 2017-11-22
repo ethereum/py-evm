@@ -4,21 +4,25 @@ import os
 import random
 import sha3
 import struct
+from typing import Tuple
 
 import rlp
 from rlp import sedes
 
 from eth_keys import keys
+from eth_keys import datatypes
 
 from evm.utils.keccak import (
     keccak,
 )
 from evm.p2p import ecies
+from evm.p2p import kademlia
 from evm.p2p.constants import (
     AUTH_ACK_LEN,
     AUTH_MSG_LEN,
     ENCRYPTED_AUTH_ACK_LEN,
     ENCRYPTED_AUTH_MSG_LEN,
+    ENCRYPT_OVERHEAD_LENGTH,
     HASH_LEN,
     PUBKEY_LEN,
     SIGNATURE_LEN,
@@ -29,7 +33,8 @@ from evm.p2p.utils import (
 )
 
 
-async def handshake(remote, privkey):
+async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tuple[
+        bytes, bytes, sha3.keccak_256, sha3.keccak_256, asyncio.StreamReader, asyncio.StreamWriter]:
     """
     Perform the auth handshake with given remote.
 
@@ -43,7 +48,9 @@ async def handshake(remote, privkey):
     return aes_secret, mac_secret, egress_mac, ingress_mac, reader, writer
 
 
-async def _handshake(initiator, reader, writer):
+async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamReader,
+                     writer: asyncio.StreamWriter
+                     ) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256]:
     """See the handshake() function above.
 
     This code was factored out into this helper so that we can create Peers with directly
@@ -71,26 +78,32 @@ async def _handshake(initiator, reader, writer):
 class HandshakeBase:
     logger = logging.getLogger("evm.p2p.peer.Handshake")
     got_eip8_auth = False
+    _is_initiator = False
 
-    def __init__(self, remote, privkey):
+    def __init__(self, remote: kademlia.Node, privkey: datatypes.PrivateKey) -> None:
         self.remote = remote
         self.privkey = privkey
         self.ephemeral_privkey = ecies.generate_privkey()
 
     @property
-    def ephemeral_pubkey(self):
+    def ephemeral_pubkey(self) -> datatypes.PublicKey:
         return self.ephemeral_privkey.public_key
 
     @property
-    def pubkey(self):
+    def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    async def connect(self):
+    async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         return await asyncio.open_connection(
             host=self.remote.address.ip, port=self.remote.address.tcp_port)
 
-    def derive_secrets(self, initiator_nonce, responder_nonce,
-                       remote_ephemeral_pubkey, auth_init_ciphertext, auth_ack_ciphertext):
+    def derive_secrets(self,
+                       initiator_nonce: bytes,
+                       responder_nonce: bytes,
+                       remote_ephemeral_pubkey: datatypes.PublicKey,
+                       auth_init_ciphertext: bytes,
+                       auth_ack_ciphertext: bytes
+                       ) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256]:
         """Derive base secrets from ephemeral key agreement."""
         # ecdhe-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
         ecdhe_shared_secret = ecies.ecdh_agree(
@@ -123,10 +136,10 @@ class HandshakeBase:
 class HandshakeInitiator(HandshakeBase):
     _is_initiator = True
 
-    def encrypt_auth_message(self, auth_message):
+    def encrypt_auth_message(self, auth_message: bytes) -> bytes:
         return ecies.encrypt(auth_message, self.remote.pubkey)
 
-    def create_auth_message(self, nonce):
+    def create_auth_message(self, nonce: bytes) -> bytes:
         ecdh_shared_secret = ecies.ecdh_agree(self.privkey, self.remote.pubkey)
         secret_xor_nonce = sxor(ecdh_shared_secret, nonce)
 
@@ -142,7 +155,7 @@ class HandshakeInitiator(HandshakeBase):
             b'\x00'
         )
 
-    def decode_auth_ack_message(self, ciphertext):
+    def decode_auth_ack_message(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
             raise ValueError("Auth ack msg too short: {}".format(len(ciphertext)))
         elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
@@ -154,9 +167,8 @@ class HandshakeInitiator(HandshakeBase):
 
 
 class HandshakeResponder(HandshakeBase):
-    _is_initiator = False
 
-    def create_auth_ack_message(self, nonce):
+    def create_auth_ack_message(self, nonce: bytes) -> bytes:
         if self.got_eip8_auth:
             data = rlp.encode(
                 (self.ephemeral_pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION),
@@ -170,10 +182,10 @@ class HandshakeResponder(HandshakeBase):
             msg = self.ephemeral_pubkey.to_bytes() + nonce + token_flag
         return msg
 
-    def encrypt_auth_ack_message(self, ack_message):
+    def encrypt_auth_ack_message(self, ack_message: bytes) -> bytes:
         if self.got_eip8_auth:
             # The EIP-8 version has an authenticated length prefix.
-            prefix = struct.pack('>H', len(ack_message) + ecies.encrypt_overhead_length)
+            prefix = struct.pack('>H', len(ack_message) + ENCRYPT_OVERHEAD_LENGTH)
             suffix = ecies.encrypt(
                 ack_message, self.remote.pubkey, shared_mac_data=prefix)
             auth_ack = prefix + suffix
@@ -181,7 +193,7 @@ class HandshakeResponder(HandshakeBase):
             auth_ack = ecies.encrypt(ack_message, self.remote.pubkey)
         return auth_ack
 
-    def decode_authentication(self, ciphertext):
+    def decode_authentication(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         """Decrypts and decodes the auth_init message.
 
         Returns the initiator's ephemeral pubkey and nonce.
@@ -221,7 +233,8 @@ eip8_auth_sedes = sedes.List(
     ], strict=False)
 
 
-def decode_ack_plain(ciphertext, privkey):
+def decode_ack_plain(
+        ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[datatypes.PublicKey, bytes, int]:
     """Decrypts and decodes a legacy pre-EIP-8 auth ack message.
 
     Returns the remote's ephemeral pubkey, nonce and protocol version.
@@ -234,7 +247,8 @@ def decode_ack_plain(ciphertext, privkey):
     return eph_pubkey, nonce, SUPPORTED_RLPX_VERSION
 
 
-def decode_ack_eip8(ciphertext, privkey):
+def decode_ack_eip8(
+        ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[datatypes.PublicKey, bytes, int]:
     """Decrypts and decodes a EIP-8 auth ack message.
 
     Returns the remote's ephemeral pubkey, nonce and protocol version.
@@ -248,7 +262,8 @@ def decode_ack_eip8(ciphertext, privkey):
     return keys.PublicKey(pubkey_bytes), nonce, version
 
 
-def decode_auth_plain(ciphertext, privkey):
+def decode_auth_plain(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[
+        datatypes.Signature, datatypes.PublicKey, bytes, int]:
     """Decode legacy pre-EIP-8 auth message format"""
     message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_MSG_LEN:
@@ -261,7 +276,8 @@ def decode_auth_plain(ciphertext, privkey):
     return signature, pubkey, nonce, SUPPORTED_RLPX_VERSION
 
 
-def decode_auth_eip8(ciphertext, privkey):
+def decode_auth_eip8(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[
+        datatypes.Signature, datatypes.PublicKey, bytes, int]:
     """Decode EIP-8 auth message format"""
     # The length of the actual msg is stored in plaintext on the first two bytes.
     encoded_size = ciphertext[:2]
