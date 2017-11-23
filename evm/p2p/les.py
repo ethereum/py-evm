@@ -1,3 +1,5 @@
+from typing import List
+
 import rlp
 from rlp import sedes
 
@@ -16,6 +18,7 @@ from evm.p2p.constants import (
 from evm.p2p.protocol import (
     Command,
     Protocol,
+    _DecodedMsgType,
 )
 
 
@@ -158,13 +161,13 @@ class LESProtocol(Protocol):
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: {}".format(resp))
 
-    def process_handshake(self, decoded_msg):
+    def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
         # TODO: Possibly disconnect if any of
         # 1. remote doesn't serve headers
         # 2. genesis hash does not match
         pass
 
-    def send_get_block_bodies(self, block_hashes, request_id):
+    def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int) -> None:
         if len(block_hashes) > MAX_BODIES_FETCH:
             raise ValueError(
                 "Cannot ask for more than {} blocks in a single request".format(
@@ -176,7 +179,9 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_block_headers(self, block_number, max_headers, request_id, reverse=True):
+    def send_get_block_headers(self, block_number: int, max_headers: int, request_id: int,
+                               reverse: bool = True
+                               ) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from block_number if

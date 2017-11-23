@@ -8,6 +8,16 @@ import struct
 import time
 import urllib
 from functools import total_ordering
+from typing import (  # noqa: F401
+    AnyStr,
+    Callable,
+    Dict,
+    List,
+    Set,
+    Sized,
+    Tuple,
+    TYPE_CHECKING,
+)
 
 from eth_utils import (
     decode_hex,
@@ -15,10 +25,19 @@ from eth_utils import (
     force_bytes,
 )
 
-from eth_keys import keys
+from eth_keys import (
+    datatypes,
+    keys,
+)
 
 from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
+
+
+# Workaround for import cycles caused by type annotations:
+# http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
+if TYPE_CHECKING:
+    from evm.p2p.discovery import DiscoveryProtocol  # noqa: F401
 
 
 k_b = 8  # 8 bits per hop
@@ -47,7 +66,7 @@ class AlreadyWaiting(Exception):
 
 class Address:
 
-    def __init__(self, ip, udp_port, tcp_port=0):
+    def __init__(self, ip: str, udp_port: int, tcp_port: int = 0) -> None:
         tcp_port = tcp_port or udp_port
         self.udp_port = udp_port
         self.tcp_port = tcp_port
@@ -67,25 +86,23 @@ class Address:
         return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
 
     @classmethod
-    def from_endpoint(cls, ip, udp_port, tcp_port='\x00\x00'):
-        udp_port = big_endian_to_int(udp_port)
-        tcp_port = big_endian_to_int(tcp_port)
-        return cls(ip, udp_port, tcp_port)
+    def from_endpoint(cls, ip: str, udp_port: str, tcp_port: str = '\x00\x00'):
+        return cls(ip, big_endian_to_int(udp_port), big_endian_to_int(tcp_port))
 
 
 @total_ordering
 class Node:
 
-    def __init__(self, pubkey, address):
+    def __init__(self, pubkey: datatypes.PublicKey, address: Address) -> None:
         self.pubkey = pubkey
         self.address = address
         self.id = big_endian_to_int(keccak(pubkey.to_bytes()))
 
     @classmethod
-    def from_uri(cls, uri):
+    def from_uri(cls, uri: bytes) -> 'Node':
         ip, port, pubkey_bytes = host_port_pubkey_from_uri(uri)
         pubkey = keys.PublicKey(pubkey_bytes)
-        return cls(pubkey, Address(ip.decode(), int(port)))
+        return cls(pubkey, Address(ip.decode(), port))
 
     def __repr__(self):
         return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
@@ -111,7 +128,7 @@ class Node:
 
 
 @total_ordering
-class KBucket:
+class KBucket(Sized):
     """A bucket of nodes whose IDs fall between the bucket's start and end.
 
     The bucket is kept sorted by time last seen—least-recently seen node at the head,
@@ -119,24 +136,24 @@ class KBucket:
     """
     k = k_bucket_size
 
-    def __init__(self, start, end):
+    def __init__(self, start: int, end: int) -> None:
         self.start = start
         self.end = end
-        self.nodes = []
-        self.replacement_cache = []
+        self.nodes = []  # type: List[Node]
+        self.replacement_cache = []  # type: List[Node]
         self.last_updated = time.time()
 
     @property
-    def midpoint(self):
+    def midpoint(self) -> int:
         return self.start + (self.end - self.start) // 2
 
-    def distance_to(self, id):
+    def distance_to(self, id) -> int:
         return self.midpoint ^ id
 
-    def nodes_by_distance_to(self, id):
+    def nodes_by_distance_to(self, id) -> List[Node]:
         return sorted(self.nodes, key=operator.methodcaller('distance_to', id))
 
-    def split(self):
+    def split(self) -> Tuple['KBucket', 'KBucket']:
         """Split at the median id"""
         splitid = self.midpoint
         lower = KBucket(self.start, splitid)
@@ -149,19 +166,19 @@ class KBucket:
             bucket.replacement_cache.append(node)
         return lower, upper
 
-    def remove_node(self, node):
-        if node not in self.nodes:
+    def remove_node(self, node: Node) -> None:
+        if node not in self:
             return
         self.nodes.remove(node)
 
-    def in_range(self, node):
+    def in_range(self, node: Node) -> bool:
         return self.start <= node.id <= self.end
 
     @property
-    def is_full(self):
+    def is_full(self) -> bool:
         return len(self) == self.k
 
-    def add(self, node):
+    def add(self, node: Node) -> Node:
         """Try to add the given node to this bucket.
 
         If the node is already present, it is moved to the tail of the list, and we return None.
@@ -182,19 +199,20 @@ class KBucket:
         else:
             self.replacement_cache.append(node)
             return self.head
+        return None
 
     @property
-    def head(self):
+    def head(self) -> Node:
         """Least recently seen"""
         return self.nodes[0]
 
-    def __contains__(self, node):
+    def __contains__(self, node: Node) -> bool:
         return node in self.nodes
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.nodes)
 
-    def __lt__(self, other):
+    def __lt__(self, other: 'KBucket') -> bool:
         if not isinstance(other, self.__class__):
             raise TypeError("Cannot compare KBucket with type {}.".format(other.__class__))
         return self.end < other.start
@@ -202,29 +220,29 @@ class KBucket:
 
 class RoutingTable:
 
-    def __init__(self, node):
+    def __init__(self, node: Node) -> None:
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
-    def split_bucket(self, index):
+    def split_bucket(self, index: int) -> None:
         bucket = self.buckets[index]
         a, b = bucket.split()
         self.buckets[index] = a
         self.buckets.insert(index + 1, b)
 
     @property
-    def idle_buckets(self):
+    def idle_buckets(self) -> List[KBucket]:
         idle_cutoff_time = time.time() - k_idle_bucket_refresh_interval
         return [b for b in self.buckets if b.last_updated < idle_cutoff_time]
 
     @property
-    def not_full_buckets(self):
+    def not_full_buckets(self) -> List[KBucket]:
         return [b for b in self.buckets if not b.is_full]
 
-    def remove_node(self, node):
+    def remove_node(self, node: Node) -> None:
         binary_get_bucket_for_node(self.buckets, node).remove_node(node)
 
-    def add_node(self, node):
+    def add_node(self, node: Node) -> Node:
         if node == self.this_node:
             raise ValueError("Cannot add this_node to routing table")
         bucket = binary_get_bucket_for_node(self.buckets, node)
@@ -240,16 +258,16 @@ class RoutingTable:
             return eviction_candidate
         return None  # successfully added to not full bucket
 
-    def get_bucket_for_node(self, node):
+    def get_bucket_for_node(self, node: Node) -> KBucket:
         return binary_get_bucket_for_node(self.buckets, node)
 
-    def buckets_by_distance_to(self, id):
+    def buckets_by_distance_to(self, id: int) -> List[KBucket]:
         return sorted(self.buckets, key=operator.methodcaller('distance_to', id))
 
-    def __contains__(self, node):
+    def __contains__(self, node: Node) -> bool:
         return node in self.get_bucket_for_node(node)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return sum(len(b) for b in self.buckets)
 
     def __iter__(self):
@@ -257,7 +275,7 @@ class RoutingTable:
             for n in b.nodes:
                 yield n
 
-    def neighbours(self, node_id, k=k_bucket_size):
+    def neighbours(self, node_id: int, k: int = k_bucket_size) -> List[Node]:
         """Return up to k neighbours of the given node."""
         nodes = []
         # Sorting by bucket.midpoint does not work in edge cases, so build a short list of k * 2
@@ -271,7 +289,7 @@ class RoutingTable:
         return sort_by_distance(nodes, node_id)[:k]
 
 
-def binary_get_bucket_for_node(buckets, node):
+def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
     """Given a list of ordered buckets, returns the bucket for a given node."""
     bucket_ends = [bucket.end for bucket in buckets]
     bucket_position = bisect.bisect_left(bucket_ends, node.id)
@@ -287,15 +305,15 @@ def binary_get_bucket_for_node(buckets, node):
 class KademliaProtocol:
     logger = logging.getLogger("evm.p2p.discovery.KademliaProtocol")
 
-    def __init__(self, node, wire):
+    def __init__(self, node: Node, wire: 'DiscoveryProtocol') -> None:
         self.this_node = node
         self.wire = wire
         self.routing = RoutingTable(node)
-        self.pong_callbacks = {}
-        self.ping_callbacks = {}
-        self.neighbours_callbacks = {}
+        self.pong_callbacks = {}  # type: Dict[bytes, Callable[[], None]]
+        self.ping_callbacks = {}  # type: Dict[Node, Callable[[], None]]
+        self.neighbours_callbacks = {}  # type: Dict[Node, Callable[[List[Node]], None]]
 
-    def recv_neighbours(self, remote, neighbours):
+    def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
         """Process a neighbours response.
 
         Neighbours responses should only be received as a reply to a find_node, and that is only
@@ -311,7 +329,7 @@ class KademliaProtocol:
             self.logger.debug(
                 'unexpected neighbours from {}, probably came too late'.format(remote))
 
-    def recv_pong(self, remote, token):
+    def recv_pong(self, remote: Node, token: AnyStr) -> None:
         """Process a pong packet.
 
         Pong packets should only be received as a response to a ping, so the actual processing is
@@ -328,7 +346,7 @@ class KademliaProtocol:
                 'unexpected pong from {} with pingid {}, probably came too late'.format(
                     remote, encode_hex(pingid)))
 
-    def recv_ping(self, remote, hash_):
+    def recv_ping(self, remote: Node, hash_: AnyStr) -> None:
         """Process a received ping packet.
 
         A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
@@ -344,7 +362,7 @@ class KademliaProtocol:
         if callback is not None:
             callback()
 
-    def recv_find_node(self, remote, targetid):
+    def recv_find_node(self, remote: Node, targetid: int) -> None:
         if remote not in self.routing:
             # FIXME: This is not correct; a node we've bonded before may have become unavailable
             # and thus removed from self.routing, but once it's back online we should accept
@@ -355,7 +373,7 @@ class KademliaProtocol:
         found = self.routing.neighbours(targetid)
         self.wire.send_neighbours(remote, found)
 
-    def update_routing_table(self, node):
+    def update_routing_table(self, node: Node) -> None:
         """Update the routing table entry for the given node."""
         eviction_candidate = self.routing.add_node(node)
         if eviction_candidate:
@@ -365,7 +383,7 @@ class KademliaProtocol:
             # replacement cache.
             asyncio.ensure_future(self.bond(eviction_candidate))
 
-    async def wait_ping(self, remote):
+    async def wait_ping(self, remote: Node) -> bool:
         """Wait for a ping from the given remote.
 
         This coroutine adds a callback to ping_callbacks and yields control until that callback is
@@ -388,7 +406,7 @@ class KademliaProtocol:
         del self.ping_callbacks[remote]
         return got_ping
 
-    async def wait_pong(self, pingid):
+    async def wait_pong(self, pingid: bytes) -> bool:
         """Wait for a pong with the given pingid.
 
         This coroutine adds a callback to pong_callbacks and yields control until that callback is
@@ -412,7 +430,7 @@ class KademliaProtocol:
         del self.pong_callbacks[pingid]
         return got_pong
 
-    async def wait_neighbours(self, remote):
+    async def wait_neighbours(self, remote: Node) -> List[Node]:
         """Wait for a neihgbours packet from the given node.
 
         Returns the list of neighbours received.
@@ -422,7 +440,7 @@ class KademliaProtocol:
                 "There's another coroutine waiting for a neighbours packet from {}".format(remote))
 
         event = asyncio.Event()
-        neighbours = []
+        neighbours = []  # type: List[Node]
 
         def process(response):
             neighbours.extend(response)
@@ -443,14 +461,14 @@ class KademliaProtocol:
         del self.neighbours_callbacks[remote]
         return [n for n in neighbours if n != self.this_node]
 
-    def ping(self, node):
+    def ping(self, node: Node) -> bytes:
         if node == self.this_node:
             raise ValueError("Cannot ping self")
         token = self.wire.send_ping(node)
         pingid = self._mkpingid(token, node)
         return pingid
 
-    async def bond(self, node):
+    async def bond(self, node: Node) -> bool:
         """Bond with the given node.
 
         Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
@@ -479,21 +497,21 @@ class KademliaProtocol:
         self.update_routing_table(node)
         return True
 
-    async def bootstrap(self, bootstrap_nodes):
+    async def bootstrap(self, bootstrap_nodes: List[Node]) -> None:
         bonded = await asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
             return
         await self.lookup(self.this_node.id)
 
-    async def lookup(self, node_id):
+    async def lookup(self, node_id: int) -> List[Node]:
         """Lookup performs a network search for nodes close to the given target.
 
         It approaches the target by querying nodes that are closer to it on each iteration.  The
         given target does not need to be an actual node identifier.
         """
-        nodes_asked = set()
-        nodes_seen = set()
+        nodes_asked = set()  # type: Set[Node]
+        nodes_seen = set()   # type: Set[Node]
 
         async def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
@@ -539,7 +557,7 @@ class KademliaProtocol:
             rid = random.randint(bucket.start, bucket.end)
             asyncio.ensure_future(self.lookup(rid))
 
-    def _mkpingid(self, token, node):
+    def _mkpingid(self, token: AnyStr, node: Node) -> bytes:
         pid = force_bytes(token) + node.pubkey.to_bytes()
         return pid
 
@@ -554,7 +572,7 @@ class KademliaProtocol:
                 asyncio.ensure_future(self.bond(node))
 
 
-def _compute_shared_prefix_bits(nodes):
+def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
     """Count the number of prefix bits shared by all nodes."""
     def to_binary(x):  # left padded bit representation
         b = bin(x)[2:]
@@ -572,7 +590,7 @@ def _compute_shared_prefix_bits(nodes):
     raise AssertionError("Unable to calculate number of shared prefix bits")
 
 
-def sort_by_distance(nodes, target_id):
+def sort_by_distance(nodes: List[Node], target_id: int) -> List[Node]:
     return sorted(nodes, key=operator.methodcaller('distance_to', target_id))
 
 

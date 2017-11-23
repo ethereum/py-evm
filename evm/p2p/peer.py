@@ -1,9 +1,10 @@
 import asyncio
 import logging
 import operator
+import sha3
 import struct
 import traceback
-from typing import (List, Type)  # noqa: F401
+from typing import (Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
 
 from cytoolz import reduceby
 
@@ -18,11 +19,17 @@ from eth_utils import (
     decode_hex,
 )
 
-from eth_keys import keys
+from eth_keys import (
+    datatypes,
+    keys,
+)
 
 from evm.constants import GENESIS_BLOCK_NUMBER
+from evm.db.chain import BaseChainDB
+from evm.rlp.headers import BlockHeader
 from evm.p2p import auth
 from evm.p2p import ecies
+from evm.p2p.kademlia import Address, Node
 from evm.p2p import protocol  # noqa: F401
 from evm.p2p.constants import (
     CONN_IDLE_TIMEOUT,
@@ -59,7 +66,12 @@ from evm.p2p.p2p_proto import (
 )
 
 
-async def handshake(remote, privkey, peer_class, chaindb, network_id):
+async def handshake(remote: Node,
+                    privkey: datatypes.PrivateKey,
+                    peer_class: 'Type[BasePeer]',
+                    chaindb: BaseChainDB,
+                    network_id: int
+                    ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
 
     Return an instance of the given peer_class (must be a subclass of BasePeer) connected to that
@@ -109,10 +121,20 @@ class BasePeer:
     # FIXME: Must be configurable.
     listen_port = 30303
 
-    def __init__(self, remote, privkey, reader, writer, aes_secret, mac_secret,
-                 egress_mac, ingress_mac, chaindb, network_id):
+    def __init__(self,
+                 remote: Node,
+                 privkey: datatypes.PrivateKey,
+                 reader: asyncio.StreamReader,
+                 writer: asyncio.StreamWriter,
+                 aes_secret: bytes,
+                 mac_secret: bytes,
+                 egress_mac: sha3.keccak_256,
+                 ingress_mac: sha3.keccak_256,
+                 chaindb: BaseChainDB,
+                 network_id: int
+                 ) -> None:
         self._finished = asyncio.Event()
-        self._pending_replies = {}
+        self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -122,7 +144,7 @@ class BasePeer:
         self.network_id = network_id
         # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
-        self.enabled_sub_protocols = []
+        self.enabled_sub_protocols = []  # type: List[protocol.Protocol]
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -135,7 +157,7 @@ class BasePeer:
         self.mac_enc = mac_cipher.encryptor().update
 
     @property
-    def head_info(self):
+    def head_info(self) -> 'HeadInfo':
         genesis_hash = self.chaindb.lookup_block_hash(GENESIS_BLOCK_NUMBER)
         genesis_header = self.chaindb.get_block_header_by_hash(genesis_hash)
         head = self.chaindb.get_canonical_head()
@@ -146,7 +168,7 @@ class BasePeer:
             genesis_hash=genesis_header.hash,
         )
 
-    def handle_msg(self, cmd, msg):
+    def handle_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         """Peer-specific handling of incoming messages.
 
         This method is called once the sub-protocol's process() method is done, so that custom
@@ -155,7 +177,7 @@ class BasePeer:
         pass
 
     @property
-    def capabilities(self):
+    def capabilities(self) -> List[Tuple[bytes, int]]:
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
     async def wait_for_reply(self, request_id):
@@ -171,7 +193,7 @@ class BasePeer:
         await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
         return reply
 
-    def get_protocol_for(self, cmd_id):
+    def get_protocol_for(self, cmd_id: int) -> protocol.Protocol:
         """Return the protocol to which the cmd_id belongs.
 
         Every sub-protocol enabled for a peer defines a cmd ID offset, which is agreed on by both
@@ -186,7 +208,7 @@ class BasePeer:
                 return proto
         return None
 
-    async def read(self, n):
+    async def read(self, n: int) -> bytes:
         self.logger.debug("Waiting for {} bytes from {}".format(n, self.remote))
         try:
             data = await asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
@@ -195,7 +217,7 @@ class BasePeer:
             raise PeerConnectionLost()
         return data
 
-    async def start(self, finished_callback=None):
+    async def start(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
         try:
             await self.read_loop()
         except Exception as e:
@@ -227,7 +249,7 @@ class BasePeer:
                 return
             self.process_msg(msg)
 
-    async def read_msg(self):
+    async def read_msg(self) -> bytes:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
         header = self.decrypt_header(header_data)
         frame_size = self.get_frame_size(header)
@@ -237,7 +259,7 @@ class BasePeer:
         frame_data = await self.read(read_size + MAC_LEN)
         return self.decrypt_body(frame_data, frame_size)
 
-    def process_msg(self, msg):
+    def process_msg(self, msg: bytes) -> protocol._DecodedMsgType:
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
@@ -246,7 +268,7 @@ class BasePeer:
                 "No protocol found for cmd_id {}".format(cmd_id))
         decoded = proto.process(cmd_id, msg)
         if decoded is None:
-            return
+            return None
         # Check if this is a reply we're waiting for and, if so, call the callback for this
         # request_id.
         request_id = decoded.get('request_id')
@@ -255,7 +277,7 @@ class BasePeer:
             callback(decoded)
         return decoded
 
-    def process_p2p_handshake(self, decoded_msg):
+    def process_p2p_handshake(self, decoded_msg: protocol._DecodedMsgType) -> None:
         self.match_protocols(decoded_msg['capabilities'])
         if len(self.enabled_sub_protocols) == 0:
             self.disconnect(DisconnectReason.useless_peer)
@@ -267,7 +289,7 @@ class BasePeer:
                     self.remote,
                     [(p.name, p.version) for p in self.enabled_sub_protocols]))
 
-    def encrypt(self, header, frame):
+    def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
             raise ValueError("Unexpected header length: {}".format(len(header)))
 
@@ -286,7 +308,7 @@ class BasePeer:
 
         return header_ciphertext + header_mac + frame_ciphertext + frame_mac
 
-    def decrypt_header(self, data):
+    def decrypt_header(self, data: bytes) -> bytes:
         if len(data) != HEADER_LEN + MAC_LEN:
             raise ValueError("Unexpected header length: {}".format(len(data)))
 
@@ -300,7 +322,7 @@ class BasePeer:
             raise AuthenticationError('Invalid header mac')
         return self.aes_dec.update(header_ciphertext)
 
-    def decrypt_body(self, data, body_size):
+    def decrypt_body(self, data: bytes, body_size: int) -> bytes:
         read_size = roundup_16(body_size)
         if len(data) < read_size + MAC_LEN:
             raise ValueError('Insufficient body length; Got {}, wanted {}'.format(
@@ -317,19 +339,19 @@ class BasePeer:
             raise AuthenticationError('Invalid frame mac')
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
-    def get_frame_size(self, header):
+    def get_frame_size(self, header: bytes) -> int:
         # The frame size is encoded in the header as a 3-byte int, so before we unpack we need
         # to prefix it with an extra byte.
         encoded_size = b'\x00' + header[:3]
         (size,) = struct.unpack(b'>I', encoded_size)
         return size
 
-    def send(self, header, body):
+    def send(self, header: bytes, body: bytes) -> None:
         cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
         self.logger.debug("Sending msg with cmd_id: {}".format(cmd_id))
         self.writer.write(self.encrypt(header, body))
 
-    def disconnect(self, reason):
+    def disconnect(self, reason: DisconnectReason) -> None:
         """Send a disconnect msg to the remote node and stop this Peer.
 
         :param reason: An item from the DisconnectReason enum.
@@ -341,7 +363,7 @@ class BasePeer:
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 
-    def match_protocols(self, remote_capabilities):
+    def match_protocols(self, remote_capabilities: List[Tuple[bytes, int]]):
         """Match the sub-protocols supported by this Peer with the given remote capabilities.
 
         Every sub-protocol and remote-capability are defined by a protocol name and version. This
@@ -372,16 +394,19 @@ class LESPeer(BasePeer):
     _les_proto = None
     _supported_sub_protocols = [LESProtocol]
 
-    def __init__(self, remote, privkey, reader, writer, aes_secret, mac_secret,
-                 egress_mac, ingress_mac, chaindb, network_id):
+    def __init__(self, remote: Node, privkey: datatypes.PrivateKey, reader: asyncio.StreamReader,
+                 writer: asyncio.StreamWriter, aes_secret: bytes, mac_secret: bytes,
+                 egress_mac: sha3.keccak_256, ingress_mac: sha3.keccak_256, chaindb: BaseChainDB,
+                 network_id: int
+                 ) -> None:
         super(LESPeer, self).__init__(
             remote, privkey, reader, writer, aes_secret, mac_secret,
             egress_mac, ingress_mac, chaindb, network_id)
         self._header_sync_lock = asyncio.Lock()
         # The block number for the last header we fetched from the remote.
-        self.synced_block_height = None
+        self.synced_block_height = None  # type: int
 
-    def handle_msg(self, cmd, msg):
+    def handle_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, Announce):
             self.handle_announce(msg)
         elif isinstance(cmd, Status):
@@ -389,14 +414,14 @@ class LESPeer(BasePeer):
         else:
             self.logger.debug("No custom LESPeer handler for %s", cmd)
 
-    def handle_announce(self, msg):
+    def handle_announce(self, msg: protocol._DecodedMsgType) -> None:
         self.logger.info(
             "New LES/Announce by %s; head_number==%s, reorg_depth==%s",
             self, msg['head_number'], msg['reorg_depth'])
         asyncio.ensure_future(
             self.sync(msg['head_hash'], msg['head_number'], msg['reorg_depth']))
 
-    def handle_status(self, msg):
+    def handle_status(self, msg: protocol._DecodedMsgType) -> None:
         self.logger.info(
             "New LES/Status by %s; head_number==%s", self, msg['headNum'])
         asyncio.ensure_future(self.sync(msg['headHash'], msg['headNum']))
@@ -419,7 +444,7 @@ class LESPeer(BasePeer):
                 self.logger.error(
                     "Unexpected error when syncing headers: {}".format(traceback.format_exc()))
 
-    async def _sync(self, head_number, reorg_depth):
+    async def _sync(self, head_number: int, reorg_depth: int) -> None:
         """Ensure our chaindb contains all block headers until the given number.
 
         Callers must aquire self._header_sync_lock in order to serialize processing of announce
@@ -456,7 +481,7 @@ class LESPeer(BasePeer):
                 self.synced_block_height = header.block_number
             self.logger.info("synced headers up to #%s", self.synced_block_height)
 
-    async def _fetch_headers_starting_at(self, start_block):
+    async def _fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
 
         Returns a tuple containing those headers in ascending order of block number.
@@ -521,9 +546,7 @@ if __name__ == "__main__":
     )
     from evm.db.backends.memory import MemoryDB
     from evm.db.backends.level import LevelDB
-    from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
-    from evm.p2p import kademlia
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
@@ -536,9 +559,9 @@ if __name__ == "__main__":
     parser.add_argument('-mainnet', action="store_true")
     args = parser.parse_args()
 
-    remote = kademlia.Node(
+    remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
-        kademlia.Address('127.0.0.1', 30303, 30303))
+        Address('127.0.0.1', 30303, 30303))
 
     if args.db is not None:
         chaindb = BaseChainDB(LevelDB(args.db))
