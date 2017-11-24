@@ -208,8 +208,7 @@ def _apply_frontier_message(vm, message):
         )
 
     with vm.state_db() as state_db:
-        if not state_db.account_exists(message.storage_address):
-            state_db.touch_account(message.storage_address)
+        state_db.touch_account(message.storage_address)
 
     computation = vm.apply_computation(message)
 

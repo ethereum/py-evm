@@ -197,8 +197,8 @@ class State:
             return True
 
     def touch_account(self, address):
-        account = self._get_account(address)
-        self._set_account(address, account)
+        if not self.account_exists(address):
+            self._set_account(address, Account())
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
@@ -208,8 +208,9 @@ class State:
     # Internal
     #
     def _get_account(self, address):
-        if address in self._trie:
-            account = rlp.decode(self._trie[address], sedes=Account)
+        rlp_account = self._trie[address]
+        if rlp_account:
+            account = rlp.decode(rlp_account, sedes=Account)
             account._mutable = True
         else:
             account = Account()
