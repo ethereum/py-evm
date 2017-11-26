@@ -31,14 +31,6 @@ from evm.p2p import auth
 from evm.p2p import ecies
 from evm.p2p.kademlia import Address, Node
 from evm.p2p import protocol  # noqa: F401
-from evm.p2p.constants import (
-    CONN_IDLE_TIMEOUT,
-    HANDSHAKE_TIMEOUT,
-    HEADER_LEN,
-    MAC_LEN,
-    MAX_HEADERS_FETCH,
-    REPLY_TIMEOUT,
-)
 from evm.p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
@@ -65,6 +57,15 @@ from evm.p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
     P2PProtocol,
+)
+
+from .constants import (
+    CONN_IDLE_TIMEOUT,
+    HANDSHAKE_TIMEOUT,
+    HEADER_LEN,
+    MAC_LEN,
+    MAX_HEADERS_FETCH,
+    REPLY_TIMEOUT,
 )
 
 
@@ -468,7 +469,6 @@ if __name__ == "__main__":
     import argparse
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
-
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.

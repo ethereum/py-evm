@@ -17,7 +17,11 @@ from evm.utils.keccak import (
 )
 from evm.p2p import ecies
 from evm.p2p import kademlia
-from evm.p2p.constants import (
+from evm.p2p.utils import (
+    sxor,
+)
+
+from .constants import (
     AUTH_ACK_LEN,
     AUTH_MSG_LEN,
     ENCRYPTED_AUTH_ACK_LEN,
@@ -27,9 +31,6 @@ from evm.p2p.constants import (
     PUBKEY_LEN,
     SIGNATURE_LEN,
     SUPPORTED_RLPX_VERSION,
-)
-from evm.p2p.utils import (
-    sxor,
 )
 
 

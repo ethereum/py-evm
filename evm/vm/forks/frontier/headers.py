@@ -4,18 +4,23 @@ from evm.validation import (
     validate_gt,
     validate_header_params_for_configuration,
 )
+
 from evm.constants import (
     GENESIS_GAS_LIMIT,
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
-    FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
+
 from evm.utils.headers import (
     compute_gas_limit,
 )
 from evm.rlp.headers import BlockHeader
+
+from .constants import (
+    FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF
+)
 
 
 def compute_frontier_difficulty(parent_header, timestamp):

@@ -1,8 +1,14 @@
 from eth_utils import decode_hex
 
 from evm import constants
-from evm.chains.chain import Chain
+from .constants import (
+    BYZANTIUM_MAINNET_BLOCK,
+    EIP150_MAINNET_BLOCK,
+    HOMESTEAD_MAINNET_BLOCK,
+    SPURIOUS_DRAGON_MAINNET_BLOCK,
+)
 
+from evm.chains.chain import Chain
 from evm.rlp.headers import BlockHeader
 from evm.vm.forks import (
     EIP150VM,
@@ -15,10 +21,10 @@ from evm.vm.forks import (
 
 MAINNET_VM_CONFIGURATION = (
     (0, FrontierVM),
-    (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
-    (constants.EIP150_MAINNET_BLOCK, EIP150VM),
-    (constants.SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
-    (constants.BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
+    (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+    (EIP150_MAINNET_BLOCK, EIP150VM),
+    (SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
+    (BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
 )
 
 

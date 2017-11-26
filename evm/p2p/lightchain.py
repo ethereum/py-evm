@@ -98,7 +98,6 @@ class PeerPool:
     async def connect(self, remote: kademlia.Node) -> LESPeer:
         """
         Connect to the given remote and return a Peer instance when successful.
-
         Returns None if the remote is unreachable, times out or is useless.
         """
         if remote in self.connected_nodes:
@@ -142,7 +141,6 @@ class PeerPool:
 
     def _peer_finished(self, peer: LESPeer) -> None:
         """Remove the given peer from our list of connected nodes.
-
         This is passed as a callback to be called when a peer finishes.
         """
         if peer.remote in self.connected_nodes:

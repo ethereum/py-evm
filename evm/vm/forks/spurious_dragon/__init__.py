@@ -1,4 +1,4 @@
-from evm import constants
+from evm.constants import GAS_CODEDEPOSIT
 from evm.exceptions import (
     OutOfGas,
 )
@@ -12,6 +12,7 @@ from evm.utils.keccak import (
 from ..frontier import _execute_frontier_transaction
 from ..homestead import HomesteadVM
 
+from .constants import EIP170_CODE_SIZE_LIMIT
 from .blocks import SpuriousDragonBlock
 from .opcodes import SPURIOUS_DRAGON_OPCODES
 from .utils import collect_touched_accounts
@@ -52,17 +53,17 @@ def _apply_spurious_dragon_create_message(vm, message):
     else:
         contract_code = computation.output
 
-        if contract_code and len(contract_code) >= constants.EIP170_CODE_SIZE_LIMIT:
+        if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
             computation._error = OutOfGas(
                 "Contract code size exceeds EIP170 limit of {0}.  Got code of "
                 "size: {1}".format(
-                    constants.EIP170_CODE_SIZE_LIMIT,
+                    EIP170_CODE_SIZE_LIMIT,
                     len(contract_code),
                 )
             )
             vm.revert(snapshot)
         elif contract_code:
-            contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
+            contract_code_gas_cost = len(contract_code) * GAS_CODEDEPOSIT
             try:
                 computation.gas_meter.consume_gas(
                     contract_code_gas_cost,

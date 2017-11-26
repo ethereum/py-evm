@@ -6,6 +6,9 @@ from evm.db import (
 
 
 from evm import constants
+from evm.chains.mainnet.constants import (
+    HOMESTEAD_MAINNET_BLOCK
+)
 from evm import Chain
 
 from evm.exceptions import (
@@ -24,18 +27,18 @@ def test_get_vm_class_for_block_number():
         name='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
-            (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+            (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
         ),
     )
     chain = chain_class(get_db_backend(), BlockHeader(1, 0, 100))
     assert chain.get_vm_class_for_block_number(
         constants.GENESIS_BLOCK_NUMBER,) == FrontierVM
     assert chain.get_vm_class_for_block_number(
-        constants.HOMESTEAD_MAINNET_BLOCK - 1) == FrontierVM
+        HOMESTEAD_MAINNET_BLOCK - 1) == FrontierVM
     assert chain.get_vm_class_for_block_number(
-        constants.HOMESTEAD_MAINNET_BLOCK) == HomesteadVM
+        HOMESTEAD_MAINNET_BLOCK) == HomesteadVM
     assert chain.get_vm_class_for_block_number(
-        constants.HOMESTEAD_MAINNET_BLOCK + 1) == HomesteadVM
+        HOMESTEAD_MAINNET_BLOCK + 1) == HomesteadVM
 
 
 def test_invalid_if_no_vm_configuration():

@@ -2,7 +2,8 @@ import copy
 
 from cytoolz import merge
 
-from evm import constants
+from evm.vm.forks.eip150 import constants
+from evm.constants import GAS_CREATE
 from evm import opcode_values
 from evm import mnemonics
 
@@ -47,7 +48,7 @@ UPDATED_OPCODES = {
     opcode_values.CREATE: system.CreateEIP150.configure(
         name='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
-        gas_cost=constants.GAS_CREATE,
+        gas_cost=GAS_CREATE,
     )(),
     opcode_values.CALL: call.CallEIP150.configure(
         name='opcode:CALL',

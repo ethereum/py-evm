@@ -1,4 +1,8 @@
 from evm import constants
+from evm.chains.mainnet.constants import (
+    DAO_FORK_BLOCK_NUMBER
+)
+
 from evm.exceptions import (
     OutOfGas,
 )
@@ -63,7 +67,7 @@ def _apply_homestead_create_message(vm, message):
 
 class MetaHomesteadVM(FrontierVM):
     support_dao_fork = True
-    dao_fork_block_number = constants.DAO_FORK_BLOCK_NUMBER
+    dao_fork_block_number = DAO_FORK_BLOCK_NUMBER
 
 
 HomesteadVM = MetaHomesteadVM.configure(
