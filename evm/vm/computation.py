@@ -97,6 +97,26 @@ class Computation(object):
         return self.msg.is_origin
 
     #
+    #
+    #
+    @property
+    def is_success(self):
+        """
+
+        """
+        return self.error is None
+
+    #
+    #
+    #
+    @property
+    def is_error(self):
+        """
+
+        """
+        return self.error is None
+
+    #
     # Execution
     #
     def prepare_child_message(self,
