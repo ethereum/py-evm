@@ -79,22 +79,22 @@ SLOWEST_TESTS = {
     ('stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity', 'Byzantium', 0),
     ('stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2', 'Byzantium', 0),
     ('stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert', 'Byzantium', 1),
-    ('stCallCreateCallCodeTest/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
+    ('stCallCreateCallCodeTest/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),  # noqa: E501
     ('stChangedEIP150/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
-    ('stCallCreateCallCodeTest/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),
-    ('stChangedEIP150/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),
-    ('stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth', 'Byzantium', 0),
+    ('stCallCreateCallCodeTest/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),  # noqa: E501
+    ('stChangedEIP150/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),  # noqa: E501
+    ('stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth', 'Byzantium', 0),  # noqa: E501
     ('stRevertTest/LoopCallsDepthThenRevert2.json', 'LoopCallsDepthThenRevert2', 'Byzantium', 0),
     ('stRevertTest/LoopCallsDepthThenRevert3.json', 'LoopCallsDepthThenRevert3', 'Byzantium', 0),
-    ('stDelegatecallTestHomestead/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),
+    ('stDelegatecallTestHomestead/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),  # noqa: E501
     ('stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert', 'Byzantium', 0),
-    ('stCallCreateCallCodeTest/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),
-    ('stStaticCall/static_Call50000bytesContract50_1.json', 'static_Call50000bytesContract50_1', 'Byzantium', 1),
+    ('stCallCreateCallCodeTest/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),  # noqa: E501
+    ('stStaticCall/static_Call50000bytesContract50_1.json', 'static_Call50000bytesContract50_1', 'Byzantium', 1),  # noqa: E501
     ('stStaticCall/static_Call1024PreCalls.json', 'static_Call1024PreCalls', 'Byzantium', 1),
-    ('stDelegatecallTestHomestead/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
+    ('stDelegatecallTestHomestead/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),  # noqa: E501
     ('stDelegatecallTestHomestead/Delegatecall1024.json', 'Delegatecall1024', 'Byzantium', 0),
     ('stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert', 'Byzantium', 1),
-    ('stStaticCall/static_Call50000bytesContract50_2.json', 'static_Call50000bytesContract50_2', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000bytesContract50_2.json', 'static_Call50000bytesContract50_2', 'Byzantium', 1),  # noqa: E501
     ('stStaticCall/static_Call1024PreCalls2.json', 'static_Call1024PreCalls2', 'Byzantium', 1),
     ('stRandom/randomStatetest636.json', 'randomStatetest636', 'Byzantium', 0),
     ('stStaticCall/static_Call1024PreCalls3.json', 'static_Call1024PreCalls3', 'Byzantium', 1),
@@ -102,10 +102,10 @@ SLOWEST_TESTS = {
     ('stRandom/randomStatetest458.json', 'randomStatetest458', 'Byzantium', 0),
     ('stRandom/randomStatetest150.json', 'randomStatetest150', 'Byzantium', 0),
     ('stRandom/randomStatetest639.json', 'randomStatetest639', 'Byzantium', 0),
-    ('stStaticCall/static_LoopCallsDepthThenRevert2.json', 'static_LoopCallsDepthThenRevert2', 'Byzantium', 0),
+    ('stStaticCall/static_LoopCallsDepthThenRevert2.json', 'static_LoopCallsDepthThenRevert2', 'Byzantium', 0),  # noqa: E501
     ('stRandom/randomStatetest154.json', 'randomStatetest154', 'Byzantium', 0),
-    ('stRecursiveCreate/recursiveCreateReturnValue.json', 'recursiveCreateReturnValue', 'Byzantium', 0),
-    ('stStaticCall/static_LoopCallsDepthThenRevert3.json', 'static_LoopCallsDepthThenRevert3', 'Byzantium', 0),
+    ('stRecursiveCreate/recursiveCreateReturnValue.json', 'recursiveCreateReturnValue', 'Byzantium', 0),  # noqa: E501
+    ('stStaticCall/static_LoopCallsDepthThenRevert3.json', 'static_LoopCallsDepthThenRevert3', 'Byzantium', 0),  # noqa: E501
     ('stSystemOperationsTest/ABAcalls1.json', 'ABAcalls1', 'Byzantium', 0),
     ('stSpecialTest/failed_tx_xcf416c53.json', 'failed_tx_xcf416c53', 'Byzantium', 0),
     ('stRandom/randomStatetest159.json', 'randomStatetest159', 'Byzantium', 0),
