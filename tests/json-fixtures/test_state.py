@@ -57,11 +57,79 @@ def expand_fixtures_forks(all_fixtures):
                 yield fixture_path, fixture_key, fixture_fork, post_state_index
 
 
+# These are the slowest 50 tests from the full statetest run.  This list should
+# be regenerated occasionally using `--durations 50`.
+SLOWEST_TESTS = {
+    ('stStaticCall/static_Call50000_sha256.json', 'static_Call50000_sha256', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_sha256.json', 'static_Call50000_sha256', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000.json', 'static_Call50000', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160', 'Byzantium', 1),
+    ('stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity', 'Byzantium', 1),
+    ('stStaticCall/static_Return50000_2.json', 'static_Return50000_2', 'Byzantium', 0),
+    ('stCallCreateCallCodeTest/Call1024PreCalls.json', 'Call1024PreCalls', 'Byzantium', 0),
+    ('stChangedEIP150/Call1024PreCalls.json', 'Call1024PreCalls', 'Byzantium', 0),
+    ('stDelegatecallTestHomestead/Call1024PreCalls.json', 'Call1024PreCalls', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000.json', 'static_Call50000', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec', 'Byzantium', 0),
+    ('stStaticCall/static_Call1024PreCalls2.json', 'static_Call1024PreCalls2', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2', 'Byzantium', 0),
+    ('stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert', 'Byzantium', 1),
+    ('stCallCreateCallCodeTest/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
+    ('stChangedEIP150/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
+    ('stCallCreateCallCodeTest/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),
+    ('stChangedEIP150/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow', 'Byzantium', 0),
+    ('stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth', 'Byzantium', 0),
+    ('stRevertTest/LoopCallsDepthThenRevert2.json', 'LoopCallsDepthThenRevert2', 'Byzantium', 0),
+    ('stRevertTest/LoopCallsDepthThenRevert3.json', 'LoopCallsDepthThenRevert3', 'Byzantium', 0),
+    ('stDelegatecallTestHomestead/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),
+    ('stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert', 'Byzantium', 0),
+    ('stCallCreateCallCodeTest/CallRecursiveBombPreCall.json', 'CallRecursiveBombPreCall', 'Byzantium', 0),
+    ('stStaticCall/static_Call50000bytesContract50_1.json', 'static_Call50000bytesContract50_1', 'Byzantium', 1),
+    ('stStaticCall/static_Call1024PreCalls.json', 'static_Call1024PreCalls', 'Byzantium', 1),
+    ('stDelegatecallTestHomestead/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow', 'Byzantium', 0),
+    ('stDelegatecallTestHomestead/Delegatecall1024.json', 'Delegatecall1024', 'Byzantium', 0),
+    ('stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert', 'Byzantium', 1),
+    ('stStaticCall/static_Call50000bytesContract50_2.json', 'static_Call50000bytesContract50_2', 'Byzantium', 1),
+    ('stStaticCall/static_Call1024PreCalls2.json', 'static_Call1024PreCalls2', 'Byzantium', 1),
+    ('stRandom/randomStatetest636.json', 'randomStatetest636', 'Byzantium', 0),
+    ('stStaticCall/static_Call1024PreCalls3.json', 'static_Call1024PreCalls3', 'Byzantium', 1),
+    ('stRandom/randomStatetest467.json', 'randomStatetest467', 'Byzantium', 0),
+    ('stRandom/randomStatetest458.json', 'randomStatetest458', 'Byzantium', 0),
+    ('stRandom/randomStatetest150.json', 'randomStatetest150', 'Byzantium', 0),
+    ('stRandom/randomStatetest639.json', 'randomStatetest639', 'Byzantium', 0),
+    ('stStaticCall/static_LoopCallsDepthThenRevert2.json', 'static_LoopCallsDepthThenRevert2', 'Byzantium', 0),
+    ('stRandom/randomStatetest154.json', 'randomStatetest154', 'Byzantium', 0),
+    ('stRecursiveCreate/recursiveCreateReturnValue.json', 'recursiveCreateReturnValue', 'Byzantium', 0),
+    ('stStaticCall/static_LoopCallsDepthThenRevert3.json', 'static_LoopCallsDepthThenRevert3', 'Byzantium', 0),
+    ('stSystemOperationsTest/ABAcalls1.json', 'ABAcalls1', 'Byzantium', 0),
+    ('stSpecialTest/failed_tx_xcf416c53.json', 'failed_tx_xcf416c53', 'Byzantium', 0),
+    ('stRandom/randomStatetest159.json', 'randomStatetest159', 'Byzantium', 0),
+    ('stRandom/randomStatetest554.json', 'randomStatetest554', 'Byzantium', 0),
+}
+
+
+def should_run_slow_tests():
+    if os.environ.get('TRAVIS_EVENT_TYPE') == 'cron':
+        return True
+    return False
+
+
 def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
+    fixture_id = (fixture_path, fixture_key, fixture_fork, fixture_index)
     if fixture_path.startswith('stTransactionTest/zeroSigTransa'):
         return pytest.mark.skip("EIP-86 not supported.")
+    elif fixture_id in SLOWEST_TESTS:
+        if should_run_slow_tests():
+            return
+        else:
+            return pytest.mark.skip("Skipping slow test")
     elif fixture_path.startswith('stQuadraticComplexityTest'):
-        return pytest.mark.skip("Quadratic complexity tests are SLOWWWWWW")
+        return pytest.mark.skip("Skipping slow test")
 
 
 def pytest_generate_tests(metafunc):
