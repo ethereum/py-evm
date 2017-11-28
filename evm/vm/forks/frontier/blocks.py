@@ -8,7 +8,7 @@ from eth_bloom import (
 )
 
 from evm.constants import (
-    EMPTY_UNCLE_HASH,
+    EMPTY_LIST_HASH,
     GAS_LIMIT_ADJUSTMENT_FACTOR,
     GAS_LIMIT_MAXIMUM,
     GAS_LIMIT_MINIMUM,
@@ -243,7 +243,7 @@ class FrontierBlock(BaseBlock):
         """
         Returns the block denoted by the given block header.
         """
-        if header.uncles_hash == EMPTY_UNCLE_HASH:
+        if header.uncles_hash == EMPTY_LIST_HASH:
             uncles = []
         else:
             uncles = chaindb.get_block_uncles(header.uncles_hash)

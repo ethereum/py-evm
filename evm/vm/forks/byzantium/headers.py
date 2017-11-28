@@ -1,5 +1,5 @@
 from evm.constants import (
-    EMPTY_UNCLE_HASH,
+    EMPTY_LIST_HASH,
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
@@ -25,7 +25,7 @@ def compute_byzantium_difficulty(parent_header, timestamp):
     parent_difficulty = parent_header.difficulty
     offset = parent_difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
 
-    has_uncles = parent_header.uncles_hash != EMPTY_UNCLE_HASH
+    has_uncles = parent_header.uncles_hash != EMPTY_LIST_HASH
     adj_factor = max(
         (
             (2 if has_uncles else 1) -

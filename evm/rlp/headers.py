@@ -10,9 +10,10 @@ from rlp.sedes import (
 from evm.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
-    EMPTY_UNCLE_HASH,
+    EMPTY_LIST_HASH,
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
+    SHARDING_GENESIS_COINBASE
 )
 
 from evm.utils.hexadecimal import (
@@ -20,6 +21,9 @@ from evm.utils.hexadecimal import (
 )
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.numeric import (
+    big_endian_to_int,
 )
 
 from .sedes import (
@@ -56,7 +60,7 @@ class BlockHeader(rlp.Serializable):
                  timestamp=None,
                  coinbase=ZERO_ADDRESS,
                  parent_hash=ZERO_HASH32,
-                 uncles_hash=EMPTY_UNCLE_HASH,
+                 uncles_hash=EMPTY_LIST_HASH,
                  state_root=BLANK_ROOT_HASH,
                  transaction_root=BLANK_ROOT_HASH,
                  receipt_root=BLANK_ROOT_HASH,
@@ -133,3 +137,96 @@ class BlockHeader(rlp.Serializable):
 
         header = cls(**header_kwargs)
         return header
+
+
+class CollationHeader(rlp.Serializable):
+
+    fields = [
+        ('shard_id', int256),
+        ('expected_period_number', int256),
+        ('period_start_prevhash', hash32),
+        ('parent_collation_hash', hash32),
+        ('tx_list_root', trie_root),
+        ('coinbase', address),
+        ('post_state_root', trie_root),
+        ('receipts_root', trie_root),
+        ('number', int256),
+        ('sig', binary)
+    ]
+
+    def __init__(self,
+                 shard_id=0,
+                 expected_period_number=0,
+                 period_start_prevhash=ZERO_HASH32,
+                 parent_collation_hash=ZERO_HASH32,
+                 tx_list_root=BLANK_ROOT_HASH,
+                 coinbase=SHARDING_GENESIS_COINBASE,
+                 post_state_root=BLANK_ROOT_HASH,
+                 receipts_root=BLANK_ROOT_HASH,
+                 number=0,
+                 sig=b''):
+        super(CollationHeader, self).__init__(
+            shard_id,
+            expected_period_number,
+            period_start_prevhash,
+            parent_collation_hash,
+            tx_list_root,
+            coinbase,
+            post_state_root,
+            receipts_root,
+            number,
+            sig,
+        )
+
+    @property
+    def hash(self):
+        """The binary collation hash"""
+        return keccak(rlp.encode(self))
+
+    @property
+    def hex_hash(self):
+        """Hexadecimal representation of the collation hash."""
+        return encode_hex(self.hash)
+
+    @property
+    def signing_hash(self):
+        """The hash of the header exluding the signature."""
+        return keccak(rlp.encode(self, CollationHeader.exclude(['sig'])))
+
+    @classmethod
+    def from_parent(cls, parent, period_start_prevhash, coinbase):
+        """Initialize a collation header as a child of another one.
+
+        `tx_list_root`, `post_state_root`, and `receipts_root` will be set as if the collation
+        where empty.
+        """
+        header_kwargs = {
+            'shard_id': parent.shard_id,
+            'expected_period_number': parent.expected_period_number + 1,
+            'period_start_prevhash': period_start_prevhash,
+            'parent_collation_hash': parent.hash,
+            'tx_list_root': BLANK_ROOT_HASH,
+            'coinbase': coinbase,
+            'post_state_root': parent.post_state_root,
+            'receipts_root': BLANK_ROOT_HASH,
+            'number': parent.number + 1,
+            'sig': b'',
+        }
+        header = cls(**header_kwargs)
+        return header
+
+    def __repr__(self):
+        return '<CollationHeader #{0} {1}>'.format(
+            self.block_number,
+            encode_hex(self.hash)[2:10],
+        )
+
+    def __hash__(self):
+        return big_endian_to_int(self.hash)
+
+    def __eq__(self, other):
+        """Two CollationHeader are equal iff they have the same hash."""
+        return isinstance(other, CollationHeader) and self.hash == other.hash
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
