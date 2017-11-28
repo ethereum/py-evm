@@ -30,4 +30,4 @@ logging.Logger.trace = trace
 sys.setrecursionlimit(1024 * 10)
 
 
-__version__ = pkg_resources.get_distribution("web3").version
+__version__ = pkg_resources.get_distribution("py-evm").version
