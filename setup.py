@@ -1,28 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-
 from setuptools import setup, find_packages
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-readme = open(os.path.join(DIR, 'README.md')).read()
-
-# By definition, we can't depend on evm being installed yet,
-# so pull this information in via read, not import.
-about = {}
-with open(os.path.join(DIR, 'evm', '__version__.py'), 'r') as f:
-    exec(f.read(), about)
 
 setup(
-    name=about['__title__'],
-    version=about['__version__'],
-    description=about['__description__'],
-    long_description=readme,
-    author=about['__author__'],
-    author_email=about['__author_email__'],
-    url=about['__url__'],
+    name='py-evm',
+    # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
+    version='0.2.0-alpha.6',
+    description='Python implementation of the Ethereum Virtual Machine',
+    long_description_markdown_filename='README.md',
+    author='Piper Merriam',
+    author_email='piper@pipermerriam.com',
+    url='https://github.com/ethereum/py-evm',
     include_package_data=True,
     py_modules=['evm'],
     install_requires=[
@@ -30,20 +19,20 @@ setup(
         "async_lru>=0.1.0",
         "cryptography>=2.0.3",
         "cytoolz==0.8.2",
-        "ethereum-bloom>=0.4.0",
-        "ethereum-utils>=0.2.0",
+        "eth-bloom>=0.5.2",
+        "eth-utils>=0.7.1",
         "pyethash>=0.1.27",
         "py-ecc==1.4.2",
         "rlp==0.4.7",
-        "ethereum-keys==0.1.0a7",
-        "trie>=0.3.0",
+        "eth-keys==0.1.0b3",
+        "trie>=0.3.1",
     ],
     extra_require={
         'leveldb': [
             "leveldb>=0.194",
         ]
     },
-    license=about['__license__'],
+    license='MIT',
     zip_safe=False,
     keywords='ethereum blockchain evm',
     packages=find_packages(exclude=["tests", "tests.*"]),
@@ -52,10 +41,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 )
