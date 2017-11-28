@@ -1,9 +1,11 @@
 import asyncio
 import logging
 import traceback
+from typing import cast, Dict, List  # noqa: F401
 
 from async_lru import alru_cache
 
+from eth_keys import datatypes
 from eth_keys import keys
 from eth_utils import (
     decode_hex,
@@ -11,9 +13,11 @@ from eth_utils import (
 )
 
 from evm.chains import Chain
+from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
+from evm.rlp.blocks import BaseBlock
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
 from evm.p2p import ecies
 from evm.p2p.exceptions import (
@@ -22,6 +26,7 @@ from evm.p2p.exceptions import (
     UnreachablePeer,
     UselessPeer,
 )
+from evm.p2p import kademlia
 from evm.p2p.peer import (
     handshake,
     LESPeer,
@@ -35,16 +40,18 @@ class PeerPool:
     peer_class = LESPeer
     _connect_loop_sleep = 2
 
-    def __init__(self, chaindb, network_id, privkey, min_peers=2):
+    def __init__(self, chaindb: BaseChainDB, network_id: int, privkey: datatypes.PrivateKey,
+                 min_peers: int = 2
+                 ) -> None:
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
         self.min_peers = min_peers
-        self.connected_nodes = {}
+        self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
 
-    async def get_best_peer(self):
+    async def get_best_peer(self) -> LESPeer:
         """
         Return the peer with the highest announced block height.
         """
@@ -80,7 +87,7 @@ class PeerPool:
         await self.stop_all_peers()
         await self._finished.wait()
 
-    async def connect(self, remote):
+    async def connect(self, remote: kademlia.Node) -> LESPeer:
         """
         Connect to the given remote and return a Peer instance when successful.
 
@@ -93,7 +100,7 @@ class PeerPool:
             peer = await asyncio.wait_for(
                 handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
                 HANDSHAKE_TIMEOUT)
-            return peer
+            return cast(LESPeer, peer)
         except (UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost) as e:
             self.logger.debug("Could not complete handshake with %s: %s", remote, e)
         except UselessPeer:
@@ -127,7 +134,7 @@ class PeerPool:
                 self.connected_nodes[peer.remote] = peer
                 asyncio.ensure_future(peer.start(finished_callback=self._peer_finished))
 
-    def _peer_finished(self, peer):
+    def _peer_finished(self, peer: LESPeer) -> None:
         """Remove the given peer from our list of connected nodes.
 
         This is passed as a callback to be called when a peer finishes.
@@ -136,12 +143,11 @@ class PeerPool:
         if peer.remote in self.connected_nodes:
             self.connected_nodes.pop(peer.remote)
 
-    async def get_nodes_to_connect(self):
+    async def get_nodes_to_connect(self) -> List[kademlia.Node]:
         # TODO: This should use the Discovery service to lookup nodes to connect to, but our
         # current implementation only supports v4 and with that it takes an insane amount of time
         # to find any LES nodes with the same network ID as us, so for now we hard-code some nodes
         # that seem to have a good uptime.
-        from evm.p2p import kademlia
         from evm.chains.ropsten import RopstenChain
         from evm.chains.mainnet import MainnetChain
         if self.network_id == MainnetChain.network_id:
@@ -192,7 +198,7 @@ class LightChain(Chain):
     # sends them to one of our peers, ensuring the selected peer has the info we want,
     # retrying on timeouts and respecting the flow control rules.
 
-    def __init__(self, chaindb):
+    def __init__(self, chaindb: BaseChainDB) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = PeerPool(chaindb, self.network_id, self.privkey)
 
@@ -203,7 +209,7 @@ class LightChain(Chain):
         self.logger.info("Stopping ...")
         await self.peer_pool.stop()
 
-    async def get_canonical_block_by_number(self, block_number):
+    async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
         try:
             block_hash = self.chaindb.lookup_block_hash(block_number)
         except KeyError:
@@ -212,7 +218,7 @@ class LightChain(Chain):
         return await self.get_block_by_hash(block_hash)
 
     @alru_cache(maxsize=1024)
-    async def get_block_by_hash(self, block_hash):
+    async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
         peer = await self.peer_pool.get_best_peer()
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
@@ -238,7 +244,6 @@ if __name__ == '__main__':
     from evm.chains.mainnet import (
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
     from evm.db.backends.level import LevelDB
-    from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

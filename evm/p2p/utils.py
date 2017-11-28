@@ -23,7 +23,7 @@ def gen_request_id():
     return big_endian_to_int(os.urandom(8))
 
 
-def get_devp2p_cmd_id(msg):
+def get_devp2p_cmd_id(msg: bytes) -> int:
     """Return the cmd_id for the given devp2p msg.
 
     The cmd_id, also known as the payload type, is always the first entry of the RLP, interpreted
