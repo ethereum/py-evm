@@ -16,6 +16,21 @@ from evm.utils.keccak import (
 )
 
 
+class BaseAATransaction(rlp.Serializable):
+    fields = [
+        ('version', big_endian_int),
+        ('chain_id', big_endian_int),
+        ('shard_id', big_endian_int),
+        ('account', address),
+        ('gas', big_endian_int),
+        ('data', binary),
+    ]
+
+    @property
+    def hash(self):
+        return keccak(rlp.encode(self))
+
+
 class BaseTransaction(rlp.Serializable):
     fields = [
         ('nonce', big_endian_int),

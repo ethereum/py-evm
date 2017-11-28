@@ -1,4 +1,5 @@
-from evm.vm.forks.byzantium.transactions import ByzantiumTransaction
+from evm.rlp.transactions import BaseAATransaction
 
 
-ShardingTransaction = ByzantiumTransaction
+class AATransaction(BaseAATransaction):
+    pass

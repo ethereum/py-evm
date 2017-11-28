@@ -5,11 +5,11 @@ from evm.exceptions import ValidationError
 from evm.rlp.headers import CollationHeader
 from evm.rlp.collations import BaseCollation
 
-from .transactions import ShardingTransaction
+from .transactions import AATransaction
 
 
 class Collation(BaseCollation):
-    transaction_class = ShardingTransaction
+    transaction_class = AATransaction
     fields = [
         ('header', CollationHeader),
         ('transactions', CountableList(transaction_class))
