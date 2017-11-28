@@ -1,27 +1,63 @@
-class BaseEVMError(Exception):
+class PyEVMError(Exception):
     """
     Base error class for all py-evm errors.
     """
     pass
 
 
-class ValidationError(BaseEVMError):
+class VMNotFound(PyEVMError):
+    """
+    No VM available for the provided block number.
+    """
+    pass
+
+
+class BlockNotFound(PyEVMError):
+    """
+    The block with the given number/hash does not exist.
+    """
+    pass
+
+
+class ParentNotFound(PyEVMError):
+    """
+    The parent of a given block does not exist.
+    """
+    pass
+
+
+class CanonicalHeadNotFound(PyEVMError):
+    """
+    The chain has no canonical head.
+    """
+    pass
+
+
+class ValidationError(PyEVMError):
     """
     Error to signal something does not pass a validation check.
     """
     pass
 
 
-class VMError(BaseEVMError):
+class Halt(PyEVMError):
     """
-    Class of errors which can be raised during EVM execution.
+    Raised by opcode function to halt vm execution.
     """
     pass
 
 
+class VMError(PyEVMError):
+    """
+    Class of errors which can be raised during VM execution.
+    """
+    burns_gas = True
+    zeros_return_data = True
+
+
 class OutOfGas(VMError):
     """
-    Error signaling that EVM execution has run out of gas.
+    Error signaling that VM execution has run out of gas.
     """
     pass
 
@@ -69,15 +105,32 @@ class StackDepthLimit(VMError):
     pass
 
 
-class InvalidTransaction(BaseEVMError):
+class ContractCreationCollision(VMError):
     """
-    Error for signaling a transaction is invalid.
+    Error signaling that there was an address collision during contract creation.
     """
     pass
 
 
-class EVMNotFound(BaseEVMError):
+class Revert(VMError):
     """
-    Error for when there is no defined EVM for a given block number.
+    Error used by the REVERT opcode
+    """
+    burns_gas = False
+    zeros_return_data = False
+
+
+class WriteProtection(VMError):
+    """
+    Error raised if an attempt to modify the state database is made while
+    operating inside of a STATICCALL context.
+    """
+    pass
+
+
+class OutOfBoundsRead(VMError):
+    """
+    Error raised to indicate an attempt was made to read data beyond the
+    boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass

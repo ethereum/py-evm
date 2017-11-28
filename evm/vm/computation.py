@@ -11,9 +11,10 @@ from evm.exceptions import (
 from evm.validation import (
     validate_canonical_address,
     validate_uint256,
+    validate_is_bytes,
 )
 
-from evm.utils.hexidecimal import (
+from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.numeric import (
@@ -50,7 +51,7 @@ class Computation(object):
     """
     The execution computation
     """
-    evm = None
+    vm = None
     msg = None
 
     memory = None
@@ -62,6 +63,7 @@ class Computation(object):
     children = None
 
     _output = b''
+    return_data = b''
     error = None
 
     logs = None
@@ -69,8 +71,8 @@ class Computation(object):
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, evm, message):
-        self.evm = evm
+    def __init__(self, vm, message):
+        self.vm = vm
         self.msg = message
 
         self.memory = Memory()
@@ -93,6 +95,14 @@ class Computation(object):
         Is this computation the computation initiated by a transaction.
         """
         return self.msg.is_origin
+
+    @property
+    def is_success(self):
+        return self.error is None
+
+    @property
+    def is_error(self):
+        return not self.is_success
 
     #
     # Execution
@@ -123,8 +133,8 @@ class Computation(object):
     # Memory Management
     #
     def extend_memory(self, start_position, size):
-        validate_uint256(start_position)
-        validate_uint256(size)
+        validate_uint256(start_position, title="Memory start position")
+        validate_uint256(size, title="Memory size")
 
         before_size = ceil32(len(self.memory))
         after_size = ceil32(start_position + size)
@@ -132,14 +142,13 @@ class Computation(object):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        if self.logger is not None:
-            self.logger.debug(
-                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-                before_size,
-                after_size,
-                before_cost,
-                after_cost,
-            )
+        self.logger.debug(
+            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+            before_size,
+            after_size,
+            before_cost,
+            after_cost,
+        )
 
         if size:
             if before_cost < after_cost:
@@ -157,21 +166,49 @@ class Computation(object):
             self.memory.extend(start_position, size)
 
     #
-    # Runtime Operations
+    # Computed properties.
     #
     @property
     def output(self):
-        if self.error:
+        if self.error and self.error.zeros_return_data:
             return b''
         else:
             return self._output
 
     @output.setter
     def output(self, value):
+        validate_is_bytes(value)
         self._output = value
 
+    #
+    # Runtime operations
+    #
+    def apply_child_computation(self, child_msg):
+        if child_msg.is_create:
+            child_computation = self.vm.apply_create_message(child_msg)
+        else:
+            child_computation = self.vm.apply_message(child_msg)
+
+        self.add_child_computation(child_computation)
+        return child_computation
+
+    def add_child_computation(self, child_computation):
+        if child_computation.error:
+            if child_computation.msg.is_create:
+                self.return_data = child_computation.output
+            elif child_computation.error.zeros_return_data:
+                self.return_data = b''
+            else:
+                self.return_data = child_computation.output
+        else:
+            if child_computation.msg.is_create:
+                self.return_data = b''
+            else:
+                self.return_data = child_computation.output
+        self.children.append(child_computation)
+
     def register_account_for_deletion(self, beneficiary):
-        validate_canonical_address(beneficiary)
+        validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
         if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(
@@ -180,17 +217,24 @@ class Computation(object):
             )
         self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
+    def add_log_entry(self, account, topics, data):
+        validate_canonical_address(account, title="Log entry address")
+        for topic in topics:
+            validate_uint256(topic, title="Log entry topic")
+        validate_is_bytes(data, title="Log entry data")
+        self.log_entries.append((account, topics, data))
+
+    #
+    # Getters
+    #
     def get_accounts_for_deletion(self):
         if self.error:
-            return tuple(dict().items())
+            return tuple()
         else:
             return tuple(dict(itertools.chain(
                 self.accounts_to_delete.items(),
                 *(child.get_accounts_for_deletion() for child in self.children)
             )).items())
-
-    def add_log_entry(self, account, topics, data):
-        self.log_entries.append((account, topics, data))
 
     def get_log_entries(self):
         if self.error:
@@ -207,53 +251,78 @@ class Computation(object):
         else:
             return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
+    def get_gas_used(self):
+        if self.error and self.error.burns_gas:
+            return self.msg.gas
+        else:
+            return max(
+                0,
+                self.msg.gas - self.gas_meter.gas_remaining,
+            )
+
+    def get_gas_remaining(self):
+        if self.error and self.error.burns_gas:
+            return 0
+        else:
+            return self.gas_meter.gas_remaining
+
     #
     # Context Manager API
     #
     def __enter__(self):
-        if self.logger is not None:
-            self.logger.debug(
-                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s",
-                self.msg.gas,
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.to),
-                self.msg.value,
-            )
+        self.logger.debug(
+            (
+                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
+                "| depth %s | static: %s"
+            ),
+            self.msg.gas,
+            encode_hex(self.msg.sender),
+            encode_hex(self.msg.to),
+            self.msg.value,
+            self.msg.depth,
+            "y" if self.msg.is_static else "n",
+        )
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_value and isinstance(exc_value, VMError):
-            if self.logger is not None:
-                self.logger.debug(
-                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | error: %s",
-                    self.msg.gas,
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    exc_value,
-                )
-            self.error = exc_value
-            self.gas_meter.consume_gas(
-                self.gas_meter.gas_remaining,
-                reason=" ".join((
-                    "Zeroing gas due to VM Exception:",
-                    str(exc_value),
-                )),
+            self.logger.debug(
+                (
+                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
+                    "depth: %s | static: %s | error: %s"
+                ),
+                self.msg.gas,
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                "y" if self.msg.is_static else "n",
+                exc_value,
             )
+            self.error = exc_value
+            if self.error.burns_gas:
+                self.gas_meter.consume_gas(
+                    self.gas_meter.gas_remaining,
+                    reason=" ".join((
+                        "Zeroing gas due to VM Exception:",
+                        str(exc_value),
+                    )),
+                )
 
             # suppress VM exceptions
             return True
         elif exc_type is None:
-            if self.logger is not None:
-                self.logger.debug(
-                    (
-                        "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
-                        "gas-used: %s | gas-remaining: %s"
-                    ),
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.gas - self.gas_meter.gas_remaining,
-                    self.gas_meter.gas_remaining,
-                )
+            self.logger.debug(
+                (
+                    "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
+                    "depth: %s | static: %s | gas-used: %s | gas-remaining: %s"
+                ),
+                encode_hex(self.msg.sender),
+                encode_hex(self.msg.to),
+                self.msg.value,
+                self.msg.depth,
+                "y" if self.msg.is_static else "n",
+                self.msg.gas - self.gas_meter.gas_remaining,
+                self.gas_meter.gas_remaining,
+            )

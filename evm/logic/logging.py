@@ -14,9 +14,9 @@ def log_XX(computation, topic_count):
     if not topic_count:
         topics = []
     elif topic_count > 1:
-        topics = computation.stack.pop(num_items=topic_count, type_hint=constants.BYTES)
+        topics = computation.stack.pop(num_items=topic_count, type_hint=constants.UINT256)
     else:
-        topics = [computation.stack.pop(num_items=topic_count, type_hint=constants.BYTES)]
+        topics = [computation.stack.pop(num_items=topic_count, type_hint=constants.UINT256)]
 
     data_gas_cost = constants.GAS_LOGDATA * size
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count

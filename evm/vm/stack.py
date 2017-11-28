@@ -17,7 +17,7 @@ from evm.utils.numeric import (
 
 class Stack(object):
     """
-    EVM Stack
+    VM Stack
     """
     values = None
     logger = logging.getLogger('evm.vm.stack.Stack')

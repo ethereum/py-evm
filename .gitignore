@@ -49,3 +49,9 @@ fixtures/**
 
 # profiling
 prof/**
+
+# hypothesis
+.hypothesis/
+
+# mypy
+.mypy_cache/

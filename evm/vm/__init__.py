@@ -1,5 +1,5 @@
-from .evm import (  # noqa: F401
-    BaseEVM,
+from .base import (  # noqa: F401
+    VM,
 )
 from .message import (  # noqa: F401
     Message,

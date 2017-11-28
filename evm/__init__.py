@@ -1,5 +1,4 @@
 import logging
-import pkg_resources
 import sys
 
 from evm.utils.logging import (
@@ -7,9 +6,26 @@ from evm.utils.logging import (
     TRACE_LEVEL_NUM,
 )
 
+from evm.vm import (  # noqa: F401
+    VM,
+)
+from evm.chains import (  # noqa: F401
+    Chain,
+    MainnetChain,
+    MainnetTesterChain,
+)
 
-__version__ = pkg_resources.get_distribution("py-evm").version
-
+from .__version__ import (  # noqa: F401
+    __title__,
+    __description__,
+    __url__,
+    __version__,
+    __copyright__,
+    __author__,
+    __author_email__,
+    __license__,
+    __build__
+)
 
 #
 #  Setup TRACE level logging.
