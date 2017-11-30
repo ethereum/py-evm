@@ -1,3 +1,4 @@
+bumpversion==0.5.3
 hypothesis==3.30.0
 pytest-asyncio==0.8.0
 pytest-cov==2.5.1
