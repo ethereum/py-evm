@@ -1,7 +1,14 @@
 import asyncio
 import logging
 import traceback
-from typing import cast, Dict, List  # noqa: F401
+from typing import (  # noqa: F401
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 from async_lru import alru_cache
 
@@ -13,23 +20,33 @@ from eth_utils import (
 )
 
 from evm.chains import Chain
+from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
 from evm.rlp.blocks import BaseBlock
+from evm.rlp.headers import BlockHeader
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
 from evm.p2p import ecies
 from evm.p2p.exceptions import (
+    EmptyGetBlockHeadersReply,
+    LESAnnouncementProcessingError,
     PeerConnectionLost,
     PeerDisconnected,
+    StopRequested,
+    TooManyTimeouts,
     UnreachablePeer,
     UselessPeer,
 )
 from evm.p2p import kademlia
-from evm.p2p.peer import (
+from evm.p2p import les
+from evm.p2p import protocol
+from evm.p2p.peer import (  # noqa: F401
+    BasePeer,
     handshake,
     LESPeer,
+    _ReceivedMsgCallbackType,
 )
 from evm.p2p.utils import gen_request_id
 
@@ -40,12 +57,17 @@ class PeerPool:
     peer_class = LESPeer
     _connect_loop_sleep = 2
 
-    def __init__(self, chaindb: BaseChainDB, network_id: int, privkey: datatypes.PrivateKey,
-                 min_peers: int = 2
+    def __init__(self,
+                 chaindb: BaseChainDB,
+                 network_id: int,
+                 privkey: datatypes.PrivateKey,
+                 msg_handler: _ReceivedMsgCallbackType,
+                 min_peers: int = 2,
                  ) -> None:
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
+        self.msg_handler = msg_handler
         self.min_peers = min_peers
         self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
         self._should_stop = asyncio.Event()
@@ -66,6 +88,7 @@ class PeerPool:
         return max(self.connected_nodes.values(), key=peer_block_height)
 
     async def run(self):
+        self.logger.info("Running PeerPool...")
         while not self._should_stop.is_set():
             try:
                 await self.maybe_connect_to_more_peers()
@@ -96,22 +119,21 @@ class PeerPool:
         if remote in self.connected_nodes:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
+        expected_exceptions = (
+            UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost,
+            UselessPeer, PeerDisconnected)
         try:
+            self.logger.info("Connecting to %s...", remote)
             peer = await asyncio.wait_for(
-                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
+                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
+                          self.msg_handler),
                 HANDSHAKE_TIMEOUT)
             return cast(LESPeer, peer)
-        except (UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost) as e:
-            self.logger.debug("Could not complete handshake with %s: %s", remote, e)
-        except UselessPeer:
-            self.logger.debug("No matching capabilities with %s", remote)
-        except PeerDisconnected as e:
-            self.logger.debug(
-                "%s disconnected before completing handshake; reason: %s", remote, e)
+        except expected_exceptions as e:
+            self.logger.info("Could not complete handshake with %s: %s", remote, repr(e))
         except Exception:
-            self.logger.warn(
-                "Unexpected error during auth/p2p handhsake with %s: %s",
-                remote, traceback.format_exc())
+            self.logger.warn("Unexpected error during auth/p2p handhsake with %s: %s",
+                             remote, traceback.format_exc())
         return None
 
     async def maybe_connect_to_more_peers(self):
@@ -124,7 +146,6 @@ class PeerPool:
             return
 
         for node in await self.get_nodes_to_connect():
-            self.logger.debug("Connecting to %s", node)
             # TODO: Consider changing connect() to raise an exception instead of returning None,
             # as discussed in
             # https://github.com/pipermerriam/py-evm/pull/139#discussion_r152067425
@@ -139,7 +160,6 @@ class PeerPool:
 
         This is passed as a callback to be called when a peer finishes.
         """
-        self.logger.info("Peer finished: %s", peer)
         if peer.remote in self.connected_nodes:
             self.connected_nodes.pop(peer.remote)
 
@@ -191,23 +211,160 @@ class PeerPool:
 
 
 class LightChain(Chain):
+    logger = logging.getLogger("evm.p2p.lightchain.LightChain")
     # FIXME: Should be passed in by callers
     privkey = ecies.generate_privkey()
-    # TODO:
-    # 1. Implement a queue of requests and a distributor which picks items from that queue and
-    # sends them to one of our peers, ensuring the selected peer has the info we want,
-    # retrying on timeouts and respecting the flow control rules.
+    max_consecutive_timeouts = 5
+    peer_pool_class = PeerPool
 
     def __init__(self, chaindb: BaseChainDB) -> None:
         super(LightChain, self).__init__(chaindb)
-        self.peer_pool = PeerPool(chaindb, self.network_id, self.privkey)
+        self.peer_pool = self.peer_pool_class(
+            chaindb, self.network_id, self.privkey, self.msg_handler)
+        self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
+        self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
+        self._latest_head_info = {}  # type: Dict[LESPeer, les.HeadInfo]
+        self._should_stop = asyncio.Event()
+        self._finished = asyncio.Event()
 
-    async def run(self):
-        await self.peer_pool.run()
+    def msg_handler(self, peer: BasePeer, cmd: protocol.Command,
+                    announcement: protocol._DecodedMsgType) -> None:
+        """The callback passed to BasePeer, called for every incoming message."""
+        peer = cast(LESPeer, peer)
+        if isinstance(cmd, (les.Announce, les.Status)):
+            head_info = cmd.as_head_info(announcement)
+            self._latest_head_info[peer] = head_info
+            self._announcement_queue.put_nowait((peer, head_info))
+
+    async def drop_peer(self, peer: LESPeer) -> None:
+        self._last_processed_announcements.pop(peer, None)
+        self._latest_head_info.pop(peer, None)
+        await peer.stop_and_wait_until_finished()
+
+    async def wait_for_announcement(self) -> Tuple[LESPeer, les.HeadInfo]:
+        """Wait for a new announcement from any of our connected peers.
+
+        Returns a tuple containing the LESPeer on which the announcement was received and the
+        announcement info.
+
+        Raises StopRequested when LightChain.stop() has been called.
+        """
+        should_stop = False
+
+        async def wait_for_stop_event():
+            nonlocal should_stop
+            await self._should_stop.wait()
+            should_stop = True
+
+        # Wait for either a new announcement or the _should_stop event.
+        done, pending = await asyncio.wait(
+            [self._announcement_queue.get(), wait_for_stop_event()],
+            return_when=asyncio.FIRST_COMPLETED)
+        # The async call above returns as soon as one of our 2 coroutines complete, so we know
+        # for sure we'll have one task in the <done> and one task in the <pending> set.
+        pending.pop().cancel()
+        if should_stop:
+            raise StopRequested()
+        return done.pop().result()
+
+    async def run(self) -> None:
+        """Run the LightChain, ensuring headers are in sync with connected peers.
+
+        Run our PeerPool to ensure we are always connected to some peers and then loop forever,
+        waiting for announcements from connected peers and fetching new headers.
+
+        If .stop() is called, we'll disconnect from all peers and return.
+        """
+        self.logger.info("Running LightChain...")
+        asyncio.ensure_future(self.peer_pool.run())
+        while True:
+            try:
+                peer, head_info = await self.wait_for_announcement()
+            except StopRequested:
+                break
+
+            try:
+                await self.process_announcement(peer, head_info)
+                self._last_processed_announcements[peer] = head_info
+            except LESAnnouncementProcessingError as e:
+                self.logger.warn(repr(e))
+                await self.drop_peer(peer)
+            except Exception as e:
+                self.logger.error(
+                    "Unexpected error when processing announcement: %s", repr(e))
+                await self.drop_peer(peer)
+
+        self._finished.set()
+
+    async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
+        for i in range(self.max_consecutive_timeouts):
+            try:
+                return await peer.fetch_headers_starting_at(start_block)
+            except asyncio.TimeoutError:
+                self.logger.info(
+                    "Timeout when fetching headers from %s (attempt %d of %d)",
+                    peer, i + 1, self.max_consecutive_timeouts)
+                # TODO: Figure out what's a good value to use here.
+                await asyncio.sleep(0.5)
+        raise TooManyTimeouts()
+
+    async def get_sync_start_block(self, peer: LESPeer, head_info: les.HeadInfo) -> int:
+        chain_head = self.chaindb.get_canonical_head()
+        last_peer_announcement = self._last_processed_announcements.get(peer)
+        if chain_head.block_number == GENESIS_BLOCK_NUMBER:
+            start_block = GENESIS_BLOCK_NUMBER
+        elif last_peer_announcement is None:
+            # It's the first time we hear from this peer, need to figure out which headers to
+            # get from it.  We can't simply fetch headers starting from our current head
+            # number because there may have been a chain reorg, so we fetch some headers prior
+            # to our head from the peer, and insert any missing ones in our DB, essentially
+            # making our canonical chain identical to the peer's up to
+            # chain_head.block_number.
+            oldest_ancestor_to_consider = max(
+                0, chain_head.block_number - peer.max_headers_fetch + 1)
+            try:
+                headers = await self.fetch_headers(oldest_ancestor_to_consider, peer)
+            except EmptyGetBlockHeadersReply:
+                raise LESAnnouncementProcessingError(
+                    "No common ancestors found between us and %s", peer)
+            except TooManyTimeouts:
+                raise LESAnnouncementProcessingError(
+                    "Too many timeouts when fetching headers from %s", peer)
+            for header in headers:
+                self.chaindb.persist_header_to_db(header)
+            start_block = chain_head.block_number
+        else:
+            start_block = last_peer_announcement.block_number - head_info.reorg_depth
+        return start_block
+
+    # TODO: Distribute requests among our peers, ensuring the selected peer has the info we want
+    # and respecting the flow control rules.
+    async def process_announcement(self, peer: LESPeer, head_info: les.HeadInfo) -> None:
+        if self.chaindb.header_exists(head_info.block_hash):
+            self.logger.debug(
+                "Skipping processing of %s from %s as head has already been fetched",
+                head_info, peer)
+            return
+
+        start_block = await self.get_sync_start_block(peer, head_info)
+        while start_block < head_info.block_number:
+            try:
+                # We should use "start_block + 1" here, but we always re-fetch the last synced
+                # block to work around https://github.com/ethereum/go-ethereum/issues/15447
+                batch = await self.fetch_headers(start_block, peer)
+            except TooManyTimeouts:
+                raise LESAnnouncementProcessingError(
+                    "Too many timeouts when fetching headers from %s", peer)
+            for header in batch:
+                self.chaindb.persist_header_to_db(header)
+                start_block = header.block_number
+            self.logger.info("synced headers up to #%s", start_block)
 
     async def stop(self):
-        self.logger.info("Stopping ...")
+        self.logger.info("Stopping LightChain...")
+        self._should_stop.set()
         await self.peer_pool.stop()
+        await self._finished.wait()
 
     async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
         try:
@@ -243,23 +400,28 @@ if __name__ == '__main__':
     import argparse
     from evm.chains.mainnet import (
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
+    from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
     from evm.exceptions import CanonicalHeadNotFound
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger("evm.p2p.lightchain").setLevel(logging.DEBUG)
+    logging.getLogger("evm.p2p.lightchain.LightChain").setLevel(logging.DEBUG)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-db', type=str, required=True)
+    parser.add_argument('-testnet', action="store_true")
+    args = parser.parse_args()
 
     GENESIS_HEADER = MAINNET_GENESIS_HEADER
     NETWORK_ID = MAINNET_NETWORK_ID
+    if args.testnet:
+        GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
+        NETWORK_ID = ROPSTEN_NETWORK_ID
     DemoLightChain = LightChain.configure(
         'DemoLightChain',
         vm_configuration=MAINNET_VM_CONFIGURATION,
         network_id=NETWORK_ID,
     )
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-db', type=str, required=True)
-    args = parser.parse_args()
 
     chaindb = BaseChainDB(LevelDB(args.db))
     try:

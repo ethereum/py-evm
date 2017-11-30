@@ -20,7 +20,7 @@ from evm.p2p.utils import get_devp2p_cmd_id
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from evm.p2p.peer import HeadInfo, BasePeer  # noqa: F401
+    from evm.p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
 
 _DecodedMsgType = Dict[str, Any]
@@ -115,7 +115,7 @@ class Protocol:
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
         self.cmd_by_class = dict((cmd.__class__, cmd) for cmd in self.commands)
 
-    def send_handshake(self, head_info: 'HeadInfo') -> None:
+    def send_handshake(self, chain_info: 'ChainInfo') -> None:
         """Send the handshake msg for this protocol."""
         raise NotImplementedError()
 
@@ -123,15 +123,14 @@ class Protocol:
         """Process the handshake msg for this protocol."""
         raise NotImplementedError()
 
-    def process(self, cmd_id: int, msg: bytes) -> _DecodedMsgType:
+    def process(self, cmd_id: int, msg: bytes) -> Tuple[Command, _DecodedMsgType]:
         cmd = self.cmd_by_id[cmd_id]
         decoded = cmd.handle(self, msg)
         self.logger.debug("Successfully processed {}(cmd_id={}) msg: {}".format(
             cmd.__class__.__name__, cmd_id, decoded))
         if isinstance(cmd, self.handshake_msg_type):
             self.process_handshake(decoded)
-        self.peer.handle_msg(cmd, decoded)
-        return decoded
+        return cmd, decoded
 
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
