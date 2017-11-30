@@ -9,6 +9,8 @@ Py-EVM aims to eventually become the defacto python implementation of the EVM, e
    :hidden:
 
    self
+   evm.rst
+   modules.rst
 
 .. toctree::
    :numbered:
