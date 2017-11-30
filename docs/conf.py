@@ -14,10 +14,23 @@
 # the CI happy without figuring a satisfactory way to import.
 import os
 
-DIR = os.path.dirname('__file__')
+about_fields = [
+    'author',
+    'description',
+    'name',
+    'url',
+    'version',
+]
+
 about = {}
-with open(os.path.join(DIR, '../evm', '__version__.py'), 'r') as f:
-    exec(f.read(), about)
+
+DIR = os.path.dirname('__file__')
+with open (os.path.join(DIR, '../setup.py'), 'r') as f:
+    for line in f:
+        for field in about_fields:
+            if ' ' + field + '=' in line:
+                about['__%s__' % field] = line.split('\'')[1]
+
 
 # -- General configuration ------------------------------------------------
 
@@ -44,8 +57,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = about['__title__']
-copyright = about['__copyright__']
+project = about['__name__']
+copyright = '2017, Piper Merriam, Jason Carver'
 author = about['__author__']
 
 # The version info for the project you're documenting, acts as replacement for
@@ -141,7 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, about['__title__'], 'py-evm Documentation',
+    (master_doc, about['__name__'], 'py-evm Documentation',
      about['__author__'], 1)
 ]
 
@@ -152,8 +165,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, about['__title__'], 'py-evm Documentation',
-     about['__author__'], about['__title__'], about['__description__'],
+    (master_doc, about['__name__'], 'py-evm Documentation',
+     about['__author__'], about['__name__'], about['__description__'],
      'Miscellaneous'),
 ]
 

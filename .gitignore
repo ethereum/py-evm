@@ -58,3 +58,4 @@ prof/**
 *.swp
 docs/evm.*rst
 venv*
+.eggs/
