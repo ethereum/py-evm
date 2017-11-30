@@ -27,7 +27,8 @@ needs_sphinx = '1.5'
 
 extensions = [
     'sphinx.ext.todo',
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -151,3 +152,9 @@ texinfo_documents = [
      about['__author__'], about['__title__'], about['__description__'],
      'Miscellaneous'),
 ]
+
+# -- Intersphinx configuration ------------------------------------------------
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.5', None),
+}
