@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 setup(
     name='py-evm',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.6',
+    version='0.2.0-alpha.7',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
     author='Piper Merriam',
