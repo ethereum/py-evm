@@ -3,7 +3,10 @@ from typing import List
 import rlp
 from rlp import sedes
 
-from eth_utils import to_dict
+from eth_utils import (
+    encode_hex,
+    to_dict,
+)
 
 from evm.rlp.headers import (
     BlockHeader,
@@ -20,6 +23,19 @@ from evm.p2p.protocol import (
     Protocol,
     _DecodedMsgType,
 )
+
+
+class HeadInfo:
+    def __init__(self, block_number, block_hash, total_difficulty, reorg_depth):
+        self.block_number = block_number
+        self.block_hash = block_hash
+        self.total_difficulty = total_difficulty
+        self.reorg_depth = reorg_depth
+
+    def __str__(self):
+        return "HeadInfo{{block:{}, hash:{}, td:{}, reorg_depth:{}}}".format(
+            self.block_number, encode_hex(self.block_hash), self.total_difficulty,
+            self.reorg_depth)
 
 
 class Status(Command):
@@ -75,6 +91,14 @@ class Status(Command):
         ]
         return super(Status, self).encode_payload(response)
 
+    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
+        return HeadInfo(
+            block_number=decoded['headNum'],
+            block_hash=decoded['headHash'],
+            total_difficulty=decoded['headTd'],
+            reorg_depth=0,
+        )
+
 
 class Announce(Command):
     _cmd_id = 1
@@ -87,6 +111,14 @@ class Announce(Command):
     ]
     # TODO: The params CountableList above may contain any of the values from the Status msg.
     # Need to extend this command to process that too.
+
+    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
+        return HeadInfo(
+            block_number=decoded['head_number'],
+            block_hash=decoded['head_hash'],
+            total_difficulty=decoded['head_td'],
+            reorg_depth=decoded['reorg_depth'],
+        )
 
 
 class GetBlockHeadersQuery(rlp.Serializable):

@@ -18,12 +18,12 @@ Installation
 Syncing with Mainnet
 ---------------------
 
-Run the peer for a little while, saving the blockchain to a file of your chioce:
+Run the LightChain for a little while, saving the blockchain to a file of your chioce:
 
 .. code:: sh
 
-  $ python -m evm.p2p.peer --db /tmp/mychain.db --mainnet
-  
+  $ python -m evm.p2p.lightchain -db /tmp/mainnet.db
+
 After syncing some blocks, you can close out the process
 to explore the chain directly with py-evm.
 

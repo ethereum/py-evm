@@ -54,8 +54,9 @@ from evm.p2p.utils import (
     roundup_16,
     sxor,
 )
-from evm.p2p.les import (
+from evm.p2p.les import (  # noqa: F401
     Announce,
+    HeadInfo,
     LESProtocol,
     Status,
 )
@@ -66,11 +67,16 @@ from evm.p2p.p2p_proto import (
 )
 
 
+_ReceivedMsgCallbackType = Callable[
+    ['BasePeer', protocol.Command, protocol._DecodedMsgType], None]
+
+
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
                     chaindb: BaseChainDB,
-                    network_id: int
+                    network_id: int,
+                    received_msg_callback: Optional[_ReceivedMsgCallbackType] = None
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
 
@@ -94,20 +100,21 @@ async def handshake(remote: Node,
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
+        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id,
+        received_msg_callback=received_msg_callback)
     peer.base_protocol.send_handshake()
     msg = await peer.read_msg()
-    decoded = peer.process_msg(msg)
-    if get_devp2p_cmd_id(msg) == Disconnect._cmd_id:
+    cmd, decoded = peer.process_msg(msg)
+    if isinstance(cmd, Disconnect):
         # Peers may send a disconnect msg before they send the initial P2P handshake (e.g. when
         # they're not accepting more peers), so we special case that here because it's important
         # to distinguish this from a failed handshake (e.g. no matching protocols, etc).
-        raise PeerDisconnected("{} disconnected before handshake: {}".format(
-            peer, decoded['reason_name']))
+        raise PeerDisconnected("Peer disconnected before completing handshake: {}".format(
+            decoded['reason_name']))
     if len(peer.enabled_sub_protocols) == 0:
-        raise UselessPeer("No matching sub-protocols with {}".format(peer))
+        raise UselessPeer("No matching sub-protocols")
     for proto in peer.enabled_sub_protocols:
-        proto.send_handshake(peer.head_info)
+        proto.send_handshake(peer._local_chain_info)
     return peer
 
 
@@ -131,7 +138,8 @@ class BasePeer:
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
                  chaindb: BaseChainDB,
-                 network_id: int
+                 network_id: int,
+                 received_msg_callback: Optional[_ReceivedMsgCallbackType] = None
                  ) -> None:
         self._finished = asyncio.Event()
         self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
@@ -142,6 +150,7 @@ class BasePeer:
         self.base_protocol = P2PProtocol(self)
         self.chaindb = chaindb
         self.network_id = network_id
+        self.received_msg_callback = received_msg_callback
         # The sub protocols that have been enabled for this peer; will be populated when
         # we receive the initial hello msg.
         self.enabled_sub_protocols = []  # type: List[protocol.Protocol]
@@ -157,24 +166,16 @@ class BasePeer:
         self.mac_enc = mac_cipher.encryptor().update
 
     @property
-    def head_info(self) -> 'HeadInfo':
+    def _local_chain_info(self) -> 'ChainInfo':
         genesis_hash = self.chaindb.lookup_block_hash(GENESIS_BLOCK_NUMBER)
         genesis_header = self.chaindb.get_block_header_by_hash(genesis_hash)
         head = self.chaindb.get_canonical_head()
-        return HeadInfo(
+        return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
             total_difficulty=self.chaindb.get_score(head.hash),
             genesis_hash=genesis_header.hash,
         )
-
-    def handle_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        """Peer-specific handling of incoming messages.
-
-        This method is called once the sub-protocol's process() method is done, so that custom
-        Peer implementations can appy extra processing to incoming messages.
-        """
-        pass
 
     @property
     def capabilities(self) -> List[Tuple[bytes, int]]:
@@ -209,12 +210,11 @@ class BasePeer:
         return None
 
     async def read(self, n: int) -> bytes:
-        self.logger.debug("Waiting for {} bytes from {}".format(n, self.remote))
+        self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
         try:
             data = await asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
-            self.logger.debug("EOF reading from {}'s stream".format(self.remote))
-            raise PeerConnectionLost()
+            raise PeerConnectionLost("EOF reading from stream")
         return data
 
     async def start(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
@@ -222,7 +222,7 @@ class BasePeer:
             await self.read_loop()
         except Exception as e:
             self.logger.error(
-                "Unexpected error when handling remote msg: {}".format(traceback.format_exc()))
+                "Unexpected error when handling remote msg: %s", traceback.format_exc())
         finally:
             self._finished.set()
             if finished_callback is not None:
@@ -244,8 +244,9 @@ class BasePeer:
         while True:
             try:
                 msg = await self.read_msg()
-            except (PeerConnectionLost, asyncio.TimeoutError):
-                self.logger.debug("Peer %s stopped responding, disconnecting", self.remote)
+            except (PeerConnectionLost, asyncio.TimeoutError) as e:
+                self.logger.info(
+                    "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
             self.process_msg(msg)
 
@@ -259,35 +260,38 @@ class BasePeer:
         frame_data = await self.read(read_size + MAC_LEN)
         return self.decrypt_body(frame_data, frame_size)
 
-    def process_msg(self, msg: bytes) -> protocol._DecodedMsgType:
+    def process_msg(self, msg: bytes) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
-            raise UnknownProtocolCommand(
-                "No protocol found for cmd_id {}".format(cmd_id))
-        decoded = proto.process(cmd_id, msg)
-        if decoded is None:
-            return None
-        # Check if this is a reply we're waiting for and, if so, call the callback for this
-        # request_id.
-        request_id = decoded.get('request_id')
-        if request_id is not None and request_id in self._pending_replies:
-            callback = self._pending_replies.pop(request_id)
-            callback(decoded)
-        return decoded
+            raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
+
+        cmd, decoded = proto.process(cmd_id, msg)
+        if decoded is not None:
+            # Check if this is a reply we're waiting for and, if so, call the callback for this
+            # request_id.
+            request_id = decoded.get('request_id')
+            if request_id is not None and request_id in self._pending_replies:
+                callback = self._pending_replies.pop(request_id)
+                callback(decoded)
+
+        if self.received_msg_callback is not None:
+            self.received_msg_callback(self, cmd, decoded)
+        return cmd, decoded
 
     def process_p2p_handshake(self, decoded_msg: protocol._DecodedMsgType) -> None:
-        self.match_protocols(decoded_msg['capabilities'])
+        remote_capabilities = decoded_msg['capabilities']
+        self.match_protocols(remote_capabilities)
         if len(self.enabled_sub_protocols) == 0:
             self.disconnect(DisconnectReason.useless_peer)
             self.logger.debug(
-                "No matching protocols with {}, disconnecting".format(self.remote))
+                "No matching capabilities between us (%s) and %s (%s), disconnecting",
+                self.capabilities, self.remote, remote_capabilities)
         else:
             self.logger.debug(
-                "Finished P2P handshake with {}; matching protocols: {}".format(
-                    self.remote,
-                    [(p.name, p.version) for p in self.enabled_sub_protocols]))
+                "Finished P2P handshake with %s; matching protocols: %s",
+                self.remote, [(p.name, p.version) for p in self.enabled_sub_protocols])
 
     def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
@@ -359,7 +363,7 @@ class BasePeer:
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
-            self.logger.debug("Disconnecting from remote peer; reason: {}".format(reason.value))
+            self.logger.debug("Disconnecting from remote peer; reason: %s", reason.value)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 
@@ -394,97 +398,10 @@ class LESPeer(BasePeer):
     _les_proto = None
     _supported_sub_protocols = [LESProtocol]
 
-    def __init__(self, remote: Node, privkey: datatypes.PrivateKey, reader: asyncio.StreamReader,
-                 writer: asyncio.StreamWriter, aes_secret: bytes, mac_secret: bytes,
-                 egress_mac: sha3.keccak_256, ingress_mac: sha3.keccak_256, chaindb: BaseChainDB,
-                 network_id: int
-                 ) -> None:
-        super(LESPeer, self).__init__(
-            remote, privkey, reader, writer, aes_secret, mac_secret,
-            egress_mac, ingress_mac, chaindb, network_id)
-        self._header_sync_lock = asyncio.Lock()
-        # The block number for the last header we fetched from the remote.
-        self.synced_block_height = None  # type: int
-
-    def handle_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(cmd, Announce):
-            self.handle_announce(msg)
-        elif isinstance(cmd, Status):
-            self.handle_status(msg)
-        else:
-            self.logger.debug("No custom LESPeer handler for %s", cmd)
-
-    def handle_announce(self, msg: protocol._DecodedMsgType) -> None:
-        self.logger.info(
-            "New LES/Announce by %s; head_number==%s, reorg_depth==%s",
-            self, msg['head_number'], msg['reorg_depth'])
-        asyncio.ensure_future(
-            self.sync(msg['head_hash'], msg['head_number'], msg['reorg_depth']))
-
-    def handle_status(self, msg: protocol._DecodedMsgType) -> None:
-        self.logger.info(
-            "New LES/Status by %s; head_number==%s", self, msg['headNum'])
-        asyncio.ensure_future(self.sync(msg['headHash'], msg['headNum']))
-
-    async def sync(self, head_hash, head_number, reorg_depth=0):
-        if self.chaindb.header_exists(head_hash):
-            self.logger.debug("Already have head announced by %s", self)
-            self.synced_block_height = head_number
-            return
-
-        with await self._header_sync_lock:
-            try:
-                await self._sync(head_number, reorg_depth)
-            except asyncio.TimeoutError:
-                # TODO: Implement a retry mechanism and only disconnect after retrying a few
-                # times.
-                self.logger.warn("Timeout when syncing, disconnecting from %s", self)
-                await self.stop_and_wait_until_finished()
-            except Exception:
-                self.logger.error(
-                    "Unexpected error when syncing headers: {}".format(traceback.format_exc()))
-
-    async def _sync(self, head_number: int, reorg_depth: int) -> None:
-        """Ensure our chaindb contains all block headers until the given number.
-
-        Callers must aquire self._header_sync_lock in order to serialize processing of announce
-        messages from the same remote peer.
-        """
-        if self.synced_block_height is None:
-            # It's the first time we hear from this peer, need to figure out which headers to
-            # get from it.  We can't simply fetch headers starting from our current head
-            # number because there may have been a chain reorg, so we fetch some headers prior
-            # to our head from the peer, and insert any missing ones in our DB, essentially
-            # making our canonical chain identical to the peer's up to
-            # chain_head.block_number.
-            chain_head = self.chaindb.get_canonical_head()
-            oldest_ancestor_to_consider = max(
-                0, chain_head.block_number - self.max_headers_fetch + 1)
-            headers = await self._fetch_headers_starting_at(oldest_ancestor_to_consider)
-            if len(headers) == 0 or not self.chaindb.header_exists(headers[0].hash):
-                self.logger.warn("No common ancestors between us and remote, disconnecting")
-                self.disconnect(DisconnectReason.other)
-                return
-            for header in headers:
-                self.chaindb.persist_header_to_db(header)
-            self.synced_block_height = chain_head.block_number
-        else:
-            self.synced_block_height = self.synced_block_height - reorg_depth
-
-        while self.synced_block_height < head_number:
-            # This should be "self.synced_block_height + 1", but we always re-fetch the last
-            # synced block to work aaround https://github.com/ethereum/go-ethereum/issues/15447
-            start_block = self.synced_block_height
-            batch = await self._fetch_headers_starting_at(start_block)
-            for header in batch:
-                self.chaindb.persist_header_to_db(header)
-                self.synced_block_height = header.block_number
-            self.logger.info("synced headers up to #%s", self.synced_block_height)
-
-    async def _fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
+    async def fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
 
-        Returns a tuple containing those headers in ascending order of block number.
+        Returns a list containing those headers in ascending order of block number.
         """
         request_id = gen_request_id()
         self.les_proto.send_get_block_headers(
@@ -520,7 +437,7 @@ class LESPeer(BasePeer):
         return self._les_proto
 
 
-class HeadInfo:
+class ChainInfo:
     def __init__(self, block_number, block_hash, total_difficulty, genesis_hash):
         self.block_number = block_number
         self.block_hash = block_hash

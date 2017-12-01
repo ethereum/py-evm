@@ -28,3 +28,15 @@ class UnreachablePeer(Exception):
 
 class EmptyGetBlockHeadersReply(Exception):
     pass
+
+
+class LESAnnouncementProcessingError(Exception):
+    pass
+
+
+class TooManyTimeouts(Exception):
+    pass
+
+
+class StopRequested(Exception):
+    pass
