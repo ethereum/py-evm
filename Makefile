@@ -39,9 +39,7 @@ coverage:
 	open htmlcov/index.html
 
 build-docs:
-	sphinx-apidoc -o docs/ -d 2 evm/
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	cd docs/; sphinx-build -T -E . _build/html
 
 docs: build-docs
 	open docs/_build/html/index.html
