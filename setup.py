@@ -32,6 +32,7 @@ setup(
             "leveldb>=0.194",
         ]
     },
+    setup_requires=['setuptools-markdown'],
     license='MIT',
     zip_safe=False,
     keywords='ethereum blockchain evm',

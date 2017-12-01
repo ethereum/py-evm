@@ -38,13 +38,16 @@ coverage:
 	coverage html
 	open htmlcov/index.html
 
-docs:
-	rm -f docs/evm.rst
-	rm -f docs/modules.rst
+build-docs:
 	sphinx-apidoc -o docs/ -d 2 evm/
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
+
+docs: build-docs
 	open docs/_build/html/index.html
+
+linux-docs: build-docs
+	xdg-open docs/_build/html/index.html
 
 release: clean
 	python setup.py sdist bdist_wheel upload

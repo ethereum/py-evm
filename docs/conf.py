@@ -14,10 +14,23 @@
 # the CI happy without figuring a satisfactory way to import.
 import os
 
-DIR = os.path.dirname('__file__')
+about_fields = [
+    'author',
+    'description',
+    'name',
+    'url',
+    'version',
+]
+
 about = {}
-with open(os.path.join(DIR, '../evm', '__version__.py'), 'r') as f:
-    exec(f.read(), about)
+
+DIR = os.path.dirname('__file__')
+with open (os.path.join(DIR, '../setup.py'), 'r') as f:
+    for line in f:
+        for field in about_fields:
+            if ' ' + field + '=' in line:
+                about['__%s__' % field] = line.split('\'')[1]
+
 
 # -- General configuration ------------------------------------------------
 
@@ -27,7 +40,8 @@ needs_sphinx = '1.5'
 
 extensions = [
     'sphinx.ext.todo',
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -43,8 +57,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = about['__title__']
-copyright = about['__copyright__']
+project = about['__name__']
+copyright = '2017, Piper Merriam, Jason Carver'
 author = about['__author__']
 
 # The version info for the project you're documenting, acts as replacement for
@@ -62,7 +76,11 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [
+    '_build',
+    'Thumbs.db',
+    '.DS_Store',
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -75,20 +93,20 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Using Alabaster by default, reference for options is:
 # http://alabaster.readthedocs.io/en/latest/customization.html
 
-html_theme_options = {
-    'github_user': about['__url__'].split('/')[-2],
-    'github_repo': about['__url__'].split('/')[-1],
- }
+# html_theme_options = {
+#     'github_user': about['__url__'].split('/')[-2],
+#     'github_repo': about['__url__'].split('/')[-1],
+# }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Allows the mod index to function more helpfully (not everything under 'e')
 modindex_common_prefix = ['evm.']
@@ -136,7 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, about['__title__'], 'py-evm Documentation',
+    (master_doc, about['__name__'], 'py-evm Documentation',
      about['__author__'], 1)
 ]
 
@@ -147,7 +165,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, about['__title__'], 'py-evm Documentation',
-     about['__author__'], about['__title__'], about['__description__'],
+    (master_doc, about['__name__'], 'py-evm Documentation',
+     about['__author__'], about['__name__'], about['__description__'],
      'Miscellaneous'),
 ]
+
+# -- Intersphinx configuration ------------------------------------------------
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.5', None),
+}

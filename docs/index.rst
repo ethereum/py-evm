@@ -6,21 +6,9 @@ Py-EVM is a new implementation of the Ethereum Virtual Machine written in python
 Py-EVM aims to eventually become the defacto python implementation of the EVM, enabling a wide array of use cases for both public and private chains. Development will focus on creating an EVM with a well defined API, friendly and easy to digest documentation which can be run as a fully functional mainnet node.
 
 .. toctree::
-   :hidden:
+   :maxdepth: 1
 
-   self
-
-.. toctree::
-   :numbered:
-   :maxdepth: 4
-   :caption: Contents:
-
-   readme.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   quickstart.rst
+   building_chains.rst
+   contributing.rst
+   low_level.rst
