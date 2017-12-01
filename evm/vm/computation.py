@@ -110,7 +110,7 @@ class Computation(object):
 
     @property
     def should_erase_return_data(self):
-        return self.error and self.error.zeros_return_data
+        return self.error and self.error.erases_return_data
 
     #
     # Execution
@@ -178,7 +178,7 @@ class Computation(object):
     #
     @property
     def output(self):
-        if self.error and self.error.zeros_return_data:
+        if self.should_erase_return_data:
             return b''
         else:
             return self._output
@@ -260,7 +260,7 @@ class Computation(object):
             return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
     def get_gas_used(self):
-        if self.error and self.error.burns_gas:
+        if self.should_burn_gas:
             return self.msg.gas
         else:
             return max(
@@ -269,7 +269,7 @@ class Computation(object):
             )
 
     def get_gas_remaining(self):
-        if self.error and self.error.burns_gas:
+        if self.should_burn_gas:
             return 0
         else:
             return self.gas_meter.gas_remaining

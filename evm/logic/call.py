@@ -111,7 +111,7 @@ class BaseCall(Opcode):
             else:
                 computation.stack.push(1)
 
-            if not child_computation.error or not child_computation.error.zeros_return_data:
+            if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
                 computation.memory.write(
                     memory_output_start_position,
@@ -119,7 +119,7 @@ class BaseCall(Opcode):
                     child_computation.output[:actual_output_size],
                 )
 
-            if not child_computation.error or not child_computation.error.burns_gas:
+            if not child_computation.should_burn_gas:
                 computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
 
 
