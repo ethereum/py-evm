@@ -80,6 +80,7 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
+    'modules.rst',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -175,3 +176,28 @@ texinfo_documents = [
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.5', None),
 }
+
+# -- autodoc on any sphinx-build, to support RTD ---------------------------
+
+
+def run_apidoc(_):
+    from sphinx.apidoc import main
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    package = os.path.join(cur_dir, "..")
+    main([
+        None,
+        '-o',
+        cur_dir,
+        '--force',
+        package,
+        package + "/tests/*",
+        package + "/setup.py",
+        package + '/.eggs/*',
+    ])
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
