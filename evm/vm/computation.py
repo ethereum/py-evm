@@ -104,6 +104,14 @@ class Computation(object):
     def is_error(self):
         return not self.is_success
 
+    @property
+    def should_burn_gas(self):
+        return self.error and self.error.burns_gas
+
+    @property
+    def should_erase_return_data(self):
+        return self.error and self.error.zeros_return_data
+
     #
     # Execution
     #

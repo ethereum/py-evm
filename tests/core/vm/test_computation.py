@@ -288,3 +288,35 @@ def test_get_gas_used_with_revert(computation):
         raise Revert('Triggered VMError for tests')
     assert computation.error
     assert computation.get_gas_used() == 5
+
+
+def test_should_burn_gas_with_vm_error(computation):
+    assert computation.get_gas_remaining() == 100
+    # Trigger an out of gas error causing get gas remaining to be 0
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.should_burn_gas
+
+
+def test_should_burn_gas_with_revert(computation):
+    assert computation.get_gas_remaining() == 100
+    # Trigger an out of gas error causing get gas remaining to be 0
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert not computation.should_burn_gas
+
+
+def test_should_erase_return_data_with_vm_error(computation):
+    assert computation.get_gas_remaining() == 100
+    # Trigger an out of gas error causing get gas remaining to be 0
+    with computation:
+        raise VMError('Triggered VMError for tests')
+    assert computation.should_erase_return_data
+
+
+def test_should_erase_return_data_with_revert(computation):
+    assert computation.get_gas_remaining() == 100
+    # Trigger an out of gas error causing get gas remaining to be 0
+    with computation:
+        raise Revert('Triggered VMError for tests')
+    assert not computation.should_erase_return_data
