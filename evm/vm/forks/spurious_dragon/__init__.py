@@ -46,14 +46,14 @@ def _apply_spurious_dragon_create_message(vm, message):
 
     computation = vm.apply_message(message)
 
-    if computation.error:
+    if computation.is_error:
         vm.revert(snapshot)
         return computation
     else:
         contract_code = computation.output
 
         if contract_code and len(contract_code) >= constants.EIP170_CODE_SIZE_LIMIT:
-            computation.error = OutOfGas(
+            computation._error = OutOfGas(
                 "Contract code size exceeds EIP170 limit of {0}.  Got code of "
                 "size: {1}".format(
                     constants.EIP170_CODE_SIZE_LIMIT,
@@ -71,7 +71,7 @@ def _apply_spurious_dragon_create_message(vm, message):
             except OutOfGas as err:
                 # Different from Frontier: reverts state on gas failure while
                 # writing contract code.
-                computation.error = err
+                computation._error = err
                 vm.revert(snapshot)
             else:
                 if vm.logger:

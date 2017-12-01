@@ -17,7 +17,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     from_ = chain.funded_address
     tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
     computation = vm.apply_transaction(tx)
-    assert computation.error is None
+    assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
     with vm.state_db(read_only=True) as state_db:
         assert state_db.get_balance(from_) == (
@@ -44,7 +44,7 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     from_ = chain.funded_address
     tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
     computation = vm.apply_transaction(tx)
-    assert computation.error is None
+    assert not computation.is_error
     parent_vm = chain.get_chain_at_block_parent(vm.block).get_vm()
     block = parent_vm.import_block(vm.block)
     assert block.transactions == [tx]

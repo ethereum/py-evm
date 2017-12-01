@@ -118,7 +118,7 @@ def _execute_frontier_transaction(vm, transaction):
             # The address of the newly created contract has *somehow* collided
             # with an existing contract address.
             computation = Computation(vm, message)
-            computation.error = ContractCreationCollision(
+            computation._error = ContractCreationCollision(
                 "Address collision while creating contract: {0}".format(
                     encode_hex(contract_address),
                 )
@@ -212,7 +212,7 @@ def _apply_frontier_message(vm, message):
 
     computation = vm.apply_computation(message)
 
-    if computation.error:
+    if computation.is_error:
         vm.revert(snapshot)
     else:
         vm.commit(snapshot)
@@ -223,7 +223,7 @@ def _apply_frontier_message(vm, message):
 def _apply_frontier_create_message(vm, message):
     computation = vm.apply_message(message)
 
-    if computation.error:
+    if computation.is_error:
         return computation
     else:
         contract_code = computation.output

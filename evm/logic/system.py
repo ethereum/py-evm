@@ -156,7 +156,7 @@ class Create(Opcode):
 
         child_computation = computation.apply_child_computation(child_msg)
 
-        if child_computation.error:
+        if child_computation.is_error:
             computation.stack.push(0)
         else:
             computation.stack.push(contract_address)
