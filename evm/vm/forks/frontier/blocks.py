@@ -288,16 +288,16 @@ class FrontierBlock(BaseBlock):
 
     def mine(self, **kwargs):
         """
-        - `coinbase`
-        - `uncles_hash`
-        - `state_root`
-        - `transaction_root`
-        - `receipt_root`
-        - `bloom`
-        - `gas_used`
-        - `extra_data`
-        - `mix_hash`
-        - `nonce`
+        :param bytes coinbase: 20-byte public address to receive block reward
+        :param bytes uncles_hash: 32 bytes
+        :param bytes state_root: 32 bytes
+        :param bytes transaction_root: 32 bytes
+        :param bytes receipt_root: 32 bytes
+        :param int bloom:
+        :param int gas_used:
+        :param bytes extra_data: 32 bytes
+        :param bytes mix_hash: 32 bytes
+        :param bytes nonce: 8 bytes
         """
         if 'uncles' in kwargs:
             self.uncles = kwargs.pop('uncles')

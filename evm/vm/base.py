@@ -181,7 +181,8 @@ class VM(object):
 
     def mine_block(self, *args, **kwargs):
         """
-        Mine the current block.
+        Mine the current block. Proxies to the current block's mine method.
+        See example with FrontierBlock. :meth:`~evm.vm.forks.frontier.blocks.FrontierBlock.mine`
         """
         block = self.block
         block.mine(*args, **kwargs)

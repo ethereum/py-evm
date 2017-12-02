@@ -266,7 +266,8 @@ class Chain(object):
 
     def mine_block(self, *args, **kwargs):
         """
-        Mines the current block.
+        Mines the current block. Proxies to the current Virtual Machine.
+        See VM. :meth:`~evm.vm.base.VM.mine_block`
         """
         mined_block = self.get_vm().mine_block(*args, **kwargs)
 
