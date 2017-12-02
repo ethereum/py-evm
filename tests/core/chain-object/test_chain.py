@@ -38,7 +38,7 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     from_ = chain.funded_address
     tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
     computation = vm.apply_transaction(tx)
-    assert computation.error is None
+    assert not computation.is_error
     block = chain.import_block(vm.block)
     assert block.transactions == [tx]
     assert chain.get_block_by_hash(block.hash) == block
