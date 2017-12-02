@@ -26,7 +26,7 @@ def _apply_homestead_create_message(vm, message):
 
     computation = vm.apply_message(message)
 
-    if computation.error:
+    if computation.is_error:
         vm.revert(snapshot)
         return computation
     else:
@@ -42,7 +42,7 @@ def _apply_homestead_create_message(vm, message):
             except OutOfGas as err:
                 # Different from Frontier: reverts state on gas failure while
                 # writing contract code.
-                computation.error = err
+                computation._error = err
                 vm.revert(snapshot)
             else:
                 if vm.logger:

@@ -160,7 +160,7 @@ def test_vm_fixtures(fixture, vm_class):
         #
         # Success checks
         #
-        assert computation.error is None
+        assert not computation.is_error
 
         log_entries = computation.get_log_entries()
         if 'logs' in fixture:
@@ -199,8 +199,8 @@ def test_vm_fixtures(fixture, vm_class):
         #
         # Error checks
         #
-        assert computation.error
-        assert isinstance(computation.error, VMError)
+        assert computation.is_error
+        assert isinstance(computation._error, VMError)
         post_state = fixture['pre']
 
     with vm.state_db(read_only=True) as state_db:

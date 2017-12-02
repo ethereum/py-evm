@@ -64,7 +64,7 @@ class Computation(object):
 
     _output = b''
     return_data = b''
-    error = None
+    _error = None
 
     logs = None
     accounts_to_delete = None
@@ -98,11 +98,19 @@ class Computation(object):
 
     @property
     def is_success(self):
-        return self.error is None
+        return self._error is None
 
     @property
     def is_error(self):
         return not self.is_success
+
+    @property
+    def should_burn_gas(self):
+        return self.is_error and self._error.burns_gas
+
+    @property
+    def should_erase_return_data(self):
+        return self.is_error and self._error.erases_return_data
 
     #
     # Execution
@@ -170,7 +178,7 @@ class Computation(object):
     #
     @property
     def output(self):
-        if self.error and self.error.zeros_return_data:
+        if self.should_erase_return_data:
             return b''
         else:
             return self._output
@@ -193,10 +201,10 @@ class Computation(object):
         return child_computation
 
     def add_child_computation(self, child_computation):
-        if child_computation.error:
+        if child_computation.is_error:
             if child_computation.msg.is_create:
                 self.return_data = child_computation.output
-            elif child_computation.error.zeros_return_data:
+            elif child_computation.should_burn_gas:
                 self.return_data = b''
             else:
                 self.return_data = child_computation.output
@@ -228,7 +236,7 @@ class Computation(object):
     # Getters
     #
     def get_accounts_for_deletion(self):
-        if self.error:
+        if self.is_error:
             return tuple()
         else:
             return tuple(dict(itertools.chain(
@@ -237,7 +245,7 @@ class Computation(object):
             )).items())
 
     def get_log_entries(self):
-        if self.error:
+        if self.is_error:
             return tuple()
         else:
             return tuple(itertools.chain(
@@ -246,13 +254,13 @@ class Computation(object):
             ))
 
     def get_gas_refund(self):
-        if self.error:
+        if self.is_error:
             return 0
         else:
             return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
     def get_gas_used(self):
-        if self.error and self.error.burns_gas:
+        if self.should_burn_gas:
             return self.msg.gas
         else:
             return max(
@@ -261,7 +269,7 @@ class Computation(object):
             )
 
     def get_gas_remaining(self):
-        if self.error and self.error.burns_gas:
+        if self.should_burn_gas:
             return 0
         else:
             return self.gas_meter.gas_remaining
@@ -300,8 +308,8 @@ class Computation(object):
                 "y" if self.msg.is_static else "n",
                 exc_value,
             )
-            self.error = exc_value
-            if self.error.burns_gas:
+            self._error = exc_value
+            if self.should_burn_gas:
                 self.gas_meter.consume_gas(
                     self.gas_meter.gas_remaining,
                     reason=" ".join((

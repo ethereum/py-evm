@@ -52,7 +52,7 @@ class VMError(PyEVMError):
     Class of errors which can be raised during VM execution.
     """
     burns_gas = True
-    zeros_return_data = True
+    erases_return_data = True
 
 
 class OutOfGas(VMError):
@@ -117,7 +117,7 @@ class Revert(VMError):
     Error used by the REVERT opcode
     """
     burns_gas = False
-    zeros_return_data = False
+    erases_return_data = False
 
 
 class WriteProtection(VMError):
