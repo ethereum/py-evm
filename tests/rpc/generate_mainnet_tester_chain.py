@@ -1,11 +1,12 @@
+import json
 import os
 import time
 
-from eth_keys import (
-    KeyAPI,
-)
+from eth_keys import keys
 
 from eth_utils import (
+    decode_hex,
+    encode_hex,
     pad_left,
     int_to_big_endian,
     to_dict,
@@ -14,7 +15,7 @@ from eth_utils import (
 )
 
 from evm import MainnetTesterChain
-from evm.db.backends.level import LevelDB
+from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
 
 # lifted from https://github.com/ethereum/eth-tester/blob/168c7a59/eth_tester/backends/pyevm/main.py
@@ -49,8 +50,6 @@ def get_default_account_state():
 
 @to_tuple
 def get_default_account_keys():
-    keys = KeyAPI()
-
     for i in range(1, 11):
         pk_bytes = pad_left(int_to_big_endian(i), 32, b'\x00')
         private_key = keys.PrivateKey(pk_bytes)
@@ -84,18 +83,36 @@ def get_default_genesis_params():
     return genesis_params
 
 
-def get_level_db(db_path):
-    return BaseChainDB(LevelDB(db_path))
+def get_fixture_path():
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    test_dir = os.path.dirname(file_dir)
+    return os.path.join(test_dir, 'fixtures')
+
+
+def load_db(db_path):
+    with open(db_path) as f:
+        key_val_hex = json.loads(f.read())
+        db = MemoryDB()
+        db.kv_store = {decode_hex(k): decode_hex(v) for k, v in key_val_hex.items()}
+        return db
+
+
+def save_db(db_path, db):
+    with open(db_path, 'w') as f:
+        key_val_hex = {encode_hex(k): encode_hex(v) for k, v in db.kv_store.items()}
+        json_db = json.dumps(key_val_hex, sort_keys=True)
+        f.write(json_db)
 
 
 def setup_tester_chain(db_path, account_keys):
-    db = get_level_db(db_path)
+    db = MemoryDB()
+    chain_db = BaseChainDB(db)
 
     genesis_params = get_default_genesis_params()
     genesis_state = generate_genesis_state(account_keys)
 
-    chain = MainnetTesterChain.from_genesis(db, genesis_params, genesis_state)
-    return chain
+    chain = MainnetTesterChain.from_genesis(chain_db, genesis_params, genesis_state)
+    return chain, db
 
 
 def build_chain(chain, account_keys):
@@ -117,10 +134,12 @@ def build_chain(chain, account_keys):
 
 if __name__ == '__main__':
     account_keys = get_default_account_keys()
-    file_dir = os.path.dirname(os.path.realpath(__file__))
-    db_path = os.path.join(file_dir, 'mainnet_tester_chain.db')
+    fixture_path = get_fixture_path()
+    db_path = os.path.join(fixture_path, 'rpc_test_chain.db')
     if os.path.exists(db_path):
-        chain = MainnetTesterChain(get_level_db(db_path))
+        db = load_db(db_path)
+        chain = MainnetTesterChain(BaseChainDB(db))
     else:
-        chain = setup_tester_chain(db_path, account_keys)
+        chain, db = setup_tester_chain(db_path, account_keys)
     build_chain(chain, account_keys)
+    save_db(db_path, db)
