@@ -4,7 +4,6 @@ import pytest
 
 from eth_utils import (
     decode_hex,
-    encode_hex,
 )
 
 from evm import MainnetTesterChain
@@ -69,6 +68,57 @@ def build_request(method, params):
             },
             None,
         ),
+        (
+            build_request('eth_notathing', []),
+            None,
+            "Method not implemented: 'eth_notathing'",
+        ),
+        (
+            build_request('eth_accounts', []),
+            None,
+            "Method not implemented: 'eth_accounts'",
+        ),
+        (
+            build_request('eth_blockNumber', []),
+            "0x1",
+            None,
+        ),
+        (
+            build_request('eth_getBalance',
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", 0],
+            ),
+            hex(1000000 * 10 ** 18),
+            None,
+        ),
+        (
+            build_request('eth_getBalance',
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", "earliest"],
+            ),
+            hex(1000000 * 10 ** 18),
+            None,
+        ),
+        (
+            build_request('eth_getBalance',
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", 1],
+            ),
+            hex(1000005 * 10 ** 18),
+            None,
+        ),
+        (
+            build_request('eth_getBalance',
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", "latest"],
+            ),
+            hex(1000005 * 10 ** 18),
+            None,
+        ),
+        # TODO issue a transaction in pending pool, so balance will test different from latest
+        (
+            build_request('eth_getBalance',
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", "pending"],
+            ),
+            hex(1000005 * 10 ** 18),
+            None,
+        ),
     ),
 )
 def test_eth_requests(rpc, rpc_request, expected_result, expected_error):
@@ -81,6 +131,6 @@ def test_eth_requests(rpc, rpc_request, expected_result, expected_error):
         assert 'result' not in response
 
     if expected_error:
-        response['error'] == expected_error
+        assert response['error'] == expected_error
     else:
         assert 'error' not in response

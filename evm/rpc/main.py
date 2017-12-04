@@ -57,14 +57,21 @@ class RPCServer:
             request = json.loads(request_json)
         except json.decoder.JSONDecodeError as e:
             raise ValueError("cannot parse json in %r" % request_json) from e
-        if request.get('jsonrpc', None) != '2.0':
-            raise NotImplemented("Only the 2.0 jsonrpc protocol is supported")
+
         response = generate_response(request)
 
         try:
+            if request.get('jsonrpc', None) != '2.0':
+                raise NotImplementedError("Only the 2.0 jsonrpc protocol is supported")
+
             method = self._lookup_method(request['method'])
             response['result'] = method(*request['params'])
         except ValueError as exc:
             response['error'] = str(exc)
+        except NotImplementedError as exc:
+            response['error'] = "Method not implemented: %r" % request['method']
+            custom_message = str(exc)
+            if custom_message:
+                response['error'] += ' - %s' % custom_message
 
         return json.dumps(response)
