@@ -30,10 +30,10 @@ def rpc(chain):
     return RPCServer(chain)
 
 
-def build_request(method, args):
+def build_request(method, params):
     return '{"jsonrpc":"2.0","method":"%s","params":%s,"id":3}' % (
         method,
-        json.dumps(args),
+        json.dumps(params),
     )
 
 
