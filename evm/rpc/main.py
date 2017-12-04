@@ -1,12 +1,6 @@
 import json
 
-from eth_utils import (
-    decode_hex,
-    encode_hex,
-    int_to_big_endian,
-)
-
-import rlp
+from evm.rpc.modules import Eth
 
 
 def generate_response(request):
@@ -14,40 +8,6 @@ def generate_response(request):
         'id': request['id'],
         'jsonrpc': request['jsonrpc'],
     }
-
-
-def block_to_dict(block, chain, include_transactions):
-    logs_bloom = encode_hex(int_to_big_endian(block.header.bloom))[2:]
-    logs_bloom = '0x' + logs_bloom.rjust(512, '0')
-    block_dict = {
-        "difficulty": hex(block.header.difficulty),
-        "extraData": encode_hex(block.header.extra_data),
-        "gasLimit": hex(block.header.gas_limit),
-        "gasUsed": hex(block.header.gas_used),
-        "hash": encode_hex(block.header.hash),
-        "logsBloom": logs_bloom,
-        "mixHash": encode_hex(block.header.mix_hash),
-        "nonce": encode_hex(block.header.nonce),
-        "number": hex(block.header.block_number),
-        "parentHash": encode_hex(block.header.parent_hash),
-        "receiptsRoot": encode_hex(block.header.receipt_root),
-        "sha3Uncles": encode_hex(block.header.uncles_hash),
-        "stateRoot": encode_hex(block.header.state_root),
-        "timestamp": hex(block.header.timestamp),
-        "totalDifficulty": hex(chain.chaindb.get_score(block.hash)),
-        "transactionsRoot": encode_hex(block.header.transaction_root),
-        "uncles": [encode_hex(uncle.hash) for uncle in block.uncles],
-        "size": hex(len(rlp.encode(block))),
-        "miner": encode_hex(block.header.coinbase),
-    }
-
-    if include_transactions:
-        # block_dict['transactions'] = map(transaction_to_dict, block.transactions)
-        raise NotImplemented("Cannot return transaction object with block, yet")
-    else:
-        block_dict['transactions'] = [encode_hex(tx.hash) for tx in block.transactions]
-
-    return block_dict
 
 
 class RPCServer:
@@ -60,8 +20,34 @@ class RPCServer:
     :meth:`RPCServer.eth_getBlockByHash`.
     '''
 
+    module_classes = (
+        Eth,
+    )
+
     def __init__(self, chain):
         self.chain = chain
+        self.modules = {}
+        for m in self.module_classes:
+            self.modules[m.__name__.lower()] = m(chain)
+
+    def _lookup_method(self, rpc_method):
+        method_pieces = rpc_method.split('_')
+
+        if len(method_pieces) != 2:
+            # This check provides a security guarantee: that it's impossible to invoke
+            # a method with an underscore in it. Only public methods on the modules
+            # will be callable by external clients.
+            raise ValueError("Invalid RPC method: %r" % rpc_method)
+        module_name, method_name = method_pieces
+
+        if module_name not in self.modules:
+            raise ValueError("Module unavailable: %r" % module_name)
+        module = self.modules[module_name]
+
+        try:
+            return getattr(module, method_name)
+        except AttributeError:
+            raise ValueError("Method not implemented: %r" % rpc_method)
 
     def request(self, request_json):
         '''
@@ -74,17 +60,11 @@ class RPCServer:
         if request.get('jsonrpc', None) != '2.0':
             raise NotImplemented("Only the 2.0 jsonrpc protocol is supported")
         response = generate_response(request)
-        if not hasattr(self, request['method']):
-            response['error'] = "Method %r not supported" % request['method']
-        else:
-            response['result'] = getattr(self, request['method'])(*request['params'])
+
+        try:
+            method = self._lookup_method(request['method'])
+            response['result'] = method(*request['params'])
+        except ValueError as exc:
+            response['error'] = str(exc)
+
         return json.dumps(response)
-
-    def eth_getBlockByHash(self, block_hash_hex, include_transactions):
-        block_hash = decode_hex(block_hash_hex)
-        block = self.chain.get_block_by_hash(block_hash)
-        assert block.hash == block_hash
-
-        block_dict = block_to_dict(block, self.chain, include_transactions)
-
-        return block_dict
