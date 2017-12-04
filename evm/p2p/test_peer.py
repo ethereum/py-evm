@@ -434,6 +434,7 @@ LightChainForTests = LightChain.configure(
     'LightChainForTests',
     vm_configuration=MAINNET_VM_CONFIGURATION,
     network_id=MAINNET_NETWORK_ID,
+    privkey=ecies.generate_privkey(),
     peer_pool_class=MockPeerPool,
 )
 

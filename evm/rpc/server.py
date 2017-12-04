@@ -89,24 +89,25 @@ class App(web.Application):
         }
 
 
-DemoLightChain = LightChain.configure(
-    'RPCDemoLightChain',
-    vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=NETWORK_ID,
-)
-
-
 if __name__ == '__main__':
     import argparse
     from evm.db.backends.level import LevelDB
     from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
+    from evm.p2p import ecies
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.getLogger("evm.p2p.lightchain").setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     args = parser.parse_args()
+
+    DemoLightChain = LightChain.configure(
+        'RPCDemoLightChain',
+        vm_configuration=MAINNET_VM_CONFIGURATION,
+        network_id=NETWORK_ID,
+        privkey=ecies.generate_privkey(),
+    )
 
     chaindb = BaseChainDB(LevelDB(args.db))
     try:
