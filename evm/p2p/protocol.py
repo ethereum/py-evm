@@ -120,14 +120,16 @@ class Protocol:
         raise NotImplementedError()
 
     def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
-        """Process the handshake msg for this protocol."""
+        """Process the handshake msg for this protocol.
+
+        Should raise HandshakeFailure if the handshake fails for any reason.
+        """
         raise NotImplementedError()
 
     def process(self, cmd_id: int, msg: bytes) -> Tuple[Command, _DecodedMsgType]:
         cmd = self.cmd_by_id[cmd_id]
         decoded = cmd.handle(self, msg)
-        self.logger.debug("Successfully processed {}(cmd_id={}) msg: {}".format(
-            cmd.__class__.__name__, cmd_id, decoded))
+        self.logger.debug("Successfully processed %s msg: %s", cmd, decoded)
         if isinstance(cmd, self.handshake_msg_type):
             self.process_handshake(decoded)
         return cmd, decoded

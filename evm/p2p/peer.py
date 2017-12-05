@@ -42,6 +42,7 @@ from evm.p2p.constants import (
 from evm.p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
+    HandshakeFailure,
     PeerConnectionLost,
     PeerDisconnected,
     UnknownProtocolCommand,
@@ -166,15 +167,19 @@ class BasePeer:
         self.mac_enc = mac_cipher.encryptor().update
 
     @property
-    def _local_chain_info(self) -> 'ChainInfo':
+    def genesis(self) -> BlockHeader:
         genesis_hash = self.chaindb.lookup_block_hash(GENESIS_BLOCK_NUMBER)
-        genesis_header = self.chaindb.get_block_header_by_hash(genesis_hash)
+        return self.chaindb.get_block_header_by_hash(genesis_hash)
+
+    @property
+    def _local_chain_info(self) -> 'ChainInfo':
+        genesis = self.genesis
         head = self.chaindb.get_canonical_head()
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
             total_difficulty=self.chaindb.get_score(head.hash),
-            genesis_hash=genesis_header.hash,
+            genesis_hash=genesis.hash,
         )
 
     @property
@@ -248,7 +253,12 @@ class BasePeer:
                 self.logger.info(
                     "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
-            self.process_msg(msg)
+
+            try:
+                self.process_msg(msg)
+            except HandshakeFailure as e:
+                self.disconnect(e.reason)
+                return
 
     async def read_msg(self) -> bytes:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
@@ -262,7 +272,7 @@ class BasePeer:
 
     def process_msg(self, msg: bytes) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
         cmd_id = get_devp2p_cmd_id(msg)
-        self.logger.debug("Got msg with cmd_id: {}".format(cmd_id))
+        self.logger.debug("Got msg with cmd_id: %s", cmd_id)
         proto = self.get_protocol_for(cmd_id)
         if proto is None:
             raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
@@ -284,10 +294,10 @@ class BasePeer:
         remote_capabilities = decoded_msg['capabilities']
         self.match_protocols(remote_capabilities)
         if len(self.enabled_sub_protocols) == 0:
-            self.disconnect(DisconnectReason.useless_peer)
             self.logger.debug(
                 "No matching capabilities between us (%s) and %s (%s), disconnecting",
                 self.capabilities, self.remote, remote_capabilities)
+            raise HandshakeFailure(DisconnectReason.useless_peer)
         else:
             self.logger.debug(
                 "Finished P2P handshake with %s; matching protocols: %s",

@@ -18,6 +18,8 @@ from evm.p2p.constants import (
     MAX_BODIES_FETCH,
     MAX_HEADERS_FETCH,
 )
+from evm.p2p.exceptions import HandshakeFailure
+from evm.p2p.p2p_proto import DisconnectReason
 from evm.p2p.protocol import (
     Command,
     Protocol,
@@ -191,13 +193,20 @@ class LESProtocol(Protocol):
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
-        self.logger.debug("Sending LES/Status msg: {}".format(resp))
+        self.logger.debug("Sending LES/Status msg: %s", resp)
 
     def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
-        # TODO: Possibly disconnect if any of
-        # 1. remote doesn't serve headers
-        # 2. genesis hash does not match
-        pass
+        if decoded_msg['networkId'] != self.peer.network_id:
+            self.logger.debug(
+                "%s network (%s) does not match ours (%s), disconnecting",
+                self.peer, decoded_msg['networkId'], self.peer.network_id)
+            raise HandshakeFailure(DisconnectReason.other)
+        if decoded_msg['genesisHash'] != self.peer.genesis.hash:
+            self.logger.debug(
+                "%s genesis (%s) does not match ours (%s), disconnecting",
+                self.peer, encode_hex(decoded_msg['genesisHash']), self.peer.genesis.hex_hash)
+            raise HandshakeFailure(DisconnectReason.other)
+        # TODO: Raise HandshakeFailure if the remote doesn't serve headers.
 
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int) -> None:
         if len(block_hashes) > MAX_BODIES_FETCH:
