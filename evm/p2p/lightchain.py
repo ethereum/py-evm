@@ -28,7 +28,6 @@ from evm.exceptions import (
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
-from evm.p2p import ecies
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
@@ -72,20 +71,6 @@ class PeerPool:
         self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
-
-    async def get_best_peer(self) -> LESPeer:
-        """
-        Return the peer with the highest announced block height.
-        """
-        while len(self.connected_nodes) == 0:
-            await asyncio.sleep(0.5)
-
-        def peer_block_height(peer):
-            return peer.synced_block_height or -1
-
-        # TODO: Should pick a random one in case there are multiple peers with the same block
-        # height.
-        return max(self.connected_nodes.values(), key=peer_block_height)
 
     async def run(self):
         self.logger.info("Running PeerPool...")
@@ -163,6 +148,10 @@ class PeerPool:
         if peer.remote in self.connected_nodes:
             self.connected_nodes.pop(peer.remote)
 
+    @property
+    def peers(self) -> List[LESPeer]:
+        return list(self.connected_nodes.values())
+
     async def get_nodes_to_connect(self) -> List[kademlia.Node]:
         # TODO: This should use the Discovery service to lookup nodes to connect to, but our
         # current implementation only supports v4 and with that it takes an insane amount of time
@@ -212,8 +201,7 @@ class PeerPool:
 
 class LightChain(Chain):
     logger = logging.getLogger("evm.p2p.lightchain.LightChain")
-    # FIXME: Should be passed in by callers
-    privkey = ecies.generate_privkey()
+    privkey = None  # type: datatypes.PrivateKey
     max_consecutive_timeouts = 5
     peer_pool_class = PeerPool
 
@@ -240,6 +228,23 @@ class LightChain(Chain):
         self._last_processed_announcements.pop(peer, None)
         self._latest_head_info.pop(peer, None)
         await peer.stop_and_wait_until_finished()
+
+    async def get_best_peer(self) -> LESPeer:
+        """
+        Return the peer with the highest announced block height.
+        """
+        while len(self.peer_pool.peers) == 0:
+            await asyncio.sleep(0.5)
+
+        def peer_block_height(peer: LESPeer):
+            last_announced = self._last_processed_announcements.get(peer)
+            if last_announced is None:
+                return -1
+            return last_announced.block_number
+
+        # TODO: Should pick a random one in case there are multiple peers with the same block
+        # height.
+        return max(self.peer_pool.peers, key=peer_block_height)
 
     async def wait_for_announcement(self) -> Tuple[LESPeer, les.HeadInfo]:
         """Wait for a new announcement from any of our connected peers.
@@ -367,6 +372,10 @@ class LightChain(Chain):
         await self._finished.wait()
 
     async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
+        """Return the block with the given number from the canonical chain.
+
+        Raises BlockNotFound if it is not found.
+        """
         try:
             block_hash = self.chaindb.lookup_block_hash(block_number)
         except KeyError:
@@ -376,7 +385,7 @@ class LightChain(Chain):
 
     @alru_cache(maxsize=1024)
     async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
-        peer = await self.peer_pool.get_best_peer()
+        peer = await self.get_best_peer()
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
         peer.les_proto.send_get_block_bodies([block_hash], request_id)
@@ -403,6 +412,7 @@ if __name__ == '__main__':
     from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
     from evm.exceptions import CanonicalHeadNotFound
+    from evm.p2p import ecies
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.getLogger("evm.p2p.lightchain.LightChain").setLevel(logging.DEBUG)
@@ -419,6 +429,7 @@ if __name__ == '__main__':
         NETWORK_ID = ROPSTEN_NETWORK_ID
     DemoLightChain = LightChain.configure(
         'DemoLightChain',
+        privkey=ecies.generate_privkey(),
         vm_configuration=MAINNET_VM_CONFIGURATION,
         network_id=NETWORK_ID,
     )

@@ -15,20 +15,40 @@ Installation
   pip install py-evm
 
 
-Syncing with Mainnet
----------------------
+Sync and interact with the Ropsten chain
+----------------------------------------
 
-Run the LightChain for a little while, saving the blockchain to a file of your chioce:
+Currently we only provide a light client that will sync only block headers,
+although it can fetch block bodies on demand. The easiest way to try it is by
+running the lightchain_shell, which will run the LightChain in the background
+and let you use the python interpreter to interact with it:
 
 .. code:: sh
 
-  $ python -m evm.p2p.lightchain -db /tmp/mainnet.db
+  $ python -i -m evm.lightchain_shell -db /tmp/testnet.db
 
-After syncing some blocks, you can close out the process
-to explore the chain directly with py-evm.
 
-Accessing Mainnet
---------------------
+That will immediately give you a python shell, with a chain variable that you
+can use even before it has finished syncing:
+
+.. code:: sh
+
+  >>> chain.get_canonical_head()
+  <BlockHeader #2200794 e3f9c6bb>
+
+Some :class:`~evm.p2p.lightchain.LightChain` methods (e.g. those that need data
+from block bodies) are coroutines that need to be executed by asyncio's event
+loop, so for those we provide a helper that will schedule their execution and
+wait for the result:
+
+.. code:: sh
+
+  >>> wait_for_result(chain.get_canonical_block_by_number(42))
+  <FrontierBlock(#Block #42)>
+
+
+Accessing an existing chain database
+------------------------------------
 
 The :class:`~evm.chains.chain.Chain` object manages the series of fork rules
 contained in every blockchain. It requires that you define the VM ranges.
@@ -43,7 +63,7 @@ To access the Mainnet chain you can use:
   from evm.db.chain import BaseChainDB
 
   # Read the previously saved chain database
-  chaindb = BaseChainDB(LevelDB('/tmp/mychain.db'))
+  chaindb = BaseChainDB(LevelDB('/tmp/mainnet.db'))
 
   # Load the saved database into a mainnet chain object
   chain = MainnetChain(chaindb)
