@@ -86,3 +86,18 @@ The methods available on the block are variable. They depend on what fork you're
 The mainnet follows "Frontier" rules at the beginning, then Homestead, and so on.
 To see block features for Frontier, see the API for
 :class:`~evm.vm.forks.frontier.blocks.FrontierBlock`.
+
+
+The JSON-RPC API
+----------------
+
+Like all ethereum clients, Py-EVM will eventually provide a JSON-RPC API with all the
+methods defined in https://github.com/ethereum/wiki/wiki/JSON-RPC, but for now only
+a few of them are supported. To start the JSON-RPC server, simply run:
+
+::
+
+  $ python -i -m evm.rpc.server -db /tmp/testnet.db
+
+That will start a server listening on port 8080, with a LightChain syncing block headers on the
+Ropsten network. You can then use curl as described on the wikipage above to interact with it.

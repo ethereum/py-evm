@@ -219,8 +219,8 @@ async def get_client_and_server_peer_pair(
 
     def finalizer():
         async def afinalizer():
-            await client.stop_and_wait_until_finished()
-            await server.stop_and_wait_until_finished()
+            await client.stop()
+            await server.stop()
         event_loop.run_until_complete(afinalizer())
     request.addfinalizer(finalizer)
 
