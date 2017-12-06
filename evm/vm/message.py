@@ -72,8 +72,10 @@ class Message(object):
         validate_is_bytes(data, title="Message.data")
         self.data = data
 
-        self.read_list = to_prefix_list_form(read_list)
-        self.write_list = to_prefix_list_form(write_list)
+        if read_list is not None:
+            self.read_list = to_prefix_list_form(read_list)
+        if write_list is not None:
+            self.write_list = to_prefix_list_form(write_list)
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
