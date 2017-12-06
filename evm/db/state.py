@@ -34,7 +34,8 @@ from evm.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-from evm.utils.access_restriction import (
+
+from evm.utils.state_access_restriction import (
     is_accessible,
 )
 from evm.utils.numeric import (
