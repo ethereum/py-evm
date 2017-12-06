@@ -246,3 +246,19 @@ def validate_header_params_for_configuration(header_params):
                 ", ".join(tuple(sorted(extra_fields))),
             )
         )
+
+
+def validate_access_list(access_list):
+    for obj in access_list:
+        if len(obj) == 0:
+            raise ValidationError("Access list entry must at least specify an account address.")
+        address, prefixes = obj[0], obj[1:]
+        validate_canonical_address(address, title="Access list address")
+        for prefix in prefixes:
+            validate_is_bytes(prefix, title="Access list storage prefix")
+            if len(prefix) > 32:
+                raise ValidationError(
+                    "Access list storage prefix must be 32 bytes or shorter. Got: {}".format(
+                        prefix
+                    )
+                )
