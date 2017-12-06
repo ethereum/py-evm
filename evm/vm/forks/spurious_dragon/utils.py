@@ -22,7 +22,7 @@ def collect_touched_accounts(computation):
         yield computation.vm.block.header.coinbase
 
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
-        if computation.error and computation.is_origin_computation:
+        if computation.is_error and computation.is_origin_computation:
             # Special case to account for geth+parity bug
             # https://github.com/ethereum/EIPs/issues/716
             if beneficiary == THREE:
@@ -32,7 +32,7 @@ def collect_touched_accounts(computation):
             yield beneficiary
 
     if computation.msg.to != constants.CREATE_CONTRACT_ADDRESS:
-        if computation.error and computation.is_origin_computation:
+        if computation.is_error and computation.is_origin_computation:
             # Special case to account for geth+parity bug
             # https://github.com/ethereum/EIPs/issues/716
             if computation.msg.to == THREE:
@@ -40,6 +40,6 @@ def collect_touched_accounts(computation):
         else:
             yield computation.msg.to
 
-    if not computation.is_origin_computation or not computation.error:
+    if not computation.is_origin_computation or not computation.is_error:
         for child in computation.children:
             yield from collect_touched_accounts(child)

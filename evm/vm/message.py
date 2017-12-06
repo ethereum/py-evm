@@ -12,6 +12,10 @@ from evm.validation import (
     validate_is_boolean,
 )
 
+from evm.utils.state_access_restriction import (
+    to_prefix_list_form,
+)
+
 
 class Message(object):
     """
@@ -24,6 +28,8 @@ class Message(object):
     data = None
     gas = None
     gas_price = None
+    read_list = None
+    write_list = None
 
     depth = None
 
@@ -46,6 +52,8 @@ class Message(object):
                  data,
                  code,
                  origin=None,
+                 read_list=None,
+                 write_list=None,
                  depth=0,
                  create_address=None,
                  code_address=None,
@@ -73,6 +81,11 @@ class Message(object):
         if origin is not None:
             validate_canonical_address(origin, title="Message.origin")
         self.origin = origin
+
+        if read_list is not None:
+            self.read_list = to_prefix_list_form(read_list)
+        if write_list is not None:
+            self.write_list = to_prefix_list_form(write_list)
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")

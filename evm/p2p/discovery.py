@@ -8,6 +8,14 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 import asyncio
 import logging
 import time
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Generator,
+    List,
+    Tuple
+)
 
 import rlp
 from eth_utils import (
@@ -17,6 +25,7 @@ from eth_utils import (
 )
 
 from eth_keys import keys
+from eth_keys import datatypes
 
 from evm.p2p import kademlia
 from evm.utils.keccak import keccak
@@ -43,7 +52,7 @@ class WrongMAC(DefectiveMessage):
 
 
 class Command():
-    def __init__(self, name, id, elem_count):
+    def __init__(self, name: str, id: int, elem_count: int) -> None:
         self.name = name
         self.id = id
         # Number of required top-level list elements for this cmd.
@@ -64,10 +73,11 @@ CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, C
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")
-    transport = None
+    transport = None  # type: asyncio.DatagramTransport
     _max_neighbours_per_packet_cache = None
 
-    def __init__(self, privkey, address, bootstrap_nodes):
+    def __init__(self, privkey: datatypes.PrivateKey, address: kademlia.Address,
+                 bootstrap_nodes: List[kademlia.Node]) -> None:
         self.privkey = privkey
         self.address = address
         self.bootstrap_nodes = bootstrap_nodes
@@ -75,10 +85,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
 
     @property
-    def pubkey(self):
+    def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(self, cmd):
+    def _get_handler(self, cmd) -> Callable[[kademlia.Node, List[Any], AnyStr], None]:
         if cmd == CMD_PING:
             return self.recv_ping
         elif cmd == CMD_PONG:
@@ -96,8 +106,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self._max_neighbours_per_packet_cache = _get_max_neighbours_per_packet()
         return self._max_neighbours_per_packet_cache
 
-    def listen(self, loop):
-        return loop.create_datagram_endpoint(
+    async def listen(self, loop: asyncio.AbstractEventLoop) -> Tuple[
+            asyncio.BaseTransport, asyncio.BaseProtocol]:
+        return await loop.create_datagram_endpoint(
             lambda: self, local_addr=(self.address.ip, self.address.udp_port))
 
     def connection_made(self, transport):
@@ -111,21 +122,23 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
         await self.kademlia.bootstrap(self.bootstrap_nodes)
 
-    def datagram_received(self, data, addr):
+    # FIXME: Enable type checking here once we have a mypy version that
+    # includes the fix for https://github.com/python/typeshed/pull/1740
+    def datagram_received(self, data: AnyStr, addr: Tuple[str, int]) -> None:  # type: ignore
         ip_address, udp_port = addr
-        self.receive(kademlia.Address(ip_address, udp_port), data)
+        self.receive(kademlia.Address(ip_address, udp_port), data)  # type: ignore
 
-    def error_received(self, exc):
+    def error_received(self, exc: Exception) -> None:
         self.logger.error('error received: {}'.format(exc))
 
-    def send(self, node, message):
+    def send(self, node: kademlia.Node, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
     def stop(self):
         self.logger.info('stopping discovery')
         self.transport.close()
 
-    def receive(self, address, message):
+    def receive(self, address: kademlia.Address, message: AnyStr) -> None:
         try:
             remote_pubkey, cmd_id, payload, message_hash = _unpack(message)
         except DefectiveMessage as e:
@@ -148,26 +161,26 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         handler = self._get_handler(cmd)
         handler(node, payload, message_hash)
 
-    def recv_pong(self, node, payload, message_hash):
+    def recv_pong(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
         # The pong payload should have 3 elements: to, token, expiration
         _, token, _ = payload
         self.kademlia.recv_pong(node, token)
 
-    def recv_neighbours(self, node, payload, message_hash):
+    def recv_neighbours(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
         nodes, _ = payload
         self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(nodes))
 
-    def recv_ping(self, node, payload, message_hash):
+    def recv_ping(self, node: kademlia.Node, _, message_hash: AnyStr) -> None:
         self.kademlia.recv_ping(node, message_hash)
 
-    def recv_find_node(self, node, payload, message_hash):
+    def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
         # The find_node payload should have 2 elements: node_id, expiration
         self.logger.debug('<<< find_node from {}'.format(node))
         node_id, _ = payload
         self.kademlia.recv_find_node(node, big_endian_to_int(node_id))
 
-    def send_ping(self, node):
+    def send_ping(self, node: kademlia.Node) -> bytes:
         self.logger.debug('>>> pinging {}'.format(node))
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
@@ -176,20 +189,20 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # Return the msg hash, which is used as a token to identify pongs.
         return message[:MAC_SIZE]
 
-    def send_find_node(self, node, target_node_id):
+    def send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
         target_node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         self.logger.debug('>>> find_node to {}'.format(node))
         message = _pack(CMD_FIND_NODE.id, [target_node_id], self.privkey)
         self.send(node, message)
 
-    def send_pong(self, node, token):
+    def send_pong(self, node: kademlia.Node, token: AnyStr) -> None:
         self.logger.debug('>>> ponging {}'.format(node))
         payload = [node.address.to_endpoint(), token]
         message = _pack(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
 
-    def send_neighbours(self, node, neighbours):
+    def send_neighbours(self, node: kademlia.Node, neighbours: List[kademlia.Node]) -> None:
         nodes = []
         neighbours = sorted(neighbours)
         for n in neighbours:
@@ -204,7 +217,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
 
 @to_list
-def _extract_nodes_from_payload(payload):
+def _extract_nodes_from_payload(
+        payload: List[Tuple[str, str, str, str]]) -> Generator[kademlia.Node, None, None]:
     for item in payload:
         ip, udp_port, tcp_port, node_id = item
         address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
@@ -229,7 +243,7 @@ def _get_max_neighbours_per_packet():
     return len(neighbours) - 1
 
 
-def _pack(cmd_id, payload, privkey):
+def _pack(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> bytes:
     """Create and sign a UDP message to be sent to a remote node.
 
     See https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery for information on
@@ -243,7 +257,7 @@ def _pack(cmd_id, payload, privkey):
     return message_hash + signature.to_bytes() + encoded_data
 
 
-def _unpack(message):
+def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnyStr]:
     """Unpack a UDP message received from a remote node.
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
@@ -276,7 +290,7 @@ if __name__ == "__main__":
     privkey_hex = '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b'
     listen_host = '0.0.0.0'
     listen_port = 30303
-    bootstrap_nodes = [
+    bootstrap_uris = [
         # Local geth bootnodes
         # b'enode://3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30301',  # noqa: E501
         # Testnet bootnodes
@@ -298,7 +312,7 @@ if __name__ == "__main__":
 
     privkey = keys.PrivateKey(decode_hex(privkey_hex))
     addr = kademlia.Address(listen_host, listen_port, listen_port)
-    bootstrap_nodes = [kademlia.Node.from_uri(x) for x in bootstrap_nodes]
+    bootstrap_nodes = [kademlia.Node.from_uri(x) for x in bootstrap_uris]
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
     loop.run_until_complete(discovery.listen(loop))
 

@@ -5,7 +5,7 @@ python:
 dist: trusty
 env:
   global:
-    - PYTEST_ADDOPTS="-n 2"
+    - PYTEST_ADDOPTS="-n 2 --durations 50"
   matrix:
     # byzantium goes first because it takes the longest.
     - TOX_POSARGS="-e py35-state-byzantium"

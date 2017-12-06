@@ -55,3 +55,7 @@ prof/**
 
 # mypy
 .mypy_cache/
+*.swp
+docs/evm.*rst
+venv*
+.eggs/

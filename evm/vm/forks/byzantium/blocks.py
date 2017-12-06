@@ -27,7 +27,7 @@ class ByzantiumBlock(SpuriousDragonBlock):
     def make_receipt(self, transaction, computation):
         old_receipt = super(ByzantiumBlock, self).make_receipt(transaction, computation)
         receipt = Receipt(
-            state_root=b'' if computation.error else b'\x01',
+            state_root=b'' if computation.is_error else b'\x01',
             gas_used=old_receipt.gas_used,
             logs=old_receipt.logs,
         )

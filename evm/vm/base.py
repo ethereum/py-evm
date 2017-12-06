@@ -58,8 +58,13 @@ class VM(object):
         return type(name, (cls,), overrides)
 
     @contextmanager
-    def state_db(self, read_only=False):
-        state = self.chaindb.get_state_db(self.block.header.state_root, read_only)
+    def state_db(self, read_only=False, read_list=None, write_list=None):
+        state = self.chaindb.get_state_db(
+            self.block.header.state_root,
+            read_only,
+            read_list=read_list,
+            write_list=write_list
+        )
         yield state
 
         if read_only:
@@ -181,7 +186,8 @@ class VM(object):
 
     def mine_block(self, *args, **kwargs):
         """
-        Mine the current block.
+        Mine the current block. Proxies to the current block's mine method.
+        See example with FrontierBlock. :meth:`~evm.vm.forks.frontier.blocks.FrontierBlock.mine`
         """
         block = self.block
         block.mine(*args, **kwargs)
