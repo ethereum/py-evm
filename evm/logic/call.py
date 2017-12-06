@@ -58,8 +58,14 @@ class BaseCall(Opcode):
         computation.gas_meter.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
-        with computation.vm_state.state_db(read_only=True) as state_db:
+        _state_db = computation.vm_state.state_db(
+            read_only=True,
+            read_list=computation.msg.read_list,
+            write_list=computation.msg.write_list
+        )
+        with _state_db as state_db:
             sender_balance = state_db.get_balance(computation.msg.storage_address)
+
         insufficient_funds = should_transfer_value and sender_balance < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
@@ -83,7 +89,12 @@ class BaseCall(Opcode):
             computation.gas_meter.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:
-            with computation.vm_state.state_db(read_only=True) as state_db:
+            _state_db = computation.vm_state.state_db(
+                read_only=True,
+                read_list=computation.msg.read_list,
+                write_list=computation.msg.write_list
+            )
+            with _state_db as state_db:
                 if code_address:
                     code = state_db.get_code(code_address)
                 else:
@@ -125,8 +136,14 @@ class BaseCall(Opcode):
 
 class Call(BaseCall):
     def compute_msg_extra_gas(self, computation, gas, to, value):
-        with computation.vm_state.state_db(read_only=True) as state_db:
+        _state_db = computation.vm_state.state_db(
+            read_only=True,
+            read_list=computation.msg.read_list,
+            write_list=computation.msg.write_list
+        )
+        with _state_db as state_db:
             account_exists = state_db.account_exists(to)
+
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
         return transfer_gas_fee + create_gas_fee
@@ -282,11 +299,17 @@ def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callsti
 #
 class CallEIP161(CallEIP150):
     def compute_msg_extra_gas(self, computation, gas, to, value):
-        with computation.vm_state.state_db(read_only=True) as state_db:
+        _state_db = computation.vm_state.state_db(
+            read_only=True,
+            read_list=computation.msg.read_list,
+            write_list=computation.msg.write_list
+        )
+        with _state_db as state_db:
             account_is_dead = (
                 not state_db.account_exists(to) or
                 state_db.account_is_empty(to)
             )
+
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if (account_is_dead and value) else 0
         return transfer_gas_fee + create_gas_fee
