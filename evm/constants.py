@@ -162,3 +162,12 @@ BLANK_ROOT_HASH = b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n\x5bH\xe
 
 
 GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
+
+
+#
+# Two layer storage tree prefixes
+#
+NONCE_TRIE_PREFIX = b'\x00'
+BALANCE_TRIE_PREFIX = b'\x01'
+CODE_TRIE_PREFIX = b'\x02'
+STORAGE_TRIE_PREFIX = b'\x03'
