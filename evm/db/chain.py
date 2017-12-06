@@ -201,7 +201,7 @@ class BaseChainDB:
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only):
+    def get_state_db(self, state_root, read_only, read_list=None, write_list=None):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -543,8 +543,14 @@ class ChainDB(BaseChainDB):
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only):
-        return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)
+    def get_state_db(self, state_root, read_only, read_list=None, write_list=None):
+        return AccountStateDB(
+            db=self.db,
+            root_hash=state_root,
+            read_only=read_only,
+            read_list=read_list,
+            write_list=write_list
+        )
 
 
 class AsyncChainDB(ChainDB):

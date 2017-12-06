@@ -13,6 +13,12 @@ from eth_utils import (
 from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
+    BALANCE_TRIE_PREFIX,
+    CODE_TRIE_PREFIX,
+    NONCE_TRIE_PREFIX,
+)
+from evm.exceptions import (
+    UnannouncedStateAccess,
 )
 from evm.db.immutable import (
     ImmutableDB,
@@ -27,6 +33,9 @@ from evm.validation import (
     validate_is_bytes,
     validate_uint256,
     validate_canonical_address,
+)
+from evm.utils.access_restriction import (
+    is_accessible,
 )
 from evm.utils.numeric import (
     int_to_big_endian,
@@ -47,12 +56,23 @@ class AccountStateDB:
 
     logger = logging.getLogger('evm.state.State')
 
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+    def __init__(
+        self,
+        db,
+        root_hash=BLANK_ROOT_HASH,
+        read_only=False,
+        read_list=None,
+        write_list=None
+    ):
         if read_only:
             self.db = TrackedDB(ImmutableDB(db))
         else:
             self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
+
+        self.check_access_restrictions = read_list is not None or write_list is not None
+        self.read_list = read_list
+        self.write_list = write_list
 
     #
     # Base API
@@ -70,10 +90,16 @@ class AccountStateDB:
         validate_uint256(slot, title="Storage Slot")
         validate_canonical_address(address, title="Storage Address")
 
+        slot_as_key = pad32(int_to_big_endian(slot))
+
+        if self.check_access_restrictions:
+            if not is_accessible(address, slot_as_key, self.write_list):
+                raise UnannouncedStateAccess(
+                    "Attempted writing to storage slot outside of write list"
+                )
+
         account = self._get_account(address)
         storage = HashTrie(HexaryTrie(self.db, account.storage_root))
-
-        slot_as_key = pad32(int_to_big_endian(slot))
 
         if value:
             encoded_value = rlp.encode(value)
@@ -88,10 +114,16 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
+        slot_as_key = pad32(int_to_big_endian(slot))
+
+        if self.check_access_restrictions:
+            if not is_accessible(address, slot_as_key, self.read_list):
+                raise UnannouncedStateAccess(
+                    "Attempted reading from storage slot outside of read list"
+                )
+
         account = self._get_account(address)
         storage = HashTrie(HexaryTrie(self.db, account.storage_root))
-
-        slot_as_key = pad32(int_to_big_endian(slot))
 
         if slot_as_key in storage:
             encoded_value = storage[slot_as_key]
@@ -102,6 +134,12 @@ class AccountStateDB:
     def delete_storage(self, address):
         validate_canonical_address(address, title="Storage Address")
 
+        if self.check_access_restrictions:
+            if not is_accessible(address, b'', self.write_list):
+                raise UnannouncedStateAccess(
+                    "Attempted writing to storage slot outside of write list"
+                )
+
         account = self._get_account(address)
         account.storage_root = BLANK_ROOT_HASH
         self._set_account(address, account)
@@ -109,6 +147,13 @@ class AccountStateDB:
     def set_balance(self, address, balance):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(balance, title="Account Balance")
+
+        if self.check_access_restrictions:
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.write_list:
+                # TODO: use is_accessible once two layer trie is implemented
+                raise UnannouncedStateAccess(
+                    "Attempted setting balance of account outside of write list"
+                )
 
         account = self._get_account(address)
         account.balance = balance
@@ -121,12 +166,26 @@ class AccountStateDB:
     def get_balance(self, address):
         validate_canonical_address(address, title="Storage Address")
 
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading balance of account outside of read list"
+                )
+
         account = self._get_account(address)
         return account.balance
 
     def set_nonce(self, address, nonce):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(nonce, title="Nonce")
+
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.write_list:
+                raise UnannouncedStateAccess(
+                    "Attempted setting nonce of account outside of write list"
+                )
 
         account = self._get_account(address)
         account.nonce = nonce
@@ -136,12 +195,26 @@ class AccountStateDB:
     def get_nonce(self, address):
         validate_canonical_address(address, title="Storage Address")
 
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading nonce of account outside of read list"
+                )
+
         account = self._get_account(address)
         return account.nonce
 
     def set_code(self, address, code):
         validate_canonical_address(address, title="Storage Address")
         validate_is_bytes(code, title="Code")
+
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
+                raise UnannouncedStateAccess(
+                    "Attempted setting code of account outside of write list"
+                )
 
         account = self._get_account(address)
 
@@ -157,11 +230,27 @@ class AccountStateDB:
 
     def get_code_hash(self, address):
         validate_canonical_address(address, title="Storage Address")
+
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading code hash of account outside of read list"
+                )
+
         account = self._get_account(address)
         return account.code_hash
 
     def delete_code(self, address):
         validate_canonical_address(address, title="Storage Address")
+
+        if self.check_access_restrictions:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
+                raise UnannouncedStateAccess(
+                    "Attempted setting code of account outside of write list"
+                )
+
         account = self._get_account(address)
         account.code_hash = EMPTY_SHA3
         self._set_account(address, account)
@@ -170,13 +259,16 @@ class AccountStateDB:
     # Account Methods
     #
     def delete_account(self, address):
+        # TODO: check access restriction?
         del self._trie[address]
 
     def account_exists(self, address):
+        # TODO: check access restriction?
         validate_canonical_address(address, title="Storage Address")
         return bool(self._trie[address])
 
     def account_has_code_or_nonce(self, address):
+        # TODO: check access restriction?
         if not self.account_exists(address):
             return False
         account = self._get_account(address)
@@ -188,6 +280,7 @@ class AccountStateDB:
             return False
 
     def account_is_empty(self, address):
+        # TODO: check access restriction?
         validate_canonical_address(address, title="Storage Address")
         account = self._get_account(address)
         if account.code_hash != EMPTY_SHA3:
@@ -200,8 +293,8 @@ class AccountStateDB:
             return True
 
     def touch_account(self, address):
-        if not self.account_exists(address):
-            self._set_account(address, Account())
+        account = self._get_account(address)
+        self._set_account(address, account)
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
