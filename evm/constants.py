@@ -167,3 +167,11 @@ GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
 # BLOCKHASH opcode maximum depth
 #
 MAX_PREV_HEADER_DEPTH = 256
+
+#
+# Two layer storage tree prefixes
+#
+NONCE_TRIE_PREFIX = b'\x00'
+BALANCE_TRIE_PREFIX = b'\x01'
+CODE_TRIE_PREFIX = b'\x02'
+STORAGE_TRIE_PREFIX = b'\x03'
