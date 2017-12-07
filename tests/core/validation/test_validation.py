@@ -24,6 +24,7 @@ from evm.validation import (
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
     validate_multiple_of,
+    validate_read_and_write_list,
     validate_stack_item,
     validate_uint256,
     validate_unique,
@@ -421,3 +422,22 @@ def test_validate_access_list(value, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_access_list(value)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        (([], []), True),
+        ((None, []), False),
+        (([], None), False),
+        (([b'asdf', b'fdsa'], [b'xxxx', b'yyyy']), True),
+        ((['asdf'], []), False),
+        (([0], []), False),
+    )
+)
+def test_read_and_write_list_validation(value, is_valid):
+    if is_valid:
+        validate_read_and_write_list(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_read_and_write_list(value)

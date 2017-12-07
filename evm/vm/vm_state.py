@@ -48,8 +48,12 @@ class VMState(object):
     # state_db
     #
     @contextmanager
-    def state_db(self, read_only=False):
-        state = self.chaindb.get_state_db(self.block_header.state_root, read_only)
+    def state_db(self, read_only=False, read_and_write_list=None):
+        state = self.chaindb.get_state_db(
+            self.block.header.state_root,
+            read_only,
+            read_and_write_list=read_and_write_list
+        )
         yield state
 
         if read_only:
