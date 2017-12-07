@@ -262,3 +262,14 @@ def validate_access_list(access_list):
                         prefix
                     )
                 )
+
+
+def validate_read_and_write_list(read_and_write_list):
+    if len(read_and_write_list) != 2:
+        raise ValidationError("read and write list tuple must have two entries")
+    if read_and_write_list[0] is None:
+        raise ValidationError("Read list must not be None")
+    if read_and_write_list[1] is None:
+        raise ValidationError("Write list must not be None")
+    for entry in read_and_write_list[0] + read_and_write_list[1]:
+        validate_is_bytes(entry, "Access prefix")
