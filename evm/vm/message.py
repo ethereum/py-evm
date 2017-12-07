@@ -10,10 +10,7 @@ from evm.validation import (
     validate_gte,
     validate_uint256,
     validate_is_boolean,
-)
-
-from evm.utils.state_access_restriction import (
-    to_prefix_list_form,
+    validate_read_and_write_list,
 )
 
 
@@ -27,8 +24,7 @@ class Message(object):
     data = None
     gas = None
 
-    read_list = None
-    write_list = None
+    read_and_write_list = None
 
     depth = None
 
@@ -49,8 +45,7 @@ class Message(object):
                  value,
                  data,
                  code,
-                 read_list=None,
-                 write_list=None,
+                 read_and_write_list=None,
                  depth=0,
                  create_address=None,
                  code_address=None,
@@ -72,10 +67,9 @@ class Message(object):
         validate_is_bytes(data, title="Message.data")
         self.data = data
 
-        if read_list is not None:
-            self.read_list = to_prefix_list_form(read_list)
-        if write_list is not None:
-            self.write_list = to_prefix_list_form(write_list)
+        if read_and_write_list is not None:
+            validate_read_and_write_list(read_and_write_list)
+        self.read_and_write_list = read_and_write_list
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
