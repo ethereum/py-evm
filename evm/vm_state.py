@@ -86,9 +86,12 @@ class BaseVMState(Configurable):
     # state_db
     #
     @contextmanager
-    def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(self.state_root, read_only)
-        yield state
+    def state_db(self, read_only=False, read_and_write_list=None):
+        state = self._chaindb.get_state_db(
+            self.state_root,
+            read_only,
+            read_and_write_list=read_and_write_list
+        )
 
         if read_only:
             # This acts as a secondary check that no mutation took place for

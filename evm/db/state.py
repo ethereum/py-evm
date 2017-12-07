@@ -63,8 +63,7 @@ class AccountStateDB:
         db,
         root_hash=BLANK_ROOT_HASH,
         read_only=False,
-        read_list=None,
-        write_list=None
+        read_and_write_list=None
     ):
         if read_only:
             self.db = TrackedDB(ImmutableDB(db))
@@ -72,9 +71,13 @@ class AccountStateDB:
             self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
-        self.check_access_restrictions = read_list is not None or write_list is not None
-        self.read_list = read_list
-        self.write_list = write_list
+        if read_and_write_list is not None:
+            self.is_access_restricted = True
+            self.read_list, self.write_list = read_and_write_list
+        else:
+            self.is_access_restricted = False
+            self.read_list = None
+            self.write_list = None
 
     #
     # Base API
@@ -94,7 +97,7 @@ class AccountStateDB:
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             if not is_accessible(address, slot_as_key, self.write_list):
                 raise UnannouncedStateAccess(
                     "Attempted writing to storage slot outside of write list"
@@ -118,7 +121,7 @@ class AccountStateDB:
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             if not is_accessible(address, slot_as_key, self.read_list):
                 raise UnannouncedStateAccess(
                     "Attempted reading from storage slot outside of read list"
@@ -136,7 +139,7 @@ class AccountStateDB:
     def delete_storage(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             if not is_accessible(address, b'', self.write_list):
                 raise UnannouncedStateAccess(
                     "Attempted writing to storage slot outside of write list"
@@ -150,7 +153,7 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(balance, title="Account Balance")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             if keccak(address) + BALANCE_TRIE_PREFIX not in self.write_list:
                 # TODO: use is_accessible once two layer trie is implemented
                 raise UnannouncedStateAccess(
@@ -168,7 +171,7 @@ class AccountStateDB:
     def get_balance(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
                 raise UnannouncedStateAccess(
@@ -182,7 +185,7 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(nonce, title="Nonce")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + NONCE_TRIE_PREFIX not in self.write_list:
                 raise UnannouncedStateAccess(
@@ -197,7 +200,7 @@ class AccountStateDB:
     def get_nonce(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
                 raise UnannouncedStateAccess(
@@ -211,7 +214,7 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
         validate_is_bytes(code, title="Code")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
                 raise UnannouncedStateAccess(
@@ -233,7 +236,7 @@ class AccountStateDB:
     def get_code_hash(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
                 raise UnannouncedStateAccess(
@@ -246,7 +249,7 @@ class AccountStateDB:
     def delete_code(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        if self.check_access_restrictions:
+        if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
             if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
                 raise UnannouncedStateAccess(

@@ -540,11 +540,10 @@ class ChainDB(BaseChainDB):
     def clear(self):
         self.db.clear()
 
-    def get_state_db(self, state_root, read_only, read_list=None, write_list=None):
+    def get_state_db(self, state_root, read_only, read_and_write_list=None):
         return AccountStateDB(
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            read_list=read_list,
-            write_list=write_list
+            read_and_write_list=read_and_write_list
         )
