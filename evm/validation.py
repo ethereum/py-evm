@@ -252,7 +252,7 @@ def validate_access_list(access_list):
     for obj in access_list:
         if len(obj) == 0:
             raise ValidationError("Access list entry must at least specify an account address.")
-        address, prefixes = obj[0], obj[1:]
+        address, *prefixes = obj
         validate_canonical_address(address, title="Access list address")
         for prefix in prefixes:
             validate_is_bytes(prefix, title="Access list storage prefix")
