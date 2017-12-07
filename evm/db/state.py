@@ -259,16 +259,43 @@ class State:
     # Account Methods
     #
     def delete_account(self, address):
-        # TODO: check access restriction?
+        if self.is_access_restricted:
+            if not is_accessible(address, b'', self.write_list):
+                raise UnannouncedStateAccess(
+                    'Attempted deleting account without full storage access'
+                )
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted deleting code of account outside of write list"
+                )
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted deleting balance of account outside of write list"
+                )
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted deleting nonce of account outside of write list"
+                )
+
         del self._trie[address]
 
     def account_exists(self, address):
-        # TODO: check access restriction?
         validate_canonical_address(address, title="Storage Address")
         return bool(self._trie[address])
 
     def account_has_code_or_nonce(self, address):
-        # TODO: check access restriction?
+        if self.is_access_restricted:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading code of account outside of read list"
+                )
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading nonce of account outside of read list"
+                )
+
         if not self.account_exists(address):
             return False
         account = self._get_account(address)
@@ -280,7 +307,21 @@ class State:
             return False
 
     def account_is_empty(self, address):
-        # TODO: check access restriction?
+        if self.is_access_restricted:
+            # TODO: use is_accessible once two layer trie is implemented
+            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading code of account outside of read list"
+                )
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading balance of account outside of read list"
+                )
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+                raise UnannouncedStateAccess(
+                    "Attempted reading nonce of account outside of read list"
+                )
+
         validate_canonical_address(address, title="Storage Address")
         account = self._get_account(address)
         if account.code_hash != EMPTY_SHA3:
@@ -293,7 +334,6 @@ class State:
             return True
 
     def touch_account(self, address):
-        # TODO: check access restriction?
         account = self._get_account(address)
         self._set_account(address, account)
 
