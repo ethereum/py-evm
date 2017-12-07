@@ -60,8 +60,7 @@ class BaseCall(Opcode):
         # Pre-call checks
         _state_db = computation.vm_state.state_db(
             read_only=True,
-            read_list=computation.msg.read_list,
-            write_list=computation.msg.write_list
+            read_and_write_list=computation.msg.read_and_write_list,
         )
         with _state_db as state_db:
             sender_balance = state_db.get_balance(computation.msg.storage_address)
@@ -91,8 +90,7 @@ class BaseCall(Opcode):
         else:
             _state_db = computation.vm_state.state_db(
                 read_only=True,
-                read_list=computation.msg.read_list,
-                write_list=computation.msg.write_list
+                read_and_write_list=computation.msg.read_and_write_list,
             )
             with _state_db as state_db:
                 if code_address:
@@ -138,8 +136,7 @@ class Call(BaseCall):
     def compute_msg_extra_gas(self, computation, gas, to, value):
         _state_db = computation.vm_state.state_db(
             read_only=True,
-            read_list=computation.msg.read_list,
-            write_list=computation.msg.write_list
+            read_and_write_list=computation.msg.read_and_write_list,
         )
         with _state_db as state_db:
             account_exists = state_db.account_exists(to)
@@ -301,8 +298,7 @@ class CallEIP161(CallEIP150):
     def compute_msg_extra_gas(self, computation, gas, to, value):
         _state_db = computation.vm_state.state_db(
             read_only=True,
-            read_list=computation.msg.read_list,
-            write_list=computation.msg.write_list
+            read_and_write_list=computation.msg.read_and_write_list,
         )
         with _state_db as state_db:
             account_is_dead = (
