@@ -30,7 +30,7 @@ def test_import_block_validation(chain):  # noqa: F811
             chain.funded_address_initial_balance - tx.value - tx_gas)
 
 
-def test_import_block(chain_without_block_validation):  # noqa: F811
+async def test_import_block(chain_without_block_validation):  # noqa: F811
     chain = chain_without_block_validation  # noqa: F811
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
@@ -42,7 +42,8 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     block = chain.import_block(vm.block)
     assert block.transactions == [tx]
     assert chain.get_block_by_hash(block.hash) == block
-    assert chain.get_canonical_block_by_number(block.number) == block
+    block_by_number = await chain.get_canonical_block_by_number(block.number)
+    assert block_by_number == block
 
 
 def test_canonical_chain(chain):  # noqa: F811

@@ -1,13 +1,11 @@
 from __future__ import absolute_import
+import asyncio
 import logging
 
 from cytoolz import (
     assoc,
 )
 
-from eth_utils import (
-    to_tuple,
-)
 from evm.consensus.pow import (
     check_pow,
 )
@@ -156,7 +154,7 @@ class Chain(object):
         """
         return self.chaindb.get_canonical_head()
 
-    def get_canonical_block_by_number(self, block_number):
+    async def get_canonical_block_by_number(self, block_number):
         """
         Returns the block with the given number in the canonical chain.
 
@@ -290,11 +288,11 @@ class Chain(object):
         init_header = self.create_header_from_parent(parent_header)
         return type(self)(self.chaindb, init_header)
 
-    @to_tuple
-    def get_ancestors(self, limit):
+    async def get_ancestors(self, limit):
         lower_limit = max(self.header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, self.header.block_number)):
-            yield self.get_canonical_block_by_number(n)
+        block_nums = reversed(range(lower_limit, self.header.block_number))
+        block_coroutines = [self.get_canonical_block_by_number(n) for n in block_nums]
+        return await asyncio.gather(*block_coroutines)
 
     #
     # Validation API
@@ -312,10 +310,11 @@ class Chain(object):
         self.validate_seal(block.header)
         self.validate_uncles(block)
 
-    def validate_uncles(self, block):
+    async def validate_uncles(self, block):
+        ancestor_blocks = await self.get_ancestors(MAX_UNCLE_DEPTH + 1)
         recent_ancestors = dict(
             (ancestor.hash, ancestor)
-            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1),
+            for ancestor in ancestor_blocks,
         )
         recent_uncles = []
         for ancestor in recent_ancestors.values():
