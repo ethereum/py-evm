@@ -16,11 +16,7 @@ from evm.utils.padding import (
 
 def balance(computation):
     addr = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
-    with computation.vm.state_db(
-        read_only=True,
-        read_list=computation.msg.read_list,
-        write_list=computation.msg.write_list
-    ) as state_db:
+    with computation.state_db(read_only=True) as state_db:
         balance = state_db.get_balance(addr)
     computation.stack.push(balance)
 
@@ -115,11 +111,7 @@ def gasprice(computation):
 
 def extcodesize(computation):
     account = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
-    with computation.vm.state_db(
-        read_only=True,
-        read_list=computation.msg.read_list,
-        write_list=computation.msg.write_list
-    ) as state_db:
+    with computation.state_db(read_only=True) as state_db:
         code_size = len(state_db.get_code(account))
 
     computation.stack.push(code_size)
@@ -143,11 +135,7 @@ def extcodecopy(computation):
         reason='EXTCODECOPY: word gas cost',
     )
 
-    with computation.vm.state_db(
-        read_only=True,
-        read_list=computation.msg.read_list,
-        write_list=computation.msg.write_list
-    ) as state_db:
+    with computation.state_db(read_only=True) as state_db:
         code = state_db.get_code(account)
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = pad_right(code_bytes, size, b'\x00')
