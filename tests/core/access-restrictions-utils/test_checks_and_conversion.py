@@ -13,7 +13,6 @@ TEST_PREFIX_LIST = to_prefix_list_form([
     [TEST_ADDRESS1, b'\x01\x00'],
     [TEST_ADDRESS2, b'\xff' * 32]
 ])
-print(TEST_PREFIX_LIST)
 
 
 @pytest.mark.parametrize(
