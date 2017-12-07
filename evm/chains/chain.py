@@ -85,7 +85,7 @@ class Chain(object):
     #
     # Convenience and Helpers
     #
-    def get_block(self):
+    async def get_block(self):
         """
         Passthrough helper to the current VM class.
         """
@@ -179,10 +179,7 @@ class Chain(object):
     # Chain Initialization
     #
     @classmethod
-    def from_genesis(cls,
-                     chaindb,
-                     genesis_params,
-                     genesis_state=None):
+    async def from_genesis(cls, chaindb, genesis_params, genesis_state=None):
         """
         Initialize the Chain from a genesis state.
         """
@@ -216,7 +213,8 @@ class Chain(object):
 
         genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(chaindb, genesis_header)
-        chaindb.persist_block_to_db(genesis_chain.get_block())
+        block = await genesis_chain.get_block()
+        chaindb.persist_block_to_db(block)
         return cls.from_genesis_header(chaindb, genesis_header)
 
     @classmethod

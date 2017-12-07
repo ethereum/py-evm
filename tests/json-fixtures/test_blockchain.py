@@ -146,7 +146,7 @@ def chain_vm_configuration(fixture_data, fixture):
         )
 
 
-def test_blockchain_fixtures(fixture, chain_vm_configuration):
+async def test_blockchain_fixtures(fixture, chain_vm_configuration):
     genesis_params = {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
         'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
@@ -176,7 +176,7 @@ def test_blockchain_fixtures(fixture, chain_vm_configuration):
         vm_configuration=chain_vm_configuration,
     )
 
-    chain = ChainForTesting.from_genesis(
+    chain = await ChainForTesting.from_genesis(
         db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],

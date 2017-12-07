@@ -15,7 +15,7 @@ from evm.vm.forks.frontier import FrontierVM
 
 
 @pytest.fixture
-def chain():
+async def chain():
     """
     Return a Chain object containing just the genesis block.
 
@@ -64,7 +64,7 @@ def chain():
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
-    chain = klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = await klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     return chain
@@ -82,7 +82,7 @@ def import_block_without_validation(chain, block):
 
 
 @pytest.fixture
-def chain_without_block_validation():
+async def chain_without_block_validation():
     """
     Return a Chain object containing just the genesis block.
 
@@ -129,7 +129,7 @@ def chain_without_block_validation():
             'storage': {},
         }
     }
-    chain = klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = await klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     chain.funded_address_private_key = private_key
