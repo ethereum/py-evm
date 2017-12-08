@@ -13,15 +13,8 @@ from aiohttp.web_exceptions import HTTPMethodNotAllowed
 
 from eth_utils import decode_hex, encode_hex
 
-from evm.chains.mainnet import (
-    MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
 from evm.p2p.lightchain import LightChain
 from evm.utils.numeric import int_to_big_endian
-
-
-# Change the values below to connect to a node on a different network or IP address.
-GENESIS_HEADER = MAINNET_GENESIS_HEADER
-NETWORK_ID = MAINNET_NETWORK_ID
 
 
 class App(web.Application):
@@ -91,6 +84,9 @@ class App(web.Application):
 
 if __name__ == '__main__':
     import argparse
+    from evm.chains.mainnet import (
+        MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
+    from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
     from evm.db.chain import BaseChainDB
     from evm.exceptions import CanonicalHeadNotFound
@@ -100,8 +96,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
+    parser.add_argument('-mainnet', action="store_true")
     args = parser.parse_args()
 
+    GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
+    NETWORK_ID = ROPSTEN_NETWORK_ID
+    if args.mainnet:
+        GENESIS_HEADER = MAINNET_GENESIS_HEADER
+        NETWORK_ID = MAINNET_NETWORK_ID
     DemoLightChain = LightChain.configure(
         'RPCDemoLightChain',
         vm_configuration=MAINNET_VM_CONFIGURATION,

@@ -241,7 +241,7 @@ class BasePeer:
         self.reader.feed_eof()
         self.writer.close()
 
-    async def stop_and_wait_until_finished(self):
+    async def stop(self):
         self.close()
         await self._finished.wait()
 
@@ -457,23 +457,18 @@ class ChainInfo:
 
 if __name__ == "__main__":
     """
-    Run geth like this to be able to do a handshake and get a Peer connected to it.
-    ./build/bin/geth -vmodule p2p=4,p2p/discv5=0,eth/*=0 \
-      -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
-      -port 30301 -nat none -testnet -lightserv 90
+    Create a Peer instance connected to a local geth instance and log messages exchanged with it.
+
+    Use the following command line to run geth:
+
+        ./build/bin/geth -vmodule p2p=4,p2p/discv5=0,eth/*=0 \
+          -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
+          -testnet -lightserv 90
     """
     import argparse
-    from evm.chains.mainnet import (
-        MainnetChain,
-        MAINNET_GENESIS_HEADER,
-    )
-    from evm.chains.ropsten import (
-        RopstenChain,
-        ROPSTEN_GENESIS_HEADER,
-    )
+    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
-    from evm.db.backends.level import LevelDB
-    from evm.exceptions import CanonicalHeadNotFound
+
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
@@ -482,44 +477,23 @@ if __name__ == "__main__":
     remoteid = nodekey.public_key.to_hex()
     parser = argparse.ArgumentParser()
     parser.add_argument('-remoteid', type=str, default=remoteid)
-    parser.add_argument('-db', type=str)
-    parser.add_argument('-mainnet', action="store_true")
     args = parser.parse_args()
 
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-
-    if args.db is not None:
-        chaindb = BaseChainDB(LevelDB(args.db))
-    else:
-        chaindb = BaseChainDB(MemoryDB())
-
-    genesis_header = ROPSTEN_GENESIS_HEADER
-    chain_class = RopstenChain
-    if args.mainnet:
-        genesis_header = MAINNET_GENESIS_HEADER
-        chain_class = MainnetChain
-
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # We're starting with a fresh DB.
-        chain = chain_class.from_genesis_header(chaindb, genesis_header)
-    else:
-        # We're reusing an existing db.
-        chain = chain_class(chaindb)
-    print("Current chain head: {}".format(chaindb.get_canonical_head().block_number))
-
+    chaindb = BaseChainDB(MemoryDB())
+    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     try:
         peer = loop.run_until_complete(
             asyncio.wait_for(
-                handshake(remote, ecies.generate_privkey(), LESPeer, chaindb, chain.network_id),
+                handshake(remote, ecies.generate_privkey(), LESPeer, chaindb, network_id),
                 HANDSHAKE_TIMEOUT))
         loop.run_until_complete(peer.start())
     except KeyboardInterrupt:
         pass
 
-    loop.run_until_complete(peer.stop_and_wait_until_finished())
+    loop.run_until_complete(peer.stop())
     loop.close()

@@ -88,7 +88,7 @@ class PeerPool:
     async def stop_all_peers(self):
         self.logger.info("Stopping all peers ...")
         await asyncio.gather(
-            *[peer.stop_and_wait_until_finished() for peer in self.connected_nodes.values()])
+            *[peer.stop() for peer in self.connected_nodes.values()])
 
     async def stop(self):
         self._should_stop.set()
@@ -227,7 +227,7 @@ class LightChain(Chain):
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
         self._latest_head_info.pop(peer, None)
-        await peer.stop_and_wait_until_finished()
+        await peer.stop()
 
     async def get_best_peer(self) -> LESPeer:
         """
@@ -265,9 +265,11 @@ class LightChain(Chain):
         done, pending = await asyncio.wait(
             [self._announcement_queue.get(), wait_for_stop_event()],
             return_when=asyncio.FIRST_COMPLETED)
-        # The async call above returns as soon as one of our 2 coroutines complete, so we know
-        # for sure we'll have one task in the <done> and one task in the <pending> set.
-        pending.pop().cancel()
+        # The asyncio.wait() call above may return both tasks as done, but never both as pending,
+        # although to be future-proof (in case more than 2 tasks are passed in to wait()), we
+        # iterate over all pending tasks and cancel all of them.
+        for task in pending:
+            task.cancel()
         if should_stop:
             raise StopRequested()
         return done.pop().result()
@@ -331,10 +333,10 @@ class LightChain(Chain):
                 headers = await self.fetch_headers(oldest_ancestor_to_consider, peer)
             except EmptyGetBlockHeadersReply:
                 raise LESAnnouncementProcessingError(
-                    "No common ancestors found between us and %s", peer)
+                    "No common ancestors found between us and {}".format(peer))
             except TooManyTimeouts:
                 raise LESAnnouncementProcessingError(
-                    "Too many timeouts when fetching headers from %s", peer)
+                    "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
                 self.chaindb.persist_header_to_db(header)
             start_block = chain_head.block_number
@@ -353,13 +355,15 @@ class LightChain(Chain):
 
         start_block = await self.get_sync_start_block(peer, head_info)
         while start_block < head_info.block_number:
+            # TODO: Need to check that the peer is not finished (peer._finished.is_set()), because
+            # if they are we're going to get errors when trying to use them to make requests.
             try:
                 # We should use "start_block + 1" here, but we always re-fetch the last synced
                 # block to work around https://github.com/ethereum/go-ethereum/issues/15447
                 batch = await self.fetch_headers(start_block, peer)
             except TooManyTimeouts:
                 raise LESAnnouncementProcessingError(
-                    "Too many timeouts when fetching headers from %s", peer)
+                    "Too many timeouts when fetching headers from {}".format(peer))
             for header in batch:
                 self.chaindb.persist_header_to_db(header)
                 start_block = header.block_number
@@ -419,14 +423,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
-    parser.add_argument('-testnet', action="store_true")
+    parser.add_argument('-mainnet', action="store_true")
     args = parser.parse_args()
 
-    GENESIS_HEADER = MAINNET_GENESIS_HEADER
-    NETWORK_ID = MAINNET_NETWORK_ID
-    if args.testnet:
-        GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
-        NETWORK_ID = ROPSTEN_NETWORK_ID
+    GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
+    NETWORK_ID = ROPSTEN_NETWORK_ID
+    if args.mainnet:
+        GENESIS_HEADER = MAINNET_GENESIS_HEADER
+        NETWORK_ID = MAINNET_NETWORK_ID
     DemoLightChain = LightChain.configure(
         'DemoLightChain',
         privkey=ecies.generate_privkey(),

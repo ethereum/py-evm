@@ -7,6 +7,7 @@ See docs/quickstart.rst for more info on how to use this.
 import argparse
 import asyncio
 import atexit
+import logging
 import threading
 
 from evm.db.chain import BaseChainDB
@@ -17,9 +18,18 @@ from evm.p2p.lightchain import LightChain
 from evm.db.backends.level import LevelDB
 
 
+LOGFILE = '/tmp/lightchain-shell.log'
+LOGLEVEL = logging.INFO
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-db', type=str, required=True)
+parser.add_argument('-debug', action='store_true')
 args = parser.parse_args()
+
+print("Logging to", LOGFILE)
+if args.debug:
+    LOGLEVEL = logging.DEBUG
+logging.basicConfig(level=LOGLEVEL, filename=LOGFILE)
 
 DemoLightChain = LightChain.configure(
     name='Demo LightChain',
@@ -28,11 +38,9 @@ DemoLightChain = LightChain.configure(
     network_id=ROPSTEN_NETWORK_ID,
 )
 
-
 chain = DemoLightChain(BaseChainDB(LevelDB(args.db)))
 loop = asyncio.get_event_loop()
-t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),))
-t.setDaemon(True)
+t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),), daemon=True)
 t.start()
 
 
