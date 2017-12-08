@@ -162,9 +162,9 @@ class Chain(object):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+        return await self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
 
-    def get_block_by_hash(self, block_hash):
+    async def get_block_by_hash(self, block_hash):
         """
         Returns the requested block as specified by block hash.
         """

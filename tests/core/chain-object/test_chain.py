@@ -41,7 +41,8 @@ async def test_import_block(chain_without_block_validation):  # noqa: F811
     assert not computation.is_error
     block = chain.import_block(vm.block)
     assert block.transactions == [tx]
-    assert chain.get_block_by_hash(block.hash) == block
+    block_by_hash = await chain.get_block_by_hash(block.hash)
+    assert block_by_hash == block
     block_by_number = await chain.get_canonical_block_by_number(block.number)
     assert block_by_number == block
 
