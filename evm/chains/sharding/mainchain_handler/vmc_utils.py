@@ -20,7 +20,7 @@ from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonUnsignedTransaction,
 )
 
-from config import GASPRICE
+from evm.chains.sharding.mainchain_handler.config import GASPRICE
 
 sha3 = eth_utils.crypto.keccak
 

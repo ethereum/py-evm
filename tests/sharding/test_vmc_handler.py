@@ -1,3 +1,5 @@
+import pytest
+
 import rlp
 
 from eth_tester.backends.pyevm.main import get_default_account_keys
@@ -8,28 +10,34 @@ from evm.utils.address import (
     generate_contract_address,
 )
 
-from chain_handler import (
-    RPCChainHandler,
-)
-
-from chain_handler_tester import (
-    TesterChainHandler,
-)
-
-from config import (
+from evm.chains.sharding.mainchain_handler.config import (
     PERIOD_LENGTH,
     SHUFFLING_CYCLE_LENGTH,
 )
 
-from vmc_handler import (
+from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMCHandler,
 )
 
-import vmc_utils
+from evm.chains.sharding.mainchain_handler import (
+    vmc_utils,
+)
+
+from evm.chains.sharding.mainchain_handler.backends.chain_handler import (
+    RPCChainHandler,
+)
+
+from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import (
+    TesterChainHandler,
+)
 
 keys = get_default_account_keys()
 
 sha3 = eth_utils.crypto.keccak
+
+@pytest.fixture(scope='function')
+def chain_handler():
+    return TesterChainHandler()
 
 def print_current_contract_address(sender_address, nonce):
     list_addresses = [
@@ -89,14 +97,13 @@ def get_testing_colhdr(
         sig,
     ])
 
-
-def test_handler(ChainHandlerClass):
+def test_vmc_handler(chain_handler):
     shard_id = 0
     validator_index = 0
     primary_addr = keys[validator_index].public_key.to_checksum_address()
     zero_addr = eth_utils.address.to_checksum_address(b'\x00' * 20)
 
-    vmc_handler = VMCHandler(ChainHandlerClass(), primary_addr=primary_addr)
+    vmc_handler = VMCHandler(chain_handler, primary_addr=primary_addr)
     print(
         "!@# viper_rlp_decoder_addr:",
         eth_utils.to_checksum_address(vmc_utils.viper_rlp_decoder_addr),

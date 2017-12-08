@@ -6,14 +6,14 @@ from evm.utils.address import generate_contract_address
 
 from viper import compiler
 
-from config import (
+from evm.chains.sharding.mainchain_handler.config import (
     DEPOSIT_SIZE,
     GASPRICE,
     SHUFFLING_CYCLE_LENGTH,
     TX_GAS,
 )
 
-from vmc_utils import (
+from evm.chains.sharding.mainchain_handler.vmc_utils import (
     decode_vmc_call_result,
     get_valmgr_addr,
     get_valmgr_bytecode,
