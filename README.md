@@ -30,6 +30,14 @@ our architecture and API choices as well as general feedback and bug finding.
 
 
 ## Development
+Py-EVM depends on a submodule of the common tests across all clients,
+so you need to clone the repo with the `--recursive` flag. Example:
+
+```sh
+git clone --recursive git@github.com:ethereum/py-evm.git
+```
+
+Then install the required python packages via:
 
 ```sh
 pip install -e . -r requirements-dev.txt
