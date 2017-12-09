@@ -59,6 +59,12 @@ class Eth(RPCModule):
 
         return block_dict
 
+    def getBlockByNumber(self, block_number_hex, include_transactions):
+        block_number = int(block_number_hex, 16)
+        block = self._chain.get_canonical_block_by_number(block_number)
+        assert block.number == block_number
+        return block_to_dict(block, self._chain, include_transactions)
+
     def hashrate(self):
         raise NotImplementedError()
 
