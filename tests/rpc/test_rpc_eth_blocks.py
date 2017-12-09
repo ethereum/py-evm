@@ -30,10 +30,7 @@ def rpc(chain):
 
 
 def build_request(method, params):
-    return '{"jsonrpc":"2.0","method":"%s","params":%s,"id":3}' % (
-        method,
-        json.dumps(params),
-    )
+    return {"jsonrpc": "2.0", "method": method, "params": params, "id": 3}
 
 
 @pytest.mark.parametrize(
@@ -122,7 +119,7 @@ def build_request(method, params):
     ),
 )
 def test_eth_requests(rpc, rpc_request, expected_result, expected_error):
-    response_str = rpc.request(rpc_request)
+    response_str = rpc.execute(rpc_request)
     response = json.loads(response_str)
     if expected_result:
         assert 'result' in response

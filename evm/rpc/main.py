@@ -49,15 +49,10 @@ class RPCServer:
         except AttributeError:
             raise ValueError("Method not implemented: %r" % rpc_method)
 
-    def request(self, request_json):
+    def execute(self, request):
         '''
         The key entry point for all incoming requests
         '''
-        try:
-            request = json.loads(request_json)
-        except json.decoder.JSONDecodeError as e:
-            raise ValueError("cannot parse json in %r" % request_json) from e
-
         response = generate_response(request)
 
         try:
