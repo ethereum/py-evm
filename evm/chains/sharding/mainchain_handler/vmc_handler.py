@@ -1,31 +1,18 @@
 import logging
 
-from eth_tester.exceptions import ValidationError
-
-import eth_utils
-
-from evm.utils.address import generate_contract_address
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-
-from viper import compiler
-
 from evm.chains.sharding.mainchain_handler.config import (
     DEPOSIT_SIZE,
     GASPRICE,
-    SHUFFLING_CYCLE_LENGTH,
     TX_GAS,
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
     decode_vmc_call_result,
+    get_valmgr_abi,
     get_valmgr_addr,
     get_valmgr_bytecode,
     get_valmgr_code,
     get_valmgr_sender_addr,
-    mk_initiating_contracts,
-    mk_validation_code,
     mk_vmc_tx_obj,
 )
 
@@ -45,7 +32,7 @@ class VMCHandler:
         self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
         self._vmc_bytecode = get_valmgr_bytecode()
         self._vmc_code = get_valmgr_code()
-        self._vmc_abi = compiler.mk_full_signature(self._vmc_code)
+        self._vmc_abi = get_valmgr_abi()
 
     # vmc utils ####################################
 
@@ -217,52 +204,3 @@ class VMCHandler:
             # self.chain_handler.get_code(self._vmc_addr) != b'' and \
             self.chain_handler.get_nonce(self._vmc_sender_addr) != 0
         )
-
-    def deploy_valcode_and_deposit(self, key):
-        '''
-        Deploy validation code of and with the key, and do deposit
-
-        :param key: Key object
-        :return: returns nothing
-        '''
-        address = key.public_key.to_checksum_address()
-        self.chain_handler.unlock_account(address)
-        valcode = mk_validation_code(
-            key.public_key.to_canonical_address()
-        )
-        nonce = self.chain_handler.get_nonce(address)
-        valcode_addr = eth_utils.to_checksum_address(
-            generate_contract_address(eth_utils.to_canonical_address(address), nonce)
-        )
-        self.chain_handler.unlock_account(address)
-        self.chain_handler.deploy_contract(valcode, address)
-        self.chain_handler.mine(1)
-        self.deposit(valcode_addr, address, address)
-
-    def deploy_initiating_contracts(self, privkey):
-        if not self.is_vmc_deployed():
-            addr = privkey.public_key.to_checksum_address()
-            self.chain_handler.unlock_account(addr)
-            nonce = self.chain_handler.get_nonce(addr)
-            txs = mk_initiating_contracts(privkey, nonce)
-            for tx in txs[:3]:
-                self.chain_handler.direct_tx(tx)
-            self.chain_handler.mine(1)
-            for tx in txs[3:]:
-                self.chain_handler.direct_tx(tx)
-                self.chain_handler.mine(1)
-            self.logger.debug(
-                'deploy_initiating_contracts: vmc_tx_hash=%s',
-                self.chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
-            )
-
-    def first_setup_and_deposit(self, key):
-        self.deploy_valcode_and_deposit(key)
-        # TODO: error occurs when we don't mine so many blocks
-        self.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
-
-    def import_key_to_chain_handler(self, key):
-        try:
-            self.chain_handler.import_privkey(key.to_hex())
-        except (ValueError, ValidationError):
-            pass

@@ -5,12 +5,25 @@ import pytest
 
 import rlp
 
-from eth_tester.backends.pyevm.main import get_default_account_keys
+from eth_tester.exceptions import (
+    ValidationError,
+)
+
+from eth_tester.backends.pyevm.main import (
+    get_default_account_keys,
+)
 
 import eth_utils
 
 from evm.utils.address import (
     generate_contract_address,
+)
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
+
+from evm.chains.sharding.mainchain_handler import (
+    vmc_utils,
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
@@ -20,10 +33,6 @@ from evm.chains.sharding.mainchain_handler.config import (
 
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMCHandler,
-)
-
-from evm.chains.sharding.mainchain_handler import (
-    vmc_utils,
 )
 
 from evm.chains.sharding.mainchain_handler.backends.chain_handler import (
@@ -54,6 +63,58 @@ def do_withdraw(vmc_handler, validator_index):
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc_handler.withdraw(validator_index, signature, sender_addr)
     vmc_handler.chain_handler.mine(1)
+
+def deploy_valcode_and_deposit(vmc_handler, key):
+    '''
+    Deploy validation code of and with the key, and do deposit
+
+    :param key: Key object
+    :return: returns nothing
+    '''
+    chain_handler = vmc_handler.chain_handler
+    address = key.public_key.to_checksum_address()
+    chain_handler.unlock_account(address)
+    valcode = vmc_utils.mk_validation_code(
+        key.public_key.to_canonical_address()
+    )
+    nonce = chain_handler.get_nonce(address)
+    valcode_addr = eth_utils.to_checksum_address(
+        generate_contract_address(eth_utils.to_canonical_address(address), nonce)
+    )
+    chain_handler.unlock_account(address)
+    chain_handler.deploy_contract(valcode, address)
+    chain_handler.mine(1)
+    vmc_handler.deposit(valcode_addr, address, address)
+
+def deploy_initiating_contracts(vmc_handler, privkey):
+    if not vmc_handler.is_vmc_deployed():
+        addr = privkey.public_key.to_checksum_address()
+        chain_handler = vmc_handler.chain_handler
+        chain_handler.unlock_account(addr)
+        nonce = chain_handler.get_nonce(addr)
+        txs = vmc_utils.mk_initiating_contracts(privkey, nonce)
+        for tx in txs[:3]:
+            chain_handler.direct_tx(tx)
+        chain_handler.mine(1)
+        for tx in txs[3:]:
+            chain_handler.direct_tx(tx)
+            chain_handler.mine(1)
+        logger.debug(
+            'deploy_initiating_contracts: vmc_tx_hash=%s',
+            chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
+        )
+
+def first_setup_and_deposit(vmc_handler, key):
+    deploy_valcode_and_deposit(vmc_handler, key)
+    # TODO: error occurs when we don't mine so many blocks
+    vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+
+def import_key_to_chain_handler(vmc_handler, key):
+    try:
+        vmc_handler.chain_handler.import_privkey(key.to_hex())
+    # Exceptions happen when the key is already imported.
+    except (ValueError, ValidationError):
+        pass
 
 def get_testing_colhdr(vmc_handler,
                        shard_id,
@@ -116,16 +177,15 @@ def test_vmc_handler(chain_handler):
         logger.debug('handler.is_vmc_deployed() == True')
         # import privkey
         for key in test_keys:
-            vmc_handler.import_key_to_chain_handler(key)
+            import_key_to_chain_handler(vmc_handler, key)
 
-        vmc_handler.deploy_initiating_contracts(test_keys[validator_index])
+        deploy_initiating_contracts(vmc_handler, test_keys[validator_index])
         vmc_handler.chain_handler.mine(1)
-        vmc_handler.first_setup_and_deposit(test_keys[validator_index])
+        first_setup_and_deposit(vmc_handler, test_keys[validator_index])
 
     assert vmc_handler.is_vmc_deployed()
 
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
-    # handler.deploy_valcode_and_deposit(validator_index); handler.mine(1)
 
     assert vmc_handler.sample(shard_id) != zero_addr
     assert vmc_handler.get_num_validators() == 1
