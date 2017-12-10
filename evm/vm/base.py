@@ -90,13 +90,49 @@ class VM(object):
     #
     # Execution
     #
+
+    def add_transaction_to_block(self, transaction, block, computation):
+        """
+        """
+        with self.state_db(read_only=True) as state_db:
+            self.logger.info(
+                "1.1 block.coinbase: %s",
+                state_db.get_balance(b'\xa9OSt\xfc\xe5\xed\xbc\x8e*\x86\x97\xc1S1g~n\xbf\x0b'),
+            )
+
+        receipt = block.make_receipt(transaction, computation)
+
+        transaction_idx = len(block.transactions)
+
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+
+        self.block.transactions.append(transaction)
+
+        tx_root_hash = self.chaindb.add_transaction(block.header, index_key, transaction)
+        receipt_root_hash = self.chaindb.add_receipt(block.header, index_key, receipt)
+
+        self.block.bloom_filter |= receipt.bloom
+
+        self.block.header.transaction_root = tx_root_hash
+        self.block.header.receipt_root = receipt_root_hash
+        self.block.header.bloom = int(block.bloom_filter)
+        self.block.header.gas_used = receipt.gas_used
+
+        with self.state_db(read_only=True) as state_db:
+            self.logger.info(
+                "1.10 block.coinbase: %s",
+                state_db.get_balance(b'\xa9OSt\xfc\xe5\xed\xbc\x8e*\x86\x97\xc1S1g~n\xbf\x0b'),
+            )
+        return self.block
+
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
         self.clear_journal()
-        self.block.add_transaction(transaction, computation)
+        block = self.block
+        self.block = self.add_transaction_to_block(transaction, block, computation)
         return computation
 
     def execute_transaction(self, transaction):

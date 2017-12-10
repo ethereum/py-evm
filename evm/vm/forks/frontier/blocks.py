@@ -260,27 +260,6 @@ class FrontierBlock(BaseBlock):
     #
     # Execution API
     #
-    def add_transaction(self, transaction, computation):
-        receipt = self.make_receipt(transaction, computation)
-
-        transaction_idx = len(self.transactions)
-
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
-
-        self.transactions.append(transaction)
-
-        tx_root_hash = self.chaindb.add_transaction(self.header, index_key, transaction)
-        receipt_root_hash = self.chaindb.add_receipt(self.header, index_key, receipt)
-
-        self.bloom_filter |= receipt.bloom
-
-        self.header.transaction_root = tx_root_hash
-        self.header.receipt_root = receipt_root_hash
-        self.header.bloom = int(self.bloom_filter)
-        self.header.gas_used = receipt.gas_used
-
-        return self
-
     def add_uncle(self, uncle):
         self.uncles.append(uncle)
         self.header.uncles_hash = keccak(rlp.encode(self.uncles))

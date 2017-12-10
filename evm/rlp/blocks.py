@@ -58,12 +58,6 @@ class BaseBlock(rlp.Serializable):
     def validate(self):
         pass
 
-    def add_transaction(self, transaction, computation):
-        """
-        Adds the given transaction to the current block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     def mine(self, *args, **kwargs):
         """
         Mines the block.
