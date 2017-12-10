@@ -1,3 +1,7 @@
+from eth_utils import (
+    to_checksum_address,
+)
+
 from eth_tester import EthereumTester
 
 from eth_tester.backends.pyevm import PyEVMBackend
@@ -31,6 +35,7 @@ class TesterChainHandler(BaseChainHandler):
         return head_block_header.block_number
 
     def get_nonce(self, address):
+        address = to_checksum_address(address)
         return self.et.get_nonce(address)
 
     def import_privkey(self, privkey, passphrase=PASSPHRASE):
@@ -40,10 +45,13 @@ class TesterChainHandler(BaseChainHandler):
         self.et.mine_blocks(num_blocks=number)
 
     def unlock_account(self, account, passphrase=PASSPHRASE):
+        account = to_checksum_address(account)
         # self.et.unlock_account(account, passphrase)
         pass
 
     def get_transaction_receipt(self, tx_hash):
+        # TODO: should unify the result from `web3.py` and `eth_tester`,
+        #       dict.keys() returned from `web3.py` are camel style, while `eth_tester` are not
         return self.et.get_transaction_receipt(tx_hash)
 
     def send_transaction(self, tx_obj):
@@ -55,6 +63,7 @@ class TesterChainHandler(BaseChainHandler):
     # utils
 
     def send_tx(self, sender_addr, to=None, value=0, data=b'', gas=TX_GAS, gas_price=GASPRICE):
+        sender_addr = to_checksum_address(sender_addr)
         tx_obj = {
             'from': sender_addr,
             'value': value,
@@ -69,6 +78,7 @@ class TesterChainHandler(BaseChainHandler):
         return tx_hash
 
     def deploy_contract(self, bytecode, address, value=0, gas=TX_GAS, gas_price=GASPRICE):
+        address = to_checksum_address(address)
         return self.send_tx(address, value=value, data=bytecode, gas=gas, gas_price=gas_price)
 
     def direct_tx(self, tx):

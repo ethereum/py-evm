@@ -2,9 +2,14 @@ import time
 
 import rlp
 
-from web3 import Web3, HTTPProvider
+from web3 import (
+    HTTPProvider,
+    Web3,
+)
 
-import eth_utils
+from eth_utils import (
+    to_checksum_address,
+)
 
 from evm.chains.sharding.mainchain_handler.config import (
     DEFAULT_RPC_SERVER_URL,
@@ -31,9 +36,11 @@ class RPCChainHandler(BaseChainHandler):
         return self._w3.eth.blockNumber
 
     def get_code(self, address):
+        address = to_checksum_address(address)
         return self._w3.eth.getCode(address)
 
     def get_nonce(self, address):
+        address = to_checksum_address(address)
         return self._w3.eth.getTransactionCount(address)
 
     def import_privkey(self, privkey, passphrase=PASSPHRASE):
@@ -50,10 +57,12 @@ class RPCChainHandler(BaseChainHandler):
         self._w3.miner.stop()
 
     def unlock_account(self, account, passphrase=PASSPHRASE):
-        account = eth_utils.to_checksum_address(account)
+        account = to_checksum_address(account)
         self._w3.personal.unlockAccount(account, passphrase)
 
     def get_transaction_receipt(self, tx_hash):
+        # TODO: should unify the result from `web3.py` and `eth_tester`,
+        #       dict.keys() returned from `web3.py` are camel style, while `eth_tester` are not
         return self._w3.eth.getTransactionReceipt(tx_hash)
 
     def send_transaction(self, tx_obj):
@@ -65,14 +74,16 @@ class RPCChainHandler(BaseChainHandler):
     # utils
 
     def deploy_contract(self, bytecode, address, value=0, gas=TX_GAS, gas_price=GASPRICE):
+        address = to_checksum_address(address)
         self.unlock_account(address)
-        self.send_transaction({
+        tx_hash = self.send_transaction({
             'from': address,
             'value': value,
             'gas': gas,
             'gas_price': gas_price,
             'data': bytecode,
         })
+        return tx_hash
 
     def direct_tx(self, tx):
         raw_tx = rlp.encode(tx)

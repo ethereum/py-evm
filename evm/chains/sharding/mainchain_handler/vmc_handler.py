@@ -1,5 +1,10 @@
 import logging
 
+from eth_utils import (
+    to_canonical_address,
+    to_checksum_address,
+)
+
 from evm.chains.sharding.mainchain_handler.config import (
     DEPOSIT_SIZE,
     GASPRICE,
@@ -21,6 +26,9 @@ class VMCHandler:
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
 
     def __init__(self, chain_handler, primary_addr):
+        """
+        :param primary_addr: address in bytes
+        """
         self.chain_handler = chain_handler
         self.primary_addr = primary_addr
         self.init_vmc_attributes()
@@ -28,11 +36,11 @@ class VMCHandler:
     def init_vmc_attributes(self):
         self._vmc_addr = get_valmgr_addr()
         self._vmc_sender_addr = get_valmgr_sender_addr()
-        self.logger.debug("vmc_addr=%s", self._vmc_addr)
-        self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
         self._vmc_bytecode = get_valmgr_bytecode()
         self._vmc_code = get_valmgr_code()
         self._vmc_abi = get_valmgr_abi()
+        self.logger.debug("vmc_addr=%s", self._vmc_addr)
+        self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
 
     # vmc utils ####################################
 
@@ -82,7 +90,8 @@ class VMCHandler:
         """
         if sender_addr is None:
             sender_addr = self.primary_addr
-        return self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
+        address_in_hex = self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
+        return to_canonical_address(address_in_hex)
 
     def deposit(self,
                 validation_code_addr,
@@ -94,9 +103,11 @@ class VMCHandler:
         """
         if sender_addr is None:
             sender_addr = self.primary_addr
+        validation_code_addr_hex = to_checksum_address(validation_code_addr)
+        return_addr_hex = to_checksum_address(return_addr)
         return self.send_vmc_tx(
             'deposit',
-            [validation_code_addr, return_addr],
+            [validation_code_addr_hex, return_addr_hex],
             sender_addr=sender_addr,
             gas=gas,
             gas_price=gas_price,

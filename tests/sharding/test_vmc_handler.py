@@ -13,7 +13,10 @@ from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
 )
 
-import eth_utils
+from eth_utils import (
+    keccak,
+    to_canonical_address,
+)
 
 from evm.utils.address import (
     generate_contract_address,
@@ -54,12 +57,13 @@ logger.addHandler(stdout_handler)
 
 @pytest.fixture
 def chain_handler():
+    # return RPCChainHandler()
     return TesterChainHandler()
 
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
-    sender_addr = privkey.public_key.to_checksum_address()
+    sender_addr = privkey.public_key.to_canonical_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc_handler.withdraw(validator_index, signature, sender_addr)
     vmc_handler.chain_handler.mine(1)
@@ -71,37 +75,33 @@ def deploy_valcode_and_deposit(vmc_handler, key):
     :param key: Key object
     :return: returns nothing
     """
-    chain_handler = vmc_handler.chain_handler
-    address = key.public_key.to_checksum_address()
-    chain_handler.unlock_account(address)
+    address = key.public_key.to_canonical_address()
+    vmc_handler.chain_handler.unlock_account(address)
     valcode = vmc_utils.mk_validation_code(
         key.public_key.to_canonical_address()
     )
-    nonce = chain_handler.get_nonce(address)
-    valcode_addr = eth_utils.to_checksum_address(
-        generate_contract_address(eth_utils.to_canonical_address(address), nonce)
-    )
-    chain_handler.unlock_account(address)
-    chain_handler.deploy_contract(valcode, address)
-    chain_handler.mine(1)
+    nonce = vmc_handler.chain_handler.get_nonce(address)
+    valcode_addr = generate_contract_address(to_canonical_address(address), nonce)
+    vmc_handler.chain_handler.unlock_account(address)
+    vmc_handler.chain_handler.deploy_contract(valcode, address)
+    vmc_handler.chain_handler.mine(1)
     vmc_handler.deposit(valcode_addr, address, address)
 
 def deploy_initiating_contracts(vmc_handler, privkey):
     if not vmc_handler.is_vmc_deployed():
-        addr = privkey.public_key.to_checksum_address()
-        chain_handler = vmc_handler.chain_handler
-        chain_handler.unlock_account(addr)
-        nonce = chain_handler.get_nonce(addr)
+        address = privkey.public_key.to_canonical_address()
+        vmc_handler.chain_handler.unlock_account(address)
+        nonce = vmc_handler.chain_handler.get_nonce(address)
         txs = vmc_utils.mk_initiating_contracts(privkey, nonce)
         for tx in txs[:3]:
-            chain_handler.direct_tx(tx)
-        chain_handler.mine(1)
+            vmc_handler.chain_handler.direct_tx(tx)
+        vmc_handler.chain_handler.mine(1)
         for tx in txs[3:]:
-            chain_handler.direct_tx(tx)
-            chain_handler.mine(1)
+            vmc_handler.chain_handler.direct_tx(tx)
+            vmc_handler.chain_handler.mine(1)
         logger.debug(
             'deploy_initiating_contracts: vmc_tx_hash=%s',
-            chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
+            vmc_handler.chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
         )
 
 def first_setup_and_deposit(vmc_handler, key):
@@ -130,7 +130,7 @@ def get_testing_colhdr(vmc_handler,
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
-    sighash = eth_utils.keccak(
+    sighash = keccak(
         rlp.encode([
             shard_id,
             expected_period_number,
@@ -160,18 +160,12 @@ def get_testing_colhdr(vmc_handler,
 def test_vmc_handler(chain_handler):
     shard_id = 0
     validator_index = 0
-    primary_addr = test_keys[validator_index].public_key.to_checksum_address()
-    zero_addr = eth_utils.to_checksum_address(b'\x00' * 20)
+    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
+    zero_addr = b'\x00' * 20
 
     vmc_handler = VMCHandler(chain_handler, primary_addr=primary_addr)
-    logger.debug(
-        "!@# viper_rlp_decoder_addr=%s",
-        eth_utils.to_checksum_address(vmc_utils.viper_rlp_decoder_addr),
-    )
-    logger.debug(
-        "!@# sighasher_addr=%s",
-        eth_utils.to_checksum_address(vmc_utils.sighasher_addr)
-    )
+    logger.debug("!@# viper_rlp_decoder_addr=%s", vmc_utils.viper_rlp_decoder_addr)
+    logger.debug("!@# sighasher_addr=%s", vmc_utils.sighasher_addr)
 
     if not vmc_handler.is_vmc_deployed():
         logger.debug('handler.is_vmc_deployed() == True')
@@ -193,12 +187,12 @@ def test_vmc_handler(chain_handler):
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc_handler, shard_id, genesis_colhdr_hash, 1)
-    header1_hash = eth_utils.keccak(header1)
+    header1_hash = keccak(header1)
     vmc_handler.add_header(header1, primary_addr)
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
     header2 = get_testing_colhdr(vmc_handler, shard_id, header1_hash, 2)
-    header2_hash = eth_utils.keccak(header2)
+    header2_hash = keccak(header2)
     vmc_handler.add_header(header2, primary_addr)
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
@@ -206,7 +200,7 @@ def test_vmc_handler(chain_handler):
     assert vmc_handler.get_collation_header_score(shard_id, header2_hash) == 2
 
     vmc_handler.tx_to_shard(
-        test_keys[1].public_key.to_checksum_address(),
+        test_keys[1].public_key.to_canonical_address(),
         shard_id,
         100000,
         1,
