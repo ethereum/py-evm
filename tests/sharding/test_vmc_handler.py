@@ -31,7 +31,7 @@ from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import 
     TesterChainHandler,
 )
 
-keys = get_default_account_keys()
+test_keys = get_default_account_keys()
 
 @pytest.fixture
 def chain_handler():
@@ -40,14 +40,14 @@ def chain_handler():
 def print_current_contract_address(sender_address, nonce):
     list_addresses = [
         eth_utils.to_checksum_address(
-            generate_contract_address(keys[0].public_key.to_canonical_address(), i)
+            generate_contract_address(test_keys[0].public_key.to_canonical_address(), i)
         ) for i in range(nonce + 1)
     ]
     print(list_addresses)
 
 def do_withdraw(vmc_handler, validator_index):
-    assert validator_index < len(keys)
-    privkey = keys[validator_index]
+    assert validator_index < len(test_keys)
+    privkey = test_keys[validator_index]
     sender_addr = privkey.public_key.to_checksum_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc_handler.withdraw(validator_index, signature, sender_addr)
@@ -57,8 +57,8 @@ def get_testing_colhdr(vmc_handler,
                        shard_id,
                        parent_collation_hash,
                        number,
-                       collation_coinbase=keys[0].public_key.to_canonical_address(),
-                       privkey=keys[0]):
+                       collation_coinbase=test_keys[0].public_key.to_canonical_address(),
+                       privkey=test_keys[0]):
     period_length = PERIOD_LENGTH
     expected_period_number = (vmc_handler.chain_handler.get_block_number() + 1) // period_length
     print("!@# add_header: expected_period_number=", expected_period_number)
@@ -97,7 +97,7 @@ def get_testing_colhdr(vmc_handler,
 def test_vmc_handler(chain_handler):
     shard_id = 0
     validator_index = 0
-    primary_addr = keys[validator_index].public_key.to_checksum_address()
+    primary_addr = test_keys[validator_index].public_key.to_checksum_address()
     zero_addr = eth_utils.to_checksum_address(b'\x00' * 20)
 
     vmc_handler = VMCHandler(chain_handler, primary_addr=primary_addr)
@@ -113,12 +113,12 @@ def test_vmc_handler(chain_handler):
     if not vmc_handler.is_vmc_deployed():
         print('not handler.is_vmc_deployed()')
         # import privkey
-        for key in keys:
+        for key in test_keys:
             vmc_handler.import_key_to_chain_handler(key)
 
-        vmc_handler.deploy_initiating_contracts(keys[validator_index])
+        vmc_handler.deploy_initiating_contracts(test_keys[validator_index])
         vmc_handler.chain_handler.mine(1)
-        vmc_handler.first_setup_and_deposit(keys[validator_index])
+        vmc_handler.first_setup_and_deposit(test_keys[validator_index])
 
     assert vmc_handler.is_vmc_deployed()
 
@@ -144,7 +144,7 @@ def test_vmc_handler(chain_handler):
     assert vmc_handler.get_collation_header_score(shard_id, header2_hash) == 2
 
     vmc_handler.tx_to_shard(
-        keys[1].public_key.to_checksum_address(),
+        test_keys[1].public_key.to_checksum_address(),
         shard_id,
         100000,
         1,
