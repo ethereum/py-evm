@@ -57,6 +57,9 @@ logger.addHandler(stdout_handler)
 
 @pytest.fixture
 def chain_handler():
+    # TODO: currently we only test with `TesterChainHandler` because it takes time to test with
+    #       real RPC.
+    #       Should see if there is a better way to test with RPCHandler.(maybe mock web3.py?)
     # return RPCChainHandler()
     return TesterChainHandler()
 

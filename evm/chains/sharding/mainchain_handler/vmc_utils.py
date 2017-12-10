@@ -235,6 +235,8 @@ def mk_vmc_tx_obj(func,
 def decode_contract_call_result(func_name, contract_abi, result):
     func_abi = get_func_abi(func_name, contract_abi)
     output_types = [output_abi['type'] for output_abi in func_abi['outputs']]
+    # TODO: see if we can automatically transform the address result to bytes type
+    #       E.g. if `output_type` is address, then `to_canonical_address`
     return decode_abi(output_types, result)[0]  # not sure why it's a tuple
 
 def decode_vmc_call_result(func_name, result):

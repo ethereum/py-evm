@@ -91,6 +91,8 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         address_in_hex = self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
+        # TODO: should see if there is a better way to automatically change the address result from
+        #       hex to bytes in. Maybe in `decode_contract_call_result`?
         return to_canonical_address(address_in_hex)
 
     def deposit(self,
