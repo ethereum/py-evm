@@ -158,7 +158,3 @@ def test_vmc_handler(chain_handler):
     do_withdraw(vmc_handler, validator_index)
     vmc_handler.chain_handler.mine(1)
     assert vmc_handler.sample(shard_id) == zero_addr
-
-if __name__ == '__main__':
-    test_handler(TesterChainHandler)
-    # test_handler(RPCChainHandler)
