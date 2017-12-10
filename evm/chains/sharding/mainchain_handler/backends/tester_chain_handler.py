@@ -2,7 +2,9 @@ from eth_tester import EthereumTester
 
 from eth_tester.backends.pyevm import PyEVMBackend
 
-import eth_utils
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 from evm.chains.sharding.mainchain_handler.config import (
     GASPRICE,
@@ -58,7 +60,7 @@ class TesterChainHandler(BaseChainHandler):
             'value': value,
             'gas': gas,
             'gas_price': gas_price,
-            'data': eth_utils.encode_hex(data),
+            'data': encode_hex(data),
         }
         if to is not None:
             tx_obj['to'] = to

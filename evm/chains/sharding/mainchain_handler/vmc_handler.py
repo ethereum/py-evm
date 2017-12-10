@@ -3,6 +3,9 @@ from eth_tester.exceptions import ValidationError
 import eth_utils
 
 from evm.utils.address import generate_contract_address
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 from viper import compiler
 
@@ -244,7 +247,7 @@ class VMCHandler:
                 self.chain_handler.mine(1)
             print(
                 '!@# deploy: vmc: ',
-                self.chain_handler.get_transaction_receipt(eth_utils.encode_hex(txs[-1].hash)),
+                self.chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
             )
 
     def first_setup_and_deposit(self, key):

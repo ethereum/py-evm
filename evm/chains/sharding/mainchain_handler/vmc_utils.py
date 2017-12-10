@@ -14,6 +14,9 @@ from eth_keys import KeyAPI
 import eth_utils
 
 from evm.utils.address import generate_contract_address
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
@@ -170,7 +173,7 @@ def mk_contract_tx_obj(func_name,
     arg_types = [arg_abi['type'] for arg_abi in func_abi['inputs']]
     func_selector = eth_utils.function_abi_to_4byte_selector(func_abi)
     data = func_selector + encode_abi(arg_types, args)
-    data = eth_utils.encode_hex(data)
+    data = encode_hex(data)
     obj = {
         'from': eth_utils.to_checksum_address(sender_addr),
         'to': eth_utils.to_checksum_address(contract_addr),
