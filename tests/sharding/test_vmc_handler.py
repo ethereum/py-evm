@@ -41,7 +41,7 @@ def chain_handler():
 
 def print_current_contract_address(sender_address, nonce):
     list_addresses = [
-        eth_utils.address.to_checksum_address(
+        eth_utils.to_checksum_address(
             generate_contract_address(keys[0].public_key.to_canonical_address(), i)
         ) for i in range(nonce + 1)
     ]
@@ -100,7 +100,7 @@ def test_vmc_handler(chain_handler):
     shard_id = 0
     validator_index = 0
     primary_addr = keys[validator_index].public_key.to_checksum_address()
-    zero_addr = eth_utils.address.to_checksum_address(b'\x00' * 20)
+    zero_addr = eth_utils.to_checksum_address(b'\x00' * 20)
 
     vmc_handler = VMCHandler(chain_handler, primary_addr=primary_addr)
     print(

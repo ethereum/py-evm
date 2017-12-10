@@ -222,7 +222,7 @@ class VMCHandler:
             key.public_key.to_canonical_address()
         )
         nonce = self.chain_handler.get_nonce(address)
-        valcode_addr = eth_utils.address.to_checksum_address(
+        valcode_addr = eth_utils.to_checksum_address(
             generate_contract_address(eth_utils.to_canonical_address(address), nonce)
         )
         self.chain_handler.unlock_account(address)

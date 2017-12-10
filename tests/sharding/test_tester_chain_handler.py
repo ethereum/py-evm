@@ -45,7 +45,7 @@ def update_num_test(_num_test: num):
     bytecode = compiler.compile(code)
     abi = compiler.mk_full_signature(code)
     sender_addr = keys[0].public_key.to_checksum_address()
-    contract_addr = eth_utils.address.to_checksum_address(
+    contract_addr = eth_utils.to_checksum_address(
         generate_contract_address(
             eth_utils.to_canonical_address(sender_addr),
             chain_handler.get_nonce(sender_addr)

@@ -52,7 +52,7 @@ class RPCChainHandler(BaseChainHandler):
         self._w3.miner.stop()
 
     def unlock_account(self, account, passphrase=PASSPHRASE):
-        account = eth_utils.address.to_checksum_address(account)
+        account = eth_utils.to_checksum_address(account)
         self._w3.personal.unlockAccount(account, passphrase)
 
     def get_transaction_receipt(self, tx_hash):

@@ -172,8 +172,8 @@ def mk_contract_tx_obj(func_name,
     data = func_selector + encode_abi(arg_types, args)
     data = eth_utils.encode_hex(data)
     obj = {
-        'from': eth_utils.address.to_checksum_address(sender_addr),
-        'to': eth_utils.address.to_checksum_address(contract_addr),
+        'from': eth_utils.to_checksum_address(sender_addr),
+        'to': eth_utils.to_checksum_address(contract_addr),
         'value': value,
         'gas': gas,
         'gas_price': gas_price,
