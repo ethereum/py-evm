@@ -55,13 +55,12 @@ def do_withdraw(vmc_handler, validator_index):
     vmc_handler.withdraw(validator_index, signature, sender_addr)
     vmc_handler.chain_handler.mine(1)
 
-def get_testing_colhdr(
-        vmc_handler,
-        shard_id,
-        parent_collation_hash,
-        number,
-        collation_coinbase=keys[0].public_key.to_canonical_address(),
-        privkey=keys[0]):
+def get_testing_colhdr(vmc_handler,
+                       shard_id,
+                       parent_collation_hash,
+                       number,
+                       collation_coinbase=keys[0].public_key.to_canonical_address(),
+                       privkey=keys[0]):
     period_length = PERIOD_LENGTH
     expected_period_number = (vmc_handler.chain_handler.get_block_number() + 1) // period_length
     print("!@# add_header: expected_period_number=", expected_period_number)
