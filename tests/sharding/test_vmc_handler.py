@@ -33,7 +33,7 @@ from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import 
 
 keys = get_default_account_keys()
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def chain_handler():
     return TesterChainHandler()
 
