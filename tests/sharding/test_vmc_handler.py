@@ -1,3 +1,6 @@
+import logging
+import sys
+
 import pytest
 
 import rlp
@@ -33,17 +36,16 @@ from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import 
 
 test_keys = get_default_account_keys()
 
+logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
+stdout_handler = logging.StreamHandler(sys.stdout)
+level = logging.DEBUG
+logger.setLevel(level)
+stdout_handler.setLevel(level)
+logger.addHandler(stdout_handler)
+
 @pytest.fixture
 def chain_handler():
     return TesterChainHandler()
-
-def print_current_contract_address(sender_address, nonce):
-    list_addresses = [
-        eth_utils.to_checksum_address(
-            generate_contract_address(test_keys[0].public_key.to_canonical_address(), i)
-        ) for i in range(nonce + 1)
-    ]
-    print(list_addresses)
 
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
@@ -61,9 +63,9 @@ def get_testing_colhdr(vmc_handler,
                        privkey=test_keys[0]):
     period_length = PERIOD_LENGTH
     expected_period_number = (vmc_handler.chain_handler.get_block_number() + 1) // period_length
-    print("!@# add_header: expected_period_number=", expected_period_number)
+    logger.debug("!@# add_header: expected_period_number=%s", expected_period_number)
     period_start_prevhash = vmc_handler.get_period_start_prevhash(expected_period_number)
-    print("!@# period_start_prevhash()={}".format(period_start_prevhash))
+    logger.debug("!@# add_header: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
@@ -101,17 +103,17 @@ def test_vmc_handler(chain_handler):
     zero_addr = eth_utils.to_checksum_address(b'\x00' * 20)
 
     vmc_handler = VMCHandler(chain_handler, primary_addr=primary_addr)
-    print(
-        "!@# viper_rlp_decoder_addr:",
+    logger.debug(
+        "!@# viper_rlp_decoder_addr=%s",
         eth_utils.to_checksum_address(vmc_utils.viper_rlp_decoder_addr),
     )
-    print(
-        "!@# sighasher_addr:",
+    logger.debug(
+        "!@# sighasher_addr=%s",
         eth_utils.to_checksum_address(vmc_utils.sighasher_addr)
     )
 
     if not vmc_handler.is_vmc_deployed():
-        print('not handler.is_vmc_deployed()')
+        logger.debug('handler.is_vmc_deployed() == True')
         # import privkey
         for key in test_keys:
             vmc_handler.import_key_to_chain_handler(key)
@@ -127,7 +129,7 @@ def test_vmc_handler(chain_handler):
 
     assert vmc_handler.sample(shard_id) != zero_addr
     assert vmc_handler.get_num_validators() == 1
-    print("!@# get_num_validators(): ", vmc_handler.get_num_validators())
+    logger.debug("!@# vmc_handler.get_num_validators()=%s", vmc_handler.get_num_validators())
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc_handler, shard_id, genesis_colhdr_hash, 1)

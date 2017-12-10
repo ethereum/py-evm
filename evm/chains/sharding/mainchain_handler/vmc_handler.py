@@ -1,3 +1,5 @@
+import logging
+
 from eth_tester.exceptions import ValidationError
 
 import eth_utils
@@ -29,6 +31,8 @@ from evm.chains.sharding.mainchain_handler.vmc_utils import (
 
 class VMCHandler:
 
+    logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
+
     def __init__(self, chain_handler, primary_addr):
         self.chain_handler = chain_handler
         self.primary_addr = primary_addr
@@ -36,13 +40,12 @@ class VMCHandler:
 
     def init_vmc_attributes(self):
         self._vmc_addr = get_valmgr_addr()
-        print("!@# vmc_addr={}".format(self._vmc_addr))
         self._vmc_sender_addr = get_valmgr_sender_addr()
-        print("!@# vmc_sender_addr={}".format(self._vmc_sender_addr))
+        self.logger.debug("vmc_addr=%s", self._vmc_addr)
+        self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
         self._vmc_bytecode = get_valmgr_bytecode()
         self._vmc_code = get_valmgr_code()
         self._vmc_abi = compiler.mk_full_signature(self._vmc_code)
-        # print("!@# vmc_abi={}".format(self._vmc_abi))
 
     # vmc utils ####################################
 
@@ -58,11 +61,12 @@ class VMCHandler:
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
         result = self.chain_handler.call(tx_obj)
         decoded_result = decode_vmc_call_result(func_name, result)
-        print("!@# call_vmc: func_name={}, args={}, result={}".format(
+        self.logger.debug(
+            "call_vmc: func_name=%s, args=%s, result=%s",
             func_name,
             args,
             decoded_result,
-        ))
+        )
         return decoded_result
 
     def send_vmc_tx(self,
@@ -76,11 +80,12 @@ class VMCHandler:
             sender_addr = self.primary_addr
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
         tx_hash = self.chain_handler.send_transaction(tx_obj)
-        print("!@# send_vmc_tx: func_name={}, args={}, tx_hash={}".format(
+        self.logger.debug(
+            "send_vmc_tx: func_name=%s, args=%s, tx_hash=%s",
             func_name,
             args,
             tx_hash,
-        ))
+        )
         return tx_hash
 
     # vmc related #############################
@@ -246,8 +251,8 @@ class VMCHandler:
             for tx in txs[3:]:
                 self.chain_handler.direct_tx(tx)
                 self.chain_handler.mine(1)
-            print(
-                '!@# deploy: vmc: ',
+            self.logger.debug(
+                'deploy_initiating_contracts: vmc_tx_hash=%s',
                 self.chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
             )
 
