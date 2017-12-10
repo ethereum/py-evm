@@ -18,17 +18,20 @@ class TrackedDB(BaseDB):
         self._reads = {}
         self._writes = {}
 
+    @property
+    def reads(self):
+        return self._reads
+
+    @property
+    def writes(self):
+        return self._writes
+
     def get(self, key):
         """
         Return the value of specific key and update read dict.
         """
-        try:
-            current_value = self.wrapped_db.get(key)
-        except KeyError:
-            raise
-        else:
-            self._reads[key] = current_value
-
+        current_value = self.wrapped_db.get(key)
+        self._reads[key] = current_value
         return current_value
 
     def set(self, key, value):
@@ -42,43 +45,14 @@ class TrackedDB(BaseDB):
         """
         Check if the key exsits.
         """
-        return self.wrapped_db.exists(key)
+        result = self.wrapped_db.exists(key)
+        self._reads[key] = self.wrapped_db.get(key) if result else None
+        return result
 
     def delete(self, key):
         """
         Delete the key and update writes dict.
         """
-        try:
-            current_value = self.wrapped_db.get(key)
-        except KeyError:
-            # do not need to be added in writes
-            pass
-        else:
-            self._writes[key] = current_value
-
-        return self.wrapped_db.delete(key)
-
-    def get_reads(self, key=None):
-        """
-        Return the whole or the specific value of reads dict.
-        """
-        if key is None:
-            return self._reads
-        else:
-            return self._reads[key] if key in self._reads else None
-
-    def get_writes(self, key=None):
-        """
-        Return the whole or the specific value of writes dict.
-        """
-        if key is None:
-            return self._writes
-        else:
-            return self._writes[key] if key in self._writes else None
-
-    def clear_log(self):
-        """
-        Clear reads and writes dicts.
-        """
-        self._reads = {}
-        self._writes = {}
+        result = self.wrapped_db.delete(key)
+        self._writes[key] = None
+        return result
