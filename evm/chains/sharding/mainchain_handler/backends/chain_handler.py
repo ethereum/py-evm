@@ -37,14 +37,12 @@ class RPCChainHandler(BaseChainHandler):
         return self._w3.eth.getTransactionCount(address)
 
     def import_privkey(self, privkey, passphrase=PASSPHRASE):
-        '''
-            @privkey: bytes
-        '''
+        """
+        :param privkey: bytes
+        """
         self._w3.personal.importRawKey(privkey, passphrase)
 
     def mine(self, number):
-        '''
-        '''
         expected_block_number = self.get_block_number() + number
         self._w3.miner.start(1)
         while self.get_block_number() < expected_block_number:

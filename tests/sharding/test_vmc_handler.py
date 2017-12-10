@@ -65,12 +65,12 @@ def do_withdraw(vmc_handler, validator_index):
     vmc_handler.chain_handler.mine(1)
 
 def deploy_valcode_and_deposit(vmc_handler, key):
-    '''
+    """
     Deploy validation code of and with the key, and do deposit
 
     :param key: Key object
     :return: returns nothing
-    '''
+    """
     chain_handler = vmc_handler.chain_handler
     address = key.public_key.to_checksum_address()
     chain_handler.unlock_account(address)
@@ -124,9 +124,9 @@ def get_testing_colhdr(vmc_handler,
                        privkey=test_keys[0]):
     period_length = PERIOD_LENGTH
     expected_period_number = (vmc_handler.chain_handler.get_block_number() + 1) // period_length
-    logger.debug("!@# add_header: expected_period_number=%s", expected_period_number)
+    logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
     period_start_prevhash = vmc_handler.get_period_start_prevhash(expected_period_number)
-    logger.debug("!@# add_header: period_start_prevhash=%s", period_start_prevhash)
+    logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
@@ -189,7 +189,7 @@ def test_vmc_handler(chain_handler):
 
     assert vmc_handler.sample(shard_id) != zero_addr
     assert vmc_handler.get_num_validators() == 1
-    logger.debug("!@# vmc_handler.get_num_validators()=%s", vmc_handler.get_num_validators())
+    logger.debug("vmc_handler.get_num_validators()=%s", vmc_handler.get_num_validators())
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc_handler, shard_id, genesis_colhdr_hash, 1)

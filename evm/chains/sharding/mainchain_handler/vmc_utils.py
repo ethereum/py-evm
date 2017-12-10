@@ -74,8 +74,8 @@ return(~mload(0) == {})
     return validation_code_bytecode
 
 def sign(message, privkey):
-    '''@privkey: Key type
-    '''
+    """@privkey: Key type
+    """
     signature = keys.ecdsa_sign(message, privkey)
     v, r, s = signature.vrs
     v += 27

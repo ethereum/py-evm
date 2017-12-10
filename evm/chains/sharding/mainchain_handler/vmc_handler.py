@@ -78,8 +78,8 @@ class VMCHandler:
     # vmc related #############################
 
     def sample(self, shard_id, sender_addr=None):
-        '''sample(shard_id: num) -> address
-        '''
+        """sample(shard_id: num) -> address
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
@@ -90,8 +90,8 @@ class VMCHandler:
                 sender_addr=None,
                 gas=TX_GAS,
                 gas_price=GASPRICE):
-        '''deposit(validation_code_addr: address, return_addr: address) -> num
-        '''
+        """deposit(validation_code_addr: address, return_addr: address) -> num
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.send_vmc_tx(
@@ -104,8 +104,8 @@ class VMCHandler:
         )
 
     def withdraw(self, validator_index, sig, sender_addr=None, gas=TX_GAS, gas_price=GASPRICE):
-        '''withdraw(validator_index: num, sig: bytes <= 1000) -> bool
-        '''
+        """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
+        """
         return self.send_vmc_tx(
             'withdraw',
             [validator_index, sig],
@@ -115,15 +115,15 @@ class VMCHandler:
         )
 
     def get_shard_list(self, valcode_addr, sender_addr=None):
-        '''get_shard_list(valcode_addr: address) -> bool[100]
-        '''
+        """get_shard_list(valcode_addr: address) -> bool[100]
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.call_vmc('get_shard_list', [valcode_addr], sender_addr=sender_addr)
 
     def add_header(self, header, sender_addr=None, gas=TX_GAS, gas_price=GASPRICE):
-        '''add_header(header: bytes <= 4096) -> bool
-        '''
+        """add_header(header: bytes <= 4096) -> bool
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.send_vmc_tx(
@@ -135,8 +135,8 @@ class VMCHandler:
         )
 
     def get_period_start_prevhash(self, expected_period_number, sender_addr=None):
-        '''get_period_start_prevhash(expected_period_number: num) -> bytes32
-        '''
+        """get_period_start_prevhash(expected_period_number: num) -> bytes32
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.call_vmc(
@@ -155,10 +155,10 @@ class VMCHandler:
                     sender_addr=None,
                     gas=TX_GAS,
                     gas_price=GASPRICE):
-        '''tx_to_shard(
+        """tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num
-        '''
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.send_vmc_tx(
@@ -171,8 +171,8 @@ class VMCHandler:
         )
 
     def get_collation_gas_limit(self, sender_addr=None):
-        '''get_collation_gas_limit() -> num
-        '''
+        """get_collation_gas_limit() -> num
+        """
         if sender_addr is None:
             sender_addr = self.primary_addr
         return self.call_vmc('get_collation_gas_limit', [], sender_addr=sender_addr)
