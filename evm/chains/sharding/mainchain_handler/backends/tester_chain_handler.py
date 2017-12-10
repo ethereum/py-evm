@@ -39,7 +39,10 @@ class TesterChainHandler(BaseChainHandler):
         return self.et.get_nonce(address)
 
     def import_privkey(self, privkey, passphrase=PASSPHRASE):
-        self.et.add_account(privkey, passphrase)
+        """
+        :param privkey: PrivateKey object from eth_keys
+        """
+        self.et.add_account(privkey.to_hex(), passphrase)
 
     def mine(self, number):
         self.et.mine_blocks(num_blocks=number)

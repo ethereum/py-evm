@@ -45,9 +45,9 @@ class RPCChainHandler(BaseChainHandler):
 
     def import_privkey(self, privkey, passphrase=PASSPHRASE):
         """
-        :param privkey: bytes
+        :param privkey: PrivateKey object from eth_keys
         """
-        self._w3.personal.importRawKey(privkey, passphrase)
+        self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
 
     def mine(self, number):
         expected_block_number = self.get_block_number() + number

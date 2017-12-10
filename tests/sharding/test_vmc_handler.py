@@ -110,9 +110,15 @@ def first_setup_and_deposit(vmc_handler, key):
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
 def import_key_to_chain_handler(vmc_handler, key):
+    """
+    :param vmc_handler: VMCHandler
+    :param privkey: PrivateKey object from eth_keys
+    """
     try:
-        vmc_handler.chain_handler.import_privkey(key.to_hex())
+        vmc_handler.chain_handler.import_privkey(key)
     # Exceptions happen when the key is already imported.
+    #   - ValueError: `web3.py`
+    #   - ValidationError: `eth_tester`
     except (ValueError, ValidationError):
         pass
 
