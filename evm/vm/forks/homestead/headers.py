@@ -6,16 +6,20 @@ from evm.validation import (
     validate_gt,
     validate_header_params_for_configuration,
 )
+
 from evm.constants import (
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
-    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 
 from evm.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
+)
+
+from .constants import (
+    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF
 )
 
 

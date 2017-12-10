@@ -4,12 +4,13 @@ from cytoolz import assoc
 
 from rlp import sedes
 
-from evm.p2p.constants import (
-    CLIENT_VERSION_STRING,
-)
 from evm.p2p.protocol import (
     Command,
     Protocol,
+)
+
+from .constants import (
+    CLIENT_VERSION_STRING,
 )
 
 

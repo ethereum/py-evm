@@ -14,16 +14,17 @@ from evm.rlp.headers import (
 from evm.rlp.transactions import (
     BaseTransaction,
 )
-from evm.p2p.constants import (
-    MAX_BODIES_FETCH,
-    MAX_HEADERS_FETCH,
-)
 from evm.p2p.exceptions import HandshakeFailure
 from evm.p2p.p2p_proto import DisconnectReason
 from evm.p2p.protocol import (
     Command,
     Protocol,
     _DecodedMsgType,
+)
+
+from .constants import (
+    MAX_BODIES_FETCH,
+    MAX_HEADERS_FETCH,
 )
 
 

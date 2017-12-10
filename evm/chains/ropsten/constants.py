@@ -1,0 +1,4 @@
+#
+# ByzantiumVM
+#
+BYZANTIUM_ROPSTEN_BLOCK = 1700000

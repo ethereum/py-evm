@@ -2,8 +2,8 @@ from cytoolz import (
     merge,
 )
 
-from evm import constants
 from evm import precompiles
+from evm.constants import MAX_UNCLE_DEPTH
 from evm.utils.address import (
     force_bytes_to_address,
 )
@@ -14,6 +14,7 @@ from evm.validation import (
 from ..frontier import FRONTIER_PRECOMPILES
 from ..spurious_dragon import SpuriousDragonVM
 
+from .constants import EIP649_BLOCK_REWARD
 from .headers import (
     create_byzantium_header_from_parent,
     configure_byzantium_header,
@@ -34,13 +35,13 @@ BYZANTIUM_PRECOMPILES = merge(
 
 
 def _byzantium_get_block_reward(block_number):
-    return constants.EIP649_BLOCK_REWARD
+    return EIP649_BLOCK_REWARD
 
 
 def _byzantium_get_uncle_reward(block_number, uncle):
-    validate_lte(uncle.block_number, constants.MAX_UNCLE_DEPTH)
+    validate_lte(uncle.block_number, MAX_UNCLE_DEPTH)
     block_number_delta = block_number - uncle.block_number
-    return (8 - block_number_delta) * constants.EIP649_BLOCK_REWARD // 8
+    return (8 - block_number_delta) * EIP649_BLOCK_REWARD // 8
 
 
 ByzantiumVM = SpuriousDragonVM.configure(

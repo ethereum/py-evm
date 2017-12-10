@@ -4,7 +4,6 @@ from evm.constants import (
     DIFFICULTY_MINIMUM,
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
-    BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 from evm.validation import (
     validate_gt,
@@ -12,6 +11,10 @@ from evm.validation import (
 )
 from evm.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
+)
+
+from .constants import (
+    BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF
 )
 
 

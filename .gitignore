@@ -59,3 +59,6 @@ prof/**
 docs/evm.*rst
 venv*
 .eggs/
+
+# vscode
+.vscode/**

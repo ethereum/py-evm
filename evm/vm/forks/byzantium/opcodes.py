@@ -4,6 +4,11 @@ import functools
 from cytoolz import merge
 
 from evm import constants
+from evm.vm.forks.eip150.constants import (
+    GAS_CALL_EIP150,
+    GAS_SELFDESTRUCT_EIP150
+)
+
 from evm.exceptions import (
     WriteProtection,
 )
@@ -57,12 +62,12 @@ UPDATED_OPCODES = {
     opcode_values.STATICCALL: call.StaticCall.configure(
         name='opcode:STATICCALL',
         mnemonic=mnemonics.STATICCALL,
-        gas_cost=constants.GAS_CALL_EIP150,
+        gas_cost=GAS_CALL_EIP150,
     )(),
     opcode_values.CALL: call.CallByzantium.configure(
         name='opcode:CALL',
         mnemonic=mnemonics.CALL,
-        gas_cost=constants.GAS_CALL_EIP150,
+        gas_cost=GAS_CALL_EIP150,
     )(),
     #
     # Logging
@@ -115,7 +120,7 @@ UPDATED_OPCODES = {
     opcode_values.SELFDESTRUCT: as_opcode(
         logic_fn=ensure_no_static(system.selfdestruct_eip161),
         mnemonic=mnemonics.SELFDESTRUCT,
-        gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
+        gas_cost=GAS_SELFDESTRUCT_EIP150,
     ),
 }
 

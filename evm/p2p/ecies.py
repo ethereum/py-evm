@@ -14,15 +14,16 @@ from eth_utils import force_bytes
 from eth_keys import keys
 from eth_keys import datatypes
 
-from evm.p2p.constants import (
-    PUBKEY_LEN,
-)
 from evm.p2p.exceptions import DecryptionError
 from evm.utils.numeric import (
     int_to_big_endian,
 )
 from evm.utils.padding import (
     pad32,
+)
+
+from .constants import (
+    PUBKEY_LEN,
 )
 
 
