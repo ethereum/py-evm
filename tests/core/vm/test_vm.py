@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 from eth_utils import decode_hex
@@ -6,6 +8,44 @@ from evm import constants
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
+
+
+def test_add_transaction_to_block(chain_without_block_validation):  # noqa: F811
+    chain = chain_without_block_validation  # noqa: F811
+    vm = copy.deepcopy(chain.get_vm())  # Use vm as a temporary container
+
+    # Prepare a transaction
+    tx_idx = len(vm.block.transactions)
+    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    amount = 100
+    from_ = chain.funded_address
+    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    tx_gas = tx.gas_price * constants.GAS_TX
+
+    # Use add_transaction_to_block as a pure function
+    computation = vm.execute_transaction(tx)
+    prev_block = copy.deepcopy(vm.block)
+    block = copy.deepcopy(
+        vm.add_transaction_to_block(tx, prev_block, computation)
+    )
+
+    # Check if no side effect
+    assert prev_block.hash != block.hash
+
+    # Check if the result is right
+    with vm.state_db(read_only=True) as state_db:
+        assert state_db.get_balance(from_) == (
+            chain.funded_address_initial_balance - amount - tx_gas)
+        assert state_db.get_balance(recipient) == amount
+
+    assert block.transactions[tx_idx] == tx
+    assert block.header.gas_used == constants.GAS_TX
+
+    # Check if testing on different VM object
+    with vm.state_db(read_only=True) as state_db:
+        with chain.get_vm().state_db(read_only=True) as prev_state_db:
+            assert state_db.get_balance(from_) != prev_state_db.get_balance(from_)
+            assert state_db.get_balance(recipient) != prev_state_db.get_balance(recipient)
 
 
 def test_apply_transaction(chain_without_block_validation):  # noqa: F811
