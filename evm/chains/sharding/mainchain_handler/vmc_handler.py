@@ -43,14 +43,13 @@ class VMCHandler:
 
     # vmc utils ####################################
 
-    def call_vmc(
-            self,
-            func_name,
-            args,
-            sender_addr=None,
-            value=0,
-            gas=TX_GAS,
-            gas_price=GASPRICE):
+    def call_vmc(self,
+                 func_name,
+                 args,
+                 sender_addr=None,
+                 value=0,
+                 gas=TX_GAS,
+                 gas_price=GASPRICE):
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
@@ -63,14 +62,13 @@ class VMCHandler:
         ))
         return decoded_result
 
-    def send_vmc_tx(
-            self,
-            func_name,
-            args,
-            sender_addr=None,
-            value=0,
-            gas=TX_GAS,
-            gas_price=GASPRICE):
+    def send_vmc_tx(self,
+                    func_name,
+                    args,
+                    sender_addr=None,
+                    value=0,
+                    gas=TX_GAS,
+                    gas_price=GASPRICE):
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
@@ -91,13 +89,12 @@ class VMCHandler:
             sender_addr = self.primary_addr
         return self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
 
-    def deposit(
-            self,
-            validation_code_addr,
-            return_addr,
-            sender_addr=None,
-            gas=TX_GAS,
-            gas_price=GASPRICE):
+    def deposit(self,
+                validation_code_addr,
+                return_addr,
+                sender_addr=None,
+                gas=TX_GAS,
+                gas_price=GASPRICE):
         '''deposit(validation_code_addr: address, return_addr: address) -> num
         '''
         if sender_addr is None:
@@ -153,17 +150,16 @@ class VMCHandler:
             sender_addr=sender_addr,
         )
 
-    def tx_to_shard(
-            self,
-            to,
-            shard_id,
-            tx_startgas,
-            tx_gasprice,
-            data,
-            value,
-            sender_addr=None,
-            gas=TX_GAS,
-            gas_price=GASPRICE):
+    def tx_to_shard(self,
+                    to,
+                    shard_id,
+                    tx_startgas,
+                    tx_gasprice,
+                    data,
+                    value,
+                    sender_addr=None,
+                    gas=TX_GAS,
+                    gas_price=GASPRICE):
         '''tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num

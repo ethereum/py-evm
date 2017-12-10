@@ -158,15 +158,14 @@ def get_func_abi(func_name, contract_abi):
             return func_abi
     raise ValueError('ABI of function {} is not found in vmc'.format(func_name))
 
-def mk_contract_tx_obj(
-        func_name,
-        args,
-        contract_addr,
-        contract_abi,
-        sender_addr,
-        value,
-        gas,
-        gas_price):
+def mk_contract_tx_obj(func_name,
+                       args,
+                       contract_addr,
+                       contract_abi,
+                       sender_addr,
+                       value,
+                       gas,
+                       gas_price):
     func_abi = get_func_abi(func_name, contract_abi)
     arg_types = [arg_abi['type'] for arg_abi in func_abi['inputs']]
     func_selector = eth_utils.function_abi_to_4byte_selector(func_abi)
@@ -182,13 +181,12 @@ def mk_contract_tx_obj(
     }
     return obj
 
-def mk_vmc_tx_obj(
-        func,
-        args,
-        sender_addr,
-        value,
-        gas,
-        gas_price):
+def mk_vmc_tx_obj(func,
+                  args,
+                  sender_addr,
+                  value,
+                  gas,
+                  gas_price):
     vmc_abi = get_valmgr_abi()
     vmc_addr = get_valmgr_addr()
     return mk_contract_tx_obj(
