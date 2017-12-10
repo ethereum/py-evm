@@ -9,7 +9,7 @@ from eth_abi import (
     encode_abi,
 )
 
-from eth_keys import KeyAPI
+from eth_keys import keys
 
 import eth_utils
 
@@ -69,7 +69,6 @@ return(~mload(0) == {})
 def sign(message, privkey):
     '''@privkey: Key type
     '''
-    keys = KeyAPI()
     signature = keys.ecdsa_sign(message, privkey)
     v, r, s = signature.vrs
     v += 27
