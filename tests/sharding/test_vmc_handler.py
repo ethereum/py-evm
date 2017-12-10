@@ -33,8 +33,6 @@ from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import 
 
 keys = get_default_account_keys()
 
-sha3 = eth_utils.crypto.keccak
-
 @pytest.fixture(scope='function')
 def chain_handler():
     return TesterChainHandler()
@@ -69,7 +67,7 @@ def get_testing_colhdr(vmc_handler,
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
-    sighash = sha3(
+    sighash = eth_utils.keccak(
         rlp.encode([
             shard_id,
             expected_period_number,
@@ -133,12 +131,12 @@ def test_vmc_handler(chain_handler):
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc_handler, shard_id, genesis_colhdr_hash, 1)
-    header1_hash = sha3(header1)
+    header1_hash = eth_utils.keccak(header1)
     vmc_handler.add_header(header1, primary_addr)
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
     header2 = get_testing_colhdr(vmc_handler, shard_id, header1_hash, 2)
-    header2_hash = sha3(header2)
+    header2_hash = eth_utils.keccak(header2)
     vmc_handler.add_header(header2, primary_addr)
     vmc_handler.chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 

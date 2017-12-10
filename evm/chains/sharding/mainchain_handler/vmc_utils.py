@@ -25,9 +25,7 @@ from evm.vm.forks.spurious_dragon.transactions import (
 
 from evm.chains.sharding.mainchain_handler.config import GASPRICE
 
-sha3 = eth_utils.crypto.keccak
-
-WITHDRAW_HASH = sha3("withdraw")
+WITHDRAW_HASH = eth_utils.keccak("withdraw")
 
 _valmgr_abi = None
 _valmgr_ct = None
