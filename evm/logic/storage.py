@@ -10,7 +10,7 @@ def sstore(computation):
 
     _state_db = computation.vm_state.state_db(
         read_only=True,
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         current_value = state_db.get_storage(
@@ -48,7 +48,7 @@ def sstore(computation):
         computation.gas_meter.refund_gas(gas_refund)
 
     _state_db = computation.vm_state.state_db(
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         state_db.set_storage(
@@ -63,7 +63,7 @@ def sload(computation):
 
     _state_db = computation.vm_state.state_db(
         read_only=True,
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         value = state_db.get_storage(

@@ -248,7 +248,7 @@ def validate_header_params_for_configuration(header_params):
         )
 
 
-def validate_access_list(access_list):
+def validate_transaction_access_list(access_list):
     for obj in access_list:
         if len(obj) == 0:
             raise ValidationError("Access list entry must at least specify an account address.")
@@ -264,12 +264,6 @@ def validate_access_list(access_list):
                 )
 
 
-def validate_read_and_write_list(read_and_write_list):
-    if len(read_and_write_list) != 2:
-        raise ValidationError("read and write list tuple must have two entries")
-    if read_and_write_list[0] is None:
-        raise ValidationError("Read list must not be None")
-    if read_and_write_list[1] is None:
-        raise ValidationError("Write list must not be None")
-    for entry in read_and_write_list[0] + read_and_write_list[1]:
+def validate_access_list(access_list):
+    for entry in access_list:
         validate_is_bytes(entry, "Access prefix")

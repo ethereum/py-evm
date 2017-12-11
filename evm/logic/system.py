@@ -50,7 +50,7 @@ def selfdestruct_eip150(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
     _state_db = computation.vm_state.state_db(
         read_only=True,
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         if not state_db.account_exists(beneficiary):
@@ -65,7 +65,7 @@ def selfdestruct_eip161(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
     _state_db = computation.vm_state.state_db(
         read_only=True,
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         is_dead = (
@@ -82,7 +82,7 @@ def selfdestruct_eip161(computation):
 
 def _selfdestruct(computation, beneficiary):
     _state_db = computation.vm_state.state_db(
-        read_and_write_list=computation.msg.read_and_write_list,
+        access_list=computation.msg.access_list,
     )
     with _state_db as state_db:
         local_balance = state_db.get_balance(computation.msg.storage_address)
@@ -123,7 +123,7 @@ class Create(Opcode):
 
         _state_db = computation.vm_state.state_db(
             read_only=True,
-            read_and_write_list=computation.msg.read_and_write_list,
+            access_list=computation.msg.access_list,
         )
         with _state_db as state_db:
             insufficient_funds = state_db.get_balance(computation.msg.storage_address) < value
@@ -141,7 +141,7 @@ class Create(Opcode):
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
         _state_db = computation.vm_state.state_db(
-            read_and_write_list=computation.msg.read_and_write_list,
+            access_list=computation.msg.access_list,
         )
         with _state_db as state_db:
             creation_nonce = state_db.get_nonce(computation.msg.storage_address)
