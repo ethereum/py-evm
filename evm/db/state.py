@@ -61,7 +61,7 @@ class AccountStateDB:
         db,
         root_hash=BLANK_ROOT_HASH,
         read_only=False,
-        read_and_write_list=None
+        access_list=None
     ):
         if read_only:
             self.db = TrackedDB(ImmutableDB(db))
@@ -69,13 +69,8 @@ class AccountStateDB:
             self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
-        if read_and_write_list is not None:
-            self.is_access_restricted = True
-            self.read_list, self.write_list = read_and_write_list
-        else:
-            self.is_access_restricted = False
-            self.read_list = None
-            self.write_list = None
+        self.is_access_restricted = access_list is not None
+        self.access_list = access_list
 
     #
     # Base API
@@ -96,9 +91,9 @@ class AccountStateDB:
         slot_as_key = pad32(int_to_big_endian(slot))
 
         if self.is_access_restricted:
-            if not is_accessible(address, slot_as_key, self.write_list):
+            if not is_accessible(address, slot_as_key, self.access_list):
                 raise UnannouncedStateAccess(
-                    "Attempted writing to storage slot outside of write list"
+                    "Attempted writing to storage slot outside of access list"
                 )
 
         account = self._get_account(address)
@@ -120,9 +115,9 @@ class AccountStateDB:
         slot_as_key = pad32(int_to_big_endian(slot))
 
         if self.is_access_restricted:
-            if not is_accessible(address, slot_as_key, self.read_list):
+            if not is_accessible(address, slot_as_key, self.access_list):
                 raise UnannouncedStateAccess(
-                    "Attempted reading from storage slot outside of read list"
+                    "Attempted reading from storage slot outside of access list"
                 )
 
         account = self._get_account(address)
@@ -138,9 +133,9 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
 
         if self.is_access_restricted:
-            if not is_accessible(address, b'', self.write_list):
+            if not is_accessible(address, b'', self.access_list):
                 raise UnannouncedStateAccess(
-                    "Attempted writing to storage slot outside of write list"
+                    "Attempted writing to storage slot outside of access list"
                 )
 
         account = self._get_account(address)
@@ -152,10 +147,10 @@ class AccountStateDB:
         validate_uint256(balance, title="Account Balance")
 
         if self.is_access_restricted:
-            if keccak(address) + BALANCE_TRIE_PREFIX not in self.write_list:
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.access_list:
                 # TODO: use is_accessible once two layer trie is implemented
                 raise UnannouncedStateAccess(
-                    "Attempted setting balance of account outside of write list"
+                    "Attempted setting balance of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -171,9 +166,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading balance of account outside of read list"
+                    "Attempted reading balance of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -185,9 +180,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + NONCE_TRIE_PREFIX not in self.write_list:
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted setting nonce of account outside of write list"
+                    "Attempted setting nonce of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -200,9 +195,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading nonce of account outside of read list"
+                    "Attempted reading nonce of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -214,9 +209,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted setting code of account outside of write list"
+                    "Attempted setting code of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -236,9 +231,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading code hash of account outside of read list"
+                    "Attempted reading code hash of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -249,9 +244,9 @@ class AccountStateDB:
 
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.write_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted setting code of account outside of write list"
+                    "Attempted setting code of account outside of access list"
                 )
 
         account = self._get_account(address)
@@ -263,22 +258,22 @@ class AccountStateDB:
     #
     def delete_account(self, address):
         if self.is_access_restricted:
-            if not is_accessible(address, b'', self.write_list):
+            if not is_accessible(address, b'', self.access_list):
                 raise UnannouncedStateAccess(
                     'Attempted deleting account without full storage access'
                 )
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted deleting code of account outside of write list"
+                    "Attempted deleting code of account outside of access list"
                 )
-            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted deleting balance of account outside of write list"
+                    "Attempted deleting balance of account outside of access list"
                 )
-            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted deleting nonce of account outside of write list"
+                    "Attempted deleting nonce of account outside of access list"
                 )
 
         del self._trie[address]
@@ -290,13 +285,13 @@ class AccountStateDB:
     def account_has_code_or_nonce(self, address):
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading code of account outside of read list"
+                    "Attempted reading code of account outside of access list"
                 )
-            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading nonce of account outside of read list"
+                    "Attempted reading nonce of account outside of access list"
                 )
 
         if not self.account_exists(address):
@@ -312,17 +307,17 @@ class AccountStateDB:
     def account_is_empty(self, address):
         if self.is_access_restricted:
             # TODO: use is_accessible once two layer trie is implemented
-            if keccak(address) + CODE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + CODE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading code of account outside of read list"
+                    "Attempted reading code of account outside of access list"
                 )
-            if keccak(address) + BALANCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + BALANCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading balance of account outside of read list"
+                    "Attempted reading balance of account outside of access list"
                 )
-            if keccak(address) + NONCE_TRIE_PREFIX not in self.read_list:
+            if keccak(address) + NONCE_TRIE_PREFIX not in self.access_list:
                 raise UnannouncedStateAccess(
-                    "Attempted reading nonce of account outside of read list"
+                    "Attempted reading nonce of account outside of access list"
                 )
 
         validate_canonical_address(address, title="Storage Address")

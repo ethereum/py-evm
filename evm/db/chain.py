@@ -374,10 +374,10 @@ class BaseChainDB:
     def clear(self):
         self.db.clear()
 
-    def get_state_db(self, state_root, read_only, read_and_write_list=None):
+    def get_state_db(self, state_root, read_only, access_list=None):
         return AccountStateDB(
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            read_and_write_list=read_and_write_list
+            access_list=access_list
         )
