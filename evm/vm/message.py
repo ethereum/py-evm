@@ -10,7 +10,7 @@ from evm.validation import (
     validate_gte,
     validate_uint256,
     validate_is_boolean,
-    validate_read_and_write_list,
+    validate_access_list,
 )
 
 
@@ -23,9 +23,7 @@ class Message(object):
     value = None
     data = None
     gas = None
-
-    read_and_write_list = None
-
+    access_list = None
     depth = None
 
     code = None
@@ -45,7 +43,7 @@ class Message(object):
                  value,
                  data,
                  code,
-                 read_and_write_list=None,
+                 access_list=None,
                  depth=0,
                  create_address=None,
                  code_address=None,
@@ -67,9 +65,9 @@ class Message(object):
         validate_is_bytes(data, title="Message.data")
         self.data = data
 
-        if read_and_write_list is not None:
-            validate_read_and_write_list(read_and_write_list)
-        self.read_and_write_list = read_and_write_list
+        if access_list is not None:
+            validate_access_list(access_list)
+        self.access_list = access_list
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
