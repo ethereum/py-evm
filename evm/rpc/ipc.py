@@ -11,6 +11,9 @@ from evm.db.chain import BaseChainDB
 from evm.rpc.main import RPCServer
 
 
+MAXIMUM_REQUEST_BYTES = 10000
+
+
 @curry
 async def connection_handler(execute_rpc, reader, writer):
     raw_request = ''
@@ -26,7 +29,12 @@ async def connection_handler(execute_rpc, reader, writer):
                 e,
             )
             break
-        except asyncio.LimitOverrunError:
+        except asyncio.LimitOverrunError as e:
+            request_bytes = await reader.read(e.consumed)
+            await write_error(writer, "reached limit: %d bytes, starting with '%s'" % (
+                e.consumed,
+                request_bytes[:20],
+            ))
             continue
         except Exception as e:
             print(
@@ -39,8 +47,7 @@ async def connection_handler(execute_rpc, reader, writer):
 
         bad_prefix, raw_request = strip_non_json_prefix(raw_request)
         if bad_prefix:
-            writer.write(error_message('Cannot parse json: ' + bad_prefix))
-            await writer.drain()
+            await write_error(writer, 'Cannot parse json: ' + bad_prefix)
 
         try:
             request = json.loads(raw_request)
@@ -57,7 +64,7 @@ async def connection_handler(execute_rpc, reader, writer):
         try:
             result = execute_rpc(request)
         except Exception as e:
-            writer.write(error_message("unknown failure: " + str(e)))
+            await write_error(writer, "unknown failure: " + str(e))
         else:
             writer.write(result.encode())
 
@@ -75,9 +82,10 @@ def strip_non_json_prefix(raw_request):
         return '', raw_request
 
 
-def error_message(message):
+async def write_error(writer, message):
     json_error = '{"error": "%s"}\n' % message
-    return json_error.encode()
+    writer.write(json_error.encode())
+    await writer.drain()
 
 
 def start(path, chain):
@@ -87,6 +95,7 @@ def start(path, chain):
         connection_handler(rpc.execute),
         path,
         loop=loop,
+        limit=MAXIMUM_REQUEST_BYTES,
     ))
     try:
         loop.run_forever()
