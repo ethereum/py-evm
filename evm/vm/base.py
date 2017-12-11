@@ -58,12 +58,8 @@ class VM(object):
         return type(name, (cls,), overrides)
 
     @contextmanager
-    def state_db(self, read_only=False, read_and_write_list=None):
-        state = self.chaindb.get_state_db(
-            self.block.header.state_root,
-            read_only,
-            read_and_write_list=read_and_write_list
-        )
+    def state_db(self, read_only=False, access_list=None):
+        state = self.chaindb.get_state_db(self.block.header.state_root, read_only, access_list)
         yield state
 
         if read_only:
