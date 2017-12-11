@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import traceback
 
 from cytoolz import curry
 from eth_utils import decode_hex
@@ -16,19 +17,28 @@ MAXIMUM_REQUEST_BYTES = 10000
 
 @curry
 async def connection_handler(execute_rpc, reader, writer):
+    '''
+    Catch fatal errors, log them, and close the connection
+    '''
+    try:
+        await connection_loop(execute_rpc, reader, writer)
+    except (ConnectionResetError, asyncio.IncompleteReadError):
+        # client closed connection
+        pass
+    except Exception:
+        traceback.print_exc()
+        print(
+            "What's really going to bake your noodle later on is,",
+            "would you still have broken it if I hadn't said anything?",
+        )
+
+
+async def connection_loop(execute_rpc, reader, writer):
     raw_request = ''
     while True:
         request_bytes = b''
         try:
             request_bytes = await reader.readuntil(b'}')
-        except asyncio.IncompleteReadError as e:
-            print(
-                "What's really going to bake your noodle later on is,",
-                "would you still have broken it if I hadn't said anything?",
-                "Incomplete Read Error",
-                e,
-            )
-            break
         except asyncio.LimitOverrunError as e:
             request_bytes = await reader.read(e.consumed)
             await write_error(writer, "reached limit: %d bytes, starting with '%s'" % (
@@ -36,12 +46,6 @@ async def connection_handler(execute_rpc, reader, writer):
                 request_bytes[:20],
             ))
             continue
-        except Exception as e:
-            print(
-                "There's a difference between knowing the path, and walking the path.",
-                "Unknown read issue: ",
-                e,
-            )
 
         raw_request += request_bytes.decode()
 
@@ -68,10 +72,7 @@ async def connection_handler(execute_rpc, reader, writer):
         else:
             writer.write(result.encode())
 
-        try:
-            await writer.drain()
-        except ConnectionResetError:
-            break
+        await writer.drain()
 
 
 def strip_non_json_prefix(raw_request):
