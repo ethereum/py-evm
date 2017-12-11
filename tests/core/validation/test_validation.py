@@ -24,8 +24,8 @@ from evm.validation import (
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
     validate_multiple_of,
-    validate_read_and_write_list,
     validate_stack_item,
+    validate_transaction_access_list,
     validate_uint256,
     validate_unique,
     validate_vm_block_numbers,
@@ -416,28 +416,26 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
         ([[b'10010010010010010010', b''], [b'10010010010010010011', b'']], True),
     ),
 )
-def test_validate_access_list(value, is_valid):
+def test_validate_transaction_access_list(value, is_valid):
     if is_valid:
-        validate_access_list(value)
+        validate_transaction_access_list(value)
     else:
         with pytest.raises(ValidationError):
-            validate_access_list(value)
+            validate_transaction_access_list(value)
 
 
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (([], []), True),
-        ((None, []), False),
-        (([], None), False),
-        (([b'asdf', b'fdsa'], [b'xxxx', b'yyyy']), True),
-        ((['asdf'], []), False),
-        (([0], []), False),
+        ([], True),
+        ([b'asdf', b'fdsa'], True),
+        (['asdf'], False),
+        ([0], False),
     )
 )
-def test_read_and_write_list_validation(value, is_valid):
+def test_access_list(value, is_valid):
     if is_valid:
-        validate_read_and_write_list(value)
+        validate_access_list(value)
     else:
         with pytest.raises(ValidationError):
-            validate_read_and_write_list(value)
+            validate_access_list(value)
