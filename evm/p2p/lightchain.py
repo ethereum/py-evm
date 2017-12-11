@@ -13,9 +13,7 @@ from typing import (  # noqa: F401
 from async_lru import alru_cache
 
 from eth_keys import datatypes
-from eth_keys import keys
 from eth_utils import (
-    decode_hex,
     encode_hex,
 )
 
@@ -28,6 +26,7 @@ from evm.exceptions import (
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
+from evm.p2p.discovery import DiscoveryProtocol
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
@@ -71,9 +70,20 @@ class PeerPool:
         self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
+        addr = kademlia.Address('0.0.0.0', 30304, 30304)
+        bootstrap_nodes = [
+            kademlia.Node.from_uri(enode) for enode in [
+                b"enode://1c7a64d76c0334b0418c004af2f67c50e36a3be60b5e4790bdac0439d21603469a85fad36f2473c9a80eb043ae60936df905fa28f1ff614c3e5dc34f15dcd2dc@40.118.3.223:30308",  # noqa: E501
+                b"enode://0cc5f5ffb5d9098c8b8c62325f3797f56509bff942704687b6530992ac706e2cb946b90a34f1f19548cd3c7baccbcaea354531e5983c7d1bc0dee16ce4b6440b@40.118.3.223:30305",  # noqa: E501
+            ]
+        ]
+        genesis = chaindb.get_canonical_block_header_by_number(GENESIS_BLOCK_NUMBER)
+        topic = b"LES@" + encode_hex(genesis.hash[:8])[2:].encode()
+        self.discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes, topic)
 
     async def run(self):
         self.logger.info("Running PeerPool...")
+        asyncio.ensure_future(self.discovery.run())
         while not self._should_stop.is_set():
             try:
                 await self.maybe_connect_to_more_peers()
@@ -83,6 +93,7 @@ class PeerPool:
                 await self.stop_all_peers()
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
             await asyncio.wait([self._should_stop.wait()], timeout=self._connect_loop_sleep)
+        self.discovery.stop()
         self._finished.set()
 
     async def stop_all_peers(self):
@@ -151,50 +162,11 @@ class PeerPool:
         return list(self.connected_nodes.values())
 
     async def get_nodes_to_connect(self) -> List[kademlia.Node]:
-        # TODO: This should use the Discovery service to lookup nodes to connect to, but our
-        # current implementation only supports v4 and with that it takes an insane amount of time
-        # to find any LES nodes with the same network ID as us, so for now we hard-code some nodes
-        # that seem to have a good uptime.
-        from evm.chains.ropsten import RopstenChain
-        from evm.chains.mainnet import MainnetChain
-        if self.network_id == MainnetChain.network_id:
-            return [
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082")),  # noqa: E501
-                    kademlia.Address("52.74.57.123", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d")),  # noqa: E501
-                    kademlia.Address("191.235.84.50", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("ddd81193df80128880232fc1deb45f72746019839589eeb642d3d44efbb8b2dda2c1a46a348349964a6066f8afb016eb2a8c0f3c66f32fadf4370a236a4b5286")),  # noqa: E501
-                    kademlia.Address("52.231.202.145", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99")),  # noqa: E501
-                    kademlia.Address("13.93.211.84", 30303, 30303)),
-            ]
-        elif self.network_id == RopstenChain.network_id:
-            return [
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("88c2b24429a6f7683fbfd06874ae3f1e7c8b4a5ffb846e77c705ba02e2543789d66fc032b6606a8d8888eb6239a2abe5897ce83f78dcdcfcb027d6ea69aa6fe9")),  # noqa: E501
-                    kademlia.Address("163.172.157.61", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("a1ef9ba5550d5fac27f7cbd4e8d20a643ad75596f307c91cd6e7f85b548b8a6bf215cca436d6ee436d6135f9fe51398f8dd4c0bd6c6a0c332ccb41880f33ec12")),  # noqa: E501
-                    kademlia.Address("51.15.218.125", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("e80276aabb7682a4a659f4341c1199de79d91a2e500a6ee9bed16ed4ce927ba8d32ba5dea357739ffdf2c5bcc848d3064bb6f149f0b4249c1f7e53f8bf02bfc8")),  # noqa: E501
-                    kademlia.Address("51.15.39.57", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("584c0db89b00719e9e7b1b5c32a4a8942f379f4d5d66bb69f9c7fa97fa42f64974e7b057b35eb5a63fd7973af063f9a1d32d8c60dbb4854c64cb8ab385470258")),  # noqa: E501
-                    kademlia.Address("51.15.35.2", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("d40871fc3e11b2649700978e06acd68a24af54e603d4333faecb70926ca7df93baa0b7bf4e927fcad9a7c1c07f9b325b22f6d1730e728314d0e4e6523e5cebc2")),  # noqa: E501
-                    kademlia.Address("51.15.132.235", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("482484b9198530ee2e00db89791823244ca41dcd372242e2e1297dd06f6d8dd357603960c5ad9cc8dc15fcdf0e4edd06b7ad7db590e67a0b54f798c26581ebd7")),  # noqa: E501
-                    kademlia.Address("51.15.75.138", 30303, 30303)),
-            ]
-        else:
-            raise ValueError("Unknown network_id: %s", self.network_id)
+        while len(self.discovery.matching_nodes) == 0:
+            await asyncio.sleep(2)
+            self.logger.warn(
+                "Discovery hasn't found any nodes with topic %s yet", self.discovery.topic)
+        return list(self.discovery.matching_nodes)
 
 
 class LightChain(Chain):
