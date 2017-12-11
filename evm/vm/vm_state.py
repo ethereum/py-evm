@@ -48,11 +48,11 @@ class VMState(object):
     # state_db
     #
     @contextmanager
-    def state_db(self, read_only=False, read_and_write_list=None):
+    def state_db(self, read_only=False, access_list=None):
         state = self.chaindb.get_state_db(
             self.block.header.state_root,
             read_only,
-            read_and_write_list=read_and_write_list
+            access_list=access_list
         )
         yield state
 
