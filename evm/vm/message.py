@@ -10,6 +10,7 @@ from evm.validation import (
     validate_gte,
     validate_uint256,
     validate_is_boolean,
+    validate_access_list,
 )
 
 
@@ -24,6 +25,7 @@ class Message(object):
     data = None
     gas = None
     gas_price = None
+    access_list = None
 
     depth = None
 
@@ -46,6 +48,7 @@ class Message(object):
                  data,
                  code,
                  origin=None,
+                 access_list=None,
                  depth=0,
                  create_address=None,
                  code_address=None,
@@ -73,6 +76,10 @@ class Message(object):
         if origin is not None:
             validate_canonical_address(origin, title="Message.origin")
         self.origin = origin
+
+        if access_list is not None:
+            validate_access_list(access_list)
+        self.access_list = access_list
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")

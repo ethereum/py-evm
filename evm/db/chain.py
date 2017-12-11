@@ -242,5 +242,10 @@ class BaseChainDB:
     def clear(self):
         self.db.clear()
 
-    def get_state_db(self, state_root, read_only):
-        return State(db=self.db, root_hash=state_root, read_only=read_only)
+    def get_state_db(self, state_root, read_only, access_list=None):
+        return State(
+            db=self.db,
+            root_hash=state_root,
+            read_only=read_only,
+            access_list=access_list
+        )

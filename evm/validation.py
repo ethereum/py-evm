@@ -227,3 +227,24 @@ def validate_header_params_for_configuration(header_params):
                 ", ".join(tuple(sorted(extra_fields))),
             )
         )
+
+
+def validate_transaction_access_list(access_list):
+    for item in access_list:
+        if len(item) == 0:
+            raise ValidationError("Access list entry must at least specify an account address.")
+        address, *prefixes = item
+        validate_canonical_address(address, title="Access list address")
+        for prefix in prefixes:
+            validate_is_bytes(prefix, title="Access list storage prefix")
+            if len(prefix) > 32:
+                raise ValidationError(
+                    "Access list storage prefix must be 32 bytes or shorter. Got: {}".format(
+                        prefix
+                    )
+                )
+
+
+def validate_access_list(access_list):
+    for entry in access_list:
+        validate_is_bytes(entry, "Access prefix")
