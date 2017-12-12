@@ -25,6 +25,7 @@ from evm.db.journal import (
 )
 from evm.db.state import (
     AccountStateDB,
+    TwoLayerBackend,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -47,8 +48,9 @@ CANONICAL_HEAD_HASH_DB_KEY = b'v1:canonical_head_hash'
 
 class BaseChainDB:
 
-    def __init__(self, db):
+    def __init__(self, db, state_backend_class=TwoLayerBackend):
         self.db = JournalDB(db)
+        self.state_backend_class = state_backend_class
 
     def exists(self, key):
         return self.db.exists(key)
@@ -247,5 +249,6 @@ class BaseChainDB:
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            access_list=access_list
+            access_list=access_list,
+            backend_class=self.state_backend_class
         )

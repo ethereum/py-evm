@@ -51,7 +51,7 @@ class VMState(object):
     def state_db(self, read_only=False, access_list=None):
         state = self.chaindb.get_state_db(
             self.block.header.state_root,
-            read_only,
+            read_only=read_only,
             access_list=access_list
         )
         yield state
