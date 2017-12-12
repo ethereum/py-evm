@@ -213,7 +213,6 @@ class VMCHandler:
 
     def is_vmc_deployed(self):
         return (
-            # FIXME: TODO: should add this line back after the `TesterChain.get_code` is finished
-            # self.chain_handler.get_code(self._vmc_addr) != b'' and \
+            self.chain_handler.get_code(self._vmc_addr) != b'' and \
             self.chain_handler.get_nonce(self._vmc_sender_addr) != 0
         )
