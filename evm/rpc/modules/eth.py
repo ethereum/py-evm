@@ -1,9 +1,16 @@
+from cytoolz import (
+    identity,
+)
+
 from eth_utils import (
+    apply_to_return_value,
     decode_hex,
 )
 
 from evm.rpc.format import (
     block_to_dict,
+    format_params,
+    hex_to_int,
 )
 from evm.rpc.modules import (
     RPCModule,
@@ -20,9 +27,10 @@ class Eth(RPCModule):
     def accounts(self):
         raise NotImplementedError()
 
+    @apply_to_return_value(hex)
     def blockNumber(self):
         num = self._chain.get_canonical_head().block_number
-        return hex(num)
+        return num
 
     def coinbase(self):
         raise NotImplementedError()
@@ -30,8 +38,9 @@ class Eth(RPCModule):
     def gasPrice(self):
         raise NotImplementedError()
 
-    def getBalance(self, address_hex, at_block):
-        address = decode_hex(address_hex)
+    @format_params(decode_hex, identity)
+    @apply_to_return_value(hex)
+    def getBalance(self, address, at_block):
         chain = self._chain
 
         if at_block == 'pending':
@@ -48,10 +57,10 @@ class Eth(RPCModule):
         with vm.state_db(read_only=True) as state:
             balance = state.get_balance(address)
 
-        return hex(balance)
+        return balance
 
-    def getBlockByHash(self, block_hash_hex, include_transactions):
-        block_hash = decode_hex(block_hash_hex)
+    @format_params(decode_hex, identity)
+    def getBlockByHash(self, block_hash, include_transactions):
         block = self._chain.get_block_by_hash(block_hash)
         assert block.hash == block_hash
 
@@ -59,8 +68,8 @@ class Eth(RPCModule):
 
         return block_dict
 
-    def getBlockByNumber(self, block_number_hex, include_transactions):
-        block_number = int(block_number_hex, 16)
+    @format_params(hex_to_int, identity)
+    def getBlockByNumber(self, block_number, include_transactions):
         block = self._chain.get_canonical_block_by_number(block_number)
         assert block.number == block_number
         return block_to_dict(block, self._chain, include_transactions)

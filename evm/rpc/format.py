@@ -1,9 +1,13 @@
+import functools
+
 from eth_utils import (
     encode_hex,
     int_to_big_endian,
 )
 
 import rlp
+
+hex_to_int = functools.partial(int, base=16)
 
 
 def block_to_dict(block, chain, include_transactions):
@@ -38,3 +42,17 @@ def block_to_dict(block, chain, include_transactions):
         block_dict['transactions'] = [encode_hex(tx.hash) for tx in block.transactions]
 
     return block_dict
+
+
+def format_params(*formatters):
+    def decorator(func):
+        @functools.wraps(func)
+        def formatted_func(self, *args):
+            assert len(formatters) == len(args), "could not apply %d formatters to %r" % (
+                len(formatters),
+                args,
+            )
+            formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
+            return func(self, *formatted)
+        return formatted_func
+    return decorator
