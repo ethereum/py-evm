@@ -65,12 +65,9 @@ class TesterChainHandler(BaseChainHandler):
         self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
 
     def mine(self, number):
-        # FIXME: use evm.mine
-        # self._w3.evm.mine(number)
-        # TODO: using `miner.start` is strange
-        self._w3.miner.start(number)
+        # evm.mine
+        self._w3.testing.mine(number)
         # self.et.mine_blocks(num_blocks=number)
-        # self._w3.miner.stop()
 
     def unlock_account(self, account, passphrase=PASSPHRASE):
         account = to_checksum_address(account)
