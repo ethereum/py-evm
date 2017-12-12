@@ -74,6 +74,18 @@ class Eth(RPCModule):
         assert block.number == block_number
         return block_to_dict(block, self._chain, include_transactions)
 
+    @format_params(decode_hex)
+    @apply_to_return_value(hex)
+    def getUncleCountByBlockHash(self, block_hash):
+        block = self._chain.get_block_by_hash(block_hash)
+        return len(block.uncles)
+
+    @format_params(hex_to_int)
+    @apply_to_return_value(hex)
+    def getUncleCountByBlockNumber(self, block_number):
+        block = self._chain.get_canonical_block_by_number(block_number)
+        return len(block.uncles)
+
     def hashrate(self):
         raise NotImplementedError()
 

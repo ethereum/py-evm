@@ -116,6 +116,20 @@ def build_request(method, params):
             hex(1000005 * 10 ** 18),
             None,
         ),
+        (
+            build_request('eth_getUncleCountByBlockHash',
+                ["0xcfc6a6927c1097ebf66819044f63cdf28c541bb55ec555f8c6ca777db39d654d"],
+            ),
+            hex(0),
+            None,
+        ),
+        (
+            build_request('eth_getUncleCountByBlockNumber',
+                ["0x1"],
+            ),
+            hex(0),
+            None,
+        ),
     ),
 )
 def test_eth_requests(rpc, rpc_request, expected_result, expected_error):
