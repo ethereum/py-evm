@@ -55,7 +55,7 @@ def update_num_test(_num_test: num):
     chain_handler.mine(1)
     receipt = chain_handler.get_transaction_receipt(tx_hash)
     # notice: `contractAddress` in web3.py, but `contract_address` in eth_tester
-    assert ('contract_address' in receipt) and (contract_addr == receipt['contract_address'])
+    assert ('contractAddress' in receipt) and (contract_addr == receipt['contractAddress'])
     tx_obj = mk_contract_tx_obj('get_num_test', [], contract_addr, abi, sender_addr, 0, 50000, 1)
     result = chain_handler.call(tx_obj)
     decoded_result = decode_contract_call_result('get_num_test', abi, result)
