@@ -8,26 +8,20 @@ from evm.utils.address import generate_contract_address
 
 import eth_utils
 
-from evm.chains.sharding.mainchain_handler.config import (
-    GASPRICE,
-    PASSPHRASE,
-    TX_GAS,
-)
-
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
     decode_contract_call_result,
     mk_contract_tx_obj,
 )
 
-from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import (
-    TesterChainHandler,
+from evm.chains.sharding.mainchain_handler.mainchain_handler import (
+    MainchainHandler,
 )
 
 test_keys = get_default_account_keys()
 
 @pytest.fixture
 def chain_handler():
-    return TesterChainHandler()
+    return MainchainHandler(use_eth_tester=True)
 
 def test_tester_chain_handler(chain_handler):
     chain_handler.mine(1)

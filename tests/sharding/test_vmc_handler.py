@@ -33,12 +33,12 @@ from evm.chains.sharding.mainchain_handler.config import (
     SHUFFLING_CYCLE_LENGTH,
 )
 
-from evm.chains.sharding.mainchain_handler.vmc_handler import (
-    VMCHandler,
+from evm.chains.sharding.mainchain_handler.mainchain_handler import (
+    MainchainHandler,
 )
 
-from evm.chains.sharding.mainchain_handler.backends.chain_handler import (
-    RPCChainHandler,
+from evm.chains.sharding.mainchain_handler.vmc_handler import (
+    VMCHandler,
 )
 
 test_keys = get_default_account_keys()
@@ -50,8 +50,7 @@ def chain_handler():
     # TODO: currently we only test with `TesterChainHandler` because it takes time to test with
     #       real RPC.
     #       Should see if there is a better way to test with RPCHandler.(maybe mock web3.py?)
-    return RPCChainHandler(use_eth_tester=True)
-    # return TesterChainHandler()
+    return MainchainHandler(use_eth_tester=True)
 
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)

@@ -18,11 +18,7 @@ from evm.chains.sharding.mainchain_handler.config import (
     TX_GAS,
 )
 
-from evm.chains.sharding.mainchain_handler.backends.base import (
-    BaseChainHandler,
-)
-
-class RPCChainHandler(BaseChainHandler):
+class MainchainHandler:
 
     def __init__(self, use_eth_tester=False, rpc_server_url=DEFAULT_RPC_SERVER_URL):
         self._use_eth_tester = use_eth_tester
