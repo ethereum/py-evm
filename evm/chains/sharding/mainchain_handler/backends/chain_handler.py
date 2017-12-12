@@ -24,8 +24,21 @@ from evm.chains.sharding.mainchain_handler.backends.base import (
 
 class RPCChainHandler(BaseChainHandler):
 
-    def __init__(self, rpc_server_url=DEFAULT_RPC_SERVER_URL):
-        self._w3 = Web3(HTTPProvider(rpc_server_url))
+    def __init__(self, use_eth_tester=False, rpc_server_url=DEFAULT_RPC_SERVER_URL):
+        self._use_eth_tester = use_eth_tester
+        if use_eth_tester:
+            from web3.providers.eth_tester import EthereumTesterProvider
+            from eth_tester import EthereumTester
+            from eth_tester.backends.pyevm import PyEVMBackend
+            self._eth_tester = EthereumTester(
+                backend=PyEVMBackend(),
+                auto_mine_transactions=False,
+            )
+            provider = EthereumTesterProvider(self._eth_tester)
+        else:
+            provider = HTTPProvider(rpc_server_url)
+        self._w3 = Web3(provider)
+        assert self._w3.isConnected()
 
     # RPC related
 
@@ -49,20 +62,29 @@ class RPCChainHandler(BaseChainHandler):
         """
         self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
 
+
     def mine(self, number):
+        if self._use_eth_tester:
+            self.evm_mine(number)
+        else:
+            self.miner_mine(number)
+
+    def miner_mine(self, number):
         expected_block_number = self.get_block_number() + number
         self._w3.miner.start(1)
         while self.get_block_number() < expected_block_number:
             time.sleep(0.1)
         self._w3.miner.stop()
 
+    def evm_mine(self, number):
+        # evm.mine
+        self._w3.testing.mine(number)
+
     def unlock_account(self, account, passphrase=PASSPHRASE):
         account = to_checksum_address(account)
         self._w3.personal.unlockAccount(account, passphrase)
 
     def get_transaction_receipt(self, tx_hash):
-        # TODO: should unify the result from `web3.py` and `eth_tester`,
-        #       dict.keys() returned from `web3.py` are camel style, while `eth_tester` are not
         return self._w3.eth.getTransactionReceipt(tx_hash)
 
     def send_transaction(self, tx_obj):
@@ -88,5 +110,12 @@ class RPCChainHandler(BaseChainHandler):
     def direct_tx(self, tx):
         raw_tx = rlp.encode(tx)
         raw_tx_hex = self._w3.toHex(raw_tx)
-        tx_hash = self._w3.eth.sendRawTransaction(raw_tx_hex)
+        try:
+            tx_hash = self._w3.eth.sendRawTransaction(raw_tx_hex)
+        except ValueError:
+            # FIXME: if `sendRawTransaction` is not implemented, `ValueError` is raised
+            #        In this situation, if we used `eth_tester`, try again directly with
+            #        `self._eth_tester.backend.chain.apply_transaction`
+            if self._use_eth_tester:
+                return self._eth_tester.backend.chain.apply_transaction(tx)
         return tx_hash

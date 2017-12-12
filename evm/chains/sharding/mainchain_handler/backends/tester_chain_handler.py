@@ -1,5 +1,7 @@
 import logging
 
+import rlp
+
 from web3 import (
     Web3,
 )
@@ -37,16 +39,14 @@ class TesterChainHandler(BaseChainHandler):
     def __init__(self):
         self.et = EthereumTester(backend=PyEVMBackend(), auto_mine_transactions=False)
         self._w3 = Web3(EthereumTesterProvider(self.et))
+        assert self._w3.isConnected()
 
     def get_block_by_number(self, block_number):
-        # block = self.et.get_block_by_number(block_number)
         block = self._w3.eth.getBlockByNumber(block_number)
         self.logger.debug("get_block_by_number(%s)=%s", block_number, block)
         return block
 
     def get_block_number(self):
-        # raise CanonicalHeadNotFound if head is not found
-        # head_block_header = self.et.backend.chain.get_canonical_head()
         head_block_number = self._w3.eth.blockNumber
         self.logger.debug("get_block_number()=%s", head_block_number)
         return head_block_number
@@ -61,24 +61,18 @@ class TesterChainHandler(BaseChainHandler):
         """
         :param privkey: PrivateKey object from eth_keys
         """
-        # self.et.add_account(privkey.to_hex(), passphrase)
         self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
 
     def mine(self, number):
         # evm.mine
         self._w3.testing.mine(number)
-        # self.et.mine_blocks(num_blocks=number)
 
     def unlock_account(self, account, passphrase=PASSPHRASE):
         account = to_checksum_address(account)
-        # self.et.unlock_account(account, passphrase)
         self._w3.personal.unlockAccount(account, passphrase)
 
     def get_transaction_receipt(self, tx_hash):
-        # TODO: should unify the result from `web3.py` and `eth_tester`,
-        #       dict.keys() returned from `web3.py` are camel style, while `eth_tester` are not
         receipt = self._w3.eth.getTransactionReceipt(tx_hash)
-        # receipt = self.et.get_transaction_receipt(tx_hash)
         if receipt is None:
             self.logger.debug("Receipt not found: tx_hash=%s", tx_hash)
             raise ValueError("Transaction {} is not found.".format(tx_hash))
@@ -86,13 +80,11 @@ class TesterChainHandler(BaseChainHandler):
         return receipt
 
     def send_transaction(self, tx_obj):
-        # tx_hash = self.et.send_transaction(tx_obj)
         tx_hash = self._w3.eth.sendTransaction(tx_obj)
         self.logger.debug("send_transaction(%s), hash=%s", tx_obj, tx_hash)
         return tx_hash
 
     def call(self, tx_obj):
-        # result = self.et.call(tx_obj)
         result = self._w3.eth.call(tx_obj)
         self.logger.debug("call(%s), result=%s", tx_obj, result)
         return result
@@ -120,3 +112,7 @@ class TesterChainHandler(BaseChainHandler):
 
     def direct_tx(self, tx):
         return self.et.backend.chain.apply_transaction(tx)
+        raw_tx = rlp.encode(tx)
+        raw_tx_hex = self._w3.toHex(raw_tx)
+        tx_hash = self._w3.eth.sendRawTransaction(raw_tx_hex)
+        return tx_hash
