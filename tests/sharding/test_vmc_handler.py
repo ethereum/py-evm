@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import pytest
 
@@ -49,11 +48,6 @@ from evm.chains.sharding.mainchain_handler.backends.tester_chain_handler import 
 test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
-stdout_handler = logging.StreamHandler(sys.stdout)
-level = logging.DEBUG
-logger.setLevel(level)
-stdout_handler.setLevel(level)
-logger.addHandler(stdout_handler)
 
 @pytest.fixture
 def chain_handler():
