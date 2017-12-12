@@ -1,7 +1,7 @@
 import asyncio
 import json
+import logging
 import os
-import traceback
 
 from cytoolz import curry
 from eth_utils import decode_hex
@@ -20,26 +20,24 @@ async def connection_handler(execute_rpc, reader, writer):
     '''
     Catch fatal errors, log them, and close the connection
     '''
+    logger = logging.getLogger('evm.rpc.ipc')
     try:
-        await connection_loop(execute_rpc, reader, writer)
+        await connection_loop(execute_rpc, reader, writer, logger)
     except (ConnectionResetError, asyncio.IncompleteReadError):
-        # client closed connection
-        pass
+        logger.debug("Client closed connection")
     except Exception:
-        traceback.print_exc()
-        print(
-            "What's really going to bake your noodle later on is,",
-            "would you still have broken it if I hadn't said anything?",
-        )
+        logger.exception("Unrecognized exception while handling requests")
+    writer.close()
 
 
-async def connection_loop(execute_rpc, reader, writer):
+async def connection_loop(execute_rpc, reader, writer, logger):
     raw_request = ''
     while True:
         request_bytes = b''
         try:
             request_bytes = await reader.readuntil(b'}')
         except asyncio.LimitOverrunError as e:
+            logger.info("Client request was too long. Erasing buffer and restarting...")
             request_bytes = await reader.read(e.consumed)
             await write_error(writer, "reached limit: %d bytes, starting with '%s'" % (
                 e.consumed,
@@ -51,23 +49,27 @@ async def connection_loop(execute_rpc, reader, writer):
 
         bad_prefix, raw_request = strip_non_json_prefix(raw_request)
         if bad_prefix:
+            logger.info("Client started request with non json data: %r", bad_prefix)
             await write_error(writer, 'Cannot parse json: ' + bad_prefix)
 
         try:
             request = json.loads(raw_request)
         except json.JSONDecodeError:
             # invalid json request, keep reading data until a valid json is formed
+            logger.debug("Invalid JSON, waiting for rest of message: %r", raw_request)
             continue
 
         # reset the buffer for the next message
         raw_request = ''
 
         if not request:
+            logger.debug("Client sent empty request")
             continue
 
         try:
             result = execute_rpc(request)
         except Exception as e:
+            logger.exception("Unrecognized exception while executing RPC")
             await write_error(writer, "unknown failure: " + str(e))
         else:
             writer.write(result.encode())
@@ -90,6 +92,7 @@ async def write_error(writer, message):
 
 
 def start(path, chain):
+    logger = logging.getLogger('evm.rpc.ipc')
     loop = asyncio.get_event_loop()
     rpc = RPCServer(chain)
     loop.run_until_complete(asyncio.start_unix_server(
@@ -101,7 +104,7 @@ def start(path, chain):
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        print('Tank, I need an exit!')
+        logger.debug('Server closed with Keyboard Interrupt')
     finally:
         loop.close()
 
@@ -118,4 +121,7 @@ def get_test_chain():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.getLogger('evm.rpc.ipc').setLevel(logging.DEBUG)
+
     start('/tmp/test.ipc', get_test_chain())

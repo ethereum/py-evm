@@ -46,17 +46,15 @@ def format_params(*formatters):
     def decorator(func):
         @functools.wraps(func)
         def formatted_func(self, *args):
-            assert len(formatters) == len(args), "could not apply %d formatters to %r" % (
-                len(formatters),
-                args,
-            )
+            if len(formatters) != len(args):
+                raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
             formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
             return func(self, *formatted)
         return formatted_func
     return decorator
 
 
-def hex_to_int(value):
+def to_int_if_hex(value):
     if isinstance(value, str) and value.startswith('0x'):
         return int(value, 16)
     else:

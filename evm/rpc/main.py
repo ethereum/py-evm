@@ -60,7 +60,8 @@ class RPCServer:
                 raise NotImplementedError("Only the 2.0 jsonrpc protocol is supported")
 
             method = self._lookup_method(request['method'])
-            response['result'] = method(*request['params'])
+            params = request.get('params', [])
+            response['result'] = method(*params)
         except ValueError as exc:
             response['error'] = str(exc)
         except NotImplementedError as exc:
