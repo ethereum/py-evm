@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from cytoolz import (
     identity,
 )
@@ -15,6 +16,23 @@ from evm.rpc.format import (
 from evm.rpc.modules import (
     RPCModule,
 )
+
+
+@contextmanager
+def state_at_block(chain, at_block, read_only=True):
+    if at_block == 'pending':
+        at_header = chain.header
+    elif at_block == 'latest':
+        at_header = chain.get_canonical_head()
+    elif at_block == 'earliest':
+        # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
+        at_header = chain.get_canonical_block_by_number(0).header
+    else:
+        at_header = chain.get_canonical_block_by_number(hex_to_int(at_block)).header
+
+    vm = chain.get_vm(at_header)
+    with vm.state_db(read_only=read_only) as state:
+        yield state
 
 
 class Eth(RPCModule):
@@ -38,23 +56,10 @@ class Eth(RPCModule):
     def gasPrice(self):
         raise NotImplementedError()
 
-    @format_params(decode_hex, identity)
+    @format_params(decode_hex, hex_to_int)
     @apply_to_return_value(hex)
     def getBalance(self, address, at_block):
-        chain = self._chain
-
-        if at_block == 'pending':
-            at_header = chain.header
-        elif at_block == 'latest':
-            at_header = chain.get_canonical_head()
-        elif at_block == 'earliest':
-            # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
-            at_header = chain.get_canonical_block_by_number(0).header
-        else:
-            at_header = chain.get_canonical_block_by_number(int(at_block)).header
-
-        vm = chain.get_vm(at_header)
-        with vm.state_db(read_only=True) as state:
+        with state_at_block(self._chain, at_block) as state:
             balance = state.get_balance(address)
 
         return balance

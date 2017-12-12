@@ -7,8 +7,6 @@ from eth_utils import (
 
 import rlp
 
-hex_to_int = functools.partial(int, base=16)
-
 
 def block_to_dict(block, chain, include_transactions):
     logs_bloom = encode_hex(int_to_big_endian(block.header.bloom))[2:]
@@ -56,3 +54,10 @@ def format_params(*formatters):
             return func(self, *formatted)
         return formatted_func
     return decorator
+
+
+def hex_to_int(value):
+    if isinstance(value, str) and value.startswith('0x'):
+        return int(value, 16)
+    else:
+        return value

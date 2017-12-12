@@ -82,7 +82,7 @@ def build_request(method, params):
         ),
         (
             build_request('eth_getBalance',
-                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", 0],
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", hex(0)],
             ),
             hex(1000000 * 10 ** 18),
             None,
@@ -96,7 +96,7 @@ def build_request(method, params):
         ),
         (
             build_request('eth_getBalance',
-                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", 1],
+                ["0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", hex(1)],
             ),
             hex(1000005 * 10 ** 18),
             None,
