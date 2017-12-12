@@ -10,6 +10,7 @@ from evm.vm.forks.frontier.blocks import FrontierBlock
 from tests.core.fixtures import (  # noqa: F401
     chain,
     chain_without_block_validation,
+    chaindb,
     valid_block_rlp,
 )
 from tests.core.helpers import new_transaction
