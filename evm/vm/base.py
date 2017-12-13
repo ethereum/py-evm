@@ -90,15 +90,12 @@ class VM(object):
     #
     # Execution
     #
-
     def add_transaction_to_block(self, transaction, block, computation):
         """
+        Add a transaction to the given block.
         """
-        with self.state_db(read_only=True) as state_db:
-            self.logger.info(
-                "1.1 block.coinbase: %s",
-                state_db.get_balance(b'\xa9OSt\xfc\xe5\xed\xbc\x8e*\x86\x97\xc1S1g~n\xbf\x0b'),
-            )
+        # [FIXME]: initialize self.block?
+        # [FIXME]: don't mutate the given block
 
         receipt = block.make_receipt(transaction, computation)
 
@@ -108,8 +105,8 @@ class VM(object):
 
         self.block.transactions.append(transaction)
 
-        tx_root_hash = self.chaindb.add_transaction(block.header, index_key, transaction)
-        receipt_root_hash = self.chaindb.add_receipt(block.header, index_key, receipt)
+        tx_root_hash = self.block.chaindb.add_transaction(block.header, index_key, transaction)
+        receipt_root_hash = self.block.chaindb.add_receipt(block.header, index_key, receipt)
 
         self.block.bloom_filter |= receipt.bloom
 
@@ -118,11 +115,7 @@ class VM(object):
         self.block.header.bloom = int(block.bloom_filter)
         self.block.header.gas_used = receipt.gas_used
 
-        with self.state_db(read_only=True) as state_db:
-            self.logger.info(
-                "1.10 block.coinbase: %s",
-                state_db.get_balance(b'\xa9OSt\xfc\xe5\xed\xbc\x8e*\x86\x97\xc1S1g~n\xbf\x0b'),
-            )
+        # Return `self.block`, not `block`
         return self.block
 
     def apply_transaction(self, transaction):
@@ -131,9 +124,53 @@ class VM(object):
         """
         computation = self.execute_transaction(transaction)
         self.clear_journal()
+
         block = self.block
         self.block = self.add_transaction_to_block(transaction, block, computation)
+
         return computation
+
+    def apply_transaction_to_block(self, transaction, chaindb, block):
+        """
+        Apply the transaction to the vm in the current block.
+        """
+        # (semi) pure function setting
+        # [FIXME]: don't mutate the given chaindb and block
+        if chaindb is not None:
+            self.chaindb = chaindb
+        if block is None:
+            block = self.block
+
+        computation = self.execute_transaction(transaction)
+        self.clear_journal()
+        self.add_transaction_to_block(transaction, block, computation)
+        return computation, self.block
+
+    def apply_block(self, block, chaindb):
+        """
+        Apply the block to vm with the given chaindb.
+        """
+        # [FIXME]: don't mutate the given chaindb
+        self.chaindb = chaindb
+
+        self.configure_header(
+            coinbase=block.header.coinbase,
+            gas_limit=block.header.gas_limit,
+            timestamp=block.header.timestamp,
+            extra_data=block.header.extra_data,
+            mix_hash=block.header.mix_hash,
+            nonce=block.header.nonce,
+            uncles_hash=keccak(rlp.encode(block.uncles)),
+        )
+
+        # run all of the transactions.
+        for transaction in block.transactions:
+            self.apply_transaction(transaction)
+
+        # transfer the list of uncles.
+        self.block.uncles = block.uncles
+
+        return self.mine_block()
 
     def execute_transaction(self, transaction):
         """
