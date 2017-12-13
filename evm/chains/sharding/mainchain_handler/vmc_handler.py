@@ -1,7 +1,6 @@
 import logging
 
 from eth_utils import (
-    is_hex_address,
     to_canonical_address,
     to_checksum_address,
     to_dict,
@@ -50,7 +49,7 @@ class VMCHandler:
             self._vmc_bytecode,
         )
 
-    # vmc utils ####################################
+    # vmc utils #####################################################
 
     def get_vmc(self):
         """
@@ -79,69 +78,21 @@ class VMCHandler:
         if data is not None:
             yield 'data', data
 
-    def call_vmc(self,
-                 func_name,
-                 args,
-                 sender_addr=None,
-                 value=0,
-                 gas=TX_GAS,
-                 gas_price=GASPRICE):
-        if sender_addr is None:
-            sender_addr = self.primary_addr
-        sender_addr = to_checksum_address(sender_addr)
-        contract_tx_detail = self._mk_contract_tx_detail(
-            sender_addr=sender_addr,
-            gas=gas,
-            value=value,
-            gas_price=gas_price,
-        )
-        caller = self._vmc.call(contract_tx_detail)
-        result = getattr(caller, func_name)(*args)
-        # if result is an hex_address, transform it to bytes
-        if is_hex_address(result):
-            result = to_canonical_address(result)
-        self.logger.debug(
-            "call_vmc: func_name=%s, args=%s, result=%s",
-            func_name,
-            args,
-            result,
-        )
-        return result
+    # utils #######################################################
 
-    def send_vmc_tx(self,
-                    func_name,
-                    args,
-                    sender_addr=None,
-                    value=0,
-                    gas=TX_GAS,
-                    gas_price=GASPRICE):
-        if sender_addr is None:
-            sender_addr = self.primary_addr
-        sender_addr = to_checksum_address(sender_addr)
-        contract_tx_detail = self._mk_contract_tx_detail(
-            sender_addr=sender_addr,
-            gas=gas,
-            value=value,
-            gas_price=gas_price,
+    def is_vmc_deployed(self):
+        return (
+            self.mainchain_handler.get_code(self._vmc_addr) != b'' and \
+            self.mainchain_handler.get_nonce(self._vmc_sender_addr) != 0
         )
-        caller = self._vmc.transact(contract_tx_detail)
-        tx_hash = getattr(caller, func_name)(*args)
-        self.logger.debug(
-            "send_vmc_tx: func_name=%s, args=%s, tx_hash=%s",
-            func_name,
-            args,
-            tx_hash,
-        )
-        return tx_hash
 
-    # vmc related #############################
+    # contract calls ##############################################
 
     def sample(self, shard_id, sender_addr=None, gas=TX_GAS):
         """sample(shard_id: num) -> address
         """
         if sender_addr is None:
             sender_addr = self.primary_addr
-        # address_in_hex = self.call_vmc('sample', [shard_id], sender_addr=sender_addr)
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         address_in_hex = self._vmc.call(tx_detail).sample(shard_id)
         # TODO: should see if there is a better way to automatically change the address result from
@@ -282,11 +233,3 @@ class VMCHandler:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self._vmc.call(tx_detail).get_receipts__value(receipt_id)
-
-    # utils #######################################################
-
-    def is_vmc_deployed(self):
-        return (
-            self.mainchain_handler.get_code(self._vmc_addr) != b'' and \
-            self.mainchain_handler.get_nonce(self._vmc_sender_addr) != 0
-        )
