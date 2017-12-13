@@ -1,6 +1,7 @@
 import logging
 
 from eth_utils import (
+    is_hex_address,
     to_canonical_address,
     to_checksum_address,
     to_dict,
@@ -93,6 +94,9 @@ class VMCHandler:
         )
         caller = self.vmc.call(contract_tx_detail)
         result = getattr(caller, func_name)(*args)
+        # if result is an hex_address, transform it to bytes
+        if is_hex_address(result):
+            result = to_canonical_address(result)
         self.logger.debug(
             "call_vmc: func_name=%s, args=%s, result=%s",
             func_name,
