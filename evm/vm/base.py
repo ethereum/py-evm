@@ -97,7 +97,7 @@ class VM(object):
         # [FIXME]: initialize self.block?
         # [FIXME]: don't mutate the given block
 
-        receipt = block.make_receipt(transaction, computation)
+        receipt = self.make_receipt(transaction, computation, block)
 
         transaction_idx = len(block.transactions)
 
@@ -187,6 +187,12 @@ class VM(object):
     def apply_message(self, message):
         """
         Execution of an VM message.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def make_receipt(self, transaction, computation, block):
+        """
+        Make receipt.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 

@@ -18,9 +18,6 @@ from evm.exceptions import (
     BlockNotFound,
     ValidationError,
 )
-from evm.rlp.logs import (
-    Log,
-)
 from evm.rlp.receipts import (
     Receipt,
 )
@@ -213,31 +210,6 @@ class FrontierBlock(BaseBlock):
     @property
     def receipts(self):
         return self.chaindb.get_receipts(self.header, Receipt)
-
-    def make_receipt(self, transaction, computation):
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in computation.get_log_entries()
-        ]
-
-        gas_remaining = computation.get_gas_remaining()
-        gas_refund = computation.get_gas_refund()
-        tx_gas_used = (
-            transaction.gas - gas_remaining
-        ) - min(
-            gas_refund,
-            (transaction.gas - gas_remaining) // 2,
-        )
-
-        gas_used = self.header.gas_used + tx_gas_used
-
-        receipt = Receipt(
-            state_root=self.header.state_root,
-            gas_used=gas_used,
-            logs=logs,
-        )
-        return receipt
 
     #
     # Header API
