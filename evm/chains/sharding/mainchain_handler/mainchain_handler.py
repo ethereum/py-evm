@@ -65,6 +65,10 @@ class MainchainHandler:
     def get_transaction_receipt(self, tx_hash):
         return self._w3.eth.getTransactionReceipt(tx_hash)
 
+    def contract(self, contract_addr, abi, bytecode):
+        contract_addr = to_checksum_address(contract_addr)
+        return self._w3.eth.contract(contract_addr, abi=abi, bytecode=bytecode)
+
     def send_transaction(self, tx_obj):
         return self._w3.eth.sendTransaction(tx_obj)
 

@@ -3,6 +3,7 @@ import logging
 from eth_utils import (
     to_canonical_address,
     to_checksum_address,
+    to_dict,
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
@@ -12,13 +13,11 @@ from evm.chains.sharding.mainchain_handler.config import (
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
-    decode_vmc_call_result,
     get_valmgr_abi,
     get_valmgr_addr,
     get_valmgr_bytecode,
     get_valmgr_code,
     get_valmgr_sender_addr,
-    mk_vmc_tx_obj,
 )
 
 class VMCHandler:
@@ -32,6 +31,7 @@ class VMCHandler:
         self.mainchain_handler = mainchain_handler
         self.primary_addr = primary_addr
         self.init_vmc_attributes()
+        self.setup_vmc_instance()
 
     def init_vmc_attributes(self):
         self._vmc_addr = get_valmgr_addr()
@@ -42,7 +42,38 @@ class VMCHandler:
         self.logger.debug("vmc_addr=%s", self._vmc_addr)
         self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
 
+    def setup_vmc_instance(self):
+        self._vmc = self.mainchain_handler.contract(
+            to_checksum_address(self._vmc_addr),
+            self._vmc_abi,
+            self._vmc_bytecode,
+        )
+
     # vmc utils ####################################
+
+    @property
+    def vmc(self):
+        return self.get_vmc()
+
+    def get_vmc(self):
+        """
+        :return: web3.eth.contract instance of vmc
+        """
+        return self._vmc
+
+    @to_dict
+    def _mk_contract_tx_detail(self, sender_addr, gas, value=None, gas_price=None):
+        # Both 'from' and 'gas' are required in eth_tester
+        if sender_addr is None:
+            raise ValueError('sender_addr should not be None')
+        if gas is None:
+            raise ValueError('gas should not be None')
+        yield 'from', to_checksum_address(sender_addr)
+        yield 'gas', gas
+        if value is not None:
+            yield 'value', value
+        if gas_price is not None:
+            yield 'gas_price', gas_price
 
     def call_vmc(self,
                  func_name,
@@ -53,16 +84,22 @@ class VMCHandler:
                  gas_price=GASPRICE):
         if sender_addr is None:
             sender_addr = self.primary_addr
-        tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
-        result = self.mainchain_handler.call(tx_obj)
-        decoded_result = decode_vmc_call_result(func_name, result)
+        sender_addr = to_checksum_address(sender_addr)
+        contract_tx_detail = self._mk_contract_tx_detail(
+            sender_addr=sender_addr,
+            gas=gas,
+            value=value,
+            gas_price=gas_price,
+        )
+        caller = self.vmc.call(contract_tx_detail)
+        result = getattr(caller, func_name)(*args)
         self.logger.debug(
             "call_vmc: func_name=%s, args=%s, result=%s",
             func_name,
             args,
-            decoded_result,
+            result,
         )
-        return decoded_result
+        return result
 
     def send_vmc_tx(self,
                     func_name,
@@ -73,8 +110,15 @@ class VMCHandler:
                     gas_price=GASPRICE):
         if sender_addr is None:
             sender_addr = self.primary_addr
-        tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
-        tx_hash = self.mainchain_handler.send_transaction(tx_obj)
+        sender_addr = to_checksum_address(sender_addr)
+        contract_tx_detail = self._mk_contract_tx_detail(
+            sender_addr=sender_addr,
+            gas=gas,
+            value=value,
+            gas_price=gas_price,
+        )
+        caller = self.vmc.transact(contract_tx_detail)
+        tx_hash = getattr(caller, func_name)(*args)
         self.logger.debug(
             "send_vmc_tx: func_name=%s, args=%s, tx_hash=%s",
             func_name,
@@ -174,6 +218,7 @@ class VMCHandler:
         """
         if sender_addr is None:
             sender_addr = self.primary_addr
+        to = to_checksum_address(to)
         return self.send_vmc_tx(
             'tx_to_shard',
             [to, shard_id, tx_startgas, tx_gasprice, data],
