@@ -32,21 +32,25 @@ def remove_redundant_prefixes(prefix_list):
     """
     root = {}
 
-    for prefix in sorted(prefix_list, key=lambda prefix: len(prefix)):
-        cur = root
+    if b'' in prefix_list:
+        yield b''
+    else:
+        sorted_prefixes = sorted(prefix_list, key=lambda prefix: len(prefix))
+        for prefix in sorted_prefixes:
+            cur = root
 
-        for i in range(len(prefix)):
-            if None in cur:
-                break
+            for i in range(len(prefix)):
+                if None in cur:
+                    break
 
-            if prefix[i] not in cur:
-                cur[prefix[i]] = {}
+                if prefix[i] not in cur:
+                    cur[prefix[i]] = {}
 
-            if i == len(prefix)-1:
-                cur[prefix[i]][None] = {}
-                yield prefix
+                if i == len(prefix) - 1:
+                    cur[prefix[i]][None] = {}
+                    yield prefix
 
-            cur = cur[prefix[i]]
+                cur = cur[prefix[i]]
 
 
 @to_set
