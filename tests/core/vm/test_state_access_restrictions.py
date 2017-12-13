@@ -13,19 +13,26 @@ from evm.utils.state_access_restriction import (
 from tests.core.fixtures import chain  # noqa: F401
 
 
-def test_remove_redundant_prefixes():
-    tests = [
-        [["ethereum", "eth", "ether", "england", "eng"],
-         ["eth", "eng"]],
-        [["ethereum", "ethereua"],
-         ["ethereum", "ethereua"]],
-        [["a", "aa", "b", "bb", "ab", "ba"],
-         ["a", "b"]],
-    ]
-
-    for test in tests:
-        input_list, output_list = test
-        assert sorted(remove_redundant_prefixes(input_list)) == sorted(output_list)
+@pytest.mark.parametrize(
+    'prefixes,expected',
+    (
+        (
+            ("ethereum", "eth", "ether", "england", "eng"),
+            {"eth", "eng"},
+        ),
+        (
+            ("ethereum", "ethereua"),
+            {"ethereum", "ethereua"},
+        ),
+        (
+            ("a", "aa", "b", "bb", "ab", "ba"),
+            {"a", "b"},
+        ),
+    ),
+)
+def test_remove_redundant_prefixes(prefixes, expected):
+    actual = remove_redundant_prefixes(prefixes)
+    assert actual == expected
 
 
 def test_balance_restriction(chain):  # noqa: F811
