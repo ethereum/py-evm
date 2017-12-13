@@ -183,14 +183,16 @@ class LESPeerServer(LESPeer):
 
     def handle_get_block_headers(self, msg):
         query = msg['query']
+        block_number = query.block_number_or_hash
+        assert isinstance(block_number, int)  # For now we only support block numbers
         if query.reverse:
             start = max(0, query.block - query.max_headers)
             # Shift our range() limits by 1 because we want to include the requested block number
             # in the list of block numbers.
-            block_numbers = reversed(range(start + 1, query.block + 1))
+            block_numbers = reversed(range(start + 1, block_number + 1))
         else:
-            end = min(self.head_number + 1, query.block + query.max_headers)
-            block_numbers = range(query.block, end)
+            end = min(self.head_number + 1, block_number + query.max_headers)
+            block_numbers = range(block_number, end)
 
         headers = tuple(
             self.chaindb.get_canonical_block_header_by_number(i)

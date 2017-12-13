@@ -2,6 +2,7 @@ import asyncio
 import logging
 import traceback
 from typing import (  # noqa: F401
+    Any,
     Callable,
     cast,
     Dict,
@@ -27,6 +28,7 @@ from evm.exceptions import (
 )
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
@@ -54,6 +56,7 @@ class PeerPool:
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("evm.p2p.lightchain.PeerPool")
     peer_class = LESPeer
+    min_peers = 2
     _connect_loop_sleep = 2
 
     def __init__(self,
@@ -61,13 +64,11 @@ class PeerPool:
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  msg_handler: _ReceivedMsgCallbackType,
-                 min_peers: int = 2,
                  ) -> None:
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
         self.msg_handler = msg_handler
-        self.min_peers = min_peers
         self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
@@ -286,11 +287,15 @@ class LightChain(Chain):
             try:
                 peer, head_info = await self.wait_for_announcement()
             except StopRequested:
+                self.logger.debug("Asked to stop, breaking out of run() loop")
                 break
 
             try:
                 await self.process_announcement(peer, head_info)
                 self._last_processed_announcements[peer] = head_info
+            except StopRequested:
+                self.logger.debug("Asked to stop, breaking out of run() loop")
+                break
             except LESAnnouncementProcessingError as e:
                 self.logger.warn(repr(e))
                 await self.drop_peer(peer)
@@ -303,6 +308,8 @@ class LightChain(Chain):
 
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
         for i in range(self.max_consecutive_timeouts):
+            if self._should_stop.is_set():
+                raise StopRequested()
             try:
                 return await peer.fetch_headers_starting_at(start_block)
             except asyncio.TimeoutError:
@@ -385,26 +392,71 @@ class LightChain(Chain):
                 "No block with number {} found on local chain".format(block_number))
         return await self.get_block_by_hash(block_hash)
 
-    @alru_cache(maxsize=1024)
+    @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
         peer = await self.get_best_peer()
+        try:
+            header = self.chaindb.get_block_header_by_hash(block_hash)
+        except BlockNotFound:
+            self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
+            request_id = gen_request_id()
+            max_headers = 1
+            peer.les_proto.send_get_block_headers(block_hash, max_headers, request_id)
+            reply = await peer.wait_for_reply(request_id)
+            if len(reply['headers']) == 0:
+                raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
+            header = reply['headers'][0]
+
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
         peer.les_proto.send_get_block_bodies([block_hash], request_id)
         reply = await peer.wait_for_reply(request_id)
         if len(reply['bodies']) == 0:
-            raise BlockNotFound("No block with hash {} found".format(block_hash))
+            raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
         body = reply['bodies'][0]
-        # This will raise a BlockNotFound if we don't have the header in our DB, which is correct
-        # because it means our peer doesn't know about it.
-        header = self.chaindb.get_block_header_by_hash(block_hash)
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
+        transactions = [
+            block_class.transaction_class.from_base_transaction(tx)
+            for tx in body.transactions
+        ]
         return block_class(
             header=header,
-            transactions=body.transactions,
+            transactions=transactions,
             uncles=body.uncles,
             chaindb=self.chaindb,
         )
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
+        peer = await self.get_best_peer()
+        self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
+        request_id = gen_request_id()
+        peer.les_proto.send_get_receipts(block_hash, request_id)
+        reply = await peer.wait_for_reply(request_id)
+        if len(reply['receipts']) == 0:
+            raise BlockNotFound("No block with hash {} found".format(block_hash))
+        return reply['receipts'][0]
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_proof(self, block_hash: bytes, key: bytes, key2: bytes = b'',
+                        from_level: int = 0) -> List[Any]:
+        peer = await self.get_best_peer()
+        request_id = gen_request_id()
+        peer.les_proto.send_get_proof(block_hash, key, key2, from_level, request_id)
+        reply = await peer.wait_for_reply(request_id)
+        if len(reply['nodes']) == 0:
+            return []
+        return reply['nodes'][0]
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
+        peer = await self.get_best_peer()
+        request_id = gen_request_id()
+        peer.les_proto.send_get_contract_code(block_hash, key, request_id)
+        reply = await peer.wait_for_reply(request_id)
+        if len(reply['codes']) == 0:
+            return b''
+        return reply['codes'][0]
 
 
 if __name__ == '__main__':
