@@ -1,4 +1,9 @@
 import json
+import logging
+
+from evm.exceptions import (
+    ValidationError,
+)
 
 from evm.rpc.modules import (
     Eth,
@@ -71,7 +76,11 @@ class RPCServer:
             custom_message = str(exc)
             if custom_message:
                 response['error'] += ' - %s' % custom_message
+        except ValidationError as exc:
+            logging.debug("Validation error while executing RPC method", exc_info=True)
+            response['error'] = str(exc)
         except Exception as exc:
+            logging.info("RPC method caused exception", exc_info=True)
             response['error'] = str(exc)
 
         if request['method'] == 'evm_resetToGenesisFixture' and 'result' in response:

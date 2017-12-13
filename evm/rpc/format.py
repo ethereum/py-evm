@@ -40,7 +40,7 @@ def block_to_dict(block, chain, include_transactions):
 
     if include_transactions:
         # block_dict['transactions'] = map(transaction_to_dict, block.transactions)
-        raise NotImplemented("Cannot return transaction object with block, yet")
+        raise NotImplementedError("Cannot return transaction object with block, yet")
     else:
         block_dict['transactions'] = [encode_hex(tx.hash) for tx in block.transactions]
 
@@ -66,10 +66,18 @@ def to_int_if_hex(value):
         return value
 
 
+def empty_to_0x(val):
+    if val:
+        return val
+    else:
+        return '0x'
+
+
 remove_leading_zeros = compose(hex, functools.partial(int, base=16))
+
 RPC_STATE_NORMALIZERS = {
     'balance': remove_leading_zeros,
-    'code': lambda code: '0x' if not code else code,
+    'code': empty_to_0x,
     'nonce': remove_leading_zeros,
 }
 
@@ -77,5 +85,29 @@ RPC_STATE_NORMALIZERS = {
 def fixture_state_in_rpc_format(state):
     return {
         key: RPC_STATE_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }
+
+
+RPC_BLOCK_REMAPPERS = {
+    'bloom': 'logsBloom',
+    'coinbase': 'miner',
+    'transactionsTrie': 'transactionsRoot',
+    'uncleHash': 'sha3Uncles',
+    'receiptTrie': 'receiptsRoot',
+}
+
+RPC_BLOCK_NORMALIZERS = {
+    'difficulty': remove_leading_zeros,
+    'extraData': empty_to_0x,
+    'gasUsed': remove_leading_zeros,
+    'number': remove_leading_zeros,
+}
+
+
+def fixture_block_in_rpc_format(state):
+    return {
+        RPC_BLOCK_REMAPPERS.get(key, key):
+        RPC_BLOCK_NORMALIZERS.get(key, identity)(value)
         for key, value in state.items()
     }

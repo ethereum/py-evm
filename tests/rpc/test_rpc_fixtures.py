@@ -2,8 +2,17 @@ import json
 import os
 import pytest
 
+from cytoolz import (
+    dissoc,
+)
+
+from eth_utils import (
+    is_hex,
+)
+
 from evm.rpc import RPCServer
 from evm.rpc.format import (
+    fixture_block_in_rpc_format,
     fixture_state_in_rpc_format,
 )
 
@@ -79,6 +88,43 @@ def validate_accounts(rpc, states, at_block='latest'):
         validate_account_state(rpc, states[addr], addr, at_block)
 
 
+def validate_rpc_block_vs_fixture(block, block_fixture):
+    expected = fixture_block_in_rpc_format(block_fixture['blockHeader'])
+    actual_block = dissoc(
+        block,
+        'size',
+        'totalDifficulty',
+        'transactions',
+        'uncles',
+    )
+    assert actual_block == expected
+
+
+def validate_block(rpc, block_fixture, at_block):
+    if is_hex(at_block) and len(at_block) == 66:
+        rpc_method = 'eth_getBlockByHash'
+    else:
+        rpc_method = 'eth_getBlockByNumber'
+
+    # validate without transactions
+    result, error = call_rpc(rpc, rpc_method, [at_block, False])
+    assert error is None
+    validate_rpc_block_vs_fixture(result, block_fixture)
+
+    # TODO validate transactions
+    result, error = call_rpc(rpc, rpc_method, [at_block, True])
+    # assert error is None
+    # assert result['transactions'] == block_fixture['transactions']
+
+
+def validate_latest_block(rpc, block_fixture):
+    header = block_fixture['blockHeader']
+
+    validate_block(rpc, block_fixture, 'latest')
+    validate_block(rpc, block_fixture, header['hash'])
+    validate_block(rpc, block_fixture, int(header['number'], 16))
+
+
 @pytest.fixture
 def chain_fixture(fixture_data):
     fixture = load_fixture(*fixture_data)
@@ -107,6 +153,8 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
         if should_be_good_block:
             assert block_error is None
             assert block_result == block_fixture['rlp']
+
+            validate_latest_block(rpc, block_fixture)
         else:
             assert block_error is not None
 

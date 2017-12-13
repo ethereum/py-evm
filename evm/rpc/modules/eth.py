@@ -18,8 +18,7 @@ from evm.rpc.modules import (
 )
 
 
-@contextmanager
-def state_at_block(chain, at_block, read_only=True):
+def get_header(chain, at_block):
     if at_block == 'pending':
         at_header = chain.header
     elif at_block == 'latest':
@@ -32,6 +31,12 @@ def state_at_block(chain, at_block, read_only=True):
     else:
         raise TypeError("Unrecognized block reference: %r" % at_block)
 
+    return at_header
+
+
+@contextmanager
+def state_at_block(chain, at_block, read_only=True):
+    at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     with vm.state_db(read_only=read_only) as state:
         yield state
@@ -75,8 +80,13 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex, identity)
     def getBlockByNumber(self, block_number, include_transactions):
-        block = self._chain.get_canonical_block_by_number(block_number)
-        assert block.number == block_number
+        if isinstance(block_number, int):
+            block = self._chain.get_canonical_block_by_number(block_number)
+            assert block.number == block_number
+        else:
+            at_header = get_header(self._chain, block_number)
+            vm = self._chain.get_vm(at_header)
+            block = vm.get_block_by_header(at_header)
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(decode_hex, to_int_if_hex)
