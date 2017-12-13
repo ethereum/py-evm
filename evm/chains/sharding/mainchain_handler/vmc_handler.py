@@ -25,11 +25,11 @@ class VMCHandler:
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
 
-    def __init__(self, chain_handler, primary_addr):
+    def __init__(self, mainchain_handler, primary_addr):
         """
         :param primary_addr: address in bytes
         """
-        self.chain_handler = chain_handler
+        self.mainchain_handler = mainchain_handler
         self.primary_addr = primary_addr
         self.init_vmc_attributes()
 
@@ -54,7 +54,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
-        result = self.chain_handler.call(tx_obj)
+        result = self.mainchain_handler.call(tx_obj)
         decoded_result = decode_vmc_call_result(func_name, result)
         self.logger.debug(
             "call_vmc: func_name=%s, args=%s, result=%s",
@@ -74,7 +74,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_obj = mk_vmc_tx_obj(func_name, args, sender_addr, value, gas, gas_price)
-        tx_hash = self.chain_handler.send_transaction(tx_obj)
+        tx_hash = self.mainchain_handler.send_transaction(tx_obj)
         self.logger.debug(
             "send_vmc_tx: func_name=%s, args=%s, tx_hash=%s",
             func_name,
@@ -213,6 +213,6 @@ class VMCHandler:
 
     def is_vmc_deployed(self):
         return (
-            self.chain_handler.get_code(self._vmc_addr) != b'' and \
-            self.chain_handler.get_nonce(self._vmc_sender_addr) != 0
+            self.mainchain_handler.get_code(self._vmc_addr) != b'' and \
+            self.mainchain_handler.get_nonce(self._vmc_sender_addr) != 0
         )

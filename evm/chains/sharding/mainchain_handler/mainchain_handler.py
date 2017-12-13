@@ -2,37 +2,20 @@ import time
 
 import rlp
 
-from web3 import (
-    HTTPProvider,
-    Web3,
-)
-
 from eth_utils import (
     to_checksum_address,
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
-    DEFAULT_RPC_SERVER_URL,
     GASPRICE,
     TX_GAS,
 )
 
 class MainchainHandler:
 
-    def __init__(self, use_eth_tester=False, rpc_server_url=DEFAULT_RPC_SERVER_URL):
+    def __init__(self, web3_instance, use_eth_tester=False):
         self._use_eth_tester = use_eth_tester
-        if use_eth_tester:
-            from web3.providers.eth_tester import EthereumTesterProvider
-            from eth_tester import EthereumTester
-            from eth_tester.backends.pyevm import PyEVMBackend
-            self._eth_tester = EthereumTester(
-                backend=PyEVMBackend(),
-                auto_mine_transactions=False,
-            )
-            provider = EthereumTesterProvider(self._eth_tester)
-        else:
-            provider = HTTPProvider(rpc_server_url)
-        self._w3 = Web3(provider)
+        self._w3 = web3_instance
         assert self._w3.isConnected()
 
     # RPC related
@@ -111,5 +94,5 @@ class MainchainHandler:
             #        In this situation, if we used `eth_tester`, try again directly with
             #        `self._eth_tester.backend.chain.apply_transaction`
             if self._use_eth_tester:
-                return self._eth_tester.backend.chain.apply_transaction(tx)
+                return self._w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
         return tx_hash
