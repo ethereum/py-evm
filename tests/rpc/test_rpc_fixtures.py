@@ -46,10 +46,14 @@ def result_from_response(response_str):
     return (response.get('result', None), response.get('error', None))
 
 
-def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr):
-    request = build_request(rpc_method, [addr, 'latest'])
-    state_response = rpc.execute(request)
-    state_result, state_error = result_from_response(state_response)
+def call_rpc(rpc, method, params):
+    request = build_request(method, params)
+    response = rpc.execute(request)
+    return result_from_response(response)
+
+
+def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
+    state_result, state_error = call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
 
 
@@ -60,15 +64,19 @@ RPC_STATE_LOOKUPS = (
 )
 
 
-def validate_account_state(rpc, state, addr):
+def validate_account_state(rpc, state, addr, at_block):
     standardized_state = fixture_state_in_rpc_format(state)
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
-        validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr)
+        validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr, at_block)
+    for key in state['storage']:
+        storage_result, storage_error = call_rpc(rpc, 'eth_getStorageAt', [addr, key, at_block])
+        assert storage_error is None
+        assert storage_result == state['storage'][key]
 
 
-def validate_accounts(rpc, states):
+def validate_accounts(rpc, states, at_block='latest'):
     for addr in states:
-        validate_account_state(rpc, states[addr], addr)
+        validate_account_state(rpc, states[addr], addr, at_block)
 
 
 @pytest.fixture
@@ -81,9 +89,8 @@ def chain_fixture(fixture_data):
 
 def test_rpc_against_fixtures(chain_fixture, fixture_data):
     rpc = RPCServer(None)
-    setup_request = build_request('evm_resetToGenesisFixture', [chain_fixture])
-    setup_response = rpc.execute(setup_request)
-    setup_result, setup_error = result_from_response(setup_response)
+
+    setup_result, setup_error = call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
     assert setup_error is None and setup_result is True, "cannot load chain for %r" % fixture_data
 
     validate_accounts(rpc, chain_fixture['pre'])
@@ -95,9 +102,7 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
             assert not should_be_good_block
             continue
 
-        block_request = build_request('evm_applyBlockFixture', [block_fixture])
-        block_response = rpc.execute(block_request)
-        block_result, block_error = result_from_response(block_response)
+        block_result, block_error = call_rpc(rpc, 'evm_applyBlockFixture', [block_fixture])
 
         if should_be_good_block:
             assert block_error is None
@@ -106,3 +111,5 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
             assert block_error is not None
 
     validate_accounts(rpc, chain_fixture['postState'])
+    validate_accounts(rpc, chain_fixture['pre'], 'earliest')
+    validate_accounts(rpc, chain_fixture['pre'], 0)

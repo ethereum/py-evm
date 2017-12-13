@@ -85,6 +85,15 @@ class Eth(RPCModule):
             code = state.get_code(address)
         return encode_hex(code)
 
+    @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
+    def getStorageAt(self, address, position, at_block):
+        if not isinstance(position, int):
+            raise TypeError("Position of storage lookup must be an integer, but was: %r" % position)
+
+        with state_at_block(self._chain, at_block) as state:
+            stored_val = state.get_storage(address, position)
+        return hex(stored_val)
+
     @format_params(decode_hex, to_int_if_hex)
     def getTransactionCount(self, address, at_block):
         with state_at_block(self._chain, at_block) as state:
