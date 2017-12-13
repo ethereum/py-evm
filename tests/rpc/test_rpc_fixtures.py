@@ -25,7 +25,7 @@ from evm.utils.fixture_tests import (
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests', 'bcValidBlockTest')
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):

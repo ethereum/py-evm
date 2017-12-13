@@ -100,8 +100,10 @@ RPC_BLOCK_REMAPPERS = {
 RPC_BLOCK_NORMALIZERS = {
     'difficulty': remove_leading_zeros,
     'extraData': empty_to_0x,
+    'gasLimit': remove_leading_zeros,
     'gasUsed': remove_leading_zeros,
     'number': remove_leading_zeros,
+    'timestamp': remove_leading_zeros,
 }
 
 

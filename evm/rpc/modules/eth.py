@@ -6,6 +6,7 @@ from cytoolz import (
 from eth_utils import (
     decode_hex,
     encode_hex,
+    int_to_big_endian,
 )
 
 from evm.rpc.format import (
@@ -102,7 +103,7 @@ class Eth(RPCModule):
 
         with state_at_block(self._chain, at_block) as state:
             stored_val = state.get_storage(address, position)
-        return hex(stored_val)
+        return encode_hex(int_to_big_endian(stored_val))
 
     @format_params(decode_hex, to_int_if_hex)
     def getTransactionCount(self, address, at_block):
