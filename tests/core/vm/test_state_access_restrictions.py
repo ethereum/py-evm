@@ -7,32 +7,9 @@ from evm.utils.numeric import (
 )
 from evm.utils.state_access_restriction import (
     to_prefix_list_form,
-    remove_redundant_prefixes,
 )
 
 from tests.core.fixtures import chain  # noqa: F401
-
-
-@pytest.mark.parametrize(
-    'prefixes,expected',
-    (
-        (
-            ("ethereum", "eth", "ether", "england", "eng"),
-            {"eth", "eng"},
-        ),
-        (
-            ("ethereum", "ethereua"),
-            {"ethereum", "ethereua"},
-        ),
-        (
-            ("a", "aa", "b", "bb", "ab", "ba"),
-            {"a", "b"},
-        ),
-    ),
-)
-def test_remove_redundant_prefixes(prefixes, expected):
-    actual = remove_redundant_prefixes(prefixes)
-    assert actual == expected
 
 
 def test_balance_restriction(chain):  # noqa: F811
