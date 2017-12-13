@@ -1,8 +1,9 @@
 import pytest
 
 from evm.utils.state_access_restriction import (
-    to_prefix_list_form,
     is_accessible,
+    remove_redundant_prefixes,
+    to_prefix_list_form,
 )
 
 
@@ -38,3 +39,29 @@ def test_accessibility(prefix_list, address, slot, accessible):
         assert is_accessible(address, slot, prefix_list)
     else:
         assert not is_accessible(address, slot, prefix_list)
+
+
+@pytest.mark.parametrize(
+    'prefixes,expected',
+    (
+        (
+            (b'', b'something'),
+            {b''},
+        ),
+        (
+            (b'ethereum', b'eth', b'ether', b'england', b'eng'),
+            {b'eth', b'eng'},
+        ),
+        (
+            (b'ethereum', b'ethereua'),
+            {b'ethereum', b'ethereua'},
+        ),
+        (
+            (b'a', b'aa', b'b', b'bb', b'ab', b'ba'),
+            {b'a', b'b'},
+        ),
+    ),
+)
+def test_remove_redundant_prefixes(prefixes, expected):
+    actual = remove_redundant_prefixes(prefixes)
+    assert actual == expected
