@@ -311,7 +311,8 @@ class OneLayerBackend:
         self.delete_storage(address)
 
     def account_exists(self, address):
-        return self._trie.branch_exists(address)
+        key = keccak(address)
+        return self._trie.branch_exists(key)
 
     def account_has_code_or_nonce(self, address):
         return self.get_code(address) != b'' or self.get_nonce(address) != 0
