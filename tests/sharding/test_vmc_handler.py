@@ -41,6 +41,8 @@ from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMCHandler,
 )
 
+PASSPHRASE = '123'
+
 test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
@@ -68,13 +70,13 @@ def deploy_valcode_and_deposit(vmc_handler, key):
     :return: returns nothing
     """
     address = key.public_key.to_canonical_address()
-    vmc_handler.chain_handler.unlock_account(address)
+    vmc_handler.chain_handler.unlock_account(address, PASSPHRASE)
     valcode = vmc_utils.mk_validation_code(
         key.public_key.to_canonical_address()
     )
     nonce = vmc_handler.chain_handler.get_nonce(address)
     valcode_addr = generate_contract_address(to_canonical_address(address), nonce)
-    vmc_handler.chain_handler.unlock_account(address)
+    vmc_handler.chain_handler.unlock_account(address, PASSPHRASE)
     vmc_handler.chain_handler.deploy_contract(valcode, address)
     vmc_handler.chain_handler.mine(1)
     vmc_handler.deposit(valcode_addr, address, address)
@@ -82,7 +84,7 @@ def deploy_valcode_and_deposit(vmc_handler, key):
 def deploy_initiating_contracts(vmc_handler, privkey):
     if not vmc_handler.is_vmc_deployed():
         address = privkey.public_key.to_canonical_address()
-        vmc_handler.chain_handler.unlock_account(address)
+        vmc_handler.chain_handler.unlock_account(address, PASSPHRASE)
         nonce = vmc_handler.chain_handler.get_nonce(address)
         txs = vmc_utils.mk_initiating_contracts(privkey, nonce)
         for tx in txs[:3]:
@@ -107,7 +109,7 @@ def import_key_to_chain_handler(vmc_handler, key):
     :param privkey: PrivateKey object from eth_keys
     """
     try:
-        vmc_handler.chain_handler.import_privkey(key)
+        vmc_handler.chain_handler.import_privkey(key, PASSPHRASE)
     # Exceptions happen when the key is already imported.
     #   - ValueError: `web3.py`
     #   - ValidationError: `eth_tester`

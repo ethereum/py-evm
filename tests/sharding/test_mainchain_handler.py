@@ -17,15 +17,11 @@ from evm.chains.sharding.mainchain_handler.mainchain_handler import (
     MainchainHandler,
 )
 
+PASSPHRASE = '123'
+
 test_keys = get_default_account_keys()
 
-@pytest.fixture
-def chain_handler():
-    return MainchainHandler(use_eth_tester=True)
-
-def test_tester_chain_handler(chain_handler):
-    chain_handler.mine(1)
-    code = """
+code = """
 num_test: public(num)
 
 @public
@@ -36,6 +32,13 @@ def __init__():
 def update_num_test(_num_test: num):
     self.num_test = _num_test
 """
+
+@pytest.fixture
+def chain_handler():
+    return MainchainHandler(use_eth_tester=True)
+
+def test_tester_chain_handler(chain_handler):
+    chain_handler.mine(1)
     bytecode = compiler.compile(code)
     abi = compiler.mk_full_signature(code)
     sender_addr = test_keys[0].public_key.to_checksum_address()
@@ -45,6 +48,7 @@ def update_num_test(_num_test: num):
             chain_handler.get_nonce(sender_addr)
         )
     )
+    chain_handler.unlock_account(sender_addr, PASSPHRASE)
     tx_hash = chain_handler.deploy_contract(bytecode, sender_addr)
     chain_handler.mine(1)
     receipt = chain_handler.get_transaction_receipt(tx_hash)
@@ -67,6 +71,7 @@ def update_num_test(_num_test: num):
         50000,
         1,
     )
+    chain_handler.unlock_account(sender_addr, PASSPHRASE)
     tx_hash = chain_handler.send_transaction(tx_obj)
     chain_handler.mine(1)
 

@@ -14,7 +14,6 @@ from eth_utils import (
 from evm.chains.sharding.mainchain_handler.config import (
     DEFAULT_RPC_SERVER_URL,
     GASPRICE,
-    PASSPHRASE,
     TX_GAS,
 )
 
@@ -52,7 +51,7 @@ class MainchainHandler:
         address = to_checksum_address(address)
         return self._w3.eth.getTransactionCount(address)
 
-    def import_privkey(self, privkey, passphrase=PASSPHRASE):
+    def import_privkey(self, privkey, passphrase):
         """
         :param privkey: PrivateKey object from eth_keys
         """
@@ -76,7 +75,7 @@ class MainchainHandler:
         # evm.mine
         self._w3.testing.mine(number)
 
-    def unlock_account(self, account, passphrase=PASSPHRASE):
+    def unlock_account(self, account, passphrase):
         account = to_checksum_address(account)
         self._w3.personal.unlockAccount(account, passphrase)
 
@@ -93,7 +92,6 @@ class MainchainHandler:
 
     def deploy_contract(self, bytecode, address, value=0, gas=TX_GAS, gas_price=GASPRICE):
         address = to_checksum_address(address)
-        self.unlock_account(address)
         tx_hash = self.send_transaction({
             'from': address,
             'value': value,
