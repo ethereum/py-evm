@@ -1,9 +1,12 @@
 import logging
 
 from eth_utils import (
-    to_canonical_address,
     to_checksum_address,
     to_dict,
+)
+
+from evm.utils.hexadecimal import (
+    decode_hex,
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
@@ -97,7 +100,7 @@ class VMCHandler:
         address_in_hex = self._vmc.call(tx_detail).sample(shard_id)
         # TODO: should see if there is a better way to automatically change the address result from
         #       hex to bytes in. Maybe in `decode_contract_call_result`?
-        return to_canonical_address(address_in_hex)
+        return decode_hex(address_in_hex)
 
     def deposit(self,
                 validation_code_addr,
