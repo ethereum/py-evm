@@ -66,15 +66,15 @@ class RPCServer:
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
             response['result'] = method(*params)
-        except ValueError as exc:
-            response['error'] = str(exc)
         except NotImplementedError as exc:
             response['error'] = "Method not implemented: %r" % request['method']
             custom_message = str(exc)
             if custom_message:
                 response['error'] += ' - %s' % custom_message
+        except Exception as exc:
+            response['error'] = str(exc)
 
-        if request['method'] == 'evm_resetToGenesisFixture':
+        if request['method'] == 'evm_resetToGenesisFixture' and 'result' in response:
             self._set_chain(response['result'])
             response['result'] = True
 

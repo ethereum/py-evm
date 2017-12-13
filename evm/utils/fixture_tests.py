@@ -578,8 +578,6 @@ def chain_vm_configuration(fixture):
         return (
             (0, ByzantiumVM),
         )
-    elif network == 'Constantinople':
-        pytest.skip('Constantinople VM rules not yet supported')
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
@@ -648,7 +646,7 @@ def new_chain_from_fixture(fixture):
 
 def apply_fixture_block_to_chain(block_fixture, chain):
     '''
-    :return: (premined_block, mined_block)
+    :return: (premined_block, mined_block, rlp_encoded_mined_block)
     '''
     # The block to import may be in a different block-class-range than the
     # chain's current one, so we use the block number specified in the
@@ -663,4 +661,6 @@ def apply_fixture_block_to_chain(block_fixture, chain):
 
     mined_block = chain.import_block(block)
 
-    return (block, mined_block)
+    rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
+
+    return (block, mined_block, rlp_encoded_mined_block)

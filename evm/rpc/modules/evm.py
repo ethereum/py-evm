@@ -1,7 +1,10 @@
+from eth_utils import (
+    encode_hex,
+)
+
 from evm.rpc.format import (
     format_params,
 )
-
 from evm.rpc.modules import (
     RPCModule,
 )
@@ -31,5 +34,5 @@ class EVM(RPCModule):
         which is then replaced inside :class:`~evm.rpc.main.RPCServer`
         for all future calls.
         '''
-        apply_fixture_block_to_chain(block_info, self._chain)
-        return True
+        _, _, rlp_encoded = apply_fixture_block_to_chain(block_info, self._chain)
+        return encode_hex(rlp_encoded)

@@ -33,7 +33,7 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name):
     if fixture_path.startswith('bcExploitTest'):
         return pytest.mark.skip("Exploit tests are slow")
     elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
-        return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
+        return pytest.mark.skip("Wallet owner reorganization tests are slow")
 
 
 def blockchain_fixture_ignore_fn(fixture_path, fixture_name):
@@ -63,6 +63,8 @@ def fixture(fixture_data):
         fixture_key,
         normalize_blockchain_fixtures,
     )
+    if fixture['network'] == 'Constantinople':
+        pytest.skip('Constantinople VM rules not yet supported')
     return fixture
 
 
