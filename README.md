@@ -3,6 +3,8 @@
 [![Join the chat at https://gitter.im/ethereum/py-evm](https://badges.gitter.im/ethereum/py-evm.svg)](https://gitter.im/ethereum/py-evm)
 [![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](http://py-evm.readthedocs.io/en/latest/?badge=latest)
 
+[Documentation hosted by ReadTheDocs](http://py-evm.readthedocs.io/en/latest/)
+
 
 ## Introducing Py-EVM
 
