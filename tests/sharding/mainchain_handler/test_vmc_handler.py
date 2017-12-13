@@ -30,7 +30,6 @@ from evm.chains.sharding.mainchain_handler import (
 
 from evm.chains.sharding.mainchain_handler.config import (
     PERIOD_LENGTH,
-    SHUFFLING_CYCLE_LENGTH,
 )
 
 from evm.chains.sharding.mainchain_handler.mainchain_handler import (
@@ -46,6 +45,8 @@ from tests.sharding.mainchain_handler.fixtures import (
 )
 
 PASSPHRASE = '123'
+# for testing we set it to 5, 25 or 2500 originally
+SHUFFLING_CYCLE_LENGTH = 5
 
 test_keys = get_default_account_keys()
 
