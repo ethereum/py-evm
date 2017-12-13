@@ -119,12 +119,13 @@ class BaseVMState(Configurable):
             read_only,
             access_list=access_list
         )
+        yield state
 
         if self.state_root != state.root_hash:
             self.set_state_root(state.root_hash)
 
-        self.access_logs.reads.update(state.db.access_logs.reads)
-        self.access_logs.writes.update(state.db.access_logs.writes)
+            self.access_logs.reads.update(state.db.access_logs.reads)
+            self.access_logs.writes.update(state.db.access_logs.writes)
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
