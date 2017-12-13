@@ -36,6 +36,7 @@ from evm.utils.keccak import (
     keccak,
 )
 from evm.utils.numeric import (
+    big_endian_to_int,
     int_to_big_endian,
 )
 from evm.utils.padding import (
@@ -221,8 +222,7 @@ class OneLayerBackend:
         self._check_accessibility(key)
 
         if value:
-            encoded_value = rlp.encode(value)
-            self._trie[key] = encoded_value
+            self._trie[key] = int_to_big_endian(value)
         else:
             del self._trie[key]
 
@@ -231,8 +231,7 @@ class OneLayerBackend:
         self._check_accessibility(key)
 
         if key in self._trie:
-            encoded_value = self._trie[key]
-            return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
+            return big_endian_to_int(self._trie[key])
         else:
             return 0
 
@@ -246,15 +245,14 @@ class OneLayerBackend:
         key = self.balance_key(address)
         self._check_accessibility(key)
 
-        self._trie[key] = rlp.encode(balance)
+        self._trie[key] = int_to_big_endian(balance)
 
     def get_balance(self, address):
         key = self.balance_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
-            encoded_value = self._trie[key]
-            return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
+            return big_endian_to_int(self._trie[key])
         else:
             return 0
 
@@ -262,15 +260,14 @@ class OneLayerBackend:
         key = self.nonce_key(address)
         self._check_accessibility(key)
 
-        self._trie[key] = rlp.encode(nonce)
+        self._trie[key] = int_to_big_endian(nonce)
 
     def get_nonce(self, address):
         key = self.nonce_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
-            encoded_value = self._trie[key]
-            return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
+            return big_endian_to_int(self._trie[key])
         else:
             return 0
 
@@ -278,15 +275,14 @@ class OneLayerBackend:
         key = self.code_key(address)
         self._check_accessibility(key)
 
-        self._trie[key] = rlp.encode(code)
+        self._trie[key] = code
 
     def get_code(self, address):
         key = self.code_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
-            encoded_value = self._trie[key]
-            return rlp.decode(encoded_value)
+            return self._trie[key]
         else:
             return b''
 
