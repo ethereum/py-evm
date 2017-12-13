@@ -71,6 +71,10 @@ class FrontierBlock(BaseBlock):
         )
         # TODO: should perform block validation at this point?
 
+    @property
+    def transaction_count(self):
+        return len(self.transactions)
+
     def validate_gas_limit(self):
         gas_limit = self.header.gas_limit
         if gas_limit < GAS_LIMIT_MINIMUM:
@@ -198,7 +202,7 @@ class FrontierBlock(BaseBlock):
         Note return value of this function can be cached based on
         `self.receipt_db.root_hash`
         """
-        if len(self.transactions):
+        if self.transaction_count:
             return self.receipts[-1].gas_used
         else:
             return 0
