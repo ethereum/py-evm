@@ -2,14 +2,9 @@ from viper import compiler
 
 from eth_tester.backends.pyevm.main import get_default_account_keys
 
-from evm.utils.address import generate_contract_address
-
 import eth_utils
 
-from evm.chains.sharding.mainchain_handler.vmc_utils import (
-    decode_contract_call_result,
-    mk_contract_tx_obj,
-)
+from evm.utils.address import generate_contract_address
 
 from tests.sharding.mainchain_handler.fixtures import (
     mainchain_handler,
@@ -49,28 +44,18 @@ def test_tester_chain_handler(mainchain_handler):
     receipt = mainchain_handler.get_transaction_receipt(tx_hash)
     # notice: `contractAddress` in web3.py, but `contract_address` in eth_tester
     assert ('contractAddress' in receipt) and (contract_addr == receipt['contractAddress'])
-    tx_obj = mk_contract_tx_obj('get_num_test', [], contract_addr, abi, sender_addr, 0, 50000, 1)
-    result = mainchain_handler.call(tx_obj)
-    decoded_result = decode_contract_call_result('get_num_test', abi, result)
-    assert decoded_result == 42
-    # tx_hash = mainchain_handler.send_transaction(tx_obj)
+    contract = mainchain_handler.contract(contract_addr, abi=abi, bytecode=bytecode)
+    result = contract.call({'from': sender_addr, 'gas': 50000}).get_num_test()
+    assert result == 42
     mainchain_handler.mine(1)
 
-    tx_obj = mk_contract_tx_obj(
-        'update_num_test',
-        [4],
-        contract_addr,
-        abi,
-        sender_addr,
-        0,
-        50000,
-        1,
-    )
     mainchain_handler.unlock_account(sender_addr, PASSPHRASE)
-    tx_hash = mainchain_handler.send_transaction(tx_obj)
+    tx_hash = contract.transact({
+        'from': sender_addr,
+        'gas': 50000,
+        'gas_price': 1,
+    }).update_num_test(4)
     mainchain_handler.mine(1)
 
-    tx_obj = mk_contract_tx_obj('get_num_test', [], contract_addr, abi, sender_addr, 0, 50000, 1)
-    result = mainchain_handler.call(tx_obj)
-    decoded_result = decode_contract_call_result('get_num_test', abi, result)
-    assert decoded_result == 4
+    result = contract.call({'from': sender_addr, 'gas': 50000}).get_num_test()
+    assert result == 4
