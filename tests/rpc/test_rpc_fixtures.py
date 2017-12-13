@@ -1,12 +1,42 @@
 import json
+import os
+import pytest
 
 from evm.rpc import RPCServer
 from evm.rpc.format import (
     fixture_state_in_rpc_format,
 )
 
+from evm.utils.fixture_tests import (
+    filter_fixtures,
+    generate_fixture_tests,
+)
 
-chain_fixture = {
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests', 'bcValidBlockTest')
+
+
+def blockchain_fixture_mark_fn(fixture_path, fixture_name):
+    if fixture_path.startswith('bcExploitTest'):
+        return pytest.mark.skip("Exploit tests are slow")
+    elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
+        return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
+
+
+def pytest_generate_tests(metafunc):
+    generate_fixture_tests(
+        metafunc=metafunc,
+        base_fixture_path=BASE_FIXTURE_PATH,
+        filter_fn=filter_fixtures(
+            fixtures_base_dir=BASE_FIXTURE_PATH,
+            mark_fn=blockchain_fixture_mark_fn,
+        ),
+    )
+
+
+chain_fixture_old = {
     "_info": {
         "comment": "",
         "filledwith": "cpp-1.3.0+commit.70e7d177.Linux.g++",
@@ -87,6 +117,98 @@ chain_fixture = {
     }
 }
 
+chain_fixture = {
+    "_info": {
+        "comment": "",
+        "filledwith": "cpp-1.3.0+commit.70e7d177.Linux.g++",
+        "source": "../../tests/src/BlockchainTestsFiller/bcValidBlockTest/dataTxFiller.json"
+    },
+    "blocks": [
+        {
+            "blockHeader": {
+                "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                "coinbase": "0x8888f1f195afa192cfee860698584c030f4c9db1",
+                "difficulty": "0x020000",
+                "extraData": "",
+                "gasLimit": "0x2fefba",
+                "gasUsed": "0xc350",
+                "hash": "0xde4b9aad7ea2ec7a7fa3fe9eb04b63559b04c37dbaa657c864f0199f1e899545",
+                "mixHash": "0x929688a46581296c3608fb9102aba6fca840bc55f74258c87afeb77d60827281",
+                "nonce": "0x4dc155a46e22c788",
+                "number": "0x01",
+                "parentHash": "0x636aff25807a6331b7c9a8e4c984f3f8e38d7608adf34ee801f5265ca4fe19ac",
+                "receiptTrie": "0x5e947bdcb71ec84c3e4f884827f8bcc98412c54bffa8ee25770d55ddbcb05f23",
+                "stateRoot": "0xd4d1286d3c22aaacd7bd2adcc2934ba68740c4c5360c89f99a3a6a727a8bcbbd",
+                "timestamp": "0x59af010b",
+                "transactionsTrie": "0x0f6203a75e815282560cdf61871ed2fa253b910d74f0f772bbb980d2f13dedd9",
+                "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
+            },
+            "rlp": "0xf903fef901f9a0636aff25807a6331b7c9a8e4c984f3f8e38d7608adf34ee801f5265ca4fe19aca01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347948888f1f195afa192cfee860698584c030f4c9db1a0d4d1286d3c22aaacd7bd2adcc2934ba68740c4c5360c89f99a3a6a727a8bcbbda00f6203a75e815282560cdf61871ed2fa253b910d74f0f772bbb980d2f13dedd9a05e947bdcb71ec84c3e4f884827f8bcc98412c54bffa8ee25770d55ddbcb05f23b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008302000001832fefba82c3508459af010b80a0929688a46581296c3608fb9102aba6fca840bc55f74258c87afeb77d60827281884dc155a46e22c788f901fef901fb803282c3508080b901ae60056013565b6101918061001d6000396000f35b3360008190555056006001600060e060020a6000350480630a874df61461003a57806341c0e1b514610058578063a02b161e14610066578063dbbdf0831461007757005b610045600435610149565b80600160a060020a031660005260206000f35b610060610161565b60006000f35b6100716004356100d4565b60006000f35b61008560043560243561008b565b60006000f35b600054600160a060020a031632600160a060020a031614156100ac576100b1565b6100d0565b8060018360005260205260406000208190555081600060005260206000a15b5050565b600054600160a060020a031633600160a060020a031614158015610118575033600160a060020a0316600182600052602052604060002054600160a060020a031614155b61012157610126565b610146565b600060018260005260205260406000208190555080600060005260206000a15b50565b60006001826000526020526040600020549050919050565b600054600160a060020a031633600160a060020a0316146101815761018f565b600054600160a060020a0316ff5b561ba04d2aeb53154952b3a3d4718d8a11476c1165f8b53fad1c16e7c27d2a0df29298a0695d3859403ff7ae34072e8f48f29d603aef37fff7d01e55f32de724c9492239c0",
+            "transactions": [
+                {
+                    "data": "0x60056013565b6101918061001d6000396000f35b3360008190555056006001600060e060020a6000350480630a874df61461003a57806341c0e1b514610058578063a02b161e14610066578063dbbdf0831461007757005b610045600435610149565b80600160a060020a031660005260206000f35b610060610161565b60006000f35b6100716004356100d4565b60006000f35b61008560043560243561008b565b60006000f35b600054600160a060020a031632600160a060020a031614156100ac576100b1565b6100d0565b8060018360005260205260406000208190555081600060005260206000a15b5050565b600054600160a060020a031633600160a060020a031614158015610118575033600160a060020a0316600182600052602052604060002054600160a060020a031614155b61012157610126565b610146565b600060018260005260205260406000208190555080600060005260206000a15b50565b60006001826000526020526040600020549050919050565b600054600160a060020a031633600160a060020a0316146101815761018f565b600054600160a060020a0316ff5b56",
+                    "gasLimit": "0xc350",
+                    "gasPrice": "0x32",
+                    "nonce": "0x00",
+                    "r": "0x4d2aeb53154952b3a3d4718d8a11476c1165f8b53fad1c16e7c27d2a0df29298",
+                    "s": "0x695d3859403ff7ae34072e8f48f29d603aef37fff7d01e55f32de724c9492239",
+                    "to": "",
+                    "v": "0x1b",
+                    "value": "0x00"
+                }
+            ],
+            "uncleHeaders": [
+            ]
+        }
+    ],
+    "genesisBlockHeader": {
+        "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "coinbase": "0x8888f1f195afa192cfee860698584c030f4c9db1",
+        "difficulty": "0x020000",
+        "extraData": "0x42",
+        "gasLimit": "0x2fefd8",
+        "gasUsed": "0x64",
+        "hash": "0x636aff25807a6331b7c9a8e4c984f3f8e38d7608adf34ee801f5265ca4fe19ac",
+        "mixHash": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "nonce": "0x0102030405060708",
+        "number": "0x00",
+        "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "stateRoot": "0xcafd881ab193703b83816c49ff6c2bf6ba6f464a1be560c42106128c8dbc35e7",
+        "timestamp": "0x54c98c81",
+        "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
+    },
+    "genesisRLP": "0xf901fcf901f7a00000000000000000000000000000000000000000000000000000000000000000a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347948888f1f195afa192cfee860698584c030f4c9db1a0cafd881ab193703b83816c49ff6c2bf6ba6f464a1be560c42106128c8dbc35e7a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008302000080832fefd8648454c98c8142a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421880102030405060708c0c0",
+    "lastblockhash": "0xde4b9aad7ea2ec7a7fa3fe9eb04b63559b04c37dbaa657c864f0199f1e899545",
+    "network": "Frontier",
+    "postState": {
+        "0x8888f1f195afa192cfee860698584c030f4c9db1": {
+            "balance": "0x45639182451a25a0",
+            "code": "",
+            "nonce": "0x00",
+            "storage": {
+            }
+        },
+        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+            "balance": "0x0253e5be60",
+            "code": "",
+            "nonce": "0x01",
+            "storage": {
+            }
+        }
+    },
+    "pre": {
+        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+            "balance": "0x02540be400",
+            "code": "",
+            "nonce": "0x00",
+            "storage": {
+            }
+        }
+    }
+}
+
 
 def build_request(method, params):
     return {"jsonrpc": "2.0", "method": method, "params": params, "id": 3}
@@ -97,7 +219,7 @@ def result_from_response(response_str):
     return (response.get('result', None), response.get('error', None))
 
 
-def validate_one_account_state(fixture_key, rpc_method, rpc, state, addr):
+def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr):
     request = build_request(rpc_method, [addr, 'latest'])
     state_response = rpc.execute(request)
     state_result, state_error = result_from_response(state_response)
@@ -111,18 +233,30 @@ RPC_STATE_LOOKUPS = (
 )
 
 
-def validate_account_states(rpc, state, addr):
+def validate_account_state(rpc, state, addr):
     standardized_state = fixture_state_in_rpc_format(state)
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
-        validate_one_account_state(fixture_key, rpc_method, rpc, standardized_state, addr)
+        validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr)
+
+
+def validate_accounts(rpc, states):
+    for addr in states:
+        validate_account_state(rpc, states[addr], addr)
 
 
 def test_rpc_against_fixtures():
     rpc = RPCServer(None)
-    setup_request = build_request('debug_resetChainTo', [chain_fixture])
+    setup_request = build_request('evm_resetToGenesisFixture', [chain_fixture])
     setup_response = rpc.execute(setup_request)
     setup_result, setup_error = result_from_response(setup_response)
     assert setup_result is True and setup_error is None
 
-    for addr in chain_fixture['postState']:
-        validate_account_states(rpc, chain_fixture['postState'][addr], addr)
+    validate_accounts(rpc, chain_fixture['pre'])
+
+    for block_fixture in chain_fixture['blocks']:
+        block_request = build_request('evm_applyBlockFixture', [block_fixture])
+        block_response = rpc.execute(block_request)
+        block_result, block_error = result_from_response(block_response)
+        assert block_result is True and block_error is None
+
+    validate_accounts(rpc, chain_fixture['postState'])

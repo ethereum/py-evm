@@ -1,13 +1,17 @@
-import pytest
-
 import os
+import pytest
+import rlp
+
+from evm.exceptions import (
+    ValidationError,
+)
 
 from evm.rlp.headers import (
     BlockHeader,
 )
 
 from evm.utils.fixture_tests import (
-    apply_fixture_blocks_to_chain,
+    apply_fixture_block_to_chain,
     new_chain_from_fixture,
     genesis_params_from_fixture,
     load_fixture,
@@ -26,12 +30,7 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 
 
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):
-    if fixture_path.startswith('GeneralStateTests'):
-        return pytest.mark.skip(
-            "General state tests are also exported as blockchain tests.  We "
-            "skip them here so we don't run them twice"
-        )
-    elif fixture_path.startswith('bcExploitTest'):
+    if fixture_path.startswith('bcExploitTest'):
         return pytest.mark.skip("Exploit tests are slow")
     elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
         return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
@@ -85,7 +84,26 @@ def test_blockchain_fixtures(fixture_data, fixture):
 
     assert_rlp_equal(genesis_header, expected_genesis_header)
 
-    apply_fixture_blocks_to_chain(fixture['blocks'], chain)
+    # 1 - mine the genesis block
+    # 2 - loop over blocks:
+    #     - apply transactions
+    #     - mine block
+    # 4 - profit!!
+
+    for block_fixture in fixture['blocks']:
+        should_be_good_block = 'blockHeader' in block_fixture
+
+        if 'rlp_error' in block_fixture:
+            assert not should_be_good_block
+            continue
+
+        try:
+            (block, mined_block) = apply_fixture_block_to_chain(block_fixture, chain)
+        except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
+            assert not should_be_good_block, "Block should be good: {0}".format(err)
+        else:
+            assert_rlp_equal(block, mined_block)
+            assert should_be_good_block, "Block should have caused a validation error"
 
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     assert latest_block_hash == fixture['lastblockhash']

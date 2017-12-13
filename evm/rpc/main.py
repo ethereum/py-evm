@@ -1,8 +1,8 @@
 import json
 
 from evm.rpc.modules import (
-    Debug,
     Eth,
+    EVM,
 )
 
 
@@ -24,8 +24,8 @@ class RPCServer:
     '''
 
     module_classes = (
-        Debug,
         Eth,
+        EVM,
     )
 
     def __init__(self, chain):
@@ -74,7 +74,7 @@ class RPCServer:
             if custom_message:
                 response['error'] += ' - %s' % custom_message
 
-        if request['method'] == 'debug_resetChainTo':
+        if request['method'] == 'evm_resetToGenesisFixture':
             self._set_chain(response['result'])
             response['result'] = True
 

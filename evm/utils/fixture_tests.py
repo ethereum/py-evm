@@ -42,9 +42,6 @@ from evm.vm.forks import (
 
 from evm.db import get_db_backend
 from evm.db.chain import BaseChainDB
-from evm.exceptions import (
-    ValidationError,
-)
 
 from .numeric import (
     big_endian_to_int,
@@ -649,40 +646,21 @@ def new_chain_from_fixture(fixture):
     )
 
 
-def apply_fixture_blocks_to_chain(fixture_blocks, chain):
-    # 1 - mine the genesis block
-    # 2 - loop over blocks:
-    #     - apply transactions
-    #     - mine block
-    # 4 - profit!!
+def apply_fixture_block_to_chain(block_fixture, chain):
+    '''
+    :return: (premined_block, mined_block)
+    '''
+    # The block to import may be in a different block-class-range than the
+    # chain's current one, so we use the block number specified in the
+    # fixture to look up the correct block class.
+    if 'blockHeader' in block_fixture:
+        block_number = block_fixture['blockHeader']['number']
+        block_class = chain.get_vm_class_for_block_number(block_number).get_block_class()
+    else:
+        block_class = chain.get_vm().get_block_class()
 
-    for block_data in fixture_blocks:
-        should_be_good_block = 'blockHeader' in block_data
+    block = rlp.decode(block_fixture['rlp'], sedes=block_class, chaindb=chain.chaindb)
 
-        if 'rlp_error' in block_data:
-            assert not should_be_good_block
-            continue
+    mined_block = chain.import_block(block)
 
-        # The block to import may be in a different block-class-range than the
-        # chain's current one, so we use the block number specified in the
-        # fixture to look up the correct block class.
-        if should_be_good_block:
-            block_number = block_data['blockHeader']['number']
-            block_class = chain.get_vm_class_for_block_number(block_number).get_block_class()
-        else:
-            block_class = chain.get_vm().get_block_class()
-
-        try:
-            block = rlp.decode(block_data['rlp'], sedes=block_class, chaindb=chain.chaindb)
-        except (TypeError, rlp.DecodingError, rlp.DeserializationError) as err:
-            assert not should_be_good_block, "Block should be good: {0}".format(err)
-            continue
-
-        try:
-            mined_block = chain.import_block(block)
-        except ValidationError as err:
-            assert not should_be_good_block, "Block should be good: {0}".format(err)
-            continue
-        else:
-            assert_rlp_equal(mined_block, block)
-            assert should_be_good_block, "Block should have caused a validation error"
+    return (block, mined_block)
