@@ -26,8 +26,24 @@ from eth_utils import (
     to_dict,
 )
 
+from evm import MainnetChain
+
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
+)
+
+from evm.vm.forks import (
+    ByzantiumVM,
+    EIP150VM,
+    FrontierVM,
+    HomesteadVM as BaseHomesteadVM,
+    SpuriousDragonVM,
+)
+
+from evm.db import get_db_backend
+from evm.db.chain import BaseChainDB
+from evm.exceptions import (
+    ValidationError,
 )
 
 from .numeric import (
@@ -539,3 +555,134 @@ def verify_state_db(expected_state, state_db):
                 "\n - ".join(error_messages),
             )
         )
+
+
+def chain_vm_configuration(fixture):
+    network = fixture['network']
+
+    if network == 'Frontier':
+        return (
+            (0, FrontierVM),
+        )
+    elif network == 'Homestead':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
+        return (
+            (0, HomesteadVM),
+        )
+    elif network == 'EIP150':
+        return (
+            (0, EIP150VM),
+        )
+    elif network == 'EIP158':
+        return (
+            (0, SpuriousDragonVM),
+        )
+    elif network == 'Byzantium':
+        return (
+            (0, ByzantiumVM),
+        )
+    elif network == 'Constantinople':
+        pytest.skip('Constantinople VM rules not yet supported')
+    elif network == 'FrontierToHomesteadAt5':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
+        return (
+            (0, FrontierVM),
+            (5, HomesteadVM),
+        )
+    elif network == 'HomesteadToEIP150At5':
+        HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
+        return (
+            (0, HomesteadVM),
+            (5, EIP150VM),
+        )
+    elif network == 'HomesteadToDaoAt5':
+        HomesteadVM = BaseHomesteadVM.configure(
+            support_dao_fork=True,
+            dao_fork_block_number=5,
+        )
+        return (
+            (0, HomesteadVM),
+        )
+    elif network == 'EIP158ToByzantiumAt5':
+        return (
+            (0, SpuriousDragonVM),
+            (5, ByzantiumVM),
+        )
+    else:
+        raise ValueError("Network {0} does not match any known VM rules".format(network))
+
+
+def genesis_params_from_fixture(fixture):
+    return {
+        'parent_hash': fixture['genesisBlockHeader']['parentHash'],
+        'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
+        'coinbase': fixture['genesisBlockHeader']['coinbase'],
+        'state_root': fixture['genesisBlockHeader']['stateRoot'],
+        'transaction_root': fixture['genesisBlockHeader']['transactionsTrie'],
+        'receipt_root': fixture['genesisBlockHeader']['receiptTrie'],
+        'bloom': fixture['genesisBlockHeader']['bloom'],
+        'difficulty': fixture['genesisBlockHeader']['difficulty'],
+        'block_number': fixture['genesisBlockHeader']['number'],
+        'gas_limit': fixture['genesisBlockHeader']['gasLimit'],
+        'gas_used': fixture['genesisBlockHeader']['gasUsed'],
+        'timestamp': fixture['genesisBlockHeader']['timestamp'],
+        'extra_data': fixture['genesisBlockHeader']['extraData'],
+        'mix_hash': fixture['genesisBlockHeader']['mixHash'],
+        'nonce': fixture['genesisBlockHeader']['nonce'],
+    }
+
+
+def new_chain_from_fixture(fixture):
+    db = BaseChainDB(get_db_backend())
+
+    vm_config = chain_vm_configuration(fixture)
+
+    ChainFromFixture = MainnetChain.configure(
+        'ChainFromFixture',
+        vm_configuration=vm_config,
+    )
+
+    return ChainFromFixture.from_genesis(
+        db,
+        genesis_params=genesis_params_from_fixture(fixture),
+        genesis_state=fixture['pre'],
+    )
+
+
+def apply_fixture_blocks_to_chain(fixture_blocks, chain):
+    # 1 - mine the genesis block
+    # 2 - loop over blocks:
+    #     - apply transactions
+    #     - mine block
+    # 4 - profit!!
+
+    for block_data in fixture_blocks:
+        should_be_good_block = 'blockHeader' in block_data
+
+        if 'rlp_error' in block_data:
+            assert not should_be_good_block
+            continue
+
+        # The block to import may be in a different block-class-range than the
+        # chain's current one, so we use the block number specified in the
+        # fixture to look up the correct block class.
+        if should_be_good_block:
+            block_number = block_data['blockHeader']['number']
+            block_class = chain.get_vm_class_for_block_number(block_number).get_block_class()
+        else:
+            block_class = chain.get_vm().get_block_class()
+
+        try:
+            block = rlp.decode(block_data['rlp'], sedes=block_class, chaindb=chain.chaindb)
+        except (TypeError, rlp.DecodingError, rlp.DeserializationError) as err:
+            assert not should_be_good_block, "Block should be good: {0}".format(err)
+            continue
+
+        try:
+            mined_block = chain.import_block(block)
+        except ValidationError as err:
+            assert not should_be_good_block, "Block should be good: {0}".format(err)
+            continue
+        else:
+            assert_rlp_equal(mined_block, block)
+            assert should_be_good_block, "Block should have caused a validation error"

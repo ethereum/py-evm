@@ -1,5 +1,10 @@
 import functools
 
+from cytoolz import (
+    compose,
+    identity,
+)
+
 from eth_utils import (
     encode_hex,
     int_to_big_endian,
@@ -59,3 +64,18 @@ def to_int_if_hex(value):
         return int(value, 16)
     else:
         return value
+
+
+remove_leading_zeros = compose(hex, functools.partial(int, base=16))
+RPC_STATE_NORMALIZERS = {
+    'balance': remove_leading_zeros,
+    'code': lambda code: '0x' if not code else code,
+    'nonce': remove_leading_zeros,
+}
+
+
+def fixture_state_in_rpc_format(state):
+    return {
+        key: RPC_STATE_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }

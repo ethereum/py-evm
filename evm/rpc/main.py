@@ -1,6 +1,9 @@
 import json
 
-from evm.rpc.modules import Eth
+from evm.rpc.modules import (
+    Debug,
+    Eth,
+)
 
 
 def generate_response(request):
@@ -21,11 +24,12 @@ class RPCServer:
     '''
 
     module_classes = (
+        Debug,
         Eth,
     )
 
     def __init__(self, chain):
-        self.chain = chain
+        self._chain = chain
         self.modules = {}
         for m in self.module_classes:
             self.modules[m.__name__.lower()] = m(chain)
@@ -70,4 +74,13 @@ class RPCServer:
             if custom_message:
                 response['error'] += ' - %s' % custom_message
 
+        if request['method'] == 'debug_resetChainTo':
+            self._set_chain(response['result'])
+            response['result'] = True
+
         return json.dumps(response)
+
+    def _set_chain(self, new_chain):
+        self._chain = new_chain
+        for module in self.modules.values():
+            module.set_chain(new_chain)

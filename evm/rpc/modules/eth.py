@@ -5,6 +5,7 @@ from cytoolz import (
 
 from eth_utils import (
     decode_hex,
+    encode_hex,
 )
 
 from evm.rpc.format import (
@@ -77,6 +78,18 @@ class Eth(RPCModule):
         block = self._chain.get_canonical_block_by_number(block_number)
         assert block.number == block_number
         return block_to_dict(block, self._chain, include_transactions)
+
+    @format_params(decode_hex, to_int_if_hex)
+    def getCode(self, address, at_block):
+        with state_at_block(self._chain, at_block) as state:
+            code = state.get_code(address)
+        return encode_hex(code)
+
+    @format_params(decode_hex, to_int_if_hex)
+    def getTransactionCount(self, address, at_block):
+        with state_at_block(self._chain, at_block) as state:
+            nonce = state.get_nonce(address)
+        return hex(nonce)
 
     @format_params(decode_hex)
     def getUncleCountByBlockHash(self, block_hash):
