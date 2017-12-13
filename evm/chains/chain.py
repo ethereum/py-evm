@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import copy
 import logging
 
 from cytoolz import (
@@ -232,7 +233,13 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        return vm.apply_transaction(transaction)
+        # return vm.apply_transaction(transaction)
+
+        return vm.apply_transaction_to_block(
+            transaction,
+            copy.deepcopy(self.chaindb),
+            copy.deepcopy(vm.block),
+        )
 
     def import_block(self, block, perform_validation=True):
         """
@@ -248,7 +255,9 @@ class Chain(object):
             )
 
         parent_chain = self.get_chain_at_block_parent(block)
-        imported_block = parent_chain.get_vm().import_block(block)
+        chaindb = self.chaindb
+        imported_block = parent_chain.get_vm().apply_block(block, chaindb)
+        # imported_block = parent_chain.get_vm().import_block(block)
 
         # Validate the imported block.
         if perform_validation:
