@@ -1,5 +1,21 @@
 import pytest
 
+import rlp
+from rlp.exceptions import (
+    ListSerializationError,
+    ListDeserializationError,
+)
+
+from evm.constants import (
+    STORAGE_TRIE_PREFIX,
+)
+
+from evm.rlp.sedes import (
+    access_list as access_list_sedes,
+)
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.state_access_restriction import (
     is_accessible,
     remove_redundant_prefixes,
@@ -65,3 +81,81 @@ def test_accessibility(prefix_list, address, slot, accessible):
 def test_remove_redundant_prefixes(prefixes, expected):
     actual = remove_redundant_prefixes(prefixes)
     assert actual == expected
+
+
+
+@pytest.mark.parametrize(
+    'access_list,expected',
+    [
+        (
+            ((),),
+            b'\xc1\xc0'
+        ),
+        (
+            ((TEST_ADDRESS1,),),
+            b'\xd6' + b'\xd5' + b'\x94' + TEST_ADDRESS1
+        ),
+        (
+            ((TEST_ADDRESS1, b''),),
+            b'\xd7' + b'\xd6' + b'\x94' + TEST_ADDRESS1 + b'\x80'
+        ),
+        (
+            ((TEST_ADDRESS1, b'\xaa'),),
+            b'\xd8' + b'\xd7' + b'\x94' + TEST_ADDRESS1 + b'\x81\xaa'
+        ),
+        (
+            ((TEST_ADDRESS1, b'\xaa' * 32),),
+            b'\xf7' + b'\xf6' + b'\x94' + TEST_ADDRESS1 + b'\xa0' + b'\xaa' * 32
+        ),
+        (
+            (
+                (TEST_ADDRESS1, b'\xaa' * 20, b'\xbb' * 2, b'\xcc' * 32),
+                (TEST_ADDRESS2, b'\xaa\xbb')
+            ),
+            b'\xf8\x69' + (
+                b'\xf8\x4e' + (
+                    b'\x94' + TEST_ADDRESS1 +
+                    b'\x94' + b'\xaa' * 20 +
+                    b'\x82\xbb\xbb' +
+                    b'\xa0' + b'\xcc' * 32
+                ) +
+                b'\xd8' + (
+                    b'\x94' + TEST_ADDRESS2 +
+                    b'\x82\xaa\xbb'
+                )
+            )
+        ),
+    ]
+)
+def test_rlp_encoding(access_list, expected):
+    encoded = rlp.encode(access_list, access_list_sedes)
+    print(encoded)
+    print(expected)
+    assert encoded == expected
+
+    decoded = rlp.decode(encoded, access_list_sedes)
+    assert decoded == access_list
+
+
+@pytest.mark.parametrize(
+    'invalid_access_list',
+    [
+        b'',
+        pytest.param([], marks=pytest.mark.xfail),  # FIXME: bug in pyrlp
+        [[[]]],
+        [[b'']],
+        [[b'\xaa' * 40]],
+        [[b'\xaa' * 19]],
+        [[b'\xaa' * 21]],
+        [[b'\xaa' * 32]],
+        [[b'\xaa' * 20, b'\xaa' * 33]],
+        [[], [b'\xaa']],
+    ]
+)
+def test_invalid_rlp_encoding(invalid_access_list):
+    with pytest.raises(ListSerializationError):
+        rlp.encode(invalid_access_list, access_list_sedes)
+
+    encoded = rlp.encode(invalid_access_list)
+    with pytest.raises(ListDeserializationError):
+        rlp.decode(encoded, access_list_sedes)
