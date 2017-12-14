@@ -33,6 +33,9 @@ from evm.rlp.headers import (
 from evm.utils.chain import (
     generate_vms_by_range,
 )
+from evm.utils.headers import (
+    compute_gas_limit_bounds,
+)
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -313,6 +316,7 @@ class Chain(object):
         """
         self.validate_seal(block.header)
         self.validate_uncles(block)
+        self.validate_gaslimit(block.header)
 
     def validate_uncles(self, block):
         recent_ancestors = dict(
@@ -348,3 +352,15 @@ class Chain(object):
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
+
+    def validate_gaslimit(self, header):
+        parent_header = self.get_block_header_by_hash(header.parent_hash)
+        low_bound, high_bound = compute_gas_limit_bounds(parent_header)
+        if header.gas_limit < low_bound:
+            raise ValidationError(
+                "The gas limit on block {0} is too low: {1}. It must be at least {2}".format(
+                    encode_hex(header.hash), header.gas_limit, low_bound))
+        elif header.gas_limit > high_bound:
+            raise ValidationError(
+                "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
+                    encode_hex(header.hash), header.gas_limit, high_bound))
