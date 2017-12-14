@@ -100,7 +100,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
             continue
 
         try:
-            (block, mined_block) = apply_fixture_block_to_chain(block_fixture, chain)
+            (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
         except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
             assert not should_be_good_block, "Block should be good: {0}".format(err)
         else:

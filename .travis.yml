@@ -18,6 +18,7 @@ env:
     - TOX_POSARGS="-e py35-blockchain"
     - TOX_POSARGS="-e py35-vm"
     - TOX_POSARGS="-e py35-core"
+    - TOX_POSARGS="-e py35-rpc"
     - TOX_POSARGS="-e py35-transactions"
     - TOX_POSARGS="-e py35-p2p"
     - TOX_POSARGS="-e py35-database"
