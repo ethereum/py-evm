@@ -1,13 +1,11 @@
 from __future__ import absolute_import
+import asyncio
 import logging
 
 from cytoolz import (
     assoc,
 )
 
-from eth_utils import (
-    to_tuple,
-)
 from evm.consensus.pow import (
     check_pow,
 )
@@ -85,7 +83,7 @@ class Chain(object):
     #
     # Convenience and Helpers
     #
-    def get_block(self):
+    async def get_block(self):
         """
         Passthrough helper to the current VM class.
         """
@@ -156,7 +154,7 @@ class Chain(object):
         """
         return self.chaindb.get_canonical_head()
 
-    def get_canonical_block_by_number(self, block_number):
+    async def get_canonical_block_by_number(self, block_number):
         """
         Returns the block with the given number in the canonical chain.
 
@@ -164,9 +162,9 @@ class Chain(object):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+        return await self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
 
-    def get_block_by_hash(self, block_hash):
+    async def get_block_by_hash(self, block_hash):
         """
         Returns the requested block as specified by block hash.
         """
@@ -179,10 +177,7 @@ class Chain(object):
     # Chain Initialization
     #
     @classmethod
-    def from_genesis(cls,
-                     chaindb,
-                     genesis_params,
-                     genesis_state=None):
+    async def from_genesis(cls, chaindb, genesis_params, genesis_state=None):
         """
         Initialize the Chain from a genesis state.
         """
@@ -216,7 +211,8 @@ class Chain(object):
 
         genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(chaindb, genesis_header)
-        chaindb.persist_block_to_db(genesis_chain.get_block())
+        block = await genesis_chain.get_block()
+        chaindb.persist_block_to_db(block)
         return cls.from_genesis_header(chaindb, genesis_header)
 
     @classmethod
@@ -292,11 +288,11 @@ class Chain(object):
         init_header = self.create_header_from_parent(parent_header)
         return type(self)(self.chaindb, init_header)
 
-    @to_tuple
-    def get_ancestors(self, limit):
+    async def get_ancestors(self, limit):
         lower_limit = max(self.header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, self.header.block_number)):
-            yield self.get_canonical_block_by_number(n)
+        block_nums = reversed(range(lower_limit, self.header.block_number))
+        block_coroutines = [self.get_canonical_block_by_number(n) for n in block_nums]
+        return await asyncio.gather(*block_coroutines)
 
     #
     # Validation API
@@ -314,10 +310,11 @@ class Chain(object):
         self.validate_seal(block.header)
         self.validate_uncles(block)
 
-    def validate_uncles(self, block):
+    async def validate_uncles(self, block):
+        ancestor_blocks = await self.get_ancestors(MAX_UNCLE_DEPTH + 1)
         recent_ancestors = dict(
             (ancestor.hash, ancestor)
-            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1),
+            for ancestor in ancestor_blocks,
         )
         recent_uncles = []
         for ancestor in recent_ancestors.values():

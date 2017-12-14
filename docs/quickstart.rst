@@ -74,13 +74,17 @@ For example:
 
 ::
 
+  loop = asyncio.get_event_loop()
+
   highest_block_num = chain.get_canonical_head().block_number
 
-  block1 = chain.get_canonical_block_by_number(1)
+  block1 = loop.run_until_complete(chain.get_canonical_block_by_number(1))
   assert block1.number() == 1
 
   blockhash = block1.hash()
   blockgas = block1.get_cumulative_gas_used()
+
+  loop.close()
 
 The methods available on the block are variable. They depend on what fork you're on.
 The mainnet follows "Frontier" rules at the beginning, then Homestead, and so on.

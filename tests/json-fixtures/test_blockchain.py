@@ -146,7 +146,7 @@ def chain_vm_configuration(fixture_data, fixture):
         )
 
 
-def test_blockchain_fixtures(fixture, chain_vm_configuration):
+async def test_blockchain_fixtures(fixture, chain_vm_configuration):
     genesis_params = {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
         'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
@@ -176,13 +176,13 @@ def test_blockchain_fixtures(fixture, chain_vm_configuration):
         vm_configuration=chain_vm_configuration,
     )
 
-    chain = ChainForTesting.from_genesis(
+    chain = await ChainForTesting.from_genesis(
         db,
         genesis_params=genesis_params,
         genesis_state=fixture['pre'],
     )
 
-    genesis_block = chain.get_canonical_block_by_number(0)
+    genesis_block = await chain.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
 
     assert_rlp_equal(genesis_header, expected_genesis_header)
@@ -224,7 +224,9 @@ def test_blockchain_fixtures(fixture, chain_vm_configuration):
             assert_rlp_equal(mined_block, block)
             assert should_be_good_block, "Block should have caused a validation error"
 
-    latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
+    block = await chain.get_block()
+    block_by_number = await chain.get_canonical_block_by_number(block.number - 1)
+    latest_block_hash = block_by_number.hash
     assert latest_block_hash == fixture['lastblockhash']
 
     with chain.get_vm().state_db(read_only=True) as state_db:
