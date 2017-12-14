@@ -59,7 +59,9 @@ def compute_gas_limit(parent_header, gas_limit_floor):
         parent_header.gas_limit - decay + usage_increase
     )
 
-    if gas_limit < gas_limit_floor:
+    if gas_limit < GAS_LIMIT_MINIMUM:
         return GAS_LIMIT_MINIMUM
+    elif gas_limit < gas_limit_floor:
+        return parent_header.gas_limit + decay
     else:
         return gas_limit
