@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 import rlp
 from rlp import sedes
@@ -8,12 +8,9 @@ from eth_utils import (
     to_dict,
 )
 
-from evm.rlp.headers import (
-    BlockHeader,
-)
-from evm.rlp.transactions import (
-    BaseTransaction,
-)
+from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
+from evm.rlp.transactions import BaseTransaction
 from evm.p2p.exceptions import HandshakeFailure
 from evm.p2p.p2p_proto import DisconnectReason
 from evm.p2p.protocol import (
@@ -124,11 +121,22 @@ class Announce(Command):
         )
 
 
+class HashOrNumber:
+
+    def serialize(self, obj):
+        if isinstance(obj, int):
+            return sedes.big_endian_int.serialize(obj)
+        return sedes.binary.serialize(obj)
+
+    def deserialize(self, serial):
+        if len(serial) == 32:
+            return sedes.binary.deserialize(serial)
+        return sedes.big_endian_int.deserialize(serial)
+
+
 class GetBlockHeadersQuery(rlp.Serializable):
     fields = [
-        # TODO: It should be possible to specify the block either by its number or hash, but
-        # for now only the number is supported.
-        ('block', sedes.big_endian_int),
+        ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
         ('reverse', sedes.big_endian_int),
@@ -176,10 +184,77 @@ class BlockBodies(Command):
     ]
 
 
+class GetReceipts(Command):
+    _cmd_id = 6
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('block_hashes', sedes.CountableList(sedes.binary)),
+    ]
+
+
+class Receipts(Command):
+    _cmd_id = 7
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('buffer_value', sedes.big_endian_int),
+        ('receipts', sedes.CountableList(sedes.CountableList(Receipt))),
+    ]
+
+
+class ProofRequest(rlp.Serializable):
+    fields = [
+        ('block_hash', sedes.binary),
+        ('key', sedes.binary),
+        ('key2', sedes.binary),
+        ('from_level', sedes.big_endian_int),
+    ]
+
+
+class GetProofs(Command):
+    _cmd_id = 8
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('proof_requests', sedes.CountableList(ProofRequest)),
+    ]
+
+
+class Proofs(Command):
+    _cmd_id = 9
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('buffer_value', sedes.big_endian_int),
+        ('nodes', sedes.CountableList(sedes.CountableList(sedes.raw))),
+    ]
+
+
+class ContractCodeRequest(rlp.Serializable):
+    fields = [
+        ('block_hash', sedes.binary),
+        ('key', sedes.binary),
+    ]
+
+
+class GetContractCodes(Command):
+    _cmd_id = 10
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('code_requests', sedes.CountableList(ContractCodeRequest)),
+    ]
+
+
+class ContractCodes(Command):
+    _cmd_id = 11
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('buffer_value', sedes.big_endian_int),
+        ('codes', sedes.CountableList(sedes.binary)),
+    ]
+
+
 class LESProtocol(Protocol):
     name = b'les'
     version = 1
-    _commands = [Status, Announce, BlockHeaders, BlockBodies]
+    _commands = [Status, Announce, BlockHeaders, BlockBodies, Receipts, Proofs, ContractCodes]
     handshake_msg_type = Status
     cmd_length = 15
 
@@ -221,13 +296,14 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_block_headers(self, block_number: int, max_headers: int, request_id: int,
-                               reverse: bool = True
+    def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
+                               max_headers: int, request_id: int, reverse: bool = True
                                ) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
-        This requests that the remote send us up to max_headers, starting from block_number if
-        reverse is False or ending at block_number if reverse is True.
+        This requests that the remote send us up to max_headers, starting from
+        block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
+        True.
         """
         if max_headers > MAX_HEADERS_FETCH:
             raise ValueError(
@@ -238,7 +314,32 @@ class LESProtocol(Protocol):
         skip = 0
         data = {
             'request_id': request_id,
-            'query': GetBlockHeadersQuery(block_number, max_headers, skip, reverse),
+            'query': GetBlockHeadersQuery(block_number_or_hash, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
+        self.send(header, body)
+
+    def send_get_receipts(self, block_hash: bytes, request_id: int) -> None:
+        data = {
+            'request_id': request_id,
+            'block_hashes': [block_hash],
+        }
+        header, body = GetReceipts(self.cmd_id_offset).encode(data)
+        self.send(header, body)
+
+    def send_get_proof(self, block_hash: bytes, key: bytes, key2: bytes, from_level: int,
+                       request_id: int) -> None:
+        data = {
+            'request_id': request_id,
+            'proof_requests': [ProofRequest(block_hash, key, key2, from_level)],
+        }
+        header, body = GetProofs(self.cmd_id_offset).encode(data)
+        self.send(header, body)
+
+    def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int) -> None:
+        data = {
+            'request_id': request_id,
+            'code_requests': [ContractCodeRequest(block_hash, key)],
+        }
+        header, body = GetContractCodes(self.cmd_id_offset).encode(data)
         self.send(header, body)

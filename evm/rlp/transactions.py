@@ -29,6 +29,10 @@ class BaseTransaction(rlp.Serializable):
         ('s', big_endian_int),
     ]
 
+    @classmethod
+    def from_base_transaction(cls, transaction):
+        return rlp.decode(rlp.encode(transaction), sedes=cls)
+
     @property
     def hash(self):
         return keccak(rlp.encode(self))
