@@ -1,5 +1,3 @@
-# FIXME: should be 25 or 2500, fix it, only for faster testing
-SHUFFLING_CYCLE_LENGTH = 5
 DEPOSIT_SIZE = 10 ** 20
 PERIOD_LENGTH = 5
 
