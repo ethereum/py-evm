@@ -86,7 +86,7 @@ def strip_non_json_prefix(raw_request):
 
 
 async def write_error(writer, message):
-    json_error = '{"error": "%s"}\n' % message
+    json_error = json.dumps({'error': message}) + '\n'
     writer.write(json_error.encode())
     await writer.drain()
 
