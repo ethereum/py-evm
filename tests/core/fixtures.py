@@ -11,6 +11,7 @@ from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
 from evm.db.chain import BaseChainDB
+from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
 
 
@@ -68,6 +69,12 @@ def chain():
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     return chain
+
+
+@pytest.fixture
+def shard_chain():
+    shard_chaindb = BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
+    return chain(shard_chaindb)
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
