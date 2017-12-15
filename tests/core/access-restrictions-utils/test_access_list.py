@@ -9,6 +9,9 @@ from rlp.exceptions import (
 from evm.constants import (
     STORAGE_TRIE_PREFIX,
 )
+from evm.validation import (
+    validate_transaction_access_list,
+)
 
 from evm.rlp.sedes import (
     access_list as access_list_sedes,
@@ -83,13 +86,12 @@ def test_remove_redundant_prefixes(prefixes, expected):
     assert actual == expected
 
 
-
 @pytest.mark.parametrize(
     'access_list,expected',
     [
         (
-            ((),),
-            b'\xc1\xc0'
+            (),
+            b'\xc0'
         ),
         (
             ((TEST_ADDRESS1,),),
@@ -128,6 +130,7 @@ def test_remove_redundant_prefixes(prefixes, expected):
     ]
 )
 def test_rlp_encoding(access_list, expected):
+    validate_transaction_access_list(access_list)
     encoded = rlp.encode(access_list, access_list_sedes)
     print(encoded)
     print(expected)
@@ -141,7 +144,7 @@ def test_rlp_encoding(access_list, expected):
     'invalid_access_list',
     [
         b'',
-        pytest.param([], marks=pytest.mark.xfail),  # FIXME: bug in pyrlp
+        [[]],
         [[[]]],
         [[b'']],
         [[b'\xaa' * 40]],
