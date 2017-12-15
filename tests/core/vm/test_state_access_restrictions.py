@@ -9,12 +9,12 @@ from evm.utils.state_access_restriction import (
     to_prefix_list_form,
 )
 
-from tests.core.fixtures import chain  # noqa: F401
+from tests.core.fixtures import shard_chain  # noqa: F401
 
 
-def test_balance_restriction(chain):  # noqa: F811
-    vm = chain.get_vm()
-    address = chain.funded_address
+def test_balance_restriction(shard_chain):  # noqa: F811
+    vm = shard_chain.get_vm()
+    address = shard_chain.funded_address
     access_list = to_prefix_list_form([[address]])
 
     method_and_args = (
@@ -31,9 +31,9 @@ def test_balance_restriction(chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_nonce_restriction(chain):  # noqa: F811
-    vm = chain.get_vm()
-    address = chain.funded_address
+def test_nonce_restriction(shard_chain):  # noqa: F811
+    vm = shard_chain.get_vm()
+    address = shard_chain.funded_address
     access_list = to_prefix_list_form([[address]])
 
     method_and_args = (
@@ -50,9 +50,9 @@ def test_nonce_restriction(chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_code_restriction(chain):  # noqa: F811
-    vm = chain.get_vm()
-    address = chain.funded_address
+def test_code_restriction(shard_chain):  # noqa: F811
+    vm = shard_chain.get_vm()
+    address = shard_chain.funded_address
     access_list = to_prefix_list_form([[address]])
 
     method_and_args = (
@@ -69,9 +69,9 @@ def test_code_restriction(chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_storage_read_restriction(chain):  # noqa: F811
-    vm = chain.get_vm()
-    address = chain.funded_address
+def test_storage_restriction(shard_chain):  # noqa: F811
+    vm = shard_chain.get_vm()
+    address = shard_chain.funded_address
     other_address = b'\xaa' * 20
     access_list = to_prefix_list_form([[address, b'\x00', b'\xff' * 32]])
 
@@ -87,8 +87,6 @@ def test_storage_read_restriction(chain):  # noqa: F811
         (True, 'set_storage', [address, big_endian_to_int(b'\xff' * 32), 0]),
         (False, 'set_storage', [address, big_endian_to_int(b'\xaa' * 32), 0]),
         (False, 'set_storage', [other_address, big_endian_to_int(b'\x00' * 32), 0]),
-
-        (False, 'delete_storage', [address]),
     )
 
     for valid, method, args in tests:
@@ -104,6 +102,3 @@ def test_storage_read_restriction(chain):  # noqa: F811
         with pytest.raises(UnannouncedStateAccess):
             with vm.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
-
-    with vm.state_db(access_list=to_prefix_list_form([[address, b'']])) as state_db:
-        state_db.delete_storage(address)

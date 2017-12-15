@@ -69,11 +69,9 @@ class VM(object):
         elif self.block.header.state_root != state.root_hash:
             self.block.header.state_root = state.root_hash
 
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.db = None
-        state._trie = None
+        # ensure that no further modifications can occure using the `State`
+        # object  after leaving the context
+        state.decommission()
 
     @property
     def precompiles(self):

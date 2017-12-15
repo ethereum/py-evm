@@ -1,5 +1,12 @@
 import pytest
 
+from evm.constants import (
+    STORAGE_TRIE_PREFIX,
+)
+
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.state_access_restriction import (
     is_accessible,
     remove_redundant_prefixes,
@@ -35,10 +42,12 @@ TEST_PREFIX_LIST = to_prefix_list_form([
     )
 )
 def test_accessibility(prefix_list, address, slot, accessible):
+    assert len(slot) == 32
+    key = keccak(address) + STORAGE_TRIE_PREFIX + slot
     if accessible:
-        assert is_accessible(address, slot, prefix_list)
+        assert is_accessible(key, prefix_list)
     else:
-        assert not is_accessible(address, slot, prefix_list)
+        assert not is_accessible(key, prefix_list)
 
 
 @pytest.mark.parametrize(

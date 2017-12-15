@@ -14,9 +14,8 @@ from evm.utils.keccak import (
 )
 
 
-def is_accessible(address, slot_as_key, access_prefix_list):
-    """Check if a storage slot is specified in an access prefix list."""
-    key = keccak(address) + STORAGE_TRIE_PREFIX + slot_as_key
+def is_accessible(key, access_prefix_list):
+    """Check if a key is specified in an access prefix list."""
     for prefix in access_prefix_list:
         if key.startswith(prefix):
             return True
