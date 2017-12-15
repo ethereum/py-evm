@@ -74,7 +74,6 @@ class Eth(RPCModule):
     @format_params(decode_hex, identity)
     def getBlockByHash(self, block_hash, include_transactions):
         block = self._chain.get_block_by_hash(block_hash)
-        assert block.hash == block_hash
 
         block_dict = block_to_dict(block, self._chain, include_transactions)
 
@@ -84,7 +83,6 @@ class Eth(RPCModule):
     def getBlockByNumber(self, block_number, include_transactions):
         if isinstance(block_number, int):
             block = self._chain.get_canonical_block_by_number(block_number)
-            assert block.number == block_number
         else:
             at_header = get_header(self._chain, block_number)
             vm = self._chain.get_vm(at_header)

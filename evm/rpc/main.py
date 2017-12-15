@@ -10,11 +10,23 @@ from evm.rpc.modules import (
     EVM,
 )
 
+REQUIRED_REQUEST_KEYS = (
+    'id',
+    'jsonrpc',
+    'method',
+)
+
+
+def validate_request(request):
+    for key in REQUIRED_REQUEST_KEYS:
+        if key not in request:
+            raise ValueError("request must include the key %r" % key)
+
 
 def generate_response(request):
     return {
-        'id': request['id'],
-        'jsonrpc': request['jsonrpc'],
+        'id': request.get('id', -1),
+        'jsonrpc': request.get('jsonrpc', "2.0"),
     }
 
 
@@ -65,12 +77,19 @@ class RPCServer:
         response = generate_response(request)
 
         try:
+            validate_request(request)
+
             if request.get('jsonrpc', None) != '2.0':
                 raise NotImplementedError("Only the 2.0 jsonrpc protocol is supported")
 
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
             response['result'] = method(*params)
+
+            if request['method'] == 'evm_resetToGenesisFixture':
+                self.chain = response['result']
+                response['result'] = True
+
         except NotImplementedError as exc:
             response['error'] = "Method not implemented: %r" % request['method']
             custom_message = str(exc)
@@ -82,10 +101,6 @@ class RPCServer:
         except Exception as exc:
             logging.info("RPC method caused exception", exc_info=True)
             response['error'] = str(exc)
-
-        if request['method'] == 'evm_resetToGenesisFixture' and 'result' in response:
-            self.chain = response['result']
-            response['result'] = True
 
         return json.dumps(response)
 

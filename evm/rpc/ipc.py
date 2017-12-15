@@ -4,11 +4,7 @@ import logging
 import os
 
 from cytoolz import curry
-from eth_utils import decode_hex
 
-from evm import MainnetTesterChain
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
 from evm.rpc.main import RPCServer
 
 
@@ -91,16 +87,27 @@ async def write_error(writer, message):
     await writer.drain()
 
 
-def start(path, chain):
-    logger = logging.getLogger('evm.rpc.ipc')
-    loop = asyncio.get_event_loop()
+def start(path, chain=None, loop=None):
+    '''
+    :returns: initialized server
+    :rtype: asyncio.Server
+    '''
+    if loop is None:
+        loop = asyncio.get_event_loop()
     rpc = RPCServer(chain)
-    loop.run_until_complete(asyncio.start_unix_server(
+    server = loop.run_until_complete(asyncio.start_unix_server(
         connection_handler(rpc.execute),
         path,
         loop=loop,
         limit=MAXIMUM_REQUEST_BYTES,
     ))
+    return server
+
+
+def run_until_interrupt(server, loop=None):
+    logger = logging.getLogger('evm.rpc.ipc')
+    if loop is None:
+        loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
     except KeyboardInterrupt:
@@ -109,19 +116,14 @@ def start(path, chain):
         loop.close()
 
 
-def get_test_chain():
-    root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
-    db_path = os.path.join(root_path, 'tests', 'fixtures', 'rpc_test_chain.db')
-    db = MemoryDB()
-    with open(db_path) as f:
-        key_val_hex = json.loads(f.read())
-        db.kv_store = {decode_hex(k): decode_hex(v) for k, v in key_val_hex.items()}
-    chain_db = BaseChainDB(db)
-    return MainnetTesterChain(chain_db)
+def run_ipc_server(ipc_path, chain=None, loop=None):
+    server = start(ipc_path, chain, loop)
+    run_until_interrupt(server, loop)
+    os.remove(ipc_path)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.getLogger('evm.rpc.ipc').setLevel(logging.DEBUG)
 
-    start('/tmp/test.ipc', get_test_chain())
+    run_ipc_server('/tmp/test.ipc')

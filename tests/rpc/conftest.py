@@ -2,12 +2,18 @@ import asyncio
 import os
 import pytest
 import tempfile
-from threading import Thread
 import uuid
 
 from evm.rpc.ipc import (
     start,
 )
+
+
+@pytest.yield_fixture(scope='session')
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope='session')
@@ -17,10 +23,11 @@ def ipc_pipe():
 
 
 @pytest.fixture(scope='session', autouse=True)
-def ipc_server(ipc_pipe):
-    def serve_test_data():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        start(ipc_pipe, None)
-    thread = Thread(target=serve_test_data, daemon=True)
-    thread.start()
+def ipc_server(ipc_pipe, event_loop):
+    server = start(ipc_pipe, loop=event_loop)
+
+    yield
+
+    server.close()
+    event_loop.run_until_complete(server.wait_closed())
+    os.remove(ipc_pipe)
