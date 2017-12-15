@@ -78,8 +78,9 @@ def validate_account_state(rpc, state, addr, at_block):
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
         validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr, at_block)
     for key in state['storage']:
-        storage_result, storage_error = call_rpc(rpc, 'eth_getStorageAt', [addr, key, at_block])
-        assert storage_error is None
+        position = '0x0' if key == '0x' else key
+        storage_result, storage_err = call_rpc(rpc, 'eth_getStorageAt', [addr, position, at_block])
+        assert storage_err is None
         assert storage_result == state['storage'][key]
 
 
