@@ -128,7 +128,7 @@ class Eth(RPCModule):
         return False
 
     def protocolVersion(self):
-        return "54"
+        return "63"
 
     def syncing(self):
         raise NotImplementedError()
