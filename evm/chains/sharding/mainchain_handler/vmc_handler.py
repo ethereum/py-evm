@@ -16,32 +16,33 @@ from evm.chains.sharding.mainchain_handler.config import (
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
-    get_valmgr_abi,
-    get_valmgr_addr,
-    get_valmgr_bytecode,
-    get_valmgr_code,
-    get_valmgr_sender_addr,
+    create_vmc_tx,
+    get_contract_address_from_contract_tx,
+    get_vmc_abi,
+    get_vmc_bytecode,
+    get_vmc_code,
 )
 
 class VMCHandler:
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
 
-    def __init__(self, mainchain_handler, primary_addr):
+    def __init__(self, mainchain_handler, primary_addr, TransactionClass):
         """
         :param primary_addr: address in bytes
         """
         self.mainchain_handler = mainchain_handler
         self.primary_addr = primary_addr
-        self.init_vmc_attributes()
+        self.init_vmc_attributes(TransactionClass)
         self.setup_vmc_instance()
 
-    def init_vmc_attributes(self):
-        self._vmc_addr = get_valmgr_addr()
-        self._vmc_sender_addr = get_valmgr_sender_addr()
-        self._vmc_bytecode = get_valmgr_bytecode()
-        self._vmc_code = get_valmgr_code()
-        self._vmc_abi = get_valmgr_abi()
+    def init_vmc_attributes(self, TransactionClass):
+        vmc_tx = create_vmc_tx(TransactionClass, gasprice=GASPRICE)
+        self._vmc_sender_addr = vmc_tx.sender
+        self._vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
+        vmc_code = get_vmc_code()
+        self._vmc_abi = get_vmc_abi(vmc_code)
+        self._vmc_bytecode = get_vmc_bytecode(vmc_code)
         self.logger.debug("vmc_addr=%s", self._vmc_addr)
         self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
 

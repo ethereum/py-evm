@@ -98,5 +98,6 @@ class MainchainHandler:
             #        In this situation, if we used `eth_tester`, try again directly with
             #        `self._eth_tester.backend.chain.apply_transaction`
             if self._use_eth_tester:
-                return self._w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+                # return self._w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+                pass
         return tx_hash

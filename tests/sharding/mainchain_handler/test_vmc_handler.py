@@ -24,16 +24,16 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 
+from evm.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction,
+)
+
 from evm.chains.sharding.mainchain_handler import (
     vmc_utils,
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
     PERIOD_LENGTH,
-)
-
-from evm.chains.sharding.mainchain_handler.mainchain_handler import (
-    MainchainHandler,
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
@@ -84,7 +84,7 @@ def deploy_initiating_contracts(vmc_handler, privkey):
         address = privkey.public_key.to_canonical_address()
         vmc_handler.mainchain_handler.unlock_account(address, PASSPHRASE)
         nonce = vmc_handler.mainchain_handler.get_nonce(address)
-        txs = vmc_utils.mk_initiating_contracts(privkey, nonce)
+        txs = vmc_utils.mk_initiating_contracts(privkey, nonce, SpuriousDragonTransaction)
         for tx in txs[:3]:
             vmc_handler.mainchain_handler.direct_tx(tx)
         vmc_handler.mainchain_handler.mine(1)
@@ -161,9 +161,11 @@ def test_vmc_handler(mainchain_handler):
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     zero_addr = b'\x00' * 20
 
-    vmc_handler = VMCHandler(mainchain_handler, primary_addr=primary_addr)
-    logger.debug("!@# viper_rlp_decoder_addr=%s", vmc_utils.viper_rlp_decoder_addr)
-    logger.debug("!@# sighasher_addr=%s", vmc_utils.sighasher_addr)
+    vmc_handler = VMCHandler(
+        mainchain_handler,
+        primary_addr=primary_addr,
+        TransactionClass=SpuriousDragonTransaction,
+    )
 
     if not vmc_handler.is_vmc_deployed():
         logger.debug('handler.is_vmc_deployed() == True')
