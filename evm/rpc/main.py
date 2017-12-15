@@ -34,10 +34,10 @@ class RPCServer:
     )
 
     def __init__(self, chain):
-        self._chain = chain
         self.modules = {}
-        for m in self.module_classes:
-            self.modules[m.__name__.lower()] = m(chain)
+        self.chain = chain
+        for M in self.module_classes:
+            self.modules[M.__name__.lower()] = M(chain)
 
     def _lookup_method(self, rpc_method):
         method_pieces = rpc_method.split('_')
@@ -84,12 +84,17 @@ class RPCServer:
             response['error'] = str(exc)
 
         if request['method'] == 'evm_resetToGenesisFixture' and 'result' in response:
-            self._set_chain(response['result'])
+            self.chain = response['result']
             response['result'] = True
 
         return json.dumps(response)
 
-    def _set_chain(self, new_chain):
-        self._chain = new_chain
+    @property
+    def chain(self):
+        return self.__chain
+
+    @chain.setter
+    def chain(self, new_chain):
+        self.__chain = new_chain
         for module in self.modules.values():
-            module.set_chain(new_chain)
+            module.chain = new_chain
