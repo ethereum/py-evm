@@ -1,4 +1,5 @@
 import functools
+import json
 import os
 
 from cytoolz import (
@@ -6,10 +7,6 @@ from cytoolz import (
 )
 
 import rlp
-
-from viper import (
-    compiler,
-)
 
 from eth_keys import (
     keys,
@@ -61,19 +58,11 @@ def sign(message, privkey):
     return signature_bytes
 
 
-def get_vmc_abi(vmc_code):
-    return compiler.mk_full_signature(vmc_code)
-
-
-def get_vmc_bytecode(vmc_code):
-    return compiler.compile(vmc_code)
-
-
-def get_vmc_code():
+def get_vmc_json():
     mydir = os.path.dirname(__file__)
-    valmgr_path = os.path.join(mydir, '../contracts/validator_manager.v.py')
-    valmgr_code = open(valmgr_path).read()
-    return valmgr_code
+    vmc_path = os.path.join(mydir, '../contracts/validator_manager.json')
+    vmc_json_str = open(vmc_path).read()
+    return json.loads(vmc_json_str)
 
 
 def get_contract_address_from_contract_tx(transaction):
@@ -85,8 +74,8 @@ def get_contract_address_from_contract_tx(transaction):
 
 
 def create_vmc_tx(TransactionClass, gasprice=GASPRICE):
-    vmc_code = get_vmc_code()
-    vmc_bytecode = get_vmc_bytecode(vmc_code)
+    vmc_json = get_vmc_json()
+    vmc_bytecode = decode_hex(vmc_json['bytecode'])
     v = 27
     r = 1000000000000000000000000000000000000000000000000000000000000000000000000000
     s = 1000000000000000000000000000000000000000000000000000000000000000000000000000

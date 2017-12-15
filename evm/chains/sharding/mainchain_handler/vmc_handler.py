@@ -18,9 +18,7 @@ from evm.chains.sharding.mainchain_handler.config import (
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
     create_vmc_tx,
     get_contract_address_from_contract_tx,
-    get_vmc_abi,
-    get_vmc_bytecode,
-    get_vmc_code,
+    get_vmc_json,
 )
 
 
@@ -41,9 +39,9 @@ class VMCHandler:
         vmc_tx = create_vmc_tx(TransactionClass, gasprice=GASPRICE)
         self._vmc_sender_addr = vmc_tx.sender
         self._vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
-        vmc_code = get_vmc_code()
-        self._vmc_abi = get_vmc_abi(vmc_code)
-        self._vmc_bytecode = get_vmc_bytecode(vmc_code)
+        vmc_json = get_vmc_json()
+        self._vmc_abi = vmc_json['abi']
+        self._vmc_bytecode = vmc_json['bytecode']
         self.logger.debug("vmc_addr=%s", self._vmc_addr)
         self.logger.debug("vmc_sender_addr=%s", self._vmc_sender_addr)
 
