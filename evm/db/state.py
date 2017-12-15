@@ -235,10 +235,7 @@ class FlatTrieBackend:
             return 0
 
     def delete_storage(self, address):
-        key = self.full_storage_key(address)
-        self._check_accessibility(key)
-
-        self._trie.delete_branch(key)
+        raise NotImplementedError("Full storage deletion not supported in flat trie state")
 
     def set_balance(self, address, balance):
         key = self.balance_key(address)
@@ -295,19 +292,10 @@ class FlatTrieBackend:
     # Account Methods
     #
     def delete_account(self, address):
-        keys = [
-            self.nonce_key(address),
-            self.balance_key(address),
-            self.code_key(address)
-        ]
-        for key in keys:
-            self._check_accessibility(key)
-            del self._trie[key]
-        self.delete_storage(address)
+        raise NotImplementedError("Account deletion not supported in flat trie state")
 
     def account_exists(self, address):
-        key = keccak(address)
-        return self._trie.branch_exists(key)
+        raise NotImplementedError("Account existence check not supported in flat trie")
 
     def account_has_code_or_nonce(self, address):
         return self.get_code(address) != b'' or self.get_nonce(address) != 0
