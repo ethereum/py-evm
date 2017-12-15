@@ -7,6 +7,7 @@ from eth_utils import (
     decode_hex,
     encode_hex,
     int_to_big_endian,
+    is_integer,
 )
 
 from evm.rpc.format import (
@@ -27,7 +28,7 @@ def get_header(chain, at_block):
     elif at_block == 'earliest':
         # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
         at_header = chain.get_canonical_block_by_number(0).header
-    elif isinstance(at_block, int):
+    elif is_integer(at_block) and at_block >= 0:
         at_header = chain.get_canonical_block_by_number(at_block).header
     else:
         raise TypeError("Unrecognized block reference: %r" % at_block)
