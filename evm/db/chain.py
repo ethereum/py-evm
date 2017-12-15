@@ -27,6 +27,7 @@ from evm.db.journal import (
 )
 from evm.db.state import (
     AccountStateDB,
+    NestedTrieBackend,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -58,8 +59,9 @@ class TransactionKey(rlp.Serializable):
 
 class BaseChainDB:
 
-    def __init__(self, db, trie_class=HexaryTrie):
+    def __init__(self, db, state_backend_class=NestedTrieBackend, trie_class=HexaryTrie):
         self.db = JournalDB(db)
+        self.state_backend_class = state_backend_class
         self.trie_class = trie_class
 
     def exists(self, key):
@@ -379,5 +381,6 @@ class BaseChainDB:
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            access_list=access_list
+            access_list=access_list,
+            backend_class=self.state_backend_class,
         )

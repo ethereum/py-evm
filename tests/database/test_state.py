@@ -6,8 +6,8 @@ from evm.exceptions import (
 
 from evm.db.state import (
     State,
-    OneLayerBackend,
-    TwoLayerBackend,
+    FlatTrieBackend,
+    NestedTrieBackend,
 )
 
 
@@ -17,8 +17,8 @@ INVALID_ADDRESS = b'aa' * 20
 
 
 @pytest.fixture(params=[
-    OneLayerBackend,
-    TwoLayerBackend,
+    FlatTrieBackend,
+    NestedTrieBackend,
 ])
 def state(request):
     return State({}, backend_class=request.param)
