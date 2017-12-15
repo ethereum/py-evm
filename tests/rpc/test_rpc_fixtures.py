@@ -70,6 +70,11 @@ SLOW_TESTS = (
     'Call1024PreCalls_d0g0v0_Byzantium',
     'Call1024PreCalls_d0g0v0_EIP150',
     'Call1024PreCalls_d0g0v0_EIP158',
+    'stQuadraticComplexityTest/Call50000_identity2_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000_identity_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000_rip160_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000bytesContract50_1_d0g1v0.json',
+    'stQuadraticComplexityTest/Create1000_d0g1v0.json',
 )
 
 

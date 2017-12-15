@@ -7,7 +7,6 @@ env:
   global:
     - PYTEST_ADDOPTS="-n 2 --durations 50"
   matrix:
-    - TOX_POSARGS="-e py35-rpc-state-quadratic"
     # byzantium goes first because it takes the longest.
     - TOX_POSARGS="-e py35-state-byzantium"
     - TOX_POSARGS="-e py35-rpc-state-main-byzantium"
@@ -22,14 +21,13 @@ env:
     #- TOX_POSARGS="-e py35-state-constantinople"
     #- TOX_POSARGS="-e py35-state-metropolis"
     - TOX_POSARGS="-e py35-blockchain"
-    - TOX_POSARGS="-e py35-rpc-blockchain-exploit"
-    - TOX_POSARGS="-e py35-rpc-blockchain-main"
+    - TOX_POSARGS="-e py35-rpc-blockchain"
     - TOX_POSARGS="-e py35-vm"
     - TOX_POSARGS="-e py35-core"
     - TOX_POSARGS="-e py35-transactions"
     - TOX_POSARGS="-e py35-p2p"
     - TOX_POSARGS="-e py35-database"
-    - TOX_POSARGS="-e py35-rpc-state-spam"
+    - TOX_POSARGS="-e py35-rpc-state-quadratic"
     #- TOX_POSARGS="-e py35-vm-performance"
     - TOX_POSARGS="-e flake8"
     - TOX_POSARGS="-e mypy"
