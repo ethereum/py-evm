@@ -75,6 +75,11 @@ SLOW_TESTS = (
     'stQuadraticComplexityTest/Call50000_rip160_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000bytesContract50_1_d0g1v0.json',
     'stQuadraticComplexityTest/Create1000_d0g1v0.json',
+    'ShanghaiLove_Homestead',
+    'ShanghaiLove_Frontier',
+    'DelegateCallSpam_EIP158',
+    'DelegateCallSpam_Byzantium',
+    'DelegateCallSpam_EIP150',
 )
 
 
