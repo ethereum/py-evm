@@ -87,8 +87,6 @@ def test_storage_read_restriction(chain):  # noqa: F811
         (True, 'set_storage', [address, big_endian_to_int(b'\xff' * 32), 0]),
         (False, 'set_storage', [address, big_endian_to_int(b'\xaa' * 32), 0]),
         (False, 'set_storage', [other_address, big_endian_to_int(b'\x00' * 32), 0]),
-
-        (False, 'delete_storage', [address]),
     )
 
     for valid, method, args in tests:
@@ -104,6 +102,3 @@ def test_storage_read_restriction(chain):  # noqa: F811
         with pytest.raises(UnannouncedStateAccess):
             with vm.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
-
-    with vm.state_db(access_list=to_prefix_list_form([[address, b'']])) as state_db:
-        state_db.delete_storage(address)
