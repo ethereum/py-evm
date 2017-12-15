@@ -117,7 +117,7 @@ def validate_block(rpc, block_fixture, at_block):
     # assert result['transactions'] == block_fixture['transactions']
 
 
-def validate_latest_block(rpc, block_fixture):
+def validate_last_block(rpc, block_fixture):
     header = block_fixture['blockHeader']
 
     validate_block(rpc, block_fixture, 'latest')
@@ -154,9 +154,14 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
             assert block_error is None
             assert block_result == block_fixture['rlp']
 
-            validate_latest_block(rpc, block_fixture)
+            validate_block(rpc, block_fixture, block_fixture['blockHeader']['hash'])
         else:
             assert block_error is not None
+
+    if chain_fixture.get('lastblockhash', None):
+        for block_fixture in chain_fixture['blocks']:
+            if block_fixture.get('hash', None) == chain_fixture['lastblockhash']:
+                validate_last_block(rpc, block_fixture)
 
     validate_accounts(rpc, chain_fixture['postState'])
     validate_accounts(rpc, chain_fixture['pre'], 'earliest')

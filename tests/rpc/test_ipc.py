@@ -27,6 +27,7 @@ def build_request(method, params=[]):
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
     ),
+    ids=['empty', 'notamethod', 'eth_mining'],
 )
 async def test_ipc_requests(ipc_pipe, request_msg, expected):
     reader, writer = await asyncio.open_unix_connection(ipc_pipe)
