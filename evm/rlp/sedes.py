@@ -16,7 +16,11 @@ class AccessListElement(CountableList):
 
     def serialize(self, obj):
         result = super().serialize(obj)
-        if obj and len(obj[0]) != 20:
+        if not obj:
+            raise ListSerializationError(
+                "Access list elements need to specify at least an address"
+            )
+        elif len(obj[0]) != 20:
             raise ListSerializationError(
                 "Access list elements need to start with a 20 byte address (got {0} bytes)".format(
                     len(obj[0])
@@ -26,7 +30,11 @@ class AccessListElement(CountableList):
 
     def deserialize(self, serial):
         result = super().deserialize(serial)
-        if result and len(result[0]) != 20:
+        if not result:
+            raise ListDeserializationError(
+                "Access list elements need to specify at least an address"
+            )
+        elif len(result[0]) != 20:
             raise ListDeserializationError(
                 "Access list elements need to start with a 20 byte address (got {0} bytes)".format(
                     len(result[0])
