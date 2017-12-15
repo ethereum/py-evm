@@ -11,6 +11,7 @@ from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
+from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
 
 
@@ -48,7 +49,7 @@ def chaindb():
 
 
 @pytest.fixture
-def chain(funded_address, funded_address_initial_balance):
+def chain(chaindb, funded_address, funded_address_initial_balance):
     """
     Return a Chain object containing just the genesis block.
 
@@ -88,8 +89,14 @@ def chain(funded_address, funded_address_initial_balance):
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
-    chain = klass.from_genesis(ChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     return chain
+
+
+@pytest.fixture
+def shard_chain(chaindb, funded_address, funded_address_initial_balance):
+    shard_chaindb = ChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
+    return chain(shard_chaindb, funded_address, funded_address_initial_balance)
 
 
 @pytest.fixture
@@ -136,5 +143,5 @@ def chain_without_block_validation(
             'storage': {},
         }
     }
-    chain = klass.from_genesis(ChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     return chain
