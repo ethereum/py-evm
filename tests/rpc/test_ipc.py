@@ -1,6 +1,16 @@
 import asyncio
 import json
+import os
 import pytest
+import time
+
+
+def wait_for(path):
+    for _ in range(100):
+        if os.path.exists(path):
+            return True
+        time.sleep(0.01)
+    return False
 
 
 def build_request(method, params=[]):
@@ -30,6 +40,7 @@ def build_request(method, params=[]):
     ids=['empty', 'notamethod', 'eth_mining'],
 )
 async def test_ipc_requests(ipc_pipe, request_msg, expected):
+    assert wait_for(ipc_pipe), "IPC server did not successfully start with IPC file"
     reader, writer = await asyncio.open_unix_connection(ipc_pipe)
     writer.write(request_msg)
     await writer.drain()

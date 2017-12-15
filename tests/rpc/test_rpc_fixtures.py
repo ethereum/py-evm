@@ -20,6 +20,7 @@ from evm.utils.fixture_tests import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,
+    should_run_slow_tests,
 )
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -27,12 +28,57 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
+SLOW_TESTS = (
+    'Call1024PreCalls_d0g0v0_Byzantium',
+    'Call1024PreCalls_d0g0v0_EIP150',
+    'Call1024PreCalls_d0g0v0_EIP158',
+    'ContractCreationSpam_d0g0v0_Homestead',
+    'ContractCreationSpam_d0g0v0_Frontier',
+    'ForkStressTest_EIP150',
+    'ForkStressTest_EIP158',
+    'ForkStressTest_Homestead',
+    'ForkStressTest_Frontier',
+    'ForkStressTest_Byzantium',
+    'stQuadraticComplexityTest/Call50000_d0g1v0.json',
+    'stQuadraticComplexityTest/QuadraticComplexitySolidity_CallDataCopy_d0g1v0.json',
+    'stQuadraticComplexityTest/Return50000_2_d0g1v0.json',
+    'stQuadraticComplexityTest/Return50000_d0g1v0.json',
+    'stQuadraticComplexityTest/Callcode50000_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000_sha256_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000_ecrec_d0g1v0.json',
+    'walletReorganizeOwners',
+    'bcExploitTest/SuicideIssue.json',
+    'DelegateCallSpam_Homestead',
+    'static_Call50000_sha256_d0g0v0_Byzantium',
+    'static_Call50000_rip160_d0g0v0_Byzantium',
+    'static_Call50000_rip160_d1g0v0_Byzantium',
+    'static_Call50000_sha256_d1g0v0_Byzantium',
+    'static_Call50000_ecrec_d1g0v0_Byzantium',
+    'static_Call50000_d1g0v0_Byzantium',
+    'static_Call50000_d0g0v0_Byzantium',
+    'static_Call50000_ecrec_d0g0v0_Byzantium',
+    'static_Call50000_identity2_d0g0v0_Byzantium',
+    'static_Call50000_identity_d1g0v0_Byzantium',
+    'static_Call50000_identity_d0g0v0_Byzantium',
+    'static_Call50000bytesContract50_1_d1g0v0_Byzantium',
+    'static_Call50000bytesContract50_2_d1g0v0_Byzantium',
+    'static_LoopCallsThenRevert_d0g0v0_Byzantium',
+    'static_LoopCallsThenRevert_d0g1v0_Byzantium',
+    'Call1024PreCalls_d0g0v0_Byzantium',
+    'Call1024PreCalls_d0g0v0_EIP158',
+    'Call1024PreCalls_d0g0v0_EIP150',
+    'Call1024PreCalls_d0g0v0_Byzantium',
+    'Call1024PreCalls_d0g0v0_EIP150',
+    'Call1024PreCalls_d0g0v0_EIP158',
+)
+
 
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):
-    if fixture_path.startswith('bcExploitTest'):
-        return pytest.mark.skip("Exploit tests are slow")
-    elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
-        return pytest.mark.skip("Wallet owner reorganizatio tests are slow")
+    for slow_test in SLOW_TESTS:
+        if slow_test in fixture_path or slow_test in fixture_name:
+            if not should_run_slow_tests():
+                return pytest.mark.skip("skipping slow test on a quick run")
+            break
 
 
 def pytest_generate_tests(metafunc):

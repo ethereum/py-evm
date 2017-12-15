@@ -664,3 +664,9 @@ def apply_fixture_block_to_chain(block_fixture, chain):
     rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
 
     return (block, mined_block, rlp_encoded_mined_block)
+
+
+def should_run_slow_tests():
+    if os.environ.get('TRAVIS_EVENT_TYPE') == 'cron':
+        return True
+    return False

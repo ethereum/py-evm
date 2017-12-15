@@ -34,6 +34,7 @@ from evm.utils.fixture_tests import (
     load_fixture,
     normalize_statetest_fixture,
     setup_state_db,
+    should_run_slow_tests,
 )
 
 
@@ -111,12 +112,6 @@ SLOWEST_TESTS = {
     ('stRandom/randomStatetest159.json', 'randomStatetest159', 'Byzantium', 0),
     ('stRandom/randomStatetest554.json', 'randomStatetest554', 'Byzantium', 0),
 }
-
-
-def should_run_slow_tests():
-    if os.environ.get('TRAVIS_EVENT_TYPE') == 'cron':
-        return True
-    return False
 
 
 def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
