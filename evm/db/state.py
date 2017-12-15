@@ -46,7 +46,7 @@ from evm.utils.padding import (
 from .hash_trie import HashTrie
 
 
-class TwoLayerBackend:
+class NestedTrieBackend:
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, access_list=None):
         self.db = db
@@ -174,7 +174,7 @@ class TwoLayerBackend:
         self._trie[address] = rlp.encode(account, sedes=Account)
 
 
-class OneLayerBackend:
+class FlatTrieBackend:
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, access_list=None):
         self._trie = Trie(db, root_hash)
@@ -335,7 +335,7 @@ class State:
         root_hash=BLANK_ROOT_HASH,
         read_only=False,
         access_list=None,
-        backend_class=TwoLayerBackend
+        backend_class=NestedTrieBackend
     ):
         if read_only:
             self.db = ImmutableDB(db)

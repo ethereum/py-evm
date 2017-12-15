@@ -25,7 +25,7 @@ from evm.db.journal import (
 )
 from evm.db.state import (
     State,
-    TwoLayerBackend,
+    NestedTrieBackend,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -48,7 +48,7 @@ CANONICAL_HEAD_HASH_DB_KEY = b'v1:canonical_head_hash'
 
 class BaseChainDB:
 
-    def __init__(self, db, state_backend_class=TwoLayerBackend):
+    def __init__(self, db, state_backend_class=NestedTrieBackend):
         self.db = JournalDB(db)
         self.state_backend_class = state_backend_class
 
