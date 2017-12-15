@@ -84,6 +84,9 @@ def test_code(state):
 
 
 def test_storage(state):
+    # flat trie doesn't implement account existence checks and deletion
+    is_nested = isinstance(state.backend, NestedTrieBackend)
+
     assert state.get_storage(ADDRESS, 0) == 0
 
     state.set_storage(ADDRESS, 0, 123)
@@ -92,9 +95,10 @@ def test_storage(state):
     assert state.get_storage(OTHER_ADDRESS, 0) == 0
 
     state.set_storage(OTHER_ADDRESS, 1, 321)
-    state.delete_storage(ADDRESS)
-    assert state.get_storage(ADDRESS, 0) == 0
-    assert state.get_storage(OTHER_ADDRESS, 1) == 321
+    if is_nested:
+        state.delete_storage(ADDRESS)
+        assert state.get_storage(ADDRESS, 0) == 0
+        assert state.get_storage(OTHER_ADDRESS, 1) == 321
 
     with pytest.raises(ValidationError):
         state.get_storage(INVALID_ADDRESS, 0)
@@ -111,26 +115,33 @@ def test_storage(state):
 
 
 def test_accounts(state):
-    assert not state.account_exists(ADDRESS)
+    # flat trie doesn't implement account existence checks and deletion
+    is_nested = isinstance(state.backend, NestedTrieBackend)
+
+    if is_nested:
+        assert not state.account_exists(ADDRESS)
     assert not state.account_has_code_or_nonce(ADDRESS)
 
-    state.touch_account(ADDRESS)
-    assert state.account_exists(ADDRESS)
-    assert state.get_nonce(ADDRESS) == 0
-    assert state.get_balance(ADDRESS) == 0
-    assert state.get_code(ADDRESS) == b''
+    if is_nested:
+        state.touch_account(ADDRESS)
+        assert state.account_exists(ADDRESS)
+        assert state.get_nonce(ADDRESS) == 0
+        assert state.get_balance(ADDRESS) == 0
+        assert state.get_code(ADDRESS) == b''
 
     assert not state.account_has_code_or_nonce(ADDRESS)
     state.increment_nonce(ADDRESS)
     assert state.account_has_code_or_nonce(ADDRESS)
 
-    state.delete_account(ADDRESS)
-    assert not state.account_exists(ADDRESS)
-    assert not state.account_has_code_or_nonce(ADDRESS)
+    if is_nested:
+        state.delete_account(ADDRESS)
+        assert not state.account_exists(ADDRESS)
+        assert not state.account_has_code_or_nonce(ADDRESS)
 
-    with pytest.raises(ValidationError):
-        state.account_exists(INVALID_ADDRESS)
-    with pytest.raises(ValidationError):
-        state.delete_account(INVALID_ADDRESS)
+    if is_nested:
+        with pytest.raises(ValidationError):
+            state.account_exists(INVALID_ADDRESS)
+        with pytest.raises(ValidationError):
+            state.delete_account(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
         state.account_has_code_or_nonce(INVALID_ADDRESS)
