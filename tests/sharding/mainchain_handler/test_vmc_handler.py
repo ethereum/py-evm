@@ -1,7 +1,5 @@
 import logging
 
-import pytest
-
 import rlp
 
 from eth_tester.exceptions import (
@@ -40,7 +38,7 @@ from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMCHandler,
 )
 
-from tests.sharding.mainchain_handler.fixtures import (
+from tests.sharding.mainchain_handler.fixtures import (  # noqa: F401
     mainchain_handler,
 )
 
@@ -52,6 +50,7 @@ test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
+
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
@@ -59,6 +58,7 @@ def do_withdraw(vmc_handler, validator_index):
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc_handler.withdraw(validator_index, signature, sender_addr)
     vmc_handler.mainchain_handler.mine(1)
+
 
 def deploy_valcode_and_deposit(vmc_handler, key):
     """
@@ -79,6 +79,7 @@ def deploy_valcode_and_deposit(vmc_handler, key):
     vmc_handler.mainchain_handler.mine(1)
     vmc_handler.deposit(valcode_addr, address, address)
 
+
 def deploy_initiating_contracts(vmc_handler, privkey):
     if not vmc_handler.is_vmc_deployed():
         address = privkey.public_key.to_canonical_address()
@@ -96,10 +97,12 @@ def deploy_initiating_contracts(vmc_handler, privkey):
             vmc_handler.mainchain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
         )
 
+
 def first_setup_and_deposit(vmc_handler, key):
     deploy_valcode_and_deposit(vmc_handler, key)
     # TODO: error occurs when we don't mine so many blocks
     vmc_handler.mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+
 
 def import_key_to_mainchain_handler(vmc_handler, key):
     """
@@ -113,6 +116,7 @@ def import_key_to_mainchain_handler(vmc_handler, key):
     #   - ValidationError: `eth_tester`
     except (ValueError, ValidationError):
         pass
+
 
 def get_testing_colhdr(vmc_handler,
                        shard_id,
@@ -155,7 +159,8 @@ def get_testing_colhdr(vmc_handler,
         sig,
     ])
 
-def test_vmc_handler(mainchain_handler):
+
+def test_vmc_handler(mainchain_handler):  # noqa: F811
     shard_id = 0
     validator_index = 0
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()

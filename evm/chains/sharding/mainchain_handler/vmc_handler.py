@@ -23,6 +23,7 @@ from evm.chains.sharding.mainchain_handler.vmc_utils import (
     get_vmc_code,
 )
 
+
 class VMCHandler:
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
@@ -86,7 +87,7 @@ class VMCHandler:
 
     def is_vmc_deployed(self):
         return (
-            self.mainchain_handler.get_code(self._vmc_addr) != b'' and \
+            self.mainchain_handler.get_code(self._vmc_addr) != b'' and
             self.mainchain_handler.get_nonce(self._vmc_sender_addr) != 0
         )
 

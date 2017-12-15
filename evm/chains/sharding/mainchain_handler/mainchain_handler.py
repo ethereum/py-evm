@@ -11,6 +11,7 @@ from evm.chains.sharding.mainchain_handler.config import (
     TX_GAS,
 )
 
+
 class MainchainHandler:
 
     def __init__(self, web3_instance, use_eth_tester=False):
@@ -39,7 +40,6 @@ class MainchainHandler:
         :param privkey: PrivateKey object from eth_keys
         """
         self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
-
 
     def mine(self, number):
         if self._use_eth_tester:

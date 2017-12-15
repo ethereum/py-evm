@@ -6,7 +6,7 @@ import eth_utils
 
 from evm.utils.address import generate_contract_address
 
-from tests.sharding.mainchain_handler.fixtures import (
+from tests.sharding.mainchain_handler.fixtures import (  # noqa: F401
     mainchain_handler,
 )
 
@@ -27,7 +27,8 @@ def update_num_test(_num_test: num):
     self.num_test = _num_test
 """
 
-def test_tester_chain_handler(mainchain_handler):
+
+def test_tester_chain_handler(mainchain_handler):  # noqa: F811
     mainchain_handler.mine(1)
     bytecode = compiler.compile(code)
     abi = compiler.mk_full_signature(code)

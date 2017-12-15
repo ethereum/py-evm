@@ -2,7 +2,7 @@ import pytest
 
 from web3 import (
     Web3,
-    HTTPProvider,
+    # HTTPProvider,
 )
 
 from web3.providers.eth_tester import EthereumTesterProvider
@@ -11,13 +11,14 @@ from eth_tester import EthereumTester
 
 from eth_tester.backends.pyevm import PyEVMBackend
 
-from evm.chains.sharding.mainchain_handler.config import (
-    DEFAULT_RPC_SERVER_URL,
-)
+# from evm.chains.sharding.mainchain_handler.config import (
+#     DEFAULT_RPC_SERVER_URL,
+# )
 
 from evm.chains.sharding.mainchain_handler.mainchain_handler import (
     MainchainHandler,
 )
+
 
 @pytest.fixture
 def mainchain_handler():
