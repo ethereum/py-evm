@@ -15,6 +15,7 @@ from evm.rpc.format import (
     header_to_dict,
     format_params,
     to_int_if_hex,
+    transaction_to_dict,
 )
 from evm.rpc.modules import (
     RPCModule,
@@ -116,6 +117,19 @@ class Eth(RPCModule):
         with state_at_block(self._chain, at_block) as state:
             stored_val = state.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
+
+    @format_params(decode_hex, to_int_if_hex)
+    def getTransactionByBlockHashAndIndex(self, block_hash, index):
+        block = self._chain.get_block_by_hash(block_hash)
+        transaction = block.transactions[index]
+        return transaction_to_dict(transaction)
+
+    @format_params(to_int_if_hex, to_int_if_hex)
+    def getTransactionByBlockNumberAndIndex(self, at_block, index):
+        header = get_header(self._chain, at_block)
+        block = self._chain.get_block_by_header(header)
+        transaction = block.transactions[index]
+        return transaction_to_dict(transaction)
 
     @format_params(decode_hex, to_int_if_hex)
     def getTransactionCount(self, address, at_block):

@@ -6,11 +6,27 @@ from cytoolz import (
 )
 
 from eth_utils import (
+    add_0x_prefix,
     encode_hex,
     int_to_big_endian,
 )
 
 import rlp
+
+
+def transaction_to_dict(transaction):
+    return dict(
+        hash=encode_hex(transaction.hash),
+        nonce=hex(transaction.nonce),
+        gasLimit=hex(transaction.gas),
+        gasPrice=hex(transaction.gas_price),
+        to=encode_hex(transaction.to),
+        value=hex(transaction.value),
+        input=encode_hex(transaction.data),
+        r=hex(transaction.r),
+        s=hex(transaction.s),
+        v=hex(transaction.v),
+    )
 
 
 def header_to_dict(header):
@@ -120,5 +136,30 @@ def fixture_block_in_rpc_format(state):
     return {
         RPC_BLOCK_REMAPPERS.get(key, key):
         RPC_BLOCK_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }
+
+
+RPC_TRANSACTION_REMAPPERS = {
+    'data': 'input',
+}
+
+RPC_TRANSACTION_NORMALIZERS = {
+    'nonce': remove_leading_zeros,
+    'gasLimit': remove_leading_zeros,
+    'gasPrice': remove_leading_zeros,
+    'value': remove_leading_zeros,
+    'data': empty_to_0x,
+    'to': add_0x_prefix,
+    'r': remove_leading_zeros,
+    's': remove_leading_zeros,
+    'v': remove_leading_zeros,
+}
+
+
+def fixture_transaction_in_rpc_format(state):
+    return {
+        RPC_TRANSACTION_REMAPPERS.get(key, key):
+        RPC_TRANSACTION_NORMALIZERS.get(key, identity)(value)
         for key, value in state.items()
     }

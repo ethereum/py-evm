@@ -16,6 +16,7 @@ from evm.rpc import RPCServer
 from evm.rpc.format import (
     fixture_block_in_rpc_format,
     fixture_state_in_rpc_format,
+    fixture_transaction_in_rpc_format,
 )
 
 from evm.utils.fixture_tests import (
@@ -169,8 +170,12 @@ def validate_rpc_block_vs_fixture_header(block, header_fixture):
     assert actual_block == expected
 
 
+def is_by_number(at_block):
+    return is_hex(at_block) and len(at_block) == 66
+
+
 def validate_transaction_count(rpc, block_fixture, at_block):
-    if is_hex(at_block) and len(at_block) == 66:
+    if is_by_number(at_block):
         rpc_method = 'eth_getBlockTransactionCountByHash'
     else:
         rpc_method = 'eth_getBlockTransactionCountByNumber'
@@ -187,6 +192,25 @@ def is_by_hash(at_block):
         raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
 
 
+def validate_rpc_transaction_vs_fixture(transaction, fixture):
+    expected = fixture_transaction_in_rpc_format(fixture)
+    actual_transaction = dissoc(
+        transaction,
+        'hash',
+    )
+    assert actual_transaction == expected
+
+
+def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
+    if is_by_number(at_block):
+        rpc_method = 'eth_getTransactionByBlockHashAndIndex'
+    else:
+        rpc_method = 'eth_getTransactionByBlockNumberAndIndex'
+    result, error = call_rpc(rpc, rpc_method, [at_block, hex(index)])
+    assert error is None
+    validate_rpc_transaction_vs_fixture(result, transaction_fixture)
+
+
 def validate_block(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getBlockByHash'
@@ -198,6 +222,9 @@ def validate_block(rpc, block_fixture, at_block):
     assert error is None
     validate_rpc_block_vs_fixture(result, block_fixture)
     assert len(result['transactions']) == len(block_fixture['transactions'])
+
+    for index, transaction_fixture in enumerate(block_fixture['transactions']):
+        validate_transaction_by_index(rpc, transaction_fixture, at_block, index)
 
     validate_transaction_count(rpc, block_fixture, at_block)
 
@@ -218,7 +245,7 @@ def validate_last_block(rpc, block_fixture):
 
 
 def validate_uncle_count(rpc, block_fixture, at_block):
-    if is_hex(at_block) and len(at_block) == 66:
+    if is_by_number(at_block):
         rpc_method = 'eth_getUncleCountByBlockHash'
     else:
         rpc_method = 'eth_getUncleCountByBlockNumber'
@@ -228,7 +255,7 @@ def validate_uncle_count(rpc, block_fixture, at_block):
 
 
 def validate_uncle_headers(rpc, block_fixture, at_block):
-    if is_hex(at_block) and len(at_block) == 66:
+    if is_by_number(at_block):
         rpc_method = 'eth_getUncleByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getUncleByBlockNumberAndIndex'
