@@ -12,6 +12,7 @@ from eth_utils import (
 
 from evm.rpc.format import (
     block_to_dict,
+    header_to_dict,
     format_params,
     to_int_if_hex,
 )
@@ -120,6 +121,19 @@ class Eth(RPCModule):
         header = get_header(self._chain, at_block)
         block = self._chain.get_block_by_header(header)
         return hex(len(block.uncles))
+
+    @format_params(decode_hex, to_int_if_hex)
+    def getUncleByBlockHashAndIndex(self, block_hash, index):
+        block = self._chain.get_block_by_hash(block_hash)
+        uncle = block.uncles[index]
+        return header_to_dict(uncle)
+
+    @format_params(to_int_if_hex, to_int_if_hex)
+    def getUncleByBlockNumberAndIndex(self, at_block, index):
+        header = get_header(self._chain, at_block)
+        block = self._chain.get_block_by_header(header)
+        uncle = block.uncles[index]
+        return header_to_dict(uncle)
 
     def hashrate(self):
         raise NotImplementedError()

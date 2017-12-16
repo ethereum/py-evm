@@ -154,7 +154,11 @@ def validate_accounts(rpc, states, at_block='latest'):
 
 
 def validate_rpc_block_vs_fixture(block, block_fixture):
-    expected = fixture_block_in_rpc_format(block_fixture['blockHeader'])
+    return validate_rpc_block_vs_fixture_header(block, block_fixture['blockHeader'])
+
+
+def validate_rpc_block_vs_fixture_header(block, header_fixture):
+    expected = fixture_block_in_rpc_format(header_fixture)
     actual_block = dissoc(
         block,
         'size',
@@ -201,7 +205,7 @@ def validate_last_block(rpc, block_fixture):
     validate_block(rpc, block_fixture, int(header['number'], 16))
 
 
-def validate_uncles(rpc, block_fixture, at_block):
+def validate_uncle_count(rpc, block_fixture, at_block):
     if is_hex(at_block) and len(at_block) == 66:
         rpc_method = 'eth_getUncleCountByBlockHash'
     else:
@@ -210,9 +214,22 @@ def validate_uncles(rpc, block_fixture, at_block):
     num_uncles = len(block_fixture['uncleHeaders'])
     assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
 
-    for uncle in block_fixture['uncleHeaders']:
-        # TODO verify uncle details
-        pass
+
+def validate_uncle_headers(rpc, block_fixture, at_block):
+    if is_hex(at_block) and len(at_block) == 66:
+        rpc_method = 'eth_getUncleByBlockHashAndIndex'
+    else:
+        rpc_method = 'eth_getUncleByBlockNumberAndIndex'
+
+    for idx, uncle in enumerate(block_fixture['uncleHeaders']):
+        result, error = call_rpc(rpc, rpc_method, [at_block, hex(idx)])
+        assert error is None
+        validate_rpc_block_vs_fixture_header(result, uncle)
+
+
+def validate_uncles(rpc, block_fixture, at_block):
+    validate_uncle_count(rpc, block_fixture, at_block)
+    validate_uncle_headers(rpc, block_fixture, at_block)
 
 
 @pytest.fixture
