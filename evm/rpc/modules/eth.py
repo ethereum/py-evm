@@ -116,8 +116,9 @@ class Eth(RPCModule):
         return hex(len(block.uncles))
 
     @format_params(to_int_if_hex)
-    def getUncleCountByBlockNumber(self, block_number):
-        block = self._chain.get_canonical_block_by_number(block_number)
+    def getUncleCountByBlockNumber(self, at_block):
+        header = get_header(self._chain, at_block)
+        block = self._chain.get_block_by_header(header)
         return hex(len(block.uncles))
 
     def hashrate(self):

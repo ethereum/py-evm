@@ -4,6 +4,7 @@ import pytest
 
 from cytoolz import (
     dissoc,
+    get_in,
 )
 
 from eth_utils import (
@@ -118,6 +119,13 @@ def call_rpc(rpc, method, params):
     return result_from_response(response)
 
 
+def assert_rpc_result(rpc, method, params, expected):
+    result, error = call_rpc(rpc, method, params)
+    assert error is None
+    assert result == expected
+    return result
+
+
 def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
     state_result, state_error = call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
@@ -136,9 +144,8 @@ def validate_account_state(rpc, state, addr, at_block):
         validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr, at_block)
     for key in state['storage']:
         position = '0x0' if key == '0x' else key
-        storage_result, storage_err = call_rpc(rpc, 'eth_getStorageAt', [addr, position, at_block])
-        assert storage_err is None
-        assert storage_result == state['storage'][key]
+        expected_storage = state['storage'][key]
+        assert_rpc_result(rpc, 'eth_getStorageAt', [addr, position, at_block], expected_storage)
 
 
 def validate_accounts(rpc, states, at_block='latest'):
@@ -183,6 +190,8 @@ def validate_block(rpc, block_fixture, at_block):
     # assert error is None
     # assert result['transactions'] == block_fixture['transactions']
 
+    validate_uncles(rpc, block_fixture, at_block)
+
 
 def validate_last_block(rpc, block_fixture):
     header = block_fixture['blockHeader']
@@ -190,6 +199,20 @@ def validate_last_block(rpc, block_fixture):
     validate_block(rpc, block_fixture, 'latest')
     validate_block(rpc, block_fixture, header['hash'])
     validate_block(rpc, block_fixture, int(header['number'], 16))
+
+
+def validate_uncles(rpc, block_fixture, at_block):
+    if is_hex(at_block) and len(at_block) == 66:
+        rpc_method = 'eth_getUncleCountByBlockHash'
+    else:
+        rpc_method = 'eth_getUncleCountByBlockNumber'
+
+    num_uncles = len(block_fixture['uncleHeaders'])
+    assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
+
+    for uncle in block_fixture['uncleHeaders']:
+        # TODO verify uncle details
+        pass
 
 
 @pytest.fixture
@@ -227,7 +250,7 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
 
     if chain_fixture.get('lastblockhash', None):
         for block_fixture in chain_fixture['blocks']:
-            if block_fixture.get('hash', None) == chain_fixture['lastblockhash']:
+            if get_in(['blockHeader', 'hash'], block_fixture) == chain_fixture['lastblockhash']:
                 validate_last_block(rpc, block_fixture)
 
     validate_accounts(rpc, chain_fixture['postState'])
