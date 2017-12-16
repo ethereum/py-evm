@@ -10,6 +10,7 @@ from evm.exceptions import (
 
 from evm.rlp.sedes import (
     address,
+    access_list as access_list_sedes,
 )
 from evm.utils.keccak import (
     keccak,
@@ -142,3 +143,20 @@ class BaseUnsignedTransaction(rlp.Serializable):
         provided `private_key`
         """
         raise NotImplementedError("Must be implemented by subclasses")
+
+
+class BaseShardingTransaction(rlp.Serializable):
+    fields = [
+        ('chain_id', big_endian_int),
+        ('shard_id', big_endian_int),
+        ('target', address),
+        ('data', binary),
+        ('start_gas', big_endian_int),
+        ('gas_price', big_endian_int),
+        ('access_list', access_list_sedes),
+        ('code', binary),
+    ]
+
+    @property
+    def hash(self):
+        return keccak(rlp.encode(self))
