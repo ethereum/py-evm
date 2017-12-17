@@ -1,5 +1,9 @@
 import logging
 
+from web3.contract import (
+    Contract,
+)
+
 from eth_utils import (
     is_canonical_address,
     to_checksum_address,
@@ -16,42 +20,10 @@ from evm.chains.sharding.mainchain_handler.config import (
     TX_GAS,
 )
 
-from evm.chains.sharding.mainchain_handler.vmc_utils import (
-    create_vmc_tx,
-    get_contract_address_from_contract_tx,
-    get_vmc_json,
-)
 
+class VMC(Contract):
 
-class VMCHandler:
-
-    logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMCHandler")
-
-    def __init__(self, mainchain_handler, primary_addr, TransactionClass):
-        """
-        :param primary_addr: address in bytes
-        """
-        self.mainchain_handler = mainchain_handler
-        self.primary_addr = primary_addr
-        self.init_vmc_attributes(TransactionClass)
-        self.setup_vmc_instance()
-
-    def init_vmc_attributes(self, TransactionClass):
-        vmc_tx = create_vmc_tx(TransactionClass, gasprice=GASPRICE)
-        self.vmc_sender_addr = vmc_tx.sender
-        self.vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
-        vmc_json = get_vmc_json()
-        self.vmc_abi = vmc_json['abi']
-        self.vmc_bytecode = vmc_json['bytecode']
-        self.logger.debug("vmc_addr=%s", self.vmc_addr)
-        self.logger.debug("vmc_sender_addr=%s", self.vmc_sender_addr)
-
-    def setup_vmc_instance(self):
-        self.vmc = self.mainchain_handler.contract(
-            to_checksum_address(self.vmc_addr),
-            self.vmc_abi,
-            self.vmc_bytecode,
-        )
+    logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
     @to_dict
     def _mk_contract_tx_detail(self,
@@ -82,7 +54,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        address_in_hex = self.vmc.call(tx_detail).sample(shard_id)
+        address_in_hex = self.call(tx_detail).sample(shard_id)
         # TODO: should see if there is a better way to automatically change the address result from
         #       hex to bytes in. Maybe in `decode_contract_call_result`?
         return decode_hex(address_in_hex)
@@ -105,7 +77,7 @@ class VMCHandler:
         )
         validation_code_addr_hex = to_checksum_address(validation_code_addr)
         return_addr_hex = to_checksum_address(return_addr)
-        tx_hash = self.vmc.transact(tx_detail).deposit(
+        tx_hash = self.transact(tx_detail).deposit(
             validation_code_addr_hex,
             return_addr_hex,
         )
@@ -121,7 +93,7 @@ class VMCHandler:
             gas=gas,
             gas_price=gas_price,
         )
-        tx_hash = self.vmc.transact(tx_detail).withdraw(
+        tx_hash = self.transact(tx_detail).withdraw(
             validator_index,
             sig,
         )
@@ -134,7 +106,7 @@ class VMCHandler:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         valcode_addr_hex = to_checksum_address(valcode_addr)
-        return self.vmc.call(tx_detail).get_shard_list(valcode_addr_hex)
+        return self.call(tx_detail).get_shard_list(valcode_addr_hex)
 
     def add_header(self, header, sender_addr=None, gas=TX_GAS, gas_price=GASPRICE):
         """add_header(header: bytes <= 4096) -> bool
@@ -146,7 +118,7 @@ class VMCHandler:
             gas=gas,
             gas_price=gas_price,
         )
-        tx_hash = self.vmc.transact(tx_detail).add_header(header)
+        tx_hash = self.transact(tx_detail).add_header(header)
         return tx_hash
 
     def get_period_start_prevhash(self, expected_period_number, sender_addr=None, gas=TX_GAS):
@@ -155,7 +127,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.vmc.call(tx_detail).get_period_start_prevhash(expected_period_number)
+        return self.call(tx_detail).get_period_start_prevhash(expected_period_number)
 
     def tx_to_shard(self,
                     to,
@@ -180,7 +152,7 @@ class VMCHandler:
             value=value,
         )
         to = to_checksum_address(to)
-        tx_hash = self.vmc.transact(tx_detail).tx_to_shard(
+        tx_hash = self.transact(tx_detail).tx_to_shard(
             to,
             shard_id,
             tx_startgas,
@@ -195,7 +167,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.vmc.call(tx_detail).get_collation_gas_limit()
+        return self.call(tx_detail).get_collation_gas_limit()
 
     def get_collation_header_score(self,
                                    shard_id,
@@ -205,7 +177,7 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.vmc.call(tx_detail).get_collation_headers__score(
+        return self.call(tx_detail).get_collation_headers__score(
             shard_id,
             collation_header_hash,
         )
@@ -214,10 +186,10 @@ class VMCHandler:
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.vmc.call(tx_detail).get_num_validators()
+        return self.call(tx_detail).get_num_validators()
 
     def get_receipt_value(self, receipt_id, sender_addr=None, gas=TX_GAS):
         if sender_addr is None:
             sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.vmc.call(tx_detail).get_receipts__value(receipt_id)
+        return self.call(tx_detail).get_receipts__value(receipt_id)
