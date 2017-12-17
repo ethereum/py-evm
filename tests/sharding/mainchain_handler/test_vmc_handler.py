@@ -51,6 +51,15 @@ test_keys = get_default_account_keys()
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 
+def is_vmc_deployed(vmc_handler):
+    return (
+        # TODO: the following line should be uncommented when `get_code` is implemented in
+        #       `eth_tester`
+        # vmc_handler.mainchain_handler.get_code(vmc_handler.vmc_addr) != b'' and
+        vmc_handler.mainchain_handler.get_nonce(vmc_handler.vmc_sender_addr) != 0
+    )
+
+
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
@@ -81,7 +90,7 @@ def deploy_valcode_and_deposit(vmc_handler, key):
 
 
 def deploy_initiating_contracts(vmc_handler, privkey):
-    if not vmc_handler.is_vmc_deployed():
+    if not is_vmc_deployed(vmc_handler):
         address = privkey.public_key.to_canonical_address()
         vmc_handler.mainchain_handler.unlock_account(address, PASSPHRASE)
         nonce = vmc_handler.mainchain_handler.get_nonce(address)
@@ -172,8 +181,8 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
         TransactionClass=SpuriousDragonTransaction,
     )
 
-    if not vmc_handler.is_vmc_deployed():
-        logger.debug('handler.is_vmc_deployed() == True')
+    if not is_vmc_deployed(vmc_handler):
+        logger.debug('is_vmc_deployed(handler) == True')
         # import privkey
         for key in test_keys:
             import_key_to_mainchain_handler(vmc_handler, key)
@@ -182,7 +191,7 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
         vmc_handler.mainchain_handler.mine(1)
         first_setup_and_deposit(vmc_handler, test_keys[validator_index])
 
-    assert vmc_handler.is_vmc_deployed()
+    assert is_vmc_deployed(vmc_handler)
 
     vmc_handler.mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
