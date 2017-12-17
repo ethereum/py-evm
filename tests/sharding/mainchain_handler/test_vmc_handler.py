@@ -110,7 +110,7 @@ def import_key_to_mainchain_handler(vmc_handler, key):
     :param privkey: PrivateKey object from eth_keys
     """
     try:
-        vmc_handler.mainchain_handler.import_privkey(key, PASSPHRASE)
+        vmc_handler.mainchain_handler.w3.personal.importRawKey(key.to_hex(), PASSPHRASE)
     # Exceptions happen when the key is already imported.
     #   - ValueError: `web3.py`
     #   - ValidationError: `eth_tester`
