@@ -1,6 +1,7 @@
 import logging
 
 from eth_utils import (
+    is_canonical_address,
     to_checksum_address,
     to_dict,
 )
@@ -54,16 +55,16 @@ class VMCHandler:
 
     @to_dict
     def _mk_contract_tx_detail(self,
-                               sender_addr=None,
-                               gas=TX_GAS,
+                               sender_addr,
+                               gas,
                                value=None,
                                gas_price=None,
                                data=None):
         # Both 'from' and 'gas' are required in eth_tester
-        if sender_addr is None:
-            raise ValueError('sender_addr should not be None')
-        if gas is None:
-            raise ValueError('gas should not be None')
+        if not is_canonical_address(sender_addr):
+            raise ValueError('sender_addr should be provided in the canonical format')
+        if not (isinstance(gas, int) and gas > 0):
+            raise ValueError('gas should be provided as positive integer')
         yield 'from', to_checksum_address(sender_addr)
         yield 'gas', gas
         if value is not None:
