@@ -14,8 +14,7 @@ from evm.chains.sharding.mainchain_handler.config import (
 
 class MainchainHandler:
 
-    def __init__(self, web3_instance, use_eth_tester=False):
-        self._use_eth_tester = use_eth_tester
+    def __init__(self, web3_instance):
         self._w3 = web3_instance
         assert self._w3.isConnected()
 
@@ -42,12 +41,18 @@ class MainchainHandler:
         self._w3.personal.importRawKey(privkey.to_hex(), passphrase)
 
     def mine(self, number):
-        if self._use_eth_tester:
-            self.evm_mine(number)
-        else:
+        try:
             self.miner_mine(number)
+        # ValueError: RPC Endpoint has not been implemented: miner_start
+        # This is thrown when using eth_tester as the provider
+        # TODO: remove tester logic from mainchain_handler
+        except ValueError:
+            self.evm_mine(number)
 
     def miner_mine(self, number):
+        """
+        Normal version of `mine` in web3.py, which is not supported by eth_tester
+        """
         expected_block_number = self.get_block_number() + number
         self._w3.miner.start(1)
         while self.get_block_number() < expected_block_number:
@@ -55,6 +60,9 @@ class MainchainHandler:
         self._w3.miner.stop()
 
     def evm_mine(self, number):
+        """
+        eth_tester's version of `mine`
+        """
         # evm.mine
         self._w3.testing.mine(number)
 
@@ -97,6 +105,5 @@ class MainchainHandler:
             # FIXME: if `sendRawTransaction` is not implemented, `ValueError` is raised
             #        In this situation, if we used `eth_tester`, try again directly with
             #        `self._eth_tester.backend.chain.apply_transaction`
-            if self._use_eth_tester:
-                return self._w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+            return self._w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
         return tx_hash
