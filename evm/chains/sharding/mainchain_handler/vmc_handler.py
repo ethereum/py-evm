@@ -26,12 +26,12 @@ class VMC(Contract):
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
     @to_dict
-    def _mk_contract_tx_detail(self,
-                               sender_addr,
-                               gas,
-                               value=None,
-                               gas_price=None,
-                               data=None):
+    def mk_contract_tx_detail(self,
+                              sender_addr,
+                              gas,
+                              value=None,
+                              gas_price=None,
+                              data=None):
         # Both 'from' and 'gas' are required in eth_tester
         if not is_canonical_address(sender_addr):
             raise ValueError('sender_addr should be provided in the canonical format')
@@ -51,7 +51,7 @@ class VMC(Contract):
     def sample(self, shard_id, sender_addr=None, gas=TX_GAS):
         """sample(shard_id: num) -> address
         """
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
+        tx_detail = self.mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         address_in_hex = self.call(tx_detail).sample(shard_id)
         # TODO: should see if there is a better way to automatically change the address result from
         #       hex to bytes in. Maybe in `decode_contract_call_result`?
@@ -65,7 +65,7 @@ class VMC(Contract):
                 gas_price=GASPRICE):
         """deposit(validation_code_addr: address, return_addr: address) -> num
         """
-        tx_detail = self._mk_contract_tx_detail(
+        tx_detail = self.mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
             gas_price=gas_price,
@@ -82,7 +82,7 @@ class VMC(Contract):
     def withdraw(self, validator_index, sig, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
-        tx_detail = self._mk_contract_tx_detail(
+        tx_detail = self.mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
             gas_price=gas_price,
@@ -93,29 +93,16 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def get_shard_list(self, valcode_addr, sender_addr, gas=TX_GAS):
-        """get_shard_list(valcode_addr: address) -> bool[100]
-        """
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        valcode_addr_hex = to_checksum_address(valcode_addr)
-        return self.call(tx_detail).get_shard_list(valcode_addr_hex)
-
     def add_header(self, header, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
         """add_header(header: bytes <= 4096) -> bool
         """
-        tx_detail = self._mk_contract_tx_detail(
+        tx_detail = self.mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
             gas_price=gas_price,
         )
         tx_hash = self.transact(tx_detail).add_header(header)
         return tx_hash
-
-    def get_period_start_prevhash(self, expected_period_number, sender_addr, gas=TX_GAS):
-        """get_period_start_prevhash(expected_period_number: num) -> bytes32
-        """
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.call(tx_detail).get_period_start_prevhash(expected_period_number)
 
     def tx_to_shard(self,
                     to,
@@ -131,7 +118,7 @@ class VMC(Contract):
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num
         """
-        tx_detail = self._mk_contract_tx_detail(
+        tx_detail = self.mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
             gas_price=gas_price,
@@ -146,28 +133,3 @@ class VMC(Contract):
             data,
         )
         return tx_hash
-
-    def get_collation_gas_limit(self, sender_addr, gas=TX_GAS):
-        """get_collation_gas_limit() -> num
-        """
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.call(tx_detail).get_collation_gas_limit()
-
-    def get_collation_header_score(self,
-                                   shard_id,
-                                   collation_header_hash,
-                                   sender_addr,
-                                   gas=TX_GAS):
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.call(tx_detail).get_collation_headers__score(
-            shard_id,
-            collation_header_hash,
-        )
-
-    def get_num_validators(self, sender_addr, gas=TX_GAS):
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.call(tx_detail).get_num_validators()
-
-    def get_receipt_value(self, receipt_id, sender_addr, gas=TX_GAS):
-        tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
-        return self.call(tx_detail).get_receipts__value(receipt_id)

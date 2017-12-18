@@ -33,6 +33,7 @@ from evm.chains.sharding.mainchain_handler import (
 
 from evm.chains.sharding.mainchain_handler.config import (
     PERIOD_LENGTH,
+    TX_GAS,
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
@@ -94,6 +95,7 @@ def deploy_valcode_and_deposit(vmc, chain_handler, key):
     chain_handler.deploy_contract(valcode, address)
     chain_handler.mine(1)
     vmc.deposit(valcode_addr, address, sender_addr=address)
+    return valcode_addr
 
 
 def deploy_initiating_contracts(vmc, chain_handler, privkey):
@@ -112,12 +114,6 @@ def deploy_initiating_contracts(vmc, chain_handler, privkey):
             'deploy_initiating_contracts: vmc_tx_hash=%s',
             chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
         )
-
-
-def first_setup_and_deposit(vmc, chain_handler, key):
-    deploy_valcode_and_deposit(vmc, chain_handler, key)
-    # TODO: error occurs when we don't mine so many blocks
-    chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
 
 def import_key_to_mainchain_handler(chain_handler, key):
@@ -144,10 +140,10 @@ def get_testing_colhdr(vmc,
     period_length = PERIOD_LENGTH
     expected_period_number = (chain_handler.get_block_number() + 1) // period_length
     logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
-    period_start_prevhash = vmc.get_period_start_prevhash(
-        expected_period_number,
-        privkey.public_key.to_canonical_address(),
-    )
+    sender_addr = privkey.public_key.to_canonical_address()
+    period_start_prevhash = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=sender_addr, gas=TX_GAS)
+    ).get_period_start_prevhash(expected_period_number)
     logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
@@ -185,6 +181,7 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     validator_index = 0
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     zero_addr = b'\x00' * 20
+    default_gas = TX_GAS
 
     vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
@@ -202,15 +199,21 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
 
         deploy_initiating_contracts(vmc, mainchain_handler, test_keys[validator_index])
         mainchain_handler.mine(1)
-        first_setup_and_deposit(vmc, mainchain_handler, test_keys[validator_index])
+        valcode_addr = deploy_valcode_and_deposit(vmc, mainchain_handler, test_keys[validator_index])
+        # TODO: error occurs when we don't mine so many blocks
+        mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+        assert vmc.sample(shard_id, primary_addr) == valcode_addr
 
     assert is_vmc_deployed(vmc, mainchain_handler)
 
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
     assert vmc.sample(shard_id, primary_addr) != zero_addr
-    assert vmc.get_num_validators(primary_addr) == 1
-    logger.debug("vmc_handler.get_num_validators()=%s", vmc.get_num_validators(primary_addr))
+    num_validators = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
+    ).get_num_validators()
+    assert num_validators > 0
+    logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc, mainchain_handler, shard_id, genesis_colhdr_hash, 1)
@@ -223,8 +226,14 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     vmc.add_header(header2, primary_addr)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
-    assert vmc.get_collation_header_score(shard_id, header1_hash, primary_addr) == 1
-    assert vmc.get_collation_header_score(shard_id, header2_hash, primary_addr) == 2
+    colhdr1_score = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
+    ).get_collation_headers__score(shard_id, header1_hash)
+    assert colhdr1_score == 1
+    colhdr2_score = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
+    ).get_collation_headers__score(shard_id, header2_hash)
+    assert colhdr2_score == 2
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
@@ -236,7 +245,10 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
         primary_addr,
     )
     mainchain_handler.mine(1)
-    assert vmc.get_receipt_value(0, primary_addr) == 1234567
+    receipt_value = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
+    ).get_receipts__value(0)
+    assert receipt_value == 1234567
 
     do_withdraw(vmc, mainchain_handler, validator_index)
     mainchain_handler.mine(1)
