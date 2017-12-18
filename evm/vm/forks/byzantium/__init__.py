@@ -50,8 +50,8 @@ def _byzantium_get_uncle_reward(block_number, uncle):
     return (8 - block_number_delta) * EIP649_BLOCK_REWARD // 8
 
 
-def make_byzantium_receipt(vm, transaction, computation, block):
-    old_receipt = _make_frontier_receipt(vm, transaction, computation, block)
+def make_byzantium_receipt(vm, transaction, computation):
+    old_receipt = _make_frontier_receipt(vm, transaction, computation)
     receipt = Receipt(
         state_root=b'' if computation.is_error else b'\x01',
         gas_used=old_receipt.gas_used,

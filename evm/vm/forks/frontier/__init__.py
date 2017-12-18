@@ -254,7 +254,7 @@ def _apply_frontier_create_message(vm, message):
         return computation
 
 
-def _make_frontier_receipt(vm, transaction, computation, block):
+def _make_frontier_receipt(vm, transaction, computation):
     logs = [
         Log(address, topics, data)
         for address, topics, data
@@ -270,10 +270,10 @@ def _make_frontier_receipt(vm, transaction, computation, block):
         (transaction.gas - gas_remaining) // 2,
     )
 
-    gas_used = block.header.gas_used + tx_gas_used
+    gas_used = vm.block.header.gas_used + tx_gas_used
 
     receipt = Receipt(
-        state_root=block.header.state_root,
+        state_root=vm.block.header.state_root,
         gas_used=gas_used,
         logs=logs,
     )
