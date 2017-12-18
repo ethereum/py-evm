@@ -93,7 +93,7 @@ def deploy_valcode_and_deposit(vmc, mainchain_handler, key):
     mainchain_handler.unlock_account(address, PASSPHRASE)
     mainchain_handler.deploy_contract(valcode, address)
     mainchain_handler.mine(1)
-    vmc.deposit(valcode_addr, address, address)
+    vmc.deposit(valcode_addr, address, sender_addr=address)
 
 
 def deploy_initiating_contracts(vmc, mainchain_handler, privkey):
@@ -144,7 +144,10 @@ def get_testing_colhdr(vmc,
     period_length = PERIOD_LENGTH
     expected_period_number = (mainchain_handler.get_block_number() + 1) // period_length
     logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
-    period_start_prevhash = vmc.get_period_start_prevhash(expected_period_number)
+    period_start_prevhash = vmc.get_period_start_prevhash(
+        expected_period_number,
+        privkey.public_key.to_canonical_address(),
+    )
     logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
@@ -190,7 +193,6 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     vmc_bytecode = vmc_json['bytecode']
     VMCClass = VMC.factory(mainchain_handler.w3, abi=vmc_abi, bytecode=vmc_bytecode)
     vmc = VMCClass(to_checksum_address(vmc_addr))
-    vmc.primary_addr = primary_addr
 
     if not is_vmc_deployed(vmc, mainchain_handler):
         logger.debug('is_vmc_deployed(handler) == True')
@@ -206,9 +208,9 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
 
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
-    assert vmc.sample(shard_id) != zero_addr
-    assert vmc.get_num_validators() == 1
-    logger.debug("vmc_handler.get_num_validators()=%s", vmc.get_num_validators())
+    assert vmc.sample(shard_id, primary_addr) != zero_addr
+    assert vmc.get_num_validators(primary_addr) == 1
+    logger.debug("vmc_handler.get_num_validators()=%s", vmc.get_num_validators(primary_addr))
 
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc, mainchain_handler, shard_id, genesis_colhdr_hash, 1)
@@ -221,8 +223,8 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     vmc.add_header(header2, primary_addr)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
-    assert vmc.get_collation_header_score(shard_id, header1_hash) == 1
-    assert vmc.get_collation_header_score(shard_id, header2_hash) == 2
+    assert vmc.get_collation_header_score(shard_id, header1_hash, primary_addr) == 1
+    assert vmc.get_collation_header_score(shard_id, header2_hash, primary_addr) == 2
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
@@ -234,8 +236,8 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
         primary_addr,
     )
     mainchain_handler.mine(1)
-    assert vmc.get_receipt_value(0) == 1234567
+    assert vmc.get_receipt_value(0, primary_addr) == 1234567
 
     do_withdraw(vmc, mainchain_handler, validator_index)
     mainchain_handler.mine(1)
-    assert vmc.sample(shard_id) == zero_addr
+    assert vmc.sample(shard_id, primary_addr) == zero_addr

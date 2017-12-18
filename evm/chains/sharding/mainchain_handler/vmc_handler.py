@@ -51,8 +51,6 @@ class VMC(Contract):
     def sample(self, shard_id, sender_addr=None, gas=TX_GAS):
         """sample(shard_id: num) -> address
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         address_in_hex = self.call(tx_detail).sample(shard_id)
         # TODO: should see if there is a better way to automatically change the address result from
@@ -62,13 +60,11 @@ class VMC(Contract):
     def deposit(self,
                 validation_code_addr,
                 return_addr,
-                sender_addr=None,
+                sender_addr,
                 gas=TX_GAS,
                 gas_price=GASPRICE):
         """deposit(validation_code_addr: address, return_addr: address) -> num
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
@@ -83,11 +79,9 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, sender_addr=None, gas=TX_GAS, gas_price=GASPRICE):
+    def withdraw(self, validator_index, sig, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
@@ -99,20 +93,16 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def get_shard_list(self, valcode_addr, sender_addr=None, gas=TX_GAS):
+    def get_shard_list(self, valcode_addr, sender_addr, gas=TX_GAS):
         """get_shard_list(valcode_addr: address) -> bool[100]
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         valcode_addr_hex = to_checksum_address(valcode_addr)
         return self.call(tx_detail).get_shard_list(valcode_addr_hex)
 
-    def add_header(self, header, sender_addr=None, gas=TX_GAS, gas_price=GASPRICE):
+    def add_header(self, header, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
         """add_header(header: bytes <= 4096) -> bool
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
@@ -121,11 +111,9 @@ class VMC(Contract):
         tx_hash = self.transact(tx_detail).add_header(header)
         return tx_hash
 
-    def get_period_start_prevhash(self, expected_period_number, sender_addr=None, gas=TX_GAS):
+    def get_period_start_prevhash(self, expected_period_number, sender_addr, gas=TX_GAS):
         """get_period_start_prevhash(expected_period_number: num) -> bytes32
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self.call(tx_detail).get_period_start_prevhash(expected_period_number)
 
@@ -136,15 +124,13 @@ class VMC(Contract):
                     tx_gasprice,
                     data,
                     value,
-                    sender_addr=None,
+                    sender_addr,
                     gas=TX_GAS,
                     gas_price=GASPRICE):
         """tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(
             sender_addr=sender_addr,
             gas=gas,
@@ -161,35 +147,27 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def get_collation_gas_limit(self, sender_addr=None, gas=TX_GAS):
+    def get_collation_gas_limit(self, sender_addr, gas=TX_GAS):
         """get_collation_gas_limit() -> num
         """
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self.call(tx_detail).get_collation_gas_limit()
 
     def get_collation_header_score(self,
                                    shard_id,
                                    collation_header_hash,
-                                   sender_addr=None,
+                                   sender_addr,
                                    gas=TX_GAS):
-        if sender_addr is None:
-            sender_addr = self.primary_addr
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self.call(tx_detail).get_collation_headers__score(
             shard_id,
             collation_header_hash,
         )
 
-    def get_num_validators(self, sender_addr=None, gas=TX_GAS):
-        if sender_addr is None:
-            sender_addr = self.primary_addr
+    def get_num_validators(self, sender_addr, gas=TX_GAS):
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self.call(tx_detail).get_num_validators()
 
-    def get_receipt_value(self, receipt_id, sender_addr=None, gas=TX_GAS):
-        if sender_addr is None:
-            sender_addr = self.primary_addr
+    def get_receipt_value(self, receipt_id, sender_addr, gas=TX_GAS):
         tx_detail = self._mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         return self.call(tx_detail).get_receipts__value(receipt_id)
