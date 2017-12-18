@@ -1,6 +1,11 @@
 import logging
+import pytest
 
 import rlp
+
+from web3.exceptions import (
+    BadFunctionCallOutput,
+)
 
 from eth_tester.exceptions import (
     ValidationError,
@@ -51,6 +56,7 @@ from tests.sharding.mainchain_handler.fixtures import (  # noqa: F401
 )
 
 PASSPHRASE = '123'
+ZERO_ADDR = b'\x00' * 20
 # for testing we set it to 5, 25 or 2500 originally
 SHUFFLING_CYCLE_LENGTH = 5
 
@@ -59,25 +65,25 @@ test_keys = get_default_account_keys()
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 
-def is_vmc_deployed(vmc, chain_handler):
+def is_vmc_deployed(vmc_handler, chain_handler):
     return (
         # TODO: the following line should be uncommented when `get_code` is implemented in
         #       `eth_tester`
-        # mainchain_handler.get_code(vmc_handler.vmc_addr) != b'' and
-        chain_handler.get_nonce(vmc.address) != 0
+        # chain_handler.get_code(vmc_handler.address) != b'' and
+        chain_handler.get_nonce(vmc_handler.sender_addr) != 0
     )
 
 
-def do_withdraw(vmc, chain_handler, validator_index):
+def do_withdraw(vmc_handler, chain_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
     sender_addr = privkey.public_key.to_canonical_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
-    vmc.withdraw(validator_index, signature, sender_addr)
+    vmc_handler.withdraw(validator_index, signature, sender_addr)
     chain_handler.mine(1)
 
 
-def deploy_valcode_and_deposit(vmc, chain_handler, key):
+def deploy_valcode_and_deposit(vmc_handler, chain_handler, key):
     """
     Deploy validation code of and with the key, and do deposit
 
@@ -94,12 +100,12 @@ def deploy_valcode_and_deposit(vmc, chain_handler, key):
     chain_handler.unlock_account(address, PASSPHRASE)
     chain_handler.deploy_contract(valcode, address)
     chain_handler.mine(1)
-    vmc.deposit(valcode_addr, address, sender_addr=address)
+    vmc_handler.deposit(valcode_addr, address, sender_addr=address)
     return valcode_addr
 
 
-def deploy_initiating_contracts(vmc, chain_handler, privkey):
-    if not is_vmc_deployed(vmc, chain_handler):
+def deploy_initiating_contracts(vmc_handler, chain_handler, privkey):
+    if not is_vmc_deployed(vmc_handler, chain_handler):
         address = privkey.public_key.to_canonical_address()
         chain_handler.unlock_account(address, PASSPHRASE)
         nonce = chain_handler.get_nonce(address)
@@ -130,7 +136,7 @@ def import_key_to_mainchain_handler(chain_handler, key):
         pass
 
 
-def get_testing_colhdr(vmc,
+def get_testing_colhdr(vmc_handler,
                        chain_handler,
                        shard_id,
                        parent_collation_hash,
@@ -141,8 +147,8 @@ def get_testing_colhdr(vmc,
     expected_period_number = (chain_handler.get_block_number() + 1) // period_length
     logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
     sender_addr = privkey.public_key.to_canonical_address()
-    period_start_prevhash = vmc.call(
-        vmc.mk_contract_tx_detail(sender_addr=sender_addr, gas=TX_GAS)
+    period_start_prevhash = vmc_handler.call(
+        vmc_handler.mk_contract_tx_detail(sender_addr=sender_addr, gas=TX_GAS)
     ).get_period_start_prevhash(expected_period_number)
     logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
@@ -175,14 +181,8 @@ def get_testing_colhdr(vmc,
         sig,
     ])
 
-
-def test_vmc_handler(mainchain_handler):  # noqa: F811
-    shard_id = 0
-    validator_index = 0
-    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
-    zero_addr = b'\x00' * 20
-    default_gas = TX_GAS
-
+@pytest.fixture
+def vmc(mainchain_handler):
     vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
     vmc_json = get_vmc_json()
@@ -190,6 +190,34 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     vmc_bytecode = vmc_json['bytecode']
     VMCClass = VMC.factory(mainchain_handler.w3, abi=vmc_abi, bytecode=vmc_bytecode)
     vmc = VMCClass(to_checksum_address(vmc_addr))
+    vmc.sender_addr = vmc_tx.sender
+    return vmc
+
+
+def test_vmc_mk_contract_tx_detail(vmc):
+    tx_detail = vmc.mk_contract_tx_detail(
+        sender_addr=ZERO_ADDR,
+        gas=TX_GAS,
+    )
+    assert 'from' in tx_detail
+    assert 'gas' in tx_detail
+    with pytest.raises(ValueError):
+        tx_detail = vmc.mk_contract_tx_detail(
+            sender_addr=ZERO_ADDR,
+            gas=None,
+        )
+    with pytest.raises(ValueError):
+        tx_detail = vmc.mk_contract_tx_detail(
+            sender_addr=None,
+            gas=TX_GAS,
+        )
+
+
+def test_vmc_contract_calls(vmc, mainchain_handler):  # noqa: F811
+    shard_id = 0
+    validator_index = 0
+    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
+    default_gas = TX_GAS
 
     if not is_vmc_deployed(vmc, mainchain_handler):
         logger.debug('is_vmc_deployed(handler) == True')
@@ -208,7 +236,7 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
 
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
-    assert vmc.sample(shard_id, primary_addr) != zero_addr
+    assert vmc.sample(shard_id, primary_addr) != ZERO_ADDR
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
     ).get_num_validators()
@@ -218,8 +246,29 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
     genesis_colhdr_hash = b'\x00' * 32
     header1 = get_testing_colhdr(vmc, mainchain_handler, shard_id, genesis_colhdr_hash, 1)
     header1_hash = keccak(header1)
+    # BadFunctionCallOutput raised when assertions fail
+    with pytest.raises(BadFunctionCallOutput):
+        header_parent_not_added = get_testing_colhdr(
+            vmc,
+            mainchain_handler,
+            shard_id,
+            header1_hash,
+            1,
+        )
+        vmc.call(vmc.mk_contract_tx_detail(
+            sender_addr=primary_addr,
+            gas=default_gas,
+            gas_price=1,
+        )).add_header(header_parent_not_added)
     vmc.add_header(header1, primary_addr)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+    # not be able to add the same header again
+    with pytest.raises(BadFunctionCallOutput):
+        vmc.call(vmc.mk_contract_tx_detail(
+            sender_addr=primary_addr,
+            gas=default_gas,
+            gas_price=1,
+        )).add_header(header1)
 
     header2 = get_testing_colhdr(vmc, mainchain_handler, shard_id, header1_hash, 2)
     header2_hash = keccak(header2)
@@ -252,4 +301,4 @@ def test_vmc_handler(mainchain_handler):  # noqa: F811
 
     do_withdraw(vmc, mainchain_handler, validator_index)
     mainchain_handler.mine(1)
-    assert vmc.sample(shard_id, primary_addr) == zero_addr
+    assert vmc.sample(shard_id, primary_addr) == ZERO_ADDR
