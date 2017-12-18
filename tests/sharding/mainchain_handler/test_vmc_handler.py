@@ -58,25 +58,25 @@ test_keys = get_default_account_keys()
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 
-def is_vmc_deployed(vmc, mainchain_handler):
+def is_vmc_deployed(vmc, chain_handler):
     return (
         # TODO: the following line should be uncommented when `get_code` is implemented in
         #       `eth_tester`
         # mainchain_handler.get_code(vmc_handler.vmc_addr) != b'' and
-        mainchain_handler.get_nonce(vmc.address) != 0
+        chain_handler.get_nonce(vmc.address) != 0
     )
 
 
-def do_withdraw(vmc, mainchain_handler, validator_index):
+def do_withdraw(vmc, chain_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
     sender_addr = privkey.public_key.to_canonical_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc.withdraw(validator_index, signature, sender_addr)
-    mainchain_handler.mine(1)
+    chain_handler.mine(1)
 
 
-def deploy_valcode_and_deposit(vmc, mainchain_handler, key):
+def deploy_valcode_and_deposit(vmc, chain_handler, key):
     """
     Deploy validation code of and with the key, and do deposit
 
@@ -84,49 +84,49 @@ def deploy_valcode_and_deposit(vmc, mainchain_handler, key):
     :return: returns nothing
     """
     address = key.public_key.to_canonical_address()
-    mainchain_handler.unlock_account(address, PASSPHRASE)
+    chain_handler.unlock_account(address, PASSPHRASE)
     valcode = vmc_utils.mk_validation_code(
         key.public_key.to_canonical_address()
     )
-    nonce = mainchain_handler.get_nonce(address)
+    nonce = chain_handler.get_nonce(address)
     valcode_addr = generate_contract_address(to_canonical_address(address), nonce)
-    mainchain_handler.unlock_account(address, PASSPHRASE)
-    mainchain_handler.deploy_contract(valcode, address)
-    mainchain_handler.mine(1)
+    chain_handler.unlock_account(address, PASSPHRASE)
+    chain_handler.deploy_contract(valcode, address)
+    chain_handler.mine(1)
     vmc.deposit(valcode_addr, address, sender_addr=address)
 
 
-def deploy_initiating_contracts(vmc, mainchain_handler, privkey):
-    if not is_vmc_deployed(vmc, mainchain_handler):
+def deploy_initiating_contracts(vmc, chain_handler, privkey):
+    if not is_vmc_deployed(vmc, chain_handler):
         address = privkey.public_key.to_canonical_address()
-        mainchain_handler.unlock_account(address, PASSPHRASE)
-        nonce = mainchain_handler.get_nonce(address)
+        chain_handler.unlock_account(address, PASSPHRASE)
+        nonce = chain_handler.get_nonce(address)
         txs = vmc_utils.mk_initiating_contracts(privkey, nonce, SpuriousDragonTransaction)
         for tx in txs[:3]:
-            mainchain_handler.direct_tx(tx)
-        mainchain_handler.mine(1)
+            chain_handler.direct_tx(tx)
+        chain_handler.mine(1)
         for tx in txs[3:]:
-            mainchain_handler.direct_tx(tx)
-            mainchain_handler.mine(1)
+            chain_handler.direct_tx(tx)
+            chain_handler.mine(1)
         logger.debug(
             'deploy_initiating_contracts: vmc_tx_hash=%s',
-            mainchain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
+            chain_handler.get_transaction_receipt(encode_hex(txs[-1].hash)),
         )
 
 
-def first_setup_and_deposit(vmc, mainchain_handler, key):
-    deploy_valcode_and_deposit(vmc, mainchain_handler, key)
+def first_setup_and_deposit(vmc, chain_handler, key):
+    deploy_valcode_and_deposit(vmc, chain_handler, key)
     # TODO: error occurs when we don't mine so many blocks
-    mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+    chain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
 
-def import_key_to_mainchain_handler(mainchain_handler, key):
+def import_key_to_mainchain_handler(chain_handler, key):
     """
     :param vmc_handler: VMCHandler
     :param privkey: PrivateKey object from eth_keys
     """
     try:
-        mainchain_handler.w3.personal.importRawKey(key.to_hex(), PASSPHRASE)
+        chain_handler.w3.personal.importRawKey(key.to_hex(), PASSPHRASE)
     # Exceptions happen when the key is already imported.
     #   - ValueError: `web3.py`
     #   - ValidationError: `eth_tester`
@@ -135,14 +135,14 @@ def import_key_to_mainchain_handler(mainchain_handler, key):
 
 
 def get_testing_colhdr(vmc,
-                       mainchain_handler,
+                       chain_handler,
                        shard_id,
                        parent_collation_hash,
                        number,
                        collation_coinbase=test_keys[0].public_key.to_canonical_address(),
                        privkey=test_keys[0]):
     period_length = PERIOD_LENGTH
-    expected_period_number = (mainchain_handler.get_block_number() + 1) // period_length
+    expected_period_number = (chain_handler.get_block_number() + 1) // period_length
     logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
     period_start_prevhash = vmc.get_period_start_prevhash(
         expected_period_number,

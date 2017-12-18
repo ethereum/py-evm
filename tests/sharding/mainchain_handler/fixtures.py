@@ -35,7 +35,8 @@ class TesterMainchainHandler(MainchainHandler):
             # FIXME: if `sendRawTransaction` is not implemented, `ValueError` is raised
             #        In this situation, if we used `eth_tester`, try again directly with
             #        `self._eth_tester.backend.chain.apply_transaction`
-            return self.w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+            tx_hash = self.w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+        return tx_hash
 
 
 @pytest.fixture
