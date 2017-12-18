@@ -170,19 +170,6 @@ def validate_rpc_block_vs_fixture_header(block, header_fixture):
     assert actual_block == expected
 
 
-def is_by_number(at_block):
-    return is_hex(at_block) and len(at_block) == 66
-
-
-def validate_transaction_count(rpc, block_fixture, at_block):
-    if is_by_number(at_block):
-        rpc_method = 'eth_getBlockTransactionCountByHash'
-    else:
-        rpc_method = 'eth_getBlockTransactionCountByNumber'
-    expected_transaction_count = hex(len(block_fixture['transactions']))
-    assert_rpc_result(rpc, rpc_method, [at_block], expected_transaction_count)
-
-
 def is_by_hash(at_block):
     if is_hex(at_block) and len(at_block) == 66:
         return True
@@ -190,6 +177,15 @@ def is_by_hash(at_block):
         return False
     else:
         raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
+
+
+def validate_transaction_count(rpc, block_fixture, at_block):
+    if is_by_hash(at_block):
+        rpc_method = 'eth_getBlockTransactionCountByHash'
+    else:
+        rpc_method = 'eth_getBlockTransactionCountByNumber'
+    expected_transaction_count = hex(len(block_fixture['transactions']))
+    assert_rpc_result(rpc, rpc_method, [at_block], expected_transaction_count)
 
 
 def validate_rpc_transaction_vs_fixture(transaction, fixture):
@@ -202,7 +198,7 @@ def validate_rpc_transaction_vs_fixture(transaction, fixture):
 
 
 def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
-    if is_by_number(at_block):
+    if is_by_hash(at_block):
         rpc_method = 'eth_getTransactionByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getTransactionByBlockNumberAndIndex'
@@ -245,7 +241,7 @@ def validate_last_block(rpc, block_fixture):
 
 
 def validate_uncle_count(rpc, block_fixture, at_block):
-    if is_by_number(at_block):
+    if is_by_hash(at_block):
         rpc_method = 'eth_getUncleCountByBlockHash'
     else:
         rpc_method = 'eth_getUncleCountByBlockNumber'
@@ -255,7 +251,7 @@ def validate_uncle_count(rpc, block_fixture, at_block):
 
 
 def validate_uncle_headers(rpc, block_fixture, at_block):
-    if is_by_number(at_block):
+    if is_by_hash(at_block):
         rpc_method = 'eth_getUncleByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getUncleByBlockNumberAndIndex'

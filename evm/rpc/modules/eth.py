@@ -46,14 +46,13 @@ def state_at_block(chain, at_block, read_only=True):
         yield state
 
 
-def block_at_number(chain, at_block):
-    if isinstance(at_block, int):
-        block = chain.get_canonical_block_by_number(at_block)
+def get_block_at_number(chain, at_block):
+    if is_integer(at_block) and at_block >= 0:
+        # optimization to avoid requesting block, then header, then block again
+        return chain.get_canonical_block_by_number(at_block)
     else:
         at_header = get_header(chain, at_block)
-        vm = chain.get_vm(at_header)
-        block = vm.get_block_by_header(at_header)
-    return block
+        return chain.get_block_by_header(at_header)
 
 
 class Eth(RPCModule):
@@ -90,7 +89,7 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex, identity)
     def getBlockByNumber(self, at_block, include_transactions):
-        block = block_at_number(self._chain, at_block)
+        block = get_block_at_number(self._chain, at_block)
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(decode_hex)
@@ -100,7 +99,7 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex)
     def getBlockTransactionCountByNumber(self, at_block):
-        block = block_at_number(self._chain, at_block)
+        block = get_block_at_number(self._chain, at_block)
         return hex(len(block.transactions))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -111,8 +110,8 @@ class Eth(RPCModule):
 
     @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
     def getStorageAt(self, address, position, at_block):
-        if not isinstance(position, int):
-            raise TypeError("Position of storage lookup must be an integer, but was: %r" % position)
+        if not is_integer(position) or position < 0:
+            raise TypeError("Position of storage must be a whole number, but was: %r" % position)
 
         with state_at_block(self._chain, at_block) as state:
             stored_val = state.get_storage(address, position)
@@ -126,8 +125,7 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex, to_int_if_hex)
     def getTransactionByBlockNumberAndIndex(self, at_block, index):
-        header = get_header(self._chain, at_block)
-        block = self._chain.get_block_by_header(header)
+        block = get_block_at_number(self._chain, at_block)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
@@ -144,8 +142,7 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex)
     def getUncleCountByBlockNumber(self, at_block):
-        header = get_header(self._chain, at_block)
-        block = self._chain.get_block_by_header(header)
+        block = get_block_at_number(self._chain, at_block)
         return hex(len(block.uncles))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -156,8 +153,7 @@ class Eth(RPCModule):
 
     @format_params(to_int_if_hex, to_int_if_hex)
     def getUncleByBlockNumberAndIndex(self, at_block, index):
-        header = get_header(self._chain, at_block)
-        block = self._chain.get_block_by_header(header)
+        block = get_block_at_number(self._chain, at_block)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
