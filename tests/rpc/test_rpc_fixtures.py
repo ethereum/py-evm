@@ -8,6 +8,7 @@ from cytoolz import (
 
 from eth_utils import (
     is_hex,
+    is_integer,
 )
 
 from evm.rpc import RPCServer
@@ -157,8 +158,17 @@ def validate_rpc_block_vs_fixture(block, block_fixture):
     assert actual_block == expected
 
 
-def validate_block(rpc, block_fixture, at_block):
+def is_by_hash(at_block):
     if is_hex(at_block) and len(at_block) == 66:
+        return True
+    elif is_integer(at_block) or at_block in ('latest', 'earliest', 'pending'):
+        return False
+    else:
+        raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
+
+
+def validate_block(rpc, block_fixture, at_block):
+    if is_by_hash(at_block):
         rpc_method = 'eth_getBlockByHash'
     else:
         rpc_method = 'eth_getBlockByNumber'

@@ -10,24 +10,34 @@ from evm.rpc.modules import (
     EVM,
 )
 
-REQUIRED_REQUEST_KEYS = (
+REQUIRED_REQUEST_KEYS = {
     'id',
     'jsonrpc',
     'method',
-)
+}
 
 
 def validate_request(request):
-    for key in REQUIRED_REQUEST_KEYS:
-        if key not in request:
-            raise ValueError("request must include the key %r" % key)
+    missing_keys = REQUIRED_REQUEST_KEYS - set(request.keys())
+    if missing_keys:
+        raise ValueError("request must include the keys: %r" % missing_keys)
 
 
-def generate_response(request):
-    return {
+def generate_response(request, result, error):
+    response = {
         'id': request.get('id', -1),
         'jsonrpc': request.get('jsonrpc', "2.0"),
     }
+
+    if error is None:
+        response['result'] = result
+    elif result is not None:
+        raise ValueError("Must not supply both a result and an error for JSON-RPC response")
+    else:
+        # only error is not None
+        response['error'] = str(error)
+
+    return json.dumps(response)
 
 
 class RPCServer:
@@ -50,6 +60,8 @@ class RPCServer:
         self.chain = chain
         for M in self.module_classes:
             self.modules[M.__name__.lower()] = M(chain)
+        if len(self.modules) != len(self.module_classes):
+            raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
 
     def _lookup_method(self, rpc_method):
         method_pieces = rpc_method.split('_')
@@ -70,12 +82,11 @@ class RPCServer:
         except AttributeError:
             raise ValueError("Method not implemented: %r" % rpc_method)
 
-    def execute(self, request):
+    def _get_result(self, request, debug=False):
         '''
-        The key entry point for all incoming requests
+        :returns: (result, error) - result is None if error is provided. Error must be
+            convertable to string with ``str(error)``.
         '''
-        response = generate_response(request)
-
         try:
             validate_request(request)
 
@@ -84,25 +95,31 @@ class RPCServer:
 
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
-            response['result'] = method(*params)
+            result = method(*params)
 
             if request['method'] == 'evm_resetToGenesisFixture':
-                self.chain = response['result']
-                response['result'] = True
+                self.chain, result = result, True
 
         except NotImplementedError as exc:
-            response['error'] = "Method not implemented: %r" % request['method']
-            custom_message = str(exc)
-            if custom_message:
-                response['error'] += ' - %s' % custom_message
+            error = "Method not implemented: %r %s" % (request['method'], exc)
+            return None, error
         except ValidationError as exc:
             logging.debug("Validation error while executing RPC method", exc_info=True)
-            response['error'] = str(exc)
+            return None, exc
         except Exception as exc:
             logging.info("RPC method caused exception", exc_info=True)
-            response['error'] = str(exc)
+            if debug:
+                raise Exception("failure during rpc call with %s" % request) from exc
+            return None, exc
+        else:
+            return result, None
 
-        return json.dumps(response)
+    def execute(self, request):
+        '''
+        The key entry point for all incoming requests
+        '''
+        result, error = self._get_result(request)
+        return generate_response(request, result, error)
 
     @property
     def chain(self):

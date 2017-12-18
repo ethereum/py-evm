@@ -39,9 +39,9 @@ def build_request(method, params=[]):
     ),
     ids=['empty', 'notamethod', 'eth_mining'],
 )
-async def test_ipc_requests(ipc_pipe, request_msg, expected, event_loop):
-    assert wait_for(ipc_pipe), "IPC server did not successfully start with IPC file"
-    reader, writer = await asyncio.open_unix_connection(ipc_pipe, loop=event_loop)
+async def test_ipc_requests(ipc_pipe_path, request_msg, expected, event_loop):
+    assert wait_for(ipc_pipe_path), "IPC server did not successfully start with IPC file"
+    reader, writer = await asyncio.open_unix_connection(ipc_pipe_path, loop=event_loop)
     writer.write(request_msg)
     await writer.drain()
     try:

@@ -23,7 +23,8 @@ async def connection_handler(execute_rpc, reader, writer):
         logger.debug("Client closed connection")
     except Exception:
         logger.exception("Unrecognized exception while handling requests")
-    writer.close()
+    finally:
+        writer.close()
 
 
 async def connection_loop(execute_rpc, reader, writer, logger):
@@ -119,7 +120,8 @@ def run_until_interrupt(server, loop=None):
 def run_ipc_server(ipc_path, chain=None, loop=None):
     server = start(ipc_path, chain, loop)
     run_until_interrupt(server, loop)
-    os.remove(ipc_path)
+    if os.path.exists(ipc_path):
+        os.remove(ipc_path)
 
 
 if __name__ == '__main__':
