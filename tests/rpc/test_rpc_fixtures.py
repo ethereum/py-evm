@@ -4,6 +4,7 @@ import pytest
 
 from cytoolz import (
     dissoc,
+    get_in,
 )
 
 from eth_utils import (
@@ -15,6 +16,7 @@ from evm.rpc import RPCServer
 from evm.rpc.format import (
     fixture_block_in_rpc_format,
     fixture_state_in_rpc_format,
+    fixture_transaction_in_rpc_format,
 )
 
 from evm.utils.fixture_tests import (
@@ -118,6 +120,13 @@ def call_rpc(rpc, method, params):
     return result_from_response(response)
 
 
+def assert_rpc_result(rpc, method, params, expected):
+    result, error = call_rpc(rpc, method, params)
+    assert error is None
+    assert result == expected
+    return result
+
+
 def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
     state_result, state_error = call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
@@ -136,9 +145,8 @@ def validate_account_state(rpc, state, addr, at_block):
         validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr, at_block)
     for key in state['storage']:
         position = '0x0' if key == '0x' else key
-        storage_result, storage_err = call_rpc(rpc, 'eth_getStorageAt', [addr, position, at_block])
-        assert storage_err is None
-        assert storage_result == state['storage'][key]
+        expected_storage = state['storage'][key]
+        assert_rpc_result(rpc, 'eth_getStorageAt', [addr, position, at_block], expected_storage)
 
 
 def validate_accounts(rpc, states, at_block='latest'):
@@ -147,7 +155,11 @@ def validate_accounts(rpc, states, at_block='latest'):
 
 
 def validate_rpc_block_vs_fixture(block, block_fixture):
-    expected = fixture_block_in_rpc_format(block_fixture['blockHeader'])
+    return validate_rpc_block_vs_fixture_header(block, block_fixture['blockHeader'])
+
+
+def validate_rpc_block_vs_fixture_header(block, header_fixture):
+    expected = fixture_block_in_rpc_format(header_fixture)
     actual_block = dissoc(
         block,
         'size',
@@ -167,21 +179,57 @@ def is_by_hash(at_block):
         raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
 
 
+def validate_transaction_count(rpc, block_fixture, at_block):
+    if is_by_hash(at_block):
+        rpc_method = 'eth_getBlockTransactionCountByHash'
+    else:
+        rpc_method = 'eth_getBlockTransactionCountByNumber'
+    expected_transaction_count = hex(len(block_fixture['transactions']))
+    assert_rpc_result(rpc, rpc_method, [at_block], expected_transaction_count)
+
+
+def validate_rpc_transaction_vs_fixture(transaction, fixture):
+    expected = fixture_transaction_in_rpc_format(fixture)
+    actual_transaction = dissoc(
+        transaction,
+        'hash',
+    )
+    assert actual_transaction == expected
+
+
+def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
+    if is_by_hash(at_block):
+        rpc_method = 'eth_getTransactionByBlockHashAndIndex'
+    else:
+        rpc_method = 'eth_getTransactionByBlockNumberAndIndex'
+    result, error = call_rpc(rpc, rpc_method, [at_block, hex(index)])
+    assert error is None
+    validate_rpc_transaction_vs_fixture(result, transaction_fixture)
+
+
 def validate_block(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getBlockByHash'
     else:
         rpc_method = 'eth_getBlockByNumber'
 
-    # validate without transactions
+    # validate without transaction bodies
     result, error = call_rpc(rpc, rpc_method, [at_block, False])
     assert error is None
     validate_rpc_block_vs_fixture(result, block_fixture)
+    assert len(result['transactions']) == len(block_fixture['transactions'])
 
-    # TODO validate transactions
+    for index, transaction_fixture in enumerate(block_fixture['transactions']):
+        validate_transaction_by_index(rpc, transaction_fixture, at_block, index)
+
+    validate_transaction_count(rpc, block_fixture, at_block)
+
+    # TODO validate transaction bodies
     result, error = call_rpc(rpc, rpc_method, [at_block, True])
     # assert error is None
     # assert result['transactions'] == block_fixture['transactions']
+
+    validate_uncles(rpc, block_fixture, at_block)
 
 
 def validate_last_block(rpc, block_fixture):
@@ -190,6 +238,33 @@ def validate_last_block(rpc, block_fixture):
     validate_block(rpc, block_fixture, 'latest')
     validate_block(rpc, block_fixture, header['hash'])
     validate_block(rpc, block_fixture, int(header['number'], 16))
+
+
+def validate_uncle_count(rpc, block_fixture, at_block):
+    if is_by_hash(at_block):
+        rpc_method = 'eth_getUncleCountByBlockHash'
+    else:
+        rpc_method = 'eth_getUncleCountByBlockNumber'
+
+    num_uncles = len(block_fixture['uncleHeaders'])
+    assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
+
+
+def validate_uncle_headers(rpc, block_fixture, at_block):
+    if is_by_hash(at_block):
+        rpc_method = 'eth_getUncleByBlockHashAndIndex'
+    else:
+        rpc_method = 'eth_getUncleByBlockNumberAndIndex'
+
+    for idx, uncle in enumerate(block_fixture['uncleHeaders']):
+        result, error = call_rpc(rpc, rpc_method, [at_block, hex(idx)])
+        assert error is None
+        validate_rpc_block_vs_fixture_header(result, uncle)
+
+
+def validate_uncles(rpc, block_fixture, at_block):
+    validate_uncle_count(rpc, block_fixture, at_block)
+    validate_uncle_headers(rpc, block_fixture, at_block)
 
 
 @pytest.fixture
@@ -227,7 +302,7 @@ def test_rpc_against_fixtures(chain_fixture, fixture_data):
 
     if chain_fixture.get('lastblockhash', None):
         for block_fixture in chain_fixture['blocks']:
-            if block_fixture.get('hash', None) == chain_fixture['lastblockhash']:
+            if get_in(['blockHeader', 'hash'], block_fixture) == chain_fixture['lastblockhash']:
                 validate_last_block(rpc, block_fixture)
 
     validate_accounts(rpc, chain_fixture['postState'])
