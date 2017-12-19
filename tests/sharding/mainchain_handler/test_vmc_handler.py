@@ -181,8 +181,13 @@ def get_testing_colhdr(vmc_handler,
         sig,
     ])
 
-@pytest.fixture
-def vmc(mainchain_handler):
+
+def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
+    shard_id = 0
+    validator_index = 0
+    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
+    default_gas = TX_GAS
+
     vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
     vmc_json = get_vmc_json()
@@ -191,10 +196,7 @@ def vmc(mainchain_handler):
     VMCClass = VMC.factory(mainchain_handler.w3, abi=vmc_abi, bytecode=vmc_bytecode)
     vmc = VMCClass(to_checksum_address(vmc_addr))
     vmc.sender_addr = vmc_tx.sender
-    return vmc
 
-
-def test_vmc_mk_contract_tx_detail(vmc):
     tx_detail = vmc.mk_contract_tx_detail(
         sender_addr=ZERO_ADDR,
         gas=TX_GAS,
@@ -212,13 +214,6 @@ def test_vmc_mk_contract_tx_detail(vmc):
             gas=TX_GAS,
         )
 
-
-def test_vmc_contract_calls(vmc, mainchain_handler):  # noqa: F811
-    shard_id = 0
-    validator_index = 0
-    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
-    default_gas = TX_GAS
-
     if not is_vmc_deployed(vmc, mainchain_handler):
         logger.debug('is_vmc_deployed(handler) == True')
         # import privkey
@@ -227,7 +222,11 @@ def test_vmc_contract_calls(vmc, mainchain_handler):  # noqa: F811
 
         deploy_initiating_contracts(vmc, mainchain_handler, test_keys[validator_index])
         mainchain_handler.mine(1)
-        valcode_addr = deploy_valcode_and_deposit(vmc, mainchain_handler, test_keys[validator_index])
+        valcode_addr = deploy_valcode_and_deposit(
+            vmc,
+            mainchain_handler,
+            test_keys[validator_index],
+        )
         # TODO: error occurs when we don't mine so many blocks
         mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
         assert vmc.sample(shard_id, primary_addr) == valcode_addr
