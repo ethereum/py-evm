@@ -13,12 +13,14 @@ from typing import (  # noqa: F401
 
 from async_lru import alru_cache
 
+import rlp
 from eth_keys import datatypes
 from eth_keys import keys
 from eth_utils import (
     decode_hex,
     encode_hex,
 )
+from trie import Trie
 
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
@@ -26,9 +28,11 @@ from evm.db.chain import BaseChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
+from evm.rlp.accounts import Account
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
+from evm.utils.keccak import keccak
 from evm.p2p.constants import HANDSHAKE_TIMEOUT
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
@@ -438,15 +442,22 @@ class LightChain(Chain):
         return reply['receipts'][0]
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_proof(self, block_hash: bytes, key: bytes, key2: bytes = b'',
-                        from_level: int = 0) -> List[Any]:
+    async def get_account(self, block_hash: bytes, address: bytes) -> Account:
+        key = keccak(address)
+        proof = await self._get_proof(block_hash, account_key=b'', key=key)
+        block = await self.get_block_by_hash(block_hash)
+        rlp_account = Trie.get_from_proof(block.header.state_root, key, proof)
+        return rlp.decode(rlp_account, sedes=Account)
+
+    async def _get_proof(self, block_hash: bytes, account_key: bytes, key: bytes,
+                         from_level: int = 0) -> List[bytes]:
         peer = await self.get_best_peer()
         request_id = gen_request_id()
-        peer.les_proto.send_get_proof(block_hash, key, key2, from_level, request_id)
+        peer.les_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await peer.wait_for_reply(request_id)
-        if len(reply['nodes']) == 0:
+        if len(reply['proofs']) == 0:
             return []
-        return reply['nodes'][0]
+        return reply['proofs'][0]
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:

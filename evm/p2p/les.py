@@ -204,8 +204,8 @@ class Receipts(Command):
 class ProofRequest(rlp.Serializable):
     fields = [
         ('block_hash', sedes.binary),
+        ('account_key', sedes.binary),
         ('key', sedes.binary),
-        ('key2', sedes.binary),
         ('from_level', sedes.big_endian_int),
     ]
 
@@ -223,7 +223,7 @@ class Proofs(Command):
     structure = [
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
-        ('nodes', sedes.CountableList(sedes.CountableList(sedes.raw))),
+        ('proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
     ]
 
 
@@ -327,11 +327,11 @@ class LESProtocol(Protocol):
         header, body = GetReceipts(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_proof(self, block_hash: bytes, key: bytes, key2: bytes, from_level: int,
+    def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
                        request_id: int) -> None:
         data = {
             'request_id': request_id,
-            'proof_requests': [ProofRequest(block_hash, key, key2, from_level)],
+            'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
         header, body = GetProofs(self.cmd_id_offset).encode(data)
         self.send(header, body)
