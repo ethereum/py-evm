@@ -10,7 +10,7 @@ from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
 
 
-def test_add_transaction_to_block(chain_without_block_validation):  # noqa: F811
+def test_add_transaction(chain_without_block_validation):  # noqa: F811
     chain = chain_without_block_validation  # noqa: F811
     vm = copy.deepcopy(chain.get_vm())  # Use vm as a temporary container
 
@@ -23,8 +23,11 @@ def test_add_transaction_to_block(chain_without_block_validation):  # noqa: F811
     tx_gas = tx.gas_price * constants.GAS_TX
 
     computation = vm.execute_transaction(tx)
-    prev_block = copy.deepcopy(vm.block)
-    block = vm.add_transaction_to_block(tx, prev_block, computation)
+    vm.block = copy.deepcopy(vm.block)
+    block = vm.add_transaction(
+        tx,
+        computation,
+    )
 
     # Check if the result is right
     with vm.state_db(read_only=True) as state_db:
@@ -80,6 +83,13 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
 
 def test_apply_transaction_semi_pure(chain_without_block_validation):  # noqa: F811
     chain = chain_without_block_validation  # noqa: F811
+
+    # Get original_root_hash for assertion
+    original_root_hash = None
+    with chain.get_vm().state_db(read_only=True) as state_db:
+        original_root_hash = state_db.root_hash
+    assert original_root_hash is not None
+
     vm = copy.deepcopy(chain.get_vm())  # Use vm as a temporary container
 
     # Prepare a transaction
@@ -94,7 +104,7 @@ def test_apply_transaction_semi_pure(chain_without_block_validation):  # noqa: F
     block = vm.block
 
     vm.set_stateless(True)
-    computation = vm.apply_transaction_to_block(tx, block)
+    computation = vm.apply_transaction_to_block(tx, block, chain.chaindb)
     vm.set_stateless(False)
 
     # result:
@@ -105,7 +115,13 @@ def test_apply_transaction_semi_pure(chain_without_block_validation):  # noqa: F
         assert state_db.get_balance(from_) == (
             chain.funded_address_initial_balance - amount - tx_gas)
         assert state_db.get_balance(recipient) == amount
+
+        # No side effect, state trie in chain.chaindb haven't been changed
+        with chain.get_vm().state_db(read_only=True) as chain_state_db:
+            assert chain_state_db.root_hash == original_root_hash
+
         # [TODO]: verify reads and writes dicts
+
     # 3. vm.block
     assert vm.block.transactions[tx_idx] == tx
     assert vm.block.header.gas_used == constants.GAS_TX

@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-import rlp
-
 from contextlib import contextmanager
+import copy
 import logging
+
+import rlp
 
 from evm.constants import (
     BLOCK_REWARD,
@@ -33,6 +34,7 @@ class VM(object):
     """
     chaindb = None
     opcodes = None
+    block = None
     _block_class = None
     _precompiles = None
 
@@ -119,12 +121,10 @@ class VM(object):
     #
     # Execution
     #
-    def add_transaction_to_block(self, transaction, block, computation):
+    def add_transaction(self, transaction, computation):
         """
         Add a transaction to the given block.
         """
-        self.block = block
-
         receipt = self.make_receipt(transaction, computation)
 
         transaction_idx = len(self.block.transactions)
@@ -153,25 +153,27 @@ class VM(object):
         computation = self.execute_transaction(transaction)
         self.clear_journal()
 
-        self.block = self.add_transaction_to_block(
+        self.block = self.add_transaction(
             transaction,
-            self.block,
             computation,
         )
 
         return computation
 
-    def apply_transaction_to_block(self, transaction, block):
+    def apply_transaction_to_block(self, transaction, block, chaindb):
         """
         Apply the transaction to the vm in the current block.
         """
         # (semi) pure function setting
+        self.chaindb = copy.deepcopy(chaindb)
+        self.block = copy.deepcopy(block)
+        self.block.chaindb = self.chaindb
+
         computation = self.execute_transaction(transaction)
         self.clear_journal()
 
-        self.block = self.add_transaction_to_block(
+        self.add_transaction(
             transaction,
-            block,
             computation,
         )
 
