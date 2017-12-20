@@ -48,9 +48,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.transactions[tx_idx] == tx
     assert block.header.gas_used == constants.GAS_TX
 
-    # Check if no side effect, state trie in chain.chaindb haven't been changed
+    # Check if no side effect, state trie in `chain.chaindb` haven't been changed
     with chain.get_vm().state_db(read_only=True) as chain_state_db:
         assert chain_state_db.root_hash == original_root_hash
+        with vm.state_db(read_only=True) as state_db:
+            assert state_db.root_hash == original_root_hash
 
     # Try again - Simulate apply the given transaction package with witness data
     vm = chain.get_vm()

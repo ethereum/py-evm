@@ -13,7 +13,7 @@ def apply_transaction(transaction, block, prev_vm, chaindb):
     Original Goal: apply_transaction(stateobj, db, blockdata, transaction)
     -> state_obj', reads, writes
     """
-    # TODO: try to use simplier StateObj object instead of VM as the
+    # TODO: try to use simpler StateObj object instead of VM as the
     # state transition container?
 
     # init vm
