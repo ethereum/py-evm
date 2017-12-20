@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-import rlp
-
 from contextlib import contextmanager
+import copy
 import logging
+
+import rlp
 
 from evm.constants import (
     BLOCK_REWARD,
@@ -33,13 +34,27 @@ class VM(object):
     """
     chaindb = None
     opcodes = None
+    block = None
     _block_class = None
     _precompiles = None
 
-    def __init__(self, header, chaindb):
+    # Stateless Client
+    is_stateless = None
+    reads = None
+    writes = None
+
+    def __init__(self, header, chaindb, is_stateless=False):
         self.chaindb = chaindb
+        self.set_block_from_header_and_db(header)
+
+        # Stateless Client
+        self.is_stateless = is_stateless
+        self.reads = {}
+        self.writes = {}
+
+    def set_block_from_header_and_db(self, header):
         block_class = self.get_block_class()
-        self.block = block_class.from_header(header=header, chaindb=self.chaindb)
+        self.block = block_class.from_header(header, self.chaindb)
 
     @classmethod
     def configure(cls,
@@ -57,9 +72,17 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
+    def set_stateless(self, is_stateless):
+        self.is_stateless = is_stateless
+
     @contextmanager
     def state_db(self, read_only=False, access_list=None):
-        state = self.chaindb.get_state_db(self.block.header.state_root, read_only, access_list)
+        state = self.chaindb.get_state_db(
+            self.block.header.state_root,
+            read_only,
+            access_list=access_list,
+            is_stateless=self.is_stateless,
+        )
         yield state
 
         if read_only:
@@ -68,6 +91,14 @@ class VM(object):
             assert state.root_hash == self.block.header.state_root
         elif self.block.header.state_root != state.root_hash:
             self.block.header.state_root = state.root_hash
+
+        # If it's TrackedDB, log the reads and writes in memory
+        if self.is_stateless and not read_only:
+            self.reads.update(state.db.reads)
+            self.writes.update(state.db.writes)
+            # Clear reads and writes
+            state.db._reads = {}
+            state.db._writes = {}
 
         # ensure that no further modifications can occure using the `State`
         # object  after leaving the context
@@ -90,13 +121,62 @@ class VM(object):
     #
     # Execution
     #
+    def add_transaction(self, transaction, computation):
+        """
+        Add a transaction to the given block.
+        """
+        receipt = self.make_receipt(transaction, computation)
+
+        transaction_idx = len(self.block.transactions)
+
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+
+        self.block.transactions.append(transaction)
+
+        tx_root_hash = self.block.chaindb.add_transaction(self.block.header, index_key, transaction)
+        receipt_root_hash = self.block.chaindb.add_receipt(self.block.header, index_key, receipt)
+
+        self.block.bloom_filter |= receipt.bloom
+
+        self.block.header.transaction_root = tx_root_hash
+        self.block.header.receipt_root = receipt_root_hash
+        self.block.header.bloom = int(self.block.bloom_filter)
+        self.block.header.gas_used = receipt.gas_used
+
+        # Return `self.block`, not `block`
+        return self.block
+
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
         self.clear_journal()
-        self.block.add_transaction(transaction, computation)
+
+        self.block = self.add_transaction(
+            transaction,
+            computation,
+        )
+
+        return computation
+
+    def apply_transaction_to_block(self, transaction, block, chaindb):
+        """
+        Apply the transaction to the vm in the current block.
+        """
+        # (semi) pure function setting
+        self.chaindb = copy.deepcopy(chaindb)
+        self.block = copy.deepcopy(block)
+        self.block.chaindb = self.chaindb
+
+        computation = self.execute_transaction(transaction)
+        self.clear_journal()
+
+        self.add_transaction(
+            transaction,
+            computation,
+        )
+
         return computation
 
     def execute_transaction(self, transaction):
@@ -114,6 +194,12 @@ class VM(object):
     def apply_message(self, message):
         """
         Execution of an VM message.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def make_receipt(self, transaction, computation):
+        """
+        Make receipt.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 

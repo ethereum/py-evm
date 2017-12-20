@@ -23,6 +23,9 @@ from evm.exceptions import (
 from evm.db.journal import (
     JournalDB,
 )
+from evm.db.tracked import (
+    TrackedDB
+)
 from evm.db.state import (
     State,
     NestedTrieBackend,
@@ -244,9 +247,10 @@ class BaseChainDB:
     def clear(self):
         self.db.clear()
 
-    def get_state_db(self, state_root, read_only, access_list=None):
+    def get_state_db(self, state_root, read_only, access_list=None, is_stateless=False):
+        db = TrackedDB(self.db) if is_stateless else self.db
         return State(
-            db=self.db,
+            db=db,
             root_hash=state_root,
             read_only=read_only,
             access_list=access_list,

@@ -18,9 +18,6 @@ from evm.exceptions import (
     BlockNotFound,
     ValidationError,
 )
-from evm.rlp.logs import (
-    Log,
-)
 from evm.rlp.receipts import (
     Receipt,
 )
@@ -70,6 +67,10 @@ class FrontierBlock(BaseBlock):
             uncles=uncles,
         )
         # TODO: should perform block validation at this point?
+
+    @property
+    def transaction_count(self):
+        return len(self.transactions)
 
     def validate_gas_limit(self):
         gas_limit = self.header.gas_limit
@@ -198,7 +199,7 @@ class FrontierBlock(BaseBlock):
         Note return value of this function can be cached based on
         `self.receipt_db.root_hash`
         """
-        if len(self.transactions):
+        if self.transaction_count:
             return self.receipts[-1].gas_used
         else:
             return 0
@@ -209,31 +210,6 @@ class FrontierBlock(BaseBlock):
     @property
     def receipts(self):
         return self.chaindb.get_receipts(self.header, Receipt)
-
-    def make_receipt(self, transaction, computation):
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in computation.get_log_entries()
-        ]
-
-        gas_remaining = computation.get_gas_remaining()
-        gas_refund = computation.get_gas_refund()
-        tx_gas_used = (
-            transaction.gas - gas_remaining
-        ) - min(
-            gas_refund,
-            (transaction.gas - gas_remaining) // 2,
-        )
-
-        gas_used = self.header.gas_used + tx_gas_used
-
-        receipt = Receipt(
-            state_root=self.header.state_root,
-            gas_used=gas_used,
-            logs=logs,
-        )
-        return receipt
 
     #
     # Header API
@@ -260,27 +236,6 @@ class FrontierBlock(BaseBlock):
     #
     # Execution API
     #
-    def add_transaction(self, transaction, computation):
-        receipt = self.make_receipt(transaction, computation)
-
-        transaction_idx = len(self.transactions)
-
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
-
-        self.transactions.append(transaction)
-
-        tx_root_hash = self.chaindb.add_transaction(self.header, index_key, transaction)
-        receipt_root_hash = self.chaindb.add_receipt(self.header, index_key, receipt)
-
-        self.bloom_filter |= receipt.bloom
-
-        self.header.transaction_root = tx_root_hash
-        self.header.receipt_root = receipt_root_hash
-        self.header.bloom = int(self.bloom_filter)
-        self.header.gas_used = receipt.gas_used
-
-        return self
-
     def add_uncle(self, uncle):
         self.uncles.append(uncle)
         self.header.uncles_hash = keccak(rlp.encode(self.uncles))

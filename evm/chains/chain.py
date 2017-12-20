@@ -25,7 +25,9 @@ from evm.validation import (
     validate_uint256,
     validate_word,
 )
-
+from evm.vm.state_transition_helper import (
+    apply_transaction
+)
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -232,7 +234,12 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        return vm.apply_transaction(transaction)
+        return apply_transaction(
+            transaction,
+            vm.block,
+            vm,
+            self.chaindb,
+        )
 
     def import_block(self, block, perform_validation=True):
         """
