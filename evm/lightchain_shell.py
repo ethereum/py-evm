@@ -11,7 +11,11 @@ import logging
 import threading
 
 from evm.db.chain import BaseChainDB
-from evm.chains.ropsten import ROPSTEN_NETWORK_ID
+from evm.exceptions import CanonicalHeadNotFound
+from evm.chains.ropsten import (
+    ROPSTEN_GENESIS_HEADER,
+    ROPSTEN_NETWORK_ID,
+)
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.p2p import ecies
 from evm.p2p.lightchain import LightChain
@@ -38,7 +42,16 @@ DemoLightChain = LightChain.configure(
     network_id=ROPSTEN_NETWORK_ID,
 )
 
-chain = DemoLightChain(BaseChainDB(LevelDB(args.db)))
+chaindb = BaseChainDB(LevelDB(args.db))
+try:
+    chaindb.get_canonical_head()
+except CanonicalHeadNotFound:
+    # We're starting with a fresh DB.
+    chain = DemoLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+else:
+    # We're reusing an existing db.
+    chain = DemoLightChain(chaindb)
+
 loop = asyncio.get_event_loop()
 t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),), daemon=True)
 t.start()
