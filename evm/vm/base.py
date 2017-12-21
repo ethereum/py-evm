@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import rlp
 
-from contextlib import contextmanager
 import logging
 
 from evm.constants import (
@@ -34,6 +33,7 @@ class VM(object):
     chaindb = None
     opcodes = None
     _block_class = None
+    _state_class = None
     _precompiles = None
 
     def __init__(self, header, chaindb):
@@ -57,23 +57,9 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
-    @contextmanager
+    # [FIXME] remove it later
     def state_db(self, read_only=False):
-        state = self.chaindb.get_state_db(self.block.header.state_root, read_only)
-        yield state
-
-        if read_only:
-            # This acts as a secondary check that no mutation took place for
-            # read_only databases.
-            assert state.root_hash == self.block.header.state_root
-        elif self.block.header.state_root != state.root_hash:
-            self.block.header.state_root = state.root_hash
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.db = None
-        state._trie = None
+        return self.get_state().state_db(read_only)
 
     @property
     def precompiles(self):
@@ -336,3 +322,27 @@ class VM(object):
             return self.opcodes[opcode]
         except KeyError:
             return InvalidOpcode(opcode)
+
+    #
+    # State
+    #
+    def get_state(self):
+        """Return state object
+        """
+        return self.get_state_class().create_state(self.chaindb, self.block)
+
+    @property
+    def state(self):
+        """Return current state property
+        """
+        return self.get_state()
+
+    @classmethod
+    def get_state_class(cls):
+        """
+        Return the class that this VM uses for states.
+        """
+        if cls._state_class is None:
+            raise AttributeError("No `_state_class` has been set for this VM")
+
+        return cls._state_class
