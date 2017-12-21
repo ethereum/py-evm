@@ -51,6 +51,7 @@ from evm.p2p.les import (  # noqa: F401
     Announce,
     HeadInfo,
     LESProtocol,
+    LESProtocolV2,
     Status,
 )
 from evm.p2p.p2p_proto import (
@@ -407,7 +408,7 @@ class BasePeer:
 
 class LESPeer(BasePeer):
     _les_proto = None
-    _supported_sub_protocols = [LESProtocol]
+    _supported_sub_protocols = [LESProtocol, LESProtocolV2]
 
     async def fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.

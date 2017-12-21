@@ -20,6 +20,7 @@ from evm.p2p.protocol import (
 )
 
 from .constants import (
+    LES_ANNOUNCE_SIMPLE,
     MAX_BODIES_FETCH,
     MAX_HEADERS_FETCH,
 )
@@ -226,6 +227,17 @@ class Proofs(Command):
         ('proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
     ]
 
+    def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
+        decoded = super().decode_payload(rlp_data)
+        # This is just to make Proofs messages compatible with ProofsV2, so that LightChain
+        # doesn't have to special-case them. Soon we should be able to drop support for LES/1
+        # anyway, and then all this code will go away.
+        if len(decoded['proofs']) == 0:
+            decoded['proof'] = []
+        else:
+            decoded['proof'] = decoded['proofs'][0]
+        return decoded
+
 
 class ContractCodeRequest(rlp.Serializable):
     fields = [
@@ -342,4 +354,59 @@ class LESProtocol(Protocol):
             'code_requests': [ContractCodeRequest(block_hash, key)],
         }
         header, body = GetContractCodes(self.cmd_id_offset).encode(data)
+        self.send(header, body)
+
+
+class StatusV2(Status):
+    _cmd_id = 0
+
+    def __init__(self, id_offset: int) -> None:
+        super().__init__(id_offset)
+        self.items_sedes['announceType'] = sedes.big_endian_int
+
+
+class GetProofsV2(GetProofs):
+    _cmd_id = 15
+
+
+class ProofsV2(Command):
+    _cmd_id = 16
+    structure = [
+        ('request_id', sedes.big_endian_int),
+        ('buffer_value', sedes.big_endian_int),
+        ('proof', sedes.CountableList(sedes.raw)),
+    ]
+
+
+class LESProtocolV2(LESProtocol):
+    version = 2
+    _commands = [StatusV2, Announce, BlockHeaders, BlockBodies, Receipts, ProofsV2, ContractCodes]
+    handshake_msg_type = StatusV2
+    cmd_length = 21
+
+    def send_handshake(self, head_info):
+        resp = {
+            'announceType': LES_ANNOUNCE_SIMPLE,
+            'protocolVersion': self.version,
+            'networkId': self.peer.network_id,
+            'headTd': head_info.total_difficulty,
+            'headHash': head_info.block_hash,
+            'headNum': head_info.block_number,
+            'genesisHash': head_info.genesis_hash,
+        }
+        cmd = StatusV2(self.cmd_id_offset)
+        self.logger.debug("Sending LES/Status msg: %s", resp)
+        self.send(*cmd.encode(resp))
+
+    def send_get_proof(self,
+                       block_hash: bytes,
+                       account_key: bytes,
+                       key: bytes,
+                       from_level: int,
+                       request_id: int) -> None:
+        data = {
+            'request_id': request_id,
+            'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
+        }
+        header, body = GetProofsV2(self.cmd_id_offset).encode(data)
         self.send(header, body)

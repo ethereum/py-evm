@@ -455,9 +455,7 @@ class LightChain(Chain):
         request_id = gen_request_id()
         peer.les_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await peer.wait_for_reply(request_id)
-        if len(reply['proofs']) == 0:
-            return []
-        return reply['proofs'][0]
+        return reply['proof']
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
