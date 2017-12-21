@@ -32,6 +32,7 @@ from evm.utils.keccak import (
 
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
+from .state import FrontierState
 from .validation import validate_frontier_transaction
 from .headers import (
     create_frontier_header_from_parent,
@@ -255,6 +256,7 @@ FrontierVM = VM.configure(
     opcodes=FRONTIER_OPCODES,
     # classes
     _block_class=FrontierBlock,
+    _state_class=FrontierState,
     _precompiles=FRONTIER_PRECOMPILES,
     # helpers
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),

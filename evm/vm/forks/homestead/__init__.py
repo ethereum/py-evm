@@ -15,6 +15,7 @@ from evm.utils.keccak import (
 )
 
 from ..frontier import FrontierVM
+from ..frontier.state import FrontierState
 
 from .opcodes import HOMESTEAD_OPCODES
 from .blocks import HomesteadBlock
@@ -74,6 +75,7 @@ HomesteadVM = MetaHomesteadVM.configure(
     name='HomesteadVM',
     opcodes=HOMESTEAD_OPCODES,
     _block_class=HomesteadBlock,
+    _state_class=FrontierState,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     apply_create_message=_apply_homestead_create_message,

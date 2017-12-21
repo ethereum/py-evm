@@ -10,6 +10,7 @@ from evm.utils.keccak import (
 )
 
 from ..frontier import _execute_frontier_transaction
+from ..frontier.state import FrontierState
 from ..homestead import HomesteadVM
 
 from .constants import EIP170_CODE_SIZE_LIMIT
@@ -95,6 +96,7 @@ SpuriousDragonVM = HomesteadVM.configure(
     name='SpuriousDragonVM',
     # rlp classes
     _block_class=SpuriousDragonBlock,
+    _state_class=FrontierState,
     # opcodes
     opcodes=SPURIOUS_DRAGON_OPCODES,
     apply_create_message=_apply_spurious_dragon_create_message,
