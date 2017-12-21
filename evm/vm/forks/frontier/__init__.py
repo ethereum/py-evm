@@ -211,7 +211,7 @@ def _apply_frontier_message(vm, message):
     with vm.state_db() as state_db:
         state_db.touch_account(message.storage_address)
 
-    computation = vm.apply_computation(message)
+    computation = vm.state.apply_computation(message, vm.opcodes, vm.precompiles)
 
     if computation.is_error:
         vm.revert(snapshot)
