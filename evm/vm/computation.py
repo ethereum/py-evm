@@ -51,7 +51,7 @@ class Computation(object):
     """
     The execution computation
     """
-    vm = None
+    state = None
     msg = None
 
     memory = None
@@ -71,8 +71,8 @@ class Computation(object):
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, vm, message):
-        self.vm = vm
+    def __init__(self, state, message):
+        self.state = state
         self.msg = message
 
         self.memory = Memory()
@@ -193,9 +193,9 @@ class Computation(object):
     #
     def apply_child_computation(self, child_msg):
         if child_msg.is_create:
-            child_computation = self.vm.apply_create_message(child_msg)
+            child_computation = self.state.apply_create_message(child_msg)
         else:
-            child_computation = self.vm.apply_message(child_msg)
+            child_computation = self.state.apply_message(child_msg)
 
         self.add_child_computation(child_computation)
         return child_computation
