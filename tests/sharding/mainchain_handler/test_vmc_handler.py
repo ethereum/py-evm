@@ -87,7 +87,7 @@ def deploy_valcode_and_deposit(vmc_handler, chain_handler, key):
     """
     Deploy validation code of and with the key, and do deposit
 
-    :param key: Key object
+    :param key: PrivateKey object
     :return: returns nothing
     """
     address = key.public_key.to_canonical_address()
@@ -188,6 +188,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     default_gas = TX_GAS
 
+    # setup vmc's web3.eth.contract instance
     vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
     vmc_json = get_vmc_json()
@@ -197,6 +198,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     vmc = VMCClass(to_checksum_address(vmc_addr))
     vmc.sender_addr = vmc_tx.sender
 
+    # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
         sender_addr=ZERO_ADDR,
         gas=TX_GAS,
@@ -214,14 +216,26 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
             gas=TX_GAS,
         )
 
+    # test the deployment of vmc ######################################
+    # deploy vmc if it is not deployed yet.
     if not is_vmc_deployed(vmc, mainchain_handler):
         logger.debug('is_vmc_deployed(handler) == True')
-        # import privkey
+        # import test_keys
         for key in test_keys:
             import_key_to_mainchain_handler(mainchain_handler, key)
-
         deploy_initiating_contracts(vmc, mainchain_handler, test_keys[validator_index])
         mainchain_handler.mine(1)
+    assert is_vmc_deployed(vmc, mainchain_handler)
+
+    # test `deposit` and `sample` ######################################
+    # now we require 1 validator.
+    # if there is currently no validator, we deposit one.
+    # else, there should only be one validator, for easier testing.
+    num_validators = vmc.call(
+        vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
+    ).get_num_validators()
+    if num_validators == 0:
+        # deploy valcode for the validator, and deposit as the first validator
         valcode_addr = deploy_valcode_and_deposit(
             vmc,
             mainchain_handler,
@@ -230,21 +244,19 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
         # TODO: error occurs when we don't mine so many blocks
         mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
         assert vmc.sample(shard_id, primary_addr) == valcode_addr
-
-    assert is_vmc_deployed(vmc, mainchain_handler)
-
-    mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
-
-    assert vmc.sample(shard_id, primary_addr) != ZERO_ADDR
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
     ).get_num_validators()
-    assert num_validators > 0
+    assert num_validators == 1
+    assert vmc.sample(shard_id, primary_addr) != ZERO_ADDR
     logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
 
+    # test `add_header` ######################################
     genesis_colhdr_hash = b'\x00' * 32
+    # create a testing collation header, whose parent is the genesis
     header1 = get_testing_colhdr(vmc, mainchain_handler, shard_id, genesis_colhdr_hash, 1)
     header1_hash = keccak(header1)
+    # if a header is added before its parent header is added, `add_header` should fail
     # BadFunctionCallOutput raised when assertions fail
     with pytest.raises(BadFunctionCallOutput):
         header_parent_not_added = get_testing_colhdr(
@@ -259,21 +271,23 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
             gas=default_gas,
             gas_price=1,
         )).add_header(header_parent_not_added)
+    # when a valid header is added, the `add_header` call should succeed
     vmc.add_header(header1, primary_addr)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
-    # not be able to add the same header again
+    # if a header is added before, the second trial should fail
     with pytest.raises(BadFunctionCallOutput):
         vmc.call(vmc.mk_contract_tx_detail(
             sender_addr=primary_addr,
             gas=default_gas,
             gas_price=1,
         )).add_header(header1)
-
+    # when a valid header is added, the `add_header` call should succeed
     header2 = get_testing_colhdr(vmc, mainchain_handler, shard_id, header1_hash, 2)
     header2_hash = keccak(header2)
     vmc.add_header(header2, primary_addr)
-    mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
 
+    mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
+    # confirm the score of header1 and header2 are correct or not
     colhdr1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
     ).get_collation_headers__score(shard_id, header1_hash)
@@ -283,6 +297,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     ).get_collation_headers__score(shard_id, header2_hash)
     assert colhdr2_score == 2
 
+    # test `tx_to_shard` ######################################
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
         shard_id,
@@ -296,8 +311,12 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     receipt_value = vmc.call(
         vmc.mk_contract_tx_detail(sender_addr=primary_addr, gas=default_gas)
     ).get_receipts__value(0)
+    # the receipt value should be equaled to the transaction value
     assert receipt_value == 1234567
 
+    # test `withdraw` ######################################
     do_withdraw(vmc, mainchain_handler, validator_index)
     mainchain_handler.mine(1)
+    # if the only validator withdraws, because there is no validator anymore, the result of sample
+    # must be ZERO_ADDR.
     assert vmc.sample(shard_id, primary_addr) == ZERO_ADDR

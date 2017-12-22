@@ -53,8 +53,6 @@ class VMC(Contract):
         """
         tx_detail = self.mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
         address_in_hex = self.call(tx_detail).sample(shard_id)
-        # TODO: should see if there is a better way to automatically change the address result from
-        #       hex to bytes in. Maybe in `decode_contract_call_result`?
         return decode_hex(address_in_hex)
 
     def deposit(self,
