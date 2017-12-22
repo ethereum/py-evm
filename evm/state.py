@@ -158,14 +158,6 @@ class BaseState(object):
         _, checkpoint_id = snapshot
         self.chaindb.commit(checkpoint_id)
 
-    def clear_journal(self):
-        """
-        Cleare the journal.  This should be called at any point of VM execution
-        where the statedb is being committed, such as after a transaction has
-        been applied to a block.
-        """
-        self.chaindb.clear()
-
     #
     # Block Header
     #
