@@ -149,7 +149,7 @@ def test_vm_fixtures(fixture, vm_class):
     )
     vm = vm_class(header=header, chaindb=chaindb)
 
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
 
@@ -212,5 +212,5 @@ def test_vm_fixtures(fixture, vm_class):
         assert isinstance(computation._error, VMError)
         post_state = fixture['pre']
 
-    with vm.state_db(read_only=True) as state_db:
+    with vm.state.state_db(read_only=True) as state_db:
         verify_state_db(post_state, state_db)

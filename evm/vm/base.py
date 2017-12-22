@@ -47,10 +47,6 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
-    # [FIXME] remove it later
-    def state_db(self, read_only=False):
-        return self.get_state().state_db(read_only)
-
     @property
     def precompiles(self):
         if self._precompiles is None:
@@ -132,7 +128,7 @@ class VM(object):
             len(block.uncles) * self.get_nephew_reward(block.number)
         )
 
-        with self.state_db() as state_db:
+        with self.state.state_db() as state_db:
             state_db.delta_balance(block.header.coinbase, block_reward)
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",

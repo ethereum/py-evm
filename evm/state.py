@@ -131,7 +131,7 @@ class BaseState(object):
     #
     def snapshot(self):
         """
-        Perform a full snapshot of the current state of the VM.
+        Perform a full snapshot of the current state.
 
         Snapshots are a combination of the state_root at the time of the
         snapshot and the checkpoint_id returned from the journaled DB.
@@ -163,7 +163,7 @@ class BaseState(object):
     #
     def get_ancestor_hash(self, block_number):
         """
-        Return the hash for the ancestor with the given number
+        Return the hash for the ancestor with the given block number.
         """
         ancestor_depth = self.block_header.block_number - block_number
         if ancestor_depth > 256 or ancestor_depth < 1:
