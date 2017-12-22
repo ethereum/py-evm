@@ -24,6 +24,9 @@ from evm.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
 )
+from evm.vm.forks.frontier import FrontierState
+from evm.vm.forks.homestead import HomesteadState
+from evm.vm.forks.spurious_dragon import SpuriousDragonState
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -164,25 +167,38 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
+FrontierStateForTesting = FrontierState.configure(
+    name='FrontierStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
+HomesteadStateForTesting = HomesteadState.configure(
+    name='HomesteadStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
+SpuriousDragonStateForTesting = SpuriousDragonState.configure(
+    name='SpuriousDragonStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
+
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=FrontierStateForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=HomesteadStateForTesting,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
     name='TangerineWhistleVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=HomesteadStateForTesting,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
     name='SpuriousDragonVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=SpuriousDragonStateForTesting,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
     name='ByzantiumVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=SpuriousDragonStateForTesting,
 )
 
 

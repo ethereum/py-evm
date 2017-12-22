@@ -41,7 +41,7 @@ def message():
 @pytest.fixture
 def computation(message):
     computation = Computation(
-        vm=None,
+        state=None,
         message=message
     )
     return computation

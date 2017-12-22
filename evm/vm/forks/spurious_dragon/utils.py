@@ -19,7 +19,7 @@ def collect_touched_accounts(computation):
     also see: https://github.com/ethereum/EIPs/issues/716
     """
     if computation.is_origin_computation and computation.msg.gas_price == 0:
-        yield computation.vm.block.header.coinbase
+        yield computation.state.coinbase
 
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
         if computation.is_error and computation.is_origin_computation:

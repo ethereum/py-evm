@@ -20,6 +20,9 @@ from evm.rlp.headers import (
 from evm.vm.forks import (
     HomesteadVM,
 )
+from evm.vm.forks.homestead import (
+    HomesteadState,
+)
 from evm.vm import (
     Message,
     Computation,
@@ -81,9 +84,10 @@ def apply_message_for_testing(self, message):
     For VM tests, we don't actually apply messages.
     """
     computation = Computation(
-        vm=self,
+        state=self,
         message=message,
     )
+    print('yoo')
     return computation
 
 
@@ -92,9 +96,10 @@ def apply_create_message_for_testing(self, message):
     For VM tests, we don't actually apply messages.
     """
     computation = Computation(
-        vm=self,
+        state=self,
         message=message,
     )
+    print('yoo')
     return computation
 
 
@@ -107,11 +112,15 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-HomesteadVMForTesting = HomesteadVM.configure(
-    name='HomesteadVMForTesting',
-    apply_message=apply_create_message_for_testing,
+HomesteadStateForTesting = HomesteadState.configure(
+    name='HomesteadStateForTesting',
+    apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
     get_ancestor_hash=get_block_hash_for_testing,
+)
+HomesteadVMForTesting = HomesteadVM.configure(
+    name='HomesteadVMForTesting',
+    _state_class=HomesteadStateForTesting,
 )
 
 
@@ -154,7 +163,7 @@ def test_vm_fixtures(fixture, vm_class):
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.apply_computation(message)
+    computation = vm.state.apply_computation(message)
 
     if 'post' in fixture:
         #

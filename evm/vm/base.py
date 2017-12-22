@@ -8,18 +8,11 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
-from evm.exceptions import (
-    Halt,
-)
 from evm.logic.invalid import (
     InvalidOpcode,
 )
 from evm.utils.keccak import (
     keccak,
-)
-
-from .computation import (
-    Computation,
 )
 
 
@@ -92,44 +85,6 @@ class VM(object):
         Execute the transaction in the vm.
         """
         raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_create_message(self, message):
-        """
-        Execution of an VM message to create a new contract.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_message(self, message):
-        """
-        Execution of an VM message.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_computation(self, message):
-        """
-        Perform the computation that would be triggered by the VM message.
-        """
-        with Computation(self, message) as computation:
-            # Early exit on pre-compiles
-            if message.code_address in self.precompiles:
-                self.precompiles[message.code_address](computation)
-                return computation
-
-            for opcode in computation.code:
-                opcode_fn = self.get_opcode_fn(opcode)
-
-                computation.logger.trace(
-                    "OPCODE: 0x%x (%s) | pc: %s",
-                    opcode,
-                    opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
-                )
-
-                try:
-                    opcode_fn(computation=computation)
-                except Halt:
-                    break
-        return computation
 
     #
     # Mining
@@ -243,18 +198,6 @@ class VM(object):
     def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.chaindb)
 
-    def get_ancestor_hash(self, block_number):
-        """
-        Return the hash for the ancestor with the given number
-        """
-        ancestor_depth = self.block.number - block_number
-        if ancestor_depth > 256 or ancestor_depth < 1:
-            return b''
-        h = self.chaindb.get_block_header_by_hash(self.block.header.parent_hash)
-        while h.block_number != block_number:
-            h = self.chaindb.get_block_header_by_hash(h.parent_hash)
-        return h.hash
-
     #
     # Headers
     #
@@ -277,35 +220,6 @@ class VM(object):
     #
     # Snapshot and Revert
     #
-    def snapshot(self):
-        """
-        Perform a full snapshot of the current state of the VM.
-
-        Snapshots are a combination of the state_root at the time of the
-        snapshot and the checkpoint_id returned from the journaled DB.
-        """
-        return (self.block.header.state_root, self.chaindb.snapshot())
-
-    def revert(self, snapshot):
-        """
-        Revert the VM to the state at the snapshot
-        """
-        state_root, checkpoint_id = snapshot
-
-        with self.state_db() as state_db:
-            # first revert the database state root.
-            state_db.root_hash = state_root
-            # now roll the underlying database back
-            self.chaindb.revert(checkpoint_id)
-
-    def commit(self, snapshot):
-        """
-        Commits the journal to the point where the snapshot was taken.  This
-        will destroy any journal checkpoints *after* the snapshot checkpoint.
-        """
-        _, checkpoint_id = snapshot
-        self.chaindb.commit(checkpoint_id)
-
     def clear_journal(self):
         """
         Cleare the journal.  This should be called at any point of VM execution
@@ -329,7 +243,12 @@ class VM(object):
     def get_state(self):
         """Return state object
         """
-        return self.get_state_class().create_state(self.chaindb, self.block)
+        return self.get_state_class().create_state(
+            self.chaindb,
+            self.block,
+            self.opcodes,
+            self.precompiles,
+        )
 
     @property
     def state(self):
