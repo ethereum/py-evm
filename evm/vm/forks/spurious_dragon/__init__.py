@@ -19,7 +19,7 @@ def _execute_spurious_dragon_transaction(vm, transaction):
     #
     touched_accounts = collect_touched_accounts(computation)
 
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         for account in touched_accounts:
             if state_db.account_exists(account) and state_db.account_is_empty(account):
                 vm.logger.debug(

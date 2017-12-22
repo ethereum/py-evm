@@ -235,7 +235,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     chaindb = BaseChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
 
     if 'secretKey' in fixture['transaction']:
