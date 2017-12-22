@@ -14,13 +14,13 @@ from evm.logic.invalid import (
 
 class BaseState(object):
     chaindb = None
-    block = None
+    block_header = None
     opcodes = None
     precompiles = None
 
-    def __init__(self, chaindb, block, opcodes, precompiles):
+    def __init__(self, chaindb, block_header, opcodes, precompiles):
         self.chaindb = chaindb
-        self.block = block
+        self.block_header = block_header
         self.opcodes = opcodes
         self.precompiles = precompiles
 
@@ -83,42 +83,42 @@ class BaseState(object):
     #
     @property
     def blockhash(self):
-        return self.block.hash
+        return self.block_header.hash
 
     @property
     def coinbase(self):
-        return self.block.header.coinbase
+        return self.block_header.coinbase
 
     @property
     def timestamp(self):
-        return self.block.header.timestamp
+        return self.block_header.timestamp
 
     @property
     def number(self):
-        return self.block.header.block_number
+        return self.block_header.block_number
 
     @property
     def difficulty(self):
-        return self.block.header.difficulty
+        return self.block_header.difficulty
 
     @property
     def gaslimit(self):
-        return self.block.header.gas_limit
+        return self.block_header.gas_limit
 
     #
     # state_db
     #
     @contextmanager
     def state_db(self, read_only=False):
-        state = self.chaindb.get_state_db(self.block.header.state_root, read_only)
+        state = self.chaindb.get_state_db(self.block_header.state_root, read_only)
         yield state
 
         if read_only:
             # This acts as a secondary check that no mutation took place for
             # read_only databases.
-            assert state.root_hash == self.block.header.state_root
-        elif self.block.header.state_root != state.root_hash:
-            self.block.header.state_root = state.root_hash
+            assert state.root_hash == self.block_header.state_root
+        elif self.block_header.state_root != state.root_hash:
+            self.block_header.state_root = state.root_hash
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
@@ -136,7 +136,7 @@ class BaseState(object):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the checkpoint_id returned from the journaled DB.
         """
-        return (self.block.header.state_root, self.chaindb.snapshot())
+        return (self.block_header.state_root, self.chaindb.snapshot())
 
     def revert(self, snapshot):
         """
@@ -166,14 +166,17 @@ class BaseState(object):
         """
         self.chaindb.clear()
 
+    #
+    # Block Header
+    #
     def get_ancestor_hash(self, block_number):
         """
         Return the hash for the ancestor with the given number
         """
-        ancestor_depth = self.block.number - block_number
+        ancestor_depth = self.block_header.block_number - block_number
         if ancestor_depth > 256 or ancestor_depth < 1:
             return b''
-        header = self.chaindb.get_block_header_by_hash(self.block.header.parent_hash)
+        header = self.chaindb.get_block_header_by_hash(self.block_header.parent_hash)
         while header.block_number != block_number:
             header = self.chaindb.get_block_header_by_hash(header.parent_hash)
         return header.hash
@@ -182,8 +185,8 @@ class BaseState(object):
     # classmethod
     #
     @classmethod
-    def create_state(cls, chaindb, block, opcodes, precompiles):
-        return cls(chaindb, block, opcodes, precompiles)
+    def create_state(cls, chaindb, block_header, opcodes, precompiles):
+        return cls(chaindb, block_header, opcodes, precompiles)
 
     @classmethod
     def configure(cls,

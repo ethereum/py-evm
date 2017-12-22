@@ -8,9 +8,6 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
-from evm.logic.invalid import (
-    InvalidOpcode,
-)
 from evm.utils.keccak import (
     keccak,
 )
@@ -229,33 +226,8 @@ class VM(object):
         self.chaindb.clear()
 
     #
-    # Opcode API
-    #
-    def get_opcode_fn(self, opcode):
-        try:
-            return self.opcodes[opcode]
-        except KeyError:
-            return InvalidOpcode(opcode)
-
-    #
     # State
     #
-    def get_state(self):
-        """Return state object
-        """
-        return self.get_state_class().create_state(
-            self.chaindb,
-            self.block,
-            self.opcodes,
-            self.precompiles,
-        )
-
-    @property
-    def state(self):
-        """Return current state property
-        """
-        return self.get_state()
-
     @classmethod
     def get_state_class(cls):
         """
@@ -265,3 +237,19 @@ class VM(object):
             raise AttributeError("No `_state_class` has been set for this VM")
 
         return cls._state_class
+
+    def get_state(self):
+        """Return state object
+        """
+        return self.get_state_class().create_state(
+            self.chaindb,
+            self.block.header,
+            self.opcodes,
+            self.precompiles,
+        )
+
+    @property
+    def state(self):
+        """Return current state property
+        """
+        return self.get_state()

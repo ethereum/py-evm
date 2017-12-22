@@ -104,9 +104,9 @@ def apply_create_message_for_testing(self, message):
 
 
 def get_block_hash_for_testing(self, block_number):
-    if block_number >= self.block.header.block_number:
+    if block_number >= self.block_header.block_number:
         return b''
-    elif block_number < self.block.header.block_number - 256:
+    elif block_number < self.block_header.block_number - 256:
         return b''
     else:
         return keccak("{0}".format(block_number))
