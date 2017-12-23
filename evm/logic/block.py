@@ -18,7 +18,7 @@ def timestamp(computation):
 
 
 def number(computation):
-    computation.stack.push(computation.state.number)
+    computation.stack.push(computation.state.block_number)
 
 
 def difficulty(computation):
@@ -26,4 +26,4 @@ def difficulty(computation):
 
 
 def gaslimit(computation):
-    computation.stack.push(computation.state.gaslimit)
+    computation.stack.push(computation.state.gas_limit)

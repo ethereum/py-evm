@@ -94,7 +94,7 @@ class BaseState(object):
         return self.block_header.timestamp
 
     @property
-    def number(self):
+    def block_number(self):
         return self.block_header.block_number
 
     @property
@@ -102,7 +102,7 @@ class BaseState(object):
         return self.block_header.difficulty
 
     @property
-    def gaslimit(self):
+    def gas_limit(self):
         return self.block_header.gas_limit
 
     #
@@ -148,7 +148,8 @@ class BaseState(object):
             # first revert the database state root.
             state_db.root_hash = state_root
             # now roll the underlying database back
-            self.chaindb.revert(checkpoint_id)
+
+        self.chaindb.revert(checkpoint_id)
 
     def commit(self, snapshot):
         """
@@ -176,10 +177,6 @@ class BaseState(object):
     #
     # classmethod
     #
-    @classmethod
-    def create_state(cls, chaindb, block_header, opcodes, precompiles):
-        return cls(chaindb, block_header, opcodes, precompiles)
-
     @classmethod
     def configure(cls,
                   name,

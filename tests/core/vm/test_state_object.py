@@ -20,9 +20,9 @@ def test_block_properties(chain_without_block_validation):  # noqa: F811
     assert vm.state.blockhash == block.hash
     assert vm.state.coinbase == block.header.coinbase
     assert vm.state.timestamp == block.header.timestamp
-    assert vm.state.number == block.header.block_number
+    assert vm.state.block_number == block.header.block_number
     assert vm.state.difficulty == block.header.difficulty
-    assert vm.state.gaslimit == block.header.gas_limit
+    assert vm.state.gas_limit == block.header.gas_limit
 
 
 def test_state_db(state):  # noqa: F811
