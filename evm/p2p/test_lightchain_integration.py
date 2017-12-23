@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 import rlp
-
 from eth_keys import keys
 from eth_utils import (
     decode_hex,
@@ -106,6 +105,6 @@ async def test_lightchain_integration(request, event_loop):
     assert encode_hex(keccak(contract_code)) == (
         '0x1e0b2ad970b365a217c40bcf3582cbb4fcc1642d7a5dd7a82ae1e278e010123e')
 
-    proof = await chain.get_proof(head.hash, keccak(contract_addr))
-    assert proof != b''
-    # TODO: Verify the proof
+    account = await chain.get_account(head.hash, contract_addr)
+    assert account.code_hash == keccak(contract_code)
+    assert account.balance == 0

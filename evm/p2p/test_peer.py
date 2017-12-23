@@ -16,7 +16,8 @@ from evm.p2p import ecies
 from evm.p2p import kademlia
 from evm.p2p.les import (
     LESProtocol,
-    Status,
+    LESProtocolV2,
+    StatusV2,
 )
 from evm.p2p.peer import LESPeer
 from evm.p2p.protocol import Protocol
@@ -120,8 +121,8 @@ async def test_directly_linked_peers():
     peer1, peer2 = await get_directly_linked_peers()
     assert len(peer1.enabled_sub_protocols) == 1
     assert peer1.les_proto is not None
-    assert peer1.les_proto.name == LESProtocol.name
-    assert peer1.les_proto.version == LESProtocol.version
+    assert peer1.les_proto.name == LESProtocolV2.name
+    assert peer1.les_proto.version == LESProtocolV2.version
     assert [(proto.name, proto.version) for proto in peer1.enabled_sub_protocols] == [
         (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
 
@@ -136,11 +137,11 @@ def get_fresh_mainnet_chaindb():
 async def test_les_handshake():
     peer1, peer2 = await get_directly_linked_peers()
     # The peers above have already performed the sub-protocol agreement, and sent the handshake
-    # msg for each enabled sub protocol -- in this case that's the Status msg of the LES protocol.
+    # msg for each enabled sub protocol -- in this case that's the Status msg of the LES/2 protocol.
     msg = await peer1.read_msg()
     cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
     proto = peer1.get_protocol_for(cmd_id)
-    assert cmd_id == proto.cmd_by_class[Status].cmd_id
+    assert cmd_id == proto.cmd_by_class[StatusV2].cmd_id
 
 
 def test_sub_protocol_matching():
@@ -161,13 +162,6 @@ def test_sub_protocol_matching():
 
     assert isinstance(les_proto, LESProtocolV2)
     assert les_proto.cmd_id_offset == peer.base_protocol.cmd_length + eth_proto.cmd_length
-
-
-class LESProtocolV2(LESProtocol):
-    version = 2
-
-    def send_handshake(self):
-        pass
 
 
 class LESProtocolV3(LESProtocol):
