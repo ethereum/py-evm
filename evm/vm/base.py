@@ -237,7 +237,7 @@ class VM(object):
     def get_state(self):
         """Return state object
         """
-        return self.get_state_class().create_state(
+        return self.get_state_class()(
             self.chaindb,
             self.block.header,
             self.opcodes,
