@@ -175,3 +175,9 @@ NONCE_TRIE_PREFIX = b'\x00'
 BALANCE_TRIE_PREFIX = b'\x01'
 CODE_TRIE_PREFIX = b'\x02'
 STORAGE_TRIE_PREFIX = b'\x03'
+
+
+#
+# Account Abstraction
+#
+ENTRY_POINT = 20 * b'\xff'
