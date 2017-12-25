@@ -24,13 +24,7 @@ class TesterMainchainHandler(MainchainHandler):
     def direct_tx(self, tx):
         raw_tx = rlp.encode(tx)
         raw_tx_hex = self.w3.toHex(raw_tx)
-        try:
-            tx_hash = self.w3.eth.sendRawTransaction(raw_tx_hex)
-        except ValueError:
-            # FIXME: if `sendRawTransaction` is not implemented, `ValueError` is raised
-            #        In this situation, if we used `eth_tester`, try again directly with
-            #        `self._eth_tester.backend.chain.apply_transaction`
-            tx_hash = self.w3.providers[0].ethereum_tester.backend.chain.apply_transaction(tx)
+        tx_hash = self.w3.eth.sendRawTransaction(raw_tx_hex)
         return tx_hash
 
 
