@@ -2,8 +2,6 @@ import rlp
 
 
 class BaseBlock(rlp.Serializable):
-    db = None
-
     @classmethod
     def configure(cls, **overrides):
         class_name = cls.__name__
@@ -37,12 +35,6 @@ class BaseBlock(rlp.Serializable):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def get_parent_header(self):
-        """
-        Returns the header for the parent block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     @property
     def hash(self):
         raise NotImplementedError("Must be implemented by subclasses")
@@ -54,21 +46,6 @@ class BaseBlock(rlp.Serializable):
     @property
     def is_genesis(self):
         return self.number == 0
-
-    def validate(self):
-        pass
-
-    def add_transaction(self, transaction, computation):
-        """
-        Adds the given transaction to the current block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def mine(self, *args, **kwargs):
-        """
-        Mines the block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
     def __repr__(self):
         return '<{class_name}(#{b})>'.format(

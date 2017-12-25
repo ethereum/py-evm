@@ -657,7 +657,7 @@ def apply_fixture_block_to_chain(block_fixture, chain):
     else:
         block_class = chain.get_vm().get_block_class()
 
-    block = rlp.decode(block_fixture['rlp'], sedes=block_class, chaindb=chain.chaindb)
+    block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
     mined_block = chain.import_block(block)
 

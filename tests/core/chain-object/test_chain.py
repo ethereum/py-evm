@@ -16,7 +16,7 @@ from tests.core.helpers import new_transaction
 
 
 def test_import_block_validation(chain):  # noqa: F811
-    block = rlp.decode(valid_block_rlp, sedes=FrontierBlock, chaindb=chain.chaindb)
+    block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
     imported_block = chain.import_block(block)
     assert len(imported_block.transactions) == 1
     tx = imported_block.transactions[0]
@@ -53,7 +53,7 @@ def test_canonical_chain(chain):  # noqa: F811
     # the canonical chain.
     assert chain.get_canonical_head() == genesis_header
 
-    block = rlp.decode(valid_block_rlp, sedes=FrontierBlock, chaindb=chain.chaindb)
+    block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
     chain.chaindb.persist_header_to_db(block.header)
 
     assert chain.get_canonical_head() == block.header

@@ -64,18 +64,49 @@ class VM(object):
     #
     # Execution
     #
+    def add_transaction(self, transaction, computation):
+        """
+        Add a transaction to the given block.
+        """
+        receipt = self.make_receipt(transaction, computation)
+
+        transaction_idx = len(self.block.transactions)
+
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+
+        self.block.transactions.append(transaction)
+
+        tx_root_hash = self.chaindb.add_transaction(self.block.header, index_key, transaction)
+        receipt_root_hash = self.chaindb.add_receipt(self.block.header, index_key, receipt)
+
+        self.block.bloom_filter |= receipt.bloom
+
+        self.block.header.transaction_root = tx_root_hash
+        self.block.header.receipt_root = receipt_root_hash
+        self.block.header.bloom = int(self.block.bloom_filter)
+        self.block.header.gas_used = receipt.gas_used
+
+        # Return `self.block`, not `block`
+        return self.block
+
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
         computation = self.execute_transaction(transaction)
         self.clear_journal()
-        self.block.add_transaction(transaction, computation)
+        self.add_transaction(transaction, computation)
         return computation
 
     def execute_transaction(self, transaction):
         """
         Execute the transaction in the vm.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def make_receipt(self, transaction, computation):
+        """
+        Make receipt.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -119,7 +150,7 @@ class VM(object):
         See example with FrontierBlock. :meth:`~evm.vm.forks.frontier.blocks.FrontierBlock.mine`
         """
         block = self.block
-        block.mine(*args, **kwargs)
+        self.pack_block(block, *args, **kwargs)
 
         if block.number == 0:
             return block
@@ -146,6 +177,12 @@ class VM(object):
                 )
 
         return block
+
+    def pack_block(self, block, *args, **kwargs):
+        """
+        Pack block for mining.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Transactions
@@ -177,7 +214,6 @@ class VM(object):
     #
     # Blocks
     #
-
     @classmethod
     def get_block_class(cls):
         """
@@ -190,6 +226,37 @@ class VM(object):
 
     def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.chaindb)
+
+    def get_parent_header(self, block_header):
+        """
+        Returns the header for the parent block.
+        """
+        return self.chaindb.get_block_header_by_hash(block_header.parent_hash)
+
+    def validate_block(self, block):
+        """
+        Validate the block.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def validate_uncle(self, block, uncle):
+        """
+        Validate the uncle.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Gas Usage API
+    #
+    def get_cumulative_gas_used(self, block):
+        """
+        Note return value of this function can be cached based on
+        `self.receipt_db.root_hash`
+        """
+        if len(block.transactions):
+            return block.get_receipts(self.chaindb)[-1].gas_used
+        else:
+            return 0
 
     #
     # Headers

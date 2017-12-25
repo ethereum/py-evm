@@ -4,6 +4,9 @@ from cytoolz import (
 
 from evm import precompiles
 from evm.constants import MAX_UNCLE_DEPTH
+from evm.rlp.receipts import (
+    Receipt,
+)
 from evm.utils.address import (
     force_bytes_to_address,
 )
@@ -11,7 +14,10 @@ from evm.validation import (
     validate_lte,
 )
 
-from ..frontier import FRONTIER_PRECOMPILES
+from ..frontier import (
+    FRONTIER_PRECOMPILES,
+    _make_frontier_receipt,
+)
 from ..spurious_dragon import SpuriousDragonVM
 from ..spurious_dragon.computation import SpuriousDragonComputation
 
@@ -45,6 +51,16 @@ def _byzantium_get_uncle_reward(block_number, uncle):
     return (8 - block_number_delta) * EIP649_BLOCK_REWARD // 8
 
 
+def make_byzantium_receipt(vm, transaction, computation):
+    old_receipt = _make_frontier_receipt(vm, transaction, computation)
+    receipt = Receipt(
+        state_root=b'' if computation.is_error else b'\x01',
+        gas_used=old_receipt.gas_used,
+        logs=old_receipt.logs,
+    )
+    return receipt
+
+
 ByzantiumVM = SpuriousDragonVM.configure(
     name='ByzantiumVM',
     # precompiles
@@ -60,4 +76,5 @@ ByzantiumVM = SpuriousDragonVM.configure(
     configure_header=configure_byzantium_header,
     get_block_reward=staticmethod(_byzantium_get_block_reward),
     get_uncle_reward=staticmethod(_byzantium_get_uncle_reward),
+    make_receipt=make_byzantium_receipt,
 )
