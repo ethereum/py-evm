@@ -162,7 +162,7 @@ class BaseShardingTransaction(rlp.Serializable):
     fields = [
         ('chain_id', big_endian_int),
         ('shard_id', big_endian_int),
-        ('target', address),
+        ('to', address),
         ('data', binary),
         ('start_gas', big_endian_int),
         ('gas_price', big_endian_int),
@@ -173,3 +173,32 @@ class BaseShardingTransaction(rlp.Serializable):
     @property
     def hash(self):
         return keccak(rlp.encode(self))
+
+    #
+    # Validation
+    #
+    def validate(self):
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
+        if self.intrensic_gas > self.gas:
+            raise ValidationError("Insufficient gas")
+
+    @property
+    def intrensic_gas(self):
+        """
+        Convenience property for the return value of `get_intrensic_gas`
+        """
+        return self.get_intrensic_gas()
+
+    #
+    # Base gas costs
+    #
+    def get_intrensic_gas(self):
+        """
+        Compute the baseline gas cost for this transaction.  This is the amount
+        of gas needed to send this transaction (but that is not actually used
+        for computation).
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
