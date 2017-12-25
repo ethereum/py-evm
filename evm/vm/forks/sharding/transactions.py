@@ -1,3 +1,8 @@
+from evm.constants import (
+    GAS_TX,
+    GAS_TXDATAZERO,
+    GAS_TXDATANONZERO,
+)
 from evm.validation import (
     validate_uint256,
     validate_is_bytes,
@@ -26,4 +31,17 @@ class ShardingTransaction(BaseShardingTransaction):
 
         validate_is_bytes(self.code, title="Transaction.code")
 
-        super().validate()
+        super(ShardingTransaction, self).validate()
+
+    def get_intrensic_gas(self):
+        return _get_sharding_intrensic_gas(self.data, self.code)
+
+
+def _get_sharding_intrensic_gas(transaction_data, transaction_code):
+    num_zero_bytes = transaction_data.count(b'\x00') + transaction_code.count(b'\x00')
+    num_non_zero_bytes = len(transaction_data) + len(transaction_code) - num_zero_bytes
+    return (
+        GAS_TX +
+        num_zero_bytes * GAS_TXDATAZERO +
+        num_non_zero_bytes * GAS_TXDATANONZERO
+    )
