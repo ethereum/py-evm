@@ -24,9 +24,9 @@ from evm.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
 )
-from evm.vm.forks.frontier import FrontierState
-from evm.vm.forks.homestead import HomesteadState
-from evm.vm.forks.spurious_dragon import SpuriousDragonState
+from evm.vm.forks.frontier import FrontierVMState
+from evm.vm.forks.homestead import HomesteadVMState
+from evm.vm.forks.spurious_dragon import SpuriousDragonVMState
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -167,38 +167,38 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-FrontierStateForTesting = FrontierState.configure(
-    name='FrontierStateForTesting',
+FrontierVMStateForTesting = FrontierVMState.configure(
+    name='FrontierVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-HomesteadStateForTesting = HomesteadState.configure(
-    name='HomesteadStateForTesting',
+HomesteadVMStateForTesting = HomesteadVMState.configure(
+    name='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-SpuriousDragonStateForTesting = SpuriousDragonState.configure(
-    name='SpuriousDragonStateForTesting',
+SpuriousDragonVMStateForTesting = SpuriousDragonVMState.configure(
+    name='SpuriousDragonVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
-    _state_class=FrontierStateForTesting,
+    _state_class=FrontierVMStateForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    _state_class=HomesteadStateForTesting,
+    _state_class=HomesteadVMStateForTesting,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
     name='TangerineWhistleVMForTesting',
-    _state_class=HomesteadStateForTesting,
+    _state_class=HomesteadVMStateForTesting,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
     name='SpuriousDragonVMForTesting',
-    _state_class=SpuriousDragonStateForTesting,
+    _state_class=SpuriousDragonVMStateForTesting,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
     name='ByzantiumVMForTesting',
-    _state_class=SpuriousDragonStateForTesting,
+    _state_class=SpuriousDragonVMStateForTesting,
 )
 
 

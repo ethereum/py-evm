@@ -21,7 +21,7 @@ from evm.vm.forks import (
     HomesteadVM,
 )
 from evm.vm.forks.homestead import (
-    HomesteadState,
+    HomesteadVMState,
 )
 from evm.vm import (
     Message,
@@ -112,15 +112,15 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-HomesteadStateForTesting = HomesteadState.configure(
-    name='HomesteadStateForTesting',
+HomesteadVMStateForTesting = HomesteadVMState.configure(
+    name='HomesteadVMStateForTesting',
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
     get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    _state_class=HomesteadStateForTesting,
+    _state_class=HomesteadVMStateForTesting,
 )
 
 

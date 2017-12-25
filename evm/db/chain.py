@@ -24,7 +24,7 @@ from evm.db.journal import (
     JournalDB,
 )
 from evm.db.state import (
-    State,
+    AccountStateDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -243,4 +243,4 @@ class BaseChainDB:
         self.db.clear()
 
     def get_state_db(self, state_root, read_only):
-        return State(db=self.db, root_hash=state_root, read_only=read_only)
+        return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)

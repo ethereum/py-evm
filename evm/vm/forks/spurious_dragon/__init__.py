@@ -6,7 +6,7 @@ from ..frontier import _execute_frontier_transaction
 from ..homestead import HomesteadVM
 
 from .blocks import SpuriousDragonBlock
-from .state import SpuriousDragonState
+from .state import SpuriousDragonVMState
 from .opcodes import SPURIOUS_DRAGON_OPCODES
 from .utils import collect_touched_accounts
 
@@ -35,7 +35,7 @@ SpuriousDragonVM = HomesteadVM.configure(
     name='SpuriousDragonVM',
     # rlp classes
     _block_class=SpuriousDragonBlock,
-    _state_class=SpuriousDragonState,
+    _state_class=SpuriousDragonVMState,
     # opcodes
     opcodes=SPURIOUS_DRAGON_OPCODES,
     execute_transaction=_execute_spurious_dragon_transaction,
