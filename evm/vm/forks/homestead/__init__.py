@@ -6,7 +6,7 @@ from ..frontier import FrontierVM
 
 from .opcodes import HOMESTEAD_OPCODES
 from .blocks import HomesteadBlock
-from .state import HomesteadState
+from .state import HomesteadVMState
 from .validation import validate_homestead_transaction
 from .headers import (
     create_homestead_header_from_parent,
@@ -23,7 +23,7 @@ HomesteadVM = MetaHomesteadVM.configure(
     name='HomesteadVM',
     opcodes=HOMESTEAD_OPCODES,
     _block_class=HomesteadBlock,
-    _state_class=HomesteadState,
+    _state_class=HomesteadVMState,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),

@@ -9,11 +9,11 @@ from evm.utils.keccak import (
     keccak,
 )
 from ..frontier.state import (
-    FrontierState,
+    FrontierVMState,
 )
 
 
-class HomesteadState(FrontierState):
+class HomesteadVMState(FrontierVMState):
     def apply_create_message(self, message):
         snapshot = self.snapshot()
 

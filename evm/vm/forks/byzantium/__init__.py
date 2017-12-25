@@ -13,7 +13,7 @@ from evm.validation import (
 
 from ..frontier import FRONTIER_PRECOMPILES
 from ..spurious_dragon import SpuriousDragonVM
-from ..spurious_dragon.state import SpuriousDragonState
+from ..spurious_dragon.state import SpuriousDragonVMState
 
 from .constants import EIP649_BLOCK_REWARD
 from .headers import (
@@ -52,7 +52,7 @@ ByzantiumVM = SpuriousDragonVM.configure(
     # opcodes
     opcodes=BYZANTIUM_OPCODES,
     # State
-    _state_class=SpuriousDragonState,
+    _state_class=SpuriousDragonVMState,
     # RLP
     _block_class=ByzantiumBlock,
     # Methods

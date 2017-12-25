@@ -5,7 +5,7 @@ from evm.exceptions import (
     StackDepthLimit,
 )
 from evm.state import (
-    BaseState
+    BaseVMState
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -15,7 +15,7 @@ from evm.utils.keccak import (
 )
 
 
-class FrontierState(BaseState):
+class FrontierVMState(BaseVMState):
     def apply_message(self, message):
         snapshot = self.snapshot()
 

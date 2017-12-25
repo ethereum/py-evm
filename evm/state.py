@@ -12,7 +12,7 @@ from evm.logic.invalid import (
 )
 
 
-class BaseState(object):
+class BaseVMState(object):
     chaindb = None
     block_header = None
     opcodes = None

@@ -10,11 +10,11 @@ from evm.utils.keccak import (
 )
 from .constants import EIP170_CODE_SIZE_LIMIT
 from ..homestead.state import (
-    HomesteadState,
+    HomesteadVMState,
 )
 
 
-class SpuriousDragonState(HomesteadState):
+class SpuriousDragonVMState(HomesteadVMState):
     def apply_create_message(self, message):
         snapshot = self.snapshot()
 

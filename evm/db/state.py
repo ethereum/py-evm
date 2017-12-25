@@ -35,7 +35,7 @@ from evm.utils.padding import (
 from .hash_trie import HashTrie
 
 
-class State:
+class AccountStateDB:
     """
     High level API around account storage.
     """
