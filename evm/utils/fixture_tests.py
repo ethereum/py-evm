@@ -34,7 +34,7 @@ from evm.constants import (
 
 from evm.vm.forks import (
     ByzantiumVM,
-    EIP150VM,
+    TangerineWhistleVM,
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
@@ -568,7 +568,7 @@ def chain_vm_configuration(fixture):
         )
     elif network == 'EIP150':
         return (
-            (0, EIP150VM),
+            (0, TangerineWhistleVM),
         )
     elif network == 'EIP158':
         return (
@@ -588,7 +588,7 @@ def chain_vm_configuration(fixture):
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
             (0, HomesteadVM),
-            (5, EIP150VM),
+            (5, TangerineWhistleVM),
         )
     elif network == 'HomesteadToDaoAt5':
         HomesteadVM = BaseHomesteadVM.configure(

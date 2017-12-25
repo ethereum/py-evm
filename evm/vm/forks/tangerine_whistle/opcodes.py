@@ -2,7 +2,7 @@ import copy
 
 from cytoolz import merge
 
-from evm.vm.forks.eip150 import constants
+from evm.vm.forks.tangerine_whistle import constants
 from evm.constants import GAS_CREATE
 from evm import opcode_values
 from evm import mnemonics
@@ -68,7 +68,7 @@ UPDATED_OPCODES = {
 }
 
 
-EIP150_OPCODES = merge(
+TANGERINE_WHISTLE_OPCODES = merge(
     copy.deepcopy(HOMESTEAD_OPCODES),
     UPDATED_OPCODES,
 )

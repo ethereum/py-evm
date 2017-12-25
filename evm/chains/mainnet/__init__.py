@@ -3,7 +3,7 @@ from eth_utils import decode_hex
 from evm import constants
 from .constants import (
     BYZANTIUM_MAINNET_BLOCK,
-    EIP150_MAINNET_BLOCK,
+    TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
 )
@@ -11,7 +11,7 @@ from .constants import (
 from evm.chains.chain import Chain
 from evm.rlp.headers import BlockHeader
 from evm.vm.forks import (
-    EIP150VM,
+    TangerineWhistleVM,
     FrontierVM,
     HomesteadVM,
     SpuriousDragonVM,
@@ -22,7 +22,7 @@ from evm.vm.forks import (
 MAINNET_VM_CONFIGURATION = (
     (0, FrontierVM),
     (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
-    (EIP150_MAINNET_BLOCK, EIP150VM),
+    (TANGERINE_WHISTLE_MAINNET_BLOCK, TangerineWhistleVM),
     (SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
 )

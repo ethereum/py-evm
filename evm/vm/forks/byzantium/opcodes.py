@@ -4,7 +4,7 @@ import functools
 from cytoolz import merge
 
 from evm import constants
-from evm.vm.forks.eip150.constants import (
+from evm.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
     GAS_SELFDESTRUCT_EIP150
 )
