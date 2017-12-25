@@ -1,7 +1,7 @@
 import logging
 
 from evm.constants import (
-    CREATE_CONTRACT_ADDRESS,
+    ENTRY_POINT,
 )
 from evm.validation import (
     validate_canonical_address,
@@ -52,11 +52,11 @@ class Message(object):
         validate_uint256(gas, title="Message.gas")
         self.gas = gas
 
-        if to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(to, title="Message.to")
+        validate_canonical_address(to, title="Message.to")
         self.to = to
 
-        validate_canonical_address(sender, title="Message.sender")
+        if sender != ENTRY_POINT:
+            validate_canonical_address(sender, title="Message.sender")
         self.sender = sender
 
         validate_uint256(value, title="Message.value")
@@ -114,4 +114,4 @@ class Message(object):
 
     @property
     def is_create(self):
-        return self.to == CREATE_CONTRACT_ADDRESS
+        return self.code is not None
