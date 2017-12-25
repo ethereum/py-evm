@@ -1,13 +1,17 @@
-from evm import constants
+from evm.constants import (
+    ENTRY_POINT,
+    STACK_DEPTH_LIMIT,
+)
 
 from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
     ContractCreationCollision,
+    OutOfGas,
 )
 
 from evm.vm.message import (
-    Message,
+    ShardingMessage,
 )
 from evm.vm.computation import (
     Computation,
@@ -24,6 +28,13 @@ from evm.utils.keccak import (
 )
 
 from ..byzantium import ByzantiumVM
+from ..spurious_dragon.constants import (
+    EIP170_CODE_SIZE_LIMIT,
+    GAS_CODEDEPOSIT,
+)
+from ..frontier.constants import (
+    REFUND_SELFDESTRUCT,
+)
 from .validation import validate_sharding_transaction
 from .blocks import ShardingBlock
 
@@ -70,11 +81,11 @@ def _execute_sharding_transaction(vm, transaction):
         encode_hex(keccak(transaction.code)),
     )
 
-    message = Message(
+    message = ShardingMessage(
         gas=message_gas,
         gas_price=transaction.gas_price,
         to=transaction.to,
-        sender=constants.ENTRY_POINT,
+        sender=ENTRY_POINT,
         value=0,
         data=data,
         code=code,
@@ -112,7 +123,7 @@ def _execute_sharding_transaction(vm, transaction):
     # Self Destruct Refunds
     num_deletions = len(computation.get_accounts_for_deletion())
     if num_deletions:
-        computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
+        computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
     # Gas Refunds
     gas_remaining = computation.get_gas_remaining()
@@ -159,7 +170,7 @@ def _execute_sharding_transaction(vm, transaction):
 def _apply_sharding_message(vm, message):
     snapshot = vm.snapshot()
 
-    if message.depth > constants.STACK_DEPTH_LIMIT:
+    if message.depth > STACK_DEPTH_LIMIT:
         raise StackDepthLimit("Stack depth limit reached")
 
     if message.should_transfer_value and message.value:
@@ -194,12 +205,62 @@ def _apply_sharding_message(vm, message):
     return computation
 
 
+def _apply_sharding_create_message(vm, message):
+    # Remove EIP160 nonce increment but keep EIP170 contract code size limit
+    snapshot = vm.snapshot()
+
+    computation = vm.apply_message(message)
+
+    if computation.is_error:
+        vm.revert(snapshot)
+        return computation
+    else:
+        contract_code = computation.output
+
+        if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
+            computation._error = OutOfGas(
+                "Contract code size exceeds EIP170 limit of {0}.  Got code of "
+                "size: {1}".format(
+                    EIP170_CODE_SIZE_LIMIT,
+                    len(contract_code),
+                )
+            )
+            vm.revert(snapshot)
+        elif contract_code:
+            contract_code_gas_cost = len(contract_code) * GAS_CODEDEPOSIT
+            try:
+                computation.gas_meter.consume_gas(
+                    contract_code_gas_cost,
+                    reason="Write contract code for CREATE",
+                )
+            except OutOfGas as err:
+                # Different from Frontier: reverts state on gas failure while
+                # writing contract code.
+                computation._error = err
+                vm.revert(snapshot)
+            else:
+                if vm.logger:
+                    vm.logger.debug(
+                        "SETTING CODE: %s -> length: %s | hash: %s",
+                        encode_hex(message.storage_address),
+                        len(contract_code),
+                        encode_hex(keccak(contract_code))
+                    )
+
+                with vm.state_db() as state_db:
+                    state_db.set_code(message.storage_address, contract_code)
+                vm.commit(snapshot)
+        else:
+            vm.commit(snapshot)
+        return computation
+
+
 ShardingVM = ByzantiumVM.configure(
     name='ShardingVM',
-    # rlp
     _block_class=ShardingBlock,
-    # Method
+    # Method overrides
     validate_transaction=validate_sharding_transaction,
     apply_message=_apply_sharding_message,
+    apply_create_message=_apply_sharding_create_message,
     execute_transaction=_execute_sharding_transaction,
 )
