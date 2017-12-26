@@ -18,7 +18,7 @@ from evm.exceptions import (
     ValidationError,
 )
 from evm.vm.forks import (
-    EIP150VM,
+    TangerineWhistleVM,
     FrontierVM,
     HomesteadVM,
     SpuriousDragonVM,
@@ -172,8 +172,8 @@ HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-EIP150VMForTesting = EIP150VM.configure(
-    name='EIP150VMForTesting',
+TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
+    name='TangerineWhistleVMForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
@@ -194,7 +194,7 @@ def fixture_vm_class(fixture_data):
     elif fork_name == 'Homestead':
         return HomesteadVMForTesting
     elif fork_name == 'EIP150':
-        return EIP150VMForTesting
+        return TangerineWhistleVMForTesting
     elif fork_name == 'EIP158':
         return SpuriousDragonVMForTesting
     elif fork_name == 'Byzantium':

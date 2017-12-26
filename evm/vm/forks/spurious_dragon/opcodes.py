@@ -2,7 +2,7 @@ import copy
 
 from cytoolz import merge
 
-from evm.vm.forks.eip150.constants import (
+from evm.vm.forks.tangerine_whistle.constants import (
     GAS_SELFDESTRUCT_EIP150,
     GAS_CALL_EIP150
 )
@@ -17,7 +17,7 @@ from evm.logic import (
     call,
 )
 
-from evm.vm.forks.eip150.opcodes import EIP150_OPCODES
+from evm.vm.forks.tangerine_whistle.opcodes import TANGERINE_WHISTLE_OPCODES
 
 from .constants import (
     GAS_EXP_EIP160,
@@ -45,6 +45,6 @@ UPDATED_OPCODES = {
 
 
 SPURIOUS_DRAGON_OPCODES = merge(
-    copy.deepcopy(EIP150_OPCODES),
+    copy.deepcopy(TANGERINE_WHISTLE_OPCODES),
     UPDATED_OPCODES,
 )

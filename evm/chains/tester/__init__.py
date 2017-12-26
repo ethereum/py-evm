@@ -11,7 +11,7 @@ from evm.chains.chain import Chain
 from evm.vm.forks import (
     FrontierVM as BaseFrontierVM,
     HomesteadVM as BaseHomesteadVM,
-    EIP150VM as BaseEIP150VM,
+    TangerineWhistleVM as BaseTangerineWhistleVM,
     SpuriousDragonVM as BaseSpuriousDragonVM,
 )
 
@@ -41,7 +41,7 @@ class BaseHomesteadTesterVM(MaintainGasLimitMixin, BaseHomesteadVM):
     pass
 
 
-class EIP150TesterVM(MaintainGasLimitMixin, BaseEIP150VM):
+class TangerineWhistleTesterVM(MaintainGasLimitMixin, BaseTangerineWhistleVM):
     pass
 
 
@@ -58,13 +58,13 @@ INVALID_FORK_ACTIVATION_MSG = (
 @reversed_return
 def _generate_vm_configuration(homestead_start_block=None,
                                dao_start_block=None,
-                               eip150_start_block=None,
+                               tangerine_whistle_start_block=None,
                                spurious_dragon_block=None):
     # If no explicit configuration has been passed, configure the vm to start
     # with the latest fork rules at block 0
     no_declared_blocks = (
         spurious_dragon_block is None and
-        eip150_start_block is None and
+        tangerine_whistle_start_block is None and
         homestead_start_block is None
     )
     if no_declared_blocks:
@@ -75,18 +75,18 @@ def _generate_vm_configuration(homestead_start_block=None,
 
         remaining_blocks_not_declared = (
             homestead_start_block is None and
-            eip150_start_block is None
+            tangerine_whistle_start_block is None
         )
         if spurious_dragon_block > 0 and remaining_blocks_not_declared:
-            yield (0, EIP150TesterVM)
+            yield (0, TangerineWhistleTesterVM)
 
-    if eip150_start_block is not None:
-        yield (eip150_start_block, EIP150TesterVM)
+    if tangerine_whistle_start_block is not None:
+        yield (tangerine_whistle_start_block, TangerineWhistleTesterVM)
 
         # If the EIP150 rules do not start at block 0 and homestead_start_block has not
         # been configured for a specific block, configure homestead_start_block to start at
         # block 0.
-        if eip150_start_block > 0 and homestead_start_block is None:
+        if tangerine_whistle_start_block > 0 and homestead_start_block is None:
             HomesteadTesterVM = BaseHomesteadTesterVM.configure(
                 dao_fork_block_number=0,
             )
@@ -132,7 +132,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
     def configure_forks(self,
                         homestead_start_block=None,
                         dao_start_block=None,
-                        eip150_start_block=None,
+                        tangerine_whistle_start_block=None,
                         spurious_dragon_block=None):
         """
         TODO: add support for state_cleanup
@@ -140,7 +140,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
         vm_configuration = _generate_vm_configuration(
             homestead_start_block=homestead_start_block,
             dao_start_block=dao_start_block,
-            eip150_start_block=eip150_start_block,
+            tangerine_whistle_start_block=tangerine_whistle_start_block,
             spurious_dragon_block=spurious_dragon_block,
         )
         self.vms_by_range = generate_vms_by_range(vm_configuration)

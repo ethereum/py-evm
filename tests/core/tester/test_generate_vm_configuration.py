@@ -10,7 +10,7 @@ from evm.chains.tester import (
 class Forks(enum.Enum):
     Frontier = 0
     Homestead = 1
-    EIP150 = 2
+    TangerineWhistle = 2
     SpuriousDragon = 3
 
 
@@ -23,18 +23,18 @@ class Forks(enum.Enum):
         ),
         (
             dict(spurious_dragon_block=1),
-            ((0, Forks.EIP150), (1, Forks.SpuriousDragon)),
+            ((0, Forks.TangerineWhistle), (1, Forks.SpuriousDragon)),
         ),
         (
-            dict(eip150_start_block=1, spurious_dragon_block=2),
-            ((0, Forks.Homestead), (1, Forks.EIP150), (2, Forks.SpuriousDragon)),
+            dict(tangerine_whistle_start_block=1, spurious_dragon_block=2),
+            ((0, Forks.Homestead), (1, Forks.TangerineWhistle), (2, Forks.SpuriousDragon)),
         ),
         (
-            dict(homestead_start_block=1, eip150_start_block=2, spurious_dragon_block=3),
+            dict(homestead_start_block=1, tangerine_whistle_start_block=2, spurious_dragon_block=3),
             (
                 (0, Forks.Frontier),
                 (1, Forks.Homestead),
-                (2, Forks.EIP150),
+                (2, Forks.TangerineWhistle),
                 (3, Forks.SpuriousDragon),
             ),
         ),
@@ -47,8 +47,8 @@ class Forks(enum.Enum):
             ),
         ),
         (
-            dict(eip150_start_block=1),
-            ((0, Forks.Homestead), (1, Forks.EIP150)),
+            dict(tangerine_whistle_start_block=1),
+            ((0, Forks.Homestead), (1, Forks.TangerineWhistle)),
         ),
         (
             dict(homestead_start_block=1),
@@ -63,8 +63,8 @@ class Forks(enum.Enum):
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            dict(homestead_start_block=1, eip150_start_block=2),
-            ((0, Forks.Frontier), (1, Forks.Homestead), (2, Forks.EIP150)),
+            dict(homestead_start_block=1, tangerine_whistle_start_block=2),
+            ((0, Forks.Frontier), (1, Forks.Homestead), (2, Forks.TangerineWhistle)),
         ),
     ),
 )
@@ -91,8 +91,8 @@ def test_generate_vm_configuration(kwargs, expected):
             else:
                 assert left_vm.support_dao_fork is True
                 assert left_vm.dao_fork_block_number == dao_start_block
-        elif right_vm == Forks.EIP150:
-            assert 'EIP150' in left_vm.__name__
+        elif right_vm == Forks.TangerineWhistle:
+            assert 'TangerineWhistle' in left_vm.__name__
         elif right_vm == Forks.SpuriousDragon:
             assert 'SpuriousDragon' in left_vm.__name__
         else:
