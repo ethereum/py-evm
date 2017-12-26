@@ -26,6 +26,58 @@ class VMC(Contract):
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
     @to_dict
+    def mk_build_transaction_detail(self,
+                                    nonce,
+                                    gas,
+                                    chain_id=None,
+                                    value=None,
+                                    gas_price=None,
+                                    data=None):
+        if not (isinstance(nonce, int) and nonce > 0):
+            raise ValueError('nonce should be provided as non-negative integer')
+        if not (isinstance(gas, int) and gas > 0):
+            raise ValueError('gas should be provided as positive integer')
+        yield 'nonce', nonce
+        yield 'gas', gas
+        yield 'chainId', chain_id
+        if value is not None:
+            yield 'value', value
+        if gas_price is not None:
+            yield 'gas_price', gas_price
+        if data is not None:
+            yield 'data', data
+
+    def send_tx(self,
+                func_name,
+                args,
+                privkey,
+                nonce=None,
+                chain_id=None,
+                gas=TX_GAS,
+                value=0,
+                gas_price=GASPRICE,
+                data=None):
+        if nonce is None:
+            nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
+        build_transaction_detail = self.mk_build_transaction_detail(
+            nonce=nonce,
+            gas=gas,
+            chain_id=chain_id,
+            value=value,
+            gas_price=gas_price,
+            data=data,
+        )
+        build_transaction_instance = self.buildTransaction(build_transaction_detail)
+        func_instance = getattr(build_transaction_instance, func_name)
+        unsigned_transaction = func_instance(*args)
+        signed_transaction_dict = self.web3.eth.account.signTransaction(
+            unsigned_transaction,
+            privkey.to_hex(),
+        )
+        tx_hash = self.web3.eth.sendRawTransaction(signed_transaction_dict['rawTransaction'])
+        return tx_hash
+
+    @to_dict
     def mk_contract_tx_detail(self,
                               sender_addr,
                               gas,

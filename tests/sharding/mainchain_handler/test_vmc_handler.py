@@ -37,6 +37,7 @@ from evm.chains.sharding.mainchain_handler import (
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
+    DEPOSIT_SIZE,
     PERIOD_LENGTH,
     TX_GAS,
 )
@@ -79,7 +80,14 @@ def do_withdraw(vmc_handler, chain_handler, validator_index):
     privkey = test_keys[validator_index]
     sender_addr = privkey.public_key.to_canonical_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
-    vmc_handler.withdraw(validator_index, signature, sender_addr)
+    vmc_handler.send_tx(
+        'withdraw',
+        [
+            validator_index,
+            signature,
+        ],
+        privkey,
+    )
     chain_handler.mine(1)
 
 
@@ -100,7 +108,15 @@ def deploy_valcode_and_deposit(vmc_handler, chain_handler, key):
     chain_handler.unlock_account(address, PASSPHRASE)
     chain_handler.deploy_contract(valcode, address)
     chain_handler.mine(1)
-    vmc_handler.deposit(valcode_addr, address, sender_addr=address)
+    vmc_handler.send_tx(
+        'deposit',
+        [
+            to_checksum_address(valcode_addr),
+            to_checksum_address(address),
+        ],
+        key,
+        value=DEPOSIT_SIZE,
+    )
     return valcode_addr
 
 
@@ -185,6 +201,7 @@ def get_testing_colhdr(vmc_handler,
 def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     shard_id = 0
     validator_index = 0
+    primary_key = test_keys[validator_index]
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     default_gas = TX_GAS
 
@@ -272,7 +289,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
             gas_price=1,
         )).add_header(header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    vmc.add_header(header1, primary_addr)
+    vmc.send_tx('add_header', [header1], primary_key)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
     # if a header is added before, the second trial should fail
     with pytest.raises(BadFunctionCallOutput):
@@ -284,7 +301,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     # when a valid header is added, the `add_header` call should succeed
     header2 = get_testing_colhdr(vmc, mainchain_handler, shard_id, header1_hash, 2)
     header2_hash = keccak(header2)
-    vmc.add_header(header2, primary_addr)
+    vmc.send_tx('add_header', [header2], primary_key)
 
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
     # confirm the score of header1 and header2 are correct or not
@@ -297,15 +314,17 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     ).get_collation_headers__score(shard_id, header2_hash)
     assert colhdr2_score == 2
 
-    # test `tx_to_shard` ######################################
-    vmc.tx_to_shard(
-        test_keys[1].public_key.to_canonical_address(),
-        shard_id,
-        100000,
-        1,
-        b'',
-        1234567,
-        primary_addr,
+    vmc.send_tx(
+        'tx_to_shard',
+        [
+            test_keys[1].public_key.to_checksum_address(),
+            shard_id,
+            100000,
+            1,
+            b'',
+        ],
+        primary_key,
+        value=1234567,
     )
     mainchain_handler.mine(1)
     receipt_value = vmc.call(
