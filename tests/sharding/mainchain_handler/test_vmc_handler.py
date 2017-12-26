@@ -76,7 +76,6 @@ def is_vmc_deployed(vmc_handler, chain_handler):
 def do_withdraw(vmc_handler, chain_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
-    sender_addr = privkey.public_key.to_canonical_address()
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
     vmc_handler.send_tx(
         'withdraw',
