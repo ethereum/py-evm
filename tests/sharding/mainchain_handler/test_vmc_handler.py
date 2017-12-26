@@ -68,9 +68,7 @@ logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 def is_vmc_deployed(vmc_handler, chain_handler):
     return (
-        # TODO: the following line should be uncommented when `get_code` is implemented in
-        #       `eth_tester`
-        # chain_handler.get_code(vmc_handler.address) != b'' and
+        chain_handler.get_code(vmc_handler.address) != b'' and
         chain_handler.get_nonce(vmc_handler.sender_addr) != 0
     )
 
