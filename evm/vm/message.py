@@ -2,7 +2,6 @@ import logging
 
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
-    ENTRY_POINT,
 )
 from evm.validation import (
     validate_canonical_address,
@@ -65,10 +64,6 @@ class Message(object):
 
         validate_is_bytes(data, title="Message.data")
         self.data = data
-
-        if access_list is not None:
-            validate_access_list(access_list)
-        self.access_list = access_list
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
@@ -135,53 +130,25 @@ class ShardingMessage(Message):
                  code_address=None,
                  should_transfer_value=True,
                  is_static=False):
-        validate_uint256(gas, title="Message.gas")
-        self.gas = gas
-
-        validate_uint256(gas_price, title="Message.gas_price")
-        self.gas_price = gas_price
-
-        validate_canonical_address(to, title="Message.to")
-        self.to = to
-
-        if sender != ENTRY_POINT:
-            validate_canonical_address(sender, title="Message.sender")
-        self.sender = sender
-
-        validate_uint256(value, title="Message.value")
-        self.value = value
-
-        validate_is_bytes(data, title="Message.data")
-        self.data = data
-
-        if origin is not None:
-            validate_canonical_address(origin, title="Message.origin")
-        self.origin = origin
+        super(ShardingMessage, self).__init__(
+            gas=gas,
+            gas_price=gas_price,
+            to=to,
+            sender=sender,
+            value=value,
+            data=data,
+            code=code,
+            origin=origin,
+            depth=depth,
+            create_address=create_address,
+            code_address=code_address,
+            should_transfer_value=should_transfer_value,
+            is_static=is_static,
+        )
 
         if access_list is not None:
             validate_access_list(access_list)
         self.access_list = access_list
-
-        validate_is_integer(depth, title="Message.depth")
-        validate_gte(depth, minimum=0, title="Message.depth")
-        self.depth = depth
-
-        validate_is_bytes(code, title="Message.code")
-        self.code = code
-
-        if create_address is not None:
-            validate_canonical_address(create_address, title="Message.storage_address")
-        self.storage_address = create_address
-
-        if code_address is not None:
-            validate_canonical_address(code_address, title="Message.code_address")
-        self.code_address = code_address
-
-        validate_is_boolean(should_transfer_value, title="Message.should_transfer_value")
-        self.should_transfer_value = should_transfer_value
-
-        validate_is_boolean(is_static, title="Message.is_static")
-        self.is_static = is_static
 
     @property
     def is_create(self):
