@@ -19,6 +19,9 @@ from evm.vm.forks.homestead.transactions import (
 from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
+from evm.vm.forks.sharding.transactions import (
+    ShardingTransaction,
+)
 
 from evm.utils.transactions import (
     extract_transaction_sender,
@@ -106,3 +109,18 @@ def test_unsigned_to_eip155_signed_transaction(txn_fixture, transaction_class):
 
     assert is_same_address(signed_txn.sender, key.public_key.to_canonical_address())
     assert signed_txn.chain_id == txn_fixture['chainId']
+
+
+def test_sharding_transaction_intrensic_gas(sharding_txn_fixture):
+    txn = ShardingTransaction(
+        chain_id=sharding_txn_fixture["chain_id"],
+        shard_id=sharding_txn_fixture["shard_id"],
+        to=to_canonical_address(sharding_txn_fixture["to"]),
+        data=decode_hex(sharding_txn_fixture["data"]),
+        gas=sharding_txn_fixture["gas"],
+        gas_price=sharding_txn_fixture["gas_price"],
+        access_list=sharding_txn_fixture["access_list"],
+        code=decode_hex(sharding_txn_fixture["code"]),
+    )
+
+    assert txn.intrensic_gas == sharding_txn_fixture["intrensic_gas"]
