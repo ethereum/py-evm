@@ -8,9 +8,11 @@ from eth_utils import (
 
 from evm.vm.message import (
     Message,
+    ShardingMessage,
 )
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
+    ENTRY_POINT,
 )
 from evm.exceptions import (
     ValidationError,
@@ -34,6 +36,27 @@ def _create_message(gas=1,
         to=to,
         sender=sender,
         value=value,
+        data=data,
+        code=code,
+        **kwargs
+    )
+
+
+def _create_sharding_message(
+        gas=1,
+        gas_price=1,
+        to=ADDRESS_A,
+        sender=ENTRY_POINT,
+        value=0,
+        data=b"",
+        code=b"",
+        **kwargs):
+    return ShardingMessage(
+        gas=gas,
+        gas_price=gas_price,
+        to=to,
+        sender=sender,
+        value=0,
         data=data,
         code=code,
         **kwargs
@@ -93,4 +116,12 @@ def test_is_create_computed_property():
     assert create_message.is_create is True
 
     not_create_message = _create_message(to=ADDRESS_B)
+    assert not_create_message.is_create is False
+
+
+def test_sharding_message_is_create_computed_property():
+    create_message = _create_sharding_message(code=b'\x60\x60\x60\x40\xf3')
+    assert create_message.is_create is True
+
+    not_create_message = _create_sharding_message(code=b'')
     assert not_create_message.is_create is False
