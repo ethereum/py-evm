@@ -28,12 +28,10 @@ class MainchainHandler:
         return self.w3.eth.blockNumber
 
     def get_code(self, address):
-        address = to_checksum_address(address)
-        return self.w3.eth.getCode(address)
+        return self.w3.eth.getCode(to_checksum_address(address))
 
     def get_nonce(self, address):
-        address = to_checksum_address(address)
-        return self.w3.eth.getTransactionCount(address)
+        return self.w3.eth.getTransactionCount(to_checksum_address(address))
 
     def mine(self, number):
         expected_block_number = self.get_block_number() + number
@@ -46,8 +44,11 @@ class MainchainHandler:
         return self.w3.eth.getTransactionReceipt(tx_hash)
 
     def contract(self, contract_addr, abi, bytecode):
-        contract_addr = to_checksum_address(contract_addr)
-        return self.w3.eth.contract(contract_addr, abi=abi, bytecode=bytecode)
+        return self.w3.eth.contract(
+            to_checksum_address(contract_addr),
+            abi=abi,
+            bytecode=bytecode,
+        )
 
     def send_transaction(self, tx_obj):
         return self.w3.eth.sendTransaction(tx_obj)
