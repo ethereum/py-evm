@@ -1,17 +1,28 @@
 import logging
 
+import rlp
+
 from web3.contract import (
     Contract,
 )
 
 from eth_utils import (
     is_canonical_address,
+    keccak,
     to_checksum_address,
     to_dict,
 )
 
+from evm.rlp.sedes import (
+    address,
+    hash32,
+)
+
 from evm.utils.hexadecimal import (
     decode_hex,
+)
+from evm.utils.numeric import (
+    big_endian_to_int,
 )
 
 from evm.vm.forks.sharding.config import (
@@ -23,11 +34,56 @@ class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
+    # CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
+    collation_added_topic = "0x" + keccak("CollationAdded(int128,bytes4096,bool,int128)").hex()
+    unchecked_collation_added_logs = []
+    collation_added_filter = None
+
     def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
         super().__init__(*args, **kwargs)
+
+    def setup_collation_added_filter(self):
+        self.collation_added_filter = self.web3.eth.filter({
+            'address': self.address,
+            'topics': [self.collation_added_topic],
+        })
+
+    def setup_log_filters(self):
+        self.setup_collation_added_filter()
+
+    @to_dict
+    def parse_collation_added_data(self, data):
+        score = big_endian_to_int(data[-32:])
+        is_new_head = bool(big_endian_to_int(data[-64:-32]))
+        header_bytes = data[:-64]
+        # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
+        sedes = rlp.sedes.List([
+            rlp.sedes.big_endian_int,
+            rlp.sedes.big_endian_int,
+            hash32,
+            hash32,
+            hash32,
+            address,
+            hash32,
+            hash32,
+            rlp.sedes.big_endian_int,
+            rlp.sedes.binary,
+        ])
+        header_values = rlp.decode(header_bytes, sedes=sedes)
+        yield 'header', header_values
+        yield 'is_new_head', is_new_head
+        yield 'score', score
+
+    def get_new_logs(self):
+        # TODO: should be `get_next_log` originally.
+        new_logs = self.collation_added_filter.get_new_entries()
+        for log in new_logs:
+            data_bytes = decode_hex(log['data'])
+            parsed_log = self.parse_collation_added_data(data_bytes)
+            self.unchecked_collation_added_logs.append(parsed_log)
 
     @to_dict
     def mk_build_transaction_detail(self,
