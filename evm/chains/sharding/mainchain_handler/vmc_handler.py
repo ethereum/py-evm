@@ -33,7 +33,7 @@ class VMC(Contract):
                                     value=None,
                                     gas_price=None,
                                     data=None):
-        if not (isinstance(nonce, int) and nonce > 0):
+        if not (isinstance(nonce, int) and nonce >= 0):
             raise ValueError('nonce should be provided as non-negative integer')
         if not (isinstance(gas, int) and gas > 0):
             raise ValueError('gas should be provided as positive integer')

@@ -193,6 +193,25 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     vmc = VMCClass(to_checksum_address(vmc_addr))
     vmc.sender_addr = vmc_tx.sender
 
+    # test `mk_build_transaction_detail` ######################################
+    build_transaction_detail = vmc.mk_build_transaction_detail(
+        nonce=0,
+        gas=10000,
+    )
+    assert 'nonce' in build_transaction_detail
+    assert 'gas' in build_transaction_detail
+    assert 'chainId' in build_transaction_detail
+    with pytest.raises(ValueError):
+        build_transaction_detail = vmc.mk_build_transaction_detail(
+            nonce=None,
+            gas=10000,
+        )
+    with pytest.raises(ValueError):
+        build_transaction_detail = vmc.mk_build_transaction_detail(
+            nonce=0,
+            gas=None,
+        )
+
     # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
         sender_addr=ZERO_ADDR,
