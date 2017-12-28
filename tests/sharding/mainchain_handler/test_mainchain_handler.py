@@ -68,7 +68,7 @@ def test_mainchain_handler(mainchain_handler):  # noqa: F811
     unsigned_transaction = contract.buildTransaction({
         'nonce': mainchain_handler.get_nonce(sender_addr),
         'gas': 50000,
-        'gas_price':1,
+        'gas_price': 1,
         'value': 0,
         'chainId': None,
     }).update_num_test(4)

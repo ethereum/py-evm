@@ -59,7 +59,6 @@ class MainchainHandler:
     # utils
 
     def deploy_contract(self, bytecode, privkey, value=0, gas=TX_GAS, gas_price=GASPRICE):
-        nonce = self.get_nonce(privkey.public_key.to_canonical_address())
         contract_transaction_dict = {
             'nonce': self.get_nonce(privkey.public_key.to_canonical_address()),
             'to': b'',  # CREATE_CONTRACT_ADDRESS

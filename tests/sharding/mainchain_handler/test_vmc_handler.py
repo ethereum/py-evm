@@ -37,7 +37,6 @@ from evm.chains.sharding.mainchain_handler import (
 )
 
 from evm.chains.sharding.mainchain_handler.config import (
-    DEPOSIT_SIZE,
     PERIOD_LENGTH,
     TX_GAS,
 )

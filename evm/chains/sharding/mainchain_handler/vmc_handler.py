@@ -180,5 +180,7 @@ class VMC(Contract):
             ],
             privkey=privkey,
             value=value,
+            gas=gas,
+            gas_price=gas_price,
         )
         return tx_hash
