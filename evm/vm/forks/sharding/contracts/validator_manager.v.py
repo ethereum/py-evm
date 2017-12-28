@@ -240,7 +240,6 @@ def emit_collation_added(shard_id: num, collation_header: bytes <= 4096, is_new_
             as_bytes32(shard_id),
         ],
         concat(
-            '',
             collation_header,
             as_bytes32(new_head_in_num),
             as_bytes32(score),
