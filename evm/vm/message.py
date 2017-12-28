@@ -179,4 +179,4 @@ class ShardingMessage(Message):
 
     @property
     def is_create(self):
-        return self.code is not None
+        return self.code not in (None, b'')
