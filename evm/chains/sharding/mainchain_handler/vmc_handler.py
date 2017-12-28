@@ -43,20 +43,20 @@ class VMC(Contract):
         if value is not None:
             yield 'value', value
         if gas_price is not None:
-            yield 'gas_price', gas_price
+            yield 'gasPrice', gas_price
         if data is not None:
             yield 'data', data
 
-    def send_tx(self,
-                func_name,
-                args,
-                privkey,
-                nonce=None,
-                chain_id=None,
-                gas=TX_GAS,
-                value=0,
-                gas_price=GASPRICE,
-                data=None):
+    def send_transaction(self,
+                         func_name,
+                         args,
+                         privkey,
+                         nonce=None,
+                         chain_id=None,
+                         gas=TX_GAS,
+                         value=0,
+                         gas_price=GASPRICE,
+                         data=None):
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
         build_transaction_detail = self.mk_build_transaction_detail(
@@ -110,48 +110,49 @@ class VMC(Contract):
     def deposit(self,
                 validation_code_addr,
                 return_addr,
-                sender_addr,
+                privkey,
                 gas=TX_GAS,
                 gas_price=GASPRICE):
         """deposit(validation_code_addr: address, return_addr: address) -> num
         """
-        tx_detail = self.mk_contract_tx_detail(
-            sender_addr=sender_addr,
+        tx_hash = self.send_transaction(
+            'deposit',
+            [
+                to_checksum_address(validation_code_addr),
+                to_checksum_address(return_addr),
+            ],
+            privkey,
+            value=DEPOSIT_SIZE,
             gas=gas,
             gas_price=gas_price,
-            value=DEPOSIT_SIZE,
-        )
-        validation_code_addr_hex = to_checksum_address(validation_code_addr)
-        return_addr_hex = to_checksum_address(return_addr)
-        tx_hash = self.transact(tx_detail).deposit(
-            validation_code_addr_hex,
-            return_addr_hex,
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
+    def withdraw(self, validator_index, sig, privkey, gas=TX_GAS, gas_price=GASPRICE):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
-        tx_detail = self.mk_contract_tx_detail(
-            sender_addr=sender_addr,
+        tx_hash = self.send_transaction(
+            'withdraw',
+            [
+                validator_index,
+                sig,
+            ],
+            privkey,
             gas=gas,
             gas_price=gas_price,
-        )
-        tx_hash = self.transact(tx_detail).withdraw(
-            validator_index,
-            sig,
         )
         return tx_hash
 
-    def add_header(self, header, sender_addr, gas=TX_GAS, gas_price=GASPRICE):
+    def add_header(self, header, privkey, gas=TX_GAS, gas_price=GASPRICE):
         """add_header(header: bytes <= 4096) -> bool
         """
-        tx_detail = self.mk_contract_tx_detail(
-            sender_addr=sender_addr,
+        tx_hash = self.send_transaction(
+            'add_header',
+            [header],
+            privkey,
             gas=gas,
             gas_price=gas_price,
         )
-        tx_hash = self.transact(tx_detail).add_header(header)
         return tx_hash
 
     def tx_to_shard(self,
@@ -161,25 +162,23 @@ class VMC(Contract):
                     tx_gasprice,
                     data,
                     value,
-                    sender_addr,
+                    privkey,
                     gas=TX_GAS,
                     gas_price=GASPRICE):
         """tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num
         """
-        tx_detail = self.mk_contract_tx_detail(
-            sender_addr=sender_addr,
-            gas=gas,
-            gas_price=gas_price,
+        tx_hash = self.send_transaction(
+            'tx_to_shard',
+            [
+                to_checksum_address(to),
+                shard_id,
+                tx_startgas,
+                tx_gasprice,
+                data,
+            ],
+            privkey=privkey,
             value=value,
-        )
-        to = to_checksum_address(to)
-        tx_hash = self.transact(tx_detail).tx_to_shard(
-            to,
-            shard_id,
-            tx_startgas,
-            tx_gasprice,
-            data,
         )
         return tx_hash

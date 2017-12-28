@@ -77,14 +77,7 @@ def do_withdraw(vmc_handler, chain_handler, validator_index):
     assert validator_index < len(test_keys)
     privkey = test_keys[validator_index]
     signature = vmc_utils.sign(vmc_utils.WITHDRAW_HASH, privkey)
-    vmc_handler.send_tx(
-        'withdraw',
-        [
-            validator_index,
-            signature,
-        ],
-        privkey,
-    )
+    vmc_handler.withdraw(validator_index, signature, privkey=privkey)
     chain_handler.mine(1)
 
 
@@ -96,31 +89,20 @@ def deploy_valcode_and_deposit(vmc_handler, chain_handler, key):
     :return: returns nothing
     """
     address = key.public_key.to_canonical_address()
-    chain_handler.unlock_account(address, PASSPHRASE)
     valcode = vmc_utils.mk_validation_code(
         key.public_key.to_canonical_address()
     )
     nonce = chain_handler.get_nonce(address)
     valcode_addr = generate_contract_address(to_canonical_address(address), nonce)
-    chain_handler.unlock_account(address, PASSPHRASE)
-    chain_handler.deploy_contract(valcode, address)
+    chain_handler.deploy_contract(valcode, key)
     chain_handler.mine(1)
-    vmc_handler.send_tx(
-        'deposit',
-        [
-            to_checksum_address(valcode_addr),
-            to_checksum_address(address),
-        ],
-        key,
-        value=DEPOSIT_SIZE,
-    )
+    vmc_handler.deposit(valcode_addr, address, privkey=key)
     return valcode_addr
 
 
 def deploy_initiating_contracts(vmc_handler, chain_handler, privkey):
     if not is_vmc_deployed(vmc_handler, chain_handler):
         address = privkey.public_key.to_canonical_address()
-        chain_handler.unlock_account(address, PASSPHRASE)
         nonce = chain_handler.get_nonce(address)
         txs = vmc_utils.mk_initiating_contracts(privkey, nonce, SpuriousDragonTransaction)
         for tx in txs[:3]:
@@ -235,9 +217,8 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     if not is_vmc_deployed(vmc, mainchain_handler):
         logger.debug('is_vmc_deployed(handler) == True')
         # import test_keys
-        for key in test_keys:
-            import_key_to_mainchain_handler(mainchain_handler, key)
-        deploy_initiating_contracts(vmc, mainchain_handler, test_keys[validator_index])
+        import_key_to_mainchain_handler(mainchain_handler, primary_key)
+        deploy_initiating_contracts(vmc, mainchain_handler, primary_key)
         mainchain_handler.mine(1)
     assert is_vmc_deployed(vmc, mainchain_handler)
 
@@ -253,7 +234,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
         valcode_addr = deploy_valcode_and_deposit(
             vmc,
             mainchain_handler,
-            test_keys[validator_index],
+            primary_key,
         )
         # TODO: error occurs when we don't mine so many blocks
         mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
@@ -286,7 +267,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
             gas_price=1,
         )).add_header(header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    vmc.send_tx('add_header', [header1], primary_key)
+    vmc.add_header(header1, privkey=primary_key)
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
     # if a header is added before, the second trial should fail
     with pytest.raises(BadFunctionCallOutput):
@@ -298,7 +279,7 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     # when a valid header is added, the `add_header` call should succeed
     header2 = get_testing_colhdr(vmc, mainchain_handler, shard_id, header1_hash, 2)
     header2_hash = keccak(header2)
-    vmc.send_tx('add_header', [header2], primary_key)
+    vmc.add_header(header2, privkey=primary_key)
 
     mainchain_handler.mine(SHUFFLING_CYCLE_LENGTH)
     # confirm the score of header1 and header2 are correct or not
@@ -311,16 +292,13 @@ def test_vmc_contract_calls(mainchain_handler):  # noqa: F811
     ).get_collation_headers__score(shard_id, header2_hash)
     assert colhdr2_score == 2
 
-    vmc.send_tx(
-        'tx_to_shard',
-        [
-            test_keys[1].public_key.to_checksum_address(),
-            shard_id,
-            100000,
-            1,
-            b'',
-        ],
-        primary_key,
+    vmc.tx_to_shard(
+        test_keys[1].public_key.to_canonical_address(),
+        shard_id,
+        100000,
+        1,
+        b'',
+        privkey=primary_key,
         value=1234567,
     )
     mainchain_handler.mine(1)
