@@ -3,6 +3,7 @@ import time
 import rlp
 
 from eth_utils import (
+    encode_hex,
     to_checksum_address,
 )
 
@@ -14,8 +15,8 @@ from evm.chains.sharding.mainchain_handler.config import (
 
 class MainchainHandler:
 
-    def __init__(self, web3_instance):
-        self.w3 = web3_instance
+    def __init__(self, w3):
+        self.w3 = w3
         assert self.w3.isConnected()
 
     # RPC related
@@ -41,10 +42,6 @@ class MainchainHandler:
             time.sleep(0.1)
         self.w3.miner.stop()
 
-    def unlock_account(self, account, passphrase):
-        account = to_checksum_address(account)
-        self.w3.personal.unlockAccount(account, passphrase)
-
     def get_transaction_receipt(self, tx_hash):
         return self.w3.eth.getTransactionReceipt(tx_hash)
 
@@ -60,15 +57,22 @@ class MainchainHandler:
 
     # utils
 
-    def deploy_contract(self, bytecode, address, value=0, gas=TX_GAS, gas_price=GASPRICE):
-        address = to_checksum_address(address)
-        tx_hash = self.send_transaction({
-            'from': address,
+    def deploy_contract(self, bytecode, privkey, value=0, gas=TX_GAS, gas_price=GASPRICE):
+        nonce = self.get_nonce(privkey.public_key.to_canonical_address())
+        contract_transaction_dict = {
+            'nonce': self.get_nonce(privkey.public_key.to_canonical_address()),
+            'to': b'',  # CREATE_CONTRACT_ADDRESS
+            'data': encode_hex(bytecode),
             'value': value,
             'gas': gas,
-            'gas_price': gas_price,
-            'data': bytecode,
-        })
+            'gasPrice': gas_price,
+            'chainId': None,
+        }
+        signed_transaction_dict = self.w3.eth.account.signTransaction(
+            contract_transaction_dict,
+            privkey.to_hex(),
+        )
+        tx_hash = self.w3.eth.sendRawTransaction(signed_transaction_dict['rawTransaction'])
         return tx_hash
 
     def direct_tx(self, tx):
