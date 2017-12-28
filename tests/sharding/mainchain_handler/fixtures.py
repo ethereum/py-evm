@@ -21,12 +21,6 @@ class TesterMainchainHandler(MainchainHandler):
     def mine(self, number):
         self.w3.testing.mine(number)
 
-    def direct_tx(self, tx):
-        raw_tx = rlp.encode(tx)
-        raw_tx_hex = self.w3.toHex(raw_tx)
-        tx_hash = self.w3.eth.sendRawTransaction(raw_tx_hex)
-        return tx_hash
-
 
 @pytest.fixture
 def mainchain_handler():
