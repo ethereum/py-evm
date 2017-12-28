@@ -62,6 +62,10 @@ sighasher_addr: address
 # log the latest period number of the shard
 period_head: public(num[num])
 
+
+# log
+# CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
+
 @public
 def __init__():
     self.num_validators = 0
@@ -69,26 +73,25 @@ def __init__():
     # 10 ** 20 wei = 100 ETH
     self.deposit_size = 100000000000000000000
     self.shuffling_cycle_length = 5 # FIXME: just modified temporarily for test
-    self.sig_gas_limit = 400000
+    self.sig_gas_limit = 40000
     self.period_length = 5
     self.num_validators_per_cycle = 100
     self.shard_count = 100
-    self.add_header_log_topic = sha3("add_header()")
     self.sighasher_addr = 0xDFFD41E18F04Ad8810c83B14FD1426a82E625A7D
 
 
-@internal
+@public
 def is_stack_empty() -> bool:
     return (self.empty_slots_stack_top == 0)
 
 
-@internal
+@public
 def stack_push(index: num):
     self.empty_slots_stack[self.empty_slots_stack_top] = index
     self.empty_slots_stack_top += 1
 
 
-@internal
+@public
 def stack_pop() -> num:
     if self.is_stack_empty():
         return -1
@@ -222,6 +225,29 @@ def get_shard_list(valcode_addr: address) -> bool[100]:
     return shard_list
 
 
+# emit a log which is equivalent to
+# CollationAdded: __log__({shard_id: indexed(num), collation_header: bytes <= 4096, is_new_head: bool, score: num})
+# TODO: should be inlined
+@public
+def emit_collation_added(shard_id: num, collation_header: bytes <= 4096, is_new_head: bool, score: num):
+    if is_new_head:
+        new_head_in_num = 1
+    else:
+        new_head_in_num = 0
+    raw_log(
+        [
+            sha3("CollationAdded(int128,bytes4096,bool,int128)"),
+            as_bytes32(shard_id),
+        ],
+        concat(
+            '',
+            collation_header,
+            as_bytes32(new_head_in_num),
+            as_bytes32(score),
+        )
+    )
+
+
 # Attempts to process a collation header, returns True on success, reverts on failure.
 @public
 def add_header(header: bytes <= 4096) -> bool:
@@ -281,18 +307,16 @@ def add_header(header: bytes <= 4096) -> bool:
     self.period_head[shard_id] = expected_period_number
 
     # Determine the head
+    is_new_head = False
     if _score > self.collation_headers[shard_id][self.shard_head[shard_id]].score:
         previous_head_hash = self.shard_head[shard_id]
         self.shard_head[shard_id] = entire_header_hash
-        # Logs only when `change_head` happens due to the fork
+        # only when `change_head` happens due to the fork, it is a new head
         if previous_head_hash != parent_collation_hash:
-            raw_log(
-                [self.add_header_log_topic, sha3("change_head"), entire_header_hash],
-                concat('', previous_head_hash),
-            )
+            is_new_head = True
 
     # Emit log
-    raw_log([self.add_header_log_topic], header)
+    self.emit_collation_added(shard_id, header, is_new_head, _score)
 
     return True
 
@@ -305,29 +329,6 @@ def get_period_start_prevhash(expected_period_number: num) -> bytes32:
     return blockhash(block_number)
 
 
-# Returns the 10000th ancestor of this hash.
-# def get_ancestor(shard_id: num, hash: bytes32) -> bytes32:
-#     colhdr = self.collation_headers[shard_id][hash]
-#     # assure that the colhdr exists
-#     assert colhdr.parent_collation_hash != as_bytes32(0)
-#     genesis_colhdr_hash = sha3(concat(as_bytes32(shard_id), "GENESIS"))
-#     current_colhdr_hash = hash
-#     # get the 10000th ancestor
-#     for i in range(10000):
-#         assert current_colhdr_hash != genesis_colhdr_hash
-#         current_colhdr_hash = self.collation_headers[shard_id][current_colhdr_hash].parent_collation_hash
-#     return current_colhdr_hash
-
-
-# Returns the difference between the block number of this hash and the block
-# number of the 10000th ancestor of this hash.
-@public
-@constant
-def get_ancestor_distance(hash: bytes32) -> bytes32:
-    # TODO: to be implemented
-    pass
-
-
 # Returns the gas limit that collations can currently have (by default make
 # this function always answer 10 million).
 @public
@@ -336,10 +337,6 @@ def get_collation_gas_limit() -> num:
     return 10000000
 
 
-# Records a request to deposit msg.value ETH to address to in shard shard_id
-# during a future collation. Saves a `receipt ID` for this request,
-# also saving `msg.sender`, `msg.value`, `to`, `shard_id`, `startgas`,
-# `gasprice`, and `data`.
 @public
 @payable
 def tx_to_shard(to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096) -> num:
