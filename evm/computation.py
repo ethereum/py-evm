@@ -199,8 +199,18 @@ class BaseComputation(object):
     #
     # Runtime operations
     #
+    def apply_child_computation(self, child_msg):
+        child_computation = self.generate_child_computation(
+            self.vm_state,
+            child_msg,
+            self.opcodes,
+            self.precompiles,
+        )
+        self.add_child_computation(child_computation)
+        return child_computation
+
     @classmethod
-    def apply_child_computation(cls, vm_state, child_msg, opcodes, precompiles):
+    def generate_child_computation(cls, vm_state, child_msg, opcodes, precompiles):
         if child_msg.is_create:
             child_computation = cls(
                 vm_state,
