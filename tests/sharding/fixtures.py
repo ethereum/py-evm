@@ -7,7 +7,6 @@ from cytoolz import (
 
 from web3 import (
     Web3,
-    HTTPProvider,
 )
 
 from web3.providers.eth_tester import (
@@ -91,7 +90,6 @@ def vmc():
         auto_mine_transactions=False,
     )
     provider = EthereumTesterProvider(eth_tester)
-    # provider = HTTPProvider('http://localhost:8545')
     w3 = Web3(provider)
 
     # setup vmc's web3.eth.contract instance
