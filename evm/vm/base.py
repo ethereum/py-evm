@@ -1,26 +1,14 @@
 from __future__ import absolute_import
 
 import rlp
-
-from contextlib import contextmanager
 import logging
 
 from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
-from evm.exceptions import (
-    Halt,
-)
-from evm.logic.invalid import (
-    InvalidOpcode,
-)
 from evm.utils.keccak import (
     keccak,
-)
-
-from .computation import (
-    Computation,
 )
 
 
@@ -34,6 +22,8 @@ class VM(object):
     chaindb = None
     opcodes = None
     _block_class = None
+    _computation_class = None
+    _state_class = None
     _precompiles = None
 
     def __init__(self, header, chaindb):
@@ -56,24 +46,6 @@ class VM(object):
                     "not found on the base class `{1}`".format(key, cls)
                 )
         return type(name, (cls,), overrides)
-
-    @contextmanager
-    def state_db(self, read_only=False):
-        state = self.chaindb.get_state_db(self.block.header.state_root, read_only)
-        yield state
-
-        if read_only:
-            # This acts as a secondary check that no mutation took place for
-            # read_only databases.
-            assert state.root_hash == self.block.header.state_root
-        elif self.block.header.state_root != state.root_hash:
-            self.block.header.state_root = state.root_hash
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.db = None
-        state._trie = None
 
     @property
     def precompiles(self):
@@ -106,44 +78,6 @@ class VM(object):
         Execute the transaction in the vm.
         """
         raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_create_message(self, message):
-        """
-        Execution of an VM message to create a new contract.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_message(self, message):
-        """
-        Execution of an VM message.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_computation(self, message):
-        """
-        Perform the computation that would be triggered by the VM message.
-        """
-        with Computation(self, message) as computation:
-            # Early exit on pre-compiles
-            if message.code_address in self.precompiles:
-                self.precompiles[message.code_address](computation)
-                return computation
-
-            for opcode in computation.code:
-                opcode_fn = self.get_opcode_fn(opcode)
-
-                computation.logger.trace(
-                    "OPCODE: 0x%x (%s) | pc: %s",
-                    opcode,
-                    opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
-                )
-
-                try:
-                    opcode_fn(computation=computation)
-                except Halt:
-                    break
-        return computation
 
     #
     # Mining
@@ -194,7 +128,7 @@ class VM(object):
             len(block.uncles) * self.get_nephew_reward(block.number)
         )
 
-        with self.state_db() as state_db:
+        with self.state.state_db() as state_db:
             state_db.delta_balance(block.header.coinbase, block_reward)
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",
@@ -257,18 +191,6 @@ class VM(object):
     def get_block_by_header(self, block_header):
         return self.get_block_class().from_header(block_header, self.chaindb)
 
-    def get_ancestor_hash(self, block_number):
-        """
-        Return the hash for the ancestor with the given number
-        """
-        ancestor_depth = self.block.number - block_number
-        if ancestor_depth > 256 or ancestor_depth < 1:
-            return b''
-        h = self.chaindb.get_block_header_by_hash(self.block.header.parent_hash)
-        while h.block_number != block_number:
-            h = self.chaindb.get_block_header_by_hash(h.parent_hash)
-        return h.hash
-
     #
     # Headers
     #
@@ -291,35 +213,6 @@ class VM(object):
     #
     # Snapshot and Revert
     #
-    def snapshot(self):
-        """
-        Perform a full snapshot of the current state of the VM.
-
-        Snapshots are a combination of the state_root at the time of the
-        snapshot and the checkpoint_id returned from the journaled DB.
-        """
-        return (self.block.header.state_root, self.chaindb.snapshot())
-
-    def revert(self, snapshot):
-        """
-        Revert the VM to the state at the snapshot
-        """
-        state_root, checkpoint_id = snapshot
-
-        with self.state_db() as state_db:
-            # first revert the database state root.
-            state_db.root_hash = state_root
-            # now roll the underlying database back
-            self.chaindb.revert(checkpoint_id)
-
-    def commit(self, snapshot):
-        """
-        Commits the journal to the point where the snapshot was taken.  This
-        will destroy any journal checkpoints *after* the snapshot checkpoint.
-        """
-        _, checkpoint_id = snapshot
-        self.chaindb.commit(checkpoint_id)
-
     def clear_journal(self):
         """
         Cleare the journal.  This should be called at any point of VM execution
@@ -329,10 +222,52 @@ class VM(object):
         self.chaindb.clear()
 
     #
-    # Opcode API
+    # State
     #
-    def get_opcode_fn(self, opcode):
-        try:
-            return self.opcodes[opcode]
-        except KeyError:
-            return InvalidOpcode(opcode)
+    @classmethod
+    def get_state_class(cls):
+        """
+        Return the class that this VM uses for states.
+        """
+        if cls._state_class is None:
+            raise AttributeError("No `_state_class` has been set for this VM")
+
+        return cls._state_class
+
+    def get_state(self):
+        """Return state object
+        """
+        return self.get_state_class()(
+            self.chaindb,
+            self.block.header,
+        )
+
+    @property
+    def state(self):
+        """Return current state property
+        """
+        return self.get_state()
+
+    #
+    # Computation
+    #
+    def get_computation(self, message):
+        """Return state object
+        """
+        computation = self.get_computation_class()(
+            self.state,
+            message,
+            self.opcodes,
+            self.precompiles,
+        )
+        return computation
+
+    @classmethod
+    def get_computation_class(cls):
+        """
+        Return the class that this VM uses for states.
+        """
+        if cls._computation_class is None:
+            raise AttributeError("No `_computation_class` has been set for this VM")
+
+        return cls._computation_class

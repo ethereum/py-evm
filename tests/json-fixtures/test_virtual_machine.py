@@ -20,9 +20,14 @@ from evm.rlp.headers import (
 from evm.vm.forks import (
     HomesteadVM,
 )
+from evm.vm.forks.homestead import (
+    HomesteadComputation,
+)
+from evm.vm.vm_state import (
+    VMState,
+)
 from evm.vm import (
     Message,
-    Computation,
 )
 
 from evm.utils.fixture_tests import (
@@ -76,42 +81,42 @@ def fixture(fixture_data):
 #
 # Testing Overrides
 #
-def apply_message_for_testing(self, message):
+def apply_message_for_testing(self):
     """
     For VM tests, we don't actually apply messages.
     """
-    computation = Computation(
-        vm=self,
-        message=message,
-    )
-    return computation
+    return self
 
 
-def apply_create_message_for_testing(self, message):
+def apply_create_message_for_testing(self):
     """
     For VM tests, we don't actually apply messages.
     """
-    computation = Computation(
-        vm=self,
-        message=message,
-    )
-    return computation
+    return self
 
 
 def get_block_hash_for_testing(self, block_number):
-    if block_number >= self.block.header.block_number:
+    if block_number >= self.block_header.block_number:
         return b''
-    elif block_number < self.block.header.block_number - 256:
+    elif block_number < self.block_header.block_number - 256:
         return b''
     else:
         return keccak("{0}".format(block_number))
 
 
+HomesteadComputationForTesting = HomesteadComputation.configure(
+    name='HomesteadComputationForTesting',
+    apply_message=apply_message_for_testing,
+    apply_create_message=apply_create_message_for_testing,
+)
+VMStateForTesting = VMState.configure(
+    name='VMStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    apply_message=apply_create_message_for_testing,
-    apply_create_message=apply_create_message_for_testing,
-    get_ancestor_hash=get_block_hash_for_testing,
+    _computation_class=HomesteadComputationForTesting,
+    _state_class=VMStateForTesting,
 )
 
 
@@ -140,7 +145,7 @@ def test_vm_fixtures(fixture, vm_class):
     )
     vm = vm_class(header=header, chaindb=chaindb)
 
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
 
@@ -154,7 +159,12 @@ def test_vm_fixtures(fixture, vm_class):
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.apply_computation(message)
+    computation = vm.get_computation_class().apply_computation(
+        vm.state,
+        message,
+        vm.opcodes,
+        vm.precompiles,
+    )
 
     if 'post' in fixture:
         #
@@ -203,5 +213,5 @@ def test_vm_fixtures(fixture, vm_class):
         assert isinstance(computation._error, VMError)
         post_state = fixture['pre']
 
-    with vm.state_db(read_only=True) as state_db:
+    with vm.state.state_db(read_only=True) as state_db:
         verify_state_db(post_state, state_db)

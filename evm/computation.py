@@ -6,34 +6,36 @@ from evm.constants import (
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
 )
 from evm.exceptions import (
+    Halt,
     VMError,
 )
-from evm.validation import (
-    validate_canonical_address,
-    validate_uint256,
-    validate_is_bytes,
+from evm.logic.invalid import (
+    InvalidOpcode,
 )
-
 from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.numeric import (
     ceil32,
 )
-
-from .code_stream import (
+from evm.validation import (
+    validate_canonical_address,
+    validate_is_bytes,
+    validate_uint256,
+)
+from evm.vm.code_stream import (
     CodeStream,
 )
-from .gas_meter import (
+from evm.vm.gas_meter import (
     GasMeter,
 )
-from .memory import (
+from evm.vm.memory import (
     Memory,
 )
-from .message import (
+from evm.vm.message import (
     Message,
 )
-from .stack import (
+from evm.vm.stack import (
     Stack,
 )
 
@@ -47,11 +49,11 @@ def memory_gas_cost(size_in_bytes):
     return total_cost
 
 
-class Computation(object):
+class BaseComputation(object):
     """
     The execution computation
     """
-    vm = None
+    vm_state = None
     msg = None
 
     memory = None
@@ -69,10 +71,13 @@ class Computation(object):
     logs = None
     accounts_to_delete = None
 
+    opcodes = None
+    precompiles = None
+
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, vm, message):
-        self.vm = vm
+    def __init__(self, vm_state, message, opcodes, precompiles):
+        self.vm_state = vm_state
         self.msg = message
 
         self.memory = Memory()
@@ -85,6 +90,9 @@ class Computation(object):
 
         code = message.code
         self.code = CodeStream(code)
+
+        self.opcodes = opcodes
+        self.precompiles = precompiles
 
     #
     # Convenience
@@ -192,12 +200,31 @@ class Computation(object):
     # Runtime operations
     #
     def apply_child_computation(self, child_msg):
-        if child_msg.is_create:
-            child_computation = self.vm.apply_create_message(child_msg)
-        else:
-            child_computation = self.vm.apply_message(child_msg)
-
+        child_computation = self.generate_child_computation(
+            self.vm_state,
+            child_msg,
+            self.opcodes,
+            self.precompiles,
+        )
         self.add_child_computation(child_computation)
+        return child_computation
+
+    @classmethod
+    def generate_child_computation(cls, vm_state, child_msg, opcodes, precompiles):
+        if child_msg.is_create:
+            child_computation = cls(
+                vm_state,
+                child_msg,
+                opcodes,
+                precompiles,
+            ).apply_create_message()
+        else:
+            child_computation = cls(
+                vm_state,
+                child_msg,
+                opcodes,
+                precompiles,
+            ).apply_message()
         return child_computation
 
     def add_child_computation(self, child_computation):
@@ -334,3 +361,73 @@ class Computation(object):
                 self.msg.gas - self.gas_meter.gas_remaining,
                 self.gas_meter.gas_remaining,
             )
+
+    #
+    # State Transition
+    #
+    def apply_message(self):
+        """
+        Execution of an VM message.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def apply_create_message(self):
+        """
+        Execution of an VM message to create a new contract.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    def apply_computation(cls, vm_state, message, opcodes, precompiles):
+        """
+        Perform the computation that would be triggered by the VM message.
+        """
+        with cls(vm_state, message, opcodes, precompiles) as computation:
+            # Early exit on pre-compiles
+            if message.code_address in computation.precompiles:
+                computation.precompiles[message.code_address](computation)
+                return computation
+
+            for opcode in computation.code:
+                opcode_fn = computation.get_opcode_fn(computation.opcodes, opcode)
+
+                computation.logger.trace(
+                    "OPCODE: 0x%x (%s) | pc: %s",
+                    opcode,
+                    opcode_fn.mnemonic,
+                    max(0, computation.code.pc - 1),
+                )
+
+                try:
+                    opcode_fn(computation=computation)
+                except Halt:
+                    break
+        return computation
+
+    #
+    # Opcode API
+    #
+    def get_opcode_fn(self, opcodes, opcode):
+        try:
+            return opcodes[opcode]
+        except KeyError:
+            return InvalidOpcode(opcode)
+
+    #
+    # classmethod
+    #
+    @classmethod
+    def configure(cls,
+                  name,
+                  **overrides):
+        """
+        Class factory method for simple inline subclassing.
+        """
+        for key in overrides:
+            if not hasattr(cls, key):
+                raise TypeError(
+                    "The Computation.configure cannot set attributes that are not "
+                    "already present on the base class.  The attribute `{0}` was "
+                    "not found on the base class `{1}`".format(key, cls)
+                )
+        return type(name, (cls,), overrides)

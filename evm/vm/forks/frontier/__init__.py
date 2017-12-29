@@ -5,9 +5,6 @@ from evm import VM
 from evm import constants
 
 from evm.exceptions import (
-    OutOfGas,
-    InsufficientFunds,
-    StackDepthLimit,
     ContractCreationCollision,
 )
 from evm import precompiles
@@ -15,8 +12,8 @@ from evm import precompiles
 from evm.vm.message import (
     Message,
 )
-from evm.vm.computation import (
-    Computation,
+from evm.vm.vm_state import (
+    VMState,
 )
 
 from evm.utils.address import (
@@ -32,6 +29,7 @@ from evm.utils.keccak import (
 
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
+from .computation import FrontierComputation
 from .validation import validate_frontier_transaction
 from .headers import (
     create_frontier_header_from_parent,
@@ -58,7 +56,7 @@ def _execute_frontier_transaction(vm, transaction):
     vm.validate_transaction(transaction)
 
     gas_fee = transaction.gas * transaction.gas_price
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         # Buy Gas
         state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
@@ -111,13 +109,13 @@ def _execute_frontier_transaction(vm, transaction):
     # 2) Apply the message to the VM.
     #
     if message.is_create:
-        with vm.state_db(read_only=True) as state_db:
+        with vm.state.state_db(read_only=True) as state_db:
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
             # The address of the newly created contract has *somehow* collided
             # with an existing contract address.
-            computation = Computation(vm, message)
+            computation = vm.get_computation(message)
             computation._error = ContractCreationCollision(
                 "Address collision while creating contract: {0}".format(
                     encode_hex(contract_address),
@@ -128,9 +126,9 @@ def _execute_frontier_transaction(vm, transaction):
                 encode_hex(contract_address),
             )
         else:
-            computation = vm.apply_create_message(message)
+            computation = vm.get_computation(message).apply_create_message()
     else:
-        computation = vm.apply_message(message)
+        computation = vm.get_computation(message).apply_message()
 
     #
     # 2) Post Computation
@@ -154,7 +152,7 @@ def _execute_frontier_transaction(vm, transaction):
             encode_hex(message.sender),
         )
 
-        with vm.state_db() as state_db:
+        with vm.state.state_db() as state_db:
             state_db.delta_balance(message.sender, gas_refund_amount)
 
     # Miner Fees
@@ -164,11 +162,11 @@ def _execute_frontier_transaction(vm, transaction):
         transaction_fee,
         encode_hex(vm.block.header.coinbase),
     )
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
 
     # Process Self Destructs
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
@@ -182,80 +180,15 @@ def _execute_frontier_transaction(vm, transaction):
     return computation
 
 
-def _apply_frontier_message(vm, message):
-    snapshot = vm.snapshot()
-
-    if message.depth > constants.STACK_DEPTH_LIMIT:
-        raise StackDepthLimit("Stack depth limit reached")
-
-    if message.should_transfer_value and message.value:
-        with vm.state_db() as state_db:
-            sender_balance = state_db.get_balance(message.sender)
-
-            if sender_balance < message.value:
-                raise InsufficientFunds(
-                    "Insufficient funds: {0} < {1}".format(sender_balance, message.value)
-                )
-
-            state_db.delta_balance(message.sender, -1 * message.value)
-            state_db.delta_balance(message.storage_address, message.value)
-
-        vm.logger.debug(
-            "TRANSFERRED: %s from %s -> %s",
-            message.value,
-            encode_hex(message.sender),
-            encode_hex(message.storage_address),
-        )
-
-    with vm.state_db() as state_db:
-        state_db.touch_account(message.storage_address)
-
-    computation = vm.apply_computation(message)
-
-    if computation.is_error:
-        vm.revert(snapshot)
-    else:
-        vm.commit(snapshot)
-
-    return computation
-
-
-def _apply_frontier_create_message(vm, message):
-    computation = vm.apply_message(message)
-
-    if computation.is_error:
-        return computation
-    else:
-        contract_code = computation.output
-
-        if contract_code:
-            contract_code_gas_fee = len(contract_code) * constants.GAS_CODEDEPOSIT
-            try:
-                computation.gas_meter.consume_gas(
-                    contract_code_gas_fee,
-                    reason="Write contract code for CREATE",
-                )
-            except OutOfGas:
-                computation.output = b''
-            else:
-                vm.logger.debug(
-                    "SETTING CODE: %s -> length: %s | hash: %s",
-                    encode_hex(message.storage_address),
-                    len(contract_code),
-                    encode_hex(keccak(contract_code))
-                )
-                with vm.state_db() as state_db:
-                    state_db.set_code(message.storage_address, contract_code)
-        return computation
-
-
 FrontierVM = VM.configure(
     name='FrontierVM',
     # VM logic
     opcodes=FRONTIER_OPCODES,
     # classes
     _block_class=FrontierBlock,
+    _computation_class=FrontierComputation,
     _precompiles=FRONTIER_PRECOMPILES,
+    _state_class=VMState,
     # helpers
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     configure_header=configure_frontier_header,
@@ -263,6 +196,4 @@ FrontierVM = VM.configure(
     validate_transaction=validate_frontier_transaction,
     # transactions and vm messages
     execute_transaction=_execute_frontier_transaction,
-    apply_create_message=_apply_frontier_create_message,
-    apply_message=_apply_frontier_message,
 )

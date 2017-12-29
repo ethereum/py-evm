@@ -24,6 +24,9 @@ from evm.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
 )
+from evm.vm.vm_state import (
+    VMState,
+)
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -154,35 +157,40 @@ def fixture(fixture_data):
 # Test Chain Setup
 #
 def get_block_hash_for_testing(self, block_number):
-    if block_number >= self.block.header.block_number:
+    if block_number >= self.block_header.block_number:
         return b''
     elif block_number < 0:
         return b''
-    elif block_number < self.block.header.block_number - 256:
+    elif block_number < self.block_header.block_number - 256:
         return b''
     else:
         return keccak("{0}".format(block_number))
 
 
+VMStateForTesting = VMState.configure(
+    name='VMStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
+
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=VMStateForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=VMStateForTesting,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
     name='TangerineWhistleVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=VMStateForTesting,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
     name='SpuriousDragonVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=VMStateForTesting,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
     name='ByzantiumVMForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
+    _state_class=VMStateForTesting,
 )
 
 
@@ -219,7 +227,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     chaindb = BaseChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
-    with vm.state_db() as state_db:
+    with vm.state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
 
     if 'secretKey' in fixture['transaction']:

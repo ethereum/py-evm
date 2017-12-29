@@ -4,6 +4,6 @@ from .base import (  # noqa: F401
 from .message import (  # noqa: F401
     Message,
 )
-from .computation import (  # noqa: F401
-    Computation,
+from .vm_state import (  # noqa: F401
+    VMState,
 )
