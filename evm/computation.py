@@ -76,7 +76,7 @@ class BaseComputation(object):
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, vm_state=None, message=None, opcodes=None, precompiles=None):
+    def __init__(self, vm_state, message, opcodes, precompiles):
         self.vm_state = vm_state
         self.msg = message
 
