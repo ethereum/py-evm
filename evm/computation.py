@@ -207,18 +207,14 @@ class BaseComputation(object):
                 child_msg,
                 opcodes,
                 precompiles,
-            ).apply_create_message(
-                vm_state,
-            )
+            ).apply_create_message()
         else:
             child_computation = cls(
                 vm_state,
                 child_msg,
                 opcodes,
                 precompiles,
-            ).apply_message(
-                vm_state,
-            )
+            ).apply_message()
         return child_computation
 
     def add_child_computation(self, child_computation):
@@ -359,13 +355,13 @@ class BaseComputation(object):
     #
     # State Transition
     #
-    def apply_message(self, vm_state):
+    def apply_message(self):
         """
         Execution of an VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def apply_create_message(self, vm_state):
+    def apply_create_message(self):
         """
         Execution of an VM message to create a new contract.
         """

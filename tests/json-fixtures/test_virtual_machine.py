@@ -81,14 +81,14 @@ def fixture(fixture_data):
 #
 # Testing Overrides
 #
-def apply_message_for_testing(self, vm_state, message, opcodes, precompiles):
+def apply_message_for_testing(self):
     """
     For VM tests, we don't actually apply messages.
     """
     return self
 
 
-def apply_create_message_for_testing(self, vm_state, message, opcodes, precompiles):
+def apply_create_message_for_testing(self):
     """
     For VM tests, we don't actually apply messages.
     """

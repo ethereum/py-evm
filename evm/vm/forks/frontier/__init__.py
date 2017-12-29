@@ -126,13 +126,9 @@ def _execute_frontier_transaction(vm, transaction):
                 encode_hex(contract_address),
             )
         else:
-            computation = vm.get_computation(message).apply_create_message(
-                vm.state,
-            )
+            computation = vm.get_computation(message).apply_create_message()
     else:
-        computation = vm.get_computation(message).apply_message(
-            vm.state,
-        )
+        computation = vm.get_computation(message).apply_message()
 
     #
     # 2) Post Computation

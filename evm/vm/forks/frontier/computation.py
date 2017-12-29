@@ -16,14 +16,14 @@ from evm.utils.keccak import (
 
 
 class FrontierComputation(BaseComputation):
-    def apply_message(self, vm_state):
-        snapshot = vm_state.snapshot()
+    def apply_message(self):
+        snapshot = self.vm_state.snapshot()
 
         if self.msg.depth > constants.STACK_DEPTH_LIMIT:
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with vm_state.state_db() as state_db:
+            with self.vm_state.state_db() as state_db:
                 sender_balance = state_db.get_balance(self.msg.sender)
 
                 if sender_balance < self.msg.value:
@@ -41,27 +41,25 @@ class FrontierComputation(BaseComputation):
                 encode_hex(self.msg.storage_address),
             )
 
-        with vm_state.state_db() as state_db:
+        with self.vm_state.state_db() as state_db:
             state_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
-            vm_state,
+            self.vm_state,
             self.msg,
             self.opcodes,
             self.precompiles,
         )
 
         if computation.is_error:
-            vm_state.revert(snapshot)
+            self.vm_state.revert(snapshot)
         else:
-            vm_state.commit(snapshot)
+            self.vm_state.commit(snapshot)
 
         return computation
 
-    def apply_create_message(self, vm_state):
-        computation = self.apply_message(
-            vm_state,
-        )
+    def apply_create_message(self):
+        computation = self.apply_message()
 
         if computation.is_error:
             return computation
@@ -84,6 +82,6 @@ class FrontierComputation(BaseComputation):
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    with vm_state.state_db() as state_db:
+                    with self.vm_state.state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
             return computation
