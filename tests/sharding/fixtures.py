@@ -7,22 +7,48 @@ from cytoolz import (
 
 from web3 import (
     Web3,
+    HTTPProvider,
 )
 
 from web3.providers.eth_tester import (
     EthereumTesterProvider,
 )
 
+<<<<<<< HEAD
 from eth_tester import (
     EthereumTester,
 )
+=======
+from eth_utils import (
+    to_checksum_address,
+)
+
+from eth_tester import EthereumTester
+>>>>>>> Add `get_next_log` and `fetch_candidate_head`
 
 from eth_tester.backends.pyevm import (
     PyEVMBackend,
 )
 
+<<<<<<< HEAD
 from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
+=======
+from evm.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction,
+)
+
+from evm.chains.sharding.mainchain_handler.mainchain_handler import (
+    MainchainHandler,
+>>>>>>> Add `get_next_log` and `fetch_candidate_head`
+)
+from evm.chains.sharding.mainchain_handler.vmc_handler import (
+    VMC,
+)
+from evm.chains.sharding.mainchain_handler.vmc_utils import (
+    create_vmc_tx,
+    get_contract_address_from_contract_tx,
+    get_vmc_json,
 )
 
 from eth_utils import (
@@ -65,6 +91,7 @@ def vmc():
         auto_mine_transactions=False,
     )
     provider = EthereumTesterProvider(eth_tester)
+    # provider = HTTPProvider('http://localhost:8545')
     w3 = Web3(provider)
 
     # setup vmc's web3.eth.contract instance

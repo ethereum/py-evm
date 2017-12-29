@@ -50,6 +50,10 @@ from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
 
+from evm.chains.sharding.mainchain_handler.vmc_handler import (
+    NextLogUnavailable,
+)
+
 from tests.sharding.fixtures import (  # noqa: F401
     get_contract_address_from_contract_tx,
     vmc,
@@ -316,6 +320,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     default_gas = sharding_config['DEFAULT_GAS']
 
+    vmc.setup_collation_added_filter(shard_id)
+
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
         nonce=0,
@@ -430,6 +436,12 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_collation_headers__score(shard_id, header2_hash)
     assert colhdr2_score == 2
+    # confirm the logs are correct
+    # TODO: add more tests
+    assert vmc.get_next_log()['score'] == 2
+    assert vmc.get_next_log()['score'] == 1
+    with pytest.raises(NextLogUnavailable):
+        vmc.get_next_log()
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
