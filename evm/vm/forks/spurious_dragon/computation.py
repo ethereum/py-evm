@@ -9,23 +9,25 @@ from evm.utils.keccak import (
     keccak,
 )
 from .constants import EIP170_CODE_SIZE_LIMIT
-from ..homestead.state import (
-    HomesteadVMState,
+from ..homestead.computation import (
+    HomesteadComputation,
 )
 
 
-class SpuriousDragonVMState(HomesteadVMState):
-    def apply_create_message(self, message):
-        snapshot = self.snapshot()
+class SpuriousDragonComputation(HomesteadComputation):
+    def apply_create_message(self, vm_state):
+        snapshot = vm_state.snapshot()
 
         # EIP161 nonce incrementation
-        with self.state_db() as state_db:
-            state_db.increment_nonce(message.storage_address)
+        with vm_state.state_db() as state_db:
+            state_db.increment_nonce(self.msg.storage_address)
 
-        computation = self.apply_message(message)
+        computation = self.apply_message(
+            vm_state,
+        )
 
         if computation.is_error:
-            self.revert(snapshot)
+            vm_state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -38,7 +40,7 @@ class SpuriousDragonVMState(HomesteadVMState):
                         len(contract_code),
                     )
                 )
-                self.revert(snapshot)
+                vm_state.revert(snapshot)
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
@@ -50,19 +52,19 @@ class SpuriousDragonVMState(HomesteadVMState):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation._error = err
-                    self.revert(snapshot)
+                    vm_state.revert(snapshot)
                 else:
                     if self.logger:
                         self.logger.debug(
                             "SETTING CODE: %s -> length: %s | hash: %s",
-                            encode_hex(message.storage_address),
+                            encode_hex(self.msg.storage_address),
                             len(contract_code),
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.state_db() as state_db:
-                        state_db.set_code(message.storage_address, contract_code)
-                    self.commit(snapshot)
+                    with vm_state.state_db() as state_db:
+                        state_db.set_code(self.msg.storage_address, contract_code)
+                    vm_state.commit(snapshot)
             else:
-                self.commit(snapshot)
+                vm_state.commit(snapshot)
             return computation

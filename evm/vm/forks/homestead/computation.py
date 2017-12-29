@@ -8,19 +8,21 @@ from evm.utils.hexadecimal import (
 from evm.utils.keccak import (
     keccak,
 )
-from ..frontier.state import (
-    FrontierVMState,
+from ..frontier.computation import (
+    FrontierComputation,
 )
 
 
-class HomesteadVMState(FrontierVMState):
-    def apply_create_message(self, message):
-        snapshot = self.snapshot()
+class HomesteadComputation(FrontierComputation):
+    def apply_create_message(self, vm_state):
+        snapshot = vm_state.snapshot()
 
-        computation = self.apply_message(message)
+        computation = self.apply_message(
+            vm_state,
+        )
 
         if computation.is_error:
-            self.revert(snapshot)
+            vm_state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -36,19 +38,19 @@ class HomesteadVMState(FrontierVMState):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation._error = err
-                    self.revert(snapshot)
+                    vm_state.revert(snapshot)
                 else:
                     if self.logger:
                         self.logger.debug(
                             "SETTING CODE: %s -> length: %s | hash: %s",
-                            encode_hex(message.storage_address),
+                            encode_hex(self.msg.storage_address),
                             len(contract_code),
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.state_db() as state_db:
-                        state_db.set_code(message.storage_address, contract_code)
-                    self.commit(snapshot)
+                    with vm_state.state_db() as state_db:
+                        state_db.set_code(self.msg.storage_address, contract_code)
+                    vm_state.commit(snapshot)
             else:
-                self.commit(snapshot)
+                vm_state.commit(snapshot)
             return computation

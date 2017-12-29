@@ -1,66 +1,14 @@
 from contextlib import contextmanager
 import logging
 
-from evm.vm.computation import (
-    Computation,
-)
-from evm.exceptions import (
-    Halt,
-)
-from evm.logic.invalid import (
-    InvalidOpcode,
-)
 
-
-class BaseVMState(object):
+class VMState(object):
     chaindb = None
     block_header = None
-    opcodes = None
-    precompiles = None
 
-    def __init__(self, chaindb, block_header, opcodes, precompiles):
+    def __init__(self, chaindb, block_header):
         self.chaindb = chaindb
         self.block_header = block_header
-        self.opcodes = opcodes
-        self.precompiles = precompiles
-
-    def apply_message(self, message):
-        """
-        Execution of an VM message.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_create_message(self, message):
-        """
-        Execution of an VM message to create a new contract.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_computation(self, message):
-        """
-        Perform the computation that would be triggered by the VM message.
-        """
-        with Computation(self, message) as computation:
-            # Early exit on pre-compiles
-            if message.code_address in self.precompiles:
-                self.precompiles[message.code_address](computation)
-                return computation
-
-            for opcode in computation.code:
-                opcode_fn = self.get_opcode_fn(self.opcodes, opcode)
-
-                computation.logger.trace(
-                    "OPCODE: 0x%x (%s) | pc: %s",
-                    opcode,
-                    opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
-                )
-
-                try:
-                    opcode_fn(computation=computation)
-                except Halt:
-                    break
-        return computation
 
     #
     # Logging
@@ -68,15 +16,6 @@ class BaseVMState(object):
     @property
     def logger(self):
         return logging.getLogger('evm.vm.state.{0}'.format(self.__class__.__name__))
-
-    #
-    # Opcode API
-    #
-    def get_opcode_fn(self, opcodes, opcode):
-        try:
-            return opcodes[opcode]
-        except KeyError:
-            return InvalidOpcode(opcode)
 
     #
     # Block Object Properties (in opcodes)

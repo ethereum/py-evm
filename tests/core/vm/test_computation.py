@@ -4,8 +4,10 @@ from evm.exceptions import (
     VMError,
     Revert,
 )
+from evm.computation import (
+    BaseComputation,
+)
 from evm.vm import (
-    Computation,
     Message,
 )
 
@@ -40,9 +42,11 @@ def message():
 
 @pytest.fixture
 def computation(message):
-    computation = Computation(
-        state=None,
-        message=message
+    computation = BaseComputation(
+        vm_state=None,
+        message=message,
+        opcodes=None,
+        precompiles=None,
     )
     return computation
 

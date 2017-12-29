@@ -12,8 +12,8 @@ from evm import precompiles
 from evm.vm.message import (
     Message,
 )
-from evm.vm.computation import (
-    Computation,
+from evm.vm.vm_state import (
+    VMState,
 )
 
 from evm.utils.address import (
@@ -29,7 +29,7 @@ from evm.utils.keccak import (
 
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
-from .state import FrontierVMState
+from .computation import FrontierComputation
 from .validation import validate_frontier_transaction
 from .headers import (
     create_frontier_header_from_parent,
@@ -115,10 +115,7 @@ def _execute_frontier_transaction(vm, transaction):
         if is_collision:
             # The address of the newly created contract has *somehow* collided
             # with an existing contract address.
-            computation = Computation(
-                vm.state,
-                message
-            )
+            computation = vm.get_computation(message)
             computation._error = ContractCreationCollision(
                 "Address collision while creating contract: {0}".format(
                     encode_hex(contract_address),
@@ -129,9 +126,13 @@ def _execute_frontier_transaction(vm, transaction):
                 encode_hex(contract_address),
             )
         else:
-            computation = vm.state.apply_create_message(message)
+            computation = vm.get_computation(message).apply_create_message(
+                vm.state,
+            )
     else:
-        computation = vm.state.apply_message(message)
+        computation = vm.get_computation(message).apply_message(
+            vm.state,
+        )
 
     #
     # 2) Post Computation
@@ -189,8 +190,9 @@ FrontierVM = VM.configure(
     opcodes=FRONTIER_OPCODES,
     # classes
     _block_class=FrontierBlock,
-    _state_class=FrontierVMState,
+    _computation_class=FrontierComputation,
     _precompiles=FRONTIER_PRECOMPILES,
+    _state_class=VMState,
     # helpers
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     configure_header=configure_frontier_header,

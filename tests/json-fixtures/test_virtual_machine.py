@@ -21,11 +21,13 @@ from evm.vm.forks import (
     HomesteadVM,
 )
 from evm.vm.forks.homestead import (
-    HomesteadVMState,
+    HomesteadComputation,
+)
+from evm.vm.vm_state import (
+    VMState,
 )
 from evm.vm import (
     Message,
-    Computation,
 )
 
 from evm.utils.fixture_tests import (
@@ -79,28 +81,18 @@ def fixture(fixture_data):
 #
 # Testing Overrides
 #
-def apply_message_for_testing(self, message):
+def apply_message_for_testing(self, vm_state, message, opcodes, precompiles):
     """
     For VM tests, we don't actually apply messages.
     """
-    computation = Computation(
-        state=self,
-        message=message,
-    )
-    print('yoo')
-    return computation
+    return self
 
 
-def apply_create_message_for_testing(self, message):
+def apply_create_message_for_testing(self, vm_state, message, opcodes, precompiles):
     """
     For VM tests, we don't actually apply messages.
     """
-    computation = Computation(
-        state=self,
-        message=message,
-    )
-    print('yoo')
-    return computation
+    return self
 
 
 def get_block_hash_for_testing(self, block_number):
@@ -112,15 +104,19 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
-HomesteadVMStateForTesting = HomesteadVMState.configure(
-    name='HomesteadVMStateForTesting',
+HomesteadComputationForTesting = HomesteadComputation.configure(
+    name='HomesteadComputationForTesting',
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
+)
+VMStateForTesting = VMState.configure(
+    name='VMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    _state_class=HomesteadVMStateForTesting,
+    _computation_class=HomesteadComputationForTesting,
+    _state_class=VMStateForTesting,
 )
 
 
@@ -163,7 +159,12 @@ def test_vm_fixtures(fixture, vm_class):
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.state.apply_computation(message)
+    computation = vm.get_computation_class().apply_computation(
+        vm.state,
+        message,
+        vm.opcodes,
+        vm.precompiles,
+    )
 
     if 'post' in fixture:
         #

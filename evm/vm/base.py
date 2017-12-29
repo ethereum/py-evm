@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import rlp
-
 import logging
 
 from evm.constants import (
@@ -23,6 +22,7 @@ class VM(object):
     chaindb = None
     opcodes = None
     _block_class = None
+    _computation_class = None
     _state_class = None
     _precompiles = None
 
@@ -240,8 +240,6 @@ class VM(object):
         return self.get_state_class()(
             self.chaindb,
             self.block.header,
-            self.opcodes,
-            self.precompiles,
         )
 
     @property
@@ -249,3 +247,27 @@ class VM(object):
         """Return current state property
         """
         return self.get_state()
+
+    #
+    # Computation
+    #
+    def get_computation(self, message):
+        """Return state object
+        """
+        computation = self.get_computation_class()(
+            self.state,
+            message,
+            self.opcodes,
+            self.precompiles,
+        )
+        return computation
+
+    @classmethod
+    def get_computation_class(cls):
+        """
+        Return the class that this VM uses for states.
+        """
+        if cls._computation_class is None:
+            raise AttributeError("No `_computation_class` has been set for this VM")
+
+        return cls._computation_class
