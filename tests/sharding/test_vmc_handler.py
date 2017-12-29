@@ -313,6 +313,32 @@ def get_testing_colhdr(vmc_handler,
     ])
 
 
+def test_vmc_fetch_candidate_head(vmc):  # noqa: F811
+    shard_id = 0
+    vmc.setup_collation_added_filter(shard_id)
+
+    # test with the case in doc.md
+    mock_score = [10, 11, 12, 11, 13, 14, 15, 11, 12, 13, 14, 12, 13, 14, 15, 16, 17, 18, 19, 16]
+    mock_is_new_head = [True, True, True, False, True, True, True, False, False, False, False, False, False, False, False, True, True, True, True, False]  # noqa: E501
+    # D4 D3 D2 D1 D5 B2 C5 B1 C1 C4 A5 B5 C3 A3 B4 C2 A2 A4 B3 A1
+    actual_score = [19, 18, 17, 16, 16, 15, 15, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11, 10]
+    actual_is_new_head = [True, True, True, True, False, True, False, True, False, False, True, False, False, True, False, False, True, False, False, True]  # noqa: E501
+    mock_collation_added_logs = [
+        {
+            'header': [None] * 10,
+            'score': mock_score[i],
+            'is_new_head': mock_is_new_head[i],
+        } for i in range(len(mock_score))
+    ]
+    vmc.new_collation_added_logs = mock_collation_added_logs
+    for i in range(len(mock_score)):
+        log = vmc.fetch_candidate_head()
+        assert log['score'] == actual_score[i]
+        assert log['is_new_head'] == actual_is_new_head[i]
+    with pytest.raises(NextLogUnavailable):
+        log = vmc.fetch_candidate_head()
+
+
 def test_vmc_contract_calls(vmc):  # noqa: F811
     shard_id = 0
     validator_index = 0
