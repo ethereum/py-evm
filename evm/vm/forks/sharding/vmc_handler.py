@@ -1,5 +1,9 @@
 import logging
 
+from cytoolz import (
+    pipe,
+)
+
 import rlp
 
 from web3.contract import (
@@ -11,6 +15,7 @@ from eth_utils import (
     keccak,
     to_checksum_address,
     to_dict,
+    to_tuple,
 )
 
 from evm.rlp.sedes import (
@@ -30,14 +35,23 @@ from evm.vm.forks.sharding.config import (
 )
 
 
+class NextLogUnavailable(Exception):
+    pass
+
+
 class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
-    # CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
+    # For handling logs filtering
+    # Event:
+    #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     collation_added_topic = "0x" + keccak("CollationAdded(int128,bytes4096,bool,int128)").hex()
+    new_collation_added_logs = []
+    # newer <---------------> older
     unchecked_collation_added_logs = []
     collation_added_filter = None
+    current_checking_score = None
 
     def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
@@ -45,14 +59,14 @@ class VMC(Contract):
         self.config = get_sharding_config()
         super().__init__(*args, **kwargs)
 
-    def setup_collation_added_filter(self):
+    def setup_collation_added_filter(self, shard_id):
         self.collation_added_filter = self.web3.eth.filter({
             'address': self.address,
             'topics': [self.collation_added_topic],
         })
 
-    def setup_log_filters(self):
-        self.setup_collation_added_filter()
+    def setup_log_filters(self, shard_id):
+        self.setup_collation_added_filter(shard_id)
 
     @to_dict
     def parse_collation_added_data(self, data):
@@ -77,13 +91,42 @@ class VMC(Contract):
         yield 'is_new_head', is_new_head
         yield 'score', score
 
-    def get_new_logs(self):
-        # TODO: should be `get_next_log` originally.
+    @to_tuple
+    def _get_new_logs(self):
+        # use `get_new_entries` over `get_all_entries`
+        #   1. Prevent from the increasing size of logs
+        #   2. Leave the efforts maintaining `new_logs` in RPC servers
         new_logs = self.collation_added_filter.get_new_entries()
         for log in new_logs:
-            data_bytes = decode_hex(log['data'])
-            parsed_log = self.parse_collation_added_data(data_bytes)
-            self.unchecked_collation_added_logs.append(parsed_log)
+            yield pipe(
+                log['data'],
+                decode_hex,
+                self.parse_collation_added_data,
+            )
+
+    def get_next_log(self):
+        new_logs = self._get_new_logs()
+        self.new_collation_added_logs += new_logs
+        if self.new_collation_added_logs == []:
+            raise NextLogUnavailable("No more next logs")
+        return self.new_collation_added_logs.pop()
+
+    def fetch_candidate_head(self):
+        # Try to return a log that has the score that we are checking for,
+        # checking in order of oldest to most recent.
+        for i in range(len(self.new_collation_added_logs) - 1, -1, -1):
+            if self.unchecked_collation_added_logs[i].score == self.current_checking_score:
+                return self.unchecked_collation_added_logs.pop(i)
+        # If no further recorded but unchecked logs exist, go to the next
+        # is_new_head = true log
+        while True:
+            # TODO: currently just raise when there is no log anymore
+            self.unchecked_collation_added_logs.append(self.get_next_log())
+            if self.unchecked_collation_added_logs[-1]['is_new_head'] is True:
+                break
+        log = self.unchecked_collation_added_logs.pop()
+        self.current_checking_score = log['score']
+        return log
 
     @to_dict
     def mk_build_transaction_detail(self,
