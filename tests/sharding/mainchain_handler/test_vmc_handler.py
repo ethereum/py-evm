@@ -68,21 +68,8 @@ def get_nonce(vmc_handler, address):
     return vmc_handler.web3.eth.getTransactionCount(to_checksum_address(address))
 
 
-def mine_web3(vmc_handler, num_blocks):
-    w3 = vmc_handler.web3
-    expected_block_number = w3.eth.blockNumber + num_blocks
-    w3.miner.start(1)
-    while w3.eth.blockNumber < expected_block_number:
-        time.sleep(0.1)
-    w3.miner.stop()
-
-
-def mine_eth_tester(vmc_handler, num_blocks):
-    vmc_handler.web3.testing.mine(num_blocks)
-
-
 def mine(vmc_handler, num_blocks):
-    mine_eth_tester(vmc_handler, num_blocks)
+    vmc_handler.web3.testing.mine(num_blocks)
 
 
 def send_raw_transaction(vmc_handler, raw_transaction):
