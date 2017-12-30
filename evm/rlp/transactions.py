@@ -182,20 +182,20 @@ class BaseShardingTransaction(rlp.Serializable):
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
         """
-        if self.intrensic_gas > self.gas:
+        if self.intrinsic_gas > self.gas:
             raise ValidationError("Insufficient gas")
 
     @property
-    def intrensic_gas(self):
+    def intrinsic_gas(self):
         """
-        Convenience property for the return value of `get_intrensic_gas`
+        Convenience property for the return value of `get_intrinsic_gas`
         """
-        return self.get_intrensic_gas()
+        return self.get_intrinsic_gas()
 
     #
     # Base gas costs
     #
-    def get_intrensic_gas(self):
+    def get_intrinsic_gas(self):
         """
         Compute the baseline gas cost for this transaction.  This is the amount
         of gas needed to send this transaction (but that is not actually used
