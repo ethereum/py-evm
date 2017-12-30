@@ -25,6 +25,11 @@ class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
 
+    def __init__(self, *args, default_privkey, **kwargs):
+        self.default_privkey = default_privkey
+        self.default_sender_address = default_privkey.public_key.to_canonical_address()
+        super().__init__(*args, **kwargs)
+
     @to_dict
     def mk_build_transaction_detail(self,
                                     nonce,
@@ -50,13 +55,13 @@ class VMC(Contract):
     def send_transaction(self,
                          func_name,
                          args,
-                         privkey,
                          nonce=None,
                          chain_id=None,
                          gas=TX_GAS,
                          value=0,
                          gas_price=GASPRICE,
                          data=None):
+        privkey = self.default_privkey
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
         build_transaction_detail = self.mk_build_transaction_detail(
@@ -79,17 +84,17 @@ class VMC(Contract):
 
     @to_dict
     def mk_contract_tx_detail(self,
-                              sender_addr,
+                              sender_address,
                               gas,
                               value=None,
                               gas_price=None,
                               data=None):
         # Both 'from' and 'gas' are required in eth_tester
-        if not is_canonical_address(sender_addr):
-            raise ValueError('sender_addr should be provided in the canonical format')
+        if not is_canonical_address(sender_address):
+            raise ValueError('sender_address should be provided in the canonical format')
         if not (isinstance(gas, int) and gas > 0):
             raise ValueError('gas should be provided as positive integer')
-        yield 'from', to_checksum_address(sender_addr)
+        yield 'from', to_checksum_address(sender_address)
         yield 'gas', gas
         if value is not None:
             yield 'value', value
@@ -100,17 +105,16 @@ class VMC(Contract):
 
     # contract calls ##############################################
 
-    def sample(self, shard_id, sender_addr=None, gas=TX_GAS):
+    def sample(self, shard_id, gas=TX_GAS):
         """sample(shard_id: num) -> address
         """
-        tx_detail = self.mk_contract_tx_detail(sender_addr=sender_addr, gas=gas)
+        tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
         address_in_hex = self.call(tx_detail).sample(shard_id)
         return decode_hex(address_in_hex)
 
     def deposit(self,
                 validation_code_addr,
                 return_addr,
-                privkey,
                 gas=TX_GAS,
                 gas_price=GASPRICE):
         """deposit(validation_code_addr: address, return_addr: address) -> num
@@ -121,14 +125,13 @@ class VMC(Contract):
                 to_checksum_address(validation_code_addr),
                 to_checksum_address(return_addr),
             ],
-            privkey,
             value=DEPOSIT_SIZE,
             gas=gas,
             gas_price=gas_price,
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, privkey, gas=TX_GAS, gas_price=GASPRICE):
+    def withdraw(self, validator_index, sig, gas=TX_GAS, gas_price=GASPRICE):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
         tx_hash = self.send_transaction(
@@ -137,19 +140,17 @@ class VMC(Contract):
                 validator_index,
                 sig,
             ],
-            privkey,
             gas=gas,
             gas_price=gas_price,
         )
         return tx_hash
 
-    def add_header(self, header, privkey, gas=TX_GAS, gas_price=GASPRICE):
+    def add_header(self, header, gas=TX_GAS, gas_price=GASPRICE):
         """add_header(header: bytes <= 4096) -> bool
         """
         tx_hash = self.send_transaction(
             'add_header',
             [header],
-            privkey,
             gas=gas,
             gas_price=gas_price,
         )
@@ -162,7 +163,6 @@ class VMC(Contract):
                     tx_gasprice,
                     data,
                     value,
-                    privkey,
                     gas=TX_GAS,
                     gas_price=GASPRICE):
         """tx_to_shard(
@@ -178,7 +178,6 @@ class VMC(Contract):
                 tx_gasprice,
                 data,
             ],
-            privkey=privkey,
             value=value,
             gas=gas,
             gas_price=gas_price,
