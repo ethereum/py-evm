@@ -19,6 +19,7 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
+<<<<<<< HEAD
     to_canonical_address,
     to_checksum_address,
     to_tuple,
@@ -26,6 +27,9 @@ from eth_utils import (
 
 from eth_keys import (
     keys,
+=======
+    to_checksum_address,
+>>>>>>> Fix typos due to rebase
 )
 
 from evm.utils.address import (
@@ -227,7 +231,7 @@ def deploy_valcode_and_deposit(vmc_handler, privkey):
         privkey.public_key.to_canonical_address()
     )
     nonce = get_nonce(vmc_handler, address)
-    valcode_addr = generate_contract_address(to_canonical_address(address), nonce)
+    valcode_addr = generate_contract_address(address, nonce)
     deploy_contract(vmc_handler, valcode, privkey)
     mine(vmc_handler, 1)
     vmc_handler.deposit(valcode_addr, address)
