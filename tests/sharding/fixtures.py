@@ -13,25 +13,21 @@ from web3.providers.eth_tester import (
     EthereumTesterProvider,
 )
 
-<<<<<<< HEAD
-from eth_tester import (
-    EthereumTester,
-)
-=======
 from eth_utils import (
     to_checksum_address,
 )
 
-from eth_tester import EthereumTester
->>>>>>> Add `get_next_log` and `fetch_candidate_head`
+from eth_tester import (
+    EthereumTester,
+)
 
 from eth_tester.backends.pyevm import (
     PyEVMBackend,
 )
 
-<<<<<<< HEAD
 from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
+<<<<<<< HEAD
 =======
 from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
