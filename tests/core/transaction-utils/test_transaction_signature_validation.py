@@ -111,7 +111,7 @@ def test_unsigned_to_eip155_signed_transaction(txn_fixture, transaction_class):
     assert signed_txn.chain_id == txn_fixture['chainId']
 
 
-def test_sharding_transaction_intrensic_gas(sharding_txn_fixture):
+def test_sharding_transaction_intrinsic_gas(sharding_txn_fixture):
     txn = ShardingTransaction(
         chain_id=sharding_txn_fixture["chain_id"],
         shard_id=sharding_txn_fixture["shard_id"],
@@ -123,4 +123,4 @@ def test_sharding_transaction_intrensic_gas(sharding_txn_fixture):
         code=decode_hex(sharding_txn_fixture["code"]),
     )
 
-    assert txn.intrensic_gas == sharding_txn_fixture["intrensic_gas"]
+    assert txn.intrinsic_gas == sharding_txn_fixture["intrinsic_gas"]
