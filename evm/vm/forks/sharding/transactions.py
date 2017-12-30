@@ -33,11 +33,11 @@ class ShardingTransaction(BaseShardingTransaction):
 
         super(ShardingTransaction, self).validate()
 
-    def get_intrensic_gas(self):
-        return _get_sharding_intrensic_gas(self.data, self.code)
+    def get_intrinsic_gas(self):
+        return _get_sharding_intrinsic_gas(self.data, self.code)
 
 
-def _get_sharding_intrensic_gas(transaction_data, transaction_code):
+def _get_sharding_intrinsic_gas(transaction_data, transaction_code):
     num_zero_bytes = transaction_data.count(b'\x00') + transaction_code.count(b'\x00')
     num_non_zero_bytes = len(transaction_data) + len(transaction_code) - num_zero_bytes
     return (
