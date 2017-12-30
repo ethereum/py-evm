@@ -16,7 +16,6 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
-    keccak,
     to_canonical_address,
     to_checksum_address,
 )
@@ -26,6 +25,9 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
+)
+from evm.utils.keccak import (
+    keccak,
 )
 
 from evm.vm.forks.spurious_dragon.transactions import (

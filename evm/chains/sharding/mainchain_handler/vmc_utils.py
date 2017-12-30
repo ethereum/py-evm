@@ -15,7 +15,6 @@ from eth_keys import (
 from eth_utils import (
     to_canonical_address,
     to_tuple,
-    keccak,
 )
 
 from evm.utils.address import (
@@ -24,10 +23,13 @@ from evm.utils.address import (
 from evm.utils.hexadecimal import (  # use evm.utils over eth_utils for hex encode/decode
     decode_hex,
 )
+from evm.utils.keccak import (
+    keccak,
+)
 
 from evm.chains.sharding.mainchain_handler.config import GASPRICE
 
-WITHDRAW_HASH = keccak("withdraw")
+WITHDRAW_HASH = keccak(b"withdraw")
 
 
 def mk_validation_code(address):
