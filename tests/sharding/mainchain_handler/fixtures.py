@@ -4,28 +4,56 @@ from web3 import (
     Web3,
 )
 
-from web3.providers.eth_tester import EthereumTesterProvider
+from web3.providers.eth_tester import (
+    EthereumTesterProvider,
+)
 
-from eth_tester import EthereumTester
+from eth_tester import (
+    EthereumTester,
+)
 
-from eth_tester.backends.pyevm import PyEVMBackend
+from eth_tester.backends.pyevm import (
+    PyEVMBackend,
+)
 
-from evm.chains.sharding.mainchain_handler.mainchain_handler import (
-    MainchainHandler,
+from eth_tester.backends.pyevm.main import (
+    get_default_account_keys,
+)
+
+from eth_utils import (
+    to_checksum_address,
+)
+
+from evm.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction,
+)
+from evm.chains.sharding.mainchain_handler.vmc_handler import (
+    VMC,
+)
+from evm.chains.sharding.mainchain_handler.vmc_utils import (
+    create_vmc_tx,
+    get_contract_address_from_contract_tx,
+    get_vmc_json,
 )
 
 
-class TesterMainchainHandler(MainchainHandler):
-    def mine(self, number):
-        self.w3.testing.mine(number)
-
-
 @pytest.fixture
-def mainchain_handler():
+def vmc():
     eth_tester = EthereumTester(
         backend=PyEVMBackend(),
         auto_mine_transactions=False,
     )
     provider = EthereumTesterProvider(eth_tester)
     w3 = Web3(provider)
-    return TesterMainchainHandler(w3)
+
+    # setup vmc's web3.eth.contract instance
+    vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
+    vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
+    vmc_json = get_vmc_json()
+    vmc_abi = vmc_json['abi']
+    vmc_bytecode = vmc_json['bytecode']
+    VMCClass = VMC.factory(w3, abi=vmc_abi, bytecode=vmc_bytecode)
+    test_keys = get_default_account_keys()
+    vmc_handler = VMCClass(to_checksum_address(vmc_addr), default_privkey=test_keys[0])
+    vmc_handler.vmc_tx_sender_address = vmc_tx.sender
+    return vmc_handler
