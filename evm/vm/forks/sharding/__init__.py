@@ -55,7 +55,7 @@ def _execute_sharding_transaction(vm, transaction):
         state_db.delta_balance(transaction.to, -1 * gas_fee)
 
         # Setup VM Message
-        message_gas = transaction.gas - transaction.intrensic_gas
+        message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.code:
             contract_address = generate_create2_contract_address(
