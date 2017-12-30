@@ -115,6 +115,8 @@ class Message(object):
 
 class ShardingMessage(Message):
 
+    is_create = False
+
     def __init__(self,
                  gas,
                  gas_price,
@@ -126,7 +128,7 @@ class ShardingMessage(Message):
                  origin=None,
                  access_list=None,
                  depth=0,
-                 create_address=None,
+                 is_create=False,
                  code_address=None,
                  should_transfer_value=True,
                  is_static=False):
@@ -140,16 +142,15 @@ class ShardingMessage(Message):
             code=code,
             origin=origin,
             depth=depth,
-            create_address=create_address,
+            create_address=to,
             code_address=code_address,
             should_transfer_value=should_transfer_value,
             is_static=is_static,
         )
 
+        validate_is_boolean(is_create, title="Message.is_create")
+        self.is_create = is_create
+
         if access_list is not None:
             validate_access_list(access_list)
         self.access_list = access_list
-
-    @property
-    def is_create(self):
-        return self.code not in (None, b'')

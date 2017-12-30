@@ -117,11 +117,3 @@ def test_is_create_computed_property():
 
     not_create_message = _create_message(to=ADDRESS_B)
     assert not_create_message.is_create is False
-
-
-def test_sharding_message_is_create_computed_property():
-    create_message = _create_sharding_message(code=b'\x60\x60\x60\x40\xf3')
-    assert create_message.is_create is True
-
-    not_create_message = _create_sharding_message(code=b'')
-    assert not_create_message.is_create is False
