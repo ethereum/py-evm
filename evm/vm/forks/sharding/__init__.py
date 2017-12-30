@@ -64,10 +64,12 @@ def _execute_sharding_transaction(vm, transaction):
             )
             data = b''
             code = transaction.code
+            is_create = True
         else:
             contract_address = None
             data = transaction.data
             code = state_db.get_code(transaction.to)
+            is_create = False
 
     vm.logger.info(
         (
@@ -89,7 +91,7 @@ def _execute_sharding_transaction(vm, transaction):
         value=0,
         data=data,
         code=code,
-        create_address=contract_address,
+        is_create=is_create,
     )
 
     #
