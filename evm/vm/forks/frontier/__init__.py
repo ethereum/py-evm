@@ -64,7 +64,7 @@ def _execute_frontier_transaction(vm, transaction):
         state_db.increment_nonce(transaction.sender)
 
         # Setup VM Message
-        message_gas = transaction.gas - transaction.intrensic_gas
+        message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
             contract_address = generate_contract_address(
