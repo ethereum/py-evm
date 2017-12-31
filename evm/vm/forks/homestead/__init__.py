@@ -28,4 +28,6 @@ HomesteadVM = MetaHomesteadVM.configure(
     validate_transaction=validate_homestead_transaction,
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
     configure_header=configure_homestead_header,
+    # mode
+    _is_stateless=True,
 )

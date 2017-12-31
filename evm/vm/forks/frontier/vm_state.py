@@ -210,8 +210,9 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 
 
 class FrontierVMState(BaseVMState):
-    def execute_transaction(self, transaction):
-        computation = _execute_frontier_transaction(self, transaction)
+    @staticmethod
+    def execute_transaction(vm_state, transaction):
+        computation = _execute_frontier_transaction(vm_state, transaction)
         return computation
 
     def make_receipt(self, transaction, computation):

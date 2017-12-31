@@ -238,7 +238,8 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        return vm.apply_transaction(transaction)
+        computation, access_logs = vm.apply_transaction(transaction)
+        return computation, access_logs
 
     def import_block(self, block, perform_validation=True):
         """

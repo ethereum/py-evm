@@ -1,6 +1,17 @@
 from .backends.base import BaseDB
 
 
+class AccessLogs(object):
+    reads = {}
+    writes = {}
+
+    def __init__(self, reads=None, writes=None):
+        if reads is not None:
+            self.reads = reads
+        if writes is not None:
+            self.writes = writes
+
+
 class TrackedDB(BaseDB):
     """
     The StateDB would be responsible for collecting all the touched keys.
@@ -10,35 +21,25 @@ class TrackedDB(BaseDB):
     """
 
     wrapped_db = None
-    _reads = None
-    _writes = None
+    access_logs = None
 
     def __init__(self, db):
         self.wrapped_db = db
-        self._reads = {}
-        self._writes = {}
-
-    @property
-    def reads(self):
-        return self._reads
-
-    @property
-    def writes(self):
-        return self._writes
+        self.access_logs = AccessLogs()
 
     def get(self, key):
         """
         Return the value of specific key and update read dict.
         """
         current_value = self.wrapped_db.get(key)
-        self._reads[key] = current_value
+        self.access_logs.reads[key] = current_value
         return current_value
 
     def set(self, key, value):
         """
         Set the key-value and update writes dict.
         """
-        self._writes[key] = value
+        self.access_logs.writes[key] = value
         return self.wrapped_db.set(key, value)
 
     def exists(self, key):
@@ -46,7 +47,7 @@ class TrackedDB(BaseDB):
         Check if the key exsits.
         """
         result = self.wrapped_db.exists(key)
-        self._reads[key] = self.wrapped_db.get(key) if result else None
+        self.access_logs.reads[key] = self.wrapped_db.get(key) if result else None
         return result
 
     def delete(self, key):
@@ -54,5 +55,5 @@ class TrackedDB(BaseDB):
         Delete the key and update writes dict.
         """
         result = self.wrapped_db.delete(key)
-        self._writes[key] = None
+        self.access_logs.writes[key] = None
         return result

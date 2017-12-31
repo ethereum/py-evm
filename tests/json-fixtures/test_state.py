@@ -279,7 +279,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         )
 
     try:
-        computation = vm.apply_transaction(transaction)
+        computation, _ = vm.apply_transaction(transaction)
     except ValidationError as err:
         transaction_error = err
     else:

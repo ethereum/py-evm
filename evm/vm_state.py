@@ -1,16 +1,23 @@
 from contextlib import contextmanager
 import logging
 
+from evm.db.tracked import (
+    AccessLogs,
+)
+
 
 class BaseVMState(object):
     _chaindb = None
     block_header = None
     computation_class = None
+    is_stateless = None
+    access_logs = AccessLogs()
 
-    def __init__(self, chaindb, block_header, computation_class):
+    def __init__(self, chaindb, block_header, computation_class, is_stateless):
         self._chaindb = chaindb
         self.block_header = block_header
         self.computation_class = computation_class
+        self.is_stateless = is_stateless
 
     #
     # Logging
@@ -61,6 +68,9 @@ class BaseVMState(object):
         elif self.block_header.state_root != state.root_hash:
             self.block_header.state_root = state.root_hash
 
+        self.access_logs.reads.update(state.db.access_logs.reads)
+        self.access_logs.writes.update(state.db.access_logs.writes)
+
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
@@ -99,6 +109,15 @@ class BaseVMState(object):
         """
         _, checkpoint_id = snapshot
         self._chaindb.commit(checkpoint_id)
+
+    @staticmethod
+    def union(nodes1, nodes2):
+        output = {}
+        for key, value in nodes1.items():
+            output[key] = value
+        for key, value in nodes2.items():
+            output[key] = value
+        return output
 
     #
     # Access ChainDB (Read-only)
@@ -148,7 +167,13 @@ class BaseVMState(object):
     #
     # Execution
     #
-    def execute_transaction(self, transaction):
+    @classmethod
+    def apply_transaction(cls, vm_state, transaction):
+        computation = cls.execute_transaction(vm_state, transaction)
+        return computation, computation.vm_state.access_logs
+
+    @staticmethod
+    def execute_transaction(vm_state, transaction):
         """
         Execute the transaction in the vm.
         """

@@ -13,6 +13,9 @@ from evm.constants import (
 from evm.db.immutable import (
     ImmutableDB,
 )
+from evm.db.tracked import (
+    TrackedDB,
+)
 from evm.rlp.accounts import (
     Account,
 )
@@ -21,7 +24,6 @@ from evm.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-
 from evm.utils.keccak import (
     keccak,
 )
@@ -49,6 +51,7 @@ class AccountStateDB:
             self.db = ImmutableDB(db)
         else:
             self.db = db
+        self.db = TrackedDB(self.db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     #

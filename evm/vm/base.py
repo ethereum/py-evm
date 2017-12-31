@@ -27,6 +27,8 @@ class VM(object):
     _computation_class = None
     _state_class = None
 
+    _is_stateless = None
+
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         block_class = self.get_block_class()
@@ -60,7 +62,7 @@ class VM(object):
     #
     def add_transaction(self, transaction, computation):
         """
-        Add a transaction to the given block.
+        Add a transaction to the given block and save the block data into chaindb.
         """
         receipt = self.state.make_receipt(transaction, computation)
 
@@ -87,11 +89,11 @@ class VM(object):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation = self.state.execute_transaction(transaction)
+        computation, access_logs = self.state.apply_transaction(self.state, transaction)
 
         self.clear_journal()
         self.add_transaction(transaction, computation)
-        return computation
+        return computation, access_logs
 
     #
     # Mining
@@ -297,6 +299,10 @@ class VM(object):
     #
     # State
     #
+    @property
+    def is_stateless(self):
+        return self._is_stateless
+
     @classmethod
     def get_state_class(cls):
         """
@@ -315,6 +321,7 @@ class VM(object):
             self.chaindb,
             self.block.header,
             computation_class,
+            self.is_stateless,
         )
 
     @property
