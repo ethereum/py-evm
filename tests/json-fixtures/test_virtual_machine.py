@@ -23,9 +23,7 @@ from evm.vm.forks import (
 from evm.vm.forks.homestead import (
     HomesteadComputation,
 )
-from evm.vm.vm_state import (
-    VMState,
-)
+from evm.vm.forks.homestead.vm_state import HomesteadVMState
 from evm.vm import (
     Message,
 )
@@ -109,14 +107,14 @@ HomesteadComputationForTesting = HomesteadComputation.configure(
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
 )
-VMStateForTesting = VMState.configure(
-    name='VMStateForTesting',
+HomesteadVMStateForTesting = HomesteadVMState.configure(
+    name='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     _computation_class=HomesteadComputationForTesting,
-    _state_class=VMStateForTesting,
+    _state_class=HomesteadVMStateForTesting,
 )
 
 
@@ -162,8 +160,6 @@ def test_vm_fixtures(fixture, vm_class):
     computation = vm.get_computation_class().apply_computation(
         vm.state,
         message,
-        vm.opcodes,
-        vm.precompiles,
     )
 
     if 'post' in fixture:

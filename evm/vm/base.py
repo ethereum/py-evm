@@ -7,6 +7,9 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.rlp.headers import (
+    BlockHeader,
+)
 from evm.utils.keccak import (
     keccak,
 )
@@ -20,11 +23,9 @@ class VM(object):
     network.
     """
     chaindb = None
-    opcodes = None
     _block_class = None
     _computation_class = None
     _state_class = None
-    _precompiles = None
 
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
@@ -47,13 +48,6 @@ class VM(object):
                 )
         return type(name, (cls,), overrides)
 
-    @property
-    def precompiles(self):
-        if self._precompiles is None:
-            return set()
-        else:
-            return self._precompiles
-
     #
     # Logging
     #
@@ -68,7 +62,7 @@ class VM(object):
         """
         Add a transaction to the given block.
         """
-        receipt = self.make_receipt(transaction, computation)
+        receipt = self.state.make_receipt(transaction, computation)
 
         transaction_idx = len(self.block.transactions)
 
@@ -93,22 +87,11 @@ class VM(object):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation = self.execute_transaction(transaction)
+        computation = self.state.execute_transaction(transaction)
+
         self.clear_journal()
         self.add_transaction(transaction, computation)
         return computation
-
-    def execute_transaction(self, transaction):
-        """
-        Execute the transaction in the vm.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def make_receipt(self, transaction, computation):
-        """
-        Make receipt.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Mining
@@ -181,8 +164,43 @@ class VM(object):
     def pack_block(self, block, *args, **kwargs):
         """
         Pack block for mining.
+
+        :param bytes coinbase: 20-byte public address to receive block reward
+        :param bytes uncles_hash: 32 bytes
+        :param bytes state_root: 32 bytes
+        :param bytes transaction_root: 32 bytes
+        :param bytes receipt_root: 32 bytes
+        :param int bloom:
+        :param int gas_used:
+        :param bytes extra_data: 32 bytes
+        :param bytes mix_hash: 32 bytes
+        :param bytes nonce: 8 bytes
         """
-        raise NotImplementedError("Must be implemented by subclasses")
+        if 'uncles' in kwargs:
+            block.uncles = kwargs.pop('uncles')
+            kwargs.setdefault('uncles_hash', keccak(rlp.encode(block.uncles)))
+
+        header = block.header
+        provided_fields = set(kwargs.keys())
+        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
+        unknown_fields = provided_fields.difference(known_fields)
+
+        if unknown_fields:
+            raise AttributeError(
+                "Unable to set the field(s) {0} on the `BlockHeader` class. "
+                "Received the following unexpected fields: {0}.".format(
+                    ", ".join(known_fields),
+                    ", ".join(unknown_fields),
+                )
+            )
+
+        for key, value in kwargs.items():
+            setattr(header, key, value)
+
+        # Perform validation
+        self.state.validate_block(block)
+
+        return block
 
     #
     # Transactions
@@ -232,18 +250,6 @@ class VM(object):
         Returns the header for the parent block.
         """
         return self.chaindb.get_block_header_by_hash(block_header.parent_hash)
-
-    def validate_block(self, block):
-        """
-        Validate the block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def validate_uncle(self, block, uncle):
-        """
-        Validate the uncle.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Gas Usage API
@@ -304,9 +310,11 @@ class VM(object):
     def get_state(self):
         """Return state object
         """
+        computation_class = self.get_computation_class
         return self.get_state_class()(
             self.chaindb,
             self.block.header,
+            computation_class,
         )
 
     @property
@@ -318,23 +326,12 @@ class VM(object):
     #
     # Computation
     #
-    def get_computation(self, message):
-        """Return state object
-        """
-        computation = self.get_computation_class()(
-            self.state,
-            message,
-            self.opcodes,
-            self.precompiles,
-        )
-        return computation
-
     @classmethod
     def get_computation_class(cls):
         """
-        Return the class that this VM uses for states.
+        Return the class that this VMState uses for states.
         """
         if cls._computation_class is None:
-            raise AttributeError("No `_computation_class` has been set for this VM")
+            raise AttributeError("No `_computation_class` has been set for this VMState")
 
         return cls._computation_class

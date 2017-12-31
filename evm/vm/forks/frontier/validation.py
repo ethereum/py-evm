@@ -3,9 +3,9 @@ from evm.exceptions import (
 )
 
 
-def validate_frontier_transaction(vm, transaction):
+def validate_frontier_transaction(vm_state, transaction):
     gas_cost = transaction.gas * transaction.gas_price
-    with vm.state.state_db(read_only=True) as state_db:
+    with vm_state.state_db(read_only=True) as state_db:
         sender_balance = state_db.get_balance(transaction.sender)
 
     if sender_balance < gas_cost:
@@ -18,9 +18,9 @@ def validate_frontier_transaction(vm, transaction):
     if sender_balance < total_cost:
         raise ValidationError("Sender account balance cannot afford txn")
 
-    if vm.block.header.gas_used + transaction.gas > vm.block.header.gas_limit:
+    if vm_state.block_header.gas_used + transaction.gas > vm_state.block_header.gas_limit:
         raise ValidationError("Transaction exceeds gas limit")
 
-    with vm.state.state_db(read_only=True) as state_db:
+    with vm_state.state_db(read_only=True) as state_db:
         if state_db.get_nonce(transaction.sender) != transaction.nonce:
             raise ValidationError("Invalid transaction nonce")

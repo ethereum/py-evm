@@ -1,9 +1,10 @@
-from ..homestead import HomesteadVM
+from evm.vm.forks.homestead import HomesteadVM
 
-from .opcodes import TANGERINE_WHISTLE_OPCODES
-
+from .computation import TangerineWhistleComputation
+from .vm_state import TangerineWhistleVMState
 
 TangerineWhistleVM = HomesteadVM.configure(
     name='TangerineWhistleVM',
-    opcodes=TANGERINE_WHISTLE_OPCODES,
+    _computation_class=TangerineWhistleComputation,
+    _state_class=TangerineWhistleVMState,
 )

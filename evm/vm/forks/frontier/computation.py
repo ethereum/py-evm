@@ -1,11 +1,15 @@
 from evm import constants
+from evm import precompiles
+from evm.computation import (
+    BaseComputation
+)
 from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
 )
-from evm.computation import (
-    BaseComputation
+from evm.utils.address import (
+    force_bytes_to_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -14,8 +18,26 @@ from evm.utils.keccak import (
     keccak,
 )
 
+from .opcodes import FRONTIER_OPCODES
+
+FRONTIER_PRECOMPILES = {
+    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
+    force_bytes_to_address(b'\x02'): precompiles.sha256,
+    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
+    force_bytes_to_address(b'\x04'): precompiles.identity,
+}
+
 
 class FrontierComputation(BaseComputation):
+    def __init__(self, vm_state, message):
+        super(FrontierComputation, self).__init__(
+            vm_state,
+            message,
+        )
+        # Overwrite
+        self.opcodes = FRONTIER_OPCODES
+        self._precompiles = FRONTIER_PRECOMPILES
+
     def apply_message(self):
         snapshot = self.vm_state.snapshot()
 
@@ -47,8 +69,6 @@ class FrontierComputation(BaseComputation):
         computation = self.apply_computation(
             self.vm_state,
             self.msg,
-            self.opcodes,
-            self.precompiles,
         )
 
         if computation.is_error:

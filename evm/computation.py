@@ -71,12 +71,13 @@ class BaseComputation(object):
     logs = None
     accounts_to_delete = None
 
+    # VM configuration
     opcodes = None
-    precompiles = None
+    _precompiles = None
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, vm_state, message, opcodes, precompiles):
+    def __init__(self, vm_state, message):
         self.vm_state = vm_state
         self.msg = message
 
@@ -90,9 +91,6 @@ class BaseComputation(object):
 
         code = message.code
         self.code = CodeStream(code)
-
-        self.opcodes = opcodes
-        self.precompiles = precompiles
 
     #
     # Convenience
@@ -203,27 +201,21 @@ class BaseComputation(object):
         child_computation = self.generate_child_computation(
             self.vm_state,
             child_msg,
-            self.opcodes,
-            self.precompiles,
         )
         self.add_child_computation(child_computation)
         return child_computation
 
     @classmethod
-    def generate_child_computation(cls, vm_state, child_msg, opcodes, precompiles):
+    def generate_child_computation(cls, vm_state, child_msg):
         if child_msg.is_create:
             child_computation = cls(
                 vm_state,
                 child_msg,
-                opcodes,
-                precompiles,
             ).apply_create_message()
         else:
             child_computation = cls(
                 vm_state,
                 child_msg,
-                opcodes,
-                precompiles,
             ).apply_message()
         return child_computation
 
@@ -378,11 +370,11 @@ class BaseComputation(object):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
-    def apply_computation(cls, vm_state, message, opcodes, precompiles):
+    def apply_computation(cls, vm_state, message):
         """
         Perform the computation that would be triggered by the VM message.
         """
-        with cls(vm_state, message, opcodes, precompiles) as computation:
+        with cls(vm_state, message) as computation:
             # Early exit on pre-compiles
             if message.code_address in computation.precompiles:
                 computation.precompiles[message.code_address](computation)
@@ -407,6 +399,13 @@ class BaseComputation(object):
     #
     # Opcode API
     #
+    @property
+    def precompiles(self):
+        if self._precompiles is None:
+            return set()
+        else:
+            return self._precompiles
+
     def get_opcode_fn(self, opcodes, opcode):
         try:
             return opcodes[opcode]
