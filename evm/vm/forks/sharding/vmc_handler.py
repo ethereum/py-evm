@@ -1,3 +1,7 @@
+from collections import (
+    defaultdict,
+)
+
 import logging
 
 from cytoolz import (
@@ -41,6 +45,10 @@ class NextLogUnavailable(Exception):
     pass
 
 
+class FilterNotFound(Exception):
+    pass
+
+
 class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
@@ -49,11 +57,11 @@ class VMC(Contract):
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     collation_added_topic = "0x" + keccak(b"CollationAdded(int128,bytes4096,bool,int128)").hex()
-    new_collation_added_logs = []
+    new_collation_added_logs = defaultdict(list)
     # newer <---------------> older
-    unchecked_collation_added_logs = []
-    collation_added_filter = None
-    current_checking_score = None
+    unchecked_collation_added_logs = defaultdict(list)
+    collation_added_filter = defaultdict(None)
+    current_checking_score = defaultdict(None)
 
     def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
@@ -62,13 +70,14 @@ class VMC(Contract):
         super().__init__(*args, **kwargs)
 
     def setup_collation_added_filter(self, shard_id):
-        self.collation_added_filter = self.web3.eth.filter({
+        shard_id_topic = "0x" + shard_id.to_bytes(32, byteorder='big').hex()
+        self.collation_added_filter[shard_id] = self.web3.eth.filter({
             'address': self.address,
-            'topics': [self.collation_added_topic],
+            'topics': [
+                self.collation_added_topic,
+                shard_id_topic,
+            ],
         })
-
-    def setup_log_filters(self, shard_id):
-        self.setup_collation_added_filter(shard_id)
 
     @to_dict
     def parse_collation_added_data(self, data):
@@ -94,11 +103,15 @@ class VMC(Contract):
         yield 'score', score
 
     @to_tuple
-    def _get_new_logs(self):
+    def _get_new_logs(self, shard_id):
         # use `get_new_entries` over `get_all_entries`
         #   1. Prevent from the increasing size of logs
         #   2. Leave the efforts maintaining `new_logs` in RPC servers
-        new_logs = self.collation_added_filter.get_new_entries()
+        if shard_id not in self.collation_added_filter:
+            raise FilterNotFound(
+                "CollationAdded filter haven't been set up in shard {}".format(shard_id)
+            )
+        new_logs = self.collation_added_filter[shard_id].get_new_entries()
         for log in new_logs:
             yield pipe(
                 log['data'],
@@ -106,28 +119,29 @@ class VMC(Contract):
                 self.parse_collation_added_data,
             )
 
-    def get_next_log(self):
-        new_logs = self._get_new_logs()
-        self.new_collation_added_logs += new_logs
-        if self.new_collation_added_logs == []:
+    def get_next_log(self, shard_id):
+        new_logs = self._get_new_logs(shard_id)
+        self.new_collation_added_logs[shard_id] += new_logs
+        if self.new_collation_added_logs[shard_id] == []:
             raise NextLogUnavailable("No more next logs")
-        return self.new_collation_added_logs.pop()
+        return self.new_collation_added_logs[shard_id].pop()
 
-    def fetch_candidate_head(self):
+    def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
-        for i in range(len(self.unchecked_collation_added_logs) - 1, -1, -1):
-            if self.unchecked_collation_added_logs[i]['score'] == self.current_checking_score:
-                return self.unchecked_collation_added_logs.pop(i)
+        for i in range(len(self.unchecked_collation_added_logs[shard_id]) - 1, -1, -1):
+            if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
+               self.current_checking_score[shard_id]:
+                return self.unchecked_collation_added_logs[shard_id].pop(i)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
         while True:
             # TODO: currently just raise when there is no log anymore
-            self.unchecked_collation_added_logs.append(self.get_next_log())
-            if self.unchecked_collation_added_logs[-1]['is_new_head'] is True:
+            self.unchecked_collation_added_logs[shard_id].append(self.get_next_log(shard_id))
+            if self.unchecked_collation_added_logs[shard_id][-1]['is_new_head'] is True:
                 break
-        log = self.unchecked_collation_added_logs.pop()
-        self.current_checking_score = log['score']
+        log = self.unchecked_collation_added_logs[shard_id].pop()
+        self.current_checking_score[shard_id] = log['score']
         return log
 
     @to_dict
