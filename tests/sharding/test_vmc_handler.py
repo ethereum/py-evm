@@ -55,6 +55,7 @@ from evm.vm.forks.sharding.vmc_utils import (
 )
 
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
+    FilterNotFound,
     NextLogUnavailable,
 )
 
@@ -334,13 +335,13 @@ def test_vmc_fetch_candidate_head(vmc):  # noqa: F811
             'is_new_head': mock_is_new_head[i],
         } for i in range(len(mock_score))
     ]
-    vmc.new_collation_added_logs = mock_collation_added_logs
+    vmc.new_collation_added_logs[shard_id] = mock_collation_added_logs
     for i in range(len(mock_score)):
-        log = vmc.fetch_candidate_head()
+        log = vmc.fetch_candidate_head(shard_id)
         assert log['score'] == actual_score[i]
         assert log['is_new_head'] == actual_is_new_head[i]
     with pytest.raises(NextLogUnavailable):
-        log = vmc.fetch_candidate_head()
+        log = vmc.fetch_candidate_head(shard_id)
 
 
 def test_vmc_contract_calls(vmc):  # noqa: F811
@@ -425,15 +426,15 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `add_header` ######################################
     genesis_colhdr_hash = b'\x00' * 32
     # create a testing collation header, whose parent is the genesis
-    header1 = get_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
-    header1_hash = keccak(header1)
+    header0_1 = get_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
+    header0_1_hash = keccak(header0_1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
         header_parent_not_added = get_testing_colhdr(
             vmc,
             shard_id,
-            header1_hash,
+            header0_1_hash,
             1,
         )
         vmc.call(vmc.mk_contract_tx_detail(
@@ -442,7 +443,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             gas_price=1,
         )).add_header(header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    vmc.add_header(header1)
+    vmc.add_header(header0_1)
     mine(vmc, SHUFFLING_CYCLE_LENGTH)
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
@@ -450,28 +451,35 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             sender_address=primary_addr,
             gas=default_gas,
             gas_price=1,
-        )).add_header(header1)
+        )).add_header(header0_1)
     # when a valid header is added, the `add_header` call should succeed
-    header2 = get_testing_colhdr(vmc, shard_id, header1_hash, 2)
-    header2_hash = keccak(header2)
-    vmc.add_header(header2)
+    header0_2 = get_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
+    header0_2_hash = keccak(header0_2)
+    vmc.add_header(header0_2)
 
     mine(vmc, SHUFFLING_CYCLE_LENGTH)
     # confirm the score of header1 and header2 are correct or not
-    colhdr1_score = vmc.call(
+    colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header1_hash)
-    assert colhdr1_score == 1
-    colhdr2_score = vmc.call(
+    ).get_collation_headers__score(shard_id, header0_1_hash)
+    assert colhdr0_1_score == 1
+    colhdr0_2_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header2_hash)
-    assert colhdr2_score == 2
+    ).get_collation_headers__score(shard_id, header0_2_hash)
+    assert colhdr0_2_score == 2
     # confirm the logs are correct
-    # TODO: add more tests
-    assert vmc.get_next_log()['score'] == 2
-    assert vmc.get_next_log()['score'] == 1
+    assert vmc.get_next_log(shard_id)['score'] == 2
+    assert vmc.get_next_log(shard_id)['score'] == 1
     with pytest.raises(NextLogUnavailable):
-        vmc.get_next_log()
+        vmc.get_next_log(shard_id)
+    # filter logs in multiple shards
+    header1_1 = get_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
+    with pytest.raises(FilterNotFound):
+        vmc.get_next_log(1)
+    vmc.setup_collation_added_filter(1)
+    vmc.add_header(header1_1)
+    mine(vmc, 1)
+    assert vmc.get_next_log(1)['score'] == 1
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
