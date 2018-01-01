@@ -12,7 +12,6 @@ from web3.contract import (
 
 from eth_utils import (
     is_canonical_address,
-    keccak,
     to_checksum_address,
     to_dict,
     to_tuple,
@@ -25,6 +24,9 @@ from evm.rlp.sedes import (
 
 from evm.utils.hexadecimal import (
     decode_hex,
+)
+from evm.utils.keccak import (
+    keccak,
 )
 from evm.utils.numeric import (
     big_endian_to_int,
@@ -46,7 +48,7 @@ class VMC(Contract):
     # For handling logs filtering
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
-    collation_added_topic = "0x" + keccak("CollationAdded(int128,bytes4096,bool,int128)").hex()
+    collation_added_topic = "0x" + keccak(b"CollationAdded(int128,bytes4096,bool,int128)").hex()
     new_collation_added_logs = []
     # newer <---------------> older
     unchecked_collation_added_logs = []
