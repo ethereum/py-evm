@@ -19,7 +19,6 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
-<<<<<<< HEAD
     to_canonical_address,
     to_checksum_address,
     to_tuple,
@@ -27,9 +26,6 @@ from eth_utils import (
 
 from eth_keys import (
     keys,
-=======
-    to_checksum_address,
->>>>>>> Fix typos due to rebase
 )
 
 from evm.utils.address import (
@@ -70,7 +66,7 @@ sharding_config = get_sharding_config()
 PASSPHRASE = '123'
 ZERO_ADDR = b'\x00' * 20
 # for testing we set it to 5, 25 or 2500 originally
-SHUFFLING_CYCLE_LENGTH = 5
+SHUFFLING_CYCLE_LENGTH = 25
 WITHDRAW_HASH = keccak(b"withdraw")
 
 test_keys = get_default_account_keys()
@@ -398,9 +394,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         import_key(vmc, primary_key)
         deploy_initiating_contracts(vmc, primary_key)
         mine(vmc, 1)
+
     assert is_vmc_deployed(vmc)
 
-    # test `deposit` and `sample` ######################################
+    # test `deposit` and `get_eligible_proposer` ######################################
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
     # else, there should only be one validator, for easier testing.
@@ -414,13 +411,21 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             primary_key,
         )
         # TODO: error occurs when we don't mine so many blocks
-        mine(vmc, SHUFFLING_CYCLE_LENGTH)
-        assert vmc.sample(shard_id) == valcode_addr
+        mine(vmc, LOOKAHEAD_PERIODS * PERIOD_LENGTH)
+        assert vmc.get_eligible_proposer(shard_id) == valcode_addr
+
+    # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
+    # to ensure that `get_eligible_proposer` works
+    current_block_number = vmc.web3.eth.blockNumber
+    if current_block_number < LOOKAHEAD_PERIODS * PERIOD_LENGTH:
+        mine(vmc, LOOKAHEAD_PERIODS * PERIOD_LENGTH - current_block_number)
+    assert vmc.web3.eth.blockNumber >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
+
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_num_validators()
     assert num_validators == 1
-    assert vmc.sample(shard_id) != ZERO_ADDR
+    assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDR
     logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
 
     # test `add_header` ######################################
@@ -444,7 +449,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         )).add_header(header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
     vmc.add_header(header0_1)
-    mine(vmc, SHUFFLING_CYCLE_LENGTH)
+    mine(vmc, PERIOD_LENGTH)
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
         vmc.call(vmc.mk_contract_tx_detail(
@@ -457,7 +462,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     header0_2_hash = keccak(header0_2)
     vmc.add_header(header0_2)
 
-    mine(vmc, SHUFFLING_CYCLE_LENGTH)
+    mine(vmc, PERIOD_LENGTH)
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
@@ -499,6 +504,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `withdraw` ######################################
     do_withdraw(vmc, validator_index)
     mine(vmc, 1)
-    # if the only validator withdraws, because there is no validator anymore, the result of sample
-    # must be ZERO_ADDR.
-    assert vmc.sample(shard_id) == ZERO_ADDR
+    # if the only validator withdraws, because there is no validator anymore, the result of
+    # `get_num_validators` must be 0.
+    # print(vmc.get_eligible_proposer(shard_id))
+    num_validators = vmc.call(
+        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
+    ).get_num_validators()
+    assert num_validators == 0
