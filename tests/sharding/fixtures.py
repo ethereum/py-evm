@@ -27,15 +27,6 @@ from eth_tester.backends.pyevm import (
 
 from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
-<<<<<<< HEAD
-=======
-from evm.vm.forks.spurious_dragon.transactions import (
-    SpuriousDragonTransaction,
-)
-
-from evm.chains.sharding.mainchain_handler.mainchain_handler import (
-    MainchainHandler,
->>>>>>> Add `get_next_log` and `fetch_candidate_head`
 )
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMC,

@@ -223,13 +223,15 @@ class VMC(Contract):
 
     # contract calls ##############################################
 
-    def sample(self, shard_id, gas=None):
-        """sample(shard_id: num) -> address
+    def get_eligible_proposer(self, shard_id, period=None, gas=TX_GAS):
+        """get_eligible_proposer(shard_id: num, period: num) -> address
         """
         if gas is None:
             gas = self.config['DEFAULT_GAS']
+        if period is None:
+            period = self.web3.eth.blockNumber // PERIOD_LENGTH
         tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
-        address_in_hex = self.call(tx_detail).sample(shard_id)
+        address_in_hex = self.call(tx_detail).get_eligible_proposer(shard_id, period)
         return decode_hex(address_in_hex)
 
     def deposit(self,
