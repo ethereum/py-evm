@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from evm.p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
 
-_DecodedMsgType = Dict[str, Any]
+_DecodedMsgType = Union[Dict[str, Any], List[bytes], bytes]
 
 
 class Command:
@@ -34,7 +34,7 @@ class Command:
     def __init__(self, id_offset: int) -> None:
         self.id_offset = id_offset
 
-    def handle(self, proto: 'Protocol', data: bytes):
+    def handle(self, proto: 'Protocol', data: bytes) -> _DecodedMsgType:
         return self.decode(data)
 
     def __str__(self):
@@ -129,7 +129,7 @@ class Protocol:
     def process(self, cmd_id: int, msg: bytes) -> Tuple[Command, _DecodedMsgType]:
         cmd = self.cmd_by_id[cmd_id]
         decoded = cmd.handle(self, msg)
-        self.logger.debug("Successfully processed %s msg: %s", cmd, decoded)
+        self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded)
         if isinstance(cmd, self.handshake_msg_type):
             self.process_handshake(decoded)
         return cmd, decoded
