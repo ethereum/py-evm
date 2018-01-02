@@ -4,7 +4,6 @@ from evm.chains.mainnet.constants import (
 from evm.vm.forks.frontier import FrontierVM
 
 from .blocks import HomesteadBlock
-from .computation import HomesteadComputation
 from .validation import validate_homestead_transaction
 from .headers import (
     create_homestead_header_from_parent,
@@ -22,7 +21,6 @@ HomesteadVM = MetaHomesteadVM.configure(
     name='HomesteadVM',
     # classes
     _block_class=HomesteadBlock,
-    _computation_class=HomesteadComputation,
     _state_class=HomesteadVMState,
     # method overrides
     validate_transaction=validate_homestead_transaction,

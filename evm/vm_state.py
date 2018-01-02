@@ -1,5 +1,11 @@
 from contextlib import contextmanager
+import copy
 import logging
+
+import rlp
+from trie import (
+    Trie,
+)
 
 from evm.db.tracked import (
     AccessLogs,
@@ -12,19 +18,21 @@ class BaseVMState(object):
     computation_class = None
     is_stateless = None
     access_logs = AccessLogs()
+    receipts = None
 
-    def __init__(self, chaindb, block_header, computation_class, is_stateless):
+    def __init__(self, chaindb, block_header, is_stateless):
         self._chaindb = chaindb
         self.block_header = block_header
-        self.computation_class = computation_class
         self.is_stateless = is_stateless
+
+        self.receipts = []
 
     #
     # Logging
     #
     @property
     def logger(self):
-        return logging.getLogger('evm.vm.state.{0}'.format(self.__class__.__name__))
+        return logging.getLogger('evm.vm_state.{0}'.format(self.__class__.__name__))
 
     #
     # Block Object Properties (in opcodes)
@@ -52,6 +60,12 @@ class BaseVMState(object):
     @property
     def gas_limit(self):
         return self.block_header.gas_limit
+
+    #
+    # chaindb
+    #
+    def set_chaindb(self, db):
+        self._chaindb = db
 
     #
     # state_db
@@ -158,19 +172,89 @@ class BaseVMState(object):
     def get_computation(self, message):
         """Return state object
         """
-        computation = self.computation_class()(
-            self,
-            message,
-        )
+        if self.computation_class is not None:
+            computation = self.computation_class(self, message)
+        else:
+            raise AttributeError("No `computation_class` has been set for this VMState")
         return computation
 
     #
     # Execution
     #
     @classmethod
-    def apply_transaction(cls, vm_state, transaction):
-        computation = cls.execute_transaction(vm_state, transaction)
-        return computation, computation.vm_state.access_logs
+    def apply_transaction(cls, vm_state, transaction, block, is_stateless=True, witness_db=None):
+        """
+        Apply transaction
+        """
+        if is_stateless:
+            # Update block in this level.
+            assert witness_db is not None
+
+            block = copy.deepcopy(block)
+            vm_state = copy.deepcopy(vm_state)
+            vm_state.set_chaindb(witness_db)
+            cls.block_header = block.header
+
+            computation, block_header = cls.execute_transaction(vm_state, transaction)
+
+            # Set block.
+            block.header = block_header
+            block, receipt = cls.add_transaction(vm_state, transaction, computation, block)
+
+            # Set receipts in vm_state level.
+            vm_state.receipts.append(receipt)
+
+            return computation, block, receipt
+        else:
+            computation, block_header = cls.execute_transaction(vm_state, transaction)
+            return computation, None, None
+
+    @staticmethod
+    def add_transaction(vm_state, transaction, computation, block):
+        """
+        Add a transaction to the given block and save the block data into chaindb.
+        """
+        receipt = vm_state.make_receipt(vm_state, transaction, computation)
+
+        transaction_idx = len(block.transactions)
+
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+
+        block.transactions.append(transaction)
+
+        tx_root_hash = vm_state.add_transaction_to_db(
+            block.header,
+            index_key,
+            transaction,
+            block.db,
+        )
+        receipt_root_hash = vm_state.add_receipt_to_db(
+            block.header,
+            index_key,
+            receipt,
+            block.db,
+        )
+
+        block.bloom_filter |= receipt.bloom
+
+        block.header.transaction_root = tx_root_hash
+        block.header.receipt_root = receipt_root_hash
+        block.header.bloom = int(block.bloom_filter)
+        block.header.gas_used = receipt.gas_used
+
+        return block, receipt
+
+    @staticmethod
+    def add_transaction_to_db(block_header, index_key, transaction, db):
+        transaction_db = Trie(db, root_hash=block_header.transaction_root)
+        transaction_db[index_key] = rlp.encode(transaction)
+        return transaction_db.root_hash
+
+    @staticmethod
+    def add_receipt_to_db(block_header, index_key, receipt, db):
+        receipt_db = Trie(db=db, root_hash=block_header.receipt_root)
+        receipt_db[index_key] = rlp.encode(receipt)
+        return receipt_db.root_hash
 
     @staticmethod
     def execute_transaction(vm_state, transaction):
@@ -179,7 +263,8 @@ class BaseVMState(object):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def make_receipt(self, transaction, computation):
+    @staticmethod
+    def make_receipt(vm_state, transaction, computation):
         """
         Make receipt.
         """

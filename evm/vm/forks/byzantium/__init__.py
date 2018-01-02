@@ -10,7 +10,6 @@ from .headers import (
     configure_byzantium_header,
 )
 from .blocks import ByzantiumBlock
-from .computation import ByzantiumComputation
 from .vm_state import ByzantiumVMState
 
 
@@ -28,7 +27,6 @@ ByzantiumVM = SpuriousDragonVM.configure(
     name='ByzantiumVM',
     # classes
     _block_class=ByzantiumBlock,
-    _computation_class=ByzantiumComputation,
     _state_class=ByzantiumVMState,
     # Methods
     create_header_from_parent=staticmethod(create_byzantium_header_from_parent),

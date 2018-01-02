@@ -28,6 +28,6 @@ class ByzantiumComputation(SpuriousDragonComputation):
             vm_state,
             message,
         )
-        # Overwrite
+        # Override
         self.opcodes = BYZANTIUM_OPCODES
         self._precompiles = BYZANTIUM_PRECOMPILES

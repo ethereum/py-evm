@@ -9,5 +9,5 @@ class TangerineWhistleComputation(HomesteadComputation):
             vm_state,
             message,
         )
-        # Overwrite
+        # Override
         self.opcodes = TANGERINE_WHISTLE_OPCODES

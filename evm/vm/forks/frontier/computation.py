@@ -34,7 +34,7 @@ class FrontierComputation(BaseComputation):
             vm_state,
             message,
         )
-        # Overwrite
+        # Override
         self.opcodes = FRONTIER_OPCODES
         self._precompiles = FRONTIER_PRECOMPILES
 

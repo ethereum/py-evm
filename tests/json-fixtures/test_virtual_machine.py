@@ -20,7 +20,7 @@ from evm.rlp.headers import (
 from evm.vm.forks import (
     HomesteadVM,
 )
-from evm.vm.forks.homestead import (
+from evm.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
 from evm.vm.forks.homestead.vm_state import HomesteadVMState
@@ -110,10 +110,10 @@ HomesteadComputationForTesting = HomesteadComputation.configure(
 HomesteadVMStateForTesting = HomesteadVMState.configure(
     name='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
+    computation_class=HomesteadComputationForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    _computation_class=HomesteadComputationForTesting,
     _state_class=HomesteadVMStateForTesting,
 )
 
@@ -157,7 +157,7 @@ def test_vm_fixtures(fixture, vm_class):
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.get_computation_class().apply_computation(
+    computation = vm.state.get_computation(message).apply_computation(
         vm.state,
         message,
     )

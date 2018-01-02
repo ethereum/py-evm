@@ -8,10 +8,14 @@ from evm.vm.forks.frontier.vm_state import (
 from evm.vm.forks.homestead.vm_state import (
     HomesteadVMState,
 )
+
+from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
 class SpuriousDragonVMState(HomesteadVMState):
+    computation_class = SpuriousDragonComputation
+
     @staticmethod
     def execute_transaction(vm_state, transaction):
         computation = _execute_frontier_transaction(vm_state, transaction)
@@ -30,4 +34,4 @@ class SpuriousDragonVMState(HomesteadVMState):
                     )
                     state_db.delete_account(account)
 
-        return computation
+        return computation, vm_state.block_header

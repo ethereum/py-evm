@@ -24,7 +24,6 @@ class VM(object):
     """
     chaindb = None
     _block_class = None
-    _computation_class = None
     _state_class = None
 
     _is_stateless = None
@@ -64,7 +63,7 @@ class VM(object):
         """
         Add a transaction to the given block and save the block data into chaindb.
         """
-        receipt = self.state.make_receipt(transaction, computation)
+        receipt = self.state.make_receipt(self.state, transaction, computation)
 
         transaction_idx = len(self.block.transactions)
 
@@ -82,18 +81,77 @@ class VM(object):
         self.block.header.bloom = int(self.block.bloom_filter)
         self.block.header.gas_used = receipt.gas_used
 
-        # Return `self.block`, not `block`
         return self.block
+
+    def persist_transaction_and_receipt_to_db(self, transaction, receipt):
+        """
+        Persists transaction and receipt to chaindb and returns roots
+        """
+        transaction_idx = len(self.block.transactions) - 1
+        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+        post_transaction_root = self.chaindb.add_transaction(
+            self.block.header,
+            index_key,
+            transaction,
+        )
+        post_receipt_root = self.chaindb.add_receipt(self.block.header, index_key, receipt)
+
+        return post_transaction_root, post_receipt_root
 
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation, access_logs = self.state.apply_transaction(self.state, transaction)
+        if self.is_stateless:
+            return self.apply_transaction_stateless(transaction)
 
+        computation, _, _ = self.state.apply_transaction(
+            self.state,
+            transaction,
+            self.block,
+            is_stateless=False,
+        )
         self.clear_journal()
         self.add_transaction(transaction, computation)
-        return computation, access_logs
+
+        return computation, self.block
+
+    def apply_transaction_stateless(self, transaction):
+        """
+        Apply the transaction to the vm in the current block.
+
+        The difference between this function and add_transaction is
+        that it's using configurable witness_db and triggering VMState.add_transaction
+        instead of VM.add_transaction
+        """
+        prev_transaction_root = self.block.header.transaction_root
+        prev_receipt_root = self.block.header.receipt_root
+        computation, block, receipt = self.state.apply_transaction(
+            self.state,
+            transaction,
+            self.block,
+            is_stateless=True,
+            witness_db=self.chaindb,
+        )
+
+        self.clear_journal()
+
+        self.block = block
+
+        # FIXME: it's too ugly to swap like this
+        self.block.header.transaction_root = prev_transaction_root
+        self.block.header.receipt_root = prev_receipt_root
+
+        # persist transaction and receipt to chaindb
+        post_transaction_root, post_receipt_root = self.persist_transaction_and_receipt_to_db(
+            transaction,
+            receipt,
+        )
+
+        self.block.header.transaction_root = post_transaction_root
+        self.block.header.receipt_root = post_receipt_root
+
+        return computation, self.block
 
     #
     # Mining
@@ -313,14 +371,17 @@ class VM(object):
 
         return cls._state_class
 
-    def get_state(self):
+    def get_state(self, chaindb=None, block_header=None):
         """Return state object
         """
-        computation_class = self.get_computation_class
+        if chaindb is None:
+            chaindb = self.chaindb
+        if block_header is None:
+            block_header = self.block.header
+
         return self.get_state_class()(
-            self.chaindb,
-            self.block.header,
-            computation_class,
+            chaindb,
+            block_header,
             self.is_stateless,
         )
 
@@ -328,17 +389,7 @@ class VM(object):
     def state(self):
         """Return current state property
         """
-        return self.get_state()
-
-    #
-    # Computation
-    #
-    @classmethod
-    def get_computation_class(cls):
-        """
-        Return the class that this VMState uses for states.
-        """
-        if cls._computation_class is None:
-            raise AttributeError("No `_computation_class` has been set for this VMState")
-
-        return cls._computation_class
+        return self.get_state(
+            chaindb=self.chaindb,
+            block_header=self.block.header,
+        )

@@ -39,6 +39,7 @@ from evm.validation import (
     validate_length_lte,
 )
 
+from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .validation import validate_frontier_transaction
 
@@ -210,13 +211,16 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 
 
 class FrontierVMState(BaseVMState):
+    computation_class = FrontierComputation
+
     @staticmethod
     def execute_transaction(vm_state, transaction):
         computation = _execute_frontier_transaction(vm_state, transaction)
-        return computation
+        return computation, vm_state.block_header
 
-    def make_receipt(self, transaction, computation):
-        receipt = _make_frontier_receipt(self, transaction, computation)
+    @staticmethod
+    def make_receipt(vm_state, transaction, computation):
+        receipt = _make_frontier_receipt(vm_state, transaction, computation)
         return receipt
 
     def validate_block(self, block):

@@ -22,7 +22,7 @@ class SpuriousDragonComputation(HomesteadComputation):
             vm_state,
             message,
         )
-        # Overwrite
+        # Override
         self.opcodes = SPURIOUS_DRAGON_OPCODES
 
     def apply_create_message(self):
