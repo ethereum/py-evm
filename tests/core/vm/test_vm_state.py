@@ -62,9 +62,9 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Don't change these variables
     vm = chain.get_vm()
     vm._is_stateless = False  # Only for testing
-
-    block = copy.deepcopy(vm.block)
-    block_header = copy.deepcopy(vm.block.header)
+    chaindb = copy.deepcopy(vm.chaindb)
+    block0 = copy.deepcopy(vm.block)
+    block_header0 = copy.deepcopy(vm.block.header)
     initial_state_root = vm.state.block_header.state_root
 
     # Prepare tx
@@ -74,27 +74,27 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     from_ = chain.funded_address
     tx1 = new_transaction(vm_example, from_, recipient, amount, chain.funded_address_private_key)
 
-    # Get VM level apply_transaction result for assertion
+    # (1) Get VM level apply_transaction result for assertion
     computation, result_block = vm_example.apply_transaction(tx1)
-    chaindb = copy.deepcopy(vm.chaindb)
-
+    chaindb00 = copy.deepcopy(chaindb)
+    block_header00 = copy.deepcopy(block_header0)
     vm_state = FrontierVMState(
-        chaindb=chaindb,
-        block_header=block_header,
+        chaindb=chaindb00,
+        block_header=block_header00,
         is_stateless=True,
     )
 
     # Use FrontierVMState to apply transaction
-    chaindb1 = copy.deepcopy(vm.chaindb)
-    block_header1 = copy.deepcopy(vm.block.header)
+    chaindb1 = copy.deepcopy(chaindb)
+    block1 = copy.deepcopy(block0)
+    block_header1 = block1.header
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         block_header=block_header1,
         is_stateless=True,
     )
 
-    block1 = copy.deepcopy(block)
-    computation, block, receipt = vm_state.apply_transaction(
+    computation, block, _ = vm_state1.apply_transaction(
         vm_state1,
         tx1,
         block1,
@@ -103,7 +103,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     access_logs = computation.vm_state.access_logs
     post_vm_state1 = computation.vm_state
 
-    assert computation.is_error is False
+    assert not computation.is_error
     assert len(access_logs.reads) > 0
     assert len(access_logs.writes) > 0
 
@@ -121,19 +121,17 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert post_vm_state1.block_header.state_root == result_block.header.state_root
     assert post_vm_state1.block_header.state_root != vm_state1.block_header.state_root
 
-    # assert vm_state1.block_header.state_root == result_block.header.state_root
-    # assert block.header.state_root == result_block.header.transaction_root
-
-    # Testing using witness as db data
+    # (2) Testing using witness as db data
     # Witness_db
+    block2 = copy.deepcopy(block0)
+    block_header2 = block2.header
     witness_db = BaseChainDB(MemoryDB(access_logs.reads))
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
-        block_header=chain.header,
+        block_header=block_header2,
         is_stateless=True,
     )
     # Before applying
-    block2 = copy.deepcopy(block)
     assert post_vm_state1.block_header.state_root != vm_state2.block_header.state_root
 
     # Applying transaction
@@ -146,10 +144,13 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     post_vm_state2 = computation.vm_state
 
     # After applying
-    assert block.header.state_root == post_vm_state1.block_header.state_root
-    assert post_vm_state2.block_header.state_root == post_vm_state1.block_header.state_root
+    # assert post_vm_state2.block_header.state_root == result_block.block_header.state_root
+    assert block.header.state_root == post_vm_state2.block_header.state_root
+    assert block.header.transaction_root == result_block.header.transaction_root
+    assert block.header.receipt_root == result_block.header.receipt_root
+    assert block.hash == result_block.hash
 
-    # Testing using witness_db and block_header to reconstruct vm_state
+    # (3) Testing using witness_db and block_header to reconstruct vm_state
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         block_header=block.header,

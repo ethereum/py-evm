@@ -7,6 +7,7 @@ from .blocks import HomesteadBlock
 from .validation import validate_homestead_transaction
 from .headers import (
     create_homestead_header_from_parent,
+    compute_homestead_difficulty,
     configure_homestead_header,
 )
 from .vm_state import HomesteadVMState
@@ -25,6 +26,7 @@ HomesteadVM = MetaHomesteadVM.configure(
     # method overrides
     validate_transaction=validate_homestead_transaction,
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
+    compute_difficulty=staticmethod(compute_homestead_difficulty),
     configure_header=configure_homestead_header,
     # mode
     _is_stateless=True,

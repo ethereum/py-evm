@@ -2,13 +2,17 @@ from .backends.base import BaseDB
 
 
 class AccessLogs(object):
-    reads = {}
-    writes = {}
+    reads = None
+    writes = None
 
     def __init__(self, reads=None, writes=None):
-        if reads is not None:
+        if reads is None:
+            self.reads = {}
+        else:
             self.reads = reads
-        if writes is not None:
+        if writes is None:
+            self.writes = {}
+        else:
             self.writes = writes
 
 
@@ -16,8 +20,8 @@ class TrackedDB(BaseDB):
     """
     The StateDB would be responsible for collecting all the touched keys.
 
-    reads: the dict of read key-value
-    writes: the dict of written key-value
+    access_logs.reads: the dict of read key-value
+    access_logs.writes: the dict of written key-value
     """
 
     wrapped_db = None

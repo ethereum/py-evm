@@ -124,15 +124,6 @@ class BaseVMState(object):
         _, checkpoint_id = snapshot
         self._chaindb.commit(checkpoint_id)
 
-    @staticmethod
-    def union(nodes1, nodes2):
-        output = {}
-        for key, value in nodes1.items():
-            output[key] = value
-        for key, value in nodes2.items():
-            output[key] = value
-        return output
-
     #
     # Access ChainDB (Read-only)
     #
@@ -182,7 +173,13 @@ class BaseVMState(object):
     # Execution
     #
     @classmethod
-    def apply_transaction(cls, vm_state, transaction, block, is_stateless=True, witness_db=None):
+    def apply_transaction(
+            cls,
+            vm_state,
+            transaction,
+            block,
+            is_stateless=True,
+            witness_db=None):
         """
         Apply transaction
         """
@@ -190,8 +187,10 @@ class BaseVMState(object):
             # Update block in this level.
             assert witness_db is not None
 
-            block = copy.deepcopy(block)
+            # Don't change the given vm_state and block.
             vm_state = copy.deepcopy(vm_state)
+            block = copy.deepcopy(block)
+
             vm_state.set_chaindb(witness_db)
             cls.block_header = block.header
 
@@ -209,27 +208,26 @@ class BaseVMState(object):
             computation, block_header = cls.execute_transaction(vm_state, transaction)
             return computation, None, None
 
-    @staticmethod
-    def add_transaction(vm_state, transaction, computation, block):
+    @classmethod
+    def add_transaction(cls, vm_state, transaction, computation, block):
         """
         Add a transaction to the given block and save the block data into chaindb.
         """
-        receipt = vm_state.make_receipt(vm_state, transaction, computation)
-
+        receipt = cls.make_receipt(vm_state, transaction, computation)
         transaction_idx = len(block.transactions)
 
         index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
 
         block.transactions.append(transaction)
 
-        tx_root_hash = vm_state.add_transaction_to_db(
-            block.header,
+        tx_root_hash = cls.add_trie_node_to_db(
+            block.header.transaction_root,
             index_key,
             transaction,
             block.db,
         )
-        receipt_root_hash = vm_state.add_receipt_to_db(
-            block.header,
+        receipt_root_hash = cls.add_trie_node_to_db(
+            block.header.receipt_root,
             index_key,
             receipt,
             block.db,
@@ -245,16 +243,13 @@ class BaseVMState(object):
         return block, receipt
 
     @staticmethod
-    def add_transaction_to_db(block_header, index_key, transaction, db):
-        transaction_db = Trie(db, root_hash=block_header.transaction_root)
-        transaction_db[index_key] = rlp.encode(transaction)
-        return transaction_db.root_hash
-
-    @staticmethod
-    def add_receipt_to_db(block_header, index_key, receipt, db):
-        receipt_db = Trie(db=db, root_hash=block_header.receipt_root)
-        receipt_db[index_key] = rlp.encode(receipt)
-        return receipt_db.root_hash
+    def add_trie_node_to_db(root_hash, index_key, node, db):
+        """
+        Add transaction or receipt to the given db.
+        """
+        trie_db = Trie(db, root_hash=root_hash)
+        trie_db[index_key] = rlp.encode(node)
+        return trie_db.root_hash
 
     @staticmethod
     def execute_transaction(vm_state, transaction):

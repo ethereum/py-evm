@@ -1,3 +1,5 @@
+import copy
+
 from eth_utils import decode_hex
 
 from evm import constants
@@ -29,7 +31,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
 
     assert len(access_logs.reads) > 0
     assert len(access_logs.writes) > 0
-    # TODO: Add more tests for accesss_logs
+    # TODO: Add more tests for access_logs
 
 
 def test_mine_block(chain_without_block_validation):  # noqa: F811
@@ -83,3 +85,64 @@ def test_get_cumulative_gas_used(chain_without_block_validation):  # noqa: F811
     blockgas = vm.get_cumulative_gas_used(block2)
 
     assert blockgas == constants.GAS_TX
+
+
+def test_create_block(chain_without_block_validation):  # noqa: F811
+    chain = chain_without_block_validation  # noqa: F811
+    vm = chain.get_vm()
+
+    # (1) Empty block.
+    # block = vm.mine_block()
+    block0 = chain.import_block(vm.block)
+
+    # (2) Generate tx.witness.
+    # Prepare the transaction
+    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    amount = 100
+    from_ = chain.funded_address
+    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+
+    # Get the transaction witness
+    chain1 = copy.deepcopy(chain)
+    vm1 = chain1.get_vm()
+    vm1._is_stateless = False
+
+    computation, _ = vm1.apply_transaction(tx)
+    transaction_witness = computation.vm_state.access_logs.reads
+
+    vm1.block.header.coinbase = recipient
+    block1 = chain1.import_block(vm1.block)
+    vm1 = chain1.get_vm()
+
+    assert block1.header.coinbase == recipient
+    assert len(block1.get_receipts(vm1.chaindb)) == 1
+    with vm1.state.state_db(read_only=True) as state_db1:
+        assert state_db1.root_hash == block1.header.state_root
+
+    # (3) Try to create a block by witness
+    vm2 = copy.deepcopy(vm)
+    block2, _, _ = vm2.create_block(
+        transactions=[tx],
+        transaction_witnesses=[transaction_witness],
+        prev_state_root=block0.header.state_root,
+        parent_header=block0.header,
+        coinbase=recipient,
+    )
+
+    assert len(block2.transactions) == 1
+    assert block2.header.block_number == 2
+    assert block2.header.coinbase == recipient
+
+    # Check if block2 == block1
+    assert block2.header.transaction_root == block1.header.transaction_root
+    assert block2.header.gas_used == block1.header.gas_used
+    assert block2.header.block_number == block1.header.block_number
+    assert block2.header.timestamp == block1.header.timestamp
+
+    assert block2.header.receipt_root == block1.header.receipt_root
+    assert block2.header.state_root == block1.header.state_root
+    assert block2.hash == block1.hash
+
+    # Check if the given parameters are changed
+    assert block0.header.state_root != block2.header.state_root
+    assert block0.header.block_number == 1

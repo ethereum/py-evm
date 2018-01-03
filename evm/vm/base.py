@@ -7,11 +7,16 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.db.backends.memory import MemoryDB
+from evm.db.chain import BaseChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.headers import (
+    generate_header_from_prev_state,
 )
 
 
@@ -156,13 +161,16 @@ class VM(object):
     #
     # Mining
     #
-    def get_block_reward(self, block_number):
+    @classmethod
+    def get_block_reward(cls, block_number):
         return BLOCK_REWARD
 
-    def get_nephew_reward(self, block_number):
-        return self.get_block_reward(block_number) // 32
+    @classmethod
+    def get_nephew_reward(cls, block_number):
+        return cls.get_block_reward(block_number) // 32
 
-    def get_uncle_reward(self, block_number, uncle):
+    @classmethod
+    def get_uncle_reward(cls, block_number, uncle):
         return BLOCK_REWARD * (
             UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
         ) // UNCLE_DEPTH_PENALTY_FACTOR
@@ -262,6 +270,91 @@ class VM(object):
 
         return block
 
+    @classmethod
+    def finalize_block(cls, vm_state, block):
+        """
+        Finalize the given block (set rewards).
+        """
+        block_reward = cls.get_block_reward(block.number) + (
+            len(block.uncles) * cls.get_nephew_reward(block.number)
+        )
+
+        with vm_state.state_db() as state_db:
+            state_db.delta_balance(block.header.coinbase, block_reward)
+            vm_state.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
+
+            for uncle in block.uncles:
+                uncle_reward = cls.get_uncle_reward(block.number, uncle)
+                state_db.delta_balance(uncle.coinbase, uncle_reward)
+                vm_state.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
+        block.state_root = vm_state.block_header.state_root
+
+        return block, vm_state
+
+    @classmethod
+    def create_block(
+            cls,
+            transactions,
+            transaction_witnesses,
+            prev_state_root,
+            parent_header,
+            coinbase):
+        """
+        Create a block with transaction witness
+        """
+        # Generate block header object
+        block_header = generate_header_from_prev_state(
+            cls.compute_difficulty,
+            prev_state_root,
+            parent_header,
+            parent_header.timestamp + 1,
+            coinbase,
+        )
+
+        block = cls.get_block_class()(
+            block_header,
+            transactions=[],
+            uncles=[],
+        )
+        vm_state = cls.get_state_class()(
+            chaindb=BaseChainDB({}),
+            block_header=block_header,
+            is_stateless=True,
+        )
+
+        witness = {}
+        witness_db = BaseChainDB(MemoryDB(witness))
+
+        for index, transaction in enumerate(transactions):
+            witness.update(transaction_witnesses[index])
+            witness_db = BaseChainDB(MemoryDB(witness))
+            vm_state.set_chaindb(witness_db)
+
+            computation, block, _ = vm_state.apply_transaction(
+                vm_state,
+                transaction,
+                block=block,
+                is_stateless=True,
+                witness_db=witness_db
+            )
+            vm_state = computation.vm_state
+            assert len(vm_state.receipts) == len(transactions)
+            witness.update(computation.vm_state.access_logs.writes)
+            witness_db = BaseChainDB(MemoryDB(witness))
+            vm_state.set_chaindb(witness_db)
+
+        block, vm_state = cls.finalize_block(vm_state, block)
+
+        return block, vm_state.access_logs, vm_state
+
     #
     # Transactions
     #
@@ -341,6 +434,10 @@ class VM(object):
         used to set fields like the gas limit or timestamp to value different
         than their computed defaults.
         """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    def compute_difficulty(cls, parent_header, timestamp):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #

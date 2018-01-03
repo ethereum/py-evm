@@ -8,6 +8,7 @@ from .constants import EIP649_BLOCK_REWARD
 from .headers import (
     create_byzantium_header_from_parent,
     configure_byzantium_header,
+    compute_byzantium_difficulty,
 )
 from .blocks import ByzantiumBlock
 from .vm_state import ByzantiumVMState
@@ -30,6 +31,7 @@ ByzantiumVM = SpuriousDragonVM.configure(
     _state_class=ByzantiumVMState,
     # Methods
     create_header_from_parent=staticmethod(create_byzantium_header_from_parent),
+    compute_difficulty=staticmethod(compute_byzantium_difficulty),
     configure_header=configure_byzantium_header,
     get_block_reward=staticmethod(_byzantium_get_block_reward),
     get_uncle_reward=staticmethod(_byzantium_get_uncle_reward),
