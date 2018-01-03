@@ -1,6 +1,10 @@
 import functools
 import logging
 
+from cytoolz import (
+    pipe,
+)
+
 import pytest
 
 import rlp
