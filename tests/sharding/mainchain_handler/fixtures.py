@@ -1,4 +1,9 @@
+import functools
 import pytest
+
+from cytoolz import (
+    pipe,
+)
 
 from web3 import (
     Web3,
@@ -21,20 +26,33 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
+    to_canonical_address,
     to_checksum_address,
 )
 
 from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
+
+from evm.utils.address import (
+    generate_contract_address,
+)
+
 from evm.chains.sharding.mainchain_handler.vmc_handler import (
     VMC,
 )
 from evm.chains.sharding.mainchain_handler.vmc_utils import (
     create_vmc_tx,
-    get_contract_address_from_contract_tx,
     get_vmc_json,
 )
+
+
+def get_contract_address_from_contract_tx(transaction):
+    return pipe(
+        transaction.sender,
+        to_canonical_address,
+        functools.partial(generate_contract_address, nonce=0),
+    )
 
 
 @pytest.fixture
