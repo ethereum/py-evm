@@ -28,6 +28,4 @@ HomesteadVM = MetaHomesteadVM.configure(
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
     compute_difficulty=staticmethod(compute_homestead_difficulty),
     configure_header=configure_homestead_header,
-    # mode
-    _is_stateless=True,
 )
