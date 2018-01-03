@@ -81,7 +81,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm_state = FrontierVMState(
         chaindb=chaindb00,
         block_header=block_header00,
-        is_stateless=True,
     )
 
     # Use FrontierVMState to apply transaction
@@ -91,7 +90,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         block_header=block_header1,
-        is_stateless=True,
     )
 
     computation, block, _ = vm_state1.apply_transaction(
@@ -129,7 +127,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
         block_header=block_header2,
-        is_stateless=True,
     )
     # Before applying
     assert post_vm_state1.block_header.state_root != vm_state2.block_header.state_root
@@ -154,7 +151,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         block_header=block.header,
-        is_stateless=True,
     )
     assert vm_state3.block_header.state_root == post_vm_state1.block_header.state_root
     assert vm_state3.block_header.state_root == result_block.header.state_root

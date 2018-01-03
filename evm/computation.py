@@ -402,7 +402,7 @@ class BaseComputation(object):
     @property
     def precompiles(self):
         if self._precompiles is None:
-            return set()
+            return dict()
         else:
             return self._precompiles
 

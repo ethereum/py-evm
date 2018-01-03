@@ -17,13 +17,8 @@ from .opcodes import SPURIOUS_DRAGON_OPCODES
 
 
 class SpuriousDragonComputation(HomesteadComputation):
-    def __init__(self, vm_state, message):
-        super(SpuriousDragonComputation, self).__init__(
-            vm_state,
-            message,
-        )
-        # Override
-        self.opcodes = SPURIOUS_DRAGON_OPCODES
+    # Override
+    opcodes = SPURIOUS_DRAGON_OPCODES
 
     def apply_create_message(self):
         snapshot = self.vm_state.snapshot()

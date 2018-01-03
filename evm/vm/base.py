@@ -216,7 +216,7 @@ class VM(object):
         if unknown_fields:
             raise AttributeError(
                 "Unable to set the field(s) {0} on the `BlockHeader` class. "
-                "Received the following unexpected fields: {0}.".format(
+                "Received the following unexpected fields: {1}.".format(
                     ", ".join(known_fields),
                     ", ".join(unknown_fields),
                 )
@@ -262,8 +262,7 @@ class VM(object):
     @classmethod
     def create_block(
             cls,
-            transactions,
-            transaction_witnesses,
+            transaction_packages,
             prev_state_root,
             parent_header,
             coinbase):
@@ -287,14 +286,13 @@ class VM(object):
         vm_state = cls.get_state_class()(
             chaindb=BaseChainDB({}),
             block_header=block_header,
-            is_stateless=True,
         )
 
         witness = {}
         witness_db = BaseChainDB(MemoryDB(witness))
 
-        for index, transaction in enumerate(transactions):
-            witness.update(transaction_witnesses[index])
+        for index, (transaction, transaction_witness) in enumerate(transaction_packages):
+            witness.update(transaction_witness)
             witness_db = BaseChainDB(MemoryDB(witness))
             vm_state.set_chaindb(witness_db)
 
@@ -439,7 +437,6 @@ class VM(object):
         return self.get_state_class()(
             chaindb,
             block_header,
-            self.is_stateless,
         )
 
     @property

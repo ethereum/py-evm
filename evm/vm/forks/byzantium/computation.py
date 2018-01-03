@@ -23,11 +23,6 @@ BYZANTIUM_PRECOMPILES = merge(
 
 
 class ByzantiumComputation(SpuriousDragonComputation):
-    def __init__(self, vm_state, message):
-        super(ByzantiumComputation, self).__init__(
-            vm_state,
-            message,
-        )
-        # Override
-        self.opcodes = BYZANTIUM_OPCODES
-        self._precompiles = BYZANTIUM_PRECOMPILES
+    # Override
+    opcodes = BYZANTIUM_OPCODES
+    _precompiles = BYZANTIUM_PRECOMPILES

@@ -2,9 +2,12 @@ from contextlib import contextmanager
 import copy
 import logging
 
+from cytoolz import (
+    merge,
+)
 import rlp
 from trie import (
-    Trie,
+    HexaryTrie,
 )
 
 from evm.db.tracked import (
@@ -16,15 +19,14 @@ class BaseVMState(object):
     _chaindb = None
     block_header = None
     computation_class = None
-    is_stateless = None
-    access_logs = AccessLogs()
+    access_logs = None
     receipts = None
 
-    def __init__(self, chaindb, block_header, is_stateless):
+    def __init__(self, chaindb, block_header):
         self._chaindb = chaindb
         self.block_header = block_header
-        self.is_stateless = is_stateless
 
+        self.access_logs = AccessLogs()
         self.receipts = []
 
     #
@@ -151,7 +153,7 @@ class BaseVMState(object):
         """
         return self.get_block_header_by_hash(block_header.parent_hash)
 
-    def is_key_exsits(self, key):
+    def is_key_exists(self, key):
         """
         Check if the given key exsits in chaindb
         """
@@ -163,10 +165,10 @@ class BaseVMState(object):
     def get_computation(self, message):
         """Return state object
         """
-        if self.computation_class is not None:
-            computation = self.computation_class(self, message)
-        else:
+        if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this VMState")
+        else:
+            computation = self.computation_class(self, message)
         return computation
 
     #
@@ -230,9 +232,7 @@ class BaseVMState(object):
             receipt,
             block.db,
         )
-        trie_data = {}
-        trie_data.update(tx_db.wrapped_db.kv_store)
-        trie_data.update(receipt_db.wrapped_db.kv_store)
+        trie_data = merge(tx_db.wrapped_db.kv_store, receipt_db.wrapped_db.kv_store)
 
         block.bloom_filter |= receipt.bloom
 
@@ -251,7 +251,7 @@ class BaseVMState(object):
         """
         Add transaction or receipt to the given db.
         """
-        trie_db = Trie(db, root_hash=root_hash)
+        trie_db = HexaryTrie(db, root_hash=root_hash)
         trie_db[index_key] = rlp.encode(node)
         return trie_db.root_hash, trie_db.db
 

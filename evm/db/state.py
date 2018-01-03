@@ -48,10 +48,9 @@ class AccountStateDB:
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
         if read_only:
-            self.db = ImmutableDB(db)
+            self.db = TrackedDB(ImmutableDB(db))
         else:
-            self.db = db
-        self.db = TrackedDB(self.db)
+            self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     #

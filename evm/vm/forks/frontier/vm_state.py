@@ -261,7 +261,7 @@ class FrontierVMState(BaseVMState):
         for uncle in block.uncles:
             self.validate_uncle(block, uncle)
 
-        if not self.is_key_exsits(block.header.state_root):
+        if not self.is_key_exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
                 "- state_root: {0}".format(

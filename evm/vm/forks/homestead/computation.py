@@ -16,13 +16,8 @@ from .opcodes import HOMESTEAD_OPCODES
 
 
 class HomesteadComputation(FrontierComputation):
-    def __init__(self, vm_state, message):
-        super(HomesteadComputation, self).__init__(
-            vm_state,
-            message,
-        )
-        # Overwrite
-        self.opcodes = HOMESTEAD_OPCODES
+    # Override
+    opcodes = HOMESTEAD_OPCODES
 
     def apply_create_message(self):
         snapshot = self.vm_state.snapshot()

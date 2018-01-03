@@ -29,14 +29,9 @@ FRONTIER_PRECOMPILES = {
 
 
 class FrontierComputation(BaseComputation):
-    def __init__(self, vm_state, message):
-        super(FrontierComputation, self).__init__(
-            vm_state,
-            message,
-        )
-        # Override
-        self.opcodes = FRONTIER_OPCODES
-        self._precompiles = FRONTIER_PRECOMPILES
+    # Override
+    opcodes = FRONTIER_OPCODES
+    _precompiles = FRONTIER_PRECOMPILES
 
     def apply_message(self):
         snapshot = self.vm_state.snapshot()
