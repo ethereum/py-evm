@@ -88,73 +88,33 @@ class VM(object):
 
         return self.block
 
-    def persist_transaction_and_receipt_to_db(self, transaction, receipt):
-        """
-        Persists transaction and receipt to chaindb and returns roots
-        """
-        transaction_idx = len(self.block.transactions) - 1
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
-        post_transaction_root = self.chaindb.add_transaction(
-            self.block.header,
-            index_key,
-            transaction,
-        )
-        post_receipt_root = self.chaindb.add_receipt(self.block.header, index_key, receipt)
-
-        return post_transaction_root, post_receipt_root
-
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
         if self.is_stateless:
-            return self.apply_transaction_stateless(transaction)
+            computation, block, trie_data = self.state.apply_transaction(
+                self.state,
+                transaction,
+                self.block,
+                is_stateless=True,
+                witness_db=self.chaindb,
+            )
+            self.block = block
 
-        computation, _, _ = self.state.apply_transaction(
-            self.state,
-            transaction,
-            self.block,
-            is_stateless=False,
-        )
-        self.clear_journal()
-        self.add_transaction(transaction, computation)
-
-        return computation, self.block
-
-    def apply_transaction_stateless(self, transaction):
-        """
-        Apply the transaction to the vm in the current block.
-
-        The difference between this function and add_transaction is
-        that it's using configurable witness_db and triggering VMState.add_transaction
-        instead of VM.add_transaction
-        """
-        prev_transaction_root = self.block.header.transaction_root
-        prev_receipt_root = self.block.header.receipt_root
-        computation, block, receipt = self.state.apply_transaction(
-            self.state,
-            transaction,
-            self.block,
-            is_stateless=True,
-            witness_db=self.chaindb,
-        )
+            # Persist changed transaction and receipt key-values to self.chaindb.
+            for key, value in trie_data.items():
+                self.chaindb.db[key] = value
+        else:
+            computation, _, _ = self.state.apply_transaction(
+                self.state,
+                transaction,
+                self.block,
+                is_stateless=False,
+            )
+            self.add_transaction(transaction, computation)
 
         self.clear_journal()
-
-        self.block = block
-
-        # FIXME: it's too ugly to swap like this
-        self.block.header.transaction_root = prev_transaction_root
-        self.block.header.receipt_root = prev_receipt_root
-
-        # persist transaction and receipt to chaindb
-        post_transaction_root, post_receipt_root = self.persist_transaction_and_receipt_to_db(
-            transaction,
-            receipt,
-        )
-
-        self.block.header.transaction_root = post_transaction_root
-        self.block.header.receipt_root = post_receipt_root
 
         return computation, self.block
 
@@ -345,8 +305,8 @@ class VM(object):
                 is_stateless=True,
                 witness_db=witness_db
             )
+            # Update witness_db
             vm_state = computation.vm_state
-            assert len(vm_state.receipts) == len(transactions)
             witness.update(computation.vm_state.access_logs.writes)
             witness_db = BaseChainDB(MemoryDB(witness))
             vm_state.set_chaindb(witness_db)

@@ -198,12 +198,9 @@ class BaseVMState(object):
 
             # Set block.
             block.header = block_header
-            block, receipt = cls.add_transaction(vm_state, transaction, computation, block)
+            block, trie_data = cls.add_transaction(vm_state, transaction, computation, block)
 
-            # Set receipts in vm_state level.
-            vm_state.receipts.append(receipt)
-
-            return computation, block, receipt
+            return computation, block, trie_data
         else:
             computation, block_header = cls.execute_transaction(vm_state, transaction)
             return computation, None, None
@@ -220,18 +217,22 @@ class BaseVMState(object):
 
         block.transactions.append(transaction)
 
-        tx_root_hash = cls.add_trie_node_to_db(
+        # Get trie roots and changed key-values.
+        tx_root_hash, tx_db = cls.add_trie_node_to_db(
             block.header.transaction_root,
             index_key,
             transaction,
             block.db,
         )
-        receipt_root_hash = cls.add_trie_node_to_db(
+        receipt_root_hash, receipt_db = cls.add_trie_node_to_db(
             block.header.receipt_root,
             index_key,
             receipt,
             block.db,
         )
+        trie_data = {}
+        trie_data.update(tx_db.wrapped_db.kv_store)
+        trie_data.update(receipt_db.wrapped_db.kv_store)
 
         block.bloom_filter |= receipt.bloom
 
@@ -240,7 +241,10 @@ class BaseVMState(object):
         block.header.bloom = int(block.bloom_filter)
         block.header.gas_used = receipt.gas_used
 
-        return block, receipt
+        # Set receipts in vm_state level.
+        vm_state.receipts.append(receipt)
+
+        return block, trie_data
 
     @staticmethod
     def add_trie_node_to_db(root_hash, index_key, node, db):
@@ -249,7 +253,7 @@ class BaseVMState(object):
         """
         trie_db = Trie(db, root_hash=root_hash)
         trie_db[index_key] = rlp.encode(node)
-        return trie_db.root_hash
+        return trie_db.root_hash, trie_db.db
 
     @staticmethod
     def execute_transaction(vm_state, transaction):
