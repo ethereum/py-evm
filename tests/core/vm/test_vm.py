@@ -121,15 +121,13 @@ def test_create_block(chain_without_block_validation):  # noqa: F811
 
     # (3) Try to create a block by witness
     vm2 = copy.deepcopy(vm)
-    transaction_package = (tx, transaction_witness)
+    transaction_packages = [(tx, transaction_witness)]
     prev_headers = vm2.get_prev_headers(
         last_block_hash=block0.hash,
         db=vm2.chaindb,
     )
     block2, _, _ = vm2.create_block(
-        transaction_packages=[transaction_package],
-        prev_state_root=block0.header.state_root,
-        parent_header=block0.header,
+        transaction_packages=transaction_packages,
         prev_headers=prev_headers,
         coinbase=recipient,
     )

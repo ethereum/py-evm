@@ -157,7 +157,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     post_vm_state2 = computation.vm_state
 
     # After applying
-    # assert post_vm_state2.block_header.state_root == result_block.block_header.state_root
     assert block.header.state_root == post_vm_state2.block_header.state_root
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root

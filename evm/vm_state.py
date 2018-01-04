@@ -13,6 +13,9 @@ from trie import (
     HexaryTrie,
 )
 
+from evm.constants import (
+    MAX_PREV_HEADER_DEPTH,
+)
 from evm.db.tracked import (
     AccessLogs,
 )
@@ -137,14 +140,14 @@ class BaseVMState(object):
         self._chaindb.commit(checkpoint_id)
 
     #
-    # Access ChainDB (Read-only)
+    # Access self.prev_headers (Read-only)
     #
     def get_ancestor_hash(self, block_number):
         """
         Return the hash for the ancestor with the given block number.
         """
         ancestor_depth = self.block_header.block_number - block_number
-        if ancestor_depth > 256 or ancestor_depth < 1:
+        if ancestor_depth > MAX_PREV_HEADER_DEPTH or ancestor_depth < 1:
             return b''
         header = self.get_block_header_by_hash(self.block_header.parent_hash)
         while header.block_number != block_number:

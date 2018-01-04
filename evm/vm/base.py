@@ -21,7 +21,7 @@ from evm.utils.keccak import (
     keccak,
 )
 from evm.utils.headers import (
-    generate_header_from_prev_state,
+    generate_header_from_parent_header,
 )
 
 
@@ -268,17 +268,17 @@ class VM(object):
     def create_block(
             cls,
             transaction_packages,
-            prev_state_root,
-            parent_header,
             prev_headers,
             coinbase):
         """
         Create a block with transaction witness
         """
+
+        parent_header = prev_headers[0]
+
         # Generate block header object
-        block_header = generate_header_from_prev_state(
+        block_header = generate_header_from_parent_header(
             cls.compute_difficulty,
-            prev_state_root,
             parent_header,
             parent_header.timestamp + 1,
             coinbase,
@@ -298,7 +298,7 @@ class VM(object):
         witness = {}
         witness_db = BaseChainDB(MemoryDB(witness))
 
-        for index, (transaction, transaction_witness) in enumerate(transaction_packages):
+        for (transaction, transaction_witness) in transaction_packages:
             witness.update(transaction_witness)
             witness_db = BaseChainDB(MemoryDB(witness))
             vm_state.set_chaindb(witness_db)
@@ -360,8 +360,9 @@ class VM(object):
 
         return cls._block_class
 
-    def get_block_by_header(self, block_header, db):
-        return self.get_block_class().from_header(block_header, db)
+    @classmethod
+    def get_block_by_header(cls, block_header, db):
+        return cls.get_block_class().from_header(block_header, db)
 
     @staticmethod
     def get_parent_header(block_header, db):
@@ -376,6 +377,23 @@ class VM(object):
         Returns the header for the parent block.
         """
         return db.get_block_header_by_hash(block_hash)
+
+    @classmethod
+    def get_prev_headers(cls, last_block_hash, db):
+        prev_headers = []
+
+        if last_block_hash == GENESIS_PARENT_HASH:
+            return prev_headers
+
+        block_header = cls.get_block_header_by_hash(last_block_hash, db)
+
+        for _ in range(MAX_PREV_HEADER_DEPTH):
+            prev_headers.append(block_header)
+            try:
+                block_header = cls.get_parent_header(block_header, db)
+            except (IndexError, BlockNotFound):
+                break
+        return prev_headers
 
     #
     # Gas Usage API
@@ -455,26 +473,9 @@ class VM(object):
             )
         return self.get_state_class()(
             chaindb,
-            block_header,  # TODO: remove
+            block_header,
             prev_headers,
         )
-
-    def get_prev_headers(self, last_block_hash, db):
-        prev_headers = []
-        if last_block_hash == GENESIS_PARENT_HASH:
-            return prev_headers
-
-        last_block_header = self.get_block_header_by_hash(last_block_hash, db)
-        block = self.get_block_by_header(last_block_header, db)
-
-        for depth in range(MAX_PREV_HEADER_DEPTH):
-            prev_headers.append(block.header)
-            try:
-                prev_block_header = self.get_parent_header(block.header, db)
-                block = self.get_block_by_header(prev_block_header, db)
-            except (IndexError, BlockNotFound) as error:
-                break
-        return prev_headers
 
     @property
     def state(self):
