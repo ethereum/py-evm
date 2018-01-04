@@ -130,8 +130,7 @@ class BaseVMState(Configurable):
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.db = None
-        state._trie = None
+        state.decommission()
 
     def set_state_root(self, state_root):
         self.state_root = state_root
