@@ -90,7 +90,8 @@ def configure_frontier_header(vm, **header_params):
         setattr(vm.block.header, field_name, value)
 
     if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = vm.get_parent_header(vm.block.header)
+        # TODO: replace vm.chaindb with vm.state.db?
+        parent_header = vm.get_parent_header(vm.block.header, vm.chaindb)
         vm.block.header.difficulty = compute_frontier_difficulty(
             parent_header,
             header_params['timestamp'],

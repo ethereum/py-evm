@@ -64,6 +64,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm._is_stateless = False  # Only for testing
     chaindb = copy.deepcopy(vm.chaindb)
     block0 = copy.deepcopy(vm.block)
+    prev_block_hash = chain.get_canonical_block_by_number(0).hash
     block_header0 = copy.deepcopy(vm.block.header)
     initial_state_root = vm.state.block_header.state_root
 
@@ -78,18 +79,28 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     computation, result_block = vm_example.apply_transaction(tx1)
     chaindb00 = copy.deepcopy(chaindb)
     block_header00 = copy.deepcopy(block_header0)
+    prev_headers = vm.get_prev_headers(
+        last_block_hash=prev_block_hash,
+        db=vm.chaindb,
+    )
     vm_state = FrontierVMState(
         chaindb=chaindb00,
         block_header=block_header00,
+        prev_headers=prev_headers,
     )
 
     # Use FrontierVMState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
     block_header1 = block1.header
+    prev_headers = vm.get_prev_headers(
+        last_block_hash=prev_block_hash,
+        db=vm.chaindb,
+    )
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         block_header=block_header1,
+        prev_headers=prev_headers,
     )
 
     computation, block, _ = vm_state1.apply_transaction(
@@ -124,9 +135,14 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     block2 = copy.deepcopy(block0)
     block_header2 = block2.header
     witness_db = BaseChainDB(MemoryDB(access_logs.reads))
+    prev_headers = vm.get_prev_headers(
+        last_block_hash=prev_block_hash,
+        db=vm.chaindb,
+    )
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
         block_header=block_header2,
+        prev_headers=prev_headers,
     )
     # Before applying
     assert post_vm_state1.block_header.state_root != vm_state2.block_header.state_root
@@ -148,9 +164,14 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.hash == result_block.hash
 
     # (3) Testing using witness_db and block_header to reconstruct vm_state
+    prev_headers = vm.get_prev_headers(
+        last_block_hash=prev_block_hash,
+        db=vm.chaindb,
+    )
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         block_header=block.header,
+        prev_headers=prev_headers,
     )
     assert vm_state3.block_header.state_root == post_vm_state1.block_header.state_root
     assert vm_state3.block_header.state_root == result_block.header.state_root

@@ -5,6 +5,9 @@ import logging
 from cytoolz import (
     merge,
 )
+from eth_utils import (
+    encode_hex,
+)
 import rlp
 from trie import (
     HexaryTrie,
@@ -13,21 +16,28 @@ from trie import (
 from evm.db.tracked import (
     AccessLogs,
 )
+from evm.exceptions import (
+    BlockNotFound,
+)
 
 
 class BaseVMState(object):
+    #
+    # Set from __init__
+    #
     _chaindb = None
     block_header = None
+    prev_headers = None
+
     computation_class = None
     access_logs = None
-    receipts = None
 
-    def __init__(self, chaindb, block_header):
+    def __init__(self, chaindb, block_header, prev_headers):
         self._chaindb = chaindb
         self.block_header = block_header
+        self.prev_headers = prev_headers
 
         self.access_logs = AccessLogs()
-        self.receipts = []
 
     #
     # Logging
@@ -136,16 +146,23 @@ class BaseVMState(object):
         ancestor_depth = self.block_header.block_number - block_number
         if ancestor_depth > 256 or ancestor_depth < 1:
             return b''
-        header = self._chaindb.get_block_header_by_hash(self.block_header.parent_hash)
+        header = self.get_block_header_by_hash(self.block_header.parent_hash)
         while header.block_number != block_number:
-            header = self._chaindb.get_block_header_by_hash(header.parent_hash)
+            header = self.get_block_header_by_hash(header.parent_hash)
         return header.hash
 
     def get_block_header_by_hash(self, block_hash):
         """
         Returns the block header by hash.
         """
-        return self._chaindb.get_block_header_by_hash(block_hash)
+        for value in self.prev_headers:
+            if value.hash == block_hash:
+                return value
+        raise BlockNotFound(
+            "No block header with hash {0} found in self.perv_headers".format(
+                encode_hex(block_hash),
+            )
+        )
 
     def get_parent_header(self, block_header):
         """
@@ -240,9 +257,6 @@ class BaseVMState(object):
         block.header.receipt_root = receipt_root_hash
         block.header.bloom = int(block.bloom_filter)
         block.header.gas_used = receipt.gas_used
-
-        # Set receipts in vm_state level.
-        vm_state.receipts.append(receipt)
 
         return block, trie_data
 

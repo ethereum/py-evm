@@ -170,6 +170,11 @@ def get_block_hash_for_testing(self, block_number):
         return keccak("{0}".format(block_number))
 
 
+def get_prev_headers_testing(self, last_block_hash, db):
+    prev_headers = []
+    return prev_headers
+
+
 FrontierVMStateForTesting = FrontierVMState.configure(
     name='FrontierVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
@@ -194,22 +199,27 @@ ByzantiumVMStateForTesting = ByzantiumVMState.configure(
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
     _state_class=FrontierVMStateForTesting,
+    get_prev_headers=get_prev_headers_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
     _state_class=HomesteadVMStateForTesting,
+    get_prev_headers=get_prev_headers_testing,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
     name='TangerineWhistleVMForTesting',
     _state_class=TangerineWhistleVMStateForTesting,
+    get_prev_headers=get_prev_headers_testing,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
     name='SpuriousDragonVMForTesting',
     _state_class=SpuriousDragonVMStateForTesting,
+    get_prev_headers=get_prev_headers_testing,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
     name='ByzantiumVMForTesting',
     _state_class=ByzantiumVMStateForTesting,
+    get_prev_headers=get_prev_headers_testing,
 )
 
 

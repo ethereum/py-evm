@@ -179,7 +179,7 @@ class Chain(object):
 
     def get_block_by_header(self, block_header):
         vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header)
+        return vm.get_block_by_header(block_header, self.chaindb)
 
     #
     # Chain Initialization

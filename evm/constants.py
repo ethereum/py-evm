@@ -162,3 +162,8 @@ BLANK_ROOT_HASH = b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n\x5bH\xe
 
 
 GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
+
+#
+# BLOCKHASH opcode maximum depth
+#
+MAX_PREV_HEADER_DEPTH = 256
