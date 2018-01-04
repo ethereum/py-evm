@@ -16,7 +16,12 @@ from evm.vm.forks.frontier import FrontierVM
 
 
 @pytest.fixture
-def chain():
+def chaindb():
+    return BaseChainDB(get_db_backend())
+
+
+@pytest.fixture
+def chain(chaindb):
     """
     Return a Chain object containing just the genesis block.
 
@@ -42,8 +47,9 @@ def chain():
             "0000000000000000000000000000000000000000000000000000000000000000"),
         "receipt_root": decode_hex(
             "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
-        "state_root": decode_hex(
-            "cafd881ab193703b83816c49ff6c2bf6ba6f464a1be560c42106128c8dbc35e7"),
+        # TODO: uncomment when there's a dedicated shard chain object with separate fixture
+        # "state_root": decode_hex(
+        #     "cafd881ab193703b83816c49ff6c2bf6ba6f464a1be560c42106128c8dbc35e7"),
         "timestamp": 1422494849,
         "transaction_root": decode_hex(
             "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
@@ -65,7 +71,7 @@ def chain():
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
-    chain = klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     return chain
