@@ -66,8 +66,7 @@ class VMState(object):
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.db = None
-        state._trie = None
+        state.decommission()
 
     #
     # Snapshot and Revert
