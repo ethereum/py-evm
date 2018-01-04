@@ -3,7 +3,7 @@ import itertools
 import rlp
 
 from trie import (
-    Trie,
+    HexaryTrie,
 )
 
 from eth_utils import (
@@ -146,7 +146,7 @@ class BaseChainDB:
 
     @to_list
     def get_receipts(self, header, receipt_class):
-        receipt_db = Trie(db=self.db, root_hash=header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
             if receipt_key in receipt_db:
@@ -157,7 +157,7 @@ class BaseChainDB:
 
     @to_list
     def get_block_transactions(self, block_header, transaction_class):
-        transaction_db = Trie(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -208,7 +208,7 @@ class BaseChainDB:
         self.persist_header_to_db(block.header)
 
         # Persist the transactions
-        transaction_db = Trie(self.db, root_hash=BLANK_ROOT_HASH)
+        transaction_db = HexaryTrie(self.db, root_hash=BLANK_ROOT_HASH)
         for i in range(len(block.transactions)):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
             transaction_db[index_key] = rlp.encode(block.transactions[i])
@@ -221,12 +221,12 @@ class BaseChainDB:
         )
 
     def add_transaction(self, block_header, index_key, transaction):
-        transaction_db = Trie(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):
-        receipt_db = Trie(db=self.db, root_hash=block_header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
 

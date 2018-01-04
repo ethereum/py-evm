@@ -25,7 +25,7 @@ setup(
         "py-ecc==1.4.2",
         "rlp==0.4.7",
         "eth-keys==0.1.0b3",
-        "trie>=0.3.2",
+        "trie>=1.0.1,<2.0.0",
     ],
     extra_require={
         'leveldb': [
