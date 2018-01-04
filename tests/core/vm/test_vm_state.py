@@ -45,6 +45,9 @@ def test_state_db(state):  # noqa: F811
     with state.state_db() as state_db:
         pass
 
+    with pytest.raises(TypeError):
+        state_db.increment_nonce(address)
+
     with state.state_db(read_only=True) as state_db:
         state_db.get_balance(address)
     assert state.state_root == initial_state_root
