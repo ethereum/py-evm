@@ -5,7 +5,7 @@ from evm.exceptions import (
 )
 
 from evm.db.state import (
-    State,
+    AccountStateDB,
     FlatTrieBackend,
     NestedTrieBackend,
 )
@@ -21,7 +21,7 @@ INVALID_ADDRESS = b'aa' * 20
     NestedTrieBackend,
 ])
 def state(request):
-    return State({}, backend_class=request.param)
+    return AccountStateDB({}, backend_class=request.param)
 
 
 def test_balance(state):
