@@ -20,7 +20,7 @@ from eth_utils import (
     decode_hex,
     encode_hex,
 )
-from trie import Trie
+from trie import HexaryTrie
 
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
@@ -446,7 +446,7 @@ class LightChain(Chain):
         key = keccak(address)
         proof = await self._get_proof(block_hash, account_key=b'', key=key)
         block = await self.get_block_by_hash(block_hash)
-        rlp_account = Trie.get_from_proof(block.header.state_root, key, proof)
+        rlp_account = HexaryTrie.get_from_proof(block.header.state_root, key, proof)
         return rlp.decode(rlp_account, sedes=Account)
 
     async def _get_proof(self, block_hash: bytes, account_key: bytes, key: bytes,

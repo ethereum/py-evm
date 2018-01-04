@@ -3,7 +3,7 @@ import logging
 import rlp
 
 from trie import (
-    Trie
+    HexaryTrie
 )
 
 from evm.constants import (
@@ -49,7 +49,7 @@ class AccountStateDB:
             self.db = ImmutableDB(db)
         else:
             self.db = db
-        self._trie = HashTrie(Trie(self.db, root_hash))
+        self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     #
     # Base API
@@ -68,7 +68,7 @@ class AccountStateDB:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        storage = HashTrie(Trie(self.db, account.storage_root))
+        storage = HashTrie(HexaryTrie(self.db, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
@@ -86,7 +86,7 @@ class AccountStateDB:
         validate_uint256(slot, title="Storage Slot")
 
         account = self._get_account(address)
-        storage = HashTrie(Trie(self.db, account.storage_root))
+        storage = HashTrie(HexaryTrie(self.db, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
