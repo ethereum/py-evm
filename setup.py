@@ -59,3 +59,4 @@ setup(
         'console_scripts': ['trinity=trinity:main'],
     },
 )
+
