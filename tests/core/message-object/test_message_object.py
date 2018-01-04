@@ -8,11 +8,9 @@ from eth_utils import (
 
 from evm.vm.message import (
     Message,
-    ShardingMessage,
 )
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
-    ENTRY_POINT,
 )
 from evm.exceptions import (
     ValidationError,
@@ -36,27 +34,6 @@ def _create_message(gas=1,
         to=to,
         sender=sender,
         value=value,
-        data=data,
-        code=code,
-        **kwargs
-    )
-
-
-def _create_sharding_message(
-        gas=1,
-        gas_price=1,
-        to=ADDRESS_A,
-        sender=ENTRY_POINT,
-        value=0,
-        data=b"",
-        code=b"",
-        **kwargs):
-    return ShardingMessage(
-        gas=gas,
-        gas_price=gas_price,
-        to=to,
-        sender=sender,
-        value=0,
         data=data,
         code=code,
         **kwargs
