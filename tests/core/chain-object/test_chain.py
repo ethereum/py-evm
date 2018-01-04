@@ -11,7 +11,10 @@ from evm.exceptions import (
 )
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
-from tests.core.fixtures import valid_block_rlp
+from tests.core.fixtures import (
+    valid_block_rlp,
+    chaindb,
+)
 from tests.core.helpers import new_transaction
 
 
