@@ -24,10 +24,10 @@ def test_balance_restriction(chain):  # noqa: F811
     )
 
     for method, args in method_and_args:
-        with vm.state_db(access_list=access_list) as state_db:
+        with vm.state.state_db(access_list=access_list) as state_db:
             getattr(state_db, method)(*args)
         with pytest.raises(UnannouncedStateAccess):
-            with vm.state_db(access_list=[]) as state_db:
+            with vm.state.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
 
 
@@ -43,10 +43,10 @@ def test_nonce_restriction(chain):  # noqa: F811
     )
 
     for method, args in method_and_args:
-        with vm.state_db(access_list=access_list) as state_db:
+        with vm.state.state_db(access_list=access_list) as state_db:
             getattr(state_db, method)(*args)
         with pytest.raises(UnannouncedStateAccess):
-            with vm.state_db(access_list=[]) as state_db:
+            with vm.state.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
 
 
@@ -62,10 +62,10 @@ def test_code_restriction(chain):  # noqa: F811
     )
 
     for method, args in method_and_args:
-        with vm.state_db(access_list=access_list) as state_db:
+        with vm.state.state_db(access_list=access_list) as state_db:
             getattr(state_db, method)(*args)
         with pytest.raises(UnannouncedStateAccess):
-            with vm.state_db(access_list=[]) as state_db:
+            with vm.state.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
 
 
@@ -91,14 +91,14 @@ def test_storage_read_restriction(chain):  # noqa: F811
 
     for valid, method, args in tests:
         if valid:
-            with vm.state_db(access_list=access_list) as state_db:
+            with vm.state.state_db(access_list=access_list) as state_db:
                 getattr(state_db, method)(*args)
         else:
             with pytest.raises(UnannouncedStateAccess):
-                with vm.state_db(access_list=access_list) as state_db:
+                with vm.state.state_db(access_list=access_list) as state_db:
                     getattr(state_db, method)(*args)
 
         # without access list everything is invalid
         with pytest.raises(UnannouncedStateAccess):
-            with vm.state_db(access_list=[]) as state_db:
+            with vm.state.state_db(access_list=[]) as state_db:
                 getattr(state_db, method)(*args)
