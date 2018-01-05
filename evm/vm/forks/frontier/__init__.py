@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 
 from evm import VM
-from evm import constants
 
 from evm.exceptions import (
     ContractCreationCollision,
@@ -27,6 +26,10 @@ from evm.utils.keccak import (
     keccak,
 )
 
+from .constants import (
+    CREATE_CONTRACT_ADDRESS,
+    REFUND_SELFDESTRUCT,
+)
 from .opcodes import FRONTIER_OPCODES
 from .blocks import FrontierBlock
 from .computation import FrontierComputation
@@ -66,7 +69,7 @@ def _execute_frontier_transaction(vm, transaction):
         # Setup VM Message
         message_gas = transaction.gas - transaction.intrinsic_gas
 
-        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
+        if transaction.to == CREATE_CONTRACT_ADDRESS:
             contract_address = generate_contract_address(
                 transaction.sender,
                 state_db.get_nonce(transaction.sender) - 1,
@@ -136,7 +139,7 @@ def _execute_frontier_transaction(vm, transaction):
     # Self Destruct Refunds
     num_deletions = len(computation.get_accounts_for_deletion())
     if num_deletions:
-        computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
+        computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
     # Gas Refunds
     gas_remaining = computation.get_gas_remaining()
