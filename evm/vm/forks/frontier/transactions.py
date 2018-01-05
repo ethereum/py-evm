@@ -59,8 +59,8 @@ class FrontierTransaction(BaseTransaction):
     def get_sender(self):
         return extract_transaction_sender(self)
 
-    def get_intrensic_gas(self):
-        return _get_frontier_intrensic_gas(self.data)
+    def get_intrinsic_gas(self):
+        return _get_frontier_intrinsic_gas(self.data)
 
     def get_message_for_signing(self):
         return rlp.encode(FrontierUnsignedTransaction(
@@ -104,7 +104,7 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
         )
 
 
-def _get_frontier_intrensic_gas(transaction_data):
+def _get_frontier_intrinsic_gas(transaction_data):
     num_zero_bytes = transaction_data.count(b'\x00')
     num_non_zero_bytes = len(transaction_data) - num_zero_bytes
     return (
