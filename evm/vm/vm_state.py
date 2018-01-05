@@ -50,7 +50,7 @@ class VMState(object):
     @contextmanager
     def state_db(self, read_only=False, access_list=None):
         state = self.chaindb.get_state_db(
-            self.block.header.state_root,
+            self.block_header.state_root,
             read_only=read_only,
             access_list=access_list
         )
@@ -66,8 +66,7 @@ class VMState(object):
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.db = None
-        state._trie = None
+        state.decommission()
 
     #
     # Snapshot and Revert
