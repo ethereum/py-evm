@@ -164,7 +164,7 @@ class BaseShardingTransaction(rlp.Serializable):
         ('shard_id', big_endian_int),
         ('to', address),
         ('data', binary),
-        ('start_gas', big_endian_int),
+        ('gas', big_endian_int),
         ('gas_price', big_endian_int),
         ('access_list', access_list_sedes),
         ('code', binary),

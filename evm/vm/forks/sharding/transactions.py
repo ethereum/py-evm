@@ -24,7 +24,7 @@ class ShardingTransaction(BaseShardingTransaction):
         validate_canonical_address(self.target, title="Transaction.target")
         validate_is_bytes(self.data, title="Transaction.data")
 
-        validate_uint256(self.start_gas, title="Transaction.start_gas")
+        validate_uint256(self.gas, title="Transaction.gas")
         validate_uint256(self.gas_price, title="Transaction.gas_price")
 
         validate_transaction_access_list(self.access_list, title="Transaction.access_list")
