@@ -46,16 +46,16 @@ from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
 
-from evm.chains.sharding.mainchain_handler.config import (
+from evm.vm.forks.sharding.config import (
     GASPRICE,
     PERIOD_LENGTH,
     TX_GAS,
 )
-from evm.chains.sharding.mainchain_handler.vmc_utils import (
+from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
 
-from tests.sharding.mainchain_handler.fixtures import (  # noqa: F401
+from tests.sharding.fixtures import (  # noqa: F401
     get_contract_address_from_contract_tx,
     vmc,
 )

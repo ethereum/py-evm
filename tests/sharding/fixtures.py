@@ -38,10 +38,10 @@ from evm.utils.address import (
     generate_contract_address,
 )
 
-from evm.chains.sharding.mainchain_handler.vmc_handler import (
+from evm.vm.forks.sharding.vmc_handler import (
     VMC,
 )
-from evm.chains.sharding.mainchain_handler.vmc_utils import (
+from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
     get_vmc_json,
 )

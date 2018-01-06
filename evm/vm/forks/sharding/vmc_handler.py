@@ -14,7 +14,7 @@ from evm.utils.hexadecimal import (
     decode_hex,
 )
 
-from evm.chains.sharding.mainchain_handler.config import (
+from evm.vm.forks.sharding.config import (
     DEPOSIT_SIZE,
     GASPRICE,
     TX_GAS,
