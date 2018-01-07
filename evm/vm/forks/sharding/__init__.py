@@ -1,24 +1,20 @@
-from __future__ import absolute_import
-
-
-from evm import VM
-from evm import constants
+from evm.constants import (
+    ENTRY_POINT,
+)
 
 from evm.exceptions import (
     ContractCreationCollision,
 )
-from evm import precompiles
 
 from evm.vm.message import (
-    Message,
+    ShardingMessage,
 )
 from evm.vm.vm_state import (
     VMState,
 )
 
 from evm.utils.address import (
-    force_bytes_to_address,
-    generate_contract_address,
+    generate_create2_contract_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -27,25 +23,16 @@ from evm.utils.keccak import (
     keccak,
 )
 
-from .opcodes import FRONTIER_OPCODES
-from .blocks import FrontierBlock
-from .computation import FrontierComputation
-from .validation import validate_frontier_transaction
-from .headers import (
-    create_frontier_header_from_parent,
-    configure_frontier_header,
+from ..byzantium import ByzantiumVM
+from ..frontier.constants import (
+    REFUND_SELFDESTRUCT,
 )
+from .computation import ShardingComputation
+from .validation import validate_sharding_transaction
+from .blocks import ShardingBlock
 
 
-FRONTIER_PRECOMPILES = {
-    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
-    force_bytes_to_address(b'\x02'): precompiles.sha256,
-    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
-    force_bytes_to_address(b'\x04'): precompiles.identity,
-}
-
-
-def _execute_frontier_transaction(vm, transaction):
+def _execute_sharding_transaction(vm, transaction):
     #
     # 1) Pre Computation
     #
@@ -58,51 +45,46 @@ def _execute_frontier_transaction(vm, transaction):
     gas_fee = transaction.gas * transaction.gas_price
     with vm.state.state_db() as state_db:
         # Buy Gas
-        state_db.delta_balance(transaction.sender, -1 * gas_fee)
-
-        # Increment Nonce
-        state_db.increment_nonce(transaction.sender)
+        state_db.delta_balance(transaction.to, -1 * gas_fee)
 
         # Setup VM Message
         message_gas = transaction.gas - transaction.intrinsic_gas
 
-        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
-            contract_address = generate_contract_address(
-                transaction.sender,
-                state_db.get_nonce(transaction.sender) - 1,
+        if transaction.code:
+            contract_address = generate_create2_contract_address(
+                b'',
+                transaction.code,
             )
             data = b''
-            code = transaction.data
+            code = transaction.code
+            is_create = True
         else:
             contract_address = None
             data = transaction.data
             code = state_db.get_code(transaction.to)
+            is_create = False
 
     vm.logger.info(
         (
-            "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-            "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
+            "TRANSACTION: to: %s | gas: %s | "
+            "gas-price: %s | data-hash: %s | code-hash: %s"
         ),
-        encode_hex(transaction.sender),
         encode_hex(transaction.to),
-        transaction.value,
         transaction.gas,
         transaction.gas_price,
-        transaction.s,
-        transaction.r,
-        transaction.v,
         encode_hex(keccak(transaction.data)),
+        encode_hex(keccak(transaction.code)),
     )
 
-    message = Message(
+    message = ShardingMessage(
         gas=message_gas,
         gas_price=transaction.gas_price,
         to=transaction.to,
-        sender=transaction.sender,
-        value=transaction.value,
+        sender=ENTRY_POINT,
+        value=0,
         data=data,
         code=code,
-        create_address=contract_address,
+        is_create=is_create,
     )
 
     #
@@ -113,7 +95,7 @@ def _execute_frontier_transaction(vm, transaction):
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
-            # The address of the newly created contract has *somehow* collided
+            # The address of the newly created contract has collided
             # with an existing contract address.
             computation = vm.get_computation(message)
             computation._error = ContractCreationCollision(
@@ -136,7 +118,7 @@ def _execute_frontier_transaction(vm, transaction):
     # Self Destruct Refunds
     num_deletions = len(computation.get_accounts_for_deletion())
     if num_deletions:
-        computation.gas_meter.refund_gas(constants.REFUND_SELFDESTRUCT * num_deletions)
+        computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
     # Gas Refunds
     gas_remaining = computation.get_gas_remaining()
@@ -149,11 +131,11 @@ def _execute_frontier_transaction(vm, transaction):
         vm.logger.debug(
             'TRANSACTION REFUND: %s -> %s',
             gas_refund_amount,
-            encode_hex(message.sender),
+            encode_hex(message.to),
         )
 
         with vm.state.state_db() as state_db:
-            state_db.delta_balance(message.sender, gas_refund_amount)
+            state_db.delta_balance(message.to, gas_refund_amount)
 
     # Miner Fees
     transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -180,20 +162,12 @@ def _execute_frontier_transaction(vm, transaction):
     return computation
 
 
-FrontierVM = VM.configure(
-    name='FrontierVM',
-    # VM logic
-    opcodes=FRONTIER_OPCODES,
-    # classes
-    _block_class=FrontierBlock,
-    _computation_class=FrontierComputation,
-    _precompiles=FRONTIER_PRECOMPILES,
+ShardingVM = ByzantiumVM.configure(
+    name='ShardingVM',
+    _computation_class=ShardingComputation,
+    _block_class=ShardingBlock,
     _state_class=VMState,
-    # helpers
-    create_header_from_parent=staticmethod(create_frontier_header_from_parent),
-    configure_header=configure_frontier_header,
-    # validation
-    validate_transaction=validate_frontier_transaction,
-    # transactions and vm messages
-    execute_transaction=_execute_frontier_transaction,
+    # Method overrides
+    validate_transaction=validate_sharding_transaction,
+    execute_transaction=_execute_sharding_transaction,
 )

@@ -77,10 +77,6 @@ class Message(object):
             validate_canonical_address(origin, title="Message.origin")
         self.origin = origin
 
-        if access_list is not None:
-            validate_access_list(access_list)
-        self.access_list = access_list
-
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
         self.depth = depth
@@ -142,3 +138,46 @@ class Message(object):
     @property
     def is_create(self):
         return self.to == CREATE_CONTRACT_ADDRESS
+
+
+class ShardingMessage(Message):
+
+    is_create = False
+
+    def __init__(self,
+                 gas,
+                 gas_price,
+                 to,
+                 sender,
+                 value,
+                 data,
+                 code,
+                 origin=None,
+                 access_list=None,
+                 depth=0,
+                 is_create=False,
+                 code_address=None,
+                 should_transfer_value=True,
+                 is_static=False):
+        super(ShardingMessage, self).__init__(
+            gas=gas,
+            gas_price=gas_price,
+            to=to,
+            sender=sender,
+            value=value,
+            data=data,
+            code=code,
+            origin=origin,
+            depth=depth,
+            create_address=to,
+            code_address=code_address,
+            should_transfer_value=should_transfer_value,
+            is_static=is_static,
+        )
+
+        validate_is_boolean(is_create, title="Message.is_create")
+        self.is_create = is_create
+
+        if access_list is not None:
+            validate_access_list(access_list)
+        self.access_list = access_list

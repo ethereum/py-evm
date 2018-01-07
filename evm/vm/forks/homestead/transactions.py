@@ -26,8 +26,8 @@ class HomesteadTransaction(FrontierTransaction):
         super(HomesteadTransaction, self).validate()
         validate_lt_secpk1n2(self.s, title="Transaction.s")
 
-    def get_intrensic_gas(self):
-        return _get_homestead_intrensic_gas(self)
+    def get_intrinsic_gas(self):
+        return _get_homestead_intrinsic_gas(self)
 
     def get_message_for_signing(self):
         return rlp.encode(HomesteadUnsignedTransaction(
@@ -60,7 +60,7 @@ class HomesteadUnsignedTransaction(FrontierUnsignedTransaction):
         )
 
 
-def _get_homestead_intrensic_gas(transaction):
+def _get_homestead_intrinsic_gas(transaction):
     num_zero_bytes = transaction.data.count(b'\x00')
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes
     if transaction.to == CREATE_CONTRACT_ADDRESS:

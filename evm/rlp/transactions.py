@@ -46,11 +46,11 @@ class BaseTransaction(rlp.Serializable):
         return self.get_sender()
 
     @property
-    def intrensic_gas(self):
+    def intrinsic_gas(self):
         """
-        Convenience property for the return value of `get_intrensic_gas`
+        Convenience property for the return value of `get_intrinsic_gas`
         """
-        return self.get_intrensic_gas()
+        return self.get_intrinsic_gas()
 
     # +-------------------------------------------------------------+
     # | API that must be implemented by all Transaction subclasses. |
@@ -64,7 +64,7 @@ class BaseTransaction(rlp.Serializable):
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
         """
-        if self.intrensic_gas > self.gas:
+        if self.intrinsic_gas > self.gas:
             raise ValidationError("Insufficient gas")
         self.check_signature_validity()
 
@@ -96,7 +96,7 @@ class BaseTransaction(rlp.Serializable):
     #
     # Base gas costs
     #
-    def get_intrensic_gas(self):
+    def get_intrinsic_gas(self):
         """
         Compute the baseline gas cost for this transaction.  This is the amount
         of gas needed to send this transaction (but that is not actually used
@@ -153,9 +153,9 @@ class BaseShardingTransaction(rlp.Serializable):
     fields = [
         ('chain_id', big_endian_int),
         ('shard_id', big_endian_int),
-        ('target', address),
+        ('to', address),
         ('data', binary),
-        ('start_gas', big_endian_int),
+        ('gas', big_endian_int),
         ('gas_price', big_endian_int),
         ('access_list', access_list_sedes),
         ('code', binary),
@@ -164,3 +164,32 @@ class BaseShardingTransaction(rlp.Serializable):
     @property
     def hash(self):
         return keccak(rlp.encode(self))
+
+    #
+    # Validation
+    #
+    def validate(self):
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
+        if self.intrinsic_gas > self.gas:
+            raise ValidationError("Insufficient gas")
+
+    @property
+    def intrinsic_gas(self):
+        """
+        Convenience property for the return value of `get_intrinsic_gas`
+        """
+        return self.get_intrinsic_gas()
+
+    #
+    # Base gas costs
+    #
+    def get_intrinsic_gas(self):
+        """
+        Compute the baseline gas cost for this transaction.  This is the amount
+        of gas needed to send this transaction (but that is not actually used
+        for computation).
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
