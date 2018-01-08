@@ -8,10 +8,6 @@ from cytoolz import (
 from eth_utils import (
     encode_hex,
 )
-import rlp
-from trie import (
-    HexaryTrie,
-)
 
 from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
@@ -21,6 +17,9 @@ from evm.db.tracked import (
 )
 from evm.exceptions import (
     BlockNotFound,
+)
+from evm.utils.state import (
+    make_trie_root_and_nodes,
 )
 
 
@@ -34,13 +33,15 @@ class BaseVMState(object):
 
     computation_class = None
     access_logs = None
+    receipts = None
 
-    def __init__(self, chaindb, block_header, prev_headers):
+    def __init__(self, chaindb, block_header, prev_headers, receipts=[]):
         self._chaindb = chaindb
         self.block_header = block_header
         self.prev_headers = prev_headers
 
         self.access_logs = AccessLogs()
+        self.receipts = receipts
 
     #
     # Logging
@@ -267,26 +268,15 @@ class BaseVMState(object):
         :rtype: (Block, dict[bytes, bytes])
         """
         receipt = cls.make_receipt(vm_state, transaction, computation)
-        transaction_idx = len(block.transactions)
-
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
+        vm_state.add_receipt(receipt)
 
         block.transactions.append(transaction)
 
         # Get trie roots and changed key-values.
-        tx_root_hash, tx_db = cls.add_trie_node_to_db(
-            block.header.transaction_root,
-            index_key,
-            transaction,
-            block.db,
-        )
-        receipt_root_hash, receipt_db = cls.add_trie_node_to_db(
-            block.header.receipt_root,
-            index_key,
-            receipt,
-            block.db,
-        )
-        trie_data = merge(tx_db.wrapped_db.kv_store, receipt_db.wrapped_db.kv_store)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(vm_state.receipts)
+
+        trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
 
         block.bloom_filter |= receipt.bloom
 
@@ -297,15 +287,9 @@ class BaseVMState(object):
 
         return block, trie_data
 
-    @staticmethod
-    def add_trie_node_to_db(root_hash, index_key, node, db):
-        """
-        Add transaction or receipt to the given db.
-        """
-        trie_db = HexaryTrie(db, root_hash=root_hash)
-        trie_db[index_key] = rlp.encode(node)
-        return trie_db.root_hash, trie_db.db
-  
+    def add_receipt(self, receipt):
+        self.receipts.append(receipt)
+
     @staticmethod
     def execute_transaction(vm_state, transaction):
         """

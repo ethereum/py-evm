@@ -111,6 +111,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         chaindb=chaindb1,
         block_header=block_header1,
         prev_headers=prev_headers,
+        receipts=[],
     )
     parent_header = copy.deepcopy(prev_headers[0])
 
@@ -132,6 +133,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         chaindb=BaseChainDB(MemoryDB()),
         block_header=block.header,
         prev_headers=prev_headers,
+        receipts=computation.vm_state.receipts,
     )
     computation, block, _ = FrontierVMState.apply_transaction(
         vm_state1,
@@ -179,6 +181,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         chaindb=witness_db,
         block_header=block_header2,
         prev_headers=prev_headers,
+        receipts=[],
     )
     computation, block, _ = FrontierVMState.apply_transaction(
         vm_state2,
@@ -196,6 +199,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         chaindb=BaseChainDB(MemoryDB()),
         block_header=block.header,
         prev_headers=prev_headers,
+        receipts=computation.vm_state.receipts,
     )
     computation, block, _ = FrontierVMState.apply_transaction(
         vm_state2,

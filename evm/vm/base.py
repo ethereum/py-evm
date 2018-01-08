@@ -254,7 +254,7 @@ class VM(object):
         )
 
         recent_trie_nodes = {}
-
+        receipts = []
         for (transaction, transaction_witness) in transaction_packages:
             transaction_witness.update(recent_trie_nodes)
             witness_db = BaseChainDB(MemoryDB(transaction_witness))
@@ -263,6 +263,7 @@ class VM(object):
                 chaindb=witness_db,
                 block_header=block.header,
                 prev_headers=prev_headers,
+                receipts=receipts,
             )
             computation, result_block, _ = cls.get_state_class().apply_transaction(
                 vm_state=vm_state,
@@ -274,6 +275,7 @@ class VM(object):
 
             if not computation.is_error:
                 block = result_block
+                receipts = computation.vm_state.receipts
                 recent_trie_nodes.update(computation.vm_state.access_logs.writes)
             else:
                 pass
@@ -487,10 +489,12 @@ class VM(object):
                 last_block_hash=self.block.header.parent_hash,
                 db=self.chaindb,
             )
+        receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
             block_header,
             prev_headers,
+            receipts=receipts,
         )
 
     @property

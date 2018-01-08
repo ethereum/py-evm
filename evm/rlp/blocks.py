@@ -1,21 +1,7 @@
 import rlp
 
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
-
 
 class BaseBlock(rlp.Serializable):
-    db = None
-
-    def __init__(self, header, transactions=None, uncles=None):
-        self.db = BaseChainDB(MemoryDB()).db  # for generating transaction_root and receipt_root
-
-        super(BaseBlock, self).__init__(
-            header=header,
-            transactions=transactions,
-            uncles=uncles,
-        )
-
     @classmethod
     def configure(cls, **overrides):
         class_name = cls.__name__
