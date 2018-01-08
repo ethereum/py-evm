@@ -13,6 +13,7 @@ from evm.db import get_db_backend
 from evm.db.chain import ChainDB
 from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
+from evm.vm.forks.sharding import ShardingVM
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
@@ -97,6 +98,57 @@ def chain(chaindb, funded_address, funded_address_initial_balance):
 def shard_chain(chaindb, funded_address, funded_address_initial_balance):
     shard_chaindb = ChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
     return chain(shard_chaindb, funded_address, funded_address_initial_balance)
+
+
+@pytest.fixture
+def shard_chain_without_block_validation(funded_addr):
+    """
+    Return a Chain object containing just the genesis block.
+
+    This Chain does not perform any validation when importing new blocks.
+
+    The Chain's state includes one funded account specified by the `funded_addr` argument.
+
+    You can then deploy contract to the funded account.
+    """
+    shard_chaindb = ChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
+    overrides = {
+        'import_block': import_block_without_validation,
+        'validate_block': lambda self, block: None,
+    }
+    klass = Chain.configure(
+        name='TestShardChainWithoutBlockValidation',
+        vm_configuration=(
+            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
+        ),
+        **overrides,
+    )
+    initial_balance = 100000000
+    genesis_params = {
+        'block_number': constants.GENESIS_BLOCK_NUMBER,
+        'difficulty': constants.GENESIS_DIFFICULTY,
+        'gas_limit': constants.GENESIS_GAS_LIMIT,
+        'parent_hash': constants.GENESIS_PARENT_HASH,
+        'coinbase': constants.GENESIS_COINBASE,
+        'nonce': constants.GENESIS_NONCE,
+        'mix_hash': constants.GENESIS_MIX_HASH,
+        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'timestamp': 1501851927,
+        'state_root': decode_hex(
+            '0x9d354f9b5ba851a35eced279ef377111387197581429cfcc7f744ef89a30b5d4')
+    }
+    genesis_state = {
+        funded_addr: {
+            'balance': initial_balance,
+            'nonce': 0,
+            'code': b'',
+            'storage': {},
+        }
+    }
+    chain = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
+    chain.funded_address = funded_addr
+    chain.funded_address_initial_balance = initial_balance
+    return chain
 
 
 @pytest.fixture
