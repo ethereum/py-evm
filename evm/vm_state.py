@@ -79,6 +79,10 @@ class BaseVMState(object):
     #
     # chaindb
     #
+    @property
+    def chaindb(self):
+        return self._chaindb
+
     def set_chaindb(self, db):
         self._chaindb = db
 
@@ -209,9 +213,10 @@ class BaseVMState(object):
             # Update block in this level.
             assert witness_db is not None
 
-            # Don't change the given vm_state and block.
+            # Don't change the given vm_state, block, and witness_db
             vm_state = copy.deepcopy(vm_state)
             block = copy.deepcopy(block)
+            witness_db = copy.deepcopy(witness_db)
 
             vm_state.set_chaindb(witness_db)
             cls.block_header = block.header

@@ -107,6 +107,12 @@ class VM(object):
             )
             self.block = block
 
+            # Update chaindb
+            # TODO: Modify Chain.apply_transaction to update the local vm state before
+            # returning the computation object.
+            self.chaindb.db.wrapped_db.kv_store.update(
+                computation.vm_state.chaindb.db.wrapped_db.kv_store,
+            )
             # Persist changed transaction and receipt key-values to self.chaindb.
             for key, value in trie_data.items():
                 self.chaindb.db[key] = value
@@ -236,6 +242,76 @@ class VM(object):
         return block
 
     @classmethod
+    def create_block(
+            cls,
+            transaction_packages,
+            prev_headers,
+            coinbase):
+        """
+        Create a block with transaction witness
+        """
+        parent_header = prev_headers[0]
+
+        block = cls.generate_block_from_parent_header_and_coinbase(
+            parent_header,
+            coinbase,
+        )
+
+        recent_trie_nodes = {}
+
+        for (transaction, transaction_witness) in transaction_packages:
+            transaction_witness.update(recent_trie_nodes)
+            witness_db = BaseChainDB(MemoryDB(transaction_witness))
+
+            vm_state = cls.get_state_class()(
+                chaindb=witness_db,
+                block_header=block.header,
+                prev_headers=prev_headers,
+            )
+            computation, result_block, _ = cls.get_state_class().apply_transaction(
+                vm_state=vm_state,
+                transaction=transaction,
+                block=block,
+                is_stateless=True,
+                witness_db=witness_db,
+            )
+
+            if not computation.is_error:
+                block = result_block
+                recent_trie_nodes.update(computation.vm_state.access_logs.writes)
+            else:
+                pass
+
+        # Finalize
+        witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+        vm_state = cls.get_state_class()(
+            chaindb=witness_db,
+            block_header=block.header,
+            prev_headers=prev_headers,
+        )
+        block = cls.finalize_block(vm_state, block)
+
+        return block
+
+    @classmethod
+    def generate_block_from_parent_header_and_coinbase(cls, parent_header, coinbase):
+        """
+        Generate block from parent header and coinbase.
+        """
+        block_header = generate_header_from_parent_header(
+            cls.compute_difficulty,
+            parent_header,
+            parent_header.timestamp + 1,
+            coinbase,
+        )
+        block = cls.get_block_class()(
+            block_header,
+            transactions=[],
+            uncles=[],
+        )
+        return block
+
+    @classmethod
     def finalize_block(cls, vm_state, block):
         """
         Finalize the given block (set rewards).
@@ -262,63 +338,7 @@ class VM(object):
                 )
         block.state_root = vm_state.block_header.state_root
 
-        return block, vm_state
-
-    @classmethod
-    def create_block(
-            cls,
-            transaction_packages,
-            prev_headers,
-            coinbase):
-        """
-        Create a block with transaction witness
-        """
-
-        parent_header = prev_headers[0]
-
-        # Generate block header object
-        block_header = generate_header_from_parent_header(
-            cls.compute_difficulty,
-            parent_header,
-            parent_header.timestamp + 1,
-            coinbase,
-        )
-
-        block = cls.get_block_class()(
-            block_header,
-            transactions=[],
-            uncles=[],
-        )
-        vm_state = cls.get_state_class()(
-            chaindb=BaseChainDB({}),
-            block_header=block_header,
-            prev_headers=prev_headers,
-        )
-
-        witness = {}
-        witness_db = BaseChainDB(MemoryDB(witness))
-
-        for (transaction, transaction_witness) in transaction_packages:
-            witness.update(transaction_witness)
-            witness_db = BaseChainDB(MemoryDB(witness))
-            vm_state.set_chaindb(witness_db)
-
-            computation, block, _ = vm_state.apply_transaction(
-                vm_state,
-                transaction,
-                block=block,
-                is_stateless=True,
-                witness_db=witness_db
-            )
-            # Update witness_db
-            vm_state = computation.vm_state
-            witness.update(computation.vm_state.access_logs.writes)
-            witness_db = BaseChainDB(MemoryDB(witness))
-            vm_state.set_chaindb(witness_db)
-
-        block, vm_state = cls.finalize_block(vm_state, block)
-
-        return block, vm_state.access_logs, vm_state
+        return block
 
     #
     # Transactions

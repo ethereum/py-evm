@@ -1,5 +1,8 @@
 import copy
 
+from cytoolz import (
+    merge,
+)
 import pytest
 
 from eth_utils import (
@@ -65,30 +68,37 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     chaindb = copy.deepcopy(vm.chaindb)
     block0 = copy.deepcopy(vm.block)
     prev_block_hash = chain.get_canonical_block_by_number(0).hash
-    block_header0 = copy.deepcopy(vm.block.header)
     initial_state_root = vm.state.block_header.state_root
 
-    # Prepare tx
-    vm_example = copy.deepcopy(vm)
-    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    # (1) Get VM.apply_transaction(transaction) result for assertion
+    # The first transaction
+    chain1 = copy.deepcopy(chain)
+    vm_example = chain1.get_vm()
+    recipient1 = decode_hex('0x1111111111111111111111111111111111111111')
     amount = 100
     from_ = chain.funded_address
-    tx1 = new_transaction(vm_example, from_, recipient, amount, chain.funded_address_private_key)
-
-    # (1) Get VM level apply_transaction result for assertion
+    tx1 = new_transaction(
+        vm_example,
+        from_,
+        recipient1,
+        amount,
+        private_key=chain.funded_address_private_key,
+    )
     computation, result_block = vm_example.apply_transaction(tx1)
-    chaindb00 = copy.deepcopy(chaindb)
-    block_header00 = copy.deepcopy(block_header0)
-    prev_headers = vm.get_prev_headers(
-        last_block_hash=prev_block_hash,
-        db=vm.chaindb,
-    )
-    vm_state = FrontierVMState(
-        chaindb=chaindb00,
-        block_header=block_header00,
-        prev_headers=prev_headers,
-    )
 
+    # The second transaction
+    recipient2 = decode_hex('0x2222222222222222222222222222222222222222')
+    tx2 = new_transaction(
+        vm_example,
+        from_,
+        recipient2,
+        amount,
+        private_key=chain.funded_address_private_key,
+    )
+    computation, result_block = vm_example.apply_transaction(tx2)
+    assert len(result_block.transactions) == 2
+
+    # (2) Test VMState.apply_transaction(...)
     # Use FrontierVMState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
@@ -102,19 +112,42 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         block_header=block_header1,
         prev_headers=prev_headers,
     )
+    parent_header = copy.deepcopy(prev_headers[0])
 
-    computation, block, _ = vm_state1.apply_transaction(
+    computation, block, _ = FrontierVMState.apply_transaction(
         vm_state1,
         tx1,
         block1,
         witness_db=chaindb1,
     )
-    access_logs = computation.vm_state.access_logs
-    post_vm_state1 = computation.vm_state
+    access_logs1 = computation.vm_state.access_logs
 
-    assert not computation.is_error
-    assert len(access_logs.reads) > 0
-    assert len(access_logs.writes) > 0
+    # Check if prev_headers hasn't been changed
+    assert parent_header.hash == prev_headers[0].hash
+
+    for key, value in enumerate(access_logs1.writes):
+        chaindb1.db[key] = value
+
+    vm_state1 = FrontierVMState(
+        chaindb=BaseChainDB(MemoryDB()),
+        block_header=block.header,
+        prev_headers=prev_headers,
+    )
+    computation, block, _ = FrontierVMState.apply_transaction(
+        vm_state1,
+        tx2,
+        block,
+        witness_db=computation.vm_state.chaindb,
+    )
+    access_logs2 = computation.vm_state.access_logs
+    post_vm_state = computation.vm_state
+
+    # Check AccessLogs
+    witness_db = BaseChainDB(MemoryDB(access_logs2.writes))
+    state_db = witness_db.get_state_db(block.header.state_root, read_only=True)
+    assert state_db.get_balance(recipient2) == amount
+    with pytest.raises(KeyError):
+        _ = state_db.get_balance(recipient1)
 
     # Check block data are correct
     assert block.header.state_root == result_block.header.state_root
@@ -127,37 +160,52 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block1.header.state_root == initial_state_root
 
     # Make sure that vm_state1 hasn't been changed
-    assert post_vm_state1.block_header.state_root == result_block.header.state_root
-    assert post_vm_state1.block_header.state_root != vm_state1.block_header.state_root
+    assert post_vm_state.block_header.state_root == result_block.header.state_root
+    assert post_vm_state.block_header.state_root != vm_state1.block_header.state_root
 
-    # (2) Testing using witness as db data
+    # (3) Testing using witness as db data
     # Witness_db
     block2 = copy.deepcopy(block0)
     block_header2 = block2.header
-    witness_db = BaseChainDB(MemoryDB(access_logs.reads))
+
+    witness_db = BaseChainDB(MemoryDB(access_logs1.reads))
     prev_headers = vm.get_prev_headers(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
+
+    # Apply the first transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
         block_header=block_header2,
         prev_headers=prev_headers,
     )
-    # Before applying
-    assert post_vm_state1.block_header.state_root != vm_state2.block_header.state_root
-
-    # Applying transaction
-    computation, block, _ = vm_state.apply_transaction(
+    computation, block, _ = FrontierVMState.apply_transaction(
         vm_state2,
         tx1,
         block2,
         witness_db=witness_db,
     )
-    post_vm_state2 = computation.vm_state
+
+    # Update witness_db
+    recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
+    witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+
+    # Apply the second transaction
+    vm_state2 = FrontierVMState(
+        chaindb=BaseChainDB(MemoryDB()),
+        block_header=block.header,
+        prev_headers=prev_headers,
+    )
+    computation, block, _ = FrontierVMState.apply_transaction(
+        vm_state2,
+        tx2,
+        block,
+        witness_db=witness_db,
+    )
 
     # After applying
-    assert block.header.state_root == post_vm_state2.block_header.state_root
+    assert block.header.state_root == computation.vm_state.block_header.state_root
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root
     assert block.hash == result_block.hash
@@ -172,5 +220,5 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         block_header=block.header,
         prev_headers=prev_headers,
     )
-    assert vm_state3.block_header.state_root == post_vm_state1.block_header.state_root
+    assert vm_state3.block_header.state_root == post_vm_state.block_header.state_root
     assert vm_state3.block_header.state_root == result_block.header.state_root
