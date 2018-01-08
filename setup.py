@@ -18,7 +18,7 @@ setup(
         "aiohttp==2.3.1",
         "async_lru>=0.1.0",
         "cryptography>=2.0.3",
-        "cytoolz==0.8.2",
+        "cytoolz==0.9.0,<1.0.0",
         "eth-bloom>=0.5.2",
         "eth-utils>=0.7.1",
         "pyethash>=0.1.27",
