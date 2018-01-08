@@ -4,10 +4,8 @@ import rlp
 import logging
 
 from evm.constants import (
-    BLOCK_REWARD,
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
-    UNCLE_DEPTH_PENALTY_FACTOR,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -132,19 +130,17 @@ class VM(object):
     #
     # Mining
     #
-    @classmethod
-    def get_block_reward(cls, block_number):
-        return BLOCK_REWARD
+    @staticmethod
+    def get_block_reward():
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
-    def get_nephew_reward(cls, block_number):
-        return cls.get_block_reward(block_number) // 32
-
-    @classmethod
-    def get_uncle_reward(cls, block_number, uncle):
-        return BLOCK_REWARD * (
-            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
-        ) // UNCLE_DEPTH_PENALTY_FACTOR
+    def get_nephew_reward(cls):
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def import_block(self, block):
         self.configure_header(
@@ -177,8 +173,8 @@ class VM(object):
         if block.number == 0:
             return block
 
-        block_reward = self.get_block_reward(block.number) + (
-            len(block.uncles) * self.get_nephew_reward(block.number)
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
         )
 
         with self.state.state_db() as state_db:
@@ -316,8 +312,8 @@ class VM(object):
         """
         Finalize the given block (set rewards).
         """
-        block_reward = cls.get_block_reward(block.number) + (
-            len(block.uncles) * cls.get_nephew_reward(block.number)
+        block_reward = cls.get_block_reward() + (
+            len(block.uncles) * cls.get_nephew_reward(cls)
         )
 
         with vm_state.state_db() as state_db:

@@ -14,7 +14,7 @@ from .blocks import ByzantiumBlock
 from .vm_state import ByzantiumVMState
 
 
-def _byzantium_get_block_reward(block_number):
+def _byzantium_get_block_reward():
     return EIP649_BLOCK_REWARD
 
 
