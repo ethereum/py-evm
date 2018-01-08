@@ -207,7 +207,21 @@ class BaseVMState(object):
             is_stateless=True,
             witness_db=None):
         """
-        Apply transaction
+        Apply transaction to the given block
+
+        :param vm_state: the VMState object
+        :param transaction: the transaction need to be applied
+        :param block: the block which the transaction applies on
+        :param is_stateless: if is_stateless, call VMState.add_transactionto set block
+        :param witness_db: for stateless mode, use witness_db as chaindb
+        :type vm_state: VMState
+        :type transaction: Transaction
+        :type block: Block
+        :type is_stateless: bool
+        :type witness_db: BaseChainDB
+
+        :return: the computation, applied block, and the trie_data
+        :rtype: (Computation, Block, dict[bytes, bytes])
         """
         if is_stateless:
             # Update block in this level.
@@ -236,6 +250,21 @@ class BaseVMState(object):
     def add_transaction(cls, vm_state, transaction, computation, block):
         """
         Add a transaction to the given block and save the block data into chaindb.
+
+        Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
+        bloom, and used_gas of the block.
+
+        :param vm_state: the VMState object
+        :param transaction: the executed transaction
+        :param computation: the Computation object with executed result
+        :param block: the Block which the transaction is added in
+        :type vm_state: VMState
+        :type transaction: Transaction
+        :type computation: Computation
+        :type block: Block
+
+        :return: the block and the trie_data
+        :rtype: (Block, dict[bytes, bytes])
         """
         receipt = cls.make_receipt(vm_state, transaction, computation)
         transaction_idx = len(block.transactions)
@@ -276,7 +305,7 @@ class BaseVMState(object):
         trie_db = HexaryTrie(db, root_hash=root_hash)
         trie_db[index_key] = rlp.encode(node)
         return trie_db.root_hash, trie_db.db
-
+  
     @staticmethod
     def execute_transaction(vm_state, transaction):
         """
