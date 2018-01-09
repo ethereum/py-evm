@@ -27,7 +27,7 @@ setup(
         "eth-keys==0.1.0b3",
         "trie>=0.3.1",
         "trie>=1.0.1,<2.0.0",
-        "eth-tester>=0.1.0b6",
+        "eth-tester>=0.1.0b11",
         "web3>=4.0.0b5",
     ],
     extra_require={
