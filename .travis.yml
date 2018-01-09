@@ -44,6 +44,8 @@ matrix:
       env: TOX_POSARGS="-e py35-p2p"
     - python: "3.5"
       env: TOX_POSARGS="-e py35-database"
+    - python: "3.5"
+      env: TOX_POSARGS="-e py35-sharding"
     #- python: "3.5"
     #- env: TOX_POSARGS="-e py35-vm-performance"
     #
@@ -91,6 +93,8 @@ matrix:
       env: TOX_POSARGS="-e py36-database"
     - python: "3.6"
       env: TOX_POSARGS="-e py36-rpc-state-quadratic"
+    - python: "3.6"
+      env: TOX_POSARGS="-e py36-sharding"
     #- python: "3.6"
     #- env: TOX_POSARGS="-e py36-vm-performance"
 cache:
