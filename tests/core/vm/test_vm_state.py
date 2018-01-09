@@ -64,7 +64,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
 
     # Don't change these variables
     vm = chain.get_vm()
-    vm._is_stateless = False  # Only for testing
     chaindb = copy.deepcopy(vm.chaindb)
     block0 = copy.deepcopy(vm.block)
     prev_block_hash = chain.get_canonical_block_by_number(0).hash
@@ -74,6 +73,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # The first transaction
     chain1 = copy.deepcopy(chain)
     vm_example = chain1.get_vm()
+    vm_example._is_stateless = False  # Only for testing
     recipient1 = decode_hex('0x1111111111111111111111111111111111111111')
     amount = 100
     from_ = chain.funded_address
@@ -119,18 +119,16 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         vm_state1,
         tx1,
         block1,
-        witness_db=chaindb1,
     )
     access_logs1 = computation.vm_state.access_logs
 
     # Check if prev_headers hasn't been changed
     assert parent_header.hash == prev_headers[0].hash
-
-    for key, value in enumerate(access_logs1.writes):
-        chaindb1.db[key] = value
+    # Make sure that block1 hasn't been changed
+    assert block1.header.state_root == initial_state_root
 
     vm_state1 = FrontierVMState(
-        chaindb=BaseChainDB(MemoryDB()),
+        chaindb=chaindb1,
         block_header=block.header,
         prev_headers=prev_headers,
         receipts=computation.vm_state.receipts,
@@ -139,7 +137,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         vm_state1,
         tx2,
         block,
-        witness_db=computation.vm_state.chaindb,
     )
     access_logs2 = computation.vm_state.access_logs
     post_vm_state = computation.vm_state
@@ -158,12 +155,8 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root
 
-    # Make sure that block1 hasn't been changed
-    assert block1.header.state_root == initial_state_root
-
     # Make sure that vm_state1 hasn't been changed
     assert post_vm_state.block_header.state_root == result_block.header.state_root
-    assert post_vm_state.block_header.state_root != vm_state1.block_header.state_root
 
     # (3) Testing using witness as db data
     # Witness_db
@@ -187,7 +180,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         vm_state2,
         tx1,
         block2,
-        witness_db=witness_db,
     )
 
     # Update witness_db
@@ -196,7 +188,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
 
     # Apply the second transaction
     vm_state2 = FrontierVMState(
-        chaindb=BaseChainDB(MemoryDB()),
+        chaindb=witness_db,
         block_header=block.header,
         prev_headers=prev_headers,
         receipts=computation.vm_state.receipts,
@@ -205,7 +197,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         vm_state2,
         tx2,
         block,
-        witness_db=witness_db,
     )
 
     # After applying

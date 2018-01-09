@@ -96,26 +96,21 @@ class VM(object):
         Apply the transaction to the vm in the current block.
         """
         if self.is_stateless:
-            computation, block, trie_data = self.state.apply_transaction(
+            computation, block, trie_data = self.get_state_class().apply_transaction(
                 self.state,
                 transaction,
                 self.block,
                 is_stateless=True,
-                witness_db=self.chaindb,
             )
             self.block = block
 
-            # Update chaindb
             # TODO: Modify Chain.apply_transaction to update the local vm state before
-            # returning the computation object.
-            self.chaindb.db.wrapped_db.kv_store.update(
-                computation.vm_state.chaindb.db.wrapped_db.kv_store,
-            )
+
             # Persist changed transaction and receipt key-values to self.chaindb.
             for key, value in trie_data.items():
                 self.chaindb.db[key] = value
         else:
-            computation, _, _ = self.state.apply_transaction(
+            computation, _, _ = self.get_state_class().apply_transaction(
                 self.state,
                 transaction,
                 self.block,
@@ -270,7 +265,6 @@ class VM(object):
                 transaction=transaction,
                 block=block,
                 is_stateless=True,
-                witness_db=witness_db,
             )
 
             if not computation.is_error:

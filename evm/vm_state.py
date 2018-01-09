@@ -80,9 +80,9 @@ class BaseVMState(object):
     #
     # chaindb
     #
-    @property
-    def chaindb(self):
-        return self._chaindb
+    # @property
+    # def chaindb(self):
+    #     return self._chaindb
 
     def set_chaindb(self, db):
         self._chaindb = db
@@ -205,8 +205,7 @@ class BaseVMState(object):
             vm_state,
             transaction,
             block,
-            is_stateless=True,
-            witness_db=None):
+            is_stateless=True):
         """
         Apply transaction to the given block
 
@@ -214,28 +213,18 @@ class BaseVMState(object):
         :param transaction: the transaction need to be applied
         :param block: the block which the transaction applies on
         :param is_stateless: if is_stateless, call VMState.add_transactionto set block
-        :param witness_db: for stateless mode, use witness_db as chaindb
         :type vm_state: VMState
         :type transaction: Transaction
         :type block: Block
         :type is_stateless: bool
-        :type witness_db: BaseChainDB
 
         :return: the computation, applied block, and the trie_data
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
         if is_stateless:
-            # Update block in this level.
-            assert witness_db is not None
-
-            # Don't change the given vm_state, block, and witness_db
-            vm_state = copy.deepcopy(vm_state)
+            # Don't modify the given block
             block = copy.deepcopy(block)
-            witness_db = copy.deepcopy(witness_db)
-
-            vm_state.set_chaindb(witness_db)
-            cls.block_header = block.header
-
+            vm_state.block_header = block.header
             computation, block_header = cls.execute_transaction(vm_state, transaction)
 
             # Set block.
