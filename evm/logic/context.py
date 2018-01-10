@@ -189,3 +189,7 @@ def returndatacopy(computation):
     value = computation.return_data[returndata_start_position: returndata_start_position + size]
 
     computation.memory.write(mem_start_position, size, value)
+
+
+def sighash(computation):
+    computation.stack.push(computation.msg.sig_hash)
