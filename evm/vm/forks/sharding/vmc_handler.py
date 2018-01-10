@@ -15,10 +15,13 @@ from evm.utils.hexadecimal import (
 )
 
 from evm.vm.forks.sharding.config import (
-    DEPOSIT_SIZE,
-    GASPRICE,
-    TX_GAS,
+    get_sharding_config,
 )
+
+sharding_config = get_sharding_config()
+DEPOSIT_SIZE = sharding_config['DEPOSIT_SIZE']
+GAS_PRICE = sharding_config['GAS_PRICE']
+DEFAULT_GAS = sharding_config['DEFAULT_GAS']
 
 
 class VMC(Contract):
@@ -57,9 +60,9 @@ class VMC(Contract):
                          args,
                          nonce=None,
                          chain_id=None,
-                         gas=TX_GAS,
+                         gas=DEFAULT_GAS,
                          value=0,
-                         gas_price=GASPRICE,
+                         gas_price=GAS_PRICE,
                          data=None):
         privkey = self.default_privkey
         if nonce is None:
@@ -105,7 +108,7 @@ class VMC(Contract):
 
     # contract calls ##############################################
 
-    def sample(self, shard_id, gas=TX_GAS):
+    def sample(self, shard_id, gas=DEFAULT_GAS):
         """sample(shard_id: num) -> address
         """
         tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
@@ -115,8 +118,8 @@ class VMC(Contract):
     def deposit(self,
                 validation_code_addr,
                 return_addr,
-                gas=TX_GAS,
-                gas_price=GASPRICE):
+                gas=DEFAULT_GAS,
+                gas_price=GAS_PRICE):
         """deposit(validation_code_addr: address, return_addr: address) -> num
         """
         tx_hash = self.send_transaction(
@@ -131,7 +134,7 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, gas=TX_GAS, gas_price=GASPRICE):
+    def withdraw(self, validator_index, sig, gas=DEFAULT_GAS, gas_price=GAS_PRICE):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
         tx_hash = self.send_transaction(
@@ -145,7 +148,7 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def add_header(self, header, gas=TX_GAS, gas_price=GASPRICE):
+    def add_header(self, header, gas=DEFAULT_GAS, gas_price=GAS_PRICE):
         """add_header(header: bytes <= 4096) -> bool
         """
         tx_hash = self.send_transaction(
@@ -163,8 +166,8 @@ class VMC(Contract):
                     tx_gasprice,
                     data,
                     value,
-                    gas=TX_GAS,
-                    gas_price=GASPRICE):
+                    gas=DEFAULT_GAS,
+                    gas_price=GAS_PRICE):
         """tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num
