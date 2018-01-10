@@ -270,3 +270,8 @@ def validate_transaction_access_list(access_list, title="Access List"):
 def validate_access_list(access_list):
     for entry in access_list:
         validate_is_bytes(entry, "Access prefix")
+
+
+def validate_sig_hash(sig_hash, title="Sig Hash"):
+    validate_is_bytes(sig_hash, title)
+    validate_length(sig_hash, 32, title)

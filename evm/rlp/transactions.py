@@ -174,6 +174,11 @@ class BaseShardingTransaction(rlp.Serializable):
     def hash(self):
         return keccak(rlp.encode(self))
 
+    @property
+    def sig_hash(self):
+        sedes = self.__class__.exclude('data')
+        return keccak(rlp.encode(self, sedes))
+
     #
     # Validation
     #
