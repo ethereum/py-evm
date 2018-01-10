@@ -5,7 +5,12 @@ from evm.utils.hexadecimal import (
     decode_hex,
 )
 
-from evm.vm.forks.sharding.config import GASPRICE
+from evm.vm.forks.sharding.config import (
+    get_sharding_config,
+)
+
+
+GAS_PRICE = get_sharding_config()['GAS_PRICE']
 
 
 def get_vmc_json():
@@ -15,7 +20,7 @@ def get_vmc_json():
     return json.loads(vmc_json_str)
 
 
-def create_vmc_tx(TransactionClass, gasprice=GASPRICE):
+def create_vmc_tx(TransactionClass, gasprice=GAS_PRICE):
     vmc_json = get_vmc_json()
     vmc_bytecode = decode_hex(vmc_json['bytecode'])
     v = 27
