@@ -39,6 +39,6 @@ def new_sharding_transaction(
         data=tx_data,
         gas=gas,
         gas_price=gas_price,
-        access_list=b'',
+        access_list=[],
         code=decode_hex(code),
     )
