@@ -14,6 +14,7 @@ from web3.providers.eth_tester import (
 )
 
 from eth_utils import (
+    to_canonical_address,
     to_checksum_address,
 )
 
@@ -27,19 +28,6 @@ from eth_tester.backends.pyevm import (
 
 from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
-)
-from evm.chains.sharding.mainchain_handler.vmc_handler import (
-    VMC,
-)
-from evm.chains.sharding.mainchain_handler.vmc_utils import (
-    create_vmc_tx,
-    get_contract_address_from_contract_tx,
-    get_vmc_json,
-)
-
-from eth_utils import (
-    to_canonical_address,
-    to_checksum_address,
 )
 
 from evm.vm.forks.spurious_dragon.transactions import (
