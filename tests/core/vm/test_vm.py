@@ -188,7 +188,7 @@ def test_sharding_transaction(shard_chain_without_block_validation):  # noqa: F8
     contract_deployment_code = b''
     contract_addr = generate_create2_contract_address(b'', contract_deployment_code)
 
-    chain = shard_chain_without_block_validation(contract_addr)
+    chain = shard_chain_without_block_validation()
     deploy_tx = new_sharding_transaction(contract_addr, b'', 0, b'', b'', contract_deployment_code)
 
     vm = chain.get_vm()
