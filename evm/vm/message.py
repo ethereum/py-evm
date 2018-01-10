@@ -11,6 +11,7 @@ from evm.validation import (
     validate_uint256,
     validate_is_boolean,
     validate_access_list,
+    validate_sig_hash,
 )
 
 
@@ -121,6 +122,7 @@ class ShardingMessage(Message):
                  gas,
                  gas_price,
                  to,
+                 sig_hash,
                  sender,
                  value,
                  data,
@@ -151,6 +153,32 @@ class ShardingMessage(Message):
         validate_is_boolean(is_create, title="Message.is_create")
         self.is_create = is_create
 
+        validate_sig_hash(sig_hash, title="Message.sig_hash")
+        self.sig_hash = sig_hash
+
         if access_list is not None:
             validate_access_list(access_list)
         self.access_list = access_list
+
+    def prepare_child_message(self,
+                              gas,
+                              to,
+                              value,
+                              data,
+                              code,
+                              **kwargs):
+        kwargs.setdefault('sender', self.msg.storage_address)
+
+        child_message = ShardingMessage(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            sig_hash=self.msg.sig_hash,
+            to=to,
+            value=value,
+            data=data,
+            code=code,
+            depth=self.msg.depth + 1,
+            **kwargs
+        )
+        return child_message
