@@ -49,14 +49,12 @@ from evm.vm.forks.sharding.config import (
 from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
-
-from evm.chains.sharding.mainchain_handler.vmc_handler import (
+from evm.vm.forks.sharding.vmc_handler import (
     FilterNotFound,
     NextLogUnavailable,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
-    get_contract_address_from_contract_tx,
     vmc,
 )
 
