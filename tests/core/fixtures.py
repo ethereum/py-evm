@@ -94,6 +94,13 @@ def chain(chaindb, funded_address, funded_address_initial_balance):
     return chain
 
 
+SHARD_CHAIN_CONTRACTS_FIXTURE = {
+        "contract_code": b'',
+        "deployed_address": b'',
+        "initial_balance": 100000000,
+}
+
+
 @pytest.fixture
 def shard_chain(chaindb, funded_address, funded_address_initial_balance):
     shard_chaindb = ChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
@@ -101,7 +108,7 @@ def shard_chain(chaindb, funded_address, funded_address_initial_balance):
 
 
 @pytest.fixture
-def shard_chain_without_block_validation(funded_addr):
+def shard_chain_without_block_validation():
     """
     Return a Chain object containing just the genesis block.
 
@@ -123,7 +130,6 @@ def shard_chain_without_block_validation(funded_addr):
         ),
         **overrides,
     )
-    initial_balance = 100000000
     genesis_params = {
         'block_number': constants.GENESIS_BLOCK_NUMBER,
         'difficulty': constants.GENESIS_DIFFICULTY,
@@ -134,20 +140,18 @@ def shard_chain_without_block_validation(funded_addr):
         'mix_hash': constants.GENESIS_MIX_HASH,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
-        'state_root': decode_hex(
-            '0x9d354f9b5ba851a35eced279ef377111387197581429cfcc7f744ef89a30b5d4')
+        # 'state_root': decode_hex(
+        #     '0x9d354f9b5ba851a35eced279ef377111387197581429cfcc7f744ef89a30b5d4')
     }
     genesis_state = {
-        funded_addr: {
-            'balance': initial_balance,
+        SHARD_CHAIN_CONTRACTS_FIXTURE["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURE["initial_balance"],
             'nonce': 0,
             'code': b'',
             'storage': {},
         }
     }
     chain = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
-    chain.funded_address = funded_addr
-    chain.funded_address_initial_balance = initial_balance
     return chain
 
 
