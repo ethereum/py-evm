@@ -30,6 +30,7 @@ from ..frontier.constants import (
 from .computation import ShardingComputation
 from .validation import validate_sharding_transaction
 from .blocks import ShardingBlock
+from .opcodes import SHARDING_OPCODES
 
 
 def _execute_sharding_transaction(vm, transaction):
@@ -80,6 +81,7 @@ def _execute_sharding_transaction(vm, transaction):
         gas=message_gas,
         gas_price=transaction.gas_price,
         to=transaction.to,
+        sig_hash=transaction.sig_hash,
         sender=ENTRY_POINT,
         value=0,
         data=data,
@@ -170,4 +172,6 @@ ShardingVM = ByzantiumVM.configure(
     # Method overrides
     validate_transaction=validate_sharding_transaction,
     execute_transaction=_execute_sharding_transaction,
+    # opcodes
+    opcodes=SHARDING_OPCODES,
 )
