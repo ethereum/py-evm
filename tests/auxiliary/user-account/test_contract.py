@@ -2,9 +2,6 @@ import pytest
 
 from eth_keys import keys
 
-from evm import (
-    Chain,
-)
 from evm.constants import (
     UINT_256_MAX,
     SECPK1_N,
@@ -130,7 +127,7 @@ def test_get_nonce(vm):
         "nonce": 0,
     }}).sign(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
-    
+
     computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
         "code": b"",
@@ -250,7 +247,7 @@ def test_call_transfers_value(vm):
     with vm.state.state_db() as state_db:
         balance_sender_after = state_db.get_balance(CONTRACT_ADDRESS)
         balance_destination_after = state_db.get_balance(DESTINATION_ADDRESS)
-    
+
     assert balance_sender_after == balance_sender_before - 10
     assert balance_destination_after == balance_destination_before + 10
 
@@ -294,7 +291,7 @@ def test_call_uses_remaining_gas(vm):
     }}).sign(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
-    
+
     # TODO: check logs for gas in subcall
 
 
