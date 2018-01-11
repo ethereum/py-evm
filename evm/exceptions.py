@@ -119,6 +119,14 @@ class ContractCreationCollision(VMError):
     pass
 
 
+class IncorrectContractCreationAddress(VMError):
+    """
+    Error signaling that the address provided by transaction does not
+    match thecalculated contract creation address.
+    """
+    pass
+
+
 class Revert(VMError):
     """
     Error used by the REVERT opcode
