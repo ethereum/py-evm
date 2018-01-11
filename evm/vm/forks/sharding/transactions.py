@@ -1,5 +1,6 @@
 from evm.constants import (
     GAS_TX,
+    GAS_TXCREATE,
     GAS_TXDATAZERO,
     GAS_TXDATANONZERO,
 )
@@ -41,5 +42,6 @@ def _get_sharding_intrinsic_gas(transaction_data, transaction_code):
     return (
         GAS_TX +
         num_zero_bytes * GAS_TXDATAZERO +
-        num_non_zero_bytes * GAS_TXDATANONZERO
+        num_non_zero_bytes * GAS_TXDATANONZERO +
+        GAS_TXCREATE
     )
