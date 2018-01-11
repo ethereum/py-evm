@@ -4,6 +4,7 @@ from evm.constants import (
 
 from evm.exceptions import (
     ContractCreationCollision,
+    IncorrectContractCreationAddress,
 )
 
 from evm.vm.message import (
@@ -96,7 +97,21 @@ def _execute_sharding_transaction(vm, transaction):
         with vm.state.state_db(read_only=True) as state_db:
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
-        if is_collision:
+        # Check if contract address provided by transaction is correct
+        if contract_address != transaction.to:
+            computation = vm.get_computation(message)
+            computation._error = IncorrectContractCreationAddress(
+                "Contract address calculated: {0} but {1} is provided".format(
+                    encode_hex(contract_address),
+                    encode_hex(transaction.to),
+                )
+            )
+            vm.logger.debug(
+                "Contract address calculated: %s but %s is provided",
+                encode_hex(contract_address),
+                encode_hex(transaction.to),
+            )
+        elif is_collision:
             # The address of the newly created contract has collided
             # with an existing contract address.
             computation = vm.get_computation(message)
