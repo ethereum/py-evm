@@ -8,7 +8,7 @@ from evm.validation import (
 
 def validate_sharding_transaction(vm, transaction):
     gas_cost = transaction.gas * transaction.gas_price
-    with vm.state_db(read_only=True) as state_db:
+    with vm.state.state_db(read_only=True) as state_db:
         txn_initiator_balance = state_db.get_balance(transaction.to)
 
     if txn_initiator_balance < gas_cost:

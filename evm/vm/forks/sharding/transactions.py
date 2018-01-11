@@ -6,7 +6,6 @@ from evm.constants import (
 from evm.validation import (
     validate_uint256,
     validate_is_bytes,
-    validate_canonical_address,
     validate_transaction_access_list,
 )
 
@@ -21,7 +20,6 @@ class ShardingTransaction(BaseShardingTransaction):
         validate_uint256(self.chain_id, title="Transaction.chain_id")
         validate_uint256(self.shard_id, title="Transaction.shard_id")
 
-        validate_canonical_address(self.target, title="Transaction.target")
         validate_is_bytes(self.data, title="Transaction.data")
 
         validate_uint256(self.gas, title="Transaction.gas")
