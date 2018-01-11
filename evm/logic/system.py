@@ -12,6 +12,7 @@ from evm.opcode import (
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
+    generate_create2_contract_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -190,3 +191,69 @@ class CreateByzantium(CreateEIP150):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return super(CreateEIP150, self).__call__(computation)
+
+
+class Create2(CreateEIP150):
+    def __call__(self, computation):
+        if computation.msg.is_static:
+            raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
+
+        value = computation.stack.pop(type_hint=constants.UINT256,)
+        salt = computation.stack.pop(type_hint=constants.BYTES,)
+        start_position, size = computation.stack.pop(
+            num_items=2,
+            type_hint=constants.UINT256,
+        )
+
+        computation.extend_memory(start_position, size)
+
+        _state_db = computation.vm_state.state_db(
+            read_only=True,
+            access_list=computation.msg.access_list,
+        )
+        with _state_db as state_db:
+            insufficient_funds = state_db.get_balance(computation.msg.storage_address) < value
+        stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
+
+        if insufficient_funds or stack_too_deep:
+            computation.stack.push(0)
+            return
+
+        call_data = computation.memory.read(start_position, size)
+
+        create_msg_gas = self.max_child_gas_modifier(
+            computation.gas_meter.gas_remaining
+        )
+        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
+
+        contract_address = generate_create2_contract_address(
+            salt,
+            call_data,
+        )
+        with _state_db as state_db:
+            is_collision = state_db.account_has_code_or_nonce(contract_address)
+
+        if is_collision:
+            computation.vm.logger.debug(
+                "Address collision while creating contract: %s",
+                encode_hex(contract_address),
+            )
+            computation.stack.push(0)
+            return
+
+        child_msg = computation.prepare_child_sharding_message(
+            gas=create_msg_gas,
+            to=contract_address,
+            value=value,
+            data=b'',
+            code=call_data,
+            is_create=True,
+        )
+
+        child_computation = computation.apply_child_computation(child_msg)
+
+        if child_computation.is_error:
+            computation.stack.push(0)
+        else:
+            computation.stack.push(contract_address)
+        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
