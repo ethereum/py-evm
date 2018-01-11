@@ -1,7 +1,3 @@
-from collections import (
-    defaultdict,
-)
-
 import logging
 
 from cytoolz import (
@@ -57,11 +53,11 @@ class VMC(Contract):
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     collation_added_topic = "0x" + keccak(b"CollationAdded(int128,bytes4096,bool,int128)").hex()
-    new_collation_added_logs = defaultdict(list)
+    new_collation_added_logs = {}
     # newer <---------------> older
-    unchecked_collation_added_logs = defaultdict(list)
-    collation_added_filter = defaultdict(None)
-    current_checking_score = defaultdict(None)
+    unchecked_collation_added_logs = {}
+    collation_added_filter = {}
+    current_checking_score = {}
 
     def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
@@ -78,6 +74,9 @@ class VMC(Contract):
                 shard_id_topic,
             ],
         })
+        self.new_collation_added_logs[shard_id] = []
+        self.unchecked_collation_added_logs[shard_id] = []
+        self.current_checking_score[shard_id] = None
 
     @to_dict
     def parse_collation_added_data(self, data):
