@@ -38,6 +38,9 @@ from evm.utils.address import (
     generate_contract_address,
 )
 
+from evm.vm.forks.sharding.config import (
+    get_sharding_config,
+)
 from evm.vm.forks.sharding.vmc_handler import (
     VMC,
 )
@@ -65,7 +68,10 @@ def vmc():
     w3 = Web3(provider)
 
     # setup vmc's web3.eth.contract instance
-    vmc_tx = create_vmc_tx(SpuriousDragonTransaction)
+    vmc_tx = create_vmc_tx(
+        SpuriousDragonTransaction,
+        get_sharding_config()['GAS_PRICE'],
+    )
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
     vmc_json = get_vmc_json()
     vmc_abi = vmc_json['abi']
