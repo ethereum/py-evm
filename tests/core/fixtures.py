@@ -14,7 +14,8 @@ from evm.db.chain import ChainDB
 from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
-from evm.auxiliary.simple_transfer_contract.contract_fixture import (
+
+from tests.core.vm.contract_fixture import (
     contract_bytecode,
     contract_address,
 )

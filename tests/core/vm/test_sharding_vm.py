@@ -1,15 +1,14 @@
 from eth_utils import decode_hex
 
-from evm.auxiliary.simple_transfer_contract.contract_fixture import (
-    contract_bytecode,
-    contract_address,
-)
-
 from tests.core.fixtures import (  # noqa: F401
     shard_chain_without_block_validation,
 )
 from tests.core.helpers import (
     new_sharding_transaction,
+)
+from tests.core.vm.contract_fixture import (
+    contract_bytecode,
+    contract_address,
 )
 
 
