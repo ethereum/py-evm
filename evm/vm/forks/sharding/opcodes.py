@@ -28,6 +28,11 @@ NEW_OPCODES = {
         mnemonic=mnemonics.CREATE2,
         gas_cost=constants.GAS_CREATE2,
     )(),
+    opcode_values.PAYGAS: as_opcode(
+        logic_fn=system.paygas,
+        mnemonic=mnemonics.PAYGAS,
+        gas_cost=0,
+    ),
 }
 
 
