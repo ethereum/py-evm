@@ -14,6 +14,10 @@ from evm.db.chain import BaseChainDB
 from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
+from evm.auxiliary.simple_transfer_contract.contract_fixture import (
+    contract_bytecode,
+    contract_address,
+)
 
 
 @pytest.fixture
@@ -79,9 +83,9 @@ def chain(chaindb):
 
 
 SHARD_CHAIN_CONTRACTS_FIXTURE = {
-        "contract_code": b'',
-        "deployed_address": b'',
-        "initial_balance": 100000000,
+    "contract_code": contract_bytecode,
+    "deployed_address": contract_address,
+    "initial_balance": 100000000,
 }
 
 
@@ -98,9 +102,9 @@ def shard_chain_without_block_validation():
 
     This Chain does not perform any validation when importing new blocks.
 
-    The Chain's state includes one funded account specified by the `funded_addr` argument.
+    The Chain's state includes one funded account which is where the simple transfer
 
-    You can then deploy contract to the funded account.
+    contract will be deployed at.
     """
     # TODO: Comment this out to use NestedTrieBackend to prevent access list validation.
     # Uncomment this to use FlatTrieBackend once access list generation is implemented.
