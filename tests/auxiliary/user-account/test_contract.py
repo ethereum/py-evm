@@ -324,7 +324,7 @@ def test_call_uses_data(vm):
         }}).sign(PRIVATE_KEY)
         computation = vm.apply_transaction(transaction)
         assert computation.is_success
-        
+
         logs = computation.get_log_entries()
         assert len(logs) == 1
         logged_hash = logs[0][-1]
