@@ -1,6 +1,3 @@
-# WARNING: untested and thus broken by assumption
-
-
 from evm.constants import (
     SECPK1_N,
     ENTRY_POINT,
@@ -18,13 +15,15 @@ from evm.utils.keccak import (
 
 # S <= N // 2
 MAX_ALLOWED_S = SECPK1_N // 2
-SIGNATURE_VERIFICATION_ADDRESS = 1
-SIGNATURE_VERIFICATION_GAS = 3000
-GAS_RESERVE = 5000  # amount of gas reserved for returning
+VALIDATION_CODE_GAS = 3500
+GAS_RESERVE = 4500  # amount of gas reserved for returning
 GAS_RESERVE_OFFSET = 200
 NONCE_GETTER_ID = big_endian_to_int(keccak(b"get_nonce()")[:4])
-VALIDATION_GETTER_ID = big_endian_to_int(keccak(b"get_validation_code()")[:4])
+VALIDATION_CODE_GETTER_ID = big_endian_to_int(keccak(b"get_validation_code()")[:4])
 ENTRY_POINT_INT = big_endian_to_int(ENTRY_POINT)
+
+SIGNATURE_VERIFICATION_ADDRESS = 1
+SIGNATURE_VERIFICATION_GAS = 3000
 
 # calldata locations
 CALLDATA_FUNCTION_ID = 0
@@ -54,7 +53,7 @@ MEMORY_RETURNCODE = 0
 STORAGE_NONCE = 0
 
 
-def generate_lll_code(address, validation_code_address=SIGNATURE_VERIFICATION_ADDRESS):
+def generate_account_lll_code(validation_code_address):
     return [
         'seq',
 
@@ -76,20 +75,10 @@ def generate_lll_code(address, validation_code_address=SIGNATURE_VERIFICATION_AD
         ['if',
             ['eq',
                 ['calldataload', CALLDATA_FUNCTION_ID],
-                VALIDATION_GETTER_ID],
-            [
-                'seq',
-                [
-                    'call',
-                    SIGNATURE_VERIFICATION_GAS,
-                    validation_code_address,
-                    0,
-                    4,  # pass everything except function signature
-                    ['sub', ['calldatasize'], 4],
-                    MEMORY_SENDER,
-                    32
-                ],
-                ['assert', ['eq', ['mload', MEMORY_SENDER], address]]
+                VALIDATION_CODE_GETTER_ID,
+                # return validation code address
+                ['mstore', 0, validation_code_address],
+                ['return', 12, 20]
             ]],
 
         # no function is called, so we should be first in the call stack
@@ -102,8 +91,6 @@ def generate_lll_code(address, validation_code_address=SIGNATURE_VERIFICATION_AD
         # Check for small s to avoid malleability
         ['assert', ['lt', ['calldataload', CALLDATA_S], MAX_ALLOWED_S + 1]],
 
-        # TODO: check for insufficient funds or not?
-
         # load tx-sighash to the end of memory
         ['mstore', ['add', MEMORY_CALLDATA, ['calldatasize']], ['sighash']],
         # Compute sighash = sha3(nonce ++ gasprice ++ value ++ min-block ++ max-block ++ to ++
@@ -112,18 +99,16 @@ def generate_lll_code(address, validation_code_address=SIGNATURE_VERIFICATION_AD
             MEMORY_SIGHASH,
             ['sha3', MEMORY_NONCE, ['sub', ['calldatasize'], CALLDATA_NONCE - 32]]],
 
-        # Verify signature
-        [
-            'call',
-            SIGNATURE_VERIFICATION_GAS,
-            SIGNATURE_VERIFICATION_ADDRESS,
+        # Verify signature by calling validation code
+        ['assert', ['call',
+            VALIDATION_CODE_GAS,
+            validation_code_address,
             0,                               # value
             MEMORY_SIGHASH,                  # input data start
             128,                             # input data length (spans sighash and signature)
-            MEMORY_SENDER,                   # output data start
-            32                               # output data length
-        ],
-        ['assert', ['eq', ['mload', MEMORY_SENDER], address]],
+            0,
+            0
+        ]],
 
         # Verify and increment nonce
         ['assert', ['eq', ['calldataload', CALLDATA_NONCE], ['sload', STORAGE_NONCE]]],
@@ -157,23 +142,66 @@ def generate_lll_code(address, validation_code_address=SIGNATURE_VERIFICATION_AD
     ]
 
 
+def generate_validation_lll_code(address):
+    return [
+        'seq',
+        # copy hash and signature to memory
+        ['calldatacopy', 0, 0, ['calldatasize']],
+        # call ecrecover and store recovered address in memory
+        [
+            'call',
+            SIGNATURE_VERIFICATION_GAS,
+            SIGNATURE_VERIFICATION_ADDRESS,
+            0,
+            0,
+            128,
+            0,
+            32
+        ],
+        ['with', 'recovered_address', ['mload', 0], ['seq',
+            # check that not zero address has been recovered (this indicates an error)
+            ['assert', ['not', ['iszero', 'recovered_address']]],
+            # check that the recovered address is correct
+            ['assert', ['eq', 'recovered_address', address]],
+            # return 1
+            ['mstore', 0, 1],
+            ['return', 0, 32]]]
+    ]
+
+
 ADDRESS_PLACEHOLDER = decode_hex('0x0123456789abcdef0123456789abcdef01234567')
-# bytecode compiled with `address == ADDRESS_PLACEHOLDER`
-BYTECODE_TEMPLATE = decode_hex(
+# bytecode compiled with `validation_code_address == ADDRESS_PLACEHOLDER`
+# using https://github.com/ethereum/vyper on commit 8588835a9fde8104b3056288886b4b6d9f377973
+ACCOUNT_BYTECODE_TEMPLATE = decode_hex(
     "0x63141b5b4860003514156100195760005460005260206000f35b36600060203763c66"
-    "5b5e26000351415610063576020600060043603600460006001610bb8f1507301234567"
-    "89abcdef0123456789abcdef012345676000511461006257600080fd5b5b73fffffffff"
-    "fffffffffffffffffffffffffffffff331461008357600080fd5b60c035431015610092"
-    "57600080fd5b60e0354311156100a157600080fd5b7f7ffffffffffffffffffffffffff"
-    "fffff5d576e7357a4501ddfe92f46681b20a1604035106100cf57600080fd5b3f366020"
-    "015260403603608020600052602060006080600060006001610bb8f150730123456789a"
-    "bcdef0123456789abcdef012345676000511461011257600080fd5b6000546060351461"
-    "012257600080fd5b6001606035016000556114505a1161013957600080fd5b608035f55"
-    "060006000610120360361014060a035610100356113885a03f160005260206000f3"
+    "5b5e2600035141561004b57730123456789abcdef0123456789abcdef01234567600052"
+    "6014600cf35b73ffffffffffffffffffffffffffffffffffffffff331461006b5760008"
+    "0fd5b60c03543101561007a57600080fd5b60e03543111561008957600080fd5b7f7fff"
+    "ffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a160403510610"
+    "0b757600080fd5b3f366020015260403603608020600052600060006080600060007301"
+    "23456789abcdef0123456789abcdef01234567611194f16100f357600080fd5b6000546"
+    "060351461010357600080fd5b6001606035016000556114505a1161011a57600080fd5b"
+    "608035f55060006000610120360361014060a035610100356113885a03f160005260206"
+    "000f3"
 )
 
 
-def generate_bytecode(address):
-    code = BYTECODE_TEMPLATE.replace(ADDRESS_PLACEHOLDER, address)
-    assert len(code) == len(BYTECODE_TEMPLATE)
+# bytecode compiled with `address == ADDRESS_PLACEHOLDER`
+# using https://github.com/ethereum/vyper on commit 8588835a9fde8104b3056288886b4b6d9f377973
+VALIDATION_BYTECODE_TEMPLATE = decode_hex(
+    "0x366000600037602060006080600060006001610bb8f15060005180151961002557600"
+    "080fd5b730123456789abcdef0123456789abcdef01234567811461004557600080fd5b"
+    "600160005260206000f350"
+)
+
+
+def generate_account_bytecode(validation_code_address):
+    code = ACCOUNT_BYTECODE_TEMPLATE.replace(ADDRESS_PLACEHOLDER, validation_code_address)
+    assert len(code) == len(ACCOUNT_BYTECODE_TEMPLATE)
+    return code
+
+
+def generate_validation_bytecode(address):
+    code = VALIDATION_BYTECODE_TEMPLATE.replace(ADDRESS_PLACEHOLDER, address)
+    assert len(code) == len(VALIDATION_BYTECODE_TEMPLATE)
     return code
