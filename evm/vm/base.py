@@ -15,6 +15,10 @@ from evm.db.chain import BaseChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.utils.db import (
+    get_parent_header,
+    get_block_header_by_hash,
+)
 from evm.utils.keccak import (
     keccak,
 )
@@ -376,20 +380,6 @@ class VM(object):
     def get_block_by_header(cls, block_header, db):
         return cls.get_block_class().from_header(block_header, db)
 
-    @staticmethod
-    def get_parent_header(block_header, db):
-        """
-        Returns the header for the parent block.
-        """
-        return db.get_block_header_by_hash(block_header.parent_hash)
-
-    @staticmethod
-    def get_block_header_by_hash(block_hash, db):
-        """
-        Returns the header for the parent block.
-        """
-        return db.get_block_header_by_hash(block_hash)
-
     @classmethod
     def get_prev_headers(cls, last_block_hash, db):
         prev_headers = []
@@ -397,12 +387,12 @@ class VM(object):
         if last_block_hash == GENESIS_PARENT_HASH:
             return prev_headers
 
-        block_header = cls.get_block_header_by_hash(last_block_hash, db)
+        block_header = get_block_header_by_hash(last_block_hash, db)
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
             prev_headers.append(block_header)
             try:
-                block_header = cls.get_parent_header(block_header, db)
+                block_header = get_parent_header(block_header, db)
             except (IndexError, BlockNotFound):
                 break
         return prev_headers

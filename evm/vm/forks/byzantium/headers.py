@@ -5,6 +5,9 @@ from evm.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
+from evm.utils.db import (
+    get_parent_header,
+)
 from evm.validation import (
     validate_gt,
     validate_header_params_for_configuration,
@@ -71,7 +74,7 @@ def configure_byzantium_header(vm, **header_params):
         setattr(vm.block.header, field_name, value)
 
     if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = vm.get_parent_header(vm.block.header, vm.chaindb)
+        parent_header = get_parent_header(vm.block.header, vm.chaindb)
         vm.block.header.difficulty = compute_byzantium_difficulty(
             parent_header,
             header_params['timestamp'],
