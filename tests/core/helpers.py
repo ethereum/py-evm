@@ -1,7 +1,6 @@
-import rlp
-
 from eth_utils import decode_hex
 
+from evm.utils.padding import pad32
 from evm.vm.forks.sharding.transactions import ShardingTransaction
 
 
@@ -31,7 +30,7 @@ def new_sharding_transaction(
 
     [destination, value, msg_data, vrs].
     """
-    tx_data = rlp.encode([data_destination, data_value, data_msgdata, data_vrs])
+    tx_data = pad32(data_destination) + pad32(bytes([data_value])) + pad32(data_msgdata) + pad32(data_vrs)  # noqa: E501
     return ShardingTransaction(
         chain_id=1,
         shard_id=1,
