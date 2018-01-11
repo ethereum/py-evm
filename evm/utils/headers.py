@@ -1,3 +1,5 @@
+import time
+
 from evm.constants import (
     GENESIS_GAS_LIMIT,
     GAS_LIMIT_EMA_DENOMINATOR,
@@ -72,22 +74,32 @@ def compute_gas_limit(parent_header, gas_limit_floor):
 
 
 def generate_header_from_parent_header(
-        compute_difficulty,
+        compute_difficulty_fn,
         parent_header,
-        timestamp,
-        coinbase=b'\x35' * 20,
+        coinbase,
+        timestamp=None,
         extra_data=b''):
     """
     Generate BlockHeader from state_root and parent_header
     """
+    if timestamp is None:
+        timestamp = max(int(time.time()), parent_header.timestamp + 1)
+    elif timestamp <= parent_header.timestamp:
+        raise ValueError(
+            "header.timestamp ({}) should be higher than"
+            "parent_header.timestamp ({})".format(
+                timestamp,
+                parent_header.timestamp,
+            )
+        )
     header = BlockHeader(
-        difficulty=compute_difficulty(parent_header, timestamp),
+        difficulty=compute_difficulty_fn(parent_header, timestamp),
         block_number=(parent_header.block_number + 1),
         gas_limit=compute_gas_limit(
             parent_header,
             gas_limit_floor=GENESIS_GAS_LIMIT,
         ),
-        timestamp=max(timestamp, parent_header.timestamp + 1),
+        timestamp=timestamp,
         parent_hash=parent_header.hash,
         state_root=parent_header.state_root,
         coinbase=coinbase,

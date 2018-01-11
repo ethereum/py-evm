@@ -293,8 +293,8 @@ class VM(object):
         block_header = generate_header_from_parent_header(
             cls.compute_difficulty,
             parent_header,
-            parent_header.timestamp + 1,
             coinbase,
+            timestamp=parent_header.timestamp + 1,
         )
         block = cls.get_block_class()(
             block_header,
