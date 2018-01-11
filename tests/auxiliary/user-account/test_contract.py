@@ -44,16 +44,21 @@ from evm.auxiliary.user_account_contract.transaction import (
     ForwardingTransaction,
 )
 from evm.auxiliary.user_account_contract.contract import (
-    generate_bytecode,
+    generate_validation_bytecode,
+    generate_account_bytecode,
     NONCE_GETTER_ID,
+    VALIDATION_CODE_GETTER_ID,
 )
 
 
 PRIVATE_KEY = keys.PrivateKey(b"\x33" * 32)
-CODE = generate_bytecode(PRIVATE_KEY.public_key.to_canonical_address())
-CONTRACT_ADDRESS = generate_create2_contract_address(b"", CODE)
+
+VALIDATION_CODE = generate_validation_bytecode(PRIVATE_KEY.public_key.to_canonical_address())
+VALIDATION_CODE_ADDRESS = generate_create2_contract_address(b"", VALIDATION_CODE)
+
+ACCOUNT_CODE = generate_account_bytecode(VALIDATION_CODE_ADDRESS)
+ACCOUNT_ADDRESS = generate_create2_contract_address(b"", ACCOUNT_CODE)
 INITIAL_BALANCE = 10000000000
-DESTINATION_ADDRESS = b"\xbb" * 20
 
 # contract that does nothing
 NOOP_CONTRACT_CODE = b""
@@ -68,7 +73,7 @@ FAILING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", FAILING_CONTRA
 GAS_LOGGING_CONTRACT_CODE = b"\x5a\x60\x00\x52\x60\x20\x60\x00\xa0"
 GAS_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", GAS_LOGGING_CONTRACT_CODE)
 
-# # contract that logs hash of passed data
+# contract that logs hash of passed data
 # CALLDATASIZE PUSH1 0 PUSH1 0 CALLDATACOPY CALLDATASIZE PUSH1 0 SHA3 PUSH1 0 MSTORE PUSH1 32
 # PUSH1 0 LOG0
 DATA_LOGGING_CONTRACT_CODE = (
@@ -77,6 +82,8 @@ DATA_LOGGING_CONTRACT_CODE = (
 DATA_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", DATA_LOGGING_CONTRACT_CODE)
 
 HELPER_CONTRACTS = {
+    VALIDATION_CODE_ADDRESS: VALIDATION_CODE,
+    ACCOUNT_ADDRESS: ACCOUNT_CODE,
     NOOP_CONTRACT_ADDRESS: NOOP_CONTRACT_CODE,
     FAILING_CONTRACT_ADDRESS: FAILING_CONTRACT_CODE,
     GAS_LOGGING_CONTRACT_ADDRESS: GAS_LOGGING_CONTRACT_CODE,
@@ -84,13 +91,16 @@ HELPER_CONTRACTS = {
 }
 
 
+DESTINATION_ADDRESS = b"\xbb" * 20
+
 DEFAULT_BASE_TX_PARAMS = {
     "chain_id": 1,
     "shard_id": 1,
-    "to": CONTRACT_ADDRESS,
+    "to": ACCOUNT_ADDRESS,
     "gas": 500000,
     "gas_price": 0,
     "access_list": [],
+    "code": b"",
 }
 
 DEFAULT_TX_PARAMS = {**DEFAULT_BASE_TX_PARAMS, **{
@@ -101,6 +111,7 @@ DEFAULT_TX_PARAMS = {**DEFAULT_BASE_TX_PARAMS, **{
     "nonce": 0,
     "msg_data": b"",
 }}
+del DEFAULT_TX_PARAMS["code"]
 
 
 @pytest.fixture
@@ -111,7 +122,6 @@ def chaindb():
 def get_nonce(vm):
     computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-        "code": b"",
     }}))
     return big_endian_to_int(computation.output)
 
@@ -119,7 +129,6 @@ def get_nonce(vm):
 def test_get_nonce(vm):
     computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-        "code": b"",
     }}))
     assert computation.output == pad32(b"\x00")
 
@@ -130,13 +139,15 @@ def test_get_nonce(vm):
 
     computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-        "code": b"",
     }}))
     assert computation.output == pad32(b"\x01")
 
 
 def test_get_validation_code(vm):
-    pass  # TODO: write when get_validation_code is implemented correctly
+    computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
+        "data": pad32(int_to_big_endian(VALIDATION_CODE_GETTER_ID)),
+    }}))
+    assert computation.output == VALIDATION_CODE_ADDRESS
 
 
 @pytest.fixture
@@ -152,13 +163,9 @@ def vm():
     chaindb = BaseChainDB(get_db_backend(), state_backend_class=NestedTrieBackend)
     vm = ShardingVM(header=header, chaindb=chaindb)
     with vm.state.state_db() as state:
-        state.set_balance(CONTRACT_ADDRESS, INITIAL_BALANCE)
-        state.set_nonce(CONTRACT_ADDRESS, 0)
-        state.set_code(CONTRACT_ADDRESS, CODE)
-        state.set_storage(CONTRACT_ADDRESS, 0, 0)
-
         for address, code in HELPER_CONTRACTS.items():
             state.set_code(address, code)
+        state.set_balance(ACCOUNT_ADDRESS, INITIAL_BALANCE)
 
     return vm
 
@@ -234,7 +241,7 @@ def test_call_checks_block_range(vm):
 
 def test_call_transfers_value(vm):
     with vm.state.state_db() as state_db:
-        balance_sender_before = state_db.get_balance(CONTRACT_ADDRESS)
+        balance_sender_before = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_before = state_db.get_balance(DESTINATION_ADDRESS)
 
     transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
@@ -245,7 +252,7 @@ def test_call_transfers_value(vm):
     assert computation.is_success
 
     with vm.state.state_db() as state_db:
-        balance_sender_after = state_db.get_balance(CONTRACT_ADDRESS)
+        balance_sender_after = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_after = state_db.get_balance(DESTINATION_ADDRESS)
 
     assert balance_sender_after == balance_sender_before - 10
