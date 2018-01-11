@@ -292,7 +292,9 @@ def test_call_uses_remaining_gas(vm):
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
 
-    # TODO: check logs for gas in subcall
+    logs = computation.get_log_entries()
+    assert len(logs) == 1
+    assert big_endian_to_int(logs[0][-1]) > 900 * 1000  # some gas will have been consumed earlier
 
 
 def test_call_uses_data(vm):
@@ -315,7 +317,11 @@ def test_call_uses_data(vm):
         }}).sign(PRIVATE_KEY)
         computation = vm.apply_transaction(transaction)
         assert computation.is_success
-        # TODO: check logs for data hash in subcall
+        
+        logs = computation.get_log_entries()
+        assert len(logs) == 1
+        logged_hash = logs[0][-1]
+        assert logged_hash == hash
 
 
 def test_no_call_if_not_enough_gas(vm):
