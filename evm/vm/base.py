@@ -75,7 +75,7 @@ class VM(object):
         """
         Add a transaction to the given block and save the block data into chaindb.
         """
-        receipt = self.state.make_receipt(self.state, transaction, computation)
+        receipt = self.state.make_receipt(transaction, computation)
 
         transaction_idx = len(self.block.transactions)
 
@@ -264,8 +264,7 @@ class VM(object):
                 prev_headers=prev_headers,
                 receipts=receipts,
             )
-            computation, result_block, _ = cls.get_state_class().apply_transaction(
-                vm_state=vm_state,
+            computation, result_block, _ = vm_state.apply_transaction(
                 transaction=transaction,
                 block=block,
                 is_stateless=True,

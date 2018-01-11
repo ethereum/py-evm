@@ -197,10 +197,8 @@ class BaseVMState(object):
     #
     # Execution
     #
-    @classmethod
     def apply_transaction(
-            cls,
-            vm_state,
+            self,
             transaction,
             block,
             is_stateless=True):
@@ -222,20 +220,19 @@ class BaseVMState(object):
         if is_stateless:
             # Don't modify the given block
             block = copy.deepcopy(block)
-            vm_state.block_header = block.header
-            computation, block_header = cls.execute_transaction(vm_state, transaction)
+            self.block_header = block.header
+            computation, block_header = self.execute_transaction(transaction)
 
             # Set block.
             block.header = block_header
-            block, trie_data = cls.add_transaction(vm_state, transaction, computation, block)
+            block, trie_data = self.add_transaction(transaction, computation, block)
 
             return computation, block, trie_data
         else:
-            computation, block_header = cls.execute_transaction(vm_state, transaction)
+            computation, block_header = self.execute_transaction(transaction)
             return computation, None, None
 
-    @classmethod
-    def add_transaction(cls, vm_state, transaction, computation, block):
+    def add_transaction(self, transaction, computation, block):
         """
         Add a transaction to the given block and save the block data into chaindb.
 
@@ -254,14 +251,14 @@ class BaseVMState(object):
         :return: the block and the trie_data
         :rtype: (Block, dict[bytes, bytes])
         """
-        receipt = cls.make_receipt(vm_state, transaction, computation)
-        vm_state.add_receipt(receipt)
+        receipt = self.make_receipt(transaction, computation)
+        self.add_receipt(receipt)
 
         block.transactions.append(transaction)
 
         # Get trie roots and changed key-values.
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(vm_state.receipts)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
 
@@ -277,15 +274,13 @@ class BaseVMState(object):
     def add_receipt(self, receipt):
         self.receipts.append(receipt)
 
-    @staticmethod
-    def execute_transaction(vm_state, transaction):
+    def execute_transaction(self, transaction):
         """
         Execute the transaction in the vm.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    @staticmethod
-    def make_receipt(vm_state, transaction, computation):
+    def make_receipt(self, transaction, computation):
         """
         Make receipt.
         """

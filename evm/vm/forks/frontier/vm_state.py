@@ -213,14 +213,12 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 class FrontierVMState(BaseVMState):
     computation_class = FrontierComputation
 
-    @staticmethod
-    def execute_transaction(vm_state, transaction):
-        computation = _execute_frontier_transaction(vm_state, transaction)
-        return computation, vm_state.block_header
+    def execute_transaction(self, transaction):
+        computation = _execute_frontier_transaction(self, transaction)
+        return computation, self.block_header
 
-    @staticmethod
-    def make_receipt(vm_state, transaction, computation):
-        receipt = _make_frontier_receipt(vm_state, transaction, computation)
+    def make_receipt(self, transaction, computation):
+        receipt = _make_frontier_receipt(self, transaction, computation)
         return receipt
 
     def validate_block(self, block):

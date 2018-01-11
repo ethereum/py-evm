@@ -16,22 +16,21 @@ from .utils import collect_touched_accounts
 class SpuriousDragonVMState(HomesteadVMState):
     computation_class = SpuriousDragonComputation
 
-    @staticmethod
-    def execute_transaction(vm_state, transaction):
-        computation = _execute_frontier_transaction(vm_state, transaction)
+    def execute_transaction(self, transaction):
+        computation = _execute_frontier_transaction(self, transaction)
 
         #
         # EIP161 state clearing
         #
         touched_accounts = collect_touched_accounts(computation)
 
-        with vm_state.state_db() as state_db:
+        with self.state_db() as state_db:
             for account in touched_accounts:
                 if state_db.account_exists(account) and state_db.account_is_empty(account):
-                    vm_state.logger.debug(
+                    self.logger.debug(
                         "CLEARING EMPTY ACCOUNT: %s",
                         encode_hex(account),
                     )
                     state_db.delete_account(account)
 
-        return computation, vm_state.block_header
+        return computation, self.block_header
