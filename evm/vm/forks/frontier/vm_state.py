@@ -225,7 +225,7 @@ class FrontierVMState(BaseVMState):
 
     def validate_block(self, block):
         if not block.is_genesis:
-            parent_header = self.get_parent_header(block.header)
+            parent_header = self.parent_header
 
             self._validate_gas_limit(block)
             validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
@@ -289,7 +289,7 @@ class FrontierVMState(BaseVMState):
         if gas_limit > GAS_LIMIT_MAXIMUM:
             raise ValidationError("Gas limit {0} is above maximum {1}".format(
                 gas_limit, GAS_LIMIT_MAXIMUM))
-        parent_gas_limit = self.get_parent_header(block.header).gas_limit
+        parent_gas_limit = self.parent_header.gas_limit
         diff = gas_limit - parent_gas_limit
         if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
             raise ValidationError(

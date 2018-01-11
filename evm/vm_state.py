@@ -112,7 +112,7 @@ class BaseVMState(object):
         state._trie = None
 
     #
-    # Snapshot and Revert
+    # Access self._chaindb
     #
     def snapshot(self):
         """
@@ -144,19 +144,29 @@ class BaseVMState(object):
         _, checkpoint_id = snapshot
         self._chaindb.commit(checkpoint_id)
 
+    def is_key_exists(self, key):
+        """
+        Check if the given key exsits in chaindb
+        """
+        return self._chaindb.exists(key)
+
     #
     # Access self.prev_headers (Read-only)
     #
+    @property
+    def parent_header(self):
+        return self.prev_headers[0]
+
     def get_ancestor_hash(self, block_number):
         """
-        Return the hash for the ancestor with the given block number.
+        Return the hash of the ancestor with the given block number.
         """
-        ancestor_depth = self.block_header.block_number - block_number
-        if ancestor_depth > MAX_PREV_HEADER_DEPTH or ancestor_depth < 1:
+        ancestor_depth = self.block_header.block_number - block_number - 1
+        if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
+                ancestor_depth < 0 or
+                ancestor_depth >= len(self.prev_headers)):
             return b''
-        header = self.get_block_header_by_hash(self.block_header.parent_hash)
-        while header.block_number != block_number:
-            header = self.get_block_header_by_hash(header.parent_hash)
+        header = self.prev_headers[ancestor_depth]
         return header.hash
 
     def get_block_header_by_hash(self, block_hash):
@@ -171,18 +181,6 @@ class BaseVMState(object):
                 encode_hex(block_hash),
             )
         )
-
-    def get_parent_header(self, block_header):
-        """
-        Returns the header for the parent block.
-        """
-        return self.get_block_header_by_hash(block_header.parent_hash)
-
-    def is_key_exists(self, key):
-        """
-        Check if the given key exsits in chaindb
-        """
-        return self._chaindb.exists(key)
 
     #
     # Computation
