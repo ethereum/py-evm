@@ -18,11 +18,6 @@ from evm.vm.forks.sharding.config import (
     get_sharding_config,
 )
 
-sharding_config = get_sharding_config()
-DEPOSIT_SIZE = sharding_config['DEPOSIT_SIZE']
-GAS_PRICE = sharding_config['GAS_PRICE']
-DEFAULT_GAS = sharding_config['DEFAULT_GAS']
-
 
 class VMC(Contract):
 
@@ -31,6 +26,7 @@ class VMC(Contract):
     def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
+        self.config = get_sharding_config()
         super().__init__(*args, **kwargs)
 
     @to_dict
@@ -60,10 +56,14 @@ class VMC(Contract):
                          args,
                          nonce=None,
                          chain_id=None,
-                         gas=DEFAULT_GAS,
+                         gas=None,
                          value=0,
-                         gas_price=GAS_PRICE,
+                         gas_price=None,
                          data=None):
+        if gas is None:
+            gas = self.config['DEFAULT_GAS']
+        if gas_price is None:
+            gas_price = self.config['GAS_PRICE']
         privkey = self.default_privkey
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
@@ -108,9 +108,11 @@ class VMC(Contract):
 
     # contract calls ##############################################
 
-    def sample(self, shard_id, gas=DEFAULT_GAS):
+    def sample(self, shard_id, gas=None):
         """sample(shard_id: num) -> address
         """
+        if gas is None:
+            gas = self.config['DEFAULT_GAS']
         tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
         address_in_hex = self.call(tx_detail).sample(shard_id)
         return decode_hex(address_in_hex)
@@ -118,8 +120,8 @@ class VMC(Contract):
     def deposit(self,
                 validation_code_addr,
                 return_addr,
-                gas=DEFAULT_GAS,
-                gas_price=GAS_PRICE):
+                gas=None,
+                gas_price=None):
         """deposit(validation_code_addr: address, return_addr: address) -> num
         """
         tx_hash = self.send_transaction(
@@ -128,13 +130,13 @@ class VMC(Contract):
                 to_checksum_address(validation_code_addr),
                 to_checksum_address(return_addr),
             ],
-            value=DEPOSIT_SIZE,
+            value=self.config['DEPOSIT_SIZE'],
             gas=gas,
             gas_price=gas_price,
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, gas=DEFAULT_GAS, gas_price=GAS_PRICE):
+    def withdraw(self, validator_index, sig, gas=None, gas_price=None):
         """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
         """
         tx_hash = self.send_transaction(
@@ -148,7 +150,7 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def add_header(self, header, gas=DEFAULT_GAS, gas_price=GAS_PRICE):
+    def add_header(self, header, gas=None, gas_price=None):
         """add_header(header: bytes <= 4096) -> bool
         """
         tx_hash = self.send_transaction(
@@ -166,8 +168,8 @@ class VMC(Contract):
                     tx_gasprice,
                     data,
                     value,
-                    gas=DEFAULT_GAS,
-                    gas_price=GAS_PRICE):
+                    gas=None,
+                    gas_price=None):
         """tx_to_shard(
             to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
            ) -> num

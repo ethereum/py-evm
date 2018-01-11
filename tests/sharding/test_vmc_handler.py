@@ -60,9 +60,6 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 
 sharding_config = get_sharding_config()
-GAS_PRICE = sharding_config['GAS_PRICE']
-PERIOD_LENGTH = sharding_config['PERIOD_LENGTH']
-DEFAULT_GAS = sharding_config['DEFAULT_GAS']
 
 PASSPHRASE = '123'
 ZERO_ADDR = b'\x00' * 20
@@ -95,7 +92,12 @@ def send_raw_transaction(vmc_handler, raw_transaction):
     return transaction_hash
 
 
-def deploy_contract(vmc_handler, bytecode, privkey, value=0, gas=DEFAULT_GAS, gas_price=GAS_PRICE):
+def deploy_contract(vmc_handler,
+                    bytecode,
+                    privkey,
+                    value=0,
+                    gas=sharding_config['DEFAULT_GAS'],
+                    gas_price=sharding_config['GAS_PRICE']):
     w3 = vmc_handler.web3
     contract_transaction_dict = {
         'nonce': get_nonce(vmc_handler, privkey.public_key.to_canonical_address()),
@@ -177,7 +179,7 @@ def create_viper_rlp_decoder_tx(TransactionClass):
 def mk_initiating_contracts(sender_privkey,
                             sender_starting_nonce,
                             TransactionClass,
-                            gasprice=GAS_PRICE):
+                            gas_price=sharding_config['GAS_PRICE']):
     """Make transactions of createing initial contracts
     Including rlp_decoder, sighasher and validator_manager
     """
@@ -185,14 +187,14 @@ def mk_initiating_contracts(sender_privkey,
 
     viper_rlp_decoder_tx = create_viper_rlp_decoder_tx(TransactionClass)
     sighasher_tx = create_sighasher_tx(TransactionClass)
-    vmc_tx = create_vmc_tx(TransactionClass, gasprice=gasprice)
+    vmc_tx = create_vmc_tx(TransactionClass, gas_price=gas_price)
 
     # the sender gives all senders of the txs money, and append the
     # money-giving tx with the original tx to the return list
     for tx in (viper_rlp_decoder_tx, sighasher_tx, vmc_tx):
         funding_tx_for_tx_sender = TransactionClass.create_unsigned_transaction(
             nonce,
-            gasprice,
+            gas_price,
             500000,
             tx.sender,
             tx.gas * tx.gas_price + tx.value,
@@ -267,13 +269,16 @@ def get_testing_colhdr(vmc_handler,
                        number,
                        collation_coinbase=test_keys[0].public_key.to_canonical_address(),
                        privkey=test_keys[0]):
-    period_length = PERIOD_LENGTH
+    period_length = sharding_config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
     logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
     sender_addr = privkey.public_key.to_canonical_address()
     period_start_prevhash = vmc_handler.call(
-        vmc_handler.mk_contract_tx_detail(sender_address=sender_addr, gas=DEFAULT_GAS)
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=sender_addr,
+            gas=sharding_config['DEFAULT_GAS'],
+        )
     ).get_period_start_prevhash(expected_period_number)
     logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
@@ -312,7 +317,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     validator_index = 0
     primary_key = test_keys[validator_index]
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
-    default_gas = DEFAULT_GAS
+    default_gas = sharding_config['DEFAULT_GAS']
 
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
@@ -336,7 +341,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
         sender_address=ZERO_ADDR,
-        gas=DEFAULT_GAS,
+        gas=sharding_config['DEFAULT_GAS'],
     )
     assert 'from' in tx_detail
     assert 'gas' in tx_detail
@@ -348,7 +353,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     with pytest.raises(ValueError):
         tx_detail = vmc.mk_contract_tx_detail(
             sender_address=None,
-            gas=DEFAULT_GAS,
+            gas=sharding_config['DEFAULT_GAS'],
         )
 
     # test the deployment of vmc ######################################
