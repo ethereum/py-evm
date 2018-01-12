@@ -4,7 +4,6 @@ extracting environment variables.
 """
 
 import os
-import datetime
 
 
 # No set literals because we support Python 2.6.
