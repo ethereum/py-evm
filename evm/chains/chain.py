@@ -94,6 +94,9 @@ class Chain(object):
         """
         return self.get_vm().block
 
+    def get_transaction(self, transaction_hash):
+        return self.get_vm().get_transaction_by_hash(transaction_hash)
+
     def create_transaction(self, *args, **kwargs):
         """
         Passthrough helper to the current VM class.

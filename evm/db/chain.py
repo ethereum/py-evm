@@ -7,6 +7,7 @@ from trie import (
 )
 
 from eth_utils import (
+    keccak,
     to_list,
     to_tuple,
 )
@@ -39,6 +40,7 @@ from evm.validation import (
 from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
+    make_transaction_hash_to_data_lookup_key,
 )
 
 
@@ -155,16 +157,31 @@ class BaseChainDB:
             else:
                 break
 
-    @to_list
-    def get_block_transactions(self, block_header, transaction_class):
+    def _get_block_transaction_data(self, block_header):
+        '''
+        :returns: iterable of encoded transactions for the given block header
+        '''
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
-                transaction_data = transaction_db[transaction_key]
-                yield rlp.decode(transaction_data, sedes=transaction_class)
+                yield transaction_db[transaction_key]
             else:
                 break
+
+    @to_list
+    def get_block_transaction_hashes(self, block_header):
+        for encoded_transaction in self._get_block_transaction_data(block_header):
+            yield keccak(encoded_transaction)
+
+    @to_list
+    def get_block_transactions(self, block_header, transaction_class):
+        for encoded_transaction in self._get_block_transaction_data(block_header):
+            yield rlp.decode(encoded_transaction, sedes=transaction_class)
+
+    def get_transaction_by_hash(self, transaction_hash, transaction_class):
+        transaction_data = self.db.get(make_transaction_hash_to_data_lookup_key(transaction_hash))
+        return rlp.decode(transaction_data, sedes=transaction_class)
 
     def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
@@ -220,9 +237,16 @@ class BaseChainDB:
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
 
+    def _add_transaction_hash_to_data_lookup(self, transaction):
+        self.db.set(
+            make_transaction_hash_to_data_lookup_key(transaction.hash),
+            rlp.encode(transaction),
+        )
+
     def add_transaction(self, block_header, index_key, transaction):
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
+        self._add_transaction_hash_to_data_lookup(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):

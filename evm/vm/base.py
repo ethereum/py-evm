@@ -343,6 +343,10 @@ class VM(object):
         """
         return self.get_block_class().get_transaction_class()
 
+    def get_transaction_by_hash(self, transaction_hash):
+        # TODO How do I know which transaction class to use if I don't know what block it is in, yet
+        return self.chaindb.get_transaction_by_hash(transaction_hash, self.get_transaction_class())
+
     def create_transaction(self, *args, **kwargs):
         """
         Proxy for instantiating a transaction for this VM.
