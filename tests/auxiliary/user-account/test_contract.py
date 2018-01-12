@@ -2,9 +2,15 @@ import pytest
 
 from eth_keys import keys
 
+from cytoolz import (
+    merge,
+    dissoc,
+)
+
 from evm.constants import (
     UINT_256_MAX,
     SECPK1_N,
+    ZERO_HASH32,
 )
 from evm.vm.forks.sharding import (
     ShardingVM,
@@ -30,7 +36,6 @@ from evm.db.state import (
 
 from eth_utils import (
     to_canonical_address,
-    decode_hex,
     int_to_big_endian,
     big_endian_to_int
 )
@@ -41,7 +46,8 @@ from evm.utils.address import (
 from evm.utils.keccak import keccak
 
 from evm.auxiliary.user_account_contract.transaction import (
-    ForwardingTransaction,
+    UserAccountTransaction,
+    UnsignedUserAccountTransaction,
 )
 from evm.auxiliary.user_account_contract.contract import (
     generate_validation_bytecode,
@@ -103,15 +109,17 @@ DEFAULT_BASE_TX_PARAMS = {
     "code": b"",
 }
 
-DEFAULT_TX_PARAMS = {**DEFAULT_BASE_TX_PARAMS, **{
-    "destination": DESTINATION_ADDRESS,
-    "value": 0,
-    "min_block": 0,
-    "max_block": UINT_256_MAX,
-    "nonce": 0,
-    "msg_data": b"",
-}}
-del DEFAULT_TX_PARAMS["code"]
+DEFAULT_TX_PARAMS = merge(
+    dissoc(DEFAULT_BASE_TX_PARAMS, "code"),
+    {
+        "destination": DESTINATION_ADDRESS,
+        "value": 0,
+        "min_block": 0,
+        "max_block": UINT_256_MAX,
+        "nonce": 0,
+        "msg_data": b"",
+    }
+)
 
 
 @pytest.fixture
@@ -120,33 +128,33 @@ def chaindb():
 
 
 def get_nonce(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
+    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-    }}))
+    })))
     return big_endian_to_int(computation.output)
 
 
 def test_get_nonce(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
+    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-    }}))
+    })))
     assert computation.output == pad32(b"\x00")
 
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 0,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
 
-    computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
+    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
-    }}))
+    })))
     assert computation.output == pad32(b"\x01")
 
 
 def test_get_validation_code(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**{**DEFAULT_BASE_TX_PARAMS, **{
+    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": pad32(int_to_big_endian(VALIDATION_CODE_GETTER_ID)),
-    }}))
+    })))
     assert computation.output == VALIDATION_CODE_ADDRESS
 
 
@@ -158,7 +166,7 @@ def vm():
         block_number=10,
         gas_limit=3141592,
         timestamp=1422494849,
-        parent_hash=decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),
+        parent_hash=ZERO_HASH32,
     )
     chaindb = BaseChainDB(get_db_backend(), state_backend_class=NestedTrieBackend)
     vm = ShardingVM(header=header, chaindb=chaindb)
@@ -171,72 +179,68 @@ def vm():
 
 
 def test_call_increments_nonce(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 0,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == 1
 
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 1,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == 2
 
 
 def test_call_checks_nonce(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 0,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
 
     computation = vm.apply_transaction(transaction)
     assert computation.is_error
 
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 2,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_error
 
 
-def test_call_checks_block_range(vm):
-    assert vm.block.number == 10
-
-    invalid_block_ranges = [
+@pytest.mark.parametrize("min_block,max_block,valid", [
+    (min_block, max_block, True) for min_block, max_block in [
+        (0, UINT_256_MAX),
+        (0, 10),
+        (10, 10),
+        (10, UINT_256_MAX)
+    ]] + [
+    (min_block, max_block, False) for min_block, max_block in [
         (0, 9),
         (5, 9),
         (11, 20),
         (11, UINT_256_MAX),
         (11, 9),
         (UINT_256_MAX, 0),
-    ]
-    for min_block, max_block in invalid_block_ranges:
-        transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
-            "nonce": get_nonce(vm),
-            "min_block": min_block,
-            "max_block": max_block,
-        }}).sign(PRIVATE_KEY)
-        computation = vm.apply_transaction(transaction)
-        assert computation.is_error
+    ]]
+)
+def test_call_checks_block_range(vm, min_block, max_block, valid):
+    assert vm.block.number == 10
 
-    valid_block_ranges = [
-        (0, UINT_256_MAX),
-        (0, 10),
-        (10, 10),
-        (10, UINT_256_MAX)
-    ]
-    for min_block, max_block in valid_block_ranges:
-        transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
-            "nonce": get_nonce(vm),
-            "min_block": min_block,
-            "max_block": max_block,
-        }}).sign(PRIVATE_KEY)
-        computation = vm.apply_transaction(transaction)
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
+        "nonce": get_nonce(vm),
+        "min_block": min_block,
+        "max_block": max_block,
+    })).as_signed_transaction(PRIVATE_KEY)
+    computation = vm.apply_transaction(transaction)
+
+    if valid:
         assert computation.is_success
+    else:
+        assert computation.is_error
 
 
 def test_call_transfers_value(vm):
@@ -244,10 +248,10 @@ def test_call_transfers_value(vm):
         balance_sender_before = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_before = state_db.get_balance(DESTINATION_ADDRESS)
 
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "value": 10
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
 
@@ -260,11 +264,11 @@ def test_call_transfers_value(vm):
 
 
 def test_call_checks_signature(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
 
-    v, r, s = transaction.vrs
+    v, r, s = transaction.v, transaction.r, transaction.s
     invalid_vrs_triples = [
         (v + 1, r, s),
         (v - 1, r, s),
@@ -282,61 +286,77 @@ def test_call_checks_signature(vm):
         (27 if v == 28 else 28, r, SECPK1_N - s)
     ]
 
-    for invalid_vrs in invalid_vrs_triples:
-        transaction.vrs = invalid_vrs
-        assert transaction.is_signed
-
+    for v, r, s in invalid_vrs_triples:
+        transaction = UserAccountTransaction(
+            chain_id=transaction.chain_id,
+            shard_id=transaction.shard_id,
+            to=transaction.to,
+            gas=transaction.gas,
+            access_list=transaction.access_list,
+            destination=transaction.destination,
+            value=transaction.value,
+            nonce=transaction.nonce,
+            min_block=transaction.min_block,
+            max_block=transaction.max_block,
+            gas_price=transaction.gas_price,
+            msg_data=transaction.msg_data,
+            v=v,
+            r=r,
+            s=s,
+        )
+        # don't detect invalidity before transaction execution
+        transaction.validate = lambda: None
         computation = vm.apply_transaction(transaction)
         assert computation.is_error
 
 
 def test_call_uses_remaining_gas(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": GAS_LOGGING_CONTRACT_ADDRESS,
         "gas": 1 * 1000 * 1000,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
 
     logs = computation.get_log_entries()
     assert len(logs) == 1
-    assert big_endian_to_int(logs[0][-1]) > 900 * 1000  # some gas will have been consumed earlier
+    logged_gas = big_endian_to_int(logs[0][-1])
+    assert logged_gas > 900 * 1000  # some gas will have been consumed earlier
 
 
-def test_call_uses_data(vm):
-    data_and_hashes = [
-        (data, keccak(data)) for data in [
-            b"",
-            b"\x112233"
-            b"\x00" * 32,
-            b"\xff" * 32,
-            b"\xaa" * 50,
-            b"\x55" * 64,
-            b"\x22" * 500,
-        ]
+@pytest.mark.parametrize("data,hash", [
+    (data, keccak(data)) for data in [
+        b"",
+        b"\x112233"
+        b"\x00" * 32,
+        b"\xff" * 32,
+        b"\xaa" * 50,
+        b"\x55" * 64,
+        b"\x22" * 500,
     ]
-    for data, hash in data_and_hashes:
-        transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
-            "nonce": get_nonce(vm),
-            "destination": DATA_LOGGING_CONTRACT_ADDRESS,
-            "msg_data": data
-        }}).sign(PRIVATE_KEY)
-        computation = vm.apply_transaction(transaction)
-        assert computation.is_success
+])
+def test_call_uses_data(vm, data, hash):
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
+        "nonce": get_nonce(vm),
+        "destination": DATA_LOGGING_CONTRACT_ADDRESS,
+        "msg_data": data
+    })).as_signed_transaction(PRIVATE_KEY)
+    computation = vm.apply_transaction(transaction)
+    assert computation.is_success
 
-        logs = computation.get_log_entries()
-        assert len(logs) == 1
-        logged_hash = logs[0][-1]
-        assert logged_hash == hash
+    logs = computation.get_log_entries()
+    assert len(logs) == 1
+    logged_hash = logs[0][-1]
+    assert logged_hash == hash
 
 
 def test_no_call_if_not_enough_gas(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
         "gas": 55000
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_error
     # a little remains, but not enough to make the call
@@ -344,18 +364,18 @@ def test_no_call_if_not_enough_gas(vm):
 
 
 def test_call_passes_return_code(vm):
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert big_endian_to_int(computation.output) == 1  # success
 
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": FAILING_CONTRACT_ADDRESS,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert big_endian_to_int(computation.output) == 0  # failure
@@ -363,10 +383,10 @@ def test_call_passes_return_code(vm):
 
 def test_call_does_not_revert_nonce(vm):
     nonce_before = get_nonce(vm)
-    transaction = ForwardingTransaction(**{**DEFAULT_TX_PARAMS, **{
+    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": nonce_before,
         "destination": FAILING_CONTRACT_ADDRESS,
-    }}).sign(PRIVATE_KEY)
+    })).as_signed_transaction(PRIVATE_KEY)
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == nonce_before + 1
