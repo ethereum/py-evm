@@ -181,43 +181,6 @@ def env_list(name, separator=',', required=False, default=empty):
     return list(filter(bool, [v.strip() for v in value.split(separator)]))
 
 
-def env_timestamp(name, required=False, default=empty):
-    """Pulls an environment variable out of the environment and parses it to a
-    ``datetime.datetime`` object. The environment variable is expected to be a
-    timestamp in the form of a float.
-
-    If the name is not present in the environment and no default is specified
-    then a ``ValueError`` will be raised.
-
-    :param name: The name of the environment variable be pulled
-    :type name: str
-
-    :param required: Whether the environment variable is required. If ``True``
-    and the variable is not present, a ``KeyError`` is raised.
-    :type required: bool
-
-    :param default: The value to return if the environment variable is not
-    present. (Providing a default alongside setting ``required=True`` will raise
-    a ``ValueError``)
-    :type default: bool
-    """
-    if required and default is not empty:
-        raise ValueError("Using `default` with `required=True` is invalid")
-
-    value = get_env_value(name, required=required, default=empty)
-    # change datetime.datetime to time, return time.struct_time type
-    if default is not empty and value is empty:
-        return default
-    if value is empty:
-        raise ValueError(
-            "`env_timestamp` requires either a default value to be specified, "
-            "or for the variable to be present in the environment"
-        )
-
-    timestamp = float(value)
-    return datetime.datetime.fromtimestamp(timestamp)
-
-
 def get(name, required=False, default=empty, type=None):
     """Generic getter for environment variables. Handles defaults,
     required-ness, and what type to expect.
@@ -241,6 +204,9 @@ def get(name, required=False, default=empty, type=None):
         'int': env_int,
         int: env_int,
 
+        # 'float': env_float,
+        # float: env_float,
+
         'bool': env_bool,
         bool: env_bool,
 
@@ -249,8 +215,5 @@ def get(name, required=False, default=empty, type=None):
 
         'list': env_list,
         list: env_list,
-
-        'timestamp': env_timestamp,
-        datetime.time: env_timestamp,
     }.get(type, env_string)
     return fn(name, default=default, required=required)
