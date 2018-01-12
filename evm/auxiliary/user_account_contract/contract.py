@@ -78,8 +78,7 @@ def generate_account_lll_code(validation_code_address):
                 VALIDATION_CODE_GETTER_ID,
                 # return validation code address
                 ['mstore', 0, validation_code_address],
-                ['return', 12, 20]
-            ]],
+                ['return', 12, 20]]],
 
         # no function is called, so we should be first in the call stack
         ['assert', ['eq', ['caller'], ENTRY_POINT_INT]],
@@ -100,15 +99,19 @@ def generate_account_lll_code(validation_code_address):
             ['sha3', MEMORY_NONCE, ['sub', ['calldatasize'], CALLDATA_NONCE - 32]]],
 
         # Verify signature by calling validation code
-        ['assert', ['call',
-            VALIDATION_CODE_GAS,
-            validation_code_address,
-            0,                               # value
-            MEMORY_SIGHASH,                  # input data start
-            128,                             # input data length (spans sighash and signature)
-            0,
-            0
-        ]],
+        ['assert',
+            [
+                'call',
+                VALIDATION_CODE_GAS,
+                validation_code_address,
+                0,
+                # input data (spans sighash and signature)
+                MEMORY_SIGHASH,
+                128,
+                # output data (discarded)
+                0,
+                0
+            ]],
 
         # Verify and increment nonce
         ['assert', ['eq', ['calldataload', CALLDATA_NONCE], ['sload', STORAGE_NONCE]]],
@@ -158,7 +161,8 @@ def generate_validation_lll_code(address):
             0,
             32
         ],
-        ['with', 'recovered_address', ['mload', 0], ['seq',
+        ['with', 'recovered_address', ['mload', 0], [
+            'seq',
             # check that not zero address has been recovered (this indicates an error)
             ['assert', ['not', ['iszero', 'recovered_address']]],
             # check that the recovered address is correct
