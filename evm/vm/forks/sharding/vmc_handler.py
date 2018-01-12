@@ -53,10 +53,15 @@ class VMC(Contract):
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     collation_added_topic = "0x" + keccak(b"CollationAdded(int128,bytes4096,bool,int128)").hex()
+    # shard_id -> list
+    # older <---------------> newer
     new_collation_added_logs = {}
+    # shard_id -> list
     # newer <---------------> older
     unchecked_collation_added_logs = {}
+    # shard_id -> filter
     collation_added_filter = {}
+    # shard_id -> score
     current_checking_score = {}
 
     def __init__(self, *args, default_privkey, **kwargs):
@@ -128,6 +133,10 @@ class VMC(Contract):
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
+        if shard_id not in self.collation_added_filter:
+            raise FilterNotFound(
+                "CollationAdded filter haven't been set up in shard {}".format(shard_id)
+            )
         for i in range(len(self.unchecked_collation_added_logs[shard_id]) - 1, -1, -1):
             if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
                self.current_checking_score[shard_id]:
