@@ -107,9 +107,8 @@ def shard_chain_without_block_validation():
 
     contract will be deployed at.
     """
-    # TODO: Comment this out to use NestedTrieBackend to prevent access list validation.
-    # Uncomment this to use FlatTrieBackend once access list generation is implemented.
-    # shard_chaindb = BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
+    # TODO: Once the helper function which generates access list for a transaction is implemented,
+    # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
     shard_chaindb = BaseChainDB(get_db_backend())
     overrides = {
         'import_block': import_block_without_validation,
@@ -132,8 +131,6 @@ def shard_chain_without_block_validation():
         'mix_hash': constants.GENESIS_MIX_HASH,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
-        # 'state_root': decode_hex(
-        #     '0x9d354f9b5ba851a35eced279ef377111387197581429cfcc7f744ef89a30b5d4')
     }
     genesis_state = {
         SHARD_CHAIN_CONTRACTS_FIXTURE["deployed_address"]: {
