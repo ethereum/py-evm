@@ -248,8 +248,6 @@ class FrontierVMState(BaseVMState):
                     )
                 )
 
-        # XXX: Should these and some other checks be moved into
-        # VM.validate_block(), as they apply to all block flavours?
         if len(block.uncles) > MAX_UNCLES:
             raise ValidationError(
                 "Blocks may have a maximum of {0} uncles.  Found "

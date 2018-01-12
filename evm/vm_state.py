@@ -78,16 +78,6 @@ class BaseVMState(object):
         return self.block_header.gas_limit
 
     #
-    # chaindb
-    #
-    # @property
-    # def chaindb(self):
-    #     return self._chaindb
-
-    def set_chaindb(self, db):
-        self._chaindb = db
-
-    #
     # state_db
     #
     @contextmanager
@@ -132,8 +122,8 @@ class BaseVMState(object):
         with self.state_db() as state_db:
             # first revert the database state root.
             state_db.root_hash = state_root
-            # now roll the underlying database back
 
+        # now roll the underlying database back
         self._chaindb.revert(checkpoint_id)
 
     def commit(self, snapshot):
@@ -205,11 +195,9 @@ class BaseVMState(object):
         """
         Apply transaction to the given block
 
-        :param vm_state: the VMState object
         :param transaction: the transaction need to be applied
         :param block: the block which the transaction applies on
-        :param is_stateless: if is_stateless, call VMState.add_transactionto set block
-        :type vm_state: VMState
+        :param is_stateless: if is_stateless, call self.add_transaction to set block
         :type transaction: Transaction
         :type block: Block
         :type is_stateless: bool
@@ -234,16 +222,15 @@ class BaseVMState(object):
 
     def add_transaction(self, transaction, computation, block):
         """
-        Add a transaction to the given block and save the block data into chaindb.
+        Add a transaction to the given block and
+        return `trie_data` to store the transaction data in chaindb in VM layer.
 
         Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
         bloom, and used_gas of the block.
 
-        :param vm_state: the VMState object
         :param transaction: the executed transaction
         :param computation: the Computation object with executed result
         :param block: the Block which the transaction is added in
-        :type vm_state: VMState
         :type transaction: Transaction
         :type computation: Computation
         :type block: Block

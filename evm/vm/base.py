@@ -163,8 +163,7 @@ class VM(object):
 
     def mine_block(self, *args, **kwargs):
         """
-        Mine the current block. Proxies to the current block's mine method.
-        See example with FrontierBlock. :meth:`~evm.vm.forks.frontier.blocks.FrontierBlock.mine`
+        Mine the current block. Proxies to self.pack_block method.
         """
         block = self.block
         self.pack_block(block, *args, **kwargs)
@@ -460,18 +459,18 @@ class VM(object):
 
         return cls._state_class
 
-    def get_state(self, chaindb=None, block_header=None, prev_headers=None):
+    def get_state(self, chaindb=None, block_header=None):
         """Return state object
         """
         if chaindb is None:
             chaindb = self.chaindb
-        if block_header is None:  # TODO: remove
+        if block_header is None:
             block_header = self.block.header
-        if prev_headers is None:
-            prev_headers = self.get_prev_headers(
-                last_block_hash=self.block.header.parent_hash,
-                db=self.chaindb,
-            )
+
+        prev_headers = self.get_prev_headers(
+            last_block_hash=self.block.header.parent_hash,
+            db=self.chaindb,
+        )
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
