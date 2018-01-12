@@ -145,8 +145,6 @@ def shard_chain_without_block_validation():
         'mix_hash': constants.GENESIS_MIX_HASH,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
-        # 'state_root': decode_hex(
-        #     '0x9d354f9b5ba851a35eced279ef377111387197581429cfcc7f744ef89a30b5d4')
     }
     genesis_state = {
         SHARD_CHAIN_CONTRACTS_FIXTURE["deployed_address"]: {
