@@ -1,17 +1,16 @@
 from evm.chains.mainnet.constants import (
     DAO_FORK_BLOCK_NUMBER
 )
+from evm.vm.forks.frontier import FrontierVM
 
-from ..frontier import FrontierVM
-
-from .opcodes import HOMESTEAD_OPCODES
 from .blocks import HomesteadBlock
-from .computation import HomesteadComputation
 from .validation import validate_homestead_transaction
 from .headers import (
     create_homestead_header_from_parent,
+    compute_homestead_difficulty,
     configure_homestead_header,
 )
+from .vm_state import HomesteadVMState
 
 
 class MetaHomesteadVM(FrontierVM):
@@ -21,11 +20,12 @@ class MetaHomesteadVM(FrontierVM):
 
 HomesteadVM = MetaHomesteadVM.configure(
     name='HomesteadVM',
-    opcodes=HOMESTEAD_OPCODES,
+    # classes
     _block_class=HomesteadBlock,
-    _computation_class=HomesteadComputation,
+    _state_class=HomesteadVMState,
     # method overrides
     validate_transaction=validate_homestead_transaction,
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
+    compute_difficulty=staticmethod(compute_homestead_difficulty),
     configure_header=configure_homestead_header,
 )

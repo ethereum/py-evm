@@ -1,41 +1,20 @@
-from cytoolz import (
-    merge,
-)
-
-from evm import precompiles
 from evm.constants import MAX_UNCLE_DEPTH
-from evm.utils.address import (
-    force_bytes_to_address,
-)
 from evm.validation import (
     validate_lte,
 )
-
-from ..frontier import FRONTIER_PRECOMPILES
-from ..spurious_dragon import SpuriousDragonVM
-from ..spurious_dragon.computation import SpuriousDragonComputation
+from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 
 from .constants import EIP649_BLOCK_REWARD
 from .headers import (
     create_byzantium_header_from_parent,
     configure_byzantium_header,
+    compute_byzantium_difficulty,
 )
-from .opcodes import BYZANTIUM_OPCODES
 from .blocks import ByzantiumBlock
+from .vm_state import ByzantiumVMState
 
 
-BYZANTIUM_PRECOMPILES = merge(
-    FRONTIER_PRECOMPILES,
-    {
-        force_bytes_to_address(b'\x05'): precompiles.modexp,
-        force_bytes_to_address(b'\x06'): precompiles.ecadd,
-        force_bytes_to_address(b'\x07'): precompiles.ecmul,
-        force_bytes_to_address(b'\x08'): precompiles.ecpairing,
-    },
-)
-
-
-def _byzantium_get_block_reward(block_number):
+def _byzantium_get_block_reward():
     return EIP649_BLOCK_REWARD
 
 
@@ -47,16 +26,12 @@ def _byzantium_get_uncle_reward(block_number, uncle):
 
 ByzantiumVM = SpuriousDragonVM.configure(
     name='ByzantiumVM',
-    # precompiles
-    _precompiles=BYZANTIUM_PRECOMPILES,
-    # opcodes
-    opcodes=BYZANTIUM_OPCODES,
-    # State
-    _computation_class=SpuriousDragonComputation,
-    # RLP
+    # classes
     _block_class=ByzantiumBlock,
+    _state_class=ByzantiumVMState,
     # Methods
     create_header_from_parent=staticmethod(create_byzantium_header_from_parent),
+    compute_difficulty=staticmethod(compute_byzantium_difficulty),
     configure_header=configure_byzantium_header,
     get_block_reward=staticmethod(_byzantium_get_block_reward),
     get_uncle_reward=staticmethod(_byzantium_get_uncle_reward),

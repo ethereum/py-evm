@@ -77,10 +77,11 @@ For example:
   highest_block_num = chain.get_canonical_head().block_number
 
   block1 = chain.get_canonical_block_by_number(1)
-  assert block1.number() == 1
+  assert block1.number == 1
 
   blockhash = block1.hash()
-  blockgas = block1.get_cumulative_gas_used()
+  vm = chain.get_vm()
+  blockgas = vm.get_cumulative_gas_used(block1)
 
 The methods available on the block are variable. They depend on what fork you're on.
 The mainnet follows "Frontier" rules at the beginning, then Homestead, and so on.

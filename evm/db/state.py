@@ -13,6 +13,9 @@ from evm.constants import (
 from evm.db.immutable import (
     ImmutableDB,
 )
+from evm.db.tracked import (
+    TrackedDB,
+)
 from evm.rlp.accounts import (
     Account,
 )
@@ -21,7 +24,6 @@ from evm.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-
 from evm.utils.keccak import (
     keccak,
 )
@@ -46,9 +48,9 @@ class AccountStateDB:
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
         if read_only:
-            self.db = ImmutableDB(db)
+            self.db = TrackedDB(ImmutableDB(db))
         else:
-            self.db = db
+            self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     #

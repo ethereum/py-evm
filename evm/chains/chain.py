@@ -179,7 +179,7 @@ class Chain(object):
 
     def get_block_by_header(self, block_header):
         vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header)
+        return vm.get_block_by_header(block_header, self.chaindb)
 
     #
     # Chain Initialization
@@ -238,7 +238,8 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        return vm.apply_transaction(transaction)
+        computation, _ = vm.apply_transaction(transaction)
+        return computation
 
     def import_block(self, block, perform_validation=True):
         """

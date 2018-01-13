@@ -20,12 +20,10 @@ from evm.rlp.headers import (
 from evm.vm.forks import (
     HomesteadVM,
 )
-from evm.vm.forks.homestead import (
+from evm.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
-from evm.vm.vm_state import (
-    VMState,
-)
+from evm.vm.forks.homestead.vm_state import HomesteadVMState
 from evm.vm import (
     Message,
 )
@@ -109,14 +107,14 @@ HomesteadComputationForTesting = HomesteadComputation.configure(
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
 )
-VMStateForTesting = VMState.configure(
-    name='VMStateForTesting',
+HomesteadVMStateForTesting = HomesteadVMState.configure(
+    name='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
+    computation_class=HomesteadComputationForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     name='HomesteadVMForTesting',
-    _computation_class=HomesteadComputationForTesting,
-    _state_class=VMStateForTesting,
+    _state_class=HomesteadVMStateForTesting,
 )
 
 
@@ -159,11 +157,9 @@ def test_vm_fixtures(fixture, vm_class):
         gas=fixture['exec']['gas'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.get_computation_class().apply_computation(
+    computation = vm.state.get_computation(message).apply_computation(
         vm.state,
         message,
-        vm.opcodes,
-        vm.precompiles,
     )
 
     if 'post' in fixture:

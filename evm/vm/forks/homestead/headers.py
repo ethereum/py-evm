@@ -13,7 +13,9 @@ from evm.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
-
+from evm.utils.db import (
+    get_parent_header,
+)
 from evm.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
 )
@@ -64,7 +66,7 @@ def configure_homestead_header(vm, **header_params):
         setattr(vm.block.header, field_name, value)
 
     if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = vm.block.get_parent_header()
+        parent_header = get_parent_header(vm.block.header, vm.chaindb)
         vm.block.header.difficulty = compute_homestead_difficulty(
             parent_header,
             header_params['timestamp'],

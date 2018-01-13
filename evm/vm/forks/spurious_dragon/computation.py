@@ -8,13 +8,18 @@ from evm.utils.hexadecimal import (
 from evm.utils.keccak import (
     keccak,
 )
-from .constants import EIP170_CODE_SIZE_LIMIT
-from ..homestead.computation import (
+from evm.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
 
+from .constants import EIP170_CODE_SIZE_LIMIT
+from .opcodes import SPURIOUS_DRAGON_OPCODES
+
 
 class SpuriousDragonComputation(HomesteadComputation):
+    # Override
+    opcodes = SPURIOUS_DRAGON_OPCODES
+
     def apply_create_message(self):
         snapshot = self.vm_state.snapshot()
 

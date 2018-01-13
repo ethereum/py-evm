@@ -56,8 +56,8 @@ def header(request):
 
 
 @pytest.fixture(params=[FrontierBlock, HomesteadBlock])
-def block(request, header, chaindb):
-    return request.param(header, chaindb)
+def block(request, header):
+    return request.param(header)
 
 
 def test_add_block_number_to_hash_lookup(chaindb, block):

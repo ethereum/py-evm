@@ -45,8 +45,6 @@ def computation(message):
     computation = BaseComputation(
         vm_state=None,
         message=message,
-        opcodes=None,
-        precompiles=None,
     )
     return computation
 
