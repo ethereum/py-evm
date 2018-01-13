@@ -1,9 +1,5 @@
 import logging
 
-from cytoolz import (
-    pipe,
-)
-
 import rlp
 
 from web3.contract import (
@@ -11,6 +7,7 @@ from web3.contract import (
 )
 
 from eth_utils import (
+    event_signature_to_log_topic,
     is_canonical_address,
     to_checksum_address,
     to_dict,
@@ -23,10 +20,8 @@ from evm.rlp.sedes import (
 )
 
 from evm.utils.hexadecimal import (
+    encode_hex,
     decode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.utils.numeric import (
     big_endian_to_int,
@@ -52,7 +47,7 @@ class VMC(Contract):
     # For handling logs filtering
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
-    collation_added_topic = "0x" + keccak(b"CollationAdded(int128,bytes4096,bool,int128)").hex()
+    COLLATION_ADDED_TOPIC = event_signature_to_log_topic("CollationAdded(int128,bytes4096,bool,int128)")
     # shard_id -> list
     # older <---------------> newer
     new_collation_added_logs = {}
@@ -71,12 +66,12 @@ class VMC(Contract):
         super().__init__(*args, **kwargs)
 
     def setup_collation_added_filter(self, shard_id):
-        shard_id_topic = "0x" + shard_id.to_bytes(32, byteorder='big').hex()
+        shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
         self.collation_added_filter[shard_id] = self.web3.eth.filter({
             'address': self.address,
             'topics': [
-                self.collation_added_topic,
-                shard_id_topic,
+                encode_hex(self.COLLATION_ADDED_TOPIC),
+                shard_id_topic_hex,
             ],
         })
         self.new_collation_added_logs[shard_id] = []
@@ -84,10 +79,11 @@ class VMC(Contract):
         self.current_checking_score[shard_id] = None
 
     @to_dict
-    def parse_collation_added_data(self, data):
-        score = big_endian_to_int(data[-32:])
-        is_new_head = bool(big_endian_to_int(data[-64:-32]))
-        header_bytes = data[:-64]
+    def parse_collation_added_data(self, data_hex):
+        data_bytes = decode_hex(data_hex)
+        score = big_endian_to_int(data_bytes[-32:])
+        is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
+        header_bytes = data_bytes[:-64]
         # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
         sedes = rlp.sedes.List([
             rlp.sedes.big_endian_int,
@@ -117,11 +113,7 @@ class VMC(Contract):
             )
         new_logs = self.collation_added_filter[shard_id].get_new_entries()
         for log in new_logs:
-            yield pipe(
-                log['data'],
-                decode_hex,
-                self.parse_collation_added_data,
-            )
+            yield self.parse_collation_added_data(log['data'])
 
     def get_next_log(self, shard_id):
         new_logs = self._get_new_logs(shard_id)
@@ -137,7 +129,7 @@ class VMC(Contract):
             raise FilterNotFound(
                 "CollationAdded filter haven't been set up in shard {}".format(shard_id)
             )
-        for i in range(len(self.unchecked_collation_added_logs[shard_id]) - 1, -1, -1):
+        for i in reversed(range(len(self.unchecked_collation_added_logs[shard_id]))):
             if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
                self.current_checking_score[shard_id]:
                 return self.unchecked_collation_added_logs[shard_id].pop(i)
