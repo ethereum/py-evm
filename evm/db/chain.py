@@ -40,11 +40,18 @@ from evm.validation import (
 from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
-    make_transaction_hash_to_data_lookup_key,
+    make_transaction_hash_to_block_lookup_key,
 )
 
 
 CANONICAL_HEAD_HASH_DB_KEY = b'v1:canonical_head_hash'
+
+
+class TransactionKey(rlp.Serializable):
+    fields = [
+        ('block_number', rlp.sedes.big_endian_int),
+        ('index', rlp.sedes.big_endian_int),
+    ]
 
 
 class BaseChainDB:
@@ -179,9 +186,24 @@ class BaseChainDB:
         for encoded_transaction in self._get_block_transaction_data(block_header):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
+    def get_transaction_by_key(self, block_number, transaction_index, transaction_class):
+        block_header = self.get_canonical_block_header_by_number(block_number)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
+        encoded_index = rlp.encode(transaction_index)
+        if encoded_index in transaction_db:
+            encoded_transaction = transaction_db[encoded_index]
+            return rlp.decode(encoded_transaction, sedes=transaction_class)
+        else:
+            return None
+
     def get_transaction_by_hash(self, transaction_hash, transaction_class):
-        transaction_data = self.db.get(make_transaction_hash_to_data_lookup_key(transaction_hash))
-        return rlp.decode(transaction_data, sedes=transaction_class)
+        encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
+        transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
+        return self.get_transaction_by_key(
+            transaction_key.block_number,
+            transaction_key.index,
+            transaction_class,
+        )
 
     def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
@@ -237,16 +259,18 @@ class BaseChainDB:
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
 
-    def _add_transaction_hash_to_data_lookup(self, transaction):
+    def _add_transaction_hash_to_block_lookup(self, transaction, block_header, transaction_index):
+        transaction_key = TransactionKey(block_header.block_number, transaction_index)
         self.db.set(
-            make_transaction_hash_to_data_lookup_key(transaction.hash),
-            rlp.encode(transaction),
+            make_transaction_hash_to_block_lookup_key(transaction.hash),
+            rlp.encode(transaction_key),
         )
 
     def add_transaction(self, block_header, index_key, transaction):
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
-        self._add_transaction_hash_to_data_lookup(transaction)
+        transaction_index = rlp.decode(index_key, sedes=rlp.sedes.big_endian_int)
+        self._add_transaction_hash_to_block_lookup(transaction, block_header, transaction_index)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):
