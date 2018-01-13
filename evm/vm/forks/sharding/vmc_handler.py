@@ -47,7 +47,9 @@ class VMC(Contract):
     # For handling logs filtering
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
-    COLLATION_ADDED_TOPIC = event_signature_to_log_topic("CollationAdded(int128,bytes4096,bool,int128)")
+    COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
+        "CollationAdded(int128,bytes4096,bool,int128)"
+    )
     # shard_id -> list
     # older <---------------> newer
     new_collation_added_logs = {}
