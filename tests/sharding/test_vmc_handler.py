@@ -42,9 +42,6 @@ from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
 
-from evm.vm.forks.sharding.config import (
-    get_sharding_config,
-)
 from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
@@ -57,8 +54,6 @@ from tests.sharding.fixtures import (  # noqa: F401
     vmc,
 )
 
-
-sharding_config = get_sharding_config()
 
 PASSPHRASE = '123'
 ZERO_ADDR = b'\x00' * 20
@@ -94,9 +89,9 @@ def send_raw_transaction(vmc_handler, raw_transaction):
 def deploy_contract(vmc_handler,
                     bytecode,
                     privkey,
-                    value=0,
-                    gas=sharding_config['DEFAULT_GAS'],
-                    gas_price=sharding_config['GAS_PRICE']):
+                    value,
+                    gas,
+                    gas_price):
     w3 = vmc_handler.web3
     contract_transaction_dict = {
         'nonce': get_nonce(vmc_handler, privkey.public_key.to_canonical_address()),
@@ -178,7 +173,7 @@ def create_viper_rlp_decoder_tx(TransactionClass):
 def mk_initiating_contracts(sender_privkey,
                             sender_starting_nonce,
                             TransactionClass,
-                            gas_price=sharding_config['GAS_PRICE']):
+                            gas_price):
     """Make transactions of createing initial contracts
     Including rlp_decoder, sighasher and validator_manager
     """
@@ -226,7 +221,14 @@ def deploy_valcode_and_deposit(vmc_handler, privkey):
     )
     nonce = get_nonce(vmc_handler, address)
     valcode_addr = generate_contract_address(address, nonce)
-    deploy_contract(vmc_handler, valcode, privkey)
+    deploy_contract(
+        vmc_handler,
+        valcode,
+        privkey,
+        value=0,
+        gas=vmc_handler.config['DEFAULT_GAS'],
+        gas_price=vmc_handler.config['GAS_PRICE'],
+    )
     mine(vmc_handler, 1)
     vmc_handler.deposit(valcode_addr, address)
     return valcode_addr
@@ -235,7 +237,12 @@ def deploy_valcode_and_deposit(vmc_handler, privkey):
 def deploy_initiating_contracts(vmc_handler, privkey):
     w3 = vmc_handler.web3
     nonce = get_nonce(vmc_handler, privkey.public_key.to_canonical_address())
-    txs = mk_initiating_contracts(privkey, nonce, SpuriousDragonTransaction)
+    txs = mk_initiating_contracts(
+        privkey,
+        nonce,
+        SpuriousDragonTransaction,
+        vmc_handler.config['GAS_PRICE'],
+    )
     for tx in txs[:3]:
         send_raw_transaction(vmc_handler, tx)
     mine(vmc_handler, 1)
@@ -262,24 +269,24 @@ def import_key(vmc_handler, privkey):
         pass
 
 
-def get_testing_colhdr(vmc_handler,
-                       shard_id,
-                       parent_collation_hash,
-                       number,
-                       collation_coinbase=test_keys[0].public_key.to_canonical_address(),
-                       privkey=test_keys[0]):
-    period_length = sharding_config['PERIOD_LENGTH']
+def mk_testing_colhdr(vmc_handler,
+                      shard_id,
+                      parent_collation_hash,
+                      number,
+                      collation_coinbase=test_keys[0].public_key.to_canonical_address(),
+                      privkey=test_keys[0]):
+    period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
-    logger.debug("get_testing_colhdr: expected_period_number=%s", expected_period_number)
+    logger.debug("mk_testing_colhdr: expected_period_number=%s", expected_period_number)
     sender_addr = privkey.public_key.to_canonical_address()
     period_start_prevhash = vmc_handler.call(
         vmc_handler.mk_contract_tx_detail(
             sender_address=sender_addr,
-            gas=sharding_config['DEFAULT_GAS'],
+            gas=vmc_handler.config['DEFAULT_GAS'],
         )
     ).get_period_start_prevhash(expected_period_number)
-    logger.debug("get_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
+    logger.debug("mk_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
@@ -357,7 +364,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     validator_index = 0
     primary_key = test_keys[validator_index]
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
-    default_gas = sharding_config['DEFAULT_GAS']
+    default_gas = vmc.config['DEFAULT_GAS']
 
     vmc.setup_collation_added_filter(shard_id)
 
@@ -383,7 +390,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
         sender_address=ZERO_ADDR,
-        gas=sharding_config['DEFAULT_GAS'],
+        gas=vmc.config['DEFAULT_GAS'],
     )
     assert 'from' in tx_detail
     assert 'gas' in tx_detail
@@ -395,7 +402,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     with pytest.raises(ValueError):
         tx_detail = vmc.mk_contract_tx_detail(
             sender_address=None,
-            gas=sharding_config['DEFAULT_GAS'],
+            gas=vmc.config['DEFAULT_GAS'],
         )
 
     # test the deployment of vmc ######################################
@@ -409,6 +416,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     assert is_vmc_deployed(vmc)
 
+    lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
     # test `deposit` and `get_eligible_proposer` ######################################
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
@@ -423,15 +431,15 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             primary_key,
         )
         # TODO: error occurs when we don't mine so many blocks
-        mine(vmc, LOOKAHEAD_PERIODS * PERIOD_LENGTH)
+        mine(vmc, lookahead_blocks)
         assert vmc.get_eligible_proposer(shard_id) == valcode_addr
 
     # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
     # to ensure that `get_eligible_proposer` works
     current_block_number = vmc.web3.eth.blockNumber
-    if current_block_number < LOOKAHEAD_PERIODS * PERIOD_LENGTH:
-        mine(vmc, LOOKAHEAD_PERIODS * PERIOD_LENGTH - current_block_number)
-    assert vmc.web3.eth.blockNumber >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
+    if current_block_number < lookahead_blocks:
+        mine(vmc, lookahead_blocks - current_block_number)
+    assert vmc.web3.eth.blockNumber >= lookahead_blocks
 
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
@@ -443,12 +451,12 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `add_header` ######################################
     genesis_colhdr_hash = b'\x00' * 32
     # create a testing collation header, whose parent is the genesis
-    header0_1 = get_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
+    header0_1 = mk_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
     header0_1_hash = keccak(header0_1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
-        header_parent_not_added = get_testing_colhdr(
+        header_parent_not_added = mk_testing_colhdr(
             vmc,
             shard_id,
             header0_1_hash,
@@ -461,7 +469,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         )).add_header(header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
     vmc.add_header(header0_1)
-    mine(vmc, PERIOD_LENGTH)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
         vmc.call(vmc.mk_contract_tx_detail(
@@ -470,11 +478,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             gas_price=1,
         )).add_header(header0_1)
     # when a valid header is added, the `add_header` call should succeed
-    header0_2 = get_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
+    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
     header0_2_hash = keccak(header0_2)
     vmc.add_header(header0_2)
 
-    mine(vmc, PERIOD_LENGTH)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
@@ -490,7 +498,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     with pytest.raises(NextLogUnavailable):
         vmc.get_next_log(shard_id)
     # filter logs in multiple shards
-    header1_1 = get_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
+    header1_1 = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
     with pytest.raises(FilterNotFound):
         vmc.get_next_log(1)
     vmc.setup_collation_added_filter(1)
