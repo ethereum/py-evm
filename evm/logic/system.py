@@ -12,7 +12,7 @@ from evm.opcode import (
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
-    generate_create2_contract_address,
+    generate_CREATE2_contract_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -226,7 +226,7 @@ class Create2(CreateEIP150):
         )
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-        contract_address = generate_create2_contract_address(
+        contract_address = generate_CREATE2_contract_address(
             salt,
             call_data,
         )
