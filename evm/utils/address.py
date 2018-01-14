@@ -20,7 +20,7 @@ def generate_contract_address(address, nonce):
     return keccak(rlp.encode([address, nonce]))[-20:]
 
 
-def generate_create2_contract_address(salt, code):
+def generate_CREATE2_contract_address(salt, code):
     """
     If contract is created by transaction, `salt` should be empty.
     If contract is created by contract, `salt` is set by the creator contract.
