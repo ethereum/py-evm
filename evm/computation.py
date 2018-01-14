@@ -38,6 +38,7 @@ from evm.vm.memory import (
 )
 from evm.vm.message import (
     Message,
+    ShardingMessage,
 )
 from evm.vm.stack import (
     Stack,
@@ -150,6 +151,31 @@ class BaseComputation(Configurable):
             **kwargs
         )
         return child_message
+
+    def prepare_child_sharding_message(self,
+                                       gas,
+                                       to,
+                                       value,
+                                       data,
+                                       code,
+                                       is_create,
+                                       **kwargs):
+        kwargs.setdefault('sender', self.msg.storage_address)
+
+        child_sharding_message = ShardingMessage(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            sig_hash=self.msg.sig_hash,
+            to=to,
+            value=value,
+            data=data,
+            code=code,
+            depth=self.msg.depth + 1,
+            is_create=is_create,
+            **kwargs
+        )
+        return child_sharding_message
 
     #
     # Memory Management
