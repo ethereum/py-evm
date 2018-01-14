@@ -15,7 +15,7 @@ from evm.vm.vm_state import (
 )
 
 from evm.utils.address import (
-    generate_create2_contract_address,
+    generate_CREATE2_contract_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -53,7 +53,7 @@ def _execute_sharding_transaction(vm, transaction):
         message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.code:
-            contract_address = generate_create2_contract_address(
+            contract_address = generate_CREATE2_contract_address(
                 b'',
                 transaction.code,
             )
