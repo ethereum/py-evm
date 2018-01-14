@@ -13,6 +13,12 @@ from evm.db import get_db_backend
 from evm.db.chain import BaseChainDB
 from evm.db.state import FlatTrieBackend
 from evm.vm.forks.frontier import FrontierVM
+from evm.vm.forks.sharding import ShardingVM
+
+from tests.core.vm.contract_fixture import (
+    contract_bytecode,
+    contract_address,
+)
 
 
 @pytest.fixture
@@ -77,10 +83,65 @@ def chain(chaindb):
     return chain
 
 
+SHARD_CHAIN_CONTRACTS_FIXTURE = {
+    "contract_code": contract_bytecode,
+    "deployed_address": contract_address,
+    "initial_balance": 100000000,
+}
+
+
 @pytest.fixture
 def shard_chain():
     shard_chaindb = BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
     return chain(shard_chaindb)
+
+
+@pytest.fixture
+def shard_chain_without_block_validation():
+    """
+    Return a Chain object containing just the genesis block.
+
+    This Chain does not perform any validation when importing new blocks.
+
+    The Chain's state includes one funded account which is where the simple transfer
+
+    contract will be deployed at.
+    """
+    # TODO: Once the helper function which generates access list for a transaction is implemented,
+    # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
+    shard_chaindb = BaseChainDB(get_db_backend())
+    overrides = {
+        'import_block': import_block_without_validation,
+        'validate_block': lambda self, block: None,
+    }
+    klass = Chain.configure(
+        name='TestShardChainWithoutBlockValidation',
+        vm_configuration=(
+            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
+        ),
+        **overrides,
+    )
+    genesis_params = {
+        'block_number': constants.GENESIS_BLOCK_NUMBER,
+        'difficulty': constants.GENESIS_DIFFICULTY,
+        'gas_limit': constants.GENESIS_GAS_LIMIT,
+        'parent_hash': constants.GENESIS_PARENT_HASH,
+        'coinbase': constants.GENESIS_COINBASE,
+        'nonce': constants.GENESIS_NONCE,
+        'mix_hash': constants.GENESIS_MIX_HASH,
+        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'timestamp': 1501851927,
+    }
+    genesis_state = {
+        SHARD_CHAIN_CONTRACTS_FIXTURE["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURE["initial_balance"],
+            'nonce': 0,
+            'code': b'',
+            'storage': {},
+        }
+    }
+    chain = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
+    return chain
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx

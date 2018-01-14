@@ -2,8 +2,12 @@ from eth_utils import decode_hex
 
 from evm import constants
 
-from tests.core.fixtures import chain_without_block_validation  # noqa: F401
-from tests.core.helpers import new_transaction
+from tests.core.fixtures import (  # noqa: F401
+    chain_without_block_validation,
+)
+from tests.core.helpers import (
+    new_transaction,
+)
 
 
 def test_apply_transaction(chain_without_block_validation):  # noqa: F811
