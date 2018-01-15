@@ -46,6 +46,14 @@ def assemble_data_field(user_account_transaction, include_signature=True):
     ])
 
 
+def get_message_for_signing(user_account_transaction):
+    data = assemble_data_field(user_account_transaction, include_signature=False)
+    return b"".join([
+        data,  # does not include the signature
+        user_account_transaction.sig_hash,
+    ])
+
+
 class UserAccountTransaction(ShardingTransaction):
 
     def __init__(
@@ -91,25 +99,13 @@ class UserAccountTransaction(ShardingTransaction):
             code=b'',
         )
 
-    def create_unsigned_transaction(self):
-        return UnsignedUserAccountTransaction(
-            chain_id=self.chain_id,
-            shard_id=self.shard_id,
-            to=self.to,
-            gas=self.gas,
-            access_list=self.access_list,
-            destination=self.destination,
-            value=self.value,
-            nonce=self.nonce,
-            min_block=self.min_block,
-            max_block=self.max_block,
-            gas_price=self.gas_price,
-            msg_data=self.msg_data,
-        )
+    @classmethod
+    def create_unsigned_transaction(cls, *args, **kwargs):
+        return UnsignedUserAccountTransaction(*args, **kwargs)
 
     def get_sender(self):
         signature = keys.Signature(vrs=(self.v - V_OFFSET, self.r, self.s))
-        message_for_signing = self.create_unsigned_transaction().get_message_for_signing()
+        message_for_signing = get_message_for_signing(self)
         public_key = signature.recover_public_key_from_msg(message_for_signing)
         return public_key.to_canonical_address()
 
@@ -185,14 +181,8 @@ class UnsignedUserAccountTransaction(ShardingTransaction):
         validate_uint256(self.nonce, "Transaction.nonce")
         validate_is_bytes(self.msg_data, "Transaction.msg_data")
 
-    def get_message_for_signing(self):
-        return b"".join([
-            self.data,  # does not include the signature
-            self.sig_hash,
-        ])
-
     def as_signed_transaction(self, private_key):
-        signature = private_key.sign_msg(self.get_message_for_signing())
+        signature = private_key.sign_msg(get_message_for_signing(self))
         return UserAccountTransaction(
             chain_id=self.chain_id,
             shard_id=self.shard_id,
