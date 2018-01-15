@@ -149,14 +149,14 @@ def generate_validation_lll_code(address):
     return [
         'seq',
         # copy hash and signature to memory
-        ['calldatacopy', 0, 0, ['calldatasize']],
+        ['calldatacopy', 32, 0, 128],
         # call ecrecover and store recovered address in memory
         [
             'call',
             SIGNATURE_VERIFICATION_GAS,
             SIGNATURE_VERIFICATION_ADDRESS,
             0,
-            0,
+            32,
             128,
             0,
             32
@@ -164,7 +164,7 @@ def generate_validation_lll_code(address):
         ['with', 'recovered_address', ['mload', 0], [
             'seq',
             # check that not zero address has been recovered (this indicates an error)
-            ['assert', ['not', ['iszero', 'recovered_address']]],
+            ['assert', 'recovered_address'],
             # check that the recovered address is correct
             ['assert', ['eq', 'recovered_address', address]],
             # return 1
@@ -193,9 +193,9 @@ ACCOUNT_BYTECODE_TEMPLATE = decode_hex(
 # bytecode compiled with `address == ADDRESS_PLACEHOLDER`
 # using https://github.com/ethereum/vyper on commit 8588835a9fde8104b3056288886b4b6d9f377973
 VALIDATION_BYTECODE_TEMPLATE = decode_hex(
-    "0x366000600037602060006080600060006001610bb8f15060005180151961002557600"
-    "080fd5b730123456789abcdef0123456789abcdef01234567811461004557600080fd5b"
-    "600160005260206000f350"
+    "0x60806000602037602060006080602060006001610bb8f150600051806100245760008"
+    "0fd5b730123456789abcdef0123456789abcdef01234567811461004457600080fd5b60"
+    "0160005260206000f350"
 )
 
 
