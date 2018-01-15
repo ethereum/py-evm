@@ -1,4 +1,9 @@
-from eth_utils import decode_hex
+from eth_utils import (
+    int_to_big_endian,
+    decode_hex,
+)
+
+from evm.utils.address import generate_CREATE2_contract_address
 
 from tests.core.fixtures import (  # noqa: F401
     shard_chain_without_block_validation,
@@ -7,26 +12,64 @@ from tests.core.helpers import (
     new_sharding_transaction,
 )
 from tests.core.vm.contract_fixture import (
-    contract_bytecode,
-    contract_address,
+    simple_transfer_contract_bytecode,
+    simple_transfer_contract_address,
+    simple_contract_factory_bytecode,
+    CREATE2_contract_bytecode,
+    CREATE2_contract_address,
 )
 
 
 def test_sharding_transaction(shard_chain_without_block_validation):  # noqa: F811
     chain = shard_chain_without_block_validation
-    deploy_tx = new_sharding_transaction(contract_address, b'', 0, b'', b'', contract_bytecode)
+    # First test: simple ether transfer contract
+    first_deploy_tx = new_sharding_transaction(
+        simple_transfer_contract_address,
+        b'',
+        0,
+        b'',
+        b'',
+        simple_transfer_contract_bytecode
+    )
 
     vm = chain.get_vm()
-    computation = vm.apply_transaction(deploy_tx)
+    computation = vm.apply_transaction(first_deploy_tx)
     assert not computation.is_error
 
     # Transfer ether to recipient
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    tx_initiator = contract_address
+    tx_initiator = simple_transfer_contract_address
     transfer_tx = new_sharding_transaction(tx_initiator, recipient, amount, b'', b'', b'')
 
-    computation = vm.execute_transaction(transfer_tx)
+    computation = vm.apply_transaction(transfer_tx)
     assert not computation.is_error
     with vm.state.state_db(read_only=True) as state_db:
         assert state_db.get_balance(recipient) == amount
+
+    # Second test: contract that deploy new contract with CREATE2
+    second_deploy_tx = new_sharding_transaction(
+        CREATE2_contract_address,
+        b'',
+        0,
+        b'',
+        b'',
+        CREATE2_contract_bytecode
+    )
+
+    computation = vm.apply_transaction(second_deploy_tx)
+    assert not computation.is_error
+
+    # Invoke the contract to deploy new contract
+    tx_initiator = CREATE2_contract_address
+    invoke_tx = new_sharding_transaction(tx_initiator, b'', 0, b'', b'', b'')
+
+    computation = vm.apply_transaction(invoke_tx)
+    assert not computation.is_error
+    with vm.state.state_db(read_only=True) as state_db:
+        newly_deployed_contract_address = generate_CREATE2_contract_address(
+            int_to_big_endian(0),
+            simple_contract_factory_bytecode
+        )
+        assert state_db.get_code(newly_deployed_contract_address) == b'\xbe\xef'
+        assert state_db.get_storage(CREATE2_contract_address, 0) == 1
