@@ -5,6 +5,7 @@ from eth_keys import keys
 from cytoolz import (
     merge,
     dissoc,
+    assoc,
 )
 
 from evm.constants import (
@@ -123,6 +124,13 @@ DEFAULT_TX_PARAMS = merge(
     }
 )
 
+SIGNED_DEFAULT_TRANSACTION = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
+    "nonce": 0,
+})).as_signed_transaction(PRIVATE_KEY)
+DEFAULT_V = SIGNED_DEFAULT_TRANSACTION.v
+DEFAULT_R = SIGNED_DEFAULT_TRANSACTION.r
+DEFAULT_S = SIGNED_DEFAULT_TRANSACTION.s
+
 
 @pytest.fixture
 def chaindb():
@@ -142,10 +150,7 @@ def test_get_nonce(vm):
     })))
     assert computation.output == pad32(b"\x00")
 
-    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
-        "nonce": 0,
-    })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
 
     computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
@@ -181,10 +186,7 @@ def vm():
 
 
 def test_call_increments_nonce(vm):
-    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
-        "nonce": 0,
-    })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
     assert get_nonce(vm) == 1
 
@@ -197,13 +199,10 @@ def test_call_increments_nonce(vm):
 
 
 def test_call_checks_nonce(vm):
-    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
-        "nonce": 0,
-    })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
 
-    computation = vm.apply_transaction(transaction)
+    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_error
 
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
@@ -265,63 +264,47 @@ def test_call_transfers_value(vm):
     assert balance_destination_after == balance_destination_before + 10
 
 
-def test_call_checks_signature(vm):
-    transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
-        "nonce": get_nonce(vm),
-    })).as_signed_transaction(PRIVATE_KEY)
+@pytest.mark.parametrize("v,r,s", [
+    (0, 0, 0),
 
-    v, r, s = transaction.v, transaction.r, transaction.s
-    invalid_vrs_triples = [
-        (0, 0, 0),
+    (DEFAULT_V + 1, DEFAULT_R, DEFAULT_S),
+    (DEFAULT_V + 2, DEFAULT_R, DEFAULT_S),
+    (DEFAULT_V - 1, DEFAULT_R, DEFAULT_S),
+    (0, DEFAULT_R, DEFAULT_S),
+    (1, DEFAULT_R, DEFAULT_S),
 
-        (v + 1, r, s),
-        (v - 1, r, s),
-        (0, r, s),
-        (1, r, s),
+    (DEFAULT_V, DEFAULT_R + 1, DEFAULT_S),
+    (DEFAULT_V, DEFAULT_R - 1, DEFAULT_S),
+    (DEFAULT_V, 0, DEFAULT_S),
 
-        (v, r + 1, s),
-        (v, r - 1, s),
-        (v, 0, s),
+    (DEFAULT_V, DEFAULT_R, DEFAULT_S + 1),
+    (DEFAULT_V, DEFAULT_R, DEFAULT_S - 1),
+    (DEFAULT_V, DEFAULT_R, 0),
 
-        (v, r, s + 1),
-        (v, r, s - 1),
-        (v, r, 0),
+    (27 if DEFAULT_V == 28 else 28, DEFAULT_R, SECPK1_N - DEFAULT_S),
+])
+def test_call_checks_signature(vm, v, r, s):
+    transaction = UserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {"v": v, "r": r, "s": s}))
+    message_params = {
+        "gas": transaction.gas,
+        "gas_price": transaction.gas_price,
+        "to": transaction.to,
+        "sig_hash": transaction.sig_hash,
+        "sender": ENTRY_POINT,
+        "value": 0,
+        "code": ACCOUNT_CODE,
+        "is_create": False,
+    }
+    message = ShardingMessage(**assoc(message_params, "data", transaction.data))
+    computation = vm.get_computation(message)
+    computation = computation.apply_message()
+    assert computation.is_error
 
-        (27 if v == 28 else 28, r, SECPK1_N - s)
-    ]
-
-    for v, r, s in invalid_vrs_triples:
-        transaction = UserAccountTransaction(
-            chain_id=transaction.chain_id,
-            shard_id=transaction.shard_id,
-            to=transaction.to,
-            gas=transaction.gas,
-            access_list=transaction.access_list,
-            destination=transaction.destination,
-            value=transaction.value,
-            nonce=transaction.nonce,
-            min_block=transaction.min_block,
-            max_block=transaction.max_block,
-            gas_price=transaction.gas_price,
-            msg_data=transaction.msg_data,
-            v=v,
-            r=r,
-            s=s,
-        )
-        message = ShardingMessage(
-            gas=transaction.gas,
-            gas_price=transaction.gas_price,
-            to=transaction.to,
-            sig_hash=transaction.sig_hash,
-            sender=ENTRY_POINT,
-            value=0,
-            data=transaction.data,
-            code=ACCOUNT_CODE,
-            is_create=False,
-        )
-        computation = vm.get_computation(message)
-        computation = computation.apply_message()
-        assert computation.is_error
+    # error is due to bad signature, so with tx should pass with original one
+    message = ShardingMessage(**assoc(message_params, "data", SIGNED_DEFAULT_TRANSACTION.data))
+    computation = vm.get_computation(message)
+    computation = computation.apply_message()
+    assert computation.is_success
 
 
 def test_call_uses_remaining_gas(vm):
