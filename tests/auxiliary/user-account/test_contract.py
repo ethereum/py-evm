@@ -11,9 +11,11 @@ from evm.constants import (
     UINT_256_MAX,
     SECPK1_N,
     ZERO_HASH32,
+    ENTRY_POINT,
 )
 from evm.vm.forks.sharding import (
     ShardingVM,
+    ShardingMessage,
 )
 from evm.vm.forks.sharding.transactions import (
     ShardingTransaction,
@@ -270,6 +272,8 @@ def test_call_checks_signature(vm):
 
     v, r, s = transaction.v, transaction.r, transaction.s
     invalid_vrs_triples = [
+        (0, 0, 0),
+
         (v + 1, r, s),
         (v - 1, r, s),
         (0, r, s),
@@ -304,9 +308,19 @@ def test_call_checks_signature(vm):
             r=r,
             s=s,
         )
-        # don't detect invalidity before transaction execution
-        transaction.validate = lambda: None
-        computation = vm.apply_transaction(transaction)
+        message = ShardingMessage(
+            gas=transaction.gas,
+            gas_price=transaction.gas_price,
+            to=transaction.to,
+            sig_hash=transaction.sig_hash,
+            sender=ENTRY_POINT,
+            value=0,
+            data=transaction.data,
+            code=ACCOUNT_CODE,
+            is_create=False,
+        )
+        computation = vm.get_computation(message)
+        computation = computation.apply_message()
         assert computation.is_error
 
 
