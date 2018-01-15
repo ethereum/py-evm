@@ -350,7 +350,7 @@ class VM(object):
         '''
         Return a transaction that has been mined in block_num at index
         '''
-        return self.chaindb.get_transaction_by_key(block_num, index, self.get_transaction_class())
+        return self.chaindb.get_transaction_by_index(block_num, index, self.get_transaction_class())
 
     def create_transaction(self, *args, **kwargs):
         """

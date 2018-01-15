@@ -17,6 +17,7 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
+    TransactionNotFound,
     ValidationError,
     VMNotFound,
 )
@@ -95,7 +96,18 @@ class Chain(object):
         return self.get_vm().block
 
     def get_transaction(self, transaction_hash):
-        return self.get_vm().get_transaction_by_hash(transaction_hash)
+        try:
+            (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
+            vm = self.get_vm_class_for_block_number(block_num)
+            return vm.get_transaction_by_index(block_num, index)
+        except TransactionNotFound:
+            # transaction has not been mined into the canonical chain
+            try:
+                return self.get_vm().get_pending_transaction(transaction_hash)
+            except TransactionNotFound as e:
+                raise TransactionNotFound(
+                    "Transaction {} not found".format(encode_hex(transaction_hash))
+                ) from e
 
     def create_transaction(self, *args, **kwargs):
         """

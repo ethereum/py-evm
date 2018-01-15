@@ -32,6 +32,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.transactions[tx_idx] == tx
     assert block.header.gas_used == constants.GAS_TX
     assert vm.get_pending_transaction(tx.hash) == tx
+    assert chain.get_transaction(tx.hash) == tx
 
     assert len(access_logs.reads) > 0
     assert len(access_logs.writes) > 0

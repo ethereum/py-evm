@@ -204,7 +204,7 @@ class BaseChainDB:
         for encoded_transaction in self._get_block_transaction_data(block_header):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
-    def get_transaction_by_key(self, block_number, transaction_index, transaction_class):
+    def get_transaction_by_index(self, block_number, transaction_index, transaction_class):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except KeyError:
@@ -225,7 +225,7 @@ class BaseChainDB:
             raise TransactionNotFound(
                 "Transaction with hash {} not found".format(encode_hex(transaction_hash)))
 
-    def get_transaction_key(self, transaction_hash, transaction_class):
+    def get_transaction_index(self, transaction_hash):
         try:
             encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
         except KeyError:
