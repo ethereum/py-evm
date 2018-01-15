@@ -16,8 +16,10 @@ from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
 
 from tests.core.vm.contract_fixture import (
-    contract_bytecode,
-    contract_address,
+    simple_transfer_contract_bytecode,
+    simple_transfer_contract_address,
+    CREATE2_contract_bytecode,
+    CREATE2_contract_address,
 )
 
 
@@ -99,11 +101,18 @@ def chain(chaindb, funded_address, funded_address_initial_balance):
     return chain
 
 
-SHARD_CHAIN_CONTRACTS_FIXTURE = {
-    "contract_code": contract_bytecode,
-    "deployed_address": contract_address,
-    "initial_balance": 100000000,
-}
+SHARD_CHAIN_CONTRACTS_FIXTURES = [
+    {
+        "contract_code": simple_transfer_contract_bytecode,
+        "deployed_address": simple_transfer_contract_address,
+        "initial_balance": 100000000,
+    },
+    {
+        "contract_code": CREATE2_contract_bytecode,
+        "deployed_address": CREATE2_contract_address,
+        "initial_balance": 100000000,
+    },
+]
 
 
 @pytest.fixture
@@ -147,8 +156,14 @@ def shard_chain_without_block_validation():
         'timestamp': 1501851927,
     }
     genesis_state = {
-        SHARD_CHAIN_CONTRACTS_FIXTURE["deployed_address"]: {
-            'balance': SHARD_CHAIN_CONTRACTS_FIXTURE["initial_balance"],
+        SHARD_CHAIN_CONTRACTS_FIXTURES[0]["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[0]["initial_balance"],
+            'nonce': 0,
+            'code': b'',
+            'storage': {},
+        },
+        SHARD_CHAIN_CONTRACTS_FIXTURES[1]["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[1]["initial_balance"],
             'nonce': 0,
             'code': b'',
             'storage': {},
