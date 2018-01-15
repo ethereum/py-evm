@@ -32,3 +32,6 @@ SHARDING_OPCODES = merge(
     copy.deepcopy(BYZANTIUM_OPCODES),
     NEW_OPCODES
 )
+
+
+SHARDING_OPCODES.pop(opcode_values.CREATE)
