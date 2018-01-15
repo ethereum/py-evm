@@ -39,9 +39,13 @@ class ShardingTransaction(BaseShardingTransaction):
 def _get_sharding_intrinsic_gas(transaction_data, transaction_code):
     num_zero_bytes = transaction_data.count(b'\x00') + transaction_code.count(b'\x00')
     num_non_zero_bytes = len(transaction_data) + len(transaction_code) - num_zero_bytes
+    if transaction_code:
+        create_cost = GAS_TXCREATE
+    else:
+        create_cost = 0
     return (
         GAS_TX +
         num_zero_bytes * GAS_TXDATAZERO +
         num_non_zero_bytes * GAS_TXDATANONZERO +
-        GAS_TXCREATE
+        create_cost
     )
