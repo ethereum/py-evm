@@ -8,6 +8,9 @@ def make_block_hash_to_score_lookup_key(block_hash):
 
 
 def make_transaction_hash_to_data_lookup_key(transaction_hash):
+    '''
+    Look up a transaction that is pending, after being issued locally
+    '''
     return b'transaction-hash-to-data:%s' % transaction_hash
 
 

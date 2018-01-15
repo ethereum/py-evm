@@ -42,6 +42,7 @@ from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
     make_transaction_hash_to_block_lookup_key,
+    make_transaction_hash_to_data_lookup_key,
 )
 
 
@@ -83,11 +84,27 @@ class BaseChainDB:
             self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
             sedes=rlp.sedes.big_endian_int)
 
-    def set_as_canonical_chain_head(self, header):
+    def _set_as_canonical_chain_head(self, header):
         """
-        Sets the header as the canonical chain HEAD.
+        :returns: iterable of headers newly on the canonical head
         """
-        for h in reversed(self.find_common_ancestor(header)):
+        new_canonical_headers = tuple(reversed(self.find_common_ancestor(header)))
+
+        # TODO move hash-> block id lookup to pending, to indicate that transaction is not in canonical chain
+        for h in new_canonical_headers:
+            try:
+                old_hash = self.lookup_block_hash(h.block_number)
+            except KeyError:
+                # no old block, keep looking
+                continue
+            else:
+                old_header = self.get_block_header_by_hash(header.hash)
+                for transaction_hash in self.get_block_transaction_hashes(old_header):
+                    # TODO remove from txn block lookup
+                    # TODO re-add txn to sent pool (only if local sender)
+                    pass
+
+        for h in new_canonical_headers:
             self.add_block_number_to_hash_lookup(h)
 
         try:
@@ -96,6 +113,8 @@ class BaseChainDB:
             raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
                 header.hash))
         self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
+
+        return new_canonical_headers
 
     @to_tuple
     def find_common_ancestor(self, header):
@@ -143,12 +162,10 @@ class BaseChainDB:
         """
         validate_uint256(block_number, title="Block Number")
         number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
-        # TODO: can raise KeyError
-        block_hash = rlp.decode(
+        return rlp.decode(
             self.db.get(number_to_hash_key),
             sedes=rlp.sedes.binary,
         )
-        return block_hash
 
     def get_block_uncles(self, uncles_hash):
         validate_word(uncles_hash, title="Uncles Hash")
@@ -187,7 +204,7 @@ class BaseChainDB:
         for encoded_transaction in self._get_block_transaction_data(block_header):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
-    def _get_transaction_by_key(self, block_number, transaction_index, transaction_class):
+    def get_transaction_by_key(self, block_number, transaction_index, transaction_class):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except KeyError:
@@ -200,20 +217,23 @@ class BaseChainDB:
         else:
             return None
 
-    def _get_pending_transaction(self, transaction_hash, transaction_class):
-        raise TransactionNotFound()
-
-    def get_transaction_by_hash(self, transaction_hash, transaction_class):
-        encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
-        transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
+    def get_pending_transaction(self, transaction_hash, transaction_class):
         try:
-            return self._get_transaction_by_key(
-                transaction_key.block_number,
-                transaction_key.index,
-                transaction_class,
-            )
-        except TransactionNotFound:
-            return self._get_pending_transaction(transaction_hash, transaction_class):
+            data = self.db.get(make_transaction_hash_to_data_lookup_key(transaction_hash))
+            return rlp.decode(data, sedes=transaction_class)
+        except KeyError:
+            raise TransactionNotFound(
+                "Transaction with hash {} not found".format(encode_hex(transaction_hash)))
+
+    def get_transaction_key(self, transaction_hash, transaction_class):
+        try:
+            encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
+        except KeyError:
+            raise TransactionNotFound(
+                "Transaction {} not found in canonical chain".format(encode_hex(transaction_hash)))
+
+        transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
+        return (transaction_key.block_number, transaction_key.index)
 
     def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
@@ -227,6 +247,9 @@ class BaseChainDB:
     # TODO: This method sould take a chain of headers as that's the most common use case
     # and it'd be much faster than inserting each header individually.
     def persist_header_to_db(self, header):
+        """
+        :returns: iterable of headers newly on the canonical chain
+        """
         if header.parent_hash != GENESIS_PARENT_HASH and not self.header_exists(header.parent_hash):
             raise ParentNotFound(
                 "Cannot persist block header ({}) with unknown parent ({})".format(
@@ -248,20 +271,31 @@ class BaseChainDB:
         try:
             head_score = self.get_score(self.get_canonical_head().hash)
         except CanonicalHeadNotFound:
-            self.set_as_canonical_chain_head(header)
+            new_headers = self._set_as_canonical_chain_head(header)
         else:
             if score > head_score:
-                self.set_as_canonical_chain_head(header)
+                new_headers = self._set_as_canonical_chain_head(header)
+            else:
+                new_headers = []
+
+        return new_headers
 
     def persist_block_to_db(self, block):
-        self.persist_header_to_db(block.header)
+        '''
+        Chain must do follow-up work to persist transactions to db
+        '''
+        new_canonical_headers = self.persist_header_to_db(block.header)
 
-        # Persist the transactions
+        # Persist the transaction bodies
         transaction_db = HexaryTrie(self.db, root_hash=BLANK_ROOT_HASH)
-        for i in range(len(block.transactions)):
+        for i, transaction in enumerate(block.transactions):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(block.transactions[i])
+            transaction_db[index_key] = rlp.encode(transaction)
         assert transaction_db.root_hash == block.header.transaction_root
+
+        for header in new_canonical_headers:
+            for transaction_hash in self.get_block_transaction_hashes(header):
+                self._add_transaction_to_canonical_chain(transaction_hash, header.hash)
 
         # Persist the uncles list
         self.db.set(
@@ -269,18 +303,30 @@ class BaseChainDB:
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
 
-    def _add_transaction_hash_to_block_lookup(self, transaction, block_header, transaction_index):
+    def _add_transaction_to_canonical_chain(self, transaction, block_header, transaction_index):
+        '''
+        - add lookup from transaction hash to the block number and index that the body is stored at
+        - remove transaction hash to body lookup in the pending pool
+        '''
         transaction_key = TransactionKey(block_header.block_number, transaction_index)
         self.db.set(
             make_transaction_hash_to_block_lookup_key(transaction.hash),
             rlp.encode(transaction_key),
         )
 
+        # because transaction is now in canonical chain, can now remove from pending txn lookups
+        self.db.delete(make_transaction_hash_to_data_lookup_key(transaction.hash))
+
+    def _add_transaction_hash_to_data_lookup(self, transaction):
+        self.db.set(
+            make_transaction_hash_to_data_lookup_key(transaction.hash),
+            rlp.encode(transaction),
+        )
+
     def add_transaction(self, block_header, index_key, transaction):
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
-        transaction_index = rlp.decode(index_key, sedes=rlp.sedes.big_endian_int)
-        self._add_transaction_hash_to_block_lookup(transaction, block_header, transaction_index)
+        self._add_transaction_hash_to_data_lookup(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):
