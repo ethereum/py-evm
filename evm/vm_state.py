@@ -29,16 +29,16 @@ class BaseVMState(object):
     #
     _chaindb = None
     block_header = None
-    prev_headers = None
+    block_info = None
 
     computation_class = None
     access_logs = None
     receipts = None
 
-    def __init__(self, chaindb, block_header, prev_headers, receipts=[]):
+    def __init__(self, chaindb, block_header, block_info, receipts=[]):
         self._chaindb = chaindb
         self.block_header = block_header
-        self.prev_headers = prev_headers
+        self.block_info = block_info
 
         self.access_logs = AccessLogs()
         self.receipts = receipts
@@ -53,29 +53,26 @@ class BaseVMState(object):
     #
     # Block Object Properties (in opcodes)
     #
-    @property
-    def blockhash(self):
-        return self.block_header.hash
 
     @property
     def coinbase(self):
-        return self.block_header.coinbase
+        return self.block_info.coinbase
 
     @property
     def timestamp(self):
-        return self.block_header.timestamp
+        return self.block_info.timestamp
 
     @property
     def block_number(self):
-        return self.block_header.block_number
+        return self.block_info.block_number
 
     @property
     def difficulty(self):
-        return self.block_header.difficulty
+        return self.block_info.difficulty
 
     @property
     def gas_limit(self):
-        return self.block_header.gas_limit
+        return self.block_info.gas_limit
 
     #
     # state_db
@@ -145,7 +142,7 @@ class BaseVMState(object):
     #
     @property
     def parent_header(self):
-        return self.prev_headers[0]
+        return self.block_info.prev_headers[0]
 
     def get_ancestor_hash(self, block_number):
         """
@@ -154,16 +151,16 @@ class BaseVMState(object):
         ancestor_depth = self.block_header.block_number - block_number - 1
         if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
                 ancestor_depth < 0 or
-                ancestor_depth >= len(self.prev_headers)):
+                ancestor_depth >= len(self.block_info.prev_headers)):
             return b''
-        header = self.prev_headers[ancestor_depth]
+        header = self.block_info.prev_headers[ancestor_depth]
         return header.hash
 
     def get_block_header_by_hash(self, block_hash):
         """
         Returns the block header by hash.
         """
-        for value in self.prev_headers:
+        for value in self.block_info.prev_headers:
             if value.hash == block_hash:
                 return value
         raise BlockNotFound(

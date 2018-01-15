@@ -11,6 +11,9 @@ from eth_utils import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
+from evm.vm.block_info import (
+    BlockInfo,
+)
 from evm.vm.forks.frontier.vm_state import FrontierVMState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
@@ -25,9 +28,8 @@ def state(chain_without_block_validation):
 def test_block_properties(chain_without_block_validation):  # noqa: F811
     chain = chain_without_block_validation  # noqa: F811
     vm = chain.get_vm()
-    block = vm.mine_block()
+    block = chain.import_block(vm.mine_block())
 
-    assert vm.state.blockhash == block.hash
     assert vm.state.coinbase == block.header.coinbase
     assert vm.state.timestamp == block.header.timestamp
     assert vm.state.block_number == block.header.block_number
@@ -107,10 +109,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
+    block_info = BlockInfo.generate_by_block_header(block1.header, prev_headers)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         block_header=block_header1,
-        prev_headers=prev_headers,
+        block_info=block_info,
         receipts=[],
     )
     parent_header = copy.deepcopy(prev_headers[0])
@@ -125,11 +128,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert parent_header.hash == prev_headers[0].hash
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
-
+    block_info = BlockInfo.generate_by_block_header(block.header, prev_headers)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         block_header=block.header,
-        prev_headers=prev_headers,
+        block_info=block_info,
         receipts=computation.vm_state.receipts,
     )
     computation, block, _ = vm_state1.apply_transaction(
@@ -166,12 +169,12 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-
+    block_info = BlockInfo.generate_by_block_header(block2.header, prev_headers)
     # Apply the first transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
         block_header=block_header2,
-        prev_headers=prev_headers,
+        block_info=block_info,
         receipts=[],
     )
     computation, block, _ = vm_state2.apply_transaction(
@@ -182,12 +185,12 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Update witness_db
     recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
     witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
-
+    block_info = BlockInfo.generate_by_block_header(block.header, prev_headers)
     # Apply the second transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
         block_header=block.header,
-        prev_headers=prev_headers,
+        block_info=block_info,
         receipts=computation.vm_state.receipts,
     )
     computation, block, _ = vm_state2.apply_transaction(
@@ -206,10 +209,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
+    block_info = BlockInfo.generate_by_block_header(block.header, prev_headers)
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         block_header=block.header,
-        prev_headers=prev_headers,
+        block_info=block_info,
     )
     assert vm_state3.block_header.state_root == post_vm_state.block_header.state_root
     assert vm_state3.block_header.state_root == result_block.header.state_root
