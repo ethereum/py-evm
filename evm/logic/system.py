@@ -230,6 +230,10 @@ class Create2(CreateEIP150):
             salt,
             call_data,
         )
+        _state_db = computation.vm_state.state_db(
+            read_only=True,
+            access_list=computation.msg.access_list,
+        )
         with _state_db as state_db:
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
