@@ -20,6 +20,7 @@ from evm.exceptions import (
     BlockNotFound,
     CanonicalHeadNotFound,
     ParentNotFound,
+    TransactionNotFound,
 )
 from evm.db.journal import (
     JournalDB,
@@ -186,8 +187,11 @@ class BaseChainDB:
         for encoded_transaction in self._get_block_transaction_data(block_header):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
-    def get_transaction_by_key(self, block_number, transaction_index, transaction_class):
-        block_header = self.get_canonical_block_header_by_number(block_number)
+    def _get_transaction_by_key(self, block_number, transaction_index, transaction_class):
+        try:
+            block_header = self.get_canonical_block_header_by_number(block_number)
+        except KeyError:
+            raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         if encoded_index in transaction_db:
@@ -196,14 +200,20 @@ class BaseChainDB:
         else:
             return None
 
+    def _get_pending_transaction(self, transaction_hash, transaction_class):
+        raise TransactionNotFound()
+
     def get_transaction_by_hash(self, transaction_hash, transaction_class):
         encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
-        return self.get_transaction_by_key(
-            transaction_key.block_number,
-            transaction_key.index,
-            transaction_class,
-        )
+        try:
+            return self._get_transaction_by_key(
+                transaction_key.block_number,
+                transaction_key.index,
+                transaction_class,
+            )
+        except TransactionNotFound:
+            return self._get_pending_transaction(transaction_hash, transaction_class):
 
     def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
