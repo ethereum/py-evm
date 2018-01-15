@@ -100,8 +100,8 @@ class BaseChainDB:
             else:
                 old_header = self.get_block_header_by_hash(header.hash)
                 for transaction_hash in self.get_block_transaction_hashes(old_header):
-                    # TODO remove from txn block lookup
-                    # TODO re-add txn to sent pool (only if local sender)
+                    self._remove_transaction_from_canonical_chain(transaction_hash)
+                    # TODO re-add txn to internal pending pool (only if local sender)
                     pass
 
         for h in new_canonical_headers:
@@ -302,6 +302,9 @@ class BaseChainDB:
             block.header.uncles_hash,
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
+
+    def _remove_transaction_from_canonical_chain(self, transaction_hash):
+        self.db.delete(make_transaction_hash_to_block_lookup_key(transaction_hash))
 
     def _add_transaction_to_canonical_chain(self, transaction, block_header, transaction_index):
         '''
