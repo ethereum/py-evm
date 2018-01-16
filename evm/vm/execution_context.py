@@ -1,4 +1,4 @@
-class BlockInfo():
+class ExecutionContext():
     # For shard chain, refer to the shard coinbase.
     _coinbase = None
 
@@ -25,7 +25,7 @@ class BlockInfo():
         self._prev_headers = prev_headers
 
     @classmethod
-    def generate_by_block_header(cls, block_header, prev_headers, coinbase=None):
+    def from_block_header(cls, block_header, prev_headers, coinbase=None):
         if coinbase is None:
             coinbase = block_header.coinbase
         return cls(

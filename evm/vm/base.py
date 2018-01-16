@@ -26,8 +26,8 @@ from evm.utils.headers import (
     generate_header_from_parent_header,
 )
 
-from .block_info import (
-    BlockInfo,
+from .execution_context import (
+    ExecutionContext,
 )
 
 
@@ -261,11 +261,11 @@ class VM(object):
             transaction_witness.update(recent_trie_nodes)
             witness_db = BaseChainDB(MemoryDB(transaction_witness))
 
-            block_info = BlockInfo.generate_by_block_header(block.header, prev_headers)
+            execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
             vm_state = cls.get_state_class()(
                 chaindb=witness_db,
                 block_header=block.header,
-                block_info=block_info,
+                execution_context=execution_context,
                 receipts=receipts,
             )
             computation, result_block, _ = vm_state.apply_transaction(
@@ -283,11 +283,11 @@ class VM(object):
 
         # Finalize
         witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
-        block_info = BlockInfo.generate_by_block_header(block.header, prev_headers)
+        execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
         vm_state = cls.get_state_class()(
             chaindb=witness_db,
             block_header=block.header,
-            block_info=block_info,
+            execution_context=execution_context,
             receipts=receipts,
         )
         block = cls.finalize_block(vm_state, block)
@@ -477,12 +477,12 @@ class VM(object):
             last_block_hash=self.block.header.parent_hash,
             db=self.chaindb,
         )
-        block_info = BlockInfo.generate_by_block_header(block_header, prev_headers)
+        execution_context = ExecutionContext.from_block_header(block_header, prev_headers)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
             block_header,
-            block_info,
+            execution_context,
             receipts=receipts,
         )
 
