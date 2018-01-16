@@ -88,7 +88,13 @@ class BaseChainDB:
         """
         :returns: iterable of headers newly on the canonical head
         """
-        new_canonical_headers = tuple(reversed(self.find_common_ancestor(header)))
+        try:
+            self.get_block_header_by_hash(header.hash)
+        except BlockNotFound:
+            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
+                header.hash))
+
+        new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
 
         # TODO move hash-> block id lookup to pending, to indicate that transaction is not in canonical chain
         for h in new_canonical_headers:
@@ -107,26 +113,25 @@ class BaseChainDB:
         for h in new_canonical_headers:
             self.add_block_number_to_hash_lookup(h)
 
-        try:
-            self.get_block_header_by_hash(header.hash)
-        except BlockNotFound:
-            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
-                header.hash))
         self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
 
         return new_canonical_headers
 
     @to_tuple
-    def find_common_ancestor(self, header):
+    def _find_new_ancestors(self, header):
         """
-        Returns the chain leading up from the given header until the first ancestor it has in
-        common with our canonical chain.
+        Returns the chain leading up from the given header until (but not including)
+        the first ancestor it has in common with our canonical chain.
+
+        If D is the canonical head in the following chain, and F is the new header,
+        then this function returns (F, E).
+
+        A - B - C - D
+               \
+                E - F
         """
         h = header
         while True:
-            yield h
-            if h.parent_hash == GENESIS_PARENT_HASH:
-                break
             try:
                 orig = self.get_canonical_block_header_by_number(h.block_number)
             except KeyError:
@@ -136,7 +141,14 @@ class BaseChainDB:
                 if orig.hash == h.hash:
                     # Found the common ancestor, stop.
                     break
-            h = self.get_block_header_by_hash(h.parent_hash)
+
+            # Found a new ancestor
+            yield h
+
+            if h.parent_hash == GENESIS_PARENT_HASH:
+                break
+            else:
+                h = self.get_block_header_by_hash(h.parent_hash)
 
     def get_block_header_by_hash(self, block_hash):
         """
@@ -215,7 +227,8 @@ class BaseChainDB:
             encoded_transaction = transaction_db[encoded_index]
             return rlp.decode(encoded_transaction, sedes=transaction_class)
         else:
-            return None
+            raise TransactionNotFound(
+                "No transaction is at index {} of block {}".format(transaction_index, block_number))
 
     def get_pending_transaction(self, transaction_hash, transaction_class):
         try:
@@ -294,8 +307,8 @@ class BaseChainDB:
         assert transaction_db.root_hash == block.header.transaction_root
 
         for header in new_canonical_headers:
-            for transaction_hash in self.get_block_transaction_hashes(header):
-                self._add_transaction_to_canonical_chain(transaction_hash, header.hash)
+            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
+                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
         # Persist the uncles list
         self.db.set(
@@ -306,19 +319,22 @@ class BaseChainDB:
     def _remove_transaction_from_canonical_chain(self, transaction_hash):
         self.db.delete(make_transaction_hash_to_block_lookup_key(transaction_hash))
 
-    def _add_transaction_to_canonical_chain(self, transaction, block_header, transaction_index):
-        '''
+    def _add_transaction_to_canonical_chain(self, transaction_hash, block_header, index):
+        """
+        :param bytes transaction_hash: the hash of the transaction to add the lookup for
+        :param block_header: The header of the block with the txn that is in the canonical chain
+        :param int index: the position of the transaction in the block
         - add lookup from transaction hash to the block number and index that the body is stored at
         - remove transaction hash to body lookup in the pending pool
-        '''
-        transaction_key = TransactionKey(block_header.block_number, transaction_index)
+        """
+        transaction_key = TransactionKey(block_header.block_number, index)
         self.db.set(
-            make_transaction_hash_to_block_lookup_key(transaction.hash),
+            make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
 
         # because transaction is now in canonical chain, can now remove from pending txn lookups
-        self.db.delete(make_transaction_hash_to_data_lookup_key(transaction.hash))
+        self.db.delete(make_transaction_hash_to_data_lookup_key(transaction_hash))
 
     def _add_transaction_hash_to_data_lookup(self, transaction):
         self.db.set(

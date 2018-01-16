@@ -99,7 +99,9 @@ class Chain(object):
         try:
             (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
             vm = self.get_vm_class_for_block_number(block_num)
-            return vm.get_transaction_by_index(block_num, index)
+            transaction = vm.get_transaction_by_index(block_num, index)
+            if transaction.hash != transaction_hash:
+                raise TransactionNotFound("Mismatched transaction, bailing...")
         except TransactionNotFound:
             # transaction has not been mined into the canonical chain
             try:
