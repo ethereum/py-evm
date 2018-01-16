@@ -355,12 +355,6 @@ class VM(object):
         """
         return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
 
-    def validate_transaction(self, transaction):
-        """
-        Perform chain-aware validation checks on the transaction.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     #
     # Blocks
     #

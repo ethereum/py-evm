@@ -285,6 +285,12 @@ class BaseVMState(object):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    def validate_transaction(self, transaction):
+        """
+        Perform chain-aware validation checks on the transaction.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
     #
     # classmethod
     #

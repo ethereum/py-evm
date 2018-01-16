@@ -8,7 +8,6 @@ from evm.constants import (
 
 from .blocks import FrontierBlock
 from .vm_state import FrontierVMState
-from .validation import validate_frontier_transaction
 from .headers import (
     create_frontier_header_from_parent,
     compute_frontier_difficulty,
@@ -42,8 +41,6 @@ FrontierVM = VM.configure(
     get_block_reward=staticmethod(_frontier_get_block_reward),
     get_uncle_reward=staticmethod(_frontier_get_uncle_reward),
     get_nephew_reward=_frontier_get_nephew_reward,
-    # validation
-    validate_transaction=validate_frontier_transaction,
     # mode
     _is_stateless=True,
 )
