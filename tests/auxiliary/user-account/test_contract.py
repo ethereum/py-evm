@@ -53,19 +53,14 @@ from evm.auxiliary.user_account_contract.transaction import (
     UnsignedUserAccountTransaction,
 )
 from evm.auxiliary.user_account_contract.contract import (
-    generate_validation_bytecode,
     generate_account_bytecode,
     NONCE_GETTER_ID,
-    VALIDATION_CODE_GETTER_ID,
 )
 
 
 PRIVATE_KEY = keys.PrivateKey(b"\x33" * 32)
 
-VALIDATION_CODE = generate_validation_bytecode(PRIVATE_KEY.public_key.to_canonical_address())
-VALIDATION_CODE_ADDRESS = generate_create2_contract_address(b"", VALIDATION_CODE)
-
-ACCOUNT_CODE = generate_account_bytecode(VALIDATION_CODE_ADDRESS)
+ACCOUNT_CODE = generate_account_bytecode(PRIVATE_KEY.public_key.to_canonical_address())
 ACCOUNT_ADDRESS = generate_create2_contract_address(b"", ACCOUNT_CODE)
 INITIAL_BALANCE = 10000000000
 
@@ -91,7 +86,6 @@ DATA_LOGGING_CONTRACT_CODE = (
 DATA_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", DATA_LOGGING_CONTRACT_CODE)
 
 HELPER_CONTRACTS = {
-    VALIDATION_CODE_ADDRESS: VALIDATION_CODE,
     ACCOUNT_ADDRESS: ACCOUNT_CODE,
     NOOP_CONTRACT_ADDRESS: NOOP_CONTRACT_CODE,
     FAILING_CONTRACT_ADDRESS: FAILING_CONTRACT_CODE,
@@ -156,13 +150,6 @@ def test_get_nonce(vm):
         "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
     })))
     assert computation.output == pad32(b"\x01")
-
-
-def test_get_validation_code(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": pad32(int_to_big_endian(VALIDATION_CODE_GETTER_ID)),
-    })))
-    assert computation.output == VALIDATION_CODE_ADDRESS
 
 
 @pytest.fixture
