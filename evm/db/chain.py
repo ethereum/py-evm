@@ -96,15 +96,15 @@ class BaseChainDB:
 
         new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
 
-        # TODO move hash-> block id lookup to pending, to indicate that transaction is not in canonical chain
+        # remove transaction lookups for blocks that are no longer canonical
         for h in new_canonical_headers:
             try:
                 old_hash = self.lookup_block_hash(h.block_number)
             except KeyError:
-                # no old block, keep looking
-                continue
+                # no old block, and no more possible
+                break
             else:
-                old_header = self.get_block_header_by_hash(header.hash)
+                old_header = self.get_block_header_by_hash(old_hash)
                 for transaction_hash in self.get_block_transaction_hashes(old_header):
                     self._remove_transaction_from_canonical_chain(transaction_hash)
                     # TODO re-add txn to internal pending pool (only if local sender)

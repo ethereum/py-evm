@@ -11,17 +11,12 @@ from evm.exceptions import (
 )
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
-from tests.core.fixtures import (  # noqa: F401
-    chain,
-    chain_without_block_validation,
-    valid_block_rlp,
-)
+from tests.core.fixtures import valid_block_rlp
 from tests.core.helpers import new_transaction
 
 
 @pytest.fixture()
-def tx(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def tx(chain):
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     vm = chain.get_vm()
@@ -29,23 +24,22 @@ def tx(chain_without_block_validation):  # noqa: F811
     return new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
 
 
-def test_import_block_validation(chain):  # noqa: F811
+def test_import_block_validation(valid_chain):
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
-    imported_block = chain.import_block(block)
+    imported_block = valid_chain.import_block(block)
     assert len(imported_block.transactions) == 1
     tx = imported_block.transactions[0]
     assert tx.value == 10
-    vm = chain.get_vm()
+    vm = valid_chain.get_vm()
     with vm.state.state_db(read_only=True) as state_db:
         assert state_db.get_balance(
             decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
         tx_gas = tx.gas_price * constants.GAS_TX
-        assert state_db.get_balance(chain.funded_address) == (
-            chain.funded_address_initial_balance - tx.value - tx_gas)
+        assert state_db.get_balance(valid_chain.funded_address) == (
+            valid_chain.funded_address_initial_balance - tx.value - tx_gas)
 
 
-def test_import_block(chain_without_block_validation, tx):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_import_block(chain, tx):
     vm = chain.get_vm()
     computation, _ = vm.apply_transaction(tx)
     assert not computation.is_error
@@ -64,15 +58,12 @@ def test_import_block(chain_without_block_validation, tx):  # noqa: F811
         chain.get_pending_transaction(tx.hash)
 
 
-def test_get_pending_transaction(chain_without_block_validation, tx):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
-    vm = chain.get_vm()
+def test_get_pending_transaction(chain, tx):
     chain.add_pending_transaction(tx)
     assert chain.get_pending_transaction(tx.hash) == tx
 
 
-def test_empty_transaction_lookups(chain_without_block_validation):
-    chain = chain_without_block_validation
+def test_empty_transaction_lookups(chain):
 
     with pytest.raises(TransactionNotFound):
         chain.get_canonical_transaction(b'\0' * 32)
@@ -81,19 +72,19 @@ def test_empty_transaction_lookups(chain_without_block_validation):
         chain.get_pending_transaction(b'\0' * 32)
 
 
-def test_canonical_chain(chain):  # noqa: F811
-    genesis_header = chain.chaindb.get_canonical_block_header_by_number(
+def test_canonical_chain(valid_chain):
+    genesis_header = valid_chain.chaindb.get_canonical_block_header_by_number(
         constants.GENESIS_BLOCK_NUMBER)
 
     # Our chain fixture is created with only the genesis header, so initially that's the head of
     # the canonical chain.
-    assert chain.get_canonical_head() == genesis_header
+    assert valid_chain.get_canonical_head() == genesis_header
 
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
-    chain.chaindb.persist_header_to_db(block.header)
+    valid_chain.chaindb.persist_header_to_db(block.header)
 
-    assert chain.get_canonical_head() == block.header
-    canonical_block_1 = chain.chaindb.get_canonical_block_header_by_number(
+    assert valid_chain.get_canonical_head() == block.header
+    canonical_block_1 = valid_chain.chaindb.get_canonical_block_header_by_number(
         constants.GENESIS_BLOCK_NUMBER + 1)
     assert canonical_block_1 == block.header
 
