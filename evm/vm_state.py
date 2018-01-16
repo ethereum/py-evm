@@ -5,18 +5,12 @@ import logging
 from cytoolz import (
     merge,
 )
-from eth_utils import (
-    encode_hex,
-)
 
 from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
 )
 from evm.db.tracked import (
     AccessLogs,
-)
-from evm.exceptions import (
-    BlockNotFound,
 )
 from evm.utils.state import (
     make_trie_root_and_nodes,
@@ -140,12 +134,8 @@ class BaseVMState(object):
         return self._chaindb.exists(key)
 
     #
-    # Access self.prev_headers (Read-only)
+    # Access self.prev_hashes (Read-only)
     #
-    @property
-    def parent_header(self):
-        return self.execution_context.prev_headers[0]
-
     def get_ancestor_hash(self, block_number):
         """
         Return the hash of the ancestor with the given block number.
@@ -153,23 +143,10 @@ class BaseVMState(object):
         ancestor_depth = self.block_number - block_number - 1
         if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
                 ancestor_depth < 0 or
-                ancestor_depth >= len(self.execution_context.prev_headers)):
+                ancestor_depth >= len(self.execution_context.prev_hashes)):
             return b''
-        header = self.execution_context.prev_headers[ancestor_depth]
-        return header.hash
-
-    def get_block_header_by_hash(self, block_hash):
-        """
-        Returns the block header by hash.
-        """
-        for value in self.execution_context.prev_headers:
-            if value.hash == block_hash:
-                return value
-        raise BlockNotFound(
-            "No block header with hash {0} found in self.perv_headers".format(
-                encode_hex(block_hash),
-            )
-        )
+        ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
+        return ancestor_hash
 
     #
     # Computation

@@ -104,18 +104,18 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Use FrontierVMState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block1.header, prev_headers)
+    execution_context = ExecutionContext.from_block_header(block1.header, prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block1.header.state_root,
         receipts=[],
     )
-    parent_header = copy.deepcopy(prev_headers[0])
+    parent_hash = copy.deepcopy(prev_hashes[0])
 
     computation, block, _ = vm_state1.apply_transaction(
         tx1,
@@ -123,11 +123,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     )
     access_logs1 = computation.vm_state.access_logs
 
-    # Check if prev_headers hasn't been changed
-    assert parent_header.hash == prev_headers[0].hash
+    # Check if prev_hashes hasn't been changed
+    assert parent_hash == prev_hashes[0]
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
-    execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
@@ -163,11 +163,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     block2 = copy.deepcopy(block0)
 
     witness_db = BaseChainDB(MemoryDB(access_logs1.reads))
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block2.header, prev_headers)
+    execution_context = ExecutionContext.from_block_header(block2.header, prev_hashes)
     # Apply the first transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
@@ -183,7 +183,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Update witness_db
     recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
     witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
-    execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     # Apply the second transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
@@ -203,11 +203,11 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.hash == result_block.hash
 
     # (3) Testing using witness_db and block_header to reconstruct vm_state
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         execution_context=execution_context,

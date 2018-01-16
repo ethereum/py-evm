@@ -7,7 +7,7 @@ class ExecutionContext():
     _number = None
     _difficulty = None
     _gas_limit = None
-    _prev_headers = None
+    _prev_hashes = None
 
     def __init__(
             self,
@@ -16,16 +16,16 @@ class ExecutionContext():
             block_number,
             difficulty,
             gas_limit,
-            prev_headers):
+            prev_hashes):
         self._coinbase = coinbase
         self._timestamp = timestamp
         self._block_number = block_number
         self._difficulty = difficulty
         self._gas_limit = gas_limit
-        self._prev_headers = prev_headers
+        self._prev_hashes = prev_hashes
 
     @classmethod
-    def from_block_header(cls, block_header, prev_headers, coinbase=None):
+    def from_block_header(cls, block_header, prev_hashes, coinbase=None):
         if coinbase is None:
             coinbase = block_header.coinbase
         return cls(
@@ -34,7 +34,7 @@ class ExecutionContext():
             block_number=block_header.block_number,
             difficulty=block_header.difficulty,
             gas_limit=block_header.gas_limit,
-            prev_headers=prev_headers,
+            prev_hashes=prev_hashes,
         )
 
     @property
@@ -58,5 +58,5 @@ class ExecutionContext():
         return self._gas_limit
 
     @property
-    def prev_headers(self):
-        return self._prev_headers
+    def prev_hashes(self):
+        return self._prev_hashes
