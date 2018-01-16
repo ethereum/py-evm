@@ -115,6 +115,9 @@ class Chain(object):
                 index,
             ))
 
+    def add_pending_transaction(self, transaction):
+        return self.chaindb.add_pending_transaction(transaction)
+
     def get_pending_transaction(self, transaction_hash):
         return self.get_vm().get_pending_transaction(transaction_hash)
 

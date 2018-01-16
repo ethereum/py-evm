@@ -334,9 +334,11 @@ class BaseChainDB:
         )
 
         # because transaction is now in canonical chain, can now remove from pending txn lookups
-        self.db.delete(make_transaction_hash_to_data_lookup_key(transaction_hash))
+        lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
+        if self.db.exists(lookup_key):
+            self.db.delete(lookup_key)
 
-    def _add_transaction_hash_to_data_lookup(self, transaction):
+    def add_pending_transaction(self, transaction):
         self.db.set(
             make_transaction_hash_to_data_lookup_key(transaction.hash),
             rlp.encode(transaction),
@@ -345,7 +347,6 @@ class BaseChainDB:
     def add_transaction(self, block_header, index_key, transaction):
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
-        self._add_transaction_hash_to_data_lookup(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):
