@@ -52,13 +52,6 @@ is_valcode_deposited: public(bool[address])
 # Log the latest period number of the shard
 period_head: public(num[num])
 
-# Collations with score
-# [shard_id][score][num_collation] -> collation_hash
-collations_with_score: public(bytes32[num][num][num])
-
-# Number of collations_with_score
-num_collations_with_score: public(num[num][num])
-
 
 # Configuration Parameter
 
@@ -360,10 +353,6 @@ def add_header(header: bytes <= 4096) -> bool:
         parent_collation_hash: parent_collation_hash,
         score: _score
     }
-
-    # Update collations_with_score
-    self.collations_with_score[shard_id][_score][self.num_collations_with_score[shard_id][_score]] = entire_header_hash
-    self.num_collations_with_score[shard_id][_score] = self.num_collations_with_score[shard_id][_score] + 1
 
     # Update the latest period number
     self.period_head[shard_id] = expected_period_number
