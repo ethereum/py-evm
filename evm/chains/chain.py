@@ -95,21 +95,28 @@ class Chain(object):
         """
         return self.get_vm().block
 
-    def get_transaction(self, transaction_hash):
-        try:
-            (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
-            vm = self.get_vm_class_for_block_number(block_num)
-            transaction = vm.get_transaction_by_index(block_num, index)
-            if transaction.hash != transaction_hash:
-                raise TransactionNotFound("Mismatched transaction, bailing...")
-        except TransactionNotFound:
-            # transaction has not been mined into the canonical chain
-            try:
-                return self.get_vm().get_pending_transaction(transaction_hash)
-            except TransactionNotFound as e:
-                raise TransactionNotFound(
-                    "Transaction {} not found".format(encode_hex(transaction_hash))
-                ) from e
+    def get_canonical_transaction(self, transaction_hash):
+        (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
+        VM = self.get_vm_class_for_block_number(block_num)
+
+        transaction = self.chaindb.get_transaction_by_index(
+            block_num,
+            index,
+            VM.get_transaction_class(),
+        )
+
+        if transaction.hash == transaction_hash:
+            return transaction
+        else:
+            raise TransactionNotFound("Found transaction {} instead of {} in block {} at {}".format(
+                encode_hex(transaction.hash),
+                encode_hex(transaction_hash),
+                block_num,
+                index,
+            ))
+
+    def get_pending_transaction(self, transaction_hash):
+        return self.get_vm().get_pending_transaction(transaction_hash)
 
     def create_transaction(self, *args, **kwargs):
         """

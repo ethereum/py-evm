@@ -337,20 +337,16 @@ class VM(object):
     #
     # Transactions
     #
-    def get_transaction_class(self):
+
+    @classmethod
+    def get_transaction_class(cls):
         """
         Return the class that this VM uses for transactions.
         """
-        return self.get_block_class().get_transaction_class()
+        return cls.get_block_class().get_transaction_class()
 
     def get_pending_transaction(self, transaction_hash):
         return self.chaindb.get_pending_transaction(transaction_hash, self.get_transaction_class())
-
-    def get_transaction_by_index(self, block_num, index):
-        '''
-        Return a transaction that has been mined in block_num at index
-        '''
-        return self.chaindb.get_transaction_by_index(block_num, index, self.get_transaction_class())
 
     def create_transaction(self, *args, **kwargs):
         """

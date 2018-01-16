@@ -1,3 +1,4 @@
+import pytest
 import rlp
 
 from eth_utils import decode_hex
@@ -5,6 +6,9 @@ from eth_utils import decode_hex
 from evm import constants
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.exceptions import (
+    TransactionNotFound,
+)
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from tests.core.fixtures import (  # noqa: F401
@@ -39,10 +43,22 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
     computation, _ = vm.apply_transaction(tx)
     assert not computation.is_error
+    assert chain.get_pending_transaction(tx.hash) == tx
     block = chain.import_block(vm.block)
     assert block.transactions == [tx]
     assert chain.get_block_by_hash(block.hash) == block
     assert chain.get_canonical_block_by_number(block.number) == block
+    assert chain.get_canonical_transaction(tx.hash) == tx
+
+
+def test_empty_transaction_lookups(chain_without_block_validation):
+    chain = chain_without_block_validation
+
+    with pytest.raises(TransactionNotFound):
+        chain.get_canonical_transaction(b'\0' * 32)
+
+    with pytest.raises(TransactionNotFound):
+        chain.get_pending_transaction(b'\0' * 32)
 
 
 def test_canonical_chain(chain):  # noqa: F811
