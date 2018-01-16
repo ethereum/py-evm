@@ -54,7 +54,7 @@ def _execute_frontier_transaction(vm_state, transaction):
     # Validate the transaction
     transaction.validate()
 
-    validate_frontier_transaction(vm_state, transaction)
+    vm_state.validate_transaction(transaction)
 
     gas_fee = transaction.gas * transaction.gas_price
     with vm_state.state_db() as state_db:
@@ -314,3 +314,6 @@ class FrontierVMState(BaseVMState):
             raise ValidationError(
                 "Uncle's gas usage ({0}) is above the limit ({1})".format(
                     uncle.gas_used, uncle.gas_limit))
+
+    def validate_transaction(self, transaction):
+        validate_frontier_transaction(self, transaction)

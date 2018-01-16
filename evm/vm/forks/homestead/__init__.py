@@ -4,7 +4,6 @@ from evm.chains.mainnet.constants import (
 from evm.vm.forks.frontier import FrontierVM
 
 from .blocks import HomesteadBlock
-from .validation import validate_homestead_transaction
 from .headers import (
     create_homestead_header_from_parent,
     compute_homestead_difficulty,
@@ -24,7 +23,6 @@ HomesteadVM = MetaHomesteadVM.configure(
     _block_class=HomesteadBlock,
     _state_class=HomesteadVMState,
     # method overrides
-    validate_transaction=validate_homestead_transaction,
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
     compute_difficulty=staticmethod(compute_homestead_difficulty),
     configure_header=configure_homestead_header,
