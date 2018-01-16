@@ -199,7 +199,7 @@ class Create2(CreateEIP150):
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
 
         computation.gas_meter.consume_gas(self.gas_cost, reason=self.mnemonic)
-        
+
         value = computation.stack.pop(type_hint=constants.UINT256,)
         salt = computation.stack.pop(type_hint=constants.BYTES,)
         start_position, size = computation.stack.pop(
