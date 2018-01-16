@@ -133,21 +133,21 @@ def chaindb():
 
 def get_nonce(vm):
     computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
+        "data": int_to_big_endian(NONCE_GETTER_ID),
     })))
     return big_endian_to_int(computation.output)
 
 
 def test_get_nonce(vm):
     computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
+        "data": int_to_big_endian(NONCE_GETTER_ID),
     })))
     assert computation.output == pad32(b"\x00")
 
     computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
 
     computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": pad32(int_to_big_endian(NONCE_GETTER_ID)),
+        "data": int_to_big_endian(NONCE_GETTER_ID),
     })))
     assert computation.output == pad32(b"\x01")
 
@@ -374,3 +374,7 @@ def test_call_does_not_revert_nonce(vm):
     computation = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == nonce_before + 1
+
+
+def test_nonce_getter_id():
+    assert NONCE_GETTER_ID == big_endian_to_int(keccak(b"get_nonce()")[:4])
