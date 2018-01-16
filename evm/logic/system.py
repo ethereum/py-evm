@@ -198,6 +198,8 @@ class Create2(CreateEIP150):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
 
+        computation.gas_meter.consume_gas(self.gas_cost, reason=self.mnemonic)
+        
         value = computation.stack.pop(type_hint=constants.UINT256,)
         salt = computation.stack.pop(type_hint=constants.BYTES,)
         start_position, size = computation.stack.pop(
@@ -224,7 +226,7 @@ class Create2(CreateEIP150):
         create_msg_gas = self.max_child_gas_modifier(
             computation.gas_meter.gas_remaining
         )
-        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
+        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE2")
 
         contract_address = generate_CREATE2_contract_address(
             salt,
