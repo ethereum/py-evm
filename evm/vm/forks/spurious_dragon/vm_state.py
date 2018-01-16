@@ -33,4 +33,4 @@ class SpuriousDragonVMState(HomesteadVMState):
                     )
                     state_db.delete_account(account)
 
-        return computation, self.block_header
+        return computation

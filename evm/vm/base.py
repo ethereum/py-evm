@@ -196,6 +196,9 @@ class VM(object):
                     uncle.coinbase,
                 )
 
+            # Update state_root manually
+            block.header.state_root = state_db.root_hash
+
         return block
 
     def pack_block(self, block, *args, **kwargs):
@@ -264,8 +267,8 @@ class VM(object):
             execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
             vm_state = cls.get_state_class()(
                 chaindb=witness_db,
-                block_header=block.header,
                 execution_context=execution_context,
+                state_root=block.header.state_root,
                 receipts=receipts,
             )
             computation, result_block, _ = vm_state.apply_transaction(
@@ -286,8 +289,8 @@ class VM(object):
         execution_context = ExecutionContext.from_block_header(block.header, prev_headers)
         vm_state = cls.get_state_class()(
             chaindb=witness_db,
-            block_header=block.header,
             execution_context=execution_context,
+            state_root=block.header.state_root,
             receipts=receipts,
         )
         block = cls.finalize_block(vm_state, block)
@@ -337,7 +340,8 @@ class VM(object):
                     uncle_reward,
                     uncle.coinbase,
                 )
-        block.state_root = vm_state.block_header.state_root
+
+        block.header.state_root = vm_state.state_root
 
         return block
 
@@ -473,6 +477,7 @@ class VM(object):
         if block_header is None:
             block_header = self.block.header
 
+        # TODO: cache
         prev_headers = self.get_prev_headers(
             last_block_hash=self.block.header.parent_hash,
             db=self.chaindb,
@@ -481,8 +486,8 @@ class VM(object):
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
-            block_header,
-            execution_context,
+            execution_context=execution_context,
+            state_root=block_header.state_root,
             receipts=receipts,
         )
 

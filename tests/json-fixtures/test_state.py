@@ -160,11 +160,11 @@ def fixture(fixture_data):
 # Test Chain Setup
 #
 def get_block_hash_for_testing(self, block_number):
-    if block_number >= self.block_header.block_number:
+    if block_number >= self.block_number:
         return b''
     elif block_number < 0:
         return b''
-    elif block_number < self.block_header.block_number - 256:
+    elif block_number < self.block_number - 256:
         return b''
     else:
         return keccak("{0}".format(block_number))
@@ -258,6 +258,8 @@ def test_state_fixtures(fixture, fixture_vm_class):
 
     with vm.state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
+        # Update state_root manually
+        vm.block.header.state_root = state_db.root_hash
 
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(

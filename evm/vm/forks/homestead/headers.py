@@ -85,6 +85,9 @@ def configure_homestead_header(vm, **header_params):
                 state_db.delta_balance(dao_refund_contract, balance)
                 state_db.set_balance(account, 0)
 
+            # Update state_root manually
+            vm.block.header.state_root = state_db.root_hash
+
     return vm.block.header
 
 

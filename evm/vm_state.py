@@ -28,20 +28,19 @@ class BaseVMState(object):
     # Set from __init__
     #
     _chaindb = None
-    block_header = None
     execution_context = None
+    state_root = None
+    receipts = None
 
     computation_class = None
     access_logs = None
-    receipts = None
 
-    def __init__(self, chaindb, block_header, execution_context, receipts=[]):
+    def __init__(self, chaindb, execution_context, state_root, receipts=[]):
         self._chaindb = chaindb
-        self.block_header = block_header
         self.execution_context = execution_context
-
-        self.access_logs = AccessLogs()
+        self.state_root = state_root
         self.receipts = receipts
+        self.access_logs = AccessLogs()
 
     #
     # Logging
@@ -79,15 +78,15 @@ class BaseVMState(object):
     #
     @contextmanager
     def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(self.block_header.state_root, read_only)
+        state = self._chaindb.get_state_db(self.state_root, read_only)
         yield state
 
         if read_only:
             # This acts as a secondary check that no mutation took place for
             # read_only databases.
-            assert state.root_hash == self.block_header.state_root
-        elif self.block_header.state_root != state.root_hash:
-            self.block_header.state_root = state.root_hash
+            assert state.root_hash == self.state_root
+        elif self.state_root != state.root_hash:
+            self.set_state_root(state.root_hash)
 
         self.access_logs.reads.update(state.db.access_logs.reads)
         self.access_logs.writes.update(state.db.access_logs.writes)
@@ -97,6 +96,9 @@ class BaseVMState(object):
         # leaving the context.
         state.db = None
         state._trie = None
+
+    def set_state_root(self, state_root):
+        self.state_root = state_root
 
     #
     # Access self._chaindb
@@ -108,7 +110,7 @@ class BaseVMState(object):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the checkpoint_id returned from the journaled DB.
         """
-        return (self.block_header.state_root, self._chaindb.snapshot())
+        return (self.state_root, self._chaindb.snapshot())
 
     def revert(self, snapshot):
         """
@@ -148,7 +150,7 @@ class BaseVMState(object):
         """
         Return the hash of the ancestor with the given block number.
         """
-        ancestor_depth = self.block_header.block_number - block_number - 1
+        ancestor_depth = self.block_number - block_number - 1
         if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
                 ancestor_depth < 0 or
                 ancestor_depth >= len(self.execution_context.prev_headers)):
@@ -205,16 +207,16 @@ class BaseVMState(object):
         if is_stateless:
             # Don't modify the given block
             block = copy.deepcopy(block)
-            self.block_header = block.header
-            computation, block_header = self.execute_transaction(transaction)
+            self.set_state_root(block.header.state_root)
+            computation = self.execute_transaction(transaction)
 
             # Set block.
-            block.header = block_header
             block, trie_data = self.add_transaction(transaction, computation, block)
-
+            block.header.state_root = self.state_root
             return computation, block, trie_data
         else:
-            computation, block_header = self.execute_transaction(transaction)
+            computation = self.execute_transaction(transaction)
+            block.header.state_root = self.state_root
             return computation, None, None
 
     def add_transaction(self, transaction, computation, block):

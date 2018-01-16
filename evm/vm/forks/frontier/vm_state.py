@@ -198,11 +198,14 @@ def _make_frontier_receipt(vm_state, transaction, computation):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-
-    gas_used = vm_state.block_header.gas_used + tx_gas_used
+    if vm_state.receipts:
+        gas_used = vm_state.receipts[-1].gas_used
+    else:
+        gas_used = 0
+    gas_used += tx_gas_used
 
     receipt = Receipt(
-        state_root=vm_state.block_header.state_root,
+        state_root=vm_state.state_root,
         gas_used=gas_used,
         logs=logs,
     )
@@ -215,7 +218,7 @@ class FrontierVMState(BaseVMState):
 
     def execute_transaction(self, transaction):
         computation = _execute_frontier_transaction(self, transaction)
-        return computation, self.block_header
+        return computation
 
     def make_receipt(self, transaction, computation):
         receipt = _make_frontier_receipt(self, transaction, computation)
