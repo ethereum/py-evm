@@ -6,9 +6,11 @@ import logging
 from evm.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
+    MAX_UNCLES,
 )
 from evm.exceptions import (
     BlockNotFound,
+    ValidationError,
 )
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
@@ -19,11 +21,15 @@ from evm.utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
+from evm.utils.headers import (
+    generate_header_from_parent_header,
+)
 from evm.utils.keccak import (
     keccak,
 )
-from evm.utils.headers import (
-    generate_header_from_parent_header,
+from evm.validation import (
+    validate_length_lte,
+    validate_gas_limit,
 )
 
 from .execution_context import (
@@ -238,7 +244,7 @@ class VM(object):
             setattr(header, key, value)
 
         # Perform validation
-        self.state.validate_block(block)
+        self.validate_block(block)
 
         return block
 
@@ -344,6 +350,88 @@ class VM(object):
         block.header.state_root = vm_state.state_root
 
         return block
+
+    #
+    # Validate
+    #
+    def validate_block(self, block):
+        if not block.is_genesis:
+            parent_header = self.state.parent_header
+
+            validate_gas_limit(block.header.gas_limit, parent_header.gas_limit)
+            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+
+            # timestamp
+            if block.header.timestamp < parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is before the parent block's timestamp.\n"
+                    "- block  : {0}\n"
+                    "- parent : {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+            elif block.header.timestamp == parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is equal to the parent block's timestamp\n"
+                    "- block : {0}\n"
+                    "- parent: {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+
+        if len(block.uncles) > MAX_UNCLES:
+            raise ValidationError(
+                "Blocks may have a maximum of {0} uncles.  Found "
+                "{1}.".format(MAX_UNCLES, len(block.uncles))
+            )
+
+        for uncle in block.uncles:
+            self.validate_uncle(block, uncle)
+
+        if not self.state.is_key_exists(block.header.state_root):
+            raise ValidationError(
+                "`state_root` was not found in the db.\n"
+                "- state_root: {0}".format(
+                    block.header.state_root,
+                )
+            )
+        local_uncle_hash = keccak(rlp.encode(block.uncles))
+        if local_uncle_hash != block.header.uncles_hash:
+            raise ValidationError(
+                "`uncles_hash` and block `uncles` do not match.\n"
+                " - num_uncles       : {0}\n"
+                " - block uncle_hash : {1}\n"
+                " - header uncle_hash: {2}".format(
+                    len(block.uncles),
+                    local_uncle_hash,
+                    block.header.uncle_hash,
+                )
+            )
+
+    def validate_uncle(self, block, uncle):
+        if uncle.block_number >= block.number:
+            raise ValidationError(
+                "Uncle number ({0}) is higher than block number ({1})".format(
+                    uncle.block_number, block.number))
+        try:
+            parent_header = get_block_header_by_hash(uncle.parent_hash, self.chaindb)
+        except BlockNotFound:
+            raise ValidationError(
+                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
+        if uncle.block_number != parent_header.block_number + 1:
+            raise ValidationError(
+                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                    uncle.block_number, parent_header.block_number))
+        if uncle.timestamp < parent_header.timestamp:
+            raise ValidationError(
+                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                    uncle.timestamp, parent_header.timestamp))
+        if uncle.gas_used > uncle.gas_limit:
+            raise ValidationError(
+                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                    uncle.gas_used, uncle.gas_limit))
 
     #
     # Transactions

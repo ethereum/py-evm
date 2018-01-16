@@ -272,24 +272,6 @@ class BaseVMState(object):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def validate_block(self, block):
-        """
-        Validate the block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def validate_uncle(self, block, uncle):
-        """
-        Validate the uncle.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def validate_transaction(self, transaction):
-        """
-        Perform chain-aware validation checks on the transaction.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     #
     # classmethod
     #
