@@ -26,8 +26,6 @@ from eth_utils import (
     decode_hex,
     encode_hex,
     keccak,
-    to_bytes,
-    text_if_str,
 )
 
 from eth_keys import (
@@ -101,10 +99,10 @@ class Node:
         self.id = big_endian_to_int(keccak(pubkey.to_bytes()))
 
     @classmethod
-    def from_uri(cls, uri: bytes) -> 'Node':
-        ip, port, pubkey_bytes = host_port_pubkey_from_uri(uri)
-        pubkey = keys.PublicKey(pubkey_bytes)
-        return cls(pubkey, Address(ip.decode(), port))
+    def from_uri(cls, uri: str) -> 'Node':
+        parsed = urlparse.urlparse(uri)
+        pubkey = keys.PublicKey(decode_hex(parsed.username))
+        return cls(pubkey, Address(parsed.hostname, parsed.port))
 
     def __repr__(self):
         return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
@@ -331,22 +329,20 @@ class KademliaProtocol:
             self.logger.debug(
                 'unexpected neighbours from %s, probably came too late', remote)
 
-    def recv_pong(self, remote: Node, token: AnyStr) -> None:
+    def recv_pong(self, remote: Node, token: bytes) -> None:
         """Process a pong packet.
 
         Pong packets should only be received as a response to a ping, so the actual processing is
         left to the callback from pong_callbacks, which is added (and removed after it's done
         or timed out) in wait_pong().
         """
-        self.logger.debug('<<< pong from %s', remote)
+        self.logger.debug('<<< pong from %s (token == %s)', remote, encode_hex(token))
         pingid = self._mkpingid(token, remote)
         callback = self.pong_callbacks.get(pingid)
         if callback is not None:
             callback()
         else:
-            self.logger.debug(
-                'unexpected pong from %s with pingid %s, probably came too late',
-                remote, encode_hex(pingid))
+            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
 
     def recv_ping(self, remote: Node, hash_: AnyStr) -> None:
         """Process a received ping packet.
@@ -408,13 +404,14 @@ class KademliaProtocol:
         del self.ping_callbacks[remote]
         return got_ping
 
-    async def wait_pong(self, pingid: bytes) -> bool:
-        """Wait for a pong with the given pingid.
+    async def wait_pong(self, remote: Node, token: bytes) -> bool:
+        """Wait for a pong from the given remote containing the given token.
 
         This coroutine adds a callback to pong_callbacks and yields control until that callback is
         called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
         a pong was received with the given pingid.
         """
+        pingid = self._mkpingid(token, remote)
         if pingid in self.pong_callbacks:
             raise AlreadyWaiting(
                 "There's another coroutine waiting for a pong packet with id {}".format(pingid))
@@ -424,10 +421,10 @@ class KademliaProtocol:
         got_pong = False
         try:
             got_pong = await asyncio.wait_for(event.wait(), k_request_timeout)
-            self.logger.debug('got expected pong with pingid %s', encode_hex(pingid))
+            self.logger.debug('got expected pong with token %s', encode_hex(token))
         except asyncio.futures.TimeoutError:
             self.logger.debug(
-                'timed out waiting for pong with pingid %s', encode_hex(pingid))
+                'timed out waiting for pong from %s (token == %s)', remote, encode_hex(token))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.pong_callbacks[pingid]
         return got_pong
@@ -466,9 +463,7 @@ class KademliaProtocol:
     def ping(self, node: Node) -> bytes:
         if node == self.this_node:
             raise ValueError("Cannot ping self")
-        token = self.wire.send_ping(node)
-        pingid = self._mkpingid(token, node)
-        return pingid
+        return self.wire.send_ping(node)
 
     async def bond(self, node: Node) -> bool:
         """Bond with the given node.
@@ -479,9 +474,9 @@ class KademliaProtocol:
         if node in self.routing:
             return True
 
-        pingid = self.ping(node)
+        token = self.ping(node)
 
-        got_pong = await self.wait_pong(pingid)
+        got_pong = await self.wait_pong(node, token)
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from %s", node)
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
@@ -559,9 +554,8 @@ class KademliaProtocol:
             rid = random.randint(bucket.start, bucket.end)
             asyncio.ensure_future(self.lookup(rid))
 
-    def _mkpingid(self, token: AnyStr, node: Node) -> bytes:
-        pid = text_if_str(to_bytes, token) + node.pubkey.to_bytes()
-        return pid
+    def _mkpingid(self, token: bytes, node: Node) -> bytes:
+        return token + node.pubkey.to_bytes()
 
     async def populate_not_full_buckets(self):
         """Go through all buckets that are not full and try to fill them.
@@ -594,8 +588,3 @@ def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
 
 def sort_by_distance(nodes: List[Node], target_id: int) -> List[Node]:
     return sorted(nodes, key=operator.methodcaller('distance_to', target_id))
-
-
-def host_port_pubkey_from_uri(uri: bytes) -> Tuple[bytes, int, bytes]:
-    parsed = urlparse.urlparse(uri)
-    return cast(bytes, parsed.hostname), parsed.port, cast(bytes, decode_hex(parsed.username))
