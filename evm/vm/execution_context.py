@@ -1,4 +1,4 @@
-class ExecutionContext():
+class ExecutionContext:
     # For shard chain, refer to the shard coinbase.
     _coinbase = None
 

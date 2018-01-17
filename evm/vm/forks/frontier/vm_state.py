@@ -186,11 +186,7 @@ def _make_frontier_receipt(vm_state, transaction, computation):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-    if vm_state.receipts:
-        gas_used = vm_state.receipts[-1].gas_used
-    else:
-        gas_used = 0
-    gas_used += tx_gas_used
+    gas_used = vm_state.gas_used + tx_gas_used
 
     receipt = Receipt(
         state_root=vm_state.state_root,

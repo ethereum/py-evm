@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import rlp
 import logging
 
+from eth_utils import (
+    to_tuple,
+)
+
 from evm.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
@@ -476,21 +480,19 @@ class VM(object):
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
+    @to_tuple
     def get_prev_hashes(cls, last_block_hash, db):
-        prev_hashes = []
-
         if last_block_hash == GENESIS_PARENT_HASH:
-            return prev_hashes
+            return
 
         block_header = get_block_header_by_hash(last_block_hash, db)
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
-            prev_hashes.append(block_header.hash)
+            yield block_header.hash
             try:
                 block_header = get_parent_header(block_header, db)
             except (IndexError, BlockNotFound):
                 break
-        return prev_hashes
 
     #
     # Gas Usage API

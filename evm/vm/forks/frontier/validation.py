@@ -18,11 +18,7 @@ def validate_frontier_transaction(vm_state, transaction):
     if sender_balance < total_cost:
         raise ValidationError("Sender account balance cannot afford txn")
 
-    if vm_state.receipts:
-        gas_used = vm_state.receipts[-1].gas_used
-    else:
-        gas_used = 0
-    if gas_used + transaction.gas > vm_state.gas_limit:
+    if vm_state.gas_used + transaction.gas > vm_state.gas_limit:
         raise ValidationError("Transaction exceeds gas limit")
 
     with vm_state.state_db(read_only=True) as state_db:

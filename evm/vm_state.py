@@ -68,6 +68,16 @@ class BaseVMState(object):
         return self.execution_context.gas_limit
 
     #
+    # Helpers
+    #
+    @property
+    def gas_used(self):
+        if self.receipts:
+            return self.receipts[-1].gas_used
+        else:
+            return 0
+
+    #
     # state_db
     #
     @contextmanager
@@ -141,9 +151,12 @@ class BaseVMState(object):
         Return the hash of the ancestor with the given block number.
         """
         ancestor_depth = self.block_number - block_number - 1
-        if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
-                ancestor_depth < 0 or
-                ancestor_depth >= len(self.execution_context.prev_hashes)):
+        is_ancestor_depth_out_of_range = (
+            ancestor_depth >= MAX_PREV_HEADER_DEPTH or
+            ancestor_depth < 0 or
+            ancestor_depth >= len(self.execution_context.prev_hashes)
+        )
+        if is_ancestor_depth_out_of_range:
             return b''
         ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
         return ancestor_hash
