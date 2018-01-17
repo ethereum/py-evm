@@ -6,6 +6,7 @@ from p2p.les import (
     LESProtocol,
     LESProtocolV2,
 )
+from p2p.exceptions import NoMatchingPeerCapabilities
 from p2p.peer import LESPeer
 from p2p.p2p_proto import P2PProtocol
 
@@ -46,6 +47,9 @@ def test_sub_protocol_selection():
 
     assert isinstance(proto, LESProtocolV2)
     assert proto.cmd_id_offset == peer.base_protocol.cmd_length
+
+    with pytest.raises(NoMatchingPeerCapabilities):
+        peer.select_sub_protocol([('unknown', 1)])
 
 
 class LESProtocolV3(LESProtocol):

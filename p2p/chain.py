@@ -26,7 +26,6 @@ class ChainSyncer(PeerPoolSubscriber):
     def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self.peer_pool.min_peers = self.min_peers_to_sync
         self.peer_pool.subscribe(self)
         self.cancel_token = CancelToken('ChainSyncer')
         self._running_peers = set()  # type: Set[ETHPeer]
@@ -307,6 +306,9 @@ def _test() -> None:
     import argparse
     import signal
     from p2p import ecies
+    from p2p import kademlia
+    from p2p.constants import ROPSTEN_BOOTNODES
+    from p2p.discovery import DiscoveryProtocol
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
@@ -318,16 +320,28 @@ def _test() -> None:
     parser.add_argument('-local-geth', action="store_true")
     args = parser.parse_args()
 
+    loop = asyncio.get_event_loop()
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    privkey = ecies.generate_privkey()
     if args.local_geth:
-        peer_pool = LocalGethPeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
+        peer_pool = LocalGethPeerPool(ETHPeer, chaindb, RopstenChain.network_id, privkey)
+        discovery = None
     else:
-        peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
-    asyncio.ensure_future(peer_pool.run())
+        listen_host = '0.0.0.0'
+        listen_port = 30303
+        addr = kademlia.Address(listen_host, listen_port, listen_port)
+        discovery = DiscoveryProtocol(privkey, addr, ROPSTEN_BOOTNODES)
+        loop.run_until_complete(discovery.create_endpoint())
+        print("Bootstrapping discovery service...")
+        loop.run_until_complete(discovery.bootstrap())
+        peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery)
 
+    asyncio.ensure_future(peer_pool.run())
     downloader = ChainSyncer(chaindb, peer_pool)
+    # On ROPSTEN the discovery table is usually full of bad peers so we can't require too many
+    # peers in order to sync.
+    downloader.min_peers_to_sync = 1
 
     async def run():
         # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
@@ -335,8 +349,11 @@ def _test() -> None:
         await downloader.run()
         await peer_pool.stop()
         await downloader.stop()
+        if discovery is not None:
+            discovery.stop()
+            # Give any pending discovery tasks some time to finish.
+            await asyncio.sleep(2)
 
-    loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, downloader.cancel_token.trigger)
     loop.run_until_complete(run())

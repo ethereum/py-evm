@@ -14,6 +14,7 @@ from typing import (  # noqa: F401
     Callable,
     cast,
     Dict,
+    Generator,
     List,
     Set,
     Sized,
@@ -220,10 +221,28 @@ class KBucket(Sized):
 
 
 class RoutingTable:
+    logger = logging.getLogger("p2p.kademlia.RoutingTable")
 
     def __init__(self, node: Node) -> None:
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
+
+    def get_random_nodes(self, count: int) -> Generator[Node, None, None]:
+        if count > len(self):
+            self.logger.warn(
+                "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
+            count = len(self)
+        seen = []  # type: List[Node]
+        # This is a rather inneficient way of randomizing nodes from all buckets, but even if we
+        # iterate over all nodes in the routing table, the time it takes would still be
+        # insignificant compared to the time it takes for the network roundtrips when connecting
+        # to nodes.
+        while len(seen) < count:
+            bucket = random.choice(self.buckets)
+            node = random.choice(bucket.nodes)
+            if node not in seen:
+                yield node
+                seen.append(node)
 
     def split_bucket(self, index: int) -> None:
         bucket = self.buckets[index]
@@ -503,7 +522,7 @@ class KademliaProtocol:
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
             return
-        await self.lookup(self.this_node.id, cancel_token)
+        await self.lookup_random(cancel_token)
 
     async def lookup(self, node_id: int, cancel_token: CancelToken) -> List[Node]:
         """Lookup performs a network search for nodes close to the given target.
@@ -548,6 +567,9 @@ class KademliaProtocol:
 
         self.logger.info("lookup finished for %s: %s", node_id, closest)
         return closest
+
+    async def lookup_random(self, cancel_token: CancelToken) -> List[Node]:
+        return await self.lookup(random.randint(0, k_max_node_id), cancel_token)
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
     # time when the least recently touched bucket will be considered idle.

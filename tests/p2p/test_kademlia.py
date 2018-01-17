@@ -41,11 +41,11 @@ async def test_protocol_bootstrap(cancel_token):
     await proto.bootstrap([node1, node2], cancel_token)
 
     assert len(proto.wire.messages) == 2
-    # We don't care in which order the bootstrap nodes are contacted, so we sort them both in the
-    # assert here.
-    assert sorted(proto.wire.messages) == sorted([
-        (node1, 'find_node', proto.routing.this_node.id),
-        (node2, 'find_node', proto.routing.this_node.id)])
+    # We don't care in which order the bootstrap nodes are contacted, nor which node_id was used
+    # in the find_node request, so we just assert that we sent find_node msgs to both nodes.
+    assert sorted([(node, cmd) for (node, cmd, _) in proto.wire.messages]) == sorted([
+        (node1, 'find_node'),
+        (node2, 'find_node')])
 
 
 @pytest.mark.asyncio
@@ -252,6 +252,22 @@ def test_routingtable_neighbours():
         node_a = nearest_bucket.nodes[0]
         node_b = random_node(node_a.id + 1)
         assert node_a == table.neighbours(node_b.id)[0]
+
+
+def test_routingtable_get_random_nodes():
+    table = kademlia.RoutingTable(random_node())
+    for i in range(100):
+        assert table.add_node(random_node()) is None
+
+    nodes = list(table.get_random_nodes(50))
+    assert len(nodes) == 50
+    assert len(set(nodes)) == 50
+
+    # If we ask for more nodes than what the routing table contains, we'll get only what the
+    # routing table contains, without duplicates.
+    nodes = list(table.get_random_nodes(200))
+    assert len(nodes) == 100
+    assert len(set(nodes)) == 100
 
 
 def test_kbucket_add():

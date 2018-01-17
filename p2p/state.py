@@ -32,7 +32,6 @@ from p2p import eth
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
-from p2p.eth import MAX_STATE_FETCH
 
 
 class StateDownloader(PeerPoolSubscriber):
@@ -43,7 +42,7 @@ class StateDownloader(PeerPoolSubscriber):
     # TODO: Experiment with different timeout/max_pending values to find the combination that
     # yields the best results.
     # FIXME: Should use the # of peers times MAX_STATE_FETCH here
-    _max_pending = 5 * MAX_STATE_FETCH
+    _max_pending = 5 * eth.MAX_STATE_FETCH
     _reply_timeout = 10  # seconds
     # For simplicity/readability we use 0 here to force a report on the first iteration of the
     # loop.
@@ -103,7 +102,7 @@ class StateDownloader(PeerPoolSubscriber):
             await asyncio.sleep(0.1)
 
     async def request_next_batch(self):
-        requests = self.scheduler.next_batch(MAX_STATE_FETCH)
+        requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
         if not requests:
             # Although our run() loop frequently yields control to let our msg handler process
             # received nodes (scheduling new requests), there may be cases when the pending nodes
@@ -184,6 +183,7 @@ def _test():
     import argparse
     import signal
     from p2p import ecies
+    from p2p.peer import HardCodedNodesPeerPool
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from evm.db.backends.memory import MemoryDB
@@ -197,7 +197,8 @@ def _test():
 
     chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-    peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
+    peer_pool = HardCodedNodesPeerPool(
+        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
     asyncio.ensure_future(peer_pool.run())
 
     state_db = LevelDB(args.db)

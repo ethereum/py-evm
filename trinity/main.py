@@ -10,7 +10,7 @@ from evm.db.backends.level import LevelDB
 
 from p2p.peer import (
     LESPeer,
-    PeerPool,
+    HardCodedNodesPeerPool,
 )
 
 from trinity.chains import (
@@ -78,7 +78,7 @@ def main() -> None:
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
 
-    pool_class = PeerPool
+    pool_class = HardCodedNodesPeerPool
     if args.local_geth:
         pool_class = LocalGethPeerPool
 
@@ -149,7 +149,7 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[LevelDB]) -> 
 def run_networking_process(
         chain_config: ChainConfig,
         sync_mode: str,
-        pool_class: Type[PeerPool]) -> None:
+        pool_class: Type[HardCodedNodesPeerPool]) -> None:
 
     class DBManager(BaseManager):
         pass
