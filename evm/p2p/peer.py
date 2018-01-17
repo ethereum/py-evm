@@ -4,7 +4,7 @@ import operator
 import sha3
 import struct
 import traceback
-from typing import (Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
+from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
 
 from cytoolz import reduceby
 
@@ -47,6 +47,7 @@ from evm.p2p.utils import (
     roundup_16,
     sxor,
 )
+from evm.p2p.eth import ETHProtocol
 from evm.p2p.les import (  # noqa: F401
     Announce,
     HeadInfo,
@@ -112,6 +113,7 @@ async def handshake(remote: Node,
         # Peers may send a disconnect msg before they send the initial P2P handshake (e.g. when
         # they're not accepting more peers), so we special case that here because it's important
         # to distinguish this from a failed handshake (e.g. no matching protocols, etc).
+        decoded = cast(Dict[str, Any], decoded)
         raise PeerDisconnected("Peer disconnected before completing handshake: {}".format(
             decoded['reason_name']))
     if len(peer.enabled_sub_protocols) == 0:
@@ -280,7 +282,7 @@ class BasePeer:
             raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
 
         cmd, decoded = proto.process(cmd_id, msg)
-        if decoded is not None:
+        if isinstance(decoded, dict):
             # Check if this is a reply we're waiting for and, if so, call the callback for this
             # request_id.
             request_id = decoded.get('request_id')
@@ -293,6 +295,7 @@ class BasePeer:
         return cmd, decoded
 
     def process_p2p_handshake(self, decoded_msg: protocol._DecodedMsgType) -> None:
+        decoded_msg = cast(Dict[str, Any], decoded_msg)
         remote_capabilities = decoded_msg['capabilities']
         self.match_protocols(remote_capabilities)
         if len(self.enabled_sub_protocols) == 0:
@@ -449,6 +452,28 @@ class LESPeer(BasePeer):
         return self._les_proto
 
 
+class ETHPeer(BasePeer):
+    _eth_proto = None
+    _supported_sub_protocols = [ETHProtocol]
+
+    # FIXME: This is a hack; instead we should have an API to lookup a specific protocol, or,
+    # better yet, have the Peer class wrap the protocol methods so that callsites don't have to
+    # ever deal with Protocol instances directly.
+    @property
+    def eth_proto(self):
+        if self._eth_proto is None:
+            for proto in self.enabled_sub_protocols:
+                if proto.name == ETHProtocol.name:
+                    # There may be multiple entries in self.enabled_sub_protocols whose name match
+                    # ETHProtocol.name, and we want the one with the highest version; that's why
+                    # we don't break out of the loop after assigning to self._eth_proto.
+                    self._eth_proto = proto
+            if self._eth_proto is None:
+                raise Exception(
+                    "We assumed ETHProtocol was supported, but it isn't. See comment above")
+        return self._eth_proto
+
+
 class ChainInfo:
     def __init__(self, block_number, block_hash, total_difficulty, genesis_hash):
         self.block_number = block_number
@@ -478,8 +503,12 @@ if __name__ == "__main__":
     remoteid = nodekey.public_key.to_hex()
     parser = argparse.ArgumentParser()
     parser.add_argument('-remoteid', type=str, default=remoteid)
+    parser.add_argument('-light', action='store_true', help="Connect as a light node")
     args = parser.parse_args()
 
+    peer_class = ETHPeer  # type: ignore
+    if args.light:
+        peer_class = LESPeer  # type: ignore
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
@@ -490,8 +519,23 @@ if __name__ == "__main__":
     try:
         peer = loop.run_until_complete(
             asyncio.wait_for(
-                handshake(remote, ecies.generate_privkey(), LESPeer, chaindb, network_id),
+                handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id),
                 HANDSHAKE_TIMEOUT))
+        # Request some stuff from ropsten's block 2440319
+        # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
+        block_hash = decode_hex(
+            '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
+        if peer_class == ETHPeer:
+            peer = cast(ETHPeer, peer)
+            peer.eth_proto.send_get_block_headers(block_hash, 1)
+            peer.eth_proto.send_get_block_bodies([block_hash])
+            peer.eth_proto.send_get_receipts([block_hash])
+        else:
+            peer = cast(LESPeer, peer)
+            request_id = 1
+            peer.les_proto.send_get_block_headers(block_hash, 1, request_id)
+            peer.les_proto.send_get_block_bodies([block_hash], request_id + 1)
+            peer.les_proto.send_get_receipts(block_hash, request_id + 2)
         loop.run_until_complete(peer.start())
     except KeyboardInterrupt:
         pass

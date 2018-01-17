@@ -427,7 +427,6 @@ class LightChain(Chain):
             header=header,
             transactions=transactions,
             uncles=body.uncles,
-            chaindb=self.chaindb,
         )
 
     @alru_cache(maxsize=1024, cache_exceptions=False)

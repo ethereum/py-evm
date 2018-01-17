@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Any, cast, Dict, List, Union
 
 import rlp
 from rlp import sedes
@@ -18,6 +18,7 @@ from evm.p2p.protocol import (
     Protocol,
     _DecodedMsgType,
 )
+from evm.p2p.sedes import HashOrNumber
 
 from .constants import (
     LES_ANNOUNCE_SIMPLE,
@@ -93,6 +94,7 @@ class Status(Command):
         return super(Status, self).encode_payload(response)
 
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
+        decoded = cast(Dict[str, Any], decoded)
         return HeadInfo(
             block_number=decoded['headNum'],
             block_hash=decoded['headHash'],
@@ -114,25 +116,13 @@ class Announce(Command):
     # Need to extend this command to process that too.
 
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
+        decoded = cast(Dict[str, Any], decoded)
         return HeadInfo(
             block_number=decoded['head_number'],
             block_hash=decoded['head_hash'],
             total_difficulty=decoded['head_td'],
             reorg_depth=decoded['reorg_depth'],
         )
-
-
-class HashOrNumber:
-
-    def serialize(self, obj):
-        if isinstance(obj, int):
-            return sedes.big_endian_int.serialize(obj)
-        return sedes.binary.serialize(obj)
-
-    def deserialize(self, serial):
-        if len(serial) == 32:
-            return sedes.binary.deserialize(serial)
-        return sedes.big_endian_int.deserialize(serial)
 
 
 class GetBlockHeadersQuery(rlp.Serializable):
@@ -229,6 +219,7 @@ class Proofs(Command):
 
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
         decoded = super().decode_payload(rlp_data)
+        decoded = cast(Dict[str, Any], decoded)
         # This is just to make Proofs messages compatible with ProofsV2, so that LightChain
         # doesn't have to special-case them. Soon we should be able to drop support for LES/1
         # anyway, and then all this code will go away.
@@ -284,6 +275,7 @@ class LESProtocol(Protocol):
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
     def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
+        decoded_msg = cast(Dict[str, Any], decoded_msg)
         if decoded_msg['networkId'] != self.peer.network_id:
             self.logger.debug(
                 "%s network (%s) does not match ours (%s), disconnecting",
