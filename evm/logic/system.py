@@ -209,11 +209,7 @@ class Create2(CreateEIP150):
 
         computation.extend_memory(start_position, size)
 
-        _state_db = computation.vm_state.state_db(
-            read_only=True,
-            access_list=computation.msg.access_list,
-        )
-        with _state_db as state_db:
+        with computation.state_db(read_only=True) as state_db:
             insufficient_funds = state_db.get_balance(computation.msg.storage_address) < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
@@ -232,11 +228,8 @@ class Create2(CreateEIP150):
             salt,
             call_data,
         )
-        _state_db = computation.vm_state.state_db(
-            read_only=True,
-            access_list=computation.msg.access_list,
-        )
-        with _state_db as state_db:
+
+        with computation.state_db(read_only=True) as state_db:
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
