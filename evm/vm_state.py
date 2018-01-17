@@ -263,6 +263,48 @@ class BaseVMState(object):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
+    # Finalization
+    #
+    def finalize_block(self, block):
+        """
+        Apply rewards.
+        """
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
+        )
+
+        with self.state_db() as state_db:
+            state_db.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
+
+            for uncle in block.uncles:
+                uncle_reward = self.get_uncle_reward(block.number, uncle)
+                state_db.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
+        block.header.state_root = self.state_root
+        return block
+
+    @staticmethod
+    def get_block_reward():
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    def get_nephew_reward(cls):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
     # classmethod
     #
     @classmethod

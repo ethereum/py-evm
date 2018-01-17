@@ -142,12 +142,12 @@ def test_vm_fixtures(fixture, vm_class):
         timestamp=fixture['env']['currentTimestamp'],
     )
     vm = vm_class(header=header, chaindb=chaindb)
-
-    with vm.state.state_db() as state_db:
+    vm_state = vm.state
+    with vm_state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
-        # Update state_root manually
-        vm.block.header.state_root = state_db.root_hash
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     message = Message(
         origin=fixture['exec']['origin'],

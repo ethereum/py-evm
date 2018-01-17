@@ -256,10 +256,11 @@ def test_state_fixtures(fixture, fixture_vm_class):
     chaindb = BaseChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
-    with vm.state.state_db() as state_db:
+    vm_state = vm.state
+    with vm_state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
-        # Update state_root manually
-        vm.block.header.state_root = state_db.root_hash
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(

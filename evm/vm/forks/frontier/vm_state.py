@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
 from evm import constants
+from evm.constants import (
+    BLOCK_REWARD,
+    UNCLE_DEPTH_PENALTY_FACTOR,
+)
 from evm.exceptions import (
     ContractCreationCollision,
 )
@@ -210,3 +214,17 @@ class FrontierVMState(BaseVMState):
 
     def validate_transaction(self, transaction):
         validate_frontier_transaction(self, transaction)
+
+    @staticmethod
+    def get_block_reward():
+        return BLOCK_REWARD
+
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        return BLOCK_REWARD * (
+            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
+        ) // UNCLE_DEPTH_PENALTY_FACTOR
+
+    @classmethod
+    def get_nephew_reward(cls):
+        return cls.get_block_reward() // 32

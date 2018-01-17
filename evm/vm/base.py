@@ -143,18 +143,6 @@ class VM(object):
     #
     # Mining
     #
-    @staticmethod
-    def get_block_reward():
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    def get_uncle_reward(block_number, uncle):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    def get_nephew_reward(cls):
-        raise NotImplementedError("Must be implemented by subclasses")
-
     def import_block(self, block):
         self.configure_header(
             coinbase=block.header.coinbase,
@@ -185,29 +173,7 @@ class VM(object):
         if block.number == 0:
             return block
 
-        block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
-        )
-
-        with self.state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            self.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
-            )
-
-            for uncle in block.uncles:
-                uncle_reward = self.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
-
-            # Update state_root manually
-            block.header.state_root = state_db.root_hash
+        block = self.state.finalize_block(block)
 
         return block
 
@@ -302,7 +268,7 @@ class VM(object):
             state_root=block.header.state_root,
             receipts=receipts,
         )
-        block = cls.finalize_block(vm_state, block)
+        block = vm_state.finalize_block(block)
 
         return block
 
@@ -322,36 +288,6 @@ class VM(object):
             transactions=[],
             uncles=[],
         )
-        return block
-
-    @classmethod
-    def finalize_block(cls, vm_state, block):
-        """
-        Finalize the given block (set rewards).
-        """
-        block_reward = cls.get_block_reward() + (
-            len(block.uncles) * cls.get_nephew_reward(cls)
-        )
-
-        with vm_state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            vm_state.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
-            )
-
-            for uncle in block.uncles:
-                uncle_reward = cls.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                vm_state.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
-
-        block.header.state_root = vm_state.state_root
-
         return block
 
     #
