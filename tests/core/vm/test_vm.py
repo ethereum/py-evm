@@ -7,12 +7,10 @@ from evm import constants
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
 
-from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
 
 
-def test_apply_transaction(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_apply_transaction(chain):
     vm = chain.get_vm()
     tx_idx = len(vm.block.transactions)
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
@@ -36,16 +34,14 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert len(access_logs.writes) > 0
 
 
-def test_mine_block(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_mine_block(chain):
     vm = chain.get_vm()
     block = vm.mine_block()
     with vm.state.state_db(read_only=True) as state_db:
         assert state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
 
 
-def test_import_block(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_import_block(chain):
     vm = chain.get_vm()
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
@@ -59,8 +55,7 @@ def test_import_block(chain_without_block_validation):  # noqa: F811
     assert block.transactions == [tx]
 
 
-def test_get_cumulative_gas_used(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_get_cumulative_gas_used(chain):
     vm = chain.get_vm()
 
     # Empty block.
@@ -89,8 +84,7 @@ def test_get_cumulative_gas_used(chain_without_block_validation):  # noqa: F811
     assert blockgas == constants.GAS_TX
 
 
-def test_create_block(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_create_block(chain):
 
     # (1) Empty block.
     # block = vm.mine_block()

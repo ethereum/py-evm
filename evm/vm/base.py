@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import rlp
+import contextlib
 import logging
+import rlp
 
 from eth_utils import (
     to_tuple,
@@ -218,6 +219,16 @@ class VM(object):
 
         return block
 
+    @contextlib.contextmanager
+    def state_in_temp_block(self):
+        header = self.block.header
+        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
+        prev_hashes = (header.hash, ) + self.previous_hashes
+        state = self.get_state(block_header=temp_block.header, prev_hashes=prev_hashes)
+        snapshot = state.snapshot()
+        yield state
+        state.revert(snapshot)
+
     @classmethod
     def create_block(
             cls,
@@ -430,6 +441,10 @@ class VM(object):
             except (IndexError, BlockNotFound):
                 break
 
+    @property
+    def previous_hashes(self):
+        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+
     #
     # Gas Usage API
     #
@@ -494,18 +509,19 @@ class VM(object):
 
         return cls._state_class
 
-    def get_state(self, chaindb=None, block_header=None):
+    def get_state(self, chaindb=None, block_header=None, prev_hashes=None):
         """Return state object
         """
         if chaindb is None:
             chaindb = self.chaindb
         if block_header is None:
             block_header = self.block.header
+        if prev_hashes is None:
+            prev_hashes = self.get_prev_hashes(
+                last_block_hash=block_header.parent_hash,
+                db=chaindb,
+            )
 
-        prev_hashes = self.get_prev_hashes(
-            last_block_hash=self.block.header.parent_hash,
-            db=self.chaindb,
-        )
         execution_context = ExecutionContext.from_block_header(block_header, prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(

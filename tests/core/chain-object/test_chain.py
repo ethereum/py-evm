@@ -72,6 +72,19 @@ def test_empty_transaction_lookups(chain):
         chain.get_pending_transaction(b'\0' * 32)
 
 
+def test_estimate_gas(chain):
+    vm = chain.get_vm()
+    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    amount = 100
+    from_ = chain.funded_address
+    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    # both estimates on top of *latest* block
+    assert chain.estimate_gas(tx, chain.get_canonical_head()) == 42000
+    assert chain.estimate_gas(tx) == 42000
+    # estimate on *pending* block
+    assert chain.estimate_gas(tx, chain.header) == 42000
+
+
 def test_canonical_chain(valid_chain):
     genesis_header = valid_chain.chaindb.get_canonical_block_header_by_number(
         constants.GENESIS_BLOCK_NUMBER)

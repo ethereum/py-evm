@@ -93,7 +93,7 @@ class BaseTransaction(rlp.Serializable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
-    # Base gas costs
+    # Get gas costs
     #
     def get_intrinsic_gas(self):
         """
@@ -102,6 +102,14 @@ class BaseTransaction(rlp.Serializable):
         for computation).
         """
         raise NotImplementedError("Must be implemented by subclasses")
+
+    def gas_used_by(self, computation):
+        """
+        Return the gas used by the given computation. In Frontier,
+        for example, this is sum of the intrinsic cost and the gas used
+        during computation.
+        """
+        return self.get_intrinsic_gas() + computation.get_gas_used()
 
     #
     # Conversion to and creation of unsigned transactions.
