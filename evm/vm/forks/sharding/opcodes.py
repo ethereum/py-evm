@@ -1,5 +1,8 @@
 import copy
-from cytoolz import merge
+from cytoolz import (
+    merge,
+    dissoc,
+)
 
 from evm import constants
 from evm import opcode_values
@@ -29,9 +32,6 @@ NEW_OPCODES = {
 
 
 SHARDING_OPCODES = merge(
-    copy.deepcopy(BYZANTIUM_OPCODES),
+    dissoc(copy.deepcopy(BYZANTIUM_OPCODES), opcode_values.CREATE),
     NEW_OPCODES
 )
-
-
-SHARDING_OPCODES.pop(opcode_values.CREATE)
