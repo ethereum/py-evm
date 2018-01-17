@@ -105,7 +105,9 @@ class Node:
         return cls(pubkey, Address(ip.decode(), port))
 
     def __repr__(self):
-        return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
+        addr = self.address
+        return '<Node(%s@%s:%d:%d)>' % (
+            self.pubkey.to_hex()[:6], addr.ip, addr.udp_port, addr.tcp_port)
 
     def distance_to(self, id):
         return self.id ^ id
@@ -346,7 +348,7 @@ class KademliaProtocol:
                 'unexpected pong from {} with pingid {}, probably came too late'.format(
                     remote, encode_hex(pingid)))
 
-    def recv_ping(self, remote: Node, hash_: AnyStr) -> None:
+    def recv_ping(self, remote: Node, hash_: AnyStr, topics: List[AnyStr]) -> None:
         """Process a received ping packet.
 
         A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
@@ -355,7 +357,7 @@ class KademliaProtocol:
         """
         self.logger.debug('<<< ping from {}'.format(remote))
         self.update_routing_table(remote)
-        self.wire.send_pong(remote, hash_)
+        self.wire.send_pong(remote, hash_, topics)
         # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
         # see a node, and it is in those cases that a callback will exist.
         callback = self.ping_callbacks.get(remote)
@@ -545,7 +547,7 @@ class KademliaProtocol:
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        self.logger.info("lookup finished for {}: {}".format(node_id, closest))
+        self.logger.debug("lookup finished for {}: {}".format(node_id, closest))
         return closest
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
