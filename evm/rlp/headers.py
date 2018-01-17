@@ -148,3 +148,76 @@ class BlockHeader(rlp.Serializable):
             for field_name
             in tuple(zip(*self.fields))[0]
         })
+
+
+class CollationHeader(rlp.Serializable):
+    fields = [
+        ("shard_id", big_endian_int),
+        ("expected_period_number", big_endian_int),
+        ("period_start_prevhash", hash32),
+        ("parent_hash", hash32),
+        ("coinbase", address),
+        ("transaction_root", hash32),
+        ("state_root", hash32),
+        ("receipt_root", hash32),
+        ("sig", binary)
+    ]
+
+    def __init__(self,
+                 shard_id,
+                 expected_period_number,
+                 period_start_prevhash,
+                 parent_hash,
+                 transaction_root=BLANK_ROOT_HASH,
+                 coinbase=ZERO_ADDRESS,
+                 state_root=BLANK_ROOT_HASH,
+                 receipt_root=BLANK_ROOT_HASH,
+                 sig=b""):
+        super(CollationHeader, self).__init__(
+            shard_id=shard_id,
+            expected_period_number=expected_period_number,
+            period_start_prevhash=period_start_prevhash,
+            parent_hash=parent_hash,
+            transaction_root=transaction_root,
+            coinbase=coinbase,
+            state_root=state_root,
+            receipt_root=receipt_root,
+            sig=sig
+        )
+
+    def __repr__(self):
+        return "<CollationHeader #{0} {1} (shard #{2})>".format(
+            self.expected_period_number,
+            encode_hex(self.hash)[2:10],
+            self.shard_id,
+        )
+
+    @property
+    def hash(self):
+        return keccak(rlp.encode(self))
+
+    @property
+    def hex_hash(self):
+        return encode_hex(self.hash)
+
+    @classmethod
+    def from_parent(cls,
+                    parent,
+                    period_start_prevhash,
+                    expected_period_number=None,
+                    coinbase=ZERO_ADDRESS,
+                    sig=b""):
+        """
+        Initialize a new collation header with the `parent` header as the collation's
+        parent hash.
+        """
+        header_kwargs = {
+            "shard_id": parent.shard_id,
+            "expected_period_number": expected_period_number or parent.expected_period_number + 1,
+            "period_start_prevhash": period_start_prevhash,
+            "parent_hash": parent.hash,
+            "state_root": parent.state_root,
+            "sig": sig
+        }
+        header = cls(**header_kwargs)
+        return header
