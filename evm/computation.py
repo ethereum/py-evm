@@ -322,7 +322,7 @@ class BaseComputation(object):
 
     @contextmanager
     def state_db(self, read_only=False):
-        with self.vm.state_db(read_only, self.msg.access_list) as state_db:
+        with self.vm_state.state_db(read_only, self.msg.access_list) as state_db:
             yield state_db
 
     #
