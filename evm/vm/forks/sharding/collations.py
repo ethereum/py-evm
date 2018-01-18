@@ -1,3 +1,5 @@
+import itertools
+
 from rlp.sedes import (
     CountableList,
     binary,
@@ -67,7 +69,10 @@ class Collation(BaseCollation):
         Returns the collation denoted by the given collation header.
         """
         transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
-        witness_nodes = chaindb.get_witness_nodes(header, transactions)
+        prefixes_nested = [transaction.prefix_list for transaction in transactions]
+        prefixes = itertools.chain.from_iterable(prefixes_nested)
+        witness_node_set = chaindb.get_witness_nodes(header, prefixes)
+        witness_nodes = sorted(list(witness_node_set))
 
         return cls(
             header=header,
