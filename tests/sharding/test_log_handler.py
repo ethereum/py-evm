@@ -239,11 +239,13 @@ def test_log_handler_get_new_logs_without_forks(contract):
     logs_block2 = log_handler.get_new_logs(address=contract.address)
     assert len(logs_block2) == 1
     assert int(logs_block2[0]['data'], 16) == 0
+    assert log_handler.get_new_logs() == tuple()
     contract.transact(default_tx_detail).emit_log(next(counter))
     mine(w3, 1)
     logs_block3 = log_handler.get_new_logs(address=contract.address)
     assert len(logs_block3) == 1
     assert int(logs_block3[0]['data'], 16) == 1
+    assert log_handler.get_new_logs() == tuple()
     contract.transact(default_tx_detail).emit_log(next(counter))
     mine(w3, 1)
     contract.transact(default_tx_detail).emit_log(next(counter))
@@ -252,6 +254,7 @@ def test_log_handler_get_new_logs_without_forks(contract):
     assert len(logs_block4_5) == 2
     assert int(logs_block4_5[0]['data'], 16) == 2
     assert int(logs_block4_5[1]['data'], 16) == 3
+    assert log_handler.get_new_logs() == tuple()
 
 
 def test_log_handler_get_new_logs_with_forks(contract):
@@ -272,3 +275,4 @@ def test_log_handler_get_new_logs_with_forks(contract):
     # assert len(logs) == 2
     assert int(logs[0]['data'], 16) == 1
     assert int(logs[1]['data'], 16) == 2
+    assert log_handler.get_new_logs() == tuple()

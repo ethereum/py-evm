@@ -46,8 +46,8 @@ from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
 from evm.vm.forks.sharding.vmc_handler import (
-    FilterNotFound,
     NextLogUnavailable,
+    parse_collation_added_data,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
@@ -342,7 +342,6 @@ def test_vmc_fetch_candidate_head(vmc,
                                   expected_score,
                                   expected_is_new_head):
     shard_id = 0
-    vmc.setup_collation_added_filter(shard_id)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -350,6 +349,8 @@ def test_vmc_fetch_candidate_head(vmc,
             'is_new_head': mock_is_new_head[i],
         } for i in range(len(mock_score))
     ]
+    vmc.init_shard_variables(shard_id)
+    # mock collation_added_logs
     vmc.new_collation_added_logs[shard_id] = mock_collation_added_logs
     for i in range(len(mock_score)):
         log = vmc.fetch_candidate_head(shard_id)
@@ -365,8 +366,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     primary_key = test_keys[validator_index]
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     default_gas = vmc.config['DEFAULT_GAS']
-
-    vmc.setup_collation_added_filter(shard_id)
 
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
@@ -499,12 +498,17 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.get_next_log(shard_id)
     # filter logs in multiple shards
     header1_1 = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
-    with pytest.raises(FilterNotFound):
-        vmc.get_next_log(1)
-    vmc.setup_collation_added_filter(1)
     vmc.add_header(header1_1)
     mine(vmc, 1)
     assert vmc.get_next_log(1)['score'] == 1
+    logs = vmc.web3.eth.getLogs({
+        "fromBlock": 0,
+        "toBlock": vmc.web3.eth.blockNumber,
+        "topics": [
+            encode_hex(vmc.COLLATION_ADDED_TOPIC),
+        ]
+    })
+    assert len(logs) == 3
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
@@ -531,3 +535,30 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_num_validators()
     assert num_validators == 0
+
+
+@pytest.mark.parametrize(
+    'data_hex,expected_header,expected_is_new_head,expected_score',
+    (
+        (
+            "0xf9011f8005a0548cb741e565bc030f2b831d558cc197cddd1e7aab9549e77910ddbe65dde4b2a00000000000000000000000000000000000000000000000000000000000000000a074785f6c6973742074785f6c6973742074785f6c6973742074785f6c69737420947e5f4552091a69125d5dfcb7b8c2659029395bdfa0706f73745f737461706f73745f737461706f73745f737461706f73745f737461a0726563656970742072656365697074207265636569707420726563656970742001b860000000000000000000000000000000000000000000000000000000000000001b2c3dbf1b660db4c5eba798dbccd187105767247e6648cdd9c664a81af5fc217a194d54c0ba0a4b57c4eb70edc45367c6a1044b0e5f29b5a9339d214c9ea8016c00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",  # noqa: E501
+            (0, 5, b'T\x8c\xb7A\xe5e\xbc\x03\x0f+\x83\x1dU\x8c\xc1\x97\xcd\xdd\x1ez\xab\x95I\xe7y\x10\xdd\xbee\xdd\xe4\xb2', b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1, b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1b,=\xbf\x1bf\r\xb4\xc5\xeb\xa7\x98\xdb\xcc\xd1\x87\x10Wg$~fH\xcd\xd9\xc6d\xa8\x1a\xf5\xfc!z\x19MT\xc0\xba\nKW\xc4\xebp\xed\xc4Sg\xc6\xa1\x04K\x0e_)\xb5\xa93\x9d!L\x9e\xa8\x01l'),  # noqa: E501
+            True,
+            1,
+        ),
+        (
+            "0xf9011f8006a0a149733c7160ada7d19fbec374c95c8a677303909c1d36f9a8bb994e3af96bbea0000e88d3cd262be90531edadf213219cf94a1fa296483307ba323a7c5519c7e9a074785f6c6973742074785f6c6973742074785f6c6973742074785f6c69737420947e5f4552091a69125d5dfcb7b8c2659029395bdfa0706f73745f737461706f73745f737461706f73745f737461706f73745f737461a0726563656970742072656365697074207265636569707420726563656970742002b860000000000000000000000000000000000000000000000000000000000000001b933e6e5627669b1b51d5b0759b311ad7c2bbff17fd44aec86dd66e8886b7d76b7bbdb064b4bea863a662113b5056dff996f589828cd973644c4dbbf739e261d500000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002",  # noqa: E501
+            (0, 6, b'\xa1Is<q`\xad\xa7\xd1\x9f\xbe\xc3t\xc9\\\x8ags\x03\x90\x9c\x1d6\xf9\xa8\xbb\x99N:\xf9k\xbe', b'\x00\x0e\x88\xd3\xcd&+\xe9\x051\xed\xad\xf2\x13!\x9c\xf9J\x1f\xa2\x96H3\x07\xba2:|U\x19\xc7\xe9', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 2, b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1b\x93>nV'f\x9b\x1bQ\xd5\xb0u\x9b1\x1a\xd7\xc2\xbb\xff\x17\xfdD\xae\xc8m\xd6n\x88\x86\xb7\xd7k{\xbd\xb0d\xb4\xbe\xa8c\xa6b\x11;PV\xdf\xf9\x96\xf5\x89\x82\x8c\xd9sdLM\xbb\xf79\xe2a\xd5"),  # noqa: E501
+            True,
+            2,
+        ),
+    )
+)
+def test_parse_collation_added_data(data_hex,
+                                    expected_header,
+                                    expected_is_new_head,
+                                    expected_score):
+    parsed_data = parse_collation_added_data(data_hex)
+    assert parsed_data['header'] == expected_header
+    assert parsed_data['is_new_head'] == expected_is_new_head
+    assert parsed_data['score'] == expected_score
