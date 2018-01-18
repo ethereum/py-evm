@@ -94,9 +94,9 @@ def apply_create_message_for_testing(self):
 
 
 def get_block_hash_for_testing(self, block_number):
-    if block_number >= self.block_header.block_number:
+    if block_number >= self.block_number:
         return b''
-    elif block_number < self.block_header.block_number - 256:
+    elif block_number < self.block_number - 256:
         return b''
     else:
         return keccak("{0}".format(block_number))
@@ -142,10 +142,12 @@ def test_vm_fixtures(fixture, vm_class):
         timestamp=fixture['env']['currentTimestamp'],
     )
     vm = vm_class(header=header, chaindb=chaindb)
-
-    with vm.state.state_db() as state_db:
+    vm_state = vm.state
+    with vm_state.state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     message = Message(
         origin=fixture['exec']['origin'],
@@ -161,6 +163,8 @@ def test_vm_fixtures(fixture, vm_class):
         vm.state,
         message,
     )
+    # Update state_root manually
+    vm.block.header.state_root = computation.vm_state.state_root
 
     if 'post' in fixture:
         #

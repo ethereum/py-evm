@@ -3,12 +3,18 @@ from __future__ import absolute_import
 import rlp
 import logging
 
+from eth_utils import (
+    to_tuple,
+)
+
 from evm.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
+    MAX_UNCLES,
 )
 from evm.exceptions import (
     BlockNotFound,
+    ValidationError,
 )
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
@@ -19,11 +25,19 @@ from evm.utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
+from evm.utils.headers import (
+    generate_header_from_parent_header,
+)
 from evm.utils.keccak import (
     keccak,
 )
-from evm.utils.headers import (
-    generate_header_from_parent_header,
+from evm.validation import (
+    validate_length_lte,
+    validate_gas_limit,
+)
+
+from .execution_context import (
+    ExecutionContext,
 )
 
 
@@ -129,18 +143,6 @@ class VM(object):
     #
     # Mining
     #
-    @staticmethod
-    def get_block_reward():
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    def get_uncle_reward(block_number, uncle):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    def get_nephew_reward(cls):
-        raise NotImplementedError("Must be implemented by subclasses")
-
     def import_block(self, block):
         self.configure_header(
             coinbase=block.header.coinbase,
@@ -171,26 +173,7 @@ class VM(object):
         if block.number == 0:
             return block
 
-        block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
-        )
-
-        with self.state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            self.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
-            )
-
-            for uncle in block.uncles:
-                uncle_reward = self.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
+        block = self.state.finalize_block(block)
 
         return block
 
@@ -231,7 +214,7 @@ class VM(object):
             setattr(header, key, value)
 
         # Perform validation
-        self.state.validate_block(block)
+        self.validate_block(block)
 
         return block
 
@@ -239,13 +222,12 @@ class VM(object):
     def create_block(
             cls,
             transaction_packages,
-            prev_headers,
-            coinbase):
+            prev_hashes,
+            coinbase,
+            parent_header):
         """
         Create a block with transaction witness
         """
-        parent_header = prev_headers[0]
-
         block = cls.generate_block_from_parent_header_and_coinbase(
             parent_header,
             coinbase,
@@ -257,10 +239,11 @@ class VM(object):
             transaction_witness.update(recent_trie_nodes)
             witness_db = BaseChainDB(MemoryDB(transaction_witness))
 
+            execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
             vm_state = cls.get_state_class()(
                 chaindb=witness_db,
-                block_header=block.header,
-                prev_headers=prev_headers,
+                execution_context=execution_context,
+                state_root=block.header.state_root,
                 receipts=receipts,
             )
             computation, result_block, _ = vm_state.apply_transaction(
@@ -278,12 +261,14 @@ class VM(object):
 
         # Finalize
         witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+        execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
         vm_state = cls.get_state_class()(
             chaindb=witness_db,
-            block_header=block.header,
-            prev_headers=prev_headers,
+            execution_context=execution_context,
+            state_root=block.header.state_root,
+            receipts=receipts,
         )
-        block = cls.finalize_block(vm_state, block)
+        block = vm_state.finalize_block(block)
 
         return block
 
@@ -305,34 +290,87 @@ class VM(object):
         )
         return block
 
-    @classmethod
-    def finalize_block(cls, vm_state, block):
-        """
-        Finalize the given block (set rewards).
-        """
-        block_reward = cls.get_block_reward() + (
-            len(block.uncles) * cls.get_nephew_reward(cls)
-        )
+    #
+    # Validate
+    #
+    def validate_block(self, block):
+        if not block.is_genesis:
+            parent_header = get_parent_header(block.header, self.chaindb)
 
-        with vm_state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            vm_state.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
+            validate_gas_limit(block.header.gas_limit, parent_header.gas_limit)
+            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+
+            # timestamp
+            if block.header.timestamp < parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is before the parent block's timestamp.\n"
+                    "- block  : {0}\n"
+                    "- parent : {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+            elif block.header.timestamp == parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is equal to the parent block's timestamp\n"
+                    "- block : {0}\n"
+                    "- parent: {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+
+        if len(block.uncles) > MAX_UNCLES:
+            raise ValidationError(
+                "Blocks may have a maximum of {0} uncles.  Found "
+                "{1}.".format(MAX_UNCLES, len(block.uncles))
             )
 
-            for uncle in block.uncles:
-                uncle_reward = cls.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                vm_state.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
-        block.state_root = vm_state.block_header.state_root
+        for uncle in block.uncles:
+            self.validate_uncle(block, uncle)
 
-        return block
+        if not self.state.is_key_exists(block.header.state_root):
+            raise ValidationError(
+                "`state_root` was not found in the db.\n"
+                "- state_root: {0}".format(
+                    block.header.state_root,
+                )
+            )
+        local_uncle_hash = keccak(rlp.encode(block.uncles))
+        if local_uncle_hash != block.header.uncles_hash:
+            raise ValidationError(
+                "`uncles_hash` and block `uncles` do not match.\n"
+                " - num_uncles       : {0}\n"
+                " - block uncle_hash : {1}\n"
+                " - header uncle_hash: {2}".format(
+                    len(block.uncles),
+                    local_uncle_hash,
+                    block.header.uncle_hash,
+                )
+            )
+
+    def validate_uncle(self, block, uncle):
+        if uncle.block_number >= block.number:
+            raise ValidationError(
+                "Uncle number ({0}) is higher than block number ({1})".format(
+                    uncle.block_number, block.number))
+        try:
+            parent_header = get_block_header_by_hash(uncle.parent_hash, self.chaindb)
+        except BlockNotFound:
+            raise ValidationError(
+                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
+        if uncle.block_number != parent_header.block_number + 1:
+            raise ValidationError(
+                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                    uncle.block_number, parent_header.block_number))
+        if uncle.timestamp < parent_header.timestamp:
+            raise ValidationError(
+                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                    uncle.timestamp, parent_header.timestamp))
+        if uncle.gas_used > uncle.gas_limit:
+            raise ValidationError(
+                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                    uncle.gas_used, uncle.gas_limit))
 
     #
     # Transactions
@@ -378,21 +416,19 @@ class VM(object):
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
-    def get_prev_headers(cls, last_block_hash, db):
-        prev_headers = []
-
+    @to_tuple
+    def get_prev_hashes(cls, last_block_hash, db):
         if last_block_hash == GENESIS_PARENT_HASH:
-            return prev_headers
+            return
 
         block_header = get_block_header_by_hash(last_block_hash, db)
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
-            prev_headers.append(block_header)
+            yield block_header.hash
             try:
                 block_header = get_parent_header(block_header, db)
             except (IndexError, BlockNotFound):
                 break
-        return prev_headers
 
     #
     # Gas Usage API
@@ -466,15 +502,16 @@ class VM(object):
         if block_header is None:
             block_header = self.block.header
 
-        prev_headers = self.get_prev_headers(
+        prev_hashes = self.get_prev_hashes(
             last_block_hash=self.block.header.parent_hash,
             db=self.chaindb,
         )
+        execution_context = ExecutionContext.from_block_header(block_header, prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
-            block_header,
-            prev_headers,
+            execution_context=execution_context,
+            state_root=block_header.state_root,
             receipts=receipts,
         )
 

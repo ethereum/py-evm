@@ -11,6 +11,9 @@ from eth_utils import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
+from evm.vm.execution_context import (
+    ExecutionContext,
+)
 from evm.vm.forks.frontier.vm_state import FrontierVMState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
@@ -25,9 +28,8 @@ def state(chain_without_block_validation):
 def test_block_properties(chain_without_block_validation):  # noqa: F811
     chain = chain_without_block_validation  # noqa: F811
     vm = chain.get_vm()
-    block = vm.mine_block()
+    block = chain.import_block(vm.mine_block())
 
-    assert vm.state.blockhash == block.hash
     assert vm.state.coinbase == block.header.coinbase
     assert vm.state.timestamp == block.header.timestamp
     assert vm.state.block_number == block.header.block_number
@@ -37,7 +39,7 @@ def test_block_properties(chain_without_block_validation):  # noqa: F811
 
 def test_state_db(state):  # noqa: F811
     address = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
-    initial_state_root = state.block_header.state_root
+    initial_state_root = state.state_root
 
     # test cannot write to state_db after context exits
     with state.state_db() as state_db:
@@ -48,11 +50,11 @@ def test_state_db(state):  # noqa: F811
 
     with state.state_db(read_only=True) as state_db:
         state_db.get_balance(address)
-    assert state.block_header.state_root == initial_state_root
+    assert state.state_root == initial_state_root
 
     with state.state_db() as state_db:
         state_db.set_balance(address, 10)
-    assert state.block_header.state_root != initial_state_root
+    assert state.state_root != initial_state_root
 
     with state.state_db(read_only=True) as state_db:
         with pytest.raises(TypeError):
@@ -67,7 +69,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     chaindb = copy.deepcopy(vm.chaindb)
     block0 = copy.deepcopy(vm.block)
     prev_block_hash = chain.get_canonical_block_by_number(0).hash
-    initial_state_root = vm.state.block_header.state_root
+    initial_state_root = vm.block.header.state_root
 
     # (1) Get VM.apply_transaction(transaction) result for assertion
     # The first transaction
@@ -102,18 +104,18 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Use FrontierVMState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
-    block_header1 = block1.header
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
+    execution_context = ExecutionContext.from_block_header(block1.header, prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
-        block_header=block_header1,
-        prev_headers=prev_headers,
+        execution_context=execution_context,
+        state_root=block1.header.state_root,
         receipts=[],
     )
-    parent_header = copy.deepcopy(prev_headers[0])
+    parent_hash = copy.deepcopy(prev_hashes[0])
 
     computation, block, _ = vm_state1.apply_transaction(
         tx1,
@@ -121,15 +123,15 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     )
     access_logs1 = computation.vm_state.access_logs
 
-    # Check if prev_headers hasn't been changed
-    assert parent_header.hash == prev_headers[0].hash
+    # Check if prev_hashes hasn't been changed
+    assert parent_hash == prev_hashes[0]
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
-
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
-        block_header=block.header,
-        prev_headers=prev_headers,
+        execution_context=execution_context,
+        state_root=block.header.state_root,
         receipts=computation.vm_state.receipts,
     )
     computation, block, _ = vm_state1.apply_transaction(
@@ -154,24 +156,23 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     assert block.header.receipt_root == result_block.header.receipt_root
 
     # Make sure that vm_state1 hasn't been changed
-    assert post_vm_state.block_header.state_root == result_block.header.state_root
+    assert post_vm_state.state_root == result_block.header.state_root
 
     # (3) Testing using witness as db data
     # Witness_db
     block2 = copy.deepcopy(block0)
-    block_header2 = block2.header
 
     witness_db = BaseChainDB(MemoryDB(access_logs1.reads))
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-
+    execution_context = ExecutionContext.from_block_header(block2.header, prev_hashes)
     # Apply the first transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
-        block_header=block_header2,
-        prev_headers=prev_headers,
+        execution_context=execution_context,
+        state_root=block2.header.state_root,
         receipts=[],
     )
     computation, block, _ = vm_state2.apply_transaction(
@@ -182,12 +183,12 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Update witness_db
     recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
     witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
-
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     # Apply the second transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
-        block_header=block.header,
-        prev_headers=prev_headers,
+        execution_context=execution_context,
+        state_root=block.header.state_root,
         receipts=computation.vm_state.receipts,
     )
     computation, block, _ = vm_state2.apply_transaction(
@@ -196,20 +197,21 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     )
 
     # After applying
-    assert block.header.state_root == computation.vm_state.block_header.state_root
+    assert block.header.state_root == computation.vm_state.state_root
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root
     assert block.hash == result_block.hash
 
     # (3) Testing using witness_db and block_header to reconstruct vm_state
-    prev_headers = vm.get_prev_headers(
+    prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
+    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
-        block_header=block.header,
-        prev_headers=prev_headers,
+        execution_context=execution_context,
+        state_root=block.header.state_root,
     )
-    assert vm_state3.block_header.state_root == post_vm_state.block_header.state_root
-    assert vm_state3.block_header.state_root == result_block.header.state_root
+    assert vm_state3.state_root == post_vm_state.state_root
+    assert vm_state3.state_root == result_block.header.state_root

@@ -13,8 +13,11 @@ from cytoolz.itertoolz import (
 )
 
 from evm.constants import (
-    UINT_256_MAX,
+    GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_MAXIMUM,
+    GAS_LIMIT_MINIMUM,
     SECPK1_N,
+    UINT_256_MAX,
 )
 from evm.exceptions import (
     ValidationError,
@@ -204,6 +207,20 @@ def validate_vm_block_numbers(vm_block_numbers):
 
     for block_number in vm_block_numbers:
         validate_block_number(block_number)
+
+
+def validate_gas_limit(gas_limit, parent_gas_limit):
+    if gas_limit < GAS_LIMIT_MINIMUM:
+        raise ValidationError("Gas limit {0} is below minimum {1}".format(
+            gas_limit, GAS_LIMIT_MINIMUM))
+    if gas_limit > GAS_LIMIT_MAXIMUM:
+        raise ValidationError("Gas limit {0} is above maximum {1}".format(
+            gas_limit, GAS_LIMIT_MAXIMUM))
+    diff = gas_limit - parent_gas_limit
+    if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
+        raise ValidationError(
+            "Gas limit {0} difference to parent {1} is too big {2}".format(
+                gas_limit, parent_gas_limit, diff))
 
 
 ALLOWED_HEADER_FIELDS = {
