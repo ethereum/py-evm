@@ -15,6 +15,7 @@ MAX_ALLOWED_S = SECPK1_N // 2
 VALIDATION_CODE_GAS = 3500
 GAS_RESERVE = 4500  # amount of gas reserved for returning
 GAS_RESERVE_OFFSET = 200
+# standard id for a method with signature `get_nonce()`
 NONCE_GETTER_ID = 0x141b5b48
 ENTRY_POINT_INT = big_endian_to_int(ENTRY_POINT)
 
