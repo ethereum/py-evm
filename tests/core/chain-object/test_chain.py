@@ -6,6 +6,7 @@ from eth_utils import decode_hex
 from evm import constants
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.estimators.gas import binary_search_1000_tolerance
 from evm.exceptions import (
     TransactionNotFound,
 )
@@ -13,6 +14,9 @@ from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from tests.core.fixtures import valid_block_rlp
 from tests.core.helpers import new_transaction
+
+
+ADDRESS_2 = b'\0' * 19 + b'\x02'
 
 
 @pytest.fixture()
@@ -72,17 +76,50 @@ def test_empty_transaction_lookups(chain):
         chain.get_pending_transaction(b'\0' * 32)
 
 
-def test_estimate_gas(chain):
+@pytest.mark.parametrize(
+    'data, gas_estimator, to, on_pending, expected',
+    (
+        (b'', None, None, True, 21000),
+        (b'', None, None, False, 21000),
+        (b'\xff' * 10, None, None, True, 21680),
+        (b'\xff' * 10, None, None, False, 21680),
+        # sha3 precompile
+        (b'\xff' * 32, None, ADDRESS_2, True, 35381),
+        (b'\xff' * 32, None, ADDRESS_2, False, 35369),
+        (b'\xff' * 320, None, ADDRESS_2, True, 54888),
+        # 1000_tolerance binary search
+        (b'\xff' * 32, binary_search_1000_tolerance, ADDRESS_2, True, 23938),
+    ),
+    ids=[
+        'simple default pending',
+        'simple default',
+        '10 bytes default pending',
+        '10 bytes default',
+        'sha3 precompile 32 bytes default pending',
+        'sha3 precompile 32 bytes default',
+        'sha3 precompile 320 bytes default pending',
+        'sha3 precompile 32 bytes 1000_tolerance binary pending',
+    ],
+)
+def test_estimate_gas(chain, data, gas_estimator, to, on_pending, expected):
+    if gas_estimator:
+        chain.gas_estimator = gas_estimator
     vm = chain.get_vm()
-    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    if to:
+        recipient = to
+    else:
+        recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = chain.funded_address
-    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
-    # both estimates on top of *latest* block
-    assert chain.estimate_gas(tx, chain.get_canonical_head()) == 42000
-    assert chain.estimate_gas(tx) == 42000
-    # estimate on *pending* block
-    assert chain.estimate_gas(tx, chain.header) == 42000
+    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key, data=data)
+    if on_pending:
+        # estimate on *pending* block
+        assert chain.estimate_gas(tx, chain.header) == expected
+    else:
+        # estimates on top of *latest* block
+        assert chain.estimate_gas(tx) == expected
+        # these are long, so now that we know the exact numbers let's skip the repeat test
+        # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
 
 
 def test_canonical_chain(valid_chain):
