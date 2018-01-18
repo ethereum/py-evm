@@ -118,7 +118,7 @@ def shard_chain_without_block_validation():
     """
     # TODO: Once the helper function which generates access list for a transaction is implemented,
     # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
-    shard_chaindb = BaseChainDB(get_db_backend())
+    shard_chaindb = BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
     overrides = {
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
