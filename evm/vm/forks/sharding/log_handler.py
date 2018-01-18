@@ -20,11 +20,11 @@ class LogHandler(object):
         recent_hashes = [block['hash']]
         # initialize the list of recent hashes
         for _ in range(self.history_size - 1):
-            block = self.w3.eth.getBlock(block['parentHash'])
-            recent_hashes.append(block['hash'])
             # break the loop if we hit the genesis block.
             if block['number'] == 0:
                 break
+            block = self.w3.eth.getBlock(block['parentHash'])
+            recent_hashes.append(block['hash'])
         reversed_recent_hashes = tuple(reversed(recent_hashes))
         return reversed_recent_hashes
 
@@ -83,7 +83,7 @@ class LogHandler(object):
 
     def get_new_logs(self, address=None, topics=None):
         _, new_block_hashes = self.check_chain_head()
-        if new_block_hashes == tuple():
+        if len(new_block_hashes) == 0:
             return tuple()
         from_block_hash = new_block_hashes[0]
         to_block_hash = new_block_hashes[-1]
