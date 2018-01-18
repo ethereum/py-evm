@@ -5,11 +5,16 @@ import rlp
 from trie import (
     HexaryTrie,
 )
+from trie.branches import (
+    get_witness_for_key_prefix,
+)
 
 from eth_utils import (
     keccak,
     to_list,
     to_tuple,
+    to_set,
+    flatten_return,
 )
 
 from evm.constants import (
@@ -249,6 +254,13 @@ class BaseChainDB:
 
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
+
+    @to_set
+    @flatten_return
+    def get_witness_nodes(self, collation_header, prefixes):
+        root_hash = collation_header.state_root
+        for prefix in prefixes:
+            yield get_witness_for_key_prefix(self.db, root_hash, prefix)
 
     def add_block_number_to_hash_lookup(self, header):
         block_number_to_hash_key = make_block_number_to_hash_lookup_key(
