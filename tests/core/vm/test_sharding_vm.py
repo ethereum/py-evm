@@ -1,3 +1,5 @@
+import pytest
+
 from eth_utils import (
     int_to_big_endian,
     decode_hex,
@@ -25,6 +27,7 @@ from tests.core.vm.contract_fixture import (
 )
 
 
+@pytest.mark.xfail(reason="obsolete gas payment mechanism and #281")
 def test_sharding_apply_transaction(shard_chain_without_block_validation):  # noqa: F811
     chain = shard_chain_without_block_validation
     # First test: simple ether transfer contract
@@ -108,6 +111,7 @@ def test_sharding_apply_transaction(shard_chain_without_block_validation):  # no
         assert state_db.get_storage(CREATE2_contract_address, 0) == 1
 
 
+@pytest.mark.xfail(reason="obsolete gas payment mechanism and #281")
 def test_CREATE2_deploy_contract_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     # First case: computed contract address not the same as provided in `transaction.to`
     chain = shard_chain_without_block_validation
