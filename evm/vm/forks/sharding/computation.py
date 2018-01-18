@@ -91,7 +91,7 @@ class ShardingComputation(SpuriousDragonComputation):
                 try:
                     computation.gas_meter.consume_gas(
                         contract_code_gas_cost,
-                        reason="Write contract code for CREATE",
+                        reason="Write contract code for CREATE2",
                     )
                 except OutOfGas as err:
                     # Different from Frontier: reverts state on gas failure while
