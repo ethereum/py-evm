@@ -52,8 +52,6 @@ class VM(object):
     _block_class = None
     _state_class = None
 
-    _is_stateless = None
-
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         block_class = self.get_block_class()
@@ -85,56 +83,22 @@ class VM(object):
     #
     # Execution
     #
-    def add_transaction(self, transaction, computation):
-        """
-        Add a transaction to the given block and save the block data into chaindb.
-        """
-        receipt = self.state.make_receipt(transaction, computation)
-
-        transaction_idx = len(self.block.transactions)
-
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
-
-        self.block.transactions.append(transaction)
-
-        tx_root_hash = self.chaindb.add_transaction(self.block.header, index_key, transaction)
-        receipt_root_hash = self.chaindb.add_receipt(self.block.header, index_key, receipt)
-
-        self.block.bloom_filter |= receipt.bloom
-
-        self.block.header.transaction_root = tx_root_hash
-        self.block.header.receipt_root = receipt_root_hash
-        self.block.header.bloom = int(self.block.bloom_filter)
-        self.block.header.gas_used = receipt.gas_used
-
-        return self.block
-
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
-        if self.is_stateless:
-            computation, block, trie_data = self.get_state_class().apply_transaction(
-                self.state,
-                transaction,
-                self.block,
-                is_stateless=True,
-            )
-            self.block = block
+        computation, block, trie_data = self.get_state_class().apply_transaction(
+            self.state,
+            transaction,
+            self.block,
+        )
+        self.block = block
 
-            # TODO: Modify Chain.apply_transaction to update the local vm state before
+        # TODO: Modify Chain.apply_transaction to update the local vm state before
 
-            # Persist changed transaction and receipt key-values to self.chaindb.
-            for key, value in trie_data.items():
-                self.chaindb.db[key] = value
-        else:
-            computation, _, _ = self.get_state_class().apply_transaction(
-                self.state,
-                transaction,
-                self.block,
-                is_stateless=False,
-            )
-            self.add_transaction(transaction, computation)
+        # Persist changed transaction and receipt key-values to self.chaindb.
+        for key, value in trie_data.items():
+            self.chaindb.db[key] = value
 
         self.clear_journal()
 
@@ -249,7 +213,6 @@ class VM(object):
             computation, result_block, _ = vm_state.apply_transaction(
                 transaction=transaction,
                 block=block,
-                is_stateless=True,
             )
 
             if not computation.is_error:
@@ -480,10 +443,6 @@ class VM(object):
     #
     # State
     #
-    @property
-    def is_stateless(self):
-        return self._is_stateless
-
     @classmethod
     def get_state_class(cls):
         """

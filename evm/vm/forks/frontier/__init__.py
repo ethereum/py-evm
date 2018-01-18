@@ -20,6 +20,4 @@ FrontierVM = VM.configure(
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     compute_difficulty=staticmethod(compute_frontier_difficulty),
     configure_header=configure_frontier_header,
-    # mode
-    _is_stateless=True,
 )
