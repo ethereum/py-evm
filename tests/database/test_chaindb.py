@@ -10,6 +10,13 @@ import rlp
 from eth_utils import (
     keccak,
 )
+from evm.utils.numeric import (
+    big_endian_to_int,
+)
+from evm.constants import (
+    BLANK_ROOT_HASH,
+    ZERO_HASH32,
+)
 
 from evm.db import (
     get_db_backend,
@@ -17,12 +24,17 @@ from evm.db import (
 from evm.db.chain import (
     ChainDB,
 )
+from evm.db.state import (
+    FlatTrieBackend,
+    NestedTrieBackend,
+)
 from evm.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
 from evm.rlp.headers import (
     BlockHeader,
+    CollationHeader,
 )
 from evm.tools.fixture_tests import (
     assert_rlp_equal,
@@ -39,9 +51,24 @@ from evm.vm.forks.homestead.blocks import (
 )
 
 
+A_ADDRESS = b"\xaa" * 20
+B_ADDRESS = b"\xbb" * 20
+
+
+@pytest.fixture(params=[NestedTrieBackend, FlatTrieBackend])
+def chaindb(request):
+    return ChainDB(get_db_backend(), state_backend_class=request.param)
+
+
 @pytest.fixture
-def chaindb():
-    return ChainDB(get_db_backend())
+def populated_chaindb_and_root_hash(chaindb):
+    state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
+    state_db.set_balance(A_ADDRESS, 1)
+    state_db.set_code(B_ADDRESS, b"code")
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key1"), 100)
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key2"), 200)
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key"), 300)
+    return chaindb, state_db.root_hash
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -118,3 +145,30 @@ def test_lookup_block_hash(chaindb, block):
     chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash
+
+
+def test_get_witness_nodes(populated_chaindb_and_root_hash):
+    chaindb, root_hash = populated_chaindb_and_root_hash
+    header = CollationHeader(
+        shard_id=1,
+        expected_period_number=0,
+        period_start_prevhash=ZERO_HASH32,
+        parent_hash=ZERO_HASH32,
+        state_root=root_hash
+    )
+
+    prefixes = [
+        FlatTrieBackend.nonce_key(A_ADDRESS),
+        FlatTrieBackend.nonce_key(B_ADDRESS),
+        FlatTrieBackend.balance_key(A_ADDRESS),
+        FlatTrieBackend.balance_key(B_ADDRESS),
+        FlatTrieBackend.storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
+        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key1")),
+        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key2")),
+        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key")),
+        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"")),
+    ]
+
+    witness_nodes = chaindb.get_witness_nodes(header, prefixes)
+    assert len(witness_nodes) == len(set(witness_nodes))  # no duplicates
+    assert sorted(witness_nodes) == witness_nodes  # sorted
