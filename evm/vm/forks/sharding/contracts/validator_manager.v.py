@@ -360,6 +360,7 @@ def add_header(header: bytes <= 4096) -> bool:
     # Determine the head
     is_new_head = False
     if _score > self.collation_headers[shard_id][self.shard_head[shard_id]].score:
+        self.shard_head[shard_id] = entire_header_hash
         is_new_head = True
 
     # Emit log
