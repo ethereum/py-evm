@@ -36,13 +36,34 @@ class NextLogUnavailable(Exception):
     pass
 
 
-class FilterNotFound(Exception):
-    pass
+@to_dict
+def parse_collation_added_data(data_hex):
+    data_bytes = decode_hex(data_hex)
+    score = big_endian_to_int(data_bytes[-32:])
+    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
+    header_bytes = data_bytes[:-64]
+    # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
+    sedes = rlp.sedes.List([
+        rlp.sedes.big_endian_int,
+        rlp.sedes.big_endian_int,
+        hash32,
+        hash32,
+        hash32,
+        address,
+        hash32,
+        hash32,
+        rlp.sedes.big_endian_int,
+        rlp.sedes.binary,
+    ])
+    header_values = rlp.decode(header_bytes, sedes=sedes)
+    yield 'header', header_values
+    yield 'is_new_head', is_new_head
+    yield 'score', score
 
 
 class VMC(Contract):
 
-    logger = logging.getLogger("evm.chain.sharding.mainchain_handler.VMC")
+    logger = logging.getLogger("evm.chain.sharding.VMC")
 
     # For handling logs filtering
     # Event:
@@ -50,87 +71,60 @@ class VMC(Contract):
     COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
         "CollationAdded(int128,bytes4096,bool,int128)"
     )
+
+    shards = set()
     # shard_id -> list
     # older <---------------> newer
     new_collation_added_logs = {}
     # shard_id -> list
     # newer <---------------> older
     unchecked_collation_added_logs = {}
-    # shard_id -> filter
-    collation_added_filter = {}
     # shard_id -> score
     current_checking_score = {}
 
-    def __init__(self, *args, default_privkey, **kwargs):
+    def __init__(self, *args, log_handler, default_privkey, **kwargs):
+        self.log_handler = log_handler
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
         super().__init__(*args, **kwargs)
 
-    def setup_collation_added_filter(self, shard_id):
-        shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
-        self.collation_added_filter[shard_id] = self.web3.eth.filter({
-            'address': self.address,
-            'topics': [
-                encode_hex(self.COLLATION_ADDED_TOPIC),
-                shard_id_topic_hex,
-            ],
-        })
-        self.new_collation_added_logs[shard_id] = []
+    def init_shard_variables(self, shard_id):
+        self.shards.add(shard_id)
         self.unchecked_collation_added_logs[shard_id] = []
+        self.new_collation_added_logs[shard_id] = []
         self.current_checking_score[shard_id] = None
 
-    @to_dict
-    def parse_collation_added_data(self, data_hex):
-        data_bytes = decode_hex(data_hex)
-        score = big_endian_to_int(data_bytes[-32:])
-        is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
-        header_bytes = data_bytes[:-64]
-        # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
-        sedes = rlp.sedes.List([
-            rlp.sedes.big_endian_int,
-            rlp.sedes.big_endian_int,
-            hash32,
-            hash32,
-            hash32,
-            address,
-            hash32,
-            hash32,
-            rlp.sedes.big_endian_int,
-            rlp.sedes.binary,
-        ])
-        header_values = rlp.decode(header_bytes, sedes=sedes)
-        yield 'header', header_values
-        yield 'is_new_head', is_new_head
-        yield 'score', score
+    def ensure_shard_variables_initialied(self, shard_id):
+        if shard_id not in self.shards:
+            self.init_shard_variables(shard_id)
 
     @to_tuple
     def _get_new_logs(self, shard_id):
-        # use `get_new_entries` over `get_all_entries`
-        #   1. Prevent from the increasing size of logs
-        #   2. Leave the efforts maintaining `new_logs` in RPC servers
-        if shard_id not in self.collation_added_filter:
-            raise FilterNotFound(
-                "CollationAdded filter haven't been set up in shard {}".format(shard_id)
-            )
-        new_logs = self.collation_added_filter[shard_id].get_new_entries()
+        self.ensure_shard_variables_initialied(shard_id)
+        shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
+        new_logs = self.log_handler.get_new_logs(
+            address=self.address,
+            topics=[
+                encode_hex(self.COLLATION_ADDED_TOPIC),
+                shard_id_topic_hex,
+            ],
+        )
         for log in new_logs:
-            yield self.parse_collation_added_data(log['data'])
+            yield parse_collation_added_data(log['data'])
 
     def get_next_log(self, shard_id):
         new_logs = self._get_new_logs(shard_id)
         self.new_collation_added_logs[shard_id] += new_logs
-        if self.new_collation_added_logs[shard_id] == []:
+        if len(self.new_collation_added_logs[shard_id]) == 0:
             raise NextLogUnavailable("No more next logs")
         return self.new_collation_added_logs[shard_id].pop()
 
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
-        if shard_id not in self.collation_added_filter:
-            raise FilterNotFound(
-                "CollationAdded filter haven't been set up in shard {}".format(shard_id)
-            )
+        self.ensure_shard_variables_initialied(shard_id)
+
         for i in reversed(range(len(self.unchecked_collation_added_logs[shard_id]))):
             if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
                self.current_checking_score[shard_id]:
