@@ -19,6 +19,13 @@ class BlockNotFound(PyEVMError):
     pass
 
 
+class TransactionNotFound(PyEVMError):
+    """
+    The transaction with the given hash or block index dos not exist.
+    """
+    pass
+
+
 class ParentNotFound(PyEVMError):
     """
     The parent of a given block does not exist.

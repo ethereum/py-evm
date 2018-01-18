@@ -17,6 +17,7 @@ from evm.constants import (
 )
 from evm.exceptions import (
     BlockNotFound,
+    TransactionNotFound,
     ValidationError,
     VMNotFound,
 )
@@ -93,6 +94,32 @@ class Chain(object):
         Passthrough helper to the current VM class.
         """
         return self.get_vm().block
+
+    def get_canonical_transaction(self, transaction_hash):
+        (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
+        VM = self.get_vm_class_for_block_number(block_num)
+
+        transaction = self.chaindb.get_transaction_by_index(
+            block_num,
+            index,
+            VM.get_transaction_class(),
+        )
+
+        if transaction.hash == transaction_hash:
+            return transaction
+        else:
+            raise TransactionNotFound("Found transaction {} instead of {} in block {} at {}".format(
+                encode_hex(transaction.hash),
+                encode_hex(transaction_hash),
+                block_num,
+                index,
+            ))
+
+    def add_pending_transaction(self, transaction):
+        return self.chaindb.add_pending_transaction(transaction)
+
+    def get_pending_transaction(self, transaction_hash):
+        return self.get_vm().get_pending_transaction(transaction_hash)
 
     def create_transaction(self, *args, **kwargs):
         """
