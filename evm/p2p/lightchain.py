@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import traceback
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -9,15 +8,17 @@ from typing import (  # noqa: F401
     List,
     Optional,
     Tuple,
+    Type,
 )
 
 from async_lru import alru_cache
 
 import rlp
-from eth_keys import datatypes
-from eth_keys import keys
+from eth_keys import (  # noqa: F401
+    datatypes,
+    keys,
+)
 from eth_utils import (
-    decode_hex,
     encode_hex,
 )
 from trie import HexaryTrie
@@ -33,173 +34,21 @@ from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.utils.keccak import keccak
-from evm.p2p.constants import HANDSHAKE_TIMEOUT
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
-    PeerConnectionLost,
-    PeerDisconnected,
     StopRequested,
     TooManyTimeouts,
-    UnreachablePeer,
-    UselessPeer,
 )
-from evm.p2p import kademlia
 from evm.p2p import les
 from evm.p2p import protocol
 from evm.p2p.peer import (  # noqa: F401
     BasePeer,
     handshake,
     LESPeer,
-    _ReceivedMsgCallbackType,
+    PeerPool,
 )
 from evm.p2p.utils import gen_request_id
-
-
-class PeerPool:
-    """PeerPool attempts to keep connections to at least min_peers on the given network."""
-    logger = logging.getLogger("evm.p2p.lightchain.PeerPool")
-    peer_class = LESPeer
-    min_peers = 2
-    _connect_loop_sleep = 2
-
-    def __init__(self,
-                 chaindb: BaseChainDB,
-                 network_id: int,
-                 privkey: datatypes.PrivateKey,
-                 msg_handler: _ReceivedMsgCallbackType,
-                 ) -> None:
-        self.chaindb = chaindb
-        self.network_id = network_id
-        self.privkey = privkey
-        self.msg_handler = msg_handler
-        self.connected_nodes = {}  # type: Dict[kademlia.Node, LESPeer]
-        self._should_stop = asyncio.Event()
-        self._finished = asyncio.Event()
-
-    async def run(self):
-        self.logger.info("Running PeerPool...")
-        while not self._should_stop.is_set():
-            try:
-                await self.maybe_connect_to_more_peers()
-            except:  # noqa: E722
-                # Most unexpected errors should be transient, so we log and restart from scratch.
-                self.logger.error("Unexpected error (%s), restarting", traceback.format_exc())
-                await self.stop_all_peers()
-            # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-            await asyncio.wait([self._should_stop.wait()], timeout=self._connect_loop_sleep)
-        self._finished.set()
-
-    async def stop_all_peers(self):
-        self.logger.info("Stopping all peers ...")
-        await asyncio.gather(
-            *[peer.stop() for peer in self.connected_nodes.values()])
-
-    async def stop(self):
-        self._should_stop.set()
-        await self.stop_all_peers()
-        await self._finished.wait()
-
-    async def connect(self, remote: kademlia.Node) -> LESPeer:
-        """
-        Connect to the given remote and return a Peer instance when successful.
-        Returns None if the remote is unreachable, times out or is useless.
-        """
-        if remote in self.connected_nodes:
-            self.logger.debug("Skipping %s; already connected to it", remote)
-            return None
-        expected_exceptions = (
-            UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost,
-            UselessPeer, PeerDisconnected)
-        try:
-            self.logger.info("Connecting to %s...", remote)
-            peer = await asyncio.wait_for(
-                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
-                          self.msg_handler),
-                HANDSHAKE_TIMEOUT)
-            return cast(LESPeer, peer)
-        except expected_exceptions as e:
-            self.logger.info("Could not complete handshake with %s: %s", remote, repr(e))
-        except Exception:
-            self.logger.warn("Unexpected error during auth/p2p handhsake with %s: %s",
-                             remote, traceback.format_exc())
-        return None
-
-    async def maybe_connect_to_more_peers(self):
-        """Connect to more peers if we're not yet connected to at least self.min_peers."""
-        if len(self.connected_nodes) >= self.min_peers:
-            self.logger.debug(
-                "Already connected to %s peers: %s; sleeping",
-                len(self.connected_nodes),
-                [remote for remote in self.connected_nodes])
-            return
-
-        for node in await self.get_nodes_to_connect():
-            # TODO: Consider changing connect() to raise an exception instead of returning None,
-            # as discussed in
-            # https://github.com/pipermerriam/py-evm/pull/139#discussion_r152067425
-            peer = await self.connect(node)
-            if peer is not None:
-                self.logger.info("Successfully connected to %s", peer)
-                self.connected_nodes[peer.remote] = peer
-                asyncio.ensure_future(peer.start(finished_callback=self._peer_finished))
-
-    def _peer_finished(self, peer: LESPeer) -> None:
-        """Remove the given peer from our list of connected nodes.
-        This is passed as a callback to be called when a peer finishes.
-        """
-        if peer.remote in self.connected_nodes:
-            self.connected_nodes.pop(peer.remote)
-
-    @property
-    def peers(self) -> List[LESPeer]:
-        return list(self.connected_nodes.values())
-
-    async def get_nodes_to_connect(self) -> List[kademlia.Node]:
-        # TODO: This should use the Discovery service to lookup nodes to connect to, but our
-        # current implementation only supports v4 and with that it takes an insane amount of time
-        # to find any LES nodes with the same network ID as us, so for now we hard-code some nodes
-        # that seem to have a good uptime.
-        from evm.chains.ropsten import RopstenChain
-        from evm.chains.mainnet import MainnetChain
-        if self.network_id == MainnetChain.network_id:
-            return [
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082")),  # noqa: E501
-                    kademlia.Address("52.74.57.123", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d")),  # noqa: E501
-                    kademlia.Address("191.235.84.50", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("ddd81193df80128880232fc1deb45f72746019839589eeb642d3d44efbb8b2dda2c1a46a348349964a6066f8afb016eb2a8c0f3c66f32fadf4370a236a4b5286")),  # noqa: E501
-                    kademlia.Address("52.231.202.145", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99")),  # noqa: E501
-                    kademlia.Address("13.93.211.84", 30303, 30303)),
-            ]
-        elif self.network_id == RopstenChain.network_id:
-            return [
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("88c2b24429a6f7683fbfd06874ae3f1e7c8b4a5ffb846e77c705ba02e2543789d66fc032b6606a8d8888eb6239a2abe5897ce83f78dcdcfcb027d6ea69aa6fe9")),  # noqa: E501
-                    kademlia.Address("163.172.157.61", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("a1ef9ba5550d5fac27f7cbd4e8d20a643ad75596f307c91cd6e7f85b548b8a6bf215cca436d6ee436d6135f9fe51398f8dd4c0bd6c6a0c332ccb41880f33ec12")),  # noqa: E501
-                    kademlia.Address("51.15.218.125", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("e80276aabb7682a4a659f4341c1199de79d91a2e500a6ee9bed16ed4ce927ba8d32ba5dea357739ffdf2c5bcc848d3064bb6f149f0b4249c1f7e53f8bf02bfc8")),  # noqa: E501
-                    kademlia.Address("51.15.39.57", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("584c0db89b00719e9e7b1b5c32a4a8942f379f4d5d66bb69f9c7fa97fa42f64974e7b057b35eb5a63fd7973af063f9a1d32d8c60dbb4854c64cb8ab385470258")),  # noqa: E501
-                    kademlia.Address("51.15.35.2", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("d40871fc3e11b2649700978e06acd68a24af54e603d4333faecb70926ca7df93baa0b7bf4e927fcad9a7c1c07f9b325b22f6d1730e728314d0e4e6523e5cebc2")),  # noqa: E501
-                    kademlia.Address("51.15.132.235", 30303, 30303)),
-                kademlia.Node(
-                    keys.PublicKey(decode_hex("482484b9198530ee2e00db89791823244ca41dcd372242e2e1297dd06f6d8dd357603960c5ad9cc8dc15fcdf0e4edd06b7ad7db590e67a0b54f798c26581ebd7")),  # noqa: E501
-                    kademlia.Address("51.15.75.138", 30303, 30303)),
-            ]
-        else:
-            raise ValueError("Unknown network_id: %s", self.network_id)
 
 
 class LightChain(Chain):
@@ -211,7 +60,7 @@ class LightChain(Chain):
     def __init__(self, chaindb: BaseChainDB) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = self.peer_pool_class(
-            chaindb, self.network_id, self.privkey, self.msg_handler)
+            LESPeer, chaindb, self.network_id, self.privkey, self.msg_handler)
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
         self._latest_head_info = {}  # type: Dict[LESPeer, les.HeadInfo]
@@ -247,7 +96,9 @@ class LightChain(Chain):
 
         # TODO: Should pick a random one in case there are multiple peers with the same block
         # height.
-        return max(self.peer_pool.peers, key=peer_block_height)
+        return max(
+            [cast(LESPeer, peer) for peer in self.peer_pool.peers],
+            key=peer_block_height)
 
     async def wait_for_announcement(self) -> Tuple[LESPeer, les.HeadInfo]:
         """Wait for a new announcement from any of our connected peers.

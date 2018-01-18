@@ -17,7 +17,8 @@ from evm.vm.forks.frontier import FrontierBlock
 
 from evm.p2p import ecies
 from evm.p2p import kademlia
-from evm.p2p.lightchain import LightChain, PeerPool
+from evm.p2p.lightchain import LightChain
+from evm.p2p.peer import PeerPool
 
 
 class LocalGethPeerPool(PeerPool):
