@@ -8,6 +8,7 @@ from evm.validation import (
     validate_uint256,
     validate_is_bytes,
     validate_transaction_access_list,
+    validate_canonical_address,
 )
 
 from evm.rlp.transactions import (
@@ -21,6 +22,7 @@ class ShardingTransaction(BaseShardingTransaction):
         validate_uint256(self.chain_id, title="Transaction.chain_id")
         validate_uint256(self.shard_id, title="Transaction.shard_id")
 
+        validate_canonical_address(self.to, title="Transaction.to")
         validate_is_bytes(self.data, title="Transaction.data")
 
         validate_uint256(self.gas, title="Transaction.gas")
