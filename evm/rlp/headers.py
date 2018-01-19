@@ -156,8 +156,8 @@ class CollationHeader(rlp.Serializable):
         ("expected_period_number", big_endian_int),
         ("period_start_prevhash", hash32),
         ("parent_hash", hash32),
-        ("coinbase", address),
         ("transaction_root", hash32),
+        ("coinbase", address),
         ("state_root", hash32),
         ("receipt_root", hash32),
         ("sig", binary)
