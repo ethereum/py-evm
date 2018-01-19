@@ -9,11 +9,8 @@ import pytest
 
 import rlp
 
-from web3.exceptions import (
-    BadFunctionCallOutput,
-)
-
 from eth_tester.exceptions import (
+    TransactionFailed,
     ValidationError,
 )
 
@@ -395,8 +392,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     header1 = get_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
     header1_hash = keccak(header1)
     # if a header is added before its parent header is added, `add_header` should fail
-    # BadFunctionCallOutput raised when assertions fail
-    with pytest.raises(BadFunctionCallOutput):
+    # TransactionFailed raised when assertions fail
+    with pytest.raises(TransactionFailed):
         header_parent_not_added = get_testing_colhdr(
             vmc,
             shard_id,
@@ -412,7 +409,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     vmc.add_header(header1)
     mine(vmc, SHUFFLING_CYCLE_LENGTH)
     # if a header is added before, the second trial should fail
-    with pytest.raises(BadFunctionCallOutput):
+    with pytest.raises(TransactionFailed):
         vmc.call(vmc.mk_contract_tx_detail(
             sender_address=primary_addr,
             gas=default_gas,
