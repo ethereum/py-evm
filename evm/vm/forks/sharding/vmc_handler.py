@@ -87,12 +87,12 @@ class VMC(Contract):
         self.config = get_sharding_config()
         # shard_id -> list
         # older <---------------> newer
-        self.new_collation_added_logs = defaultdict(list)
+        self.new_logs = defaultdict(list)
         # shard_id -> list
         # newer <---------------> older
-        self.unchecked_collation_added_logs = defaultdict(list)
+        self.unchecked_logs = defaultdict(list)
         # shard_id -> score
-        self.current_checking_score = defaultdict(lambda: None)
+        self.current_score = defaultdict(lambda: None)
 
         super().__init__(*args, **kwargs)
 
@@ -111,35 +111,35 @@ class VMC(Contract):
 
     def get_next_log(self, shard_id):
         new_logs = self._get_new_logs(shard_id)
-        self.new_collation_added_logs[shard_id].extend(new_logs)
-        if len(self.new_collation_added_logs[shard_id]) == 0:
+        self.new_logs[shard_id].extend(new_logs)
+        if len(self.new_logs[shard_id]) == 0:
             raise NextLogUnavailable("No more next logs")
-        return self.new_collation_added_logs[shard_id].pop()
+        return self.new_logs[shard_id].pop()
 
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
         unchecked_logs = pipe(
-            self.unchecked_collation_added_logs[shard_id],
+            self.unchecked_logs[shard_id],
             enumerate,
             tuple,
             reversed,
             tuple,
         )
-        current_score = self.current_checking_score[shard_id]
+        current_score = self.current_score[shard_id]
 
         for idx, logs_entry in unchecked_logs:
             if logs_entry['score'] == current_score:
-                return self.unchecked_collation_added_logs[shard_id].pop(idx)
+                return self.unchecked_logs[shard_id].pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
         while True:
             # TODO: currently just raise when there is no log anymore
-            self.unchecked_collation_added_logs[shard_id].append(self.get_next_log(shard_id))
-            if self.unchecked_collation_added_logs[shard_id][-1]['is_new_head'] is True:
+            self.unchecked_logs[shard_id].append(self.get_next_log(shard_id))
+            if self.unchecked_logs[shard_id][-1]['is_new_head'] is True:
                 break
-        log = self.unchecked_collation_added_logs[shard_id].pop()
-        self.current_checking_score[shard_id] = log['score']
+        log = self.unchecked_logs[shard_id].pop()
+        self.current_score[shard_id] = log['score']
         return log
 
     @to_dict
