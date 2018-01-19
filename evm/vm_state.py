@@ -188,7 +188,7 @@ class BaseVMState(object):
         :type transaction: Transaction
         :type block: Block
 
-        :return: the computation, applied block, and the trie_data
+        :return: the computation, applied block, and the trie_data_dict
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
         # Don't modify the given block
@@ -197,9 +197,9 @@ class BaseVMState(object):
         computation = self.execute_transaction(transaction)
 
         # Set block.
-        block, trie_data = self.add_transaction(transaction, computation, block)
+        block, trie_data_dict = self.add_transaction(transaction, computation, block)
         block.header.state_root = self.state_root
-        return computation, block, trie_data
+        return computation, block, trie_data_dict
 
     def add_transaction(self, transaction, computation, block):
         """

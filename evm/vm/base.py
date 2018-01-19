@@ -87,18 +87,15 @@ class VM(object):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation, block, trie_data = self.get_state_class().apply_transaction(
+        computation, block, trie_data_dict = self.get_state_class().apply_transaction(
             self.state,
             transaction,
             self.block,
         )
         self.block = block
 
-        # TODO: Modify Chain.apply_transaction to update the local vm state before
-
         # Persist changed transaction and receipt key-values to self.chaindb.
-        for key, value in trie_data.items():
-            self.chaindb.db[key] = value
+        self.chaindb.persist_trie_data_dict_to_db(trie_data_dict)
 
         self.clear_journal()
 

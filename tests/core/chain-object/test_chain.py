@@ -24,6 +24,18 @@ def tx(chain):
     return new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
 
 
+def test_apply_transaction(chain, tx):
+    vm = chain.get_vm()
+
+    computation = chain.apply_transaction(tx)
+
+    # Check if the state is updated.
+    vm = chain.get_vm()
+    assert vm.state.state_root == computation.vm_state.state_root
+    with vm.state.state_db(read_only=True) as state_db:
+        assert state_db.get_balance(tx.to) == tx.value
+
+
 def test_import_block_validation(valid_chain):
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
     imported_block = valid_chain.import_block(block)
