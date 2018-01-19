@@ -1,3 +1,7 @@
+from collections import (
+    defaultdict,
+)
+
 import logging
 
 import rlp
@@ -72,36 +76,24 @@ class VMC(Contract):
         "CollationAdded(int128,bytes4096,bool,int128)"
     )
 
-    shards = set()
-    # shard_id -> list
-    # older <---------------> newer
-    new_collation_added_logs = {}
-    # shard_id -> list
-    # newer <---------------> older
-    unchecked_collation_added_logs = {}
-    # shard_id -> score
-    current_checking_score = {}
-
     def __init__(self, *args, log_handler, default_privkey, **kwargs):
         self.log_handler = log_handler
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
+        # shard_id -> list
+        # older <---------------> newer
+        self.new_collation_added_logs = defaultdict(list)
+        # shard_id -> list
+        # newer <---------------> older
+        self.unchecked_collation_added_logs = defaultdict(list)
+        # shard_id -> score
+        self.current_checking_score = defaultdict(None)
+
         super().__init__(*args, **kwargs)
-
-    def init_shard_variables(self, shard_id):
-        self.shards.add(shard_id)
-        self.unchecked_collation_added_logs[shard_id] = []
-        self.new_collation_added_logs[shard_id] = []
-        self.current_checking_score[shard_id] = None
-
-    def ensure_shard_variables_initialied(self, shard_id):
-        if shard_id not in self.shards:
-            self.init_shard_variables(shard_id)
 
     @to_tuple
     def _get_new_logs(self, shard_id):
-        self.ensure_shard_variables_initialied(shard_id)
         shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
         new_logs = self.log_handler.get_new_logs(
             address=self.address,
@@ -123,7 +115,6 @@ class VMC(Contract):
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
-        self.ensure_shard_variables_initialied(shard_id)
 
         for i in reversed(range(len(self.unchecked_collation_added_logs[shard_id]))):
             if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
