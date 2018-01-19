@@ -349,7 +349,6 @@ def test_vmc_fetch_candidate_head(vmc,
             'is_new_head': mock_is_new_head[i],
         } for i in range(len(mock_score))
     ]
-    vmc.init_shard_variables(shard_id)
     # mock collation_added_logs
     vmc.new_collation_added_logs[shard_id] = mock_collation_added_logs
     for i in range(len(mock_score)):
