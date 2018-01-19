@@ -5,7 +5,7 @@ from eth_utils import (
 )
 
 
-class LogHandler(object):
+class LogHandler:
 
     logger = logging.getLogger("evm.chain.sharding.LogHandler")
 
@@ -59,14 +59,20 @@ class LogHandler(object):
         if isinstance(block_param, int):
             return block_param
         elif not isinstance(block_param, str):
-            raise ValueError("block parameter {0} is in wrong type".format(block_param))
+            raise ValueError("block parameter {0} must be int or str type".format(block_param))
         current_block_number = self.w3.eth.blockNumber
-        mapping = {
-            'earliest': 0,
-            'latest': current_block_number,
-            'pending': current_block_number + 1,
-        }
-        return mapping.get(block_param, block_param)
+        if block_param == 'earliest':
+            return 0
+        elif block_param == 'latest':
+            return current_block_number
+        elif block_param == 'pending':
+            return current_block_number + 1
+        else:
+            raise ValueError(
+                "block parameter {0} in string must be one of earliest/latest/pending".format(
+                    block_param,
+                )
+            )
 
     @to_dict
     def mk_filter_params(self, from_block_number, to_block_number, address=None, topics=None):
@@ -76,10 +82,6 @@ class LogHandler(object):
             yield 'address', address
         if topics is not None:
             yield 'topics', topics
-
-    def filter_logs(self, filter_params):
-        logs = self.w3.eth.getLogs(filter_params)
-        return logs
 
     def get_new_logs(self, address=None, topics=None):
         _, new_block_hashes = self.check_chain_head()
@@ -96,4 +98,4 @@ class LogHandler(object):
             address,
             topics,
         )
-        return self.filter_logs(filter_params)
+        return self.w3.eth.getLogs(filter_params)
