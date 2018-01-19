@@ -350,7 +350,7 @@ def test_vmc_fetch_candidate_head(vmc,
         } for i in range(len(mock_score))
     ]
     # mock collation_added_logs
-    vmc.new_collation_added_logs[shard_id] = mock_collation_added_logs
+    vmc.new_logs[shard_id] = mock_collation_added_logs
     for i in range(len(mock_score)):
         log = vmc.fetch_candidate_head(shard_id)
         assert log['score'] == expected_score[i]
