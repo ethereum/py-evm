@@ -196,10 +196,6 @@ class CollationHeader(rlp.Serializable):
     def hash(self):
         return keccak(rlp.encode(self))
 
-    @property
-    def hex_hash(self):
-        return encode_hex(self.hash)
-
     @classmethod
     def from_parent(cls,
                     parent,
