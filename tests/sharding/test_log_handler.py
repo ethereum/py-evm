@@ -90,7 +90,8 @@ def test_log_handler_preprocess_block_param(contract):
     assert log_handler.preprocess_block_param('latest') == current_block_number
     assert log_handler.preprocess_block_param('pending') == current_block_number + 1
     block_hash = '0x1111111111111111111111111111111111111111111111111111111111111111'
-    assert log_handler.preprocess_block_param(block_hash) == block_hash
+    with pytest.raises(ValueError):
+        log_handler.preprocess_block_param(block_hash)
 
 
 def test_log_handler_mk_filter_params(contract):
@@ -185,49 +186,6 @@ def test_log_handler_check_chain_head_with_forks(contract):
     assert block2_prime['hash'] == new_block_hashes[-3]
     assert block3_prime['hash'] == new_block_hashes[-2]
     assert block4_prime['hash'] == new_block_hashes[-1]
-
-
-def test_log_handler_filter_logs_without_forks(contract):
-    w3 = contract.web3
-    log_handler = LogHandler(w3)
-    counter = itertools.count()
-    contract.transact(default_tx_detail).emit_log(next(counter))
-    mine(w3, 1)
-    filter_params = log_handler.mk_filter_params(2, 2)
-    logs = log_handler.filter_logs(filter_params)
-    assert int(logs[0]['data'], 16) == 0
-    contract.transact(default_tx_detail).emit_log(next(counter))
-    mine(w3, 1)
-    filter_params = log_handler.mk_filter_params(3, 3)
-    logs = log_handler.filter_logs(filter_params)
-    assert int(logs[0]['data'], 16) == 1
-    # filter in range
-    filter_params = log_handler.mk_filter_params(2, 3)
-    logs = log_handler.filter_logs(filter_params)
-    assert len(logs) == 2
-    assert int(logs[0]['data'], 16) == 0
-    assert int(logs[1]['data'], 16) == 1
-
-
-def test_log_handler_filter_logs_with_forks(contract):
-    w3 = contract.web3
-    log_handler = LogHandler(w3)
-    counter = itertools.count()
-    snapshot_id = take_snapshot(w3)
-    current_block_number = w3.eth.blockNumber
-    contract.transact(default_tx_detail).emit_log(next(counter))
-    mine(w3, 1)
-    revert_to_snapshot(w3, snapshot_id)
-    assert w3.eth.blockNumber == current_block_number
-    contract.transact(default_tx_detail).emit_log(next(counter))
-    mine(w3, 1)
-    contract.transact(default_tx_detail).emit_log(next(counter))
-    mine(w3, 1)
-    filter_params = log_handler.mk_filter_params(2, 3)
-    logs = log_handler.filter_logs(filter_params)
-    # assert len(logs) == 2
-    assert int(logs[0]['data'], 16) == 1
-    assert int(logs[1]['data'], 16) == 2
 
 
 def test_log_handler_get_new_logs_without_forks(contract):
