@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-import copy
 import logging
+import rlp
 
 from cytoolz import (
     merge,
@@ -11,6 +11,9 @@ from evm.constants import (
 )
 from evm.db.tracked import (
     AccessLogs,
+)
+from evm.rlp.headers import (
+    BlockHeader,
 )
 from evm.utils.state import (
     make_trie_root_and_nodes,
@@ -26,6 +29,7 @@ class BaseVMState(object):
     state_root = None
     receipts = None
 
+    block_class = None
     computation_class = None
     access_logs = None
 
@@ -192,7 +196,7 @@ class BaseVMState(object):
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
         # Don't modify the given block
-        block = copy.deepcopy(block)
+        block = rlp.make_immutable(block)
         self.set_state_root(block.header.state_root)
         computation = self.execute_transaction(transaction)
 
@@ -221,6 +225,11 @@ class BaseVMState(object):
         """
         receipt = self.make_receipt(transaction, computation)
         self.add_receipt(receipt)
+
+        # Create a new Block object
+        block_header = BlockHeader.pure_clone(block.header)
+        transactions = list(block.transactions)
+        block = self.block_class(block_header, transactions)
 
         block.transactions.append(transaction)
 

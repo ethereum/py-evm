@@ -133,3 +133,23 @@ class BlockHeader(rlp.Serializable):
 
         header = cls(**header_kwargs)
         return header
+
+    @classmethod
+    def pure_clone(cls, header):
+        return cls(
+            difficulty=header.difficulty,
+            block_number=header.block_number,
+            gas_limit=header.gas_limit,
+            timestamp=header.timestamp,
+            coinbase=header.coinbase,
+            parent_hash=header.parent_hash,
+            uncles_hash=header.uncles_hash,
+            state_root=header.state_root,
+            transaction_root=header.transaction_root,
+            receipt_root=header.receipt_root,
+            bloom=header.bloom,
+            gas_used=header.gas_used,
+            extra_data=header.extra_data,
+            mix_hash=header.mix_hash,
+            nonce=header.nonce,
+        )

@@ -10,6 +10,7 @@ from evm.validation import (
 from evm.vm.forks.frontier.vm_state import _make_frontier_receipt
 from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
 
+from .blocks import ByzantiumBlock
 from .computation import ByzantiumComputation
 from .constants import (
     EIP649_BLOCK_REWARD,
@@ -19,6 +20,7 @@ from .constants import (
 
 
 class ByzantiumVMState(SpuriousDragonVMState):
+    block_class = ByzantiumBlock
     computation_class = ByzantiumComputation
 
     def make_receipt(self, transaction, computation):
