@@ -4,6 +4,10 @@ from collections import (
 
 import logging
 
+from cytoolz import (
+    pipe,
+)
+
 import rlp
 
 from web3.contract import (
@@ -88,7 +92,7 @@ class VMC(Contract):
         # newer <---------------> older
         self.unchecked_collation_added_logs = defaultdict(list)
         # shard_id -> score
-        self.current_checking_score = defaultdict(None)
+        self.current_checking_score = defaultdict(lambda: None)
 
         super().__init__(*args, **kwargs)
 
@@ -107,7 +111,7 @@ class VMC(Contract):
 
     def get_next_log(self, shard_id):
         new_logs = self._get_new_logs(shard_id)
-        self.new_collation_added_logs[shard_id] += new_logs
+        self.new_collation_added_logs[shard_id].extend(new_logs)
         if len(self.new_collation_added_logs[shard_id]) == 0:
             raise NextLogUnavailable("No more next logs")
         return self.new_collation_added_logs[shard_id].pop()
@@ -115,11 +119,18 @@ class VMC(Contract):
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
+        unchecked_logs = pipe(
+            self.unchecked_collation_added_logs[shard_id],
+            enumerate,
+            tuple,
+            reversed,
+            tuple,
+        )
+        current_score = self.current_checking_score[shard_id]
 
-        for i in reversed(range(len(self.unchecked_collation_added_logs[shard_id]))):
-            if self.unchecked_collation_added_logs[shard_id][i]['score'] == \
-               self.current_checking_score[shard_id]:
-                return self.unchecked_collation_added_logs[shard_id].pop(i)
+        for idx, logs_entry in unchecked_logs:
+            if logs_entry['score'] == current_score:
+                return self.unchecked_collation_added_logs[shard_id].pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
         while True:
