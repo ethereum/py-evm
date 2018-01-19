@@ -86,6 +86,7 @@ class LightChain(Chain):
         Return the peer with the highest announced block height.
         """
         while len(self.peer_pool.peers) == 0:
+            self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
 
         def peer_block_height(peer: LESPeer):
