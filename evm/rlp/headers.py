@@ -200,7 +200,7 @@ class CollationHeader(rlp.Serializable):
     def from_parent(cls,
                     parent,
                     period_start_prevhash,
-                    expected_period_number=None,
+                    expected_period_number,
                     coinbase=ZERO_ADDRESS,
                     sig=b""):
         """
@@ -209,7 +209,7 @@ class CollationHeader(rlp.Serializable):
         """
         header_kwargs = {
             "shard_id": parent.shard_id,
-            "expected_period_number": expected_period_number or parent.expected_period_number + 1,
+            "expected_period_number": expected_period_number,
             "period_start_prevhash": period_start_prevhash,
             "parent_hash": parent.hash,
             "state_root": parent.state_root,
