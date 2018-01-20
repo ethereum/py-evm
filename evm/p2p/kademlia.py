@@ -516,7 +516,7 @@ class KademliaProtocol:
         async def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
             candidates = await self.wait_neighbours(remote)
-            if len(candidates) == 0:
+            if not candidates:
                 self.logger.debug("got no candidates from {}, returning".format(remote))
                 return candidates
             candidates = [c for c in candidates if c not in nodes_seen]
