@@ -455,8 +455,8 @@ class KademliaProtocol:
             await asyncio.wait_for(event.wait(), k_request_timeout)
             self.logger.debug('got expected neighbours response from {}'.format(remote))
         except asyncio.TimeoutError:
-            pass
             self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
+
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.neighbours_callbacks[remote]
         return [n for n in neighbours if n != self.this_node]
