@@ -233,7 +233,6 @@ class Proofs(Command):
         # doesn't have to special-case them. Soon we should be able to drop support for LES/1
         # anyway, and then all this code will go away.
         if not decoded['proofs']:
-            import pdb; pdb.set_trace()
             decoded['proof'] = []
         else:
             decoded['proof'] = decoded['proofs'][0]
