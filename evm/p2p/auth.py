@@ -160,9 +160,9 @@ class HandshakeInitiator(HandshakeBase):
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
             raise ValueError("Auth ack msg too short: {}".format(len(ciphertext)))
         elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
-            eph_pubkey, nonce, version = decode_ack_plain(ciphertext, self.privkey)
+            eph_pubkey, nonce, __ = decode_ack_plain(ciphertext, self.privkey)
         else:
-            eph_pubkey, nonce, version = decode_ack_eip8(ciphertext, self.privkey)
+            eph_pubkey, nonce, __ = decode_ack_eip8(ciphertext, self.privkey)
             self.got_eip8_auth = True
         return eph_pubkey, nonce
 
@@ -202,10 +202,10 @@ class HandshakeResponder(HandshakeBase):
         if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
             raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
         elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
-            sig, initiator_pubkey, initiator_nonce, version = decode_auth_plain(
+            sig, initiator_pubkey, initiator_nonce, __ = decode_auth_plain(
                 ciphertext, self.privkey)
         else:
-            sig, initiator_pubkey, initiator_nonce, version = decode_auth_eip8(
+            sig, initiator_pubkey, initiator_nonce, __ = decode_auth_eip8(
                 ciphertext, self.privkey)
             self.got_eip8_auth = True
 
