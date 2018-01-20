@@ -6,7 +6,7 @@ from eth_utils import decode_hex
 from evm import constants
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
-from evm.estimators.gas import binary_search_1000_tolerance
+from evm.estimators.gas import binary_gas_search_1000_tolerance
 from evm.exceptions import (
     TransactionNotFound,
 )
@@ -88,7 +88,7 @@ def test_empty_transaction_lookups(chain):
         (b'\xff' * 32, None, ADDRESS_2, False, 35369),
         (b'\xff' * 320, None, ADDRESS_2, True, 54888),
         # 1000_tolerance binary search
-        (b'\xff' * 32, binary_search_1000_tolerance, ADDRESS_2, True, 23938),
+        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23938),
     ),
     ids=[
         'simple default pending',

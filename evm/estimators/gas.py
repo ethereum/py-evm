@@ -40,7 +40,7 @@ def _get_computation_error(state, transaction):
 
 
 @curry
-def binary_search(tolerance, state, transaction):
+def binary_gas_search(state, transaction, tolerance=1):
     """
     Run the transaction with various gas limits, progressively
     approaching the minimum needed to succeed without an OutOfGas exception.
@@ -78,10 +78,10 @@ def binary_search(tolerance, state, transaction):
 
 
 # Estimate in increments of intrinsic gas usage
-binary_search_intrinsic_tolerance = binary_search(21000)
+binary_gas_search_intrinsic_tolerance = binary_gas_search(tolerance=21000)
 
 # Estimate in increments of 1000 gas, takes roughly 5 more executions than intrinsic to estimate
-binary_search_1000_tolerance = binary_search(1000)
+binary_gas_search_1000_tolerance = binary_gas_search(tolerance=1000)
 
 # Estimate to the exact gas, takes roughly 15 more executions than intrinsic to estimate
-binary_search_exact = binary_search(1)
+binary_gas_search_exact = binary_gas_search(tolerance=1)
