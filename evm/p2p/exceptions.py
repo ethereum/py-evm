@@ -53,7 +53,4 @@ class StopRequested(Exception):
 class HandshakeFailure(Exception):
 
     def __init__(self, reason: 'DisconnectReason') -> None:
-        self.reason = reason
-
-    def __str__(self):
-        return self.reason.name
+        super().__init__(reason.name)
