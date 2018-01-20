@@ -276,7 +276,7 @@ def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnySt
     return remote_pubkey, cmd_id, payload, message_hash
 
 
-if __name__ == "__main__":
+def main():
     async def show_tasks():
         while True:
             tasks = []
@@ -331,3 +331,7 @@ if __name__ == "__main__":
     discovery.stop()
     # logger.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
     loop.close()
+
+
+if __name__ == "__main__":
+    main()
