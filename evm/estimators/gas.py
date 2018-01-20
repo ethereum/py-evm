@@ -28,15 +28,15 @@ def execute_plus_buffer(multiplier, state, transaction):
 double_execution_cost = execute_plus_buffer(2)
 
 
-def _is_enough_gas(state, transaction):
+def _get_computation_error(state, transaction):
     snapshot = state.snapshot()
     computation = state.execute_transaction(transaction)
     state.revert(snapshot)
 
     if computation.is_error:
-        return not isinstance(computation._error, OutOfGas)
+        return computation._error
     else:
-        return True
+        return None
 
 
 @curry
@@ -51,23 +51,25 @@ def binary_search(tolerance, state, transaction):
 
     :param int tolerance: When the range of estimates is less than tolerance,
         return the top of the range.
-    :return int: The smallest confirmed gas to not throw an OutOfGas exception,
+    :returns int: The smallest confirmed gas to not throw an OutOfGas exception,
         subject to tolerance. If OutOfGas is thrown at block limit, return block limit.
+    :raises VMError: if the computation fails even when given the block gas_limit to complete
     """
     minimum_transaction = SpoofTransaction(transaction, gas=transaction.intrinsic_gas)
-    if _is_enough_gas(state, minimum_transaction):
+    if _get_computation_error(state, minimum_transaction) is None:
         return transaction.intrinsic_gas
 
     maximum_transaction = SpoofTransaction(transaction, gas=state.gas_limit)
-    if not _is_enough_gas(state, maximum_transaction):
-        return state.gas_limit
+    error = _get_computation_error(state, maximum_transaction)
+    if error is not None:
+        raise error
 
     minimum_viable = state.gas_limit
     maximum_out_of_gas = transaction.intrinsic_gas
     while minimum_viable - maximum_out_of_gas > tolerance:
         midpoint = (minimum_viable + maximum_out_of_gas) // 2
         test_transaction = SpoofTransaction(transaction, gas=midpoint)
-        if _is_enough_gas(state, test_transaction):
+        if _get_computation_error(state, test_transaction) is None:
             minimum_viable = midpoint
         else:
             maximum_out_of_gas = midpoint
