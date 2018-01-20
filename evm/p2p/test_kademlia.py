@@ -145,7 +145,7 @@ def test_update_routing_table():
     proto = get_wired_protocol()
     node = random_node()
 
-    proto.update_routing_table(node) is None
+    assert proto.update_routing_table(node) is None
 
     assert node in proto.routing
 
