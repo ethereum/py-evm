@@ -2,9 +2,10 @@ import asyncio
 import logging
 import os
 import random
-import sha3
 import struct
 from typing import Tuple
+
+import sha3
 
 import rlp
 from rlp import sedes
