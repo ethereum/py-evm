@@ -41,9 +41,6 @@ from evm.utils.address import (
 from evm.vm.forks.sharding.config import (
     get_sharding_config,
 )
-from evm.vm.forks.sharding.log_handler import (
-    LogHandler,
-)
 from evm.vm.forks.sharding.vmc_handler import (
     VMC,
 )
@@ -84,7 +81,6 @@ def vmc():
     vmc_handler = VMCClass(
         to_checksum_address(vmc_addr),
         default_privkey=test_keys[0],
-        log_handler=LogHandler(w3),
     )
     vmc_handler.vmc_tx_sender_address = vmc_tx.sender
     return vmc_handler
