@@ -5,11 +5,15 @@ from cytoolz import (
 )
 
 from evm import constants
+from evm.vm.forks.tangerine_whistle.constants import (
+    GAS_CALL_EIP150,
+)
 from evm import opcode_values
 from evm import mnemonics
 
 from evm.opcode import as_opcode
 from evm.logic import (
+    call,
     context,
     system,
 )
@@ -35,8 +39,21 @@ NEW_OPCODES = {
     ),
 }
 
+REMOVED_OPCODES = [
+    opcode_values.CREATE,
+]
+
+REPLACED_OPCODES = {
+    opcode_values.CALL: call.CallSharding.configure(
+        name='opcode:CALL',
+        mnemonic=mnemonics.CALL,
+        gas_cost=GAS_CALL_EIP150,
+    )(),
+}
+
 
 SHARDING_OPCODES = merge(
-    dissoc(copy.deepcopy(BYZANTIUM_OPCODES), opcode_values.CREATE),
-    NEW_OPCODES
+    dissoc(copy.deepcopy(BYZANTIUM_OPCODES), *REMOVED_OPCODES),
+    NEW_OPCODES,
+    REPLACED_OPCODES,
 )
