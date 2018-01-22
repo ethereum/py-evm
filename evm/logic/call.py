@@ -348,3 +348,13 @@ class CallByzantium(CallEIP161):
         if computation.msg.is_static and value != 0:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return call_params
+
+
+class CallSharding(CallByzantium):
+    def compute_msg_extra_gas(self, computation, gas, to, value):
+        with computation.state_db(read_only=True) as state_db:
+            account_is_empty = state_db.account_is_empty(to)
+
+        transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
+        create_gas_fee = constants.GAS_NEWACCOUNT if not account_is_empty else 0
+        return transfer_gas_fee + create_gas_fee
