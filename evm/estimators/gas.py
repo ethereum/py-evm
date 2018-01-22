@@ -2,10 +2,6 @@ from cytoolz import (
     curry,
 )
 
-
-from evm.exceptions import (
-    OutOfGas,
-)
 from evm.utils.spoof import (
     SpoofTransaction,
 )
