@@ -1,7 +1,3 @@
-from collections import (
-    defaultdict,
-)
-
 import logging
 
 from cytoolz import (
@@ -80,26 +76,37 @@ class VMC(Contract):
         "CollationAdded(int128,bytes4096,bool,int128)"
     )
 
-    def __init__(self, *args, log_handler, default_privkey, **kwargs):
-        self.log_handler = log_handler
+    def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
+        self.log_handlers = {}
         # shard_id -> list
         # older <---------------> newer
-        self.new_logs = defaultdict(list)
+        self.new_logs = {}
         # shard_id -> list
-        # newer <---------------> older
-        self.unchecked_logs = defaultdict(list)
+        self.unchecked_logs = {}
         # shard_id -> score
-        self.current_score = defaultdict(lambda: None)
+        self.current_score = {}
 
         super().__init__(*args, **kwargs)
+
+    def init_log_variables(self, shard_id):
+        self.new_logs[shard_id] = []
+        # shard_id -> list
+        self.unchecked_logs[shard_id] = []
+        # shard_id -> score
+        self.current_score[shard_id] = None
+
+    def setup_log_handler(self, log_handler, shard_id):
+        self.log_handlers[shard_id] = log_handler
+        self.init_log_variables(shard_id)
 
     @to_tuple
     def _get_new_logs(self, shard_id):
         shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
-        new_logs = self.log_handler.get_new_logs(
+        log_handler = self.log_handlers[shard_id]
+        new_logs = log_handler.get_new_logs(
             address=self.address,
             topics=[
                 encode_hex(self.COLLATION_ADDED_TOPIC),
