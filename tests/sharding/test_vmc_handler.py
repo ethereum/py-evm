@@ -42,6 +42,9 @@ from evm.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
 
+from evm.vm.forks.sharding.log_handler import (
+    LogHandler,
+)
 from evm.vm.forks.sharding.vmc_utils import (
     create_vmc_tx,
 )
@@ -342,6 +345,8 @@ def test_vmc_fetch_candidate_head(vmc,
                                   expected_score,
                                   expected_is_new_head):
     shard_id = 0
+    log_handler = LogHandler(vmc.web3)
+    vmc.setup_log_handler(log_handler, shard_id)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -366,6 +371,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     primary_addr = test_keys[validator_index].public_key.to_canonical_address()
     default_gas = vmc.config['DEFAULT_GAS']
 
+    log_handler = LogHandler(vmc.web3)
+    vmc.setup_log_handler(log_handler, shard_id)
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
         nonce=0,
@@ -495,10 +502,18 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert vmc.get_next_log(shard_id)['score'] == 1
     with pytest.raises(NextLogUnavailable):
         vmc.get_next_log(shard_id)
+
     # filter logs in multiple shards
+    vmc.setup_log_handler(LogHandler(vmc.web3), 1)
     header1_1 = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
     vmc.add_header(header1_1)
     mine(vmc, 1)
+    header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
+    header0_3_hash = keccak(header0_3)
+    vmc.add_header(header0_3)
+    mine(vmc, 1)
+    assert vmc.get_next_log(0)['score'] == 3
+    # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
     assert vmc.get_next_log(1)['score'] == 1
     logs = vmc.web3.eth.getLogs({
         "fromBlock": 0,
@@ -507,7 +522,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             encode_hex(vmc.COLLATION_ADDED_TOPIC),
         ]
     })
-    assert len(logs) == 3
+    assert len(logs) == 4
 
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
