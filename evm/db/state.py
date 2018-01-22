@@ -304,7 +304,8 @@ class FlatTrieBackend:
         return self.get_code(address) != b'' or self.get_nonce(address) != 0
 
     def touch_account(self, address):
-        if not self.account_exists(address):
+        do_not_touch = self.account_has_code_or_nonce(address) or self.get_balance(address) != 0
+        if not do_not_touch:
             self.set_nonce(address, 0)
             self.set_balance(address, 0)
             self.set_code(address, b'')
