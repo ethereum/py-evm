@@ -41,6 +41,7 @@ NEW_OPCODES = {
 
 REMOVED_OPCODES = [
     opcode_values.CREATE,
+    opcode_values.SELFDESTRUCT,
 ]
 
 REPLACED_OPCODES = {
