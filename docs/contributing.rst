@@ -5,6 +5,12 @@ Contributing to py-evm
 
     pip install -e . -r requirements-dev.txt
 
+.. note::
+
+  This step doesn't install the "leveldb" package by default. Leveldb is
+  required if you are running Py-EVM *lightchain_shell*. To install
+  leveldb run `pip install "leveldb>=0.194"`.
+
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
