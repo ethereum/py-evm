@@ -265,7 +265,11 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        computation, _ = vm.apply_transaction(transaction)
+        computation, block = vm.apply_transaction(transaction)
+
+        # Update header
+        self.header = block.header
+
         return computation
 
     def import_block(self, block, perform_validation=True):

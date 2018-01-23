@@ -316,6 +316,13 @@ class BaseChainDB:
             rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
         )
 
+    def persist_trie_data_dict_to_db(self, trie_data_dict):
+        """
+        Store raw trie data to db from a dict
+        """
+        for key, value in trie_data_dict.items():
+            self.db[key] = value
+
     def _remove_transaction_from_canonical_chain(self, transaction_hash):
         self.db.delete(make_transaction_hash_to_block_lookup_key(transaction_hash))
 

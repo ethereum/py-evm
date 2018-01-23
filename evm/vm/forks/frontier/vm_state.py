@@ -31,6 +31,7 @@ from evm.utils.keccak import (
     keccak,
 )
 
+from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .validation import validate_frontier_transaction
@@ -202,6 +203,7 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 
 
 class FrontierVMState(BaseVMState):
+    block_class = FrontierBlock
     computation_class = FrontierComputation
 
     def execute_transaction(self, transaction):

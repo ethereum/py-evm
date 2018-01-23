@@ -133,3 +133,11 @@ class BlockHeader(rlp.Serializable):
 
         header = cls(**header_kwargs)
         return header
+
+    def clone(self):
+        # Create a new BlockHeader object with the same fields.
+        return self.__class__(**{
+            field_name: getattr(self, field_name)
+            for field_name
+            in tuple(zip(*self.fields))[0]
+        })

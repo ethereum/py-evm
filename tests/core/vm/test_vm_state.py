@@ -75,7 +75,6 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # The first transaction
     chain1 = copy.deepcopy(chain)
     vm_example = chain1.get_vm()
-    vm_example._is_stateless = False  # Only for testing
     recipient1 = decode_hex('0x1111111111111111111111111111111111111111')
     amount = 100
     from_ = chain.funded_address

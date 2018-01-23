@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import copy
 import logging
 
 from cytoolz import (
@@ -26,6 +25,7 @@ class BaseVMState(object):
     state_root = None
     receipts = None
 
+    block_class = None
     computation_class = None
     access_logs = None
 
@@ -179,35 +179,27 @@ class BaseVMState(object):
     def apply_transaction(
             self,
             transaction,
-            block,
-            is_stateless=True):
+            block):
         """
         Apply transaction to the given block
 
         :param transaction: the transaction need to be applied
         :param block: the block which the transaction applies on
-        :param is_stateless: if is_stateless, call self.add_transaction to set block
         :type transaction: Transaction
         :type block: Block
-        :type is_stateless: bool
 
-        :return: the computation, applied block, and the trie_data
+        :return: the computation, applied block, and the trie_data_dict
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
-        if is_stateless:
-            # Don't modify the given block
-            block = copy.deepcopy(block)
-            self.set_state_root(block.header.state_root)
-            computation = self.execute_transaction(transaction)
+        # Don't modify the given block
+        block.make_immutable()
+        self.set_state_root(block.header.state_root)
+        computation = self.execute_transaction(transaction)
 
-            # Set block.
-            block, trie_data = self.add_transaction(transaction, computation, block)
-            block.header.state_root = self.state_root
-            return computation, block, trie_data
-        else:
-            computation = self.execute_transaction(transaction)
-            block.header.state_root = self.state_root
-            return computation, None, None
+        # Set block.
+        block, trie_data_dict = self.add_transaction(transaction, computation, block)
+        block.header.state_root = self.state_root
+        return computation, block, trie_data_dict
 
     def add_transaction(self, transaction, computation, block):
         """
@@ -229,6 +221,11 @@ class BaseVMState(object):
         """
         receipt = self.make_receipt(transaction, computation)
         self.add_receipt(receipt)
+
+        # Create a new Block object
+        block_header = block.header.clone()
+        transactions = list(block.transactions)
+        block = self.block_class(block_header, transactions)
 
         block.transactions.append(transaction)
 
