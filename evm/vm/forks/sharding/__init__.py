@@ -35,6 +35,13 @@ from .opcodes import SHARDING_OPCODES
 
 
 def _execute_sharding_transaction(vm, transaction):
+    # state_db ontext managers that restrict access as specified in the transacion
+    def state_db_cm():
+        return vm.state.state_db(access_list=transaction.prefix_list)
+
+    def read_only_state_db_cm():
+        return vm.state.state_db(access_list=transaction.prefix_list, read_only=True)
+
     #
     # 1) Pre Computation
     #
@@ -45,7 +52,7 @@ def _execute_sharding_transaction(vm, transaction):
     vm.validate_transaction(transaction)
 
     gas_fee = transaction.gas * transaction.gas_price
-    with vm.state.state_db() as state_db:
+    with state_db_cm() as state_db:
         # Buy Gas
         state_db.delta_balance(transaction.to, -1 * gas_fee)
 
@@ -82,6 +89,7 @@ def _execute_sharding_transaction(vm, transaction):
         gas=message_gas,
         gas_price=transaction.gas_price,
         to=transaction.to,
+        access_list=transaction.prefix_list,
         sig_hash=transaction.sig_hash,
         sender=ENTRY_POINT,
         value=0,
@@ -94,7 +102,7 @@ def _execute_sharding_transaction(vm, transaction):
     # 2) Apply the message to the VM.
     #
     if message.is_create:
-        with vm.state.state_db(read_only=True) as state_db:
+        with read_only_state_db_cm() as state_db:
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
         # Check if contract address provided by transaction is correct
@@ -151,7 +159,7 @@ def _execute_sharding_transaction(vm, transaction):
             encode_hex(message.to),
         )
 
-        with vm.state.state_db() as state_db:
+        with state_db_cm() as state_db:
             state_db.delta_balance(message.to, gas_refund_amount)
 
     # Miner Fees
@@ -161,11 +169,13 @@ def _execute_sharding_transaction(vm, transaction):
         transaction_fee,
         encode_hex(vm.block.header.coinbase),
     )
-    with vm.state.state_db() as state_db:
+    # TODO: don't transfer to coinbase directly but to temporary account first (transactions can't
+    # put coinbase in access list)
+    with state_db_cm() as state_db:
         state_db.delta_balance(vm.block.header.coinbase, transaction_fee)
 
     # Process Self Destructs
-    with vm.state.state_db() as state_db:
+    with state_db_cm() as state_db:
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
