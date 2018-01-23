@@ -24,7 +24,7 @@ setup(
         "rlp>=0.4.7,<1.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
         "trie>=1.3.0,<2.0.0",
-        "eth-tester>=0.1.0b11",
+        "eth-tester==0.1.0b12",
         "web3>=4.0.0b5",
     ],
     extras_require={
