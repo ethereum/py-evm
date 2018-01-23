@@ -2,14 +2,7 @@ import argparse
 import asyncio
 import atexit
 
-from evm.db.chain import BaseChainDB
 from evm.exceptions import CanonicalHeadNotFound
-from evm.chains.ropsten import (
-    ROPSTEN_GENESIS_HEADER,
-    ROPSTEN_NETWORK_ID,
-)
-from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
-from evm.p2p import ecies
 from evm.p2p.lightchain import LightChain
 from evm.db.backends.level import LevelDB
 
@@ -45,13 +38,9 @@ parser.add_argument(
     choices=LOG_LEVEL_CHOICES,
     default=DEFAULT_LOG_LEVEL,
 )
-
-
-DemoLightChain = LightChain.configure(
-    name='Demo LightChain',
-    privkey=ecies.generate_privkey(),  # TODO: get from stored key.
-    vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=ROPSTEN_NETWORK_ID,
+parse.add_argument(
+    '--ropsten',
+    action='store_true',
 )
 
 
