@@ -35,7 +35,7 @@ from evm.db.chain import (
     BaseChainDB,
 )
 from evm.db.state import (
-    NestedTrieBackend,
+    ShardingAccountStateDB,
 )
 
 from eth_utils import (
@@ -137,7 +137,7 @@ def vm():
         timestamp=1422494849,
         parent_hash=ZERO_HASH32,
     )
-    chaindb = BaseChainDB(get_db_backend(), state_backend_class=NestedTrieBackend)
+    chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
     vm = ShardingVM(header=header, chaindb=chaindb)
     vm_state = vm.state
     with vm_state.state_db() as statedb:
