@@ -13,6 +13,9 @@ from evm.p2p import ecies
 from evm.p2p.lightchain import LightChain
 from evm.db.backends.level import LevelDB
 
+from trinity.constants import (
+    ROPSTEN,
+)
 from trinity.utils.filesystem import (
     ensure_path_exists,
 )
@@ -61,7 +64,7 @@ def main():
     # the local logger.
     listener.start()
 
-    db_path = get_data_dir('ropsten')
+    db_path = get_data_dir(ROPSTEN)
     ensure_path_exists(db_path)
 
     # For now we just run the light sync against ropsten by default.
