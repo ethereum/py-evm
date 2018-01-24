@@ -25,11 +25,11 @@ and let you use the python interpreter to interact with it:
 
 .. code:: sh
 
-  $ python -i -m evm.lightchain_shell -db /tmp/testnet.db
+  $ python -m evm.lightchain_shell -db /tmp/testnet.db
 
 
-That will immediately give you a python shell, with a chain variable that you
-can use even before it has finished syncing:
+That will immediately give you a IPython, if it is installed, or a Python REPL_,
+with a chain variable that you can use even before it has finished syncing:
 
 .. code:: sh
 
@@ -102,3 +102,7 @@ a few of them are supported. To start the JSON-RPC server, simply run:
 
 That will start a server listening on port 8080, with a LightChain syncing block headers on the
 Ropsten network. You can then use curl as described on the wikipage above to interact with it.
+
+
+
+.. _REPL: https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop
