@@ -1,14 +1,23 @@
 import pytest
 
+import copy
+
 from evm.exceptions import (
+    UnannouncedStateAccess,
     ValidationError,
 )
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.state import (
-    AccountStateDB,
-    FlatTrieBackend,
-    NestedTrieBackend,
+    MainAccountStateDB,
+    ShardingAccountStateDB,
+)
+
+from evm.utils.state_access_restriction import (
+    balance_key,
+    code_key,
+    nonce_key,
+    storage_key,
 )
 
 
@@ -17,14 +26,10 @@ OTHER_ADDRESS = b'\xbb' * 20
 INVALID_ADDRESS = b'aa' * 20
 
 
-@pytest.fixture(params=[
-    FlatTrieBackend,
-    NestedTrieBackend,
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+    ShardingAccountStateDB(MemoryDB()),
 ])
-def state(request):
-    return AccountStateDB(MemoryDB(), backend_class=request.param)
-
-
 def test_balance(state):
     assert state.get_balance(ADDRESS) == 0
 
@@ -48,6 +53,10 @@ def test_balance(state):
         state.delta_balance(ADDRESS, 1.0)
 
 
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+    ShardingAccountStateDB(MemoryDB()),
+])
 def test_nonce(state):
     assert state.get_nonce(ADDRESS) == 0
 
@@ -69,6 +78,10 @@ def test_nonce(state):
         state.set_nonce(ADDRESS, 1.0)
 
 
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+    ShardingAccountStateDB(MemoryDB()),
+])
 def test_code(state):
     assert state.get_code(ADDRESS) == b''
 
@@ -84,10 +97,11 @@ def test_code(state):
         state.set_code(ADDRESS, 'code')
 
 
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+    ShardingAccountStateDB(MemoryDB()),
+])
 def test_storage(state):
-    # flat trie doesn't implement account existence checks and deletion
-    is_nested = isinstance(state.backend, NestedTrieBackend)
-
     assert state.get_storage(ADDRESS, 0) == 0
 
     state.set_storage(ADDRESS, 0, 123)
@@ -95,18 +109,10 @@ def test_storage(state):
     assert state.get_storage(ADDRESS, 1) == 0
     assert state.get_storage(OTHER_ADDRESS, 0) == 0
 
-    state.set_storage(OTHER_ADDRESS, 1, 321)
-    if is_nested:
-        state.delete_storage(ADDRESS)
-        assert state.get_storage(ADDRESS, 0) == 0
-        assert state.get_storage(OTHER_ADDRESS, 1) == 321
-
     with pytest.raises(ValidationError):
         state.get_storage(INVALID_ADDRESS, 0)
     with pytest.raises(ValidationError):
         state.set_storage(INVALID_ADDRESS, 0, 0)
-    with pytest.raises(ValidationError):
-        state.delete_storage(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
         state.get_storage(ADDRESS, b'\x00')
     with pytest.raises(ValidationError):
@@ -115,34 +121,112 @@ def test_storage(state):
         state.set_storage(ADDRESS, 0, b'asdf')
 
 
-def test_accounts(state):
-    # flat trie doesn't implement account existence checks and deletion
-    is_nested = isinstance(state.backend, NestedTrieBackend)
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+])
+def test_storage_deletion(state):
+    state.set_storage(ADDRESS, 0, 123)
+    state.set_storage(OTHER_ADDRESS, 1, 321)
+    state.delete_storage(ADDRESS)
+    assert state.get_storage(ADDRESS, 0) == 0
+    assert state.get_storage(OTHER_ADDRESS, 1) == 321
 
-    if is_nested:
-        assert not state.account_exists(ADDRESS)
+    with pytest.raises(ValidationError):
+        state.delete_storage(INVALID_ADDRESS)
+
+
+@pytest.mark.parametrize("state", [
+    MainAccountStateDB(MemoryDB()),
+])
+def test_accounts(state):
+    assert not state.account_exists(ADDRESS)
     assert not state.account_has_code_or_nonce(ADDRESS)
 
-    if is_nested:
-        state.touch_account(ADDRESS)
-        assert state.account_exists(ADDRESS)
-        assert state.get_nonce(ADDRESS) == 0
-        assert state.get_balance(ADDRESS) == 0
-        assert state.get_code(ADDRESS) == b''
+    state.touch_account(ADDRESS)
+    assert state.account_exists(ADDRESS)
+    assert state.get_nonce(ADDRESS) == 0
+    assert state.get_balance(ADDRESS) == 0
+    assert state.get_code(ADDRESS) == b''
 
     assert not state.account_has_code_or_nonce(ADDRESS)
     state.increment_nonce(ADDRESS)
     assert state.account_has_code_or_nonce(ADDRESS)
 
-    if is_nested:
-        state.delete_account(ADDRESS)
-        assert not state.account_exists(ADDRESS)
-        assert not state.account_has_code_or_nonce(ADDRESS)
+    state.delete_account(ADDRESS)
+    assert not state.account_exists(ADDRESS)
+    assert not state.account_has_code_or_nonce(ADDRESS)
 
-    if is_nested:
-        with pytest.raises(ValidationError):
-            state.account_exists(INVALID_ADDRESS)
-        with pytest.raises(ValidationError):
-            state.delete_account(INVALID_ADDRESS)
+    with pytest.raises(ValidationError):
+        state.account_exists(INVALID_ADDRESS)
+    with pytest.raises(ValidationError):
+        state.delete_account(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
         state.account_has_code_or_nonce(INVALID_ADDRESS)
+
+
+def test_access_restriction():
+    # populate db
+    state = ShardingAccountStateDB(MemoryDB())
+    state.set_nonce(ADDRESS, 1)
+    state.set_balance(ADDRESS, 2)
+    state.set_code(ADDRESS, b"code")
+    state.set_storage(ADDRESS, 123, 4)
+
+    original_db = state.db
+    original_root_hash = state.root_hash
+
+    def make_state(access_list):
+        kv_store = copy.deepcopy(original_db.kv_store)
+        db = MemoryDB(kv_store)
+        return ShardingAccountStateDB(db, original_root_hash, access_list=access_list)
+
+    # access lists to use
+    CODE_ACCESS_LIST = [code_key(ADDRESS)]
+    BALANCE_ACCESS_LIST = [balance_key(ADDRESS)]
+    NONCE_ACCESS_LIST = [nonce_key(ADDRESS)]
+    STORAGE_ACCESS_LIST = [storage_key(ADDRESS, 123)]
+
+    # test with access list
+    state = make_state(NONCE_ACCESS_LIST)
+    state.get_nonce(ADDRESS)
+    state.set_nonce(ADDRESS, 2)
+    state.increment_nonce(ADDRESS)
+
+    state = make_state(BALANCE_ACCESS_LIST)
+    state.get_balance(ADDRESS)
+    state.set_balance(ADDRESS, 3)
+    state.delta_balance(ADDRESS, 1)
+
+    state = make_state(CODE_ACCESS_LIST)
+    state.get_code(ADDRESS)
+    state.set_code(ADDRESS, b"new_code")
+
+    state = make_state(STORAGE_ACCESS_LIST)
+    state.get_storage(ADDRESS, 123)
+    state.set_storage(ADDRESS, 123, 5)
+
+    # test without access list
+    state = make_state([])
+    with pytest.raises(UnannouncedStateAccess):
+        state.get_nonce(ADDRESS)
+    with pytest.raises(UnannouncedStateAccess):
+        state.set_nonce(ADDRESS, 2)
+    with pytest.raises(UnannouncedStateAccess):
+        state.increment_nonce(ADDRESS)
+
+    with pytest.raises(UnannouncedStateAccess):
+        state.get_balance(ADDRESS)
+    with pytest.raises(UnannouncedStateAccess):
+        state.set_balance(ADDRESS, 3)
+    with pytest.raises(UnannouncedStateAccess):
+        state.delta_balance(ADDRESS, 1)
+
+    with pytest.raises(UnannouncedStateAccess):
+        state.get_code(ADDRESS)
+    with pytest.raises(UnannouncedStateAccess):
+        state.set_code(ADDRESS, b"new_code")
+
+    with pytest.raises(UnannouncedStateAccess):
+        state.get_storage(ADDRESS, 123)
+    with pytest.raises(UnannouncedStateAccess):
+        state.set_storage(ADDRESS, 123, 5)
