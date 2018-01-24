@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import atexit
 
-from evm.exceptions import CanonicalHeadNotFound
 from evm.p2p.lightchain import LightChain
 from evm.db.backends.level import LevelDB
 
