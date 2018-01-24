@@ -154,6 +154,9 @@ class NestedTrieBackend:
     def account_exists(self, address):
         return bool(self._trie[address])
 
+    def account_has_code_or_nonce(self, address):
+        return self.get_code_hash(address) != EMPTY_SHA3 or self.get_nonce(address) != 0
+
     def touch_account(self, address):
         account = self._get_account(address)
         self._set_account(address, account)
