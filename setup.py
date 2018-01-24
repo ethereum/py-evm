@@ -15,6 +15,7 @@ setup(
     include_package_data=True,
     py_modules=['evm', 'trinity'],
     install_requires=[
+<<<<<<< HEAD
         "aiohttp>=2.3.1,<3.0.0",
         "async_lru>=0.1.0,<1.0.0",
         "cryptography>=2.0.3,<3.0.0",
@@ -27,6 +28,21 @@ setup(
         "eth-keys>=0.2.0b2,<1.0.0",
         "trie>=1.3.0,<2.0.0",
         "eth-tester==0.1.0b12",
+=======
+        "aiohttp==2.3.1",
+        "async_lru>=0.1.0",
+        "cryptography>=2.0.3",
+        "cytoolz==0.9.0,<1.0.0",
+        "eth-bloom>=0.5.2",
+        "eth-utils>=1.0.0b1,<2.0.0",
+        "pyethash>=0.1.27",
+        "py-ecc==1.4.2",
+        "rlp==0.4.7",
+        "eth-keys==0.1.0b3",
+        "trie>=0.3.1",
+        "trie>=1.0.1,<2.0.0",
+        "eth-tester==0.1.0b14",
+>>>>>>> Bump install_requires to eth-tester==0.1.0b14
         "web3>=4.0.0b5",
     ],
     extras_require={
