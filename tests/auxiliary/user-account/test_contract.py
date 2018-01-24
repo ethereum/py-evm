@@ -14,9 +14,11 @@ from evm.constants import (
     ZERO_HASH32,
     ENTRY_POINT,
 )
+from evm.vm.message import (
+    ShardingMessage,
+)
 from evm.vm.forks.sharding import (
     ShardingVM,
-    ShardingMessage,
 )
 from evm.vm.forks.sharding.transactions import (
     ShardingTransaction,
@@ -33,7 +35,6 @@ from evm.db.chain import (
     BaseChainDB,
 )
 from evm.db.state import (
-    FlatTrieBackend,
     NestedTrieBackend,
 )
 
@@ -44,7 +45,7 @@ from eth_utils import (
 )
 from evm.utils.padding import pad32
 from evm.utils.address import (
-    generate_create2_contract_address,
+    generate_CREATE2_contract_address,
 )
 from evm.utils.keccak import keccak
 
@@ -61,21 +62,21 @@ from evm.auxiliary.user_account_contract.contract import (
 PRIVATE_KEY = keys.PrivateKey(b"\x33" * 32)
 
 ACCOUNT_CODE = generate_account_bytecode(PRIVATE_KEY.public_key.to_canonical_address())
-ACCOUNT_ADDRESS = generate_create2_contract_address(b"", ACCOUNT_CODE)
+ACCOUNT_ADDRESS = generate_CREATE2_contract_address(b"", ACCOUNT_CODE)
 INITIAL_BALANCE = 10000000000
 
 # contract that does nothing
 NOOP_CONTRACT_CODE = b""
-NOOP_CONTRACT_ADDRESS = generate_create2_contract_address(b"", NOOP_CONTRACT_CODE)
+NOOP_CONTRACT_ADDRESS = generate_CREATE2_contract_address(b"", NOOP_CONTRACT_CODE)
 
 # contract that reverts without returning data
 FAILING_CONTRACT_CODE = b"\x61\x00\x00\xfd"  # PUSH2 0 0 REVERT
-FAILING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", FAILING_CONTRACT_CODE)
+FAILING_CONTRACT_ADDRESS = generate_CREATE2_contract_address(b"", FAILING_CONTRACT_CODE)
 
 # contract that logs available gas
 # GAS PUSH1 0 MSTORE PUSH1 32 PUSH1 0 LOG0
 GAS_LOGGING_CONTRACT_CODE = b"\x5a\x60\x00\x52\x60\x20\x60\x00\xa0"
-GAS_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", GAS_LOGGING_CONTRACT_CODE)
+GAS_LOGGING_CONTRACT_ADDRESS = generate_CREATE2_contract_address(b"", GAS_LOGGING_CONTRACT_CODE)
 
 # contract that logs hash of passed data
 # CALLDATASIZE PUSH1 0 PUSH1 0 CALLDATACOPY CALLDATASIZE PUSH1 0 SHA3 PUSH1 0 MSTORE PUSH1 32
@@ -83,7 +84,7 @@ GAS_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", GAS_LOGGIN
 DATA_LOGGING_CONTRACT_CODE = (
     b"\x36\x60\x00\x60\x00\x37\x36\x60\x00\x20\x60\x00\x52\x60\x20\x60\x00\xa0"
 )
-DATA_LOGGING_CONTRACT_ADDRESS = generate_create2_contract_address(b"", DATA_LOGGING_CONTRACT_CODE)
+DATA_LOGGING_CONTRACT_ADDRESS = generate_CREATE2_contract_address(b"", DATA_LOGGING_CONTRACT_CODE)
 
 HELPER_CONTRACTS = {
     ACCOUNT_ADDRESS: ACCOUNT_CODE,
@@ -127,32 +128,6 @@ DEFAULT_S = SIGNED_DEFAULT_TRANSACTION.s
 
 
 @pytest.fixture
-def chaindb():
-    return BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
-
-
-def get_nonce(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": int_to_big_endian(NONCE_GETTER_ID),
-    })))
-    return big_endian_to_int(computation.output)
-
-
-def test_get_nonce(vm):
-    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": int_to_big_endian(NONCE_GETTER_ID),
-    })))
-    assert computation.output == pad32(b"\x00")
-
-    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
-
-    computation = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
-        "data": int_to_big_endian(NONCE_GETTER_ID),
-    })))
-    assert computation.output == pad32(b"\x01")
-
-
-@pytest.fixture
 def vm():
     header = BlockHeader(
         coinbase=to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
@@ -164,38 +139,62 @@ def vm():
     )
     chaindb = BaseChainDB(get_db_backend(), state_backend_class=NestedTrieBackend)
     vm = ShardingVM(header=header, chaindb=chaindb)
-    with vm.state.state_db() as state:
+    vm_state = vm.state
+    with vm_state.state_db() as statedb:
         for address, code in HELPER_CONTRACTS.items():
-            state.set_code(address, code)
-        state.set_balance(ACCOUNT_ADDRESS, INITIAL_BALANCE)
+            statedb.set_code(address, code)
+        statedb.set_balance(ACCOUNT_ADDRESS, INITIAL_BALANCE)
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     return vm
 
 
+def get_nonce(vm):
+    computation, _ = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
+        "data": int_to_big_endian(NONCE_GETTER_ID),
+    })))
+    return big_endian_to_int(computation.output)
+
+
+def test_get_nonce(vm):
+    computation, _ = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
+        "data": int_to_big_endian(NONCE_GETTER_ID),
+    })))
+    assert computation.output == pad32(b"\x00")
+
+    computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
+
+    computation, _ = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
+        "data": int_to_big_endian(NONCE_GETTER_ID),
+    })))
+    assert computation.output == pad32(b"\x01")
+
+
 def test_call_increments_nonce(vm):
-    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
+    computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
     assert get_nonce(vm) == 1
 
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 1,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == 2
 
 
 def test_call_checks_nonce(vm):
-    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
+    computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
 
-    computation = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
+    computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_error
 
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": 2,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_error
 
 
@@ -223,7 +222,7 @@ def test_call_checks_block_range(vm, min_block, max_block, valid):
         "min_block": min_block,
         "max_block": max_block,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
 
     if valid:
         assert computation.is_success
@@ -232,20 +231,26 @@ def test_call_checks_block_range(vm, min_block, max_block, valid):
 
 
 def test_call_transfers_value(vm):
-    with vm.state.state_db() as state_db:
+    vm_state = vm.state
+    with vm_state.state_db() as state_db:
         balance_sender_before = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_before = state_db.get_balance(DESTINATION_ADDRESS)
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "value": 10
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
 
-    with vm.state.state_db() as state_db:
+    vm_state = vm.state
+    with vm_state.state_db() as state_db:
         balance_sender_after = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_after = state_db.get_balance(DESTINATION_ADDRESS)
+    # Update state_root manually
+    vm.block.header.state_root = vm_state.state_root
 
     assert balance_sender_after == balance_sender_before - 10
     assert balance_destination_after == balance_destination_before + 10
@@ -300,7 +305,7 @@ def test_call_uses_remaining_gas(vm):
         "destination": GAS_LOGGING_CONTRACT_ADDRESS,
         "gas": 1 * 1000 * 1000,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
 
     logs = computation.get_log_entries()
@@ -326,7 +331,7 @@ def test_call_uses_data(vm, data, hash):
         "destination": DATA_LOGGING_CONTRACT_ADDRESS,
         "msg_data": data
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
 
     logs = computation.get_log_entries()
@@ -341,7 +346,7 @@ def test_no_call_if_not_enough_gas(vm):
         "destination": NOOP_CONTRACT_ADDRESS,
         "gas": 55000
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_error
     # a little remains, but not enough to make the call
     assert computation.gas_meter.gas_remaining > 0
@@ -352,7 +357,7 @@ def test_call_passes_return_code(vm):
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
     assert big_endian_to_int(computation.output) == 1  # success
 
@@ -360,7 +365,7 @@ def test_call_passes_return_code(vm):
         "nonce": get_nonce(vm),
         "destination": FAILING_CONTRACT_ADDRESS,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
     assert big_endian_to_int(computation.output) == 0  # failure
 
@@ -371,7 +376,7 @@ def test_call_does_not_revert_nonce(vm):
         "nonce": nonce_before,
         "destination": FAILING_CONTRACT_ADDRESS,
     })).as_signed_transaction(PRIVATE_KEY)
-    computation = vm.apply_transaction(transaction)
+    computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
     assert get_nonce(vm) == nonce_before + 1
 
