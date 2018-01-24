@@ -28,8 +28,7 @@ from evm.db.journal import (
     JournalDB,
 )
 from evm.db.state import (
-    AccountStateDB,
-    NestedTrieBackend,
+    MainAccountStateDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -81,9 +80,9 @@ class BaseChainDB:
         self.trie_class = trie_class
         self.empty_root_hash = empty_root_hash
 
-    def __init__(self, db, state_backend_class=NestedTrieBackend, trie_class=HexaryTrie):
+    def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
         self.db = JournalDB(db)
-        self.state_backend_class = state_backend_class
+        self.account_state_class = account_state_class
         self.set_trie(trie_class)
 
     #
@@ -546,13 +545,14 @@ class ChainDB(BaseChainDB):
     # State Database API
     #
     def get_state_db(self, state_root, read_only, access_list=None):
-        return AccountStateDB(
-            db=self.db,
-            root_hash=state_root,
-            read_only=read_only,
-            access_list=access_list,
-            backend_class=self.state_backend_class,
-        )
+        kwargs = {
+            "db": self.db,
+            "root_hash": state_root,
+            "read_only": read_only,
+        }
+        if access_list is not None:
+            kwargs["access_list"] = access_list
+        return self.account_state_class(**kwargs)
 
 
 class AsyncChainDB(ChainDB):
