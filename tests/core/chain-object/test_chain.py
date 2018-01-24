@@ -11,7 +11,7 @@ from evm.exceptions import (
 )
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
-from tests.core.fixtures import (
+from tests.core.fixtures import (  # noqa: F401
     valid_block_rlp,
     chaindb,
 )
