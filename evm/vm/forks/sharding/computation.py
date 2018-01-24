@@ -21,8 +21,13 @@ from ..spurious_dragon.constants import (
     GAS_CODEDEPOSIT,
 )
 
+from .opcodes import SHARDING_OPCODES
+
 
 class ShardingComputation(SpuriousDragonComputation):
+    # Override
+    opcodes = SHARDING_OPCODES
+
     def apply_message(self):
         snapshot = self.vm_state.snapshot()
 
@@ -54,8 +59,6 @@ class ShardingComputation(SpuriousDragonComputation):
         computation = self.apply_computation(
             self.vm_state,
             self.msg,
-            self.opcodes,
-            self.precompiles,
         )
 
         if computation.is_error:

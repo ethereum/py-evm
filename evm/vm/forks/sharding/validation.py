@@ -6,9 +6,9 @@ from evm.validation import (
 )
 
 
-def validate_sharding_transaction(vm, transaction):
+def validate_sharding_transaction(vm_state, transaction):
     gas_cost = transaction.gas * transaction.gas_price
-    with vm.state.state_db(read_only=True) as state_db:
+    with vm_state.state_db(read_only=True) as state_db:
         txn_initiator_balance = state_db.get_balance(transaction.to)
 
     if txn_initiator_balance < gas_cost:
@@ -16,7 +16,7 @@ def validate_sharding_transaction(vm, transaction):
             "Transaction initiator account balance cannot afford txn gas: `{0}`".format(transaction.to)  # noqa: E501
         )
 
-    if vm.block.header.gas_used + transaction.gas > vm.block.header.gas_limit:
+    if vm_state.gas_used + transaction.gas > vm_state.gas_limit:
         raise ValidationError("Transaction exceeds gas limit")
 
     validate_transaction_access_list(transaction.access_list)

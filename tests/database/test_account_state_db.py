@@ -4,6 +4,7 @@ from evm.exceptions import (
     ValidationError,
 )
 
+from evm.db.backends.memory import MemoryDB
 from evm.db.state import (
     AccountStateDB,
     FlatTrieBackend,
@@ -21,7 +22,7 @@ INVALID_ADDRESS = b'aa' * 20
     NestedTrieBackend,
 ])
 def state(request):
-    return AccountStateDB({}, backend_class=request.param)
+    return AccountStateDB(MemoryDB(), backend_class=request.param)
 
 
 def test_balance(state):
