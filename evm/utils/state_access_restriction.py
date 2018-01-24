@@ -9,8 +9,15 @@ from evm.constants import (
     STORAGE_TRIE_PREFIX,
 )
 
+
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.padding import (
+    pad32,
+)
+from evm.utils.numeric import (
+    int_to_big_endian,
 )
 
 
@@ -60,8 +67,28 @@ def to_prefix_list_form(access_list):
     """
     for obj in access_list:
         address, *storage_prefixes = obj
-        yield keccak(address) + NONCE_TRIE_PREFIX
-        yield keccak(address) + BALANCE_TRIE_PREFIX
-        yield keccak(address) + CODE_TRIE_PREFIX
+        yield nonce_key(address)
+        yield balance_key(address)
+        yield code_key(address)
         for prefix in remove_redundant_prefixes(storage_prefixes):
             yield keccak(address) + STORAGE_TRIE_PREFIX + prefix
+
+
+def storage_key(address, slot):
+    return keccak(address) + STORAGE_TRIE_PREFIX + pad32(int_to_big_endian(slot))
+
+
+def full_storage_key(address):
+    return keccak(address) + STORAGE_TRIE_PREFIX
+
+
+def balance_key(address):
+    return keccak(address) + BALANCE_TRIE_PREFIX
+
+
+def nonce_key(address):
+    return keccak(address) + NONCE_TRIE_PREFIX
+
+
+def code_key(address):
+    return keccak(address) + CODE_TRIE_PREFIX
