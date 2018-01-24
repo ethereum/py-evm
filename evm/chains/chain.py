@@ -15,6 +15,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
 )
+from evm.estimators import (
+    get_gas_estimator,
+)
 from evm.exceptions import (
     BlockNotFound,
     TransactionNotFound,
@@ -56,6 +59,7 @@ class Chain(object):
     header = None
     network_id = None
     vms_by_range = None
+    gas_estimator = None
 
     def __init__(self, chaindb, header=None):
         if not self.vms_by_range:
@@ -67,6 +71,8 @@ class Chain(object):
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
+        if self.gas_estimator is None:
+            self.gas_estimator = get_gas_estimator()
 
     @classmethod
     def configure(cls, name, vm_configuration, **overrides):
@@ -271,6 +277,12 @@ class Chain(object):
         self.header = block.header
 
         return computation
+
+    def estimate_gas(self, transaction, at_header=None):
+        if at_header is None:
+            at_header = self.get_canonical_head()
+        with self.get_vm(at_header).state_in_temp_block() as state:
+            return self.gas_estimator(state, transaction)
 
     def import_block(self, block, perform_validation=True):
         """
