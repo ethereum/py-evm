@@ -29,7 +29,8 @@ LOGLEVEL = logging.INFO
 parser = argparse.ArgumentParser()
 parser.add_argument('-db', type=str, required=True)
 parser.add_argument('-debug', action='store_true')
-parser.add_argument('-default_shell', action='store_true', default=False)
+# pass -vanilla_shell at command line to run a Python REPL
+parser.add_argument('-vanilla_shell', action='store_true', default=False)
 args = parser.parse_args()
 
 print("Logging to", LOGFILE)
@@ -77,59 +78,42 @@ def cleanup():
 
 atexit.register(cleanup)
 
-# This is to start IPython or Python REPL.
-
-def ipython_shell_1(namespace=None, banner=None, debug=False):
-    """IPyhton v1.0 specific import"""
-    try:
-        from IPython.frontend.terminal.embed import InteractiveShellEmbed
-    except ImportError:
-        if debug:
-            traceback.print_exc()
-        return None
-    kwargs = dict(user_ns=namespace)
-    if banner:
-        kwargs = dict(banner1=banner)
-    return InteractiveShellEmbed.instance(**kwargs)
-
-
-def ipython_shell(namespace=None, banner=None, debug=False):
-    """IPython version > 1.0"""
-    try:
-        from IPython.terminal.embed import InteractiveShellEmbed
-    except ImportError:
-        if debug:
-            traceback.print_exc()
-        return None
-    kwargs = dict(local_ns=namespace)
-    if banner:
-        kwargs = dict(banner1=banner)
-    return InteractiveShellEmbed.instance(**kwargs)
+# This is to start Py-EVM shell.
 
 
 def start_ipython_shell(namespace=None, banner=None, debug=False):
-    """Trt to run IPython shell."""
-    for shell_method in [ipython_shell, ipython_shell_1]:
-        shell = shell_method(namespace, banner, debug)
-        if shell is not None:
-            shell()
-            break
-    else:
-        print('IPython not installed.')
+    """Try to run IPython shell."""
+    try:
+        import IPython
+    except ImportError:
+        if debug:
+            traceback.print_exc()
+        print("IPython not available. Running default shell...")
         return False
+    # First try newer(IPython >=1.0) top `IPython` level import
+    if hasattr(IPython, 'terminal'):
+        from IPython.terminal.embed import InteractiveShellEmbed
+        kwargs = dict(local_ns=namespace)
+    else:
+        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        kwargs = dict(user_ns=namespace)
+    if banner:
+        kwargs = dict(banner1=banner)
+    shell = InteractiveShellEmbed(**kwargs)
+    shell()
 
 
 def start_python_shell(namespace=None, banner=None, debug=False):
-    """Start a normal Python rlp shell."""
+    """Start a vanilla Python REPL shell."""
     import code
     try:
-        import readline, rlcompleter
+        import readline, rlcompleter    # NOQA
     except ImportError:
         if debug:
             traceback.print_exc()
     else:
         readline.parse_and_bind('tab: complete')
-    # Add global, local and custome namespaces to current shell
+    # Add global, local and custom namespaces to current shell
     default_ns = globals().copy()
     default_ns.update(locals())
     if namespace:
@@ -146,11 +130,10 @@ def start_shell(use_ipython=True, namespace=None, banner=None, debug=False):
     ip_shell_status = None
     if use_ipython:
         ip_shell_status = start_ipython_shell(namespace, banner, debug)
-    # If can't import/start the ipython shell use the default shell
+    # If can't import or start the IPython shell use the default shell
     if not use_ipython or ip_shell_status is False:
         start_python_shell(namespace, banner, debug)
 
 
-banner = ''
-use_ipython = not args.default_shell
-start_shell(use_ipython=use_ipython, banner=banner, debug=args.debug)
+use_ipython = not args.vanilla_shell
+start_shell(use_ipython=use_ipython, debug=args.debug)
