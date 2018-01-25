@@ -11,7 +11,9 @@ from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
 from evm.db.chain import BaseChainDB
-from evm.db.state import FlatTrieBackend
+from evm.db.state import (
+    ShardingAccountStateDB
+)
 from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
 
@@ -101,7 +103,7 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
 
 @pytest.fixture
 def shard_chain():
-    shard_chaindb = BaseChainDB(get_db_backend(), state_backend_class=FlatTrieBackend)
+    shard_chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
     return chain(shard_chaindb)
 
 
@@ -118,7 +120,7 @@ def shard_chain_without_block_validation():
     """
     # TODO: Once the helper function which generates access list for a transaction is implemented,
     # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
-    shard_chaindb = BaseChainDB(get_db_backend())
+    shard_chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
     overrides = {
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
