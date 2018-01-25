@@ -184,7 +184,7 @@ def test_access_restriction():
     original_root_hash = state.root_hash
 
     def make_state(access_list):
-        kv_store = copy.deepcopy(original_db.kv_store)
+        kv_store = copy.deepcopy(original_db.wrapped_db.kv_store)
         db = MemoryDB(kv_store)
         return ShardingAccountStateDB(db, original_root_hash, access_list=access_list)
 
