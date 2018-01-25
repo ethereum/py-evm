@@ -2,31 +2,31 @@ ZERO_HASH32 = 32 * b'\x00'
 
 
 #
-# ByzantiumVM
+# Byzantium Block
 #
 BYZANTIUM_MAINNET_BLOCK = 4370000
 
 
 #
-# DAO Block Number
+# DAO Block
 #
-DAO_FORK_BLOCK_NUMBER = 1920000
+DAO_FORK_MAINNET_BLOCK = 1920000
 
 
 #
-# Tangerine Whistle Mainnet Block
+# Tangerine Whistle Block
 #
 TANGERINE_WHISTLE_MAINNET_BLOCK = 2463000
 
 
 #
-# Homestead Mainnet Block
+# Homestead Block
 #
 HOMESTEAD_MAINNET_BLOCK = 1150000
 
 
 #
-# Spurious Dragon Mainnet Block
+# Spurious Dragon Block
 #
 SPURIOUS_DRAGON_MAINNET_BLOCK = 2675000
 
