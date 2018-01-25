@@ -41,10 +41,10 @@ from evm.utils.padding import (
     pad32,
 )
 from evm.utils.state_access_restriction import (
-    code_key,
-    balance_key,
-    nonce_key,
-    storage_key,
+    get_code_key,
+    get_balance_key,
+    get_nonce_key,
+    get_storage_key,
 )
 
 from .hash_trie import HashTrie
@@ -320,7 +320,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
-        key = storage_key(address, slot)
+        key = get_storage_key(address, slot)
         self._check_accessibility(key)
 
         if key in self._trie:
@@ -333,7 +333,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
         validate_uint256(slot, title="Storage Slot")
         validate_canonical_address(address, title="Storage Address")
 
-        key = storage_key(address, slot)
+        key = get_storage_key(address, slot)
         self._check_accessibility(key)
 
         if value:
@@ -347,7 +347,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
     def get_balance(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        key = balance_key(address)
+        key = get_balance_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
@@ -359,7 +359,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(balance, title="Account Balance")
 
-        key = balance_key(address)
+        key = get_balance_key(address)
         self._check_accessibility(key)
 
         self._trie[key] = int_to_big_endian(balance)
@@ -370,7 +370,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
     def get_nonce(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        key = nonce_key(address)
+        key = get_nonce_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
@@ -382,7 +382,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(nonce, title="Nonce")
 
-        key = nonce_key(address)
+        key = get_nonce_key(address)
         self._check_accessibility(key)
 
         self._trie[key] = int_to_big_endian(nonce)
@@ -393,7 +393,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
     def get_code(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        key = code_key(address)
+        key = get_code_key(address)
         self._check_accessibility(key)
 
         if key in self._trie:
@@ -409,7 +409,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
         validate_is_bytes(code, title="Code")
 
-        key = code_key(address)
+        key = get_code_key(address)
         self._check_accessibility(key)
 
         self._trie[key] = code
@@ -417,7 +417,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
     def delete_code(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        key = code_key(address)
+        key = get_code_key(address)
         self._check_accessibility(key)
 
         del self._trie[key]
