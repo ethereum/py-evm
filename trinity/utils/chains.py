@@ -1,5 +1,7 @@
 import os
 
+from eth_keys import keys
+
 from .xdg import (
     get_xdg_trinity_home,
 )
@@ -41,5 +43,8 @@ def get_nodekey_path(chain_identifier):
     )
 
 
-def load_nodekey(chain_identifier):
-    data
+def get_nodekey(nodekey_path):
+    with open(nodekey_path, 'rb') as nodekey_file:
+        nodekey_raw = nodekey_file.read()
+    nodekey = keys.PrivateKey(nodekey_raw)
+    return nodekey

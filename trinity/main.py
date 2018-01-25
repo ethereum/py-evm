@@ -2,24 +2,32 @@ import argparse
 import asyncio
 import atexit
 
-from evm.p2p.lightchain import LightChain
-from evm.db.backends.level import LevelDB
+from evm.exceptions import CanonicalHeadNotFound
 
+from trinity.chains import (
+    is_chain_initialized,
+    initialize_chain,
+    get_chain_protocol_class,
+)
 from trinity.constants import (
     ROPSTEN,
+    SYNC_LIGHT,
+)
+from trinity.utils.chains import (
+    get_data_dir,
+)
+from trinity.utils.db import (
+    get_chain_db,
 )
 from trinity.utils.filesystem import (
     ensure_path_exists,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
-    setup_queue_logging,
+    with_queued_logging,
 )
 from trinity.utils.mp import (
     ctx,
-)
-from trinity.utils.xdg import (
-    get_data_dir,
 )
 
 
@@ -37,8 +45,12 @@ parser.add_argument(
     choices=LOG_LEVEL_CHOICES,
     default=DEFAULT_LOG_LEVEL,
 )
-parse.add_argument(
+parser.add_argument(
     '--ropsten',
+    action='store_true',
+)
+parser.add_argument(
+    '--light',  # TODO: consider --sync-mode like geth.
     action='store_true',
 )
 
@@ -52,13 +64,26 @@ def main():
     # the local logger.
     listener.start()
 
+    if args.ropsten:
+        chain_identifier = ROPSTEN
+    else:
+        # TODO: mainnet
+        chain_identifier = ROPSTEN
+
+    if args.light:
+        sync_mode = SYNC_LIGHT
+    else:
+        # TODO: actually use args.sync_mode (--sync-mode)
+        sync_mode = SYNC_LIGHT
+
     db_path = get_data_dir(ROPSTEN)
     ensure_path_exists(db_path)
 
     # For now we just run the light sync against ropsten by default.
     process = ctx.Process(
-        target=ropsten_light_node_sync,
-        args=(log_queue, db_path),
+        target=run_chain,
+        args=(chain_identifier, sync_mode),
+        kwargs={'log_queue': log_queue}
     )
 
     try:
@@ -69,21 +94,26 @@ def main():
         process.terminate()
 
 
-def ropsten_light_node_sync(log_queue, db_path):
-    """
-    Runs an LES node against the Ropsten network.
-    """
-    setup_queue_logging(log_queue)
+@with_queued_logging
+def run_chain(chain_identifier, sync_mode):
+    if not is_chain_initialized(chain_identifier):
+        # TODO: this will only work as is for chains with known genesis
+        # parameters.  Need to flesh out how genesis parameters for custom
+        # chains are defined and passed around.
+        chain_class = initialize_chain(chain_identifier, sync_mode=sync_mode)
+    else:
+        chain_class = get_chain_protocol_class(chain_identifier, sync_mode=sync_mode)
 
-    chaindb = BaseChainDB(LevelDB(db_path))
+    # TODO: this should probably be something that is passed in to allow
+    # specifying the db_path via the CLI as well as the db class.
+    chaindb = get_chain_db(chain_identifier)
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
-        # We're starting with a fresh DB.
-        chain = DemoLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
-    else:
-        # We're reusing an existing db.
-        chain = DemoLightChain(chaindb)
+        # TODO: figure out amore appropriate error to raise here.
+        raise ValueError('Chain not intiialized')
+
+    chain = chain_class(chaindb)
 
     loop = asyncio.get_event_loop()
 

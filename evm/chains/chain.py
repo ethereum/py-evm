@@ -55,7 +55,8 @@ class Chain(object):
     logger = logging.getLogger("evm.chain.chain.Chain")
     header = None
     network_id = None
-    vms_by_range = None
+
+    _vms_by_range = None
 
     def __init__(self, chaindb, header=None):
         if not self.vms_by_range:
@@ -69,9 +70,12 @@ class Chain(object):
             self.header = self.create_header_from_parent(self.get_canonical_head())
 
     @classmethod
-    def configure(cls, name, vm_configuration, **overrides):
+    def configure(cls, name=None, vm_configuration=None, **overrides):
         if 'vms_by_range' in overrides:
             raise ValueError("Cannot override vms_by_range.")
+
+        if name is None:
+            name = cls.__name__
 
         for key in overrides:
             if not hasattr(cls, key):
@@ -81,10 +85,17 @@ class Chain(object):
                     "not found on the base class `{1}`".format(key, cls)
                 )
 
-        # Organize the Chain classes by their starting blocks.
-        overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
+        if vm_configuration is not None:
+            # Organize the Chain classes by their starting blocks.
+            overrides['_vms_by_range'] = generate_vms_by_range(vm_configuration)
 
         return type(name, (cls,), overrides)
+
+    @property
+    def vms_by_range(self):
+        if self._vms_by_range is None:
+            raise AttributeError("Chain has not had it's VM ranges configured")
+        return self._vms_by_range
 
     #
     # Convenience and Helpers
