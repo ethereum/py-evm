@@ -3,13 +3,13 @@ import logging
 import random
 
 from evm.db.backends.memory import MemoryDB
-from evm.db.state import AccountStateDB
+from evm.db.state import MainAccountStateDB
 
 from p2p.state import StateSync
 
 
 def make_random_state(n):
-    state_db = AccountStateDB(MemoryDB())
+    state_db = MainAccountStateDB(MemoryDB())
     contents = {}
     for _ in range(n):
         addr = os.urandom(20)
@@ -37,7 +37,7 @@ def test_state_sync():
             results.append([request.node_key, state_db.db[request.node_key]])
         scheduler.process(results)
         requests = scheduler.next_batch(10)
-    dest_state = AccountStateDB(dest_db, state_db.root_hash)
+    dest_state = MainAccountStateDB(dest_db, state_db.root_hash)
     for addr, account_data in contents.items():
         balance, nonce, storage, code = account_data
         assert dest_state.get_balance(addr) == balance
