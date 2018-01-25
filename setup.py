@@ -13,7 +13,7 @@ setup(
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
-    py_modules=['evm'],
+    py_modules=['evm', 'trinity'],
     install_requires=[
         "aiohttp==2.3.1",
         "async_lru>=0.1.0",
@@ -47,4 +47,8 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.5',
     ],
+    # trinity
+    entry_points={
+        'console_scripts': ['trinity=trinity:main'],
+    },
 )
