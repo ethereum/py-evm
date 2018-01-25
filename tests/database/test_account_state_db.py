@@ -13,6 +13,12 @@ from evm.db.state import (
     ShardingAccountStateDB,
 )
 
+from evm.constants import (
+    EMPTY_SHA3,
+)
+from evm.utils.keccak import (
+    keccak,
+)
 from evm.utils.state_access_restriction import (
     balance_key,
     code_key,
@@ -84,10 +90,12 @@ def test_nonce(state):
 ])
 def test_code(state):
     assert state.get_code(ADDRESS) == b''
+    assert state.get_code_hash(ADDRESS) == EMPTY_SHA3
 
     state.set_code(ADDRESS, b'code')
     assert state.get_code(ADDRESS) == b'code'
     assert state.get_code(OTHER_ADDRESS) == b''
+    assert state.get_code_hash(ADDRESS) == keccak(b'code')
 
     with pytest.raises(ValidationError):
         state.get_code(INVALID_ADDRESS)
