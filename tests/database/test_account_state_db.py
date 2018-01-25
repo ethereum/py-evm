@@ -20,10 +20,10 @@ from evm.utils.keccak import (
     keccak,
 )
 from evm.utils.state_access_restriction import (
-    balance_key,
-    code_key,
-    nonce_key,
-    storage_key,
+    get_balance_key,
+    get_code_key,
+    get_nonce_key,
+    get_storage_key,
 )
 
 
@@ -189,10 +189,10 @@ def test_access_restriction():
         return ShardingAccountStateDB(db, original_root_hash, access_list=access_list)
 
     # access lists to use
-    CODE_ACCESS_LIST = [code_key(ADDRESS)]
-    BALANCE_ACCESS_LIST = [balance_key(ADDRESS)]
-    NONCE_ACCESS_LIST = [nonce_key(ADDRESS)]
-    STORAGE_ACCESS_LIST = [storage_key(ADDRESS, 123)]
+    CODE_ACCESS_LIST = [get_code_key(ADDRESS)]
+    BALANCE_ACCESS_LIST = [get_balance_key(ADDRESS)]
+    NONCE_ACCESS_LIST = [get_nonce_key(ADDRESS)]
+    STORAGE_ACCESS_LIST = [get_storage_key(ADDRESS, 123)]
 
     # test with access list
     state = make_state(NONCE_ACCESS_LIST)
