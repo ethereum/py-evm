@@ -2,9 +2,6 @@ import asyncio
 
 import pytest
 
-import rlp
-from rlp import sedes
-
 from eth_utils import (
     decode_hex,
 )
@@ -14,6 +11,7 @@ from eth_keys import keys
 from evm.p2p import ecies
 from evm.p2p import kademlia
 from evm.p2p.p2p_proto import Hello
+from evm.p2p.protocol import Protocol
 from evm.p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
@@ -144,13 +142,11 @@ async def test_handshake():
     responder_hello = await responder_peer.read_msg()
     initiator_hello = await initiator_peer.read_msg()
 
-    cmd_id = rlp.decode(responder_hello[:1], sedes=sedes.big_endian_int)
-    proto = responder_peer.get_protocol_for(cmd_id)
-    assert cmd_id == proto.cmd_by_class[Hello].cmd_id
+    cmd = responder_peer.get_protocol_command_for(responder_hello)
+    assert isinstance(cmd, Hello)
 
-    cmd_id = rlp.decode(initiator_hello[:1], sedes=sedes.big_endian_int)
-    proto = initiator_peer.get_protocol_for(cmd_id)
-    assert cmd_id == proto.cmd_by_class[Hello].cmd_id
+    cmd = initiator_peer.get_protocol_command_for(initiator_hello)
+    assert isinstance(cmd, Hello)
 
 
 def test_handshake_eip8():
@@ -248,4 +244,5 @@ def test_eip8_hello():
         "f87137916b6e6574682f76302e39312f706c616e39cdc5836574683dc6846d6f726b1682270fb840"
         "fda1cff674c90c9a197539fe3dfb53086ace64f83ed7c6eabec741f7f381cc803e52ab2cd55d5569"
         "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304")
-    Hello(id_offset=0).decode_payload(payload)
+    dummy_proto = Protocol(peer=None, cmd_id_offset=0)
+    Hello(dummy_proto).decode_payload(payload)

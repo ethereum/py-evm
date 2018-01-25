@@ -3,9 +3,6 @@ import os
 
 import pytest
 
-import rlp
-from rlp import sedes
-
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
@@ -17,19 +14,18 @@ from evm.p2p import kademlia
 from evm.p2p.les import (
     LESProtocol,
     LESProtocolV2,
-    StatusV2,
 )
 from evm.p2p.peer import LESPeer
 from evm.p2p.protocol import Protocol
 from evm.p2p.p2p_proto import P2PProtocol
 
 
-async def get_directly_linked_peers(
+async def _get_directly_linked_peers_without_handshake(
         peer1_class=LESPeer, peer1_chaindb=None, peer1_received_msg_callback=None,
         peer2_class=LESPeer, peer2_chaindb=None, peer2_received_msg_callback=None):
-    """Create two LESPeers with their readers/writers connected directly.
+    """See get_directly_linked_peers().
 
-    The first peer's reader will write directly to the second's writer, and vice-versa.
+    Neither the P2P handshake nor the sub-protocol handshake will be performed here.
     """
     if peer1_chaindb is None:
         peer1_chaindb = get_fresh_mainnet_chaindb()
@@ -99,20 +95,23 @@ async def get_directly_linked_peers(
 
     await handshake_finished.wait()
 
+    return peer1, peer2
+
+
+async def get_directly_linked_peers(
+        peer1_class=LESPeer, peer1_chaindb=None, peer1_received_msg_callback=None,
+        peer2_class=LESPeer, peer2_chaindb=None, peer2_received_msg_callback=None):
+    """Create two peers with their readers/writers connected directly.
+
+    The first peer's reader will write directly to the second's writer, and vice-versa.
+    """
+    peer1, peer2 = await _get_directly_linked_peers_without_handshake(
+        peer1_class, peer1_chaindb, peer1_received_msg_callback,
+        peer2_class, peer2_chaindb, peer2_received_msg_callback)
     # Perform the base protocol (P2P) handshake.
-    peer1.base_protocol.send_handshake()
-    peer2.base_protocol.send_handshake()
-    msg1 = await peer1.read_msg()
-    peer1.process_msg(msg1)
-    msg2 = await peer2.read_msg()
-    peer2.process_msg(msg2)
-
-    # Now send the handshake msg for each enabled sub-protocol.
-    for proto in peer1.enabled_sub_protocols:
-        proto.send_handshake(peer1._local_chain_info)
-    for proto in peer2.enabled_sub_protocols:
-        proto.send_handshake(peer2._local_chain_info)
-
+    await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
+    # Perform the handshake for the enabled sub-protocol.
+    await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
     return peer1, peer2
 
 
@@ -135,13 +134,15 @@ def get_fresh_mainnet_chaindb():
 
 @pytest.mark.asyncio
 async def test_les_handshake():
-    peer1, peer2 = await get_directly_linked_peers()
-    # The peers above have already performed the sub-protocol agreement, and sent the handshake
-    # msg for each enabled sub protocol -- in this case that's the Status msg of the LES/2 protocol.
-    msg = await peer1.read_msg()
-    cmd_id = rlp.decode(msg[:1], sedes=sedes.big_endian_int)
-    proto = peer1.get_protocol_for(cmd_id)
-    assert cmd_id == proto.cmd_by_class[StatusV2].cmd_id
+    peer1, peer2 = await _get_directly_linked_peers_without_handshake()
+
+    # Perform the base protocol (P2P) handshake.
+    await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
+    # Perform the handshake for the enabled sub-protocol (LES).
+    await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
+
+    assert isinstance(peer1.les_proto, LESProtocol)
+    assert isinstance(peer2.les_proto, LESProtocol)
 
 
 def test_sub_protocol_matching():
@@ -167,17 +168,11 @@ def test_sub_protocol_matching():
 class LESProtocolV3(LESProtocol):
     version = 3
 
-    def send_handshake(self):
-        pass
-
 
 class ETHProtocol63(Protocol):
     name = b'eth'
     version = 63
     cmd_length = 15
-
-    def send_handshake(self):
-        pass
 
 
 class ProtoMatchingPeer(LESPeer):

@@ -42,9 +42,8 @@ from evm.p2p.exceptions import (
 )
 from evm.p2p import les
 from evm.p2p import protocol
-from evm.p2p.peer import (  # noqa: F401
+from evm.p2p.peer import (
     BasePeer,
-    handshake,
     LESPeer,
     PeerPool,
 )
