@@ -6,8 +6,6 @@ import struct
 import traceback
 from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
 
-from cytoolz import reduceby
-
 import rlp
 from rlp import sedes
 
@@ -100,7 +98,7 @@ async def handshake(remote: Node,
         ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id,
         received_msg_callback=received_msg_callback)
     await peer.do_p2p_handshake()
-    if len(peer.enabled_sub_protocols) == 0:
+    if peer.sub_proto is None:
         raise UselessPeer("No matching sub-protocols")
     await peer.do_sub_proto_handshake()
     return peer
@@ -110,10 +108,13 @@ class BasePeer:
     logger = logging.getLogger("evm.p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     reply_timeout = REPLY_TIMEOUT
-    # Must be defined in subclasses.
+    # Must be defined in subclasses. All items here must be Protocol classes representing
+    # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
     _supported_sub_protocols = []  # type: List[Type[protocol.Protocol]]
     # FIXME: Must be configurable.
     listen_port = 30303
+    # Will be set upon the successful completion of a P2P handshake.
+    sub_proto = None  # type: protocol.Protocol
 
     def __init__(self,
                  remote: Node,
@@ -138,9 +139,6 @@ class BasePeer:
         self.chaindb = chaindb
         self.network_id = network_id
         self.received_msg_callback = received_msg_callback
-        # The sub protocols that have been enabled for this peer; will be populated when
-        # we receive the initial hello msg.
-        self.enabled_sub_protocols = []  # type: List[protocol.Protocol]
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -205,25 +203,13 @@ class BasePeer:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug("Got msg with cmd_id: %s", cmd_id)
-        proto = self.get_protocol_for(cmd_id)
-        if proto is None:
+        if cmd_id < self.base_protocol.cmd_length:
+            proto = self.base_protocol
+        elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
+            proto = self.sub_proto  # type: ignore
+        else:
             raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
         return proto.cmd_by_id[cmd_id]
-
-    def get_protocol_for(self, cmd_id: int) -> protocol.Protocol:
-        """Return the protocol to which the cmd_id belongs.
-
-        Every sub-protocol enabled for a peer defines a cmd ID offset, which is agreed on by both
-        sides during the base protocol's handshake. Here we use that to look up the protocol to
-        which cmd_id belongs. See the match_protocols() method for the details on how the peers
-        agree on which sub protocols to enable and what cmd ID offsets to use for them.
-        """
-        if cmd_id < self.base_protocol.cmd_length:
-            return self.base_protocol
-        for proto in self.enabled_sub_protocols:
-            if cmd_id >= proto.cmd_id_offset and cmd_id < (proto.cmd_id_offset + proto.cmd_length):
-                return proto
-        return None
 
     async def read(self, n: int) -> bytes:
         self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
@@ -304,16 +290,16 @@ class BasePeer:
             raise PeerDisconnected("Peer disconnected before completing handshake: {}".format(
                 decoded_msg['reason_name']))
         remote_capabilities = decoded_msg['capabilities']
-        self.match_protocols(remote_capabilities)
-        if len(self.enabled_sub_protocols) == 0:
+        self.sub_proto = self.select_sub_protocol(remote_capabilities)
+        if self.sub_proto is None:
             self.logger.debug(
                 "No matching capabilities between us (%s) and %s (%s), disconnecting",
                 self.capabilities, self.remote, remote_capabilities)
             self.disconnect(DisconnectReason.useless_peer)
         else:
             self.logger.debug(
-                "Finished P2P handshake with %s; matching protocols: %s",
-                self.remote, [(p.name, p.version) for p in self.enabled_sub_protocols])
+                "Finished P2P handshake with %s, using sub-protocol %s",
+                self.remote, self.sub_proto)
 
     def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
@@ -389,40 +375,33 @@ class BasePeer:
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 
-    def match_protocols(self, remote_capabilities: List[Tuple[bytes, int]]):
-        """Match the sub-protocols supported by this Peer with the given remote capabilities.
+    def select_sub_protocol(self, remote_capabilities: List[Tuple[bytes, int]]
+                            ) -> protocol.Protocol:
+        """Select the sub-protocol to use when talking to the remote.
 
-        Every sub-protocol and remote-capability are defined by a protocol name and version. This
-        method will get the match with the highest version for every protocol, sort them
-        in ascending alphabetical order and add a Protocol instance for the protocol with that
-        name/version to this peer's list of enabled sub protocols. Each Protocol instance will
-        also have a cmd ID offset, defined as the offset of the previous item (0 for the base
-        protocol) plus the protocol's cmd length (i.e. number of commands).
+        Find the highest version of our supported sub-protocols that is also supported by the
+        remote and stores an instance of it (with the appropriate cmd_id offset) in
+        self.sub_proto.
         """
         matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
-        higher_matching = reduceby(
-            key=operator.itemgetter(0),
-            binop=lambda a, b: a if a[1] > b[1] else b,
-            seq=matching_capabilities)
-        sub_protocols_by_name_and_version = dict(
-            ((klass.name, klass.version), klass) for klass in self._supported_sub_protocols)
+        _, highest_matching_version = max(matching_capabilities, key=operator.itemgetter(1))
         offset = self.base_protocol.cmd_length
-        for name, version in sorted(higher_matching.values()):
-            proto_klass = sub_protocols_by_name_and_version[(name, version)]
-            self.enabled_sub_protocols.append(proto_klass(self, offset))
-            offset += proto_klass.cmd_length
+        for proto_class in self._supported_sub_protocols:
+            if proto_class.version == highest_matching_version:
+                return proto_class(self, offset)
+        return None
 
     def __str__(self):
         return "{} {}".format(self.__class__.__name__, self.remote)
 
 
 class LESPeer(BasePeer):
-    _les_proto = None
     max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
+    sub_proto = None  # type: les.LESProtocol
 
     def send_sub_proto_handshake(self):
-        self.les_proto.send_handshake(self._local_chain_info)
+        self.sub_proto.send_handshake(self._local_chain_info)
 
     def process_sub_proto_handshake(self, msg: bytes) -> None:
         cmd = self.get_protocol_command_for(msg)
@@ -457,7 +436,7 @@ class LESPeer(BasePeer):
         Returns a list containing those headers in ascending order of block number.
         """
         request_id = gen_request_id()
-        self.les_proto.send_get_block_headers(
+        self.sub_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
         reply = await self.wait_for_reply(request_id)
         if len(reply['headers']) == 0:
@@ -468,34 +447,13 @@ class LESPeer(BasePeer):
             reply['headers'][-1].block_number)
         return reply['headers']
 
-    @property
-    def les_proto(self):
-        """Return the LESProtocol available for this peer.
-
-        The available LESProtocol will be the highest version supported by this class and the
-        remote peer. It is available only after the initial P2P handshake.
-        """
-        # Here we assume this class supports one version of the LESProtocol that is also
-        # supported by the remote peer, which should be ok since LES is the only sub-protocol
-        # supported by this class and the handshake will ensure we have a matching sub-protocol
-        # with the remote peer.
-        assert len(self.enabled_sub_protocols) > 0
-        if self._les_proto is None:
-            for proto in self.enabled_sub_protocols:
-                if proto.name == les.LESProtocol.name:
-                    self._les_proto = proto
-            if self._les_proto is None:
-                raise Exception(
-                    "We assumed LESProtocol was supported, but it isn't. See comment above")
-        return self._les_proto
-
 
 class ETHPeer(BasePeer):
-    _eth_proto = None
     _supported_sub_protocols = [eth.ETHProtocol]
+    sub_proto = None  # type: eth.ETHProtocol
 
     def send_sub_proto_handshake(self):
-        self.eth_proto.send_handshake(self._local_chain_info)
+        self.sub_proto.send_handshake(self._local_chain_info)
 
     def process_sub_proto_handshake(self, msg: bytes) -> None:
         cmd = self.get_protocol_command_for(msg)
@@ -522,23 +480,6 @@ class ETHPeer(BasePeer):
         # and in BasePeer.process_msg().
         if self.received_msg_callback is not None:
             self.received_msg_callback(self, cmd, decoded_msg)
-
-    # FIXME: This is a hack; instead we should have an API to lookup a specific protocol, or,
-    # better yet, have the Peer class wrap the protocol methods so that callsites don't have to
-    # ever deal with Protocol instances directly.
-    @property
-    def eth_proto(self):
-        if self._eth_proto is None:
-            for proto in self.enabled_sub_protocols:
-                if proto.name == eth.ETHProtocol.name:
-                    # There may be multiple entries in self.enabled_sub_protocols whose name match
-                    # ETHProtocol.name, and we want the one with the highest version; that's why
-                    # we don't break out of the loop after assigning to self._eth_proto.
-                    self._eth_proto = proto
-            if self._eth_proto is None:
-                raise Exception(
-                    "We assumed ETHProtocol was supported, but it isn't. See comment above")
-        return self._eth_proto
 
 
 class PeerPool:
@@ -696,7 +637,7 @@ class ChainInfo:
         self.genesis_hash = genesis_hash
 
 
-if __name__ == "__main__":
+def _test():
     """
     Create a Peer instance connected to a local geth instance and log messages exchanged with it.
 
@@ -741,18 +682,22 @@ if __name__ == "__main__":
             '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.eth_proto.send_get_block_headers(block_hash, 1)
-            peer.eth_proto.send_get_block_bodies([block_hash])
-            peer.eth_proto.send_get_receipts([block_hash])
+            peer.sub_proto.send_get_block_headers(block_hash, 1)
+            peer.sub_proto.send_get_block_bodies([block_hash])
+            peer.sub_proto.send_get_receipts([block_hash])
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
-            peer.les_proto.send_get_block_headers(block_hash, 1, request_id)
-            peer.les_proto.send_get_block_bodies([block_hash], request_id + 1)
-            peer.les_proto.send_get_receipts(block_hash, request_id + 2)
+            peer.sub_proto.send_get_block_headers(block_hash, 1, request_id)
+            peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
+            peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
         loop.run_until_complete(peer.start())
     except KeyboardInterrupt:
         pass
 
     loop.run_until_complete(peer.stop())
     loop.close()
+
+
+if __name__ == "__main__":
+    _test()

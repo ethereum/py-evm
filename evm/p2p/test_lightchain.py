@@ -172,7 +172,7 @@ class LESPeerServer(LESPeer):
             self._head_number = head_number
         header = self.chaindb.get_canonical_block_header_by_number(self.head_number)
         total_difficulty = self.chaindb.get_score(header.hash)
-        self.les_proto.send_announce(
+        self.sub_proto.send_announce(
             header.hash, header.block_number, total_difficulty, reorg_depth)
 
     def process_msg(self, msg):
@@ -198,7 +198,7 @@ class LESPeerServer(LESPeer):
             self.chaindb.get_canonical_block_header_by_number(i)
             for i in block_numbers
         )
-        self.les_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
+        self.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
 
 async def get_client_and_server_peer_pair(

@@ -94,7 +94,7 @@ class StateDownloader:
         now = time.time()
         for node_key in node_keys:
             self._pending_nodes[node_key] = now
-        peer.eth_proto.send_get_node_data(node_keys)
+        peer.sub_proto.send_get_node_data(node_keys)
 
     async def retry_timedout(self):
         timed_out = []

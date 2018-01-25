@@ -16,7 +16,6 @@ from evm.p2p.les import (
     LESProtocolV2,
 )
 from evm.p2p.peer import LESPeer
-from evm.p2p.protocol import Protocol
 from evm.p2p.p2p_proto import P2PProtocol
 
 
@@ -110,6 +109,9 @@ async def get_directly_linked_peers(
         peer2_class, peer2_chaindb, peer2_received_msg_callback)
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
+    assert peer1.sub_proto.name == peer2.sub_proto.name
+    assert peer1.sub_proto.version == peer2.sub_proto.version
+    assert peer1.sub_proto.cmd_id_offset == peer2.sub_proto.cmd_id_offset
     # Perform the handshake for the enabled sub-protocol.
     await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
     return peer1, peer2
@@ -118,12 +120,7 @@ async def get_directly_linked_peers(
 @pytest.mark.asyncio
 async def test_directly_linked_peers():
     peer1, peer2 = await get_directly_linked_peers()
-    assert len(peer1.enabled_sub_protocols) == 1
-    assert peer1.les_proto is not None
-    assert peer1.les_proto.name == LESProtocolV2.name
-    assert peer1.les_proto.version == LESProtocolV2.version
-    assert [(proto.name, proto.version) for proto in peer1.enabled_sub_protocols] == [
-        (proto.name, proto.version) for proto in peer2.enabled_sub_protocols]
+    assert isinstance(peer1.sub_proto, LESProtocolV2)
 
 
 def get_fresh_mainnet_chaindb():
@@ -141,49 +138,30 @@ async def test_les_handshake():
     # Perform the handshake for the enabled sub-protocol (LES).
     await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
 
-    assert isinstance(peer1.les_proto, LESProtocol)
-    assert isinstance(peer2.les_proto, LESProtocol)
+    assert isinstance(peer1.sub_proto, LESProtocol)
+    assert isinstance(peer2.sub_proto, LESProtocol)
 
 
-def test_sub_protocol_matching():
-    peer = ProtoMatchingPeer([LESProtocol, LESProtocolV2, ETHProtocol63])
+def test_sub_protocol_selection():
+    peer = ProtoMatchingPeer([LESProtocol, LESProtocolV2])
 
-    peer.match_protocols([
+    proto = peer.select_sub_protocol([
         (LESProtocol.name, LESProtocol.version),
         (LESProtocolV2.name, LESProtocolV2.version),
         (LESProtocolV3.name, LESProtocolV3.version),
-        (ETHProtocol63.name, ETHProtocol63.version),
         ('unknown', 1),
     ])
 
-    assert len(peer.enabled_sub_protocols) == 2
-    eth_proto, les_proto = peer.enabled_sub_protocols
-    assert isinstance(eth_proto, ETHProtocol63)
-    assert eth_proto.cmd_id_offset == peer.base_protocol.cmd_length
-
-    assert isinstance(les_proto, LESProtocolV2)
-    assert les_proto.cmd_id_offset == peer.base_protocol.cmd_length + eth_proto.cmd_length
+    assert isinstance(proto, LESProtocolV2)
+    assert proto.cmd_id_offset == peer.base_protocol.cmd_length
 
 
 class LESProtocolV3(LESProtocol):
     version = 3
 
 
-class ETHProtocol63(Protocol):
-    name = b'eth'
-    version = 63
-    cmd_length = 15
-
-
 class ProtoMatchingPeer(LESPeer):
 
     def __init__(self, supported_sub_protocols):
         self._supported_sub_protocols = supported_sub_protocols
-        self.base_protocol = MockP2PProtocol(self)
-        self.enabled_sub_protocols = []
-
-
-class MockP2PProtocol(P2PProtocol):
-
-    def send_handshake(self):
-        pass
+        self.base_protocol = P2PProtocol(self)

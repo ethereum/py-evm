@@ -256,7 +256,7 @@ class LightChain(Chain):
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
             request_id = gen_request_id()
             max_headers = 1
-            peer.les_proto.send_get_block_headers(block_hash, max_headers, request_id)
+            peer.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
             reply = await peer.wait_for_reply(request_id)
             if len(reply['headers']) == 0:
                 raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
@@ -264,7 +264,7 @@ class LightChain(Chain):
 
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
-        peer.les_proto.send_get_block_bodies([block_hash], request_id)
+        peer.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await peer.wait_for_reply(request_id)
         if len(reply['bodies']) == 0:
             raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
@@ -285,7 +285,7 @@ class LightChain(Chain):
         peer = await self.get_best_peer()
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
-        peer.les_proto.send_get_receipts(block_hash, request_id)
+        peer.sub_proto.send_get_receipts(block_hash, request_id)
         reply = await peer.wait_for_reply(request_id)
         if len(reply['receipts']) == 0:
             raise BlockNotFound("No block with hash {} found".format(block_hash))
@@ -303,7 +303,7 @@ class LightChain(Chain):
                          from_level: int = 0) -> List[bytes]:
         peer = await self.get_best_peer()
         request_id = gen_request_id()
-        peer.les_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
+        peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await peer.wait_for_reply(request_id)
         return reply['proof']
 
@@ -311,7 +311,7 @@ class LightChain(Chain):
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
         peer = await self.get_best_peer()
         request_id = gen_request_id()
-        peer.les_proto.send_get_contract_code(block_hash, key, request_id)
+        peer.sub_proto.send_get_contract_code(block_hash, key, request_id)
         reply = await peer.wait_for_reply(request_id)
         if len(reply['codes']) == 0:
             return b''
