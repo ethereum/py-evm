@@ -50,7 +50,79 @@ from evm.utils.state_access_restriction import (
 from .hash_trie import HashTrie
 
 
-class MainAccountStateDB:
+class BaseAccountStateDB:
+
+    def decommission(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @property
+    def root_hash(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @root_hash.setter
+    def root_hash(self, value):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Storage
+    #
+    def get_storage(self, address, slot):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def set_storage(self, address, slot, value):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Balance
+    #
+    def get_balance(self, address):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def set_balance(self, address, balance):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def delta_balance(self, address, delta):
+        self.set_balance(address, self.get_balance(address) + delta)
+
+    #
+    # Nonce
+    #
+    def set_nonce(self, address, nonce):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def get_nonce(self, address):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def increment_nonce(self, address):
+        current_nonce = self.get_nonce(address)
+        self.set_nonce(address, current_nonce + 1)
+
+    #
+    # Code
+    #
+    def set_code(self, address, code):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def get_code(self, address):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def get_code_hash(self, address):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def delete_code(self, address):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Account Methods
+    #
+    def account_has_code_or_nonce(self, address):
+        return self.get_nonce(address) != 0 or self.get_code_hash(address) != EMPTY_SHA3
+
+    def account_is_empty(self, address):
+        return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
+
+
+class MainAccountStateDB(BaseAccountStateDB):
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
         if read_only:
@@ -132,9 +204,6 @@ class MainAccountStateDB:
         account.balance = balance
         self._set_account(address, account)
 
-    def delta_balance(self, address, delta):
-        self.set_balance(address, self.get_balance(address) + delta)
-
     #
     # Nonce
     #
@@ -152,10 +221,6 @@ class MainAccountStateDB:
 
         account = self._get_account(address)
         return account.nonce
-
-    def increment_nonce(self, address):
-        current_nonce = self.get_nonce(address)
-        self.set_nonce(address, current_nonce + 1)
 
     #
     # Code
@@ -204,17 +269,11 @@ class MainAccountStateDB:
 
         return bool(self._trie[address])
 
-    def account_has_code_or_nonce(self, address):
-        return self.get_nonce(address) != 0 or self.get_code_hash(address) != EMPTY_SHA3
-
     def touch_account(self, address):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         self._set_account(address, account)
-
-    def account_is_empty(self, address):
-        return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
 
     #
     # Internal
@@ -232,7 +291,7 @@ class MainAccountStateDB:
         self._trie[address] = rlp.encode(account, sedes=Account)
 
 
-class ShardingAccountStateDB:
+class ShardingAccountStateDB(BaseAccountStateDB):
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False, access_list=None):
         if read_only:
@@ -305,9 +364,6 @@ class ShardingAccountStateDB:
 
         self._trie[key] = int_to_big_endian(balance)
 
-    def delta_balance(self, address, delta):
-        self.set_balance(address, self.get_balance(address) + delta)
-
     #
     # Nonce
     #
@@ -331,10 +387,6 @@ class ShardingAccountStateDB:
 
         self._trie[key] = int_to_big_endian(nonce)
 
-    def increment_nonce(self, address):
-        current_nonce = self.get_nonce(address)
-        self.set_nonce(address, current_nonce + 1)
-
     #
     # Code
     #
@@ -348,6 +400,10 @@ class ShardingAccountStateDB:
             return self._trie[key]
         else:
             return b''
+
+    def get_code_hash(self, address):
+        code = self.get_code(address)
+        return keccak(code)
 
     def set_code(self, address, code):
         validate_canonical_address(address, title="Storage Address")
@@ -365,15 +421,6 @@ class ShardingAccountStateDB:
         self._check_accessibility(key)
 
         del self._trie[key]
-
-    #
-    # Account Methods
-    #
-    def account_has_code_or_nonce(self, address):
-        return self.get_nonce(address) != 0 or self.get_code(address) != b''
-
-    def account_is_empty(self, address):
-        return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
 
     #
     # Internal
