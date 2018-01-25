@@ -67,28 +67,28 @@ def to_prefix_list_form(access_list):
     """
     for obj in access_list:
         address, *storage_prefixes = obj
-        yield nonce_key(address)
-        yield balance_key(address)
-        yield code_key(address)
+        yield get_nonce_key(address)
+        yield get_balance_key(address)
+        yield get_code_key(address)
         for prefix in remove_redundant_prefixes(storage_prefixes):
             yield keccak(address) + STORAGE_TRIE_PREFIX + prefix
 
 
-def storage_key(address, slot):
+def get_storage_key(address, slot):
     return keccak(address) + STORAGE_TRIE_PREFIX + pad32(int_to_big_endian(slot))
 
 
-def full_storage_key(address):
+def get_full_storage_key(address):
     return keccak(address) + STORAGE_TRIE_PREFIX
 
 
-def balance_key(address):
+def get_balance_key(address):
     return keccak(address) + BALANCE_TRIE_PREFIX
 
 
-def nonce_key(address):
+def get_nonce_key(address):
     return keccak(address) + NONCE_TRIE_PREFIX
 
 
-def code_key(address):
+def get_code_key(address):
     return keccak(address) + CODE_TRIE_PREFIX
