@@ -26,9 +26,7 @@ if TYPE_CHECKING:
 
 _DecodedMsgType = Union[
     Dict[str, Any],
-    List[bytes],
-    List[Tuple[bytes, bytes]],
-    bytes,
+    List[rlp.Serializable],
 ]
 
 

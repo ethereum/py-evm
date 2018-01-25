@@ -603,6 +603,8 @@ class ETHPeer(BasePeer):
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
+        self.head_td = msg['td']
+        self.head_hash = msg['best_hash']
 
 
 class PeerPoolSubscriber:
