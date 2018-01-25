@@ -155,7 +155,7 @@ class NestedTrieBackend:
         return bool(self._trie[address])
 
     def account_has_code_or_nonce(self, address):
-        return self.get_code_hash(address) != EMPTY_SHA3 or self.get_nonce(address) != 0
+        return self.get_nonce(address) != 0 or self.get_code_hash(address) != EMPTY_SHA3
 
     def touch_account(self, address):
         account = self._get_account(address)
