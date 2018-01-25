@@ -29,13 +29,14 @@ from evm.validation import (
     validate_uint256,
     validate_word,
 )
-
 from evm.rlp.headers import (
     BlockHeader,
 )
-
 from evm.utils.chain import (
     generate_vms_by_range,
+)
+from evm.utils.datatypes import (
+    Configurable,
 )
 from evm.utils.headers import (
     compute_gas_limit_bounds,
@@ -48,7 +49,7 @@ from evm.utils.rlp import (
 )
 
 
-class Chain(object):
+class Chain(Configurable):
     """
     An Chain is a combination of one or more VM classes.  Each VM is associated
     with a range of blocks.  The Chain class acts as a wrapper around these other
@@ -77,20 +78,10 @@ class Chain(object):
     @classmethod
     def configure(cls, name, vm_configuration, **overrides):
         if 'vms_by_range' in overrides:
-            raise ValueError("Cannot override vms_by_range.")
+            raise ValueError("Cannot override vms_by_range")
 
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The Chain.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-
-        # Organize the Chain classes by their starting blocks.
         overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
-
-        return type(name, (cls,), overrides)
+        return super().configure(name, **overrides)
 
     #
     # Convenience and Helpers

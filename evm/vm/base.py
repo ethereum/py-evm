@@ -22,6 +22,9 @@ from evm.db.chain import BaseChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.utils.datatypes import (
+    Configurable,
+)
 from evm.utils.db import (
     get_parent_header,
     get_block_header_by_hash,
@@ -42,7 +45,7 @@ from .execution_context import (
 )
 
 
-class VM(object):
+class VM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Defining an Chain  defining
@@ -57,22 +60,6 @@ class VM(object):
         self.chaindb = chaindb
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, chaindb=self.chaindb)
-
-    @classmethod
-    def configure(cls,
-                  name=None,
-                  **overrides):
-        if name is None:
-            name = cls.__name__
-
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The VM.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-        return type(name, (cls,), overrides)
 
     #
     # Logging

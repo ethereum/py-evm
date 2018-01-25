@@ -11,12 +11,15 @@ from evm.constants import (
 from evm.db.tracked import (
     AccessLogs,
 )
+from evm.utils.datatypes import (
+    Configurable,
+)
 from evm.utils.state import (
     make_trie_root_and_nodes,
 )
 
 
-class BaseVMState(object):
+class BaseVMState(Configurable):
     #
     # Set from __init__
     #
@@ -300,22 +303,3 @@ class BaseVMState(object):
     @classmethod
     def get_nephew_reward(cls):
         raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # classmethod
-    #
-    @classmethod
-    def configure(cls,
-                  name,
-                  **overrides):
-        """
-        Class factory method for simple inline subclassing.
-        """
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The State.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-        return type(name, (cls,), overrides)

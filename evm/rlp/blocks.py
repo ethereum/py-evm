@@ -1,18 +1,11 @@
 import rlp
 
+from evm.utils.datatypes import (
+    Configurable,
+)
 
-class BaseBlock(rlp.Serializable):
-    @classmethod
-    def configure(cls, **overrides):
-        class_name = cls.__name__
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The {0}.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{1}` was "
-                    "not found on the base class `{2}`".format(class_name, key, cls)
-                )
-        return type(class_name, (cls,), overrides)
+
+class BaseBlock(rlp.Serializable, Configurable):
 
     # TODO: Remove this once https://github.com/ethereum/pyrlp/issues/45 is
     # fixed.
