@@ -80,6 +80,8 @@ class VMC(Contract):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
+        # TODO: currently set one log_handler for each shard. Should see if there is a better way
+        #       to make one log_handler shared over all shards.
         self.log_handlers = {}
         # shard_id -> list
         # older <---------------> newer
@@ -123,6 +125,11 @@ class VMC(Contract):
             raise NextLogUnavailable("No more next logs")
         return self.new_logs[shard_id].pop()
 
+    # TODO: this method may return wrong result when new logs arrive before the logs inside
+    #       `self.new_logs` are consumed entirely. This issue can be resolved by saving the
+    #       status of `new_logs`, `unchecked_logs`, and `current_score`, when it start to run
+    #       `GUESS_HEAD`. If there is a new block arriving, just restore them to the saved status,
+    #       append new logs to `new_logs`, and re-run `GUESS_HEAD`
     def fetch_candidate_head(self, shard_id):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
