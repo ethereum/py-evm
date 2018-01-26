@@ -509,7 +509,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     vmc.add_header(header1_1)
     mine(vmc, 1)
     header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
-    header0_3_hash = keccak(header0_3)
     vmc.add_header(header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
