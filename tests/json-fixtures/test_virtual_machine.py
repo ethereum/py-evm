@@ -135,23 +135,7 @@ def vm_class(request):
         assert False, "Unsupported VM: {0}".format(request.param)
 
 
-def test_vm_fixtures(fixture, vm_class):
-    chaindb = ChainDB(get_db_backend())
-    header = BlockHeader(
-        coinbase=fixture['env']['currentCoinbase'],
-        difficulty=fixture['env']['currentDifficulty'],
-        block_number=fixture['env']['currentNumber'],
-        gas_limit=fixture['env']['currentGasLimit'],
-        timestamp=fixture['env']['currentTimestamp'],
-    )
-    vm = vm_class(header=header, chaindb=chaindb)
-    vm_state = vm.state
-    with vm_state.state_db() as state_db:
-        setup_state_db(fixture['pre'], state_db)
-        code = state_db.get_code(fixture['exec']['address'])
-    # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
-
+def fixture_to_computation(fixture, code, vm):
     message = Message(
         to=fixture['exec']['address'],
         sender=fixture['exec']['caller'],
@@ -164,60 +148,95 @@ def test_vm_fixtures(fixture, vm_class):
         origin=fixture['exec']['origin'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.state.get_computation(message, transaction_context).apply_computation(
+    return vm.state.get_computation(message, transaction_context).apply_computation(
         vm.state,
         message,
         transaction_context,
     )
-    # Update state_root manually
-    vm.block.header.state_root = computation.vm_state.state_root
 
-    if 'post' in fixture:
-        #
-        # Success checks
-        #
-        assert not computation.is_error
 
-        log_entries = computation.get_log_entries()
-        if 'logs' in fixture:
-            actual_logs_hash = hash_log_entries(log_entries)
-            expected_logs_hash = fixture['logs']
-            assert expected_logs_hash == actual_logs_hash
-        elif log_entries:
-            raise AssertionError("Got log entries: {0}".format(log_entries))
+def fixture_to_bytecode_computation(fixture, code, vm):
+    return vm.execute_bytecode(
+        origin=fixture['exec']['origin'],
+        to=fixture['exec']['address'],
+        sender=fixture['exec']['caller'],
+        value=fixture['exec']['value'],
+        data=fixture['exec']['data'],
+        code=code,
+        gas=fixture['exec']['gas'],
+        gas_price=fixture['exec']['gasPrice'],
+    )
 
-        expected_output = fixture['out']
-        assert computation.output == expected_output
 
-        gas_meter = computation.gas_meter
+def test_vm_fixtures(fixture, vm_class):
+    for computation_getter in (fixture_to_computation, fixture_to_bytecode_computation):
+        chaindb = ChainDB(get_db_backend())
+        header = BlockHeader(
+            coinbase=fixture['env']['currentCoinbase'],
+            difficulty=fixture['env']['currentDifficulty'],
+            block_number=fixture['env']['currentNumber'],
+            gas_limit=fixture['env']['currentGasLimit'],
+            timestamp=fixture['env']['currentTimestamp'],
+        )
+        vm = vm_class(header=header, chaindb=chaindb)
+        vm_state = vm.state
+        with vm_state.state_db() as state_db:
+            setup_state_db(fixture['pre'], state_db)
+            code = state_db.get_code(fixture['exec']['address'])
+        # Update state_root manually
+        vm.block.header.state_root = vm_state.state_root
 
-        expected_gas_remaining = fixture['gas']
-        actual_gas_remaining = gas_meter.gas_remaining
-        gas_delta = actual_gas_remaining - expected_gas_remaining
-        assert gas_delta == 0, "Gas difference: {0}".format(gas_delta)
+        computation = computation_getter(fixture, code, vm)
 
-        call_creates = fixture.get('callcreates', [])
-        assert len(computation.children) == len(call_creates)
+        # Update state_root manually
+        vm.block.header.state_root = computation.vm_state.state_root
 
-        call_creates = fixture.get('callcreates', [])
-        for child_computation, created_call in zip(computation.children, call_creates):
-            to_address = created_call['destination']
-            data = created_call['data']
-            gas_limit = created_call['gasLimit']
-            value = created_call['value']
+        if 'post' in fixture:
+            #
+            # Success checks
+            #
+            assert not computation.is_error
 
-            assert child_computation.msg.to == to_address
-            assert data == child_computation.msg.data or child_computation.msg.code
-            assert gas_limit == child_computation.msg.gas
-            assert value == child_computation.msg.value
-        post_state = fixture['post']
-    else:
-        #
-        # Error checks
-        #
-        assert computation.is_error
-        assert isinstance(computation._error, VMError)
-        post_state = fixture['pre']
+            log_entries = computation.get_log_entries()
+            if 'logs' in fixture:
+                actual_logs_hash = hash_log_entries(log_entries)
+                expected_logs_hash = fixture['logs']
+                assert expected_logs_hash == actual_logs_hash
+            elif log_entries:
+                raise AssertionError("Got log entries: {0}".format(log_entries))
 
-    with vm.state.state_db(read_only=True) as state_db:
-        verify_state_db(post_state, state_db)
+            expected_output = fixture['out']
+            assert computation.output == expected_output
+
+            gas_meter = computation.gas_meter
+
+            expected_gas_remaining = fixture['gas']
+            actual_gas_remaining = gas_meter.gas_remaining
+            gas_delta = actual_gas_remaining - expected_gas_remaining
+            assert gas_delta == 0, "Gas difference: {0}".format(gas_delta)
+
+            call_creates = fixture.get('callcreates', [])
+            assert len(computation.children) == len(call_creates)
+
+            call_creates = fixture.get('callcreates', [])
+            for child_computation, created_call in zip(computation.children, call_creates):
+                to_address = created_call['destination']
+                data = created_call['data']
+                gas_limit = created_call['gasLimit']
+                value = created_call['value']
+
+                assert child_computation.msg.to == to_address
+                assert data == child_computation.msg.data or child_computation.msg.code
+                assert gas_limit == child_computation.msg.gas
+                assert value == child_computation.msg.value
+            post_state = fixture['post']
+        else:
+            #
+            # Error checks
+            #
+            assert computation.is_error
+            assert isinstance(computation._error, VMError)
+            post_state = fixture['pre']
+
+        with vm.state.state_db(read_only=True) as state_db:
+            verify_state_db(post_state, state_db)

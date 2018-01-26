@@ -201,7 +201,7 @@ class BaseVMState(Configurable):
         """
         Apply transaction to the given block
 
-        :param transaction: the transaction need to be applied
+        :param transaction: the transaction to apply
         :param block: the block which the transaction applies on
         :type transaction: Transaction
         :type block: Block

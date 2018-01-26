@@ -39,6 +39,9 @@ from evm.validation import (
     validate_length_lte,
     validate_gas_limit,
 )
+from evm.vm.message import (
+    Message,
+)
 
 from .execution_context import (
     ExecutionContext,
@@ -48,7 +51,7 @@ from .execution_context import (
 class VM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
-    such as the Frontier or Homestead network.  Defining an Chain  defining
+    such as the Frontier or Homestead network.  Define a Chain defining
     individual VM classes for each fork of the protocol rules within that
     network.
     """
@@ -88,6 +91,30 @@ class VM(Configurable):
         self.clear_journal()
 
         return computation, self.block
+
+    def execute_bytecode(self,
+                         gas,
+                         gas_price,
+                         to,
+                         sender,
+                         value,
+                         data,
+                         code,
+                         origin,
+                         ):
+        # Construct a message
+        message = Message(
+            gas=gas,
+            gas_price=gas_price,
+            to=to,
+            sender=sender,
+            value=value,
+            data=data,
+            code=code,
+        )
+
+        # Execute it in the VM
+        return self.state.get_computation(message).apply_computation(self.state, message)
 
     #
     # Mining
