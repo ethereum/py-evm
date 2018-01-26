@@ -1,3 +1,5 @@
+import functools
+
 from evm.constants import (
     ENTRY_POINT,
 )
@@ -34,6 +36,9 @@ class ShardingVMState(ByzantiumVMState):
     computation_class = ShardingComputation
 
     def execute_transaction(self, transaction):
+        # state_db ontext manager that restricts access as specified in the transacion
+        state_db_cm = functools.partial(self.state_db, access_list=transaction.prefix_list)
+
         #
         # 1) Pre Computation
         #
@@ -44,7 +49,7 @@ class ShardingVMState(ByzantiumVMState):
         self.validate_transaction(transaction)
 
         gas_fee = transaction.gas * transaction.gas_price
-        with self.state_db() as state_db:
+        with state_db_cm() as state_db:
             # Buy Gas
             state_db.delta_balance(transaction.to, -1 * gas_fee)
 
@@ -93,7 +98,7 @@ class ShardingVMState(ByzantiumVMState):
         # 2) Apply the message to the VM.
         #
         if message.is_create:
-            with self.state_db(read_only=True) as state_db:
+            with state_db_cm(read_only=True) as state_db:
                 is_collision = state_db.account_has_code_or_nonce(contract_address)
 
             # Check if contract address provided by transaction is correct
@@ -150,7 +155,7 @@ class ShardingVMState(ByzantiumVMState):
                 encode_hex(message.to),
             )
 
-            with self.state_db() as state_db:
+            with state_db_cm() as state_db:
                 state_db.delta_balance(message.to, gas_refund_amount)
 
         # Miner Fees
@@ -160,11 +165,11 @@ class ShardingVMState(ByzantiumVMState):
             transaction_fee,
             encode_hex(self.coinbase),
         )
-        with self.state_db() as state_db:
+        with state_db_cm() as state_db:
             state_db.delta_balance(self.coinbase, transaction_fee)
 
         # Process Self Destructs
-        with self.state_db() as state_db:
+        with state_db_cm() as state_db:
             for account, beneficiary in computation.get_accounts_for_deletion():
                 # TODO: need to figure out how we prevent multiple selfdestructs from
                 # the same account and if this is the right place to put this.

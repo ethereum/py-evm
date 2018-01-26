@@ -35,7 +35,7 @@ class ShardingComputation(SpuriousDragonComputation):
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with self.vm_state.state_db() as state_db:
+            with self.state_db() as state_db:
                 sender_balance = state_db.get_balance(self.msg.sender)
 
                 if sender_balance < self.msg.value:
@@ -110,7 +110,7 @@ class ShardingComputation(SpuriousDragonComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.vm_state.state_db() as state_db:
+                    with self.state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
                     self.vm_state.commit(snapshot)
             else:
