@@ -92,6 +92,7 @@ class ShardingVMState(ByzantiumVMState):
             data=data,
             code=code,
             is_create=is_create,
+            access_list=transaction.prefix_list,
         )
 
         #
