@@ -16,6 +16,9 @@ from evm.rlp.sedes import (
     address,
     access_list as access_list_sedes,
 )
+from evm.utils.state_access_restriction import (
+    to_prefix_list_form,
+)
 
 
 class BaseTransaction(rlp.Serializable):
@@ -169,6 +172,10 @@ class BaseShardingTransaction(rlp.Serializable):
         ('access_list', access_list_sedes),
         ('code', binary),
     ]
+
+    def __init__(self, chain_id, shard_id, to, data, gas, gas_price, access_list, code):
+        super().__init__(chain_id, shard_id, to, data, gas, gas_price, access_list, code)
+        self.prefix_list = to_prefix_list_form(self.access_list)
 
     @property
     def hash(self):
