@@ -1,5 +1,5 @@
 import logging
-from typing import cast, List, Union
+from typing import List, Union
 
 import rlp
 from rlp import sedes
@@ -52,13 +52,6 @@ class GetBlockHeaders(Command):
         ('reverse', sedes.big_endian_int),
     ]
 
-    def handle(self, data: bytes):
-        decoded = super().handle(data)
-        # TODO: Actually send the requested block headers. For now we reply with an empty list
-        # just so nodes don't disconnect us straight away
-        cast(ETHProtocol, self.proto).send_block_headers([])
-        return decoded
-
 
 class BlockHeaders(Command):
     _cmd_id = 4
@@ -68,13 +61,6 @@ class BlockHeaders(Command):
 class GetBlockBodies(Command):
     _cmd_id = 5
     structure = sedes.CountableList(sedes.binary)
-
-    def handle(self, data: bytes):
-        decoded = super().handle(data)
-        # TODO: Actually send the requested block bodies. For now we reply with an empty list
-        # just so nodes don't disconnect us straight away
-        cast(ETHProtocol, self.proto).send_block_bodies([])
-        return decoded
 
 
 class BlockBody(rlp.Serializable):
@@ -98,7 +84,6 @@ class NewBlock(Command):
         ('total_difficulty', sedes.big_endian_int)]
 
 
-# TODO: Implement handling of incoming GetNodeData msgs.
 class GetNodeData(Command):
     _cmd_id = 13
     structure = sedes.CountableList(sedes.binary)
@@ -109,7 +94,6 @@ class NodeData(Command):
     structure = sedes.CountableList(sedes.binary)
 
 
-# TODO: Implement handling of incoming GetReceipts msgs.
 class GetReceipts(Command):
     _cmd_id = 15
     structure = sedes.CountableList(sedes.binary)

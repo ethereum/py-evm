@@ -23,6 +23,7 @@ from evm.p2p.les import (
 )
 from evm.p2p.lightchain import LightChain
 from evm.p2p.peer import LESPeer
+from evm.p2p import protocol
 from evm.p2p.test_peer import (
     get_directly_linked_peers,
     get_fresh_mainnet_chaindb,
@@ -116,9 +117,9 @@ async def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet
         request,
         event_loop,
         client_chaindb=light_chain.chaindb,
-        client_received_msg_callback=light_chain.msg_handler,
         server_chaindb=server2_chaindb)
 
+    asyncio.ensure_future(light_chain._handle_peer(client2))
     await wait_for_head(light_chain.chaindb, new_head)
     assert_canonical_chains_are_equal(light_chain.chaindb, server2.chaindb, new_head.block_number)
 
@@ -175,11 +176,10 @@ class LESPeerServer(LESPeer):
         self.sub_proto.send_announce(
             header.hash, header.block_number, total_difficulty, reorg_depth)
 
-    def process_msg(self, msg):
-        cmd, decoded = super().process_msg(msg)
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+        super().handle_sub_proto_msg(cmd, msg)
         if isinstance(cmd, GetBlockHeaders):
-            self.handle_get_block_headers(decoded)
-        return cmd, decoded
+            self.handle_get_block_headers(msg)
 
     def handle_get_block_headers(self, msg):
         query = msg['query']
@@ -201,39 +201,25 @@ class LESPeerServer(LESPeer):
         self.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
 
-async def get_client_and_server_peer_pair(
-        request, event_loop, client_chaindb, client_received_msg_callback, server_chaindb):
+async def get_client_and_server_peer_pair(request, event_loop, client_chaindb, server_chaindb):
     """Return a client/server peer pair with the given chain DBs.
 
-    The client peer will be an instance of LESPeer, configured with the given chaindb and
-    received_msg_callback, so that we can test LightChain's header syncing.
+    The client peer will be an instance of LESPeer, configured with the client_chaindb.
 
-    The server peer will be an instance of LESPeerServer (which is necessary because we want a
-    peer that can respond to GetBlockHeaders requests), configured only with the given chaindb but
-    no received_msg_callback.
+    The server peer will be an instance of LESPeerServer, which is necessary because we want a
+    peer that can respond to GetBlockHeaders requests.
     """
-    server_received_msg_callback = None
-    client, server = await get_directly_linked_peers(
-        LESPeer, client_chaindb, client_received_msg_callback,
-        LESPeerServer, server_chaindb, server_received_msg_callback)
-    asyncio.ensure_future(client.start())
-    asyncio.ensure_future(server.start())
-
-    def finalizer():
-        async def afinalizer():
-            await client.stop()
-            await server.stop()
-        event_loop.run_until_complete(afinalizer())
-    request.addfinalizer(finalizer)
-
-    return client, server
+    return await get_directly_linked_peers(
+        request, event_loop,
+        LESPeer, client_chaindb,
+        LESPeerServer, server_chaindb)
 
 
 async def get_lightchain_with_peers(request, event_loop, server_peer_chaindb):
     """Return a LightChainForTests instance with a client/server peer pair.
 
     The server is a LESPeerServer instance that can be used to send Announce and BlockHeaders
-    messages, and the client will be configured with the LightChain's msg_handler so that a sync
+    messages, and the client will be passed to LightChain's _handle_peer() method so that a sync
     request is added to the LightChain's queue every time a new Announce message is received.
     """
     chaindb = get_fresh_mainnet_chaindb()
@@ -247,12 +233,8 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_chaindb):
     request.addfinalizer(finalizer)
 
     client, server = await get_client_and_server_peer_pair(
-        request,
-        event_loop,
-        client_chaindb=chaindb,
-        client_received_msg_callback=light_chain.msg_handler,
-        server_chaindb=server_peer_chaindb,
-    )
+        request, event_loop, chaindb, server_peer_chaindb)
+    asyncio.ensure_future(light_chain._handle_peer(client))
     return light_chain, client, server
 
 

@@ -10,7 +10,7 @@ class PeerConnectionLost(Exception):
     pass
 
 
-class PeerDisconnected(Exception):
+class HandshakeFailure(Exception):
     pass
 
 
@@ -18,7 +18,7 @@ class UnknownProtocolCommand(Exception):
     pass
 
 
-class UselessPeer(Exception):
+class UnexpectedMessage(Exception):
     pass
 
 
@@ -39,4 +39,8 @@ class TooManyTimeouts(Exception):
 
 
 class StopRequested(Exception):
+    pass
+
+
+class PeerFinished(Exception):
     pass

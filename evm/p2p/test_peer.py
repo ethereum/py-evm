@@ -20,8 +20,8 @@ from evm.p2p.p2p_proto import P2PProtocol
 
 
 async def _get_directly_linked_peers_without_handshake(
-        peer1_class=LESPeer, peer1_chaindb=None, peer1_received_msg_callback=None,
-        peer2_class=LESPeer, peer2_chaindb=None, peer2_received_msg_callback=None):
+        peer1_class=LESPeer, peer1_chaindb=None,
+        peer2_class=LESPeer, peer2_chaindb=None):
     """See get_directly_linked_peers().
 
     Neither the P2P handshake nor the sub-protocol handshake will be performed here.
@@ -71,13 +71,13 @@ async def _get_directly_linked_peers_without_handshake(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
             writer=peer1_writer, aes_secret=aes_secret, mac_secret=mac_secret,
             egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=peer1_chaindb,
-            network_id=1, received_msg_callback=peer1_received_msg_callback)
+            network_id=1)
 
         peer2 = peer2_class(
             remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
             writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
             egress_mac=peer2_egress, ingress_mac=peer2_ingress, chaindb=peer2_chaindb,
-            network_id=1, received_msg_callback=peer2_received_msg_callback)
+            network_id=1)
 
         handshake_finished.set()
 
@@ -98,28 +98,41 @@ async def _get_directly_linked_peers_without_handshake(
 
 
 async def get_directly_linked_peers(
-        peer1_class=LESPeer, peer1_chaindb=None, peer1_received_msg_callback=None,
-        peer2_class=LESPeer, peer2_chaindb=None, peer2_received_msg_callback=None):
+        request, event_loop,
+        peer1_class=LESPeer, peer1_chaindb=None,
+        peer2_class=LESPeer, peer2_chaindb=None):
     """Create two peers with their readers/writers connected directly.
 
     The first peer's reader will write directly to the second's writer, and vice-versa.
     """
     peer1, peer2 = await _get_directly_linked_peers_without_handshake(
-        peer1_class, peer1_chaindb, peer1_received_msg_callback,
-        peer2_class, peer2_chaindb, peer2_received_msg_callback)
+        peer1_class, peer1_chaindb,
+        peer2_class, peer2_chaindb)
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
+
     assert peer1.sub_proto.name == peer2.sub_proto.name
     assert peer1.sub_proto.version == peer2.sub_proto.version
     assert peer1.sub_proto.cmd_id_offset == peer2.sub_proto.cmd_id_offset
+
+    asyncio.ensure_future(peer1.run())
+    asyncio.ensure_future(peer2.run())
+
+    def finalizer():
+        async def afinalizer():
+            await peer1.stop()
+            await peer2.stop()
+        event_loop.run_until_complete(afinalizer())
+    request.addfinalizer(finalizer)
+
     # Perform the handshake for the enabled sub-protocol.
     await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
     return peer1, peer2
 
 
 @pytest.mark.asyncio
-async def test_directly_linked_peers():
-    peer1, peer2 = await get_directly_linked_peers()
+async def test_directly_linked_peers(request, event_loop):
+    peer1, peer2 = await get_directly_linked_peers(request, event_loop)
     assert isinstance(peer1.sub_proto, LESProtocolV2)
 
 
@@ -135,11 +148,14 @@ async def test_les_handshake():
 
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
+    asyncio.ensure_future(peer1.run())
+    asyncio.ensure_future(peer2.run())
     # Perform the handshake for the enabled sub-protocol (LES).
     await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
 
     assert isinstance(peer1.sub_proto, LESProtocol)
     assert isinstance(peer2.sub_proto, LESProtocol)
+    await asyncio.gather(peer1.stop(), peer2.stop())
 
 
 def test_sub_protocol_selection():
