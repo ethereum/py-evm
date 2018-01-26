@@ -1,10 +1,10 @@
 from eth_utils import decode_hex
 
-from evm import constants
 from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
 )
+from evm import constants
 
 from evm.chains.chain import Chain
 from evm.rlp.headers import BlockHeader

@@ -14,6 +14,7 @@ from evm.chains import (  # noqa: F401
     Chain,
     MainnetChain,
     MainnetTesterChain,
+    RopstenChain,
 )
 
 #
