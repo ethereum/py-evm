@@ -6,6 +6,9 @@ from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
 )
+from evm.vm.message import (
+    ShardingMessage,
+)
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -113,3 +116,21 @@ class ShardingComputation(SpuriousDragonComputation):
             else:
                 self.vm_state.commit(snapshot)
             return computation
+
+    def prepare_child_message(self, gas, to, value, data, code, **kwargs):
+        kwargs.setdefault('sender', self.msg.storage_address)
+
+        child_message = ShardingMessage(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            sig_hash=self.msg.sig_hash,
+            to=to,
+            value=value,
+            data=data,
+            code=code,
+            depth=self.msg.depth + 1,
+            access_list=self.msg.access_list,
+            **kwargs
+        )
+        return child_message
