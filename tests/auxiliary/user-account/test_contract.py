@@ -14,6 +14,9 @@ from evm.constants import (
     ZERO_HASH32,
     ENTRY_POINT,
 )
+from evm.exceptions import (
+    UnannouncedStateAccess,
+)
 from evm.vm.message import (
     ShardingMessage,
 )
@@ -137,6 +140,8 @@ DEFAULT_V = SIGNED_DEFAULT_TRANSACTION.v
 DEFAULT_R = SIGNED_DEFAULT_TRANSACTION.r
 DEFAULT_S = SIGNED_DEFAULT_TRANSACTION.s
 
+XFAIL_REASON = "gas payment to dynamic coinbase and missing PAYGAS implementation"
+
 
 @pytest.fixture
 def vm():
@@ -168,7 +173,7 @@ def get_nonce(vm):
     return big_endian_to_int(computation.output)
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)  # noqa: F811
 def test_get_nonce(vm):
     computation, _ = vm.apply_transaction(ShardingTransaction(**merge(DEFAULT_BASE_TX_PARAMS, {
         "data": int_to_big_endian(NONCE_GETTER_ID),
@@ -183,7 +188,7 @@ def test_get_nonce(vm):
     assert computation.output == pad32(b"\x01")
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=NotImplementedError)
 def test_call_increments_nonce(vm):
     computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
@@ -197,7 +202,7 @@ def test_call_increments_nonce(vm):
     assert get_nonce(vm) == 2
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=NotImplementedError)
 def test_call_checks_nonce(vm):
     computation, _ = vm.apply_transaction(SIGNED_DEFAULT_TRANSACTION)
     assert computation.is_success
@@ -212,7 +217,7 @@ def test_call_checks_nonce(vm):
     assert computation.is_error
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 @pytest.mark.parametrize("min_block,max_block,valid", [
     (min_block, max_block, True) for min_block, max_block in [
         (0, UINT_256_MAX),
@@ -245,7 +250,7 @@ def test_call_checks_block_range(vm, min_block, max_block, valid):
         assert computation.is_error
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 def test_call_transfers_value(vm):
     vm_state = vm.state
     with vm_state.state_db() as state_db:
@@ -272,7 +277,7 @@ def test_call_transfers_value(vm):
     assert balance_destination_after == balance_destination_before + 10
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=NotImplementedError)
 @pytest.mark.parametrize("v,r,s", [
     (0, 0, 0),
 
@@ -317,7 +322,7 @@ def test_call_checks_signature(vm, v, r, s):
     assert computation.is_success
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 def test_call_uses_remaining_gas(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
@@ -334,7 +339,7 @@ def test_call_uses_remaining_gas(vm):
     assert logged_gas > 900 * 1000  # some gas will have been consumed earlier
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 @pytest.mark.parametrize("data,hash", [
     (data, keccak(data)) for data in [
         b"",
@@ -362,7 +367,7 @@ def test_call_uses_data(vm, data, hash):
     assert logged_hash == hash
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 def test_no_call_if_not_enough_gas(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
@@ -376,7 +381,7 @@ def test_no_call_if_not_enough_gas(vm):
     assert computation.gas_meter.gas_remaining > 0
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 def test_call_passes_return_code(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
@@ -397,7 +402,7 @@ def test_call_passes_return_code(vm):
     assert big_endian_to_int(computation.output) == 0  # failure
 
 
-@pytest.mark.xfail(reason="obsolete gas payment mechanism, #234, and #281", raises=AttributeError)
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)
 def test_call_does_not_revert_nonce(vm):
     nonce_before = get_nonce(vm)
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
