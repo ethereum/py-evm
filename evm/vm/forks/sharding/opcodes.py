@@ -25,7 +25,7 @@ NEW_OPCODES = {
     opcode_values.SIGHASH: as_opcode(
         logic_fn=context.sighash,
         mnemonic=mnemonics.SIGHASH,
-        gas_cost=0,
+        gas_cost=constants.GAS_BASE,
     ),
     opcode_values.CREATE2: system.Create2.configure(
         name='opcode:CREATE2',
