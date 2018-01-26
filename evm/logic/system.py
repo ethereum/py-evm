@@ -222,7 +222,7 @@ class Create2(CreateEIP150):
             computation.stack.push(0)
             return
 
-        child_msg = computation.prepare_child_sharding_message(
+        child_msg = computation.prepare_child_message(
             gas=create_msg_gas,
             to=contract_address,
             value=value,
