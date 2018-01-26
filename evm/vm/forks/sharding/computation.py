@@ -53,9 +53,6 @@ class ShardingComputation(SpuriousDragonComputation):
                 encode_hex(self.msg.storage_address),
             )
 
-        with self.vm_state.state_db() as state_db:
-            state_db.touch_account(self.msg.storage_address)
-
         computation = self.apply_computation(
             self.vm_state,
             self.msg,
