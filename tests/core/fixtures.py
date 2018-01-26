@@ -9,6 +9,9 @@ from eth_keys import KeyAPI
 
 from evm import Chain
 from evm import constants
+from evm.chains.shard import (
+    Shard,
+)
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
 from evm.db.state import (
@@ -139,7 +142,7 @@ def shard_chain_without_block_validation():
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
     }
-    klass = Chain.configure(
+    klass = Shard.configure(
         name='TestShardChainWithoutBlockValidation',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
