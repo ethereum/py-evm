@@ -25,9 +25,6 @@ class Hello(Command):
         ('remote_pubkey', sedes.binary)
     ]
 
-    def handle(self, proto, data):
-        return self.decode(data)
-
 
 @enum.unique
 class DisconnectReason(enum.Enum):
@@ -61,26 +58,26 @@ class Disconnect(Command):
         raw_decoded = super(Disconnect, self).decode(data)
         return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
 
-    def handle(self, proto, data):
+    def handle(self, data):
         decoded = self.decode(data)
-        proto.logger.debug(
-            "%s disconnected; reason given: %s", proto.peer, decoded['reason_name'])
-        proto.peer.close()
+        self.proto.logger.debug(
+            "%s disconnected; reason given: %s", self.proto.peer, decoded['reason_name'])
+        self.proto.peer.close()
         return decoded
 
 
 class Ping(Command):
     _cmd_id = 2
 
-    def handle(self, proto, data):
-        proto.send_pong()
+    def handle(self, data):
+        self.proto.send_pong()
         return None
 
 
 class Pong(Command):
     _cmd_id = 3
 
-    def handle(self, proto, data):
+    def handle(self, data):
         return None
 
 
@@ -89,28 +86,24 @@ class P2PProtocol(Protocol):
     version = 4
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
-    handshake_msg_type = Hello
 
     def __init__(self, peer):
         # For the base protocol the cmd_id_offset is always 0.
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
-    def send_handshake(self, head_info=None):
+    def send_handshake(self):
         data = dict(version=self.version,
                     client_version_string=CLIENT_VERSION_STRING,
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        header, body = Hello(self.cmd_id_offset).encode(data)
+        header, body = Hello(self).encode(data)
         self.send(header, body)
 
-    def process_handshake(self, decoded_msg):
-        self.peer.process_p2p_handshake(decoded_msg)
-
     def send_disconnect(self, reason):
-        header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
+        header, body = Disconnect(self).encode(dict(reason=reason))
         self.send(header, body)
 
     def send_pong(self):
-        header, body = Pong(self.cmd_id_offset).encode({})
+        header, body = Pong(self).encode({})
         self.send(header, body)

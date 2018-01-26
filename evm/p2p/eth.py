@@ -1,23 +1,25 @@
 import logging
-from typing import Any, cast, Dict, List, Union
+from typing import cast, List, Union
 
 import rlp
 from rlp import sedes
 
-from eth_utils import encode_hex
-
-from .constants import MAX_HEADERS_FETCH
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
-from evm.p2p.exceptions import HandshakeFailure
-from evm.p2p.p2p_proto import DisconnectReason
 from evm.p2p.protocol import (
     Command,
     Protocol,
-    _DecodedMsgType,
 )
 from evm.p2p.sedes import HashOrNumber
+
+
+# Max number of items we can ask for in ETH requests. These are the values used in geth and if we
+# ask for more than this the peers will disconnect from us.
+MAX_STATE_FETCH = 384
+MAX_BODIES_FETCH = 128
+MAX_RECEIPTS_FETCH = 256
+MAX_HEADERS_FETCH = 192
 
 
 class Status(Command):
@@ -50,12 +52,11 @@ class GetBlockHeaders(Command):
         ('reverse', sedes.big_endian_int),
     ]
 
-    def handle(self, proto: 'Protocol', data: bytes):
-        proto = cast(ETHProtocol, proto)
-        decoded = super().handle(proto, data)
+    def handle(self, data: bytes):
+        decoded = super().handle(data)
         # TODO: Actually send the requested block headers. For now we reply with an empty list
         # just so nodes don't disconnect us straight away
-        proto.send_block_headers([])
+        cast(ETHProtocol, self.proto).send_block_headers([])
         return decoded
 
 
@@ -68,12 +69,11 @@ class GetBlockBodies(Command):
     _cmd_id = 5
     structure = sedes.CountableList(sedes.binary)
 
-    def handle(self, proto: 'Protocol', data: bytes):
-        proto = cast(ETHProtocol, proto)
-        decoded = super().handle(proto, data)
+    def handle(self, data: bytes):
+        decoded = super().handle(data)
         # TODO: Actually send the requested block bodies. For now we reply with an empty list
         # just so nodes don't disconnect us straight away
-        proto.send_block_bodies([])
+        cast(ETHProtocol, self.proto).send_block_bodies([])
         return decoded
 
 
@@ -127,7 +127,6 @@ class ETHProtocol(Protocol):
         Status, NewBlockHashes, Transactions, GetBlockHeaders, BlockHeaders, BlockHeaders,
         GetBlockBodies, BlockBodies, NewBlock, GetNodeData, NodeData,
         GetReceipts, Receipts]
-    handshake_msg_type = Status
     cmd_length = 17
     logger = logging.getLogger("evm.p2p.eth.ETHProtocol")
 
@@ -139,25 +138,12 @@ class ETHProtocol(Protocol):
             'best_hash': head_info.block_hash,
             'genesis_hash': head_info.genesis_hash,
         }
-        cmd = Status(self.cmd_id_offset)
+        cmd = Status(self)
         self.logger.debug("Sending ETH/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
-    def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
-        decoded_msg = cast(Dict[str, Any], decoded_msg)
-        if decoded_msg['network_id'] != self.peer.network_id:
-            self.logger.debug(
-                "%s network (%s) does not match ours (%s), disconnecting",
-                self.peer, decoded_msg['network_id'], self.peer.network_id)
-            raise HandshakeFailure(DisconnectReason.other)
-        if decoded_msg['genesis_hash'] != self.peer.genesis.hash:
-            self.logger.debug(
-                "%s genesis (%s) does not match ours (%s), disconnecting",
-                self.peer, encode_hex(decoded_msg['genesis_hash']), self.peer.genesis.hex_hash)
-            raise HandshakeFailure(DisconnectReason.other)
-
     def send_get_node_data(self, node_hashes: List[bytes]) -> None:
-        cmd = GetNodeData(self.cmd_id_offset)
+        cmd = GetNodeData(self)
         header, body = cmd.encode(node_hashes)
         self.send(header, body)
 
@@ -174,7 +160,7 @@ class ETHProtocol(Protocol):
             raise ValueError(
                 "Cannot ask for more than {} block headers in a single request".format(
                     MAX_HEADERS_FETCH))
-        cmd = GetBlockHeaders(self.cmd_id_offset)
+        cmd = GetBlockHeaders(self)
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
@@ -186,21 +172,21 @@ class ETHProtocol(Protocol):
         self.send(header, body)
 
     def send_block_headers(self, headers: List[BlockHeader]) -> None:
-        cmd = BlockHeaders(self.cmd_id_offset)
+        cmd = BlockHeaders(self)
         header, body = cmd.encode([rlp.encode(header) for header in headers])
         self.send(header, body)
 
-    def send_get_block_bodies(self, block_hashes: bytes) -> None:
-        cmd = GetBlockBodies(self.cmd_id_offset)
+    def send_get_block_bodies(self, block_hashes: List[bytes]) -> None:
+        cmd = GetBlockBodies(self)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
 
     def send_block_bodies(self, blocks: List[BlockBody]) -> None:
-        cmd = BlockBodies(self.cmd_id_offset)
+        cmd = BlockBodies(self)
         header, body = cmd.encode([rlp.encode(block) for block in blocks])
         self.send(header, body)
 
-    def send_get_receipts(self, block_hashes: bytes) -> None:
-        cmd = GetReceipts(self.cmd_id_offset)
+    def send_get_receipts(self, block_hashes: List[bytes]) -> None:
+        cmd = GetReceipts(self)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)

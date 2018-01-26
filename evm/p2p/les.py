@@ -11,8 +11,6 @@ from eth_utils import (
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
-from evm.p2p.exceptions import HandshakeFailure
-from evm.p2p.p2p_proto import DisconnectReason
 from evm.p2p.protocol import (
     Command,
     Protocol,
@@ -20,11 +18,17 @@ from evm.p2p.protocol import (
 )
 from evm.p2p.sedes import HashOrNumber
 
-from .constants import (
-    LES_ANNOUNCE_SIMPLE,
-    MAX_BODIES_FETCH,
-    MAX_HEADERS_FETCH,
-)
+from .constants import LES_ANNOUNCE_SIMPLE
+
+
+# Max number of items we can ask for in LES requests. These are the values used in geth and if we
+# ask for more than this the peers will disconnect from us.
+MAX_HEADERS_FETCH = 192
+MAX_BODIES_FETCH = 32
+MAX_RECEIPTS_FETCH = 128
+MAX_CODE_FETCH = 64
+MAX_PROOFS_FETCH = 64
+MAX_HEADER_PROOFS_FETCH = 64
 
 
 class HeadInfo:
@@ -258,7 +262,6 @@ class LESProtocol(Protocol):
     name = b'les'
     version = 1
     _commands = [Status, Announce, BlockHeaders, BlockBodies, Receipts, Proofs, ContractCodes]
-    handshake_msg_type = Status
     cmd_length = 15
 
     def send_handshake(self, head_info):
@@ -270,23 +273,9 @@ class LESProtocol(Protocol):
             'headNum': head_info.block_number,
             'genesisHash': head_info.genesis_hash,
         }
-        cmd = Status(self.cmd_id_offset)
+        cmd = Status(self)
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
-
-    def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
-        decoded_msg = cast(Dict[str, Any], decoded_msg)
-        if decoded_msg['networkId'] != self.peer.network_id:
-            self.logger.debug(
-                "%s network (%s) does not match ours (%s), disconnecting",
-                self.peer, decoded_msg['networkId'], self.peer.network_id)
-            raise HandshakeFailure(DisconnectReason.other)
-        if decoded_msg['genesisHash'] != self.peer.genesis.hash:
-            self.logger.debug(
-                "%s genesis (%s) does not match ours (%s), disconnecting",
-                self.peer, encode_hex(decoded_msg['genesisHash']), self.peer.genesis.hex_hash)
-            raise HandshakeFailure(DisconnectReason.other)
-        # TODO: Raise HandshakeFailure if the remote doesn't serve headers.
 
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int) -> None:
         if len(block_hashes) > MAX_BODIES_FETCH:
@@ -297,7 +286,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': block_hashes,
         }
-        header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
+        header, body = GetBlockBodies(self).encode(data)
         self.send(header, body)
 
     def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
@@ -313,7 +302,7 @@ class LESProtocol(Protocol):
             raise ValueError(
                 "Cannot ask for more than {} block headers in a single request".format(
                     MAX_HEADERS_FETCH))
-        cmd = GetBlockHeaders(self.cmd_id_offset)
+        cmd = GetBlockHeaders(self)
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
@@ -328,7 +317,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': [block_hash],
         }
-        header, body = GetReceipts(self.cmd_id_offset).encode(data)
+        header, body = GetReceipts(self).encode(data)
         self.send(header, body)
 
     def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
@@ -337,7 +326,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofs(self.cmd_id_offset).encode(data)
+        header, body = GetProofs(self).encode(data)
         self.send(header, body)
 
     def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int) -> None:
@@ -345,15 +334,15 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'code_requests': [ContractCodeRequest(block_hash, key)],
         }
-        header, body = GetContractCodes(self.cmd_id_offset).encode(data)
+        header, body = GetContractCodes(self).encode(data)
         self.send(header, body)
 
 
 class StatusV2(Status):
     _cmd_id = 0
 
-    def __init__(self, id_offset: int) -> None:
-        super().__init__(id_offset)
+    def __init__(self, proto: 'Protocol') -> None:
+        super().__init__(proto)
         self.items_sedes['announceType'] = sedes.big_endian_int
 
 
@@ -373,7 +362,6 @@ class ProofsV2(Command):
 class LESProtocolV2(LESProtocol):
     version = 2
     _commands = [StatusV2, Announce, BlockHeaders, BlockBodies, Receipts, ProofsV2, ContractCodes]
-    handshake_msg_type = StatusV2
     cmd_length = 21
 
     def send_handshake(self, head_info):
@@ -386,7 +374,7 @@ class LESProtocolV2(LESProtocol):
             'headNum': head_info.block_number,
             'genesisHash': head_info.genesis_hash,
         }
-        cmd = StatusV2(self.cmd_id_offset)
+        cmd = StatusV2(self)
         self.logger.debug("Sending LES/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
@@ -400,5 +388,5 @@ class LESProtocolV2(LESProtocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofsV2(self.cmd_id_offset).encode(data)
+        header, body = GetProofsV2(self).encode(data)
         self.send(header, body)

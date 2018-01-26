@@ -26,7 +26,7 @@ from evm.utils.keccak import keccak
 from evm.p2p import eth
 from evm.p2p import protocol
 from evm.p2p.peer import BasePeer, ETHPeer, PeerPool
-from .constants import MAX_STATE_FETCH
+from evm.p2p.eth import MAX_STATE_FETCH
 
 
 class StateDownloader:
@@ -36,6 +36,7 @@ class StateDownloader:
     _report_interval = 10  # Number of seconds between progress reports.
     # TODO: Experiment with different timeout/max_pending values to find the combination that
     # yields the best results.
+    # FIXME: Should use the # of peers times MAX_STATE_FETCH here
     _max_pending = 5 * MAX_STATE_FETCH
     _reply_timeout = 10  # seconds
     # For simplicity/readability we use 0 here to force a report on the first iteration of the
@@ -93,7 +94,7 @@ class StateDownloader:
         now = time.time()
         for node_key in node_keys:
             self._pending_nodes[node_key] = now
-        peer.eth_proto.send_get_node_data(node_keys)
+        peer.sub_proto.send_get_node_data(node_keys)
 
     async def retry_timedout(self):
         timed_out = []
