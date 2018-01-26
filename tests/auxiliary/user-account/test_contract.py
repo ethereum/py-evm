@@ -43,7 +43,10 @@ from eth_utils import (
     int_to_big_endian,
     big_endian_to_int
 )
-from evm.utils.padding import pad32
+from evm.utils.padding import (
+    pad32,
+    zpad_left,
+)
 from evm.utils.address import (
     generate_CREATE2_contract_address,
 )
@@ -56,6 +59,7 @@ from evm.auxiliary.user_account_contract.transaction import (
 from evm.auxiliary.user_account_contract.contract import (
     generate_account_bytecode,
     NONCE_GETTER_ID,
+    ECRECOVER_ADDRESS as ECRECOVER_ADDRESS_INT,
 )
 
 
@@ -96,6 +100,7 @@ HELPER_CONTRACTS = {
 
 
 DESTINATION_ADDRESS = b"\xbb" * 20
+ECRECOVER_ADDRESS = zpad_left(int_to_big_endian(ECRECOVER_ADDRESS_INT), 20)
 
 DEFAULT_BASE_TX_PARAMS = {
     "chain_id": 1,
@@ -103,7 +108,10 @@ DEFAULT_BASE_TX_PARAMS = {
     "to": ACCOUNT_ADDRESS,
     "gas": 500000,
     "gas_price": 0,
-    "access_list": [],
+    "access_list": [
+        [ACCOUNT_ADDRESS, b"\x00" * 32],
+        [ECRECOVER_ADDRESS],
+    ],
     "code": b"",
 }
 
@@ -116,6 +124,9 @@ DEFAULT_TX_PARAMS = merge(
         "max_block": UINT_256_MAX,
         "nonce": 0,
         "msg_data": b"",
+        "access_list": DEFAULT_BASE_TX_PARAMS["access_list"] + [
+            [DESTINATION_ADDRESS],
+        ],
     }
 )
 
@@ -292,15 +303,16 @@ def test_call_checks_signature(vm, v, r, s):
         "value": 0,
         "code": ACCOUNT_CODE,
         "is_create": False,
+        "access_list": transaction.prefix_list,
     }
     message = ShardingMessage(**assoc(message_params, "data", transaction.data))
-    computation = vm.get_computation(message)
+    computation = vm.state.get_computation(message)
     computation = computation.apply_message()
     assert computation.is_error
 
     # error is due to bad signature, so with tx should pass with original one
     message = ShardingMessage(**assoc(message_params, "data", SIGNED_DEFAULT_TRANSACTION.data))
-    computation = vm.get_computation(message)
+    computation = vm.state.get_computation(message)
     computation = computation.apply_message()
     assert computation.is_success
 
@@ -311,6 +323,7 @@ def test_call_uses_remaining_gas(vm):
         "nonce": get_nonce(vm),
         "destination": GAS_LOGGING_CONTRACT_ADDRESS,
         "gas": 1 * 1000 * 1000,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[GAS_LOGGING_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
@@ -337,7 +350,8 @@ def test_call_uses_data(vm, data, hash):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": DATA_LOGGING_CONTRACT_ADDRESS,
-        "msg_data": data
+        "msg_data": data,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[DATA_LOGGING_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
@@ -353,7 +367,8 @@ def test_no_call_if_not_enough_gas(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
-        "gas": 55000
+        "gas": 55000,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[NOOP_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_error
@@ -366,6 +381,7 @@ def test_call_passes_return_code(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[NOOP_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
@@ -374,6 +390,7 @@ def test_call_passes_return_code(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": FAILING_CONTRACT_ADDRESS,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[FAILING_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
@@ -386,6 +403,7 @@ def test_call_does_not_revert_nonce(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": nonce_before,
         "destination": FAILING_CONTRACT_ADDRESS,
+        "access_list": DEFAULT_TX_PARAMS["access_list"] + [[FAILING_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
