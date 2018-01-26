@@ -44,7 +44,7 @@ from .execution_context import (
 )
 
 
-class VM(Configurable):
+class BaseVM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Define a Chain which specifies
