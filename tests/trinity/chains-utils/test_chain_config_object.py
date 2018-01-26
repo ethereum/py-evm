@@ -3,8 +3,8 @@ import pytest
 from eth_keys import keys
 
 from trinity.utils.chains import (
-    get_base_dir,
-    get_data_dir,
+    get_default_data_dir,
+    get_database_dir,
     get_nodekey_path,
     ChainConfig,
 )
@@ -19,20 +19,18 @@ from trinity.utils.filesystem import (
 def test_chain_config_computed_properties():
     chain_config = ChainConfig('muffin')
 
-    assert chain_config.base_dir == get_base_dir('muffin')
-    assert chain_config.data_dir == get_data_dir('muffin')
+    assert chain_config.data_dir == get_default_data_dir('muffin')
+    assert chain_config.database_dir == get_database_dir('muffin')
     assert chain_config.nodekey_path == get_nodekey_path('muffin')
 
 
 def test_chain_config_explicit_properties():
     chain_config = ChainConfig(
         'muffin',
-        base_dir='./base-dir',
         data_dir='./data-dir',
         nodekey_path='./nodekey'
     )
 
-    assert is_same_path(chain_config.base_dir, './base-dir')
     assert is_same_path(chain_config.data_dir, './data-dir')
     assert is_same_path(chain_config.nodekey_path, './nodekey')
 

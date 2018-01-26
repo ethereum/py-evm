@@ -21,18 +21,18 @@ XDG_DATA_HOME = os.environ.get(
 )
 
 
-def get_xdg_trinity_home():
+def get_xdg_trinity_root():
     """
     Returns the base directory under which trinity will store all data.
     """
     return os.environ.get(
-        'TRINITY_HOME',
+        'TRINITY_ROOT',
         os.path.join(XDG_DATA_HOME, 'trinity'),
     )
 
 
-def is_under_xdg_trinity_home(path):
+def is_under_xdg_trinity_root(path):
     return is_under_path(
-        get_xdg_trinity_home(),
+        get_xdg_trinity_root(),
         path,
     )

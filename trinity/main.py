@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import atexit
-import os
 
 from evm.exceptions import CanonicalHeadNotFound
 
@@ -10,7 +9,6 @@ from trinity.chains import (
     is_chain_initialized,
     initialize_chain,
     get_chain_protocol_class,
-    construct_chain_config_params,
 )
 from trinity.constants import (
     ROPSTEN,
@@ -63,16 +61,29 @@ parser.add_argument(
     action='store_true',
 )
 parser.add_argument(
-    '--base-dir',
+    '--trinity-root-dir',
+    help=(
+        "The filesystem path to the base directory that trinity will store it's "
+        "information.  Default: $XDG_DATA_HOME/.local/share/trinity"
+    ),
 )
 parser.add_argument(
     '--data-dir',
+    help=(
+        "The directory where chain data is stored"
+    ),
 )
 parser.add_argument(
     '--nodekey',
+    help=(
+        "Hexadecimal encoded private key to use for the nodekey"
+    )
 )
 parser.add_argument(
     '--nodekey-path',
+    help=(
+        "The filesystem path to the file which contains the nodekey"
+    )
 )
 
 
@@ -85,10 +96,6 @@ def main():
     # the local logger.
     listener.start()
 
-<<<<<<< HEAD
-    db_path = get_data_dir(ROPSTEN)
-    os.makedirs(db_path, exist_ok=True)
-=======
     if args.ropsten:
         chain_identifier = ROPSTEN
     else:
@@ -101,9 +108,7 @@ def main():
         # TODO: actually use args.sync_mode (--sync-mode)
         sync_mode = SYNC_LIGHT
 
-    chain_config_params = construct_chain_config_params(args)
-    chain_config = ChainConfig(chain_identifier, **chain_config_params)
->>>>>>> Chain initialization and CLI args for chain params.
+    chain_config = ChainConfig.from_parser_args(chain_identifier, args)
 
     # For now we just run the light sync against ropsten by default.
     process = ctx.Process(
