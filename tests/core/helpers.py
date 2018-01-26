@@ -24,13 +24,18 @@ def new_sharding_transaction(
         data_vrs,
         code,
         gas=1000000,
-        gas_price=10):
+        gas_price=10,
+        access_list=None):
     """
     Create and return a sharding transaction. Data will be encoded in the following order
 
     [destination, value, msg_data, vrs].
     """
     tx_data = pad32(data_destination) + pad32(bytes([data_value])) + pad32(data_msgdata) + pad32(data_vrs)  # noqa: E501
+    if access_list is None:
+        access_list = [[tx_initiator]]
+        if data_destination:
+            access_list.append([data_destination])
     return ShardingTransaction(
         chain_id=1,
         shard_id=1,
@@ -38,6 +43,6 @@ def new_sharding_transaction(
         data=tx_data,
         gas=gas,
         gas_price=gas_price,
-        access_list=[],
+        access_list=access_list,
         code=decode_hex(code),
     )
