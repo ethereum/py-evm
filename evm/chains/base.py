@@ -45,7 +45,7 @@ from evm.utils.rlp import (
 )
 
 
-class Chain(object):
+class BaseChain(object):
     """
     An Chain is a combination of one or more VM classes.  Each VM is associated
     with a range of blocks.  The Chain class acts as a wrapper around these other

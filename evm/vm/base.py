@@ -41,7 +41,7 @@ from .execution_context import (
 )
 
 
-class VM(object):
+class BaseVM(object):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Defining an Chain  defining
