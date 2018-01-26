@@ -10,6 +10,7 @@ from evm.exceptions import (
     ContractCreationCollision,
 )
 from evm.utils.address import generate_CREATE2_contract_address
+from evm.utils.padding import pad32
 
 from tests.core.fixtures import (  # noqa: F401
     shard_chain_without_block_validation,
@@ -78,7 +79,19 @@ def test_sharding_apply_transaction(shard_chain_without_block_validation):
 
     # Invoke the contract to deploy new contract
     tx_initiator = CREATE2_contract_address
-    invoke_tx = new_sharding_transaction(tx_initiator, b'', 0, b'', b'', b'')
+    newly_deployed_contract_address = generate_CREATE2_contract_address(
+        int_to_big_endian(0),
+        simple_contract_factory_bytecode
+    )
+    invoke_tx = new_sharding_transaction(
+        tx_initiator,
+        b'',
+        0,
+        b'',
+        b'',
+        b'',
+        access_list=[[tx_initiator, pad32(b'')], [newly_deployed_contract_address]]
+    )
 
     computation, _ = vm.apply_transaction(invoke_tx)
     assert not computation.is_error
@@ -97,13 +110,16 @@ def test_sharding_apply_transaction(shard_chain_without_block_validation):
 def test_CREATE2_deploy_contract_edge_cases(shard_chain_without_block_validation):
     # First case: computed contract address not the same as provided in `transaction.to`
     chain = shard_chain_without_block_validation
+    code = b"0xf3"
+    computed_address = generate_CREATE2_contract_address(b"", decode_hex(code))
     first_failed_deploy_tx = new_sharding_transaction(
         tx_initiator=simple_transfer_contract_address,
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
-        code='0xf3',
+        code=code,
+        access_list=[[simple_transfer_contract_address], [computed_address]]
     )
 
     vm = chain.get_vm()
