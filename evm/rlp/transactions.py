@@ -173,8 +173,8 @@ class BaseShardingTransaction(rlp.Serializable):
         ('code', binary),
     ]
 
-    def __init__(self, chain_id, shard_id, to, data, gas, gas_price, access_list, code):
-        super().__init__(chain_id, shard_id, to, data, gas, gas_price, access_list, code)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.prefix_list = to_prefix_list_form(self.access_list)
 
     @property
