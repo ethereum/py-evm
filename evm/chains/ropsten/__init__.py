@@ -3,6 +3,7 @@ from eth_utils import decode_hex
 from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
+    TANGERINE_WHISTLE_ROPSTEN_BLOCK,
 )
 from evm import constants
 
@@ -10,15 +11,14 @@ from evm.chains.chain import Chain
 from evm.rlp.headers import BlockHeader
 from evm.vm.forks import (
     ByzantiumVM,
-    FrontierVM,
     SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 
 ROPSTEN_VM_CONFIGURATION = (
-    # Note: Homestead and Tangerine Whistle are excluded here since VMs disallow duplicate block
-    # numbers and they are all zero for Ropsten.
-    (0, FrontierVM),
+    # Note: Frontier and Homestead are excluded since this chain starts at Tangerine Whistle.
+    (TANGERINE_WHISTLE_ROPSTEN_BLOCK, TangerineWhistleVM),
     (SPURIOUS_DRAGON_ROPSTEN_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_ROPSTEN_BLOCK, ByzantiumVM),
 )
