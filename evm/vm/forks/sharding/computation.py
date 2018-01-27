@@ -6,6 +6,9 @@ from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
 )
+from evm.vm.message import (
+    ShardingMessage,
+)
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -35,7 +38,7 @@ class ShardingComputation(SpuriousDragonComputation):
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with self.vm_state.state_db() as state_db:
+            with self.state_db() as state_db:
                 sender_balance = state_db.get_balance(self.msg.sender)
 
                 if sender_balance < self.msg.value:
@@ -52,9 +55,6 @@ class ShardingComputation(SpuriousDragonComputation):
                 encode_hex(self.msg.sender),
                 encode_hex(self.msg.storage_address),
             )
-
-        with self.vm_state.state_db() as state_db:
-            state_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
             self.vm_state,
@@ -110,9 +110,27 @@ class ShardingComputation(SpuriousDragonComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.vm_state.state_db() as state_db:
+                    with self.state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
                     self.vm_state.commit(snapshot)
             else:
                 self.vm_state.commit(snapshot)
             return computation
+
+    def prepare_child_message(self, gas, to, value, data, code, **kwargs):
+        kwargs.setdefault('sender', self.msg.storage_address)
+
+        child_message = ShardingMessage(
+            gas=gas,
+            gas_price=self.msg.gas_price,
+            origin=self.msg.origin,
+            sig_hash=self.msg.sig_hash,
+            to=to,
+            value=value,
+            data=data,
+            code=code,
+            depth=self.msg.depth + 1,
+            access_list=self.msg.access_list,
+            **kwargs
+        )
+        return child_message
