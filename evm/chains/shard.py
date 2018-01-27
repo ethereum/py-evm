@@ -3,5 +3,5 @@ from .base import (
 )
 
 
-class Chain(BaseChain):
+class Shard(BaseChain):
     pass
