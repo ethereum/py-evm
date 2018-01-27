@@ -7,12 +7,6 @@ from evm.db.batch import (
 )
 
 
-def test_set_and_get_permanence():
-    with BatchDB(MemoryDB) as batch_db:
-        batch_db.set(b'1', b'test')
-    assert batch_db.get(b'1') == b'test'
-
-
 def test_rollback_internal_error():
     with pytest.raises(KeyError):
         with BatchDB(MemoryDB) as batch_db:
