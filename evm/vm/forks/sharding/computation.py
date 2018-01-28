@@ -5,6 +5,7 @@ from evm.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
+    GasPriceAlreadySet,
 )
 from evm.vm.message import (
     ShardingMessage,
@@ -28,8 +29,23 @@ from .opcodes import SHARDING_OPCODES
 
 
 class ShardingComputation(SpuriousDragonComputation):
+    _paygas_gasprice = None
+
     # Override
     opcodes = SHARDING_OPCODES
+
+    def get_PAYGAS_gas_price(self):
+        return self._paygas_gasprice
+
+    def set_PAYGAS_gasprice(self, gas_price):
+        validate_uint256(gas_price, title="PAYGAY.gas_price")
+        
+        if self._paygas_gasprice is None:
+            self._paygas_gasprice = gas_price
+        else:
+            raise GasPriceAlreadySet(
+                "PAYGAS is already triggered once with gas price: {}".format(self._paygas_gasprice)
+            )
 
     def apply_message(self):
         snapshot = self.vm_state.snapshot()
