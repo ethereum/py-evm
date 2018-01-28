@@ -40,6 +40,10 @@ class NextLogUnavailable(Exception):
     pass
 
 
+class ShardNotTracked(Exception):
+    pass
+
+
 @to_dict
 def parse_collation_added_data(data_hex):
     data_bytes = decode_hex(data_hex)
@@ -65,10 +69,9 @@ def parse_collation_added_data(data_hex):
     yield 'score', score
 
 
-class VMC(Contract):
-
-    logger = logging.getLogger("evm.chain.sharding.VMC")
-
+class ShardTracker:
+    '''Track logs `CollationAdded` in mainchain
+    '''
     # For handling logs filtering
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
@@ -76,40 +79,22 @@ class VMC(Contract):
         "CollationAdded(int128,bytes4096,bool,int128)"
     )
 
-    def __init__(self, *args, default_privkey, **kwargs):
-        self.default_privkey = default_privkey
-        self.default_sender_address = default_privkey.public_key.to_canonical_address()
-        self.config = get_sharding_config()
+    def __init__(self, shard_id, log_handler, vmc_address):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
         #       to make one log_handler shared over all shards.
-        self.log_handlers = {}
-        # shard_id -> list
+        self.shard_id = shard_id
+        self.log_handler = log_handler
+        self.vmc_address = vmc_address
         # older <---------------> newer
-        self.new_logs = {}
-        # shard_id -> list
-        self.unchecked_logs = {}
-        # shard_id -> score
-        self.current_score = {}
-
-        super().__init__(*args, **kwargs)
-
-    def init_log_variables(self, shard_id):
-        self.new_logs[shard_id] = []
-        # shard_id -> list
-        self.unchecked_logs[shard_id] = []
-        # shard_id -> score
-        self.current_score[shard_id] = None
-
-    def setup_log_handler(self, log_handler, shard_id):
-        self.log_handlers[shard_id] = log_handler
-        self.init_log_variables(shard_id)
+        self.new_logs = []
+        self.unchecked_logs = []
+        self.current_score = None
 
     @to_tuple
-    def _get_new_logs(self, shard_id):
-        shard_id_topic_hex = encode_hex(shard_id.to_bytes(32, byteorder='big'))
-        log_handler = self.log_handlers[shard_id]
-        new_logs = log_handler.get_new_logs(
-            address=self.address,
+    def _get_new_logs(self):
+        shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
+        new_logs = self.log_handler.get_new_logs(
+            address=self.vmc_address,
             topics=[
                 encode_hex(self.COLLATION_ADDED_TOPIC),
                 shard_id_topic_hex,
@@ -118,43 +103,78 @@ class VMC(Contract):
         for log in new_logs:
             yield parse_collation_added_data(log['data'])
 
-    def get_next_log(self, shard_id):
-        new_logs = self._get_new_logs(shard_id)
-        self.new_logs[shard_id].extend(new_logs)
-        if len(self.new_logs[shard_id]) == 0:
+    def get_next_log(self):
+        new_logs = self._get_new_logs()
+        self.new_logs.extend(new_logs)
+        if len(self.new_logs) == 0:
             raise NextLogUnavailable("No more next logs")
-        return self.new_logs[shard_id].pop()
+        return self.new_logs.pop()
 
     # TODO: this method may return wrong result when new logs arrive before the logs inside
     #       `self.new_logs` are consumed entirely. This issue can be resolved by saving the
     #       status of `new_logs`, `unchecked_logs`, and `current_score`, when it start to run
     #       `GUESS_HEAD`. If there is a new block arriving, just restore them to the saved status,
     #       append new logs to `new_logs`, and re-run `GUESS_HEAD`
-    def fetch_candidate_head(self, shard_id):
+    def fetch_candidate_head(self):
         # Try to return a log that has the score that we are checking for,
         # checking in order of oldest to most recent.
         unchecked_logs = pipe(
-            self.unchecked_logs[shard_id],
+            self.unchecked_logs,
             enumerate,
             tuple,
             reversed,
             tuple,
         )
-        current_score = self.current_score[shard_id]
+        current_score = self.current_score
 
         for idx, logs_entry in unchecked_logs:
             if logs_entry['score'] == current_score:
-                return self.unchecked_logs[shard_id].pop(idx)
+                return self.unchecked_logs.pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
         while True:
             # TODO: currently just raise when there is no log anymore
-            self.unchecked_logs[shard_id].append(self.get_next_log(shard_id))
-            if self.unchecked_logs[shard_id][-1]['is_new_head'] is True:
+            self.unchecked_logs.append(self.get_next_log())
+            if self.unchecked_logs[-1]['is_new_head'] is True:
                 break
-        log = self.unchecked_logs[shard_id].pop()
-        self.current_score[shard_id] = log['score']
+        log = self.unchecked_logs.pop()
+        self.current_score = log['score']
         return log
+
+
+class VMC(Contract):
+
+    logger = logging.getLogger("evm.chain.sharding.VMC")
+
+    def __init__(self, *args, default_privkey, **kwargs):
+        self.default_privkey = default_privkey
+        self.default_sender_address = default_privkey.public_key.to_canonical_address()
+        self.config = get_sharding_config()
+        self.shard_trackers = {}
+
+        super().__init__(*args, **kwargs)
+
+    def set_shard_tracker(self, shard_id, shard_tracker):
+        self.shard_trackers[shard_id] = shard_tracker
+
+    def get_shard_tracker(self, shard_id):
+        if shard_id not in self.shard_trackers:
+            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
+        return self.shard_trackers[shard_id]
+
+    # TODO: currently just calls `shard_tracker.get_next_log`
+    def get_next_log(self, shard_id):
+        if shard_id not in self.shard_trackers:
+            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
+        shard_tracker = self.shard_trackers[shard_id]
+        return shard_tracker.get_next_log()
+
+    # TODO: currently just calls `shard_tracker.fetch_candidate_head`
+    def fetch_candidate_head(self, shard_id):
+        if shard_id not in self.shard_trackers:
+            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
+        shard_tracker = self.shard_trackers[shard_id]
+        return shard_tracker.fetch_candidate_head()
 
     @to_dict
     def mk_build_transaction_detail(self,
