@@ -117,7 +117,7 @@ class ShardingComputation(SpuriousDragonComputation):
                 self.vm_state.commit(snapshot)
             return computation
 
-    def prepare_child_message(self, gas, to, value, data, code, **kwargs):
+    def prepare_child_message(self, gas, to, value, data, code, transaction_gas_limit, **kwargs):
         kwargs.setdefault('sender', self.msg.storage_address)
 
         child_message = ShardingMessage(
@@ -129,6 +129,7 @@ class ShardingComputation(SpuriousDragonComputation):
             value=value,
             data=data,
             code=code,
+            transaction_gas_limit=transaction_gas_limit,
             depth=self.msg.depth + 1,
             access_list=self.msg.access_list,
             **kwargs
