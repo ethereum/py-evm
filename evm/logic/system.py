@@ -4,6 +4,7 @@ from evm.exceptions import (
     Halt,
     Revert,
     WriteProtection,
+    GasPriceAlreadySet,
 )
 
 from evm.opcode import (
@@ -241,4 +242,34 @@ class Create2(CreateEIP150):
 
 
 def paygas(computation):
-    raise NotImplementedError("PAYGAS opcode is not yet implemented")
+    gas_price = computation.stack.pop(type_hint=constants.UINT256)
+
+    # Only valid if (1) triggered in a top level call and
+    # (2) not been set already during this transaction execution
+    if computation.msg.depth == 0:
+        try:
+            computation.set_PAYGAS_gas_price(gas_price)
+        except GasPriceAlreadySet:
+            computation.stack.push(0)
+        else:
+            with computation.state_db(read_only=False) as state_db:
+                tx_initiator = computation.msg.to
+                tx_initiator_balance = state_db.get_balance(tx_initiator)
+
+                PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
+                if PAYGAS_gasprice is None:
+                    PAYGAS_gasprice = 0
+                fee_to_be_charged = PAYGAS_gasprice * computation.msg.transaction_gas_limit
+
+                if tx_initiator_balance < fee_to_be_charged:
+                    raise InsufficientFunds(
+                        "Insufficient funds: {0} < {1}".format(
+                            tx_initiator_balance,
+                            fee_to_be_charged
+                        )
+                    )
+
+                state_db.delta_balance(tx_initiator, -1 * fee_to_be_charged)
+            computation.stack.push(1)
+    else:
+        computation.stack.push(0)
