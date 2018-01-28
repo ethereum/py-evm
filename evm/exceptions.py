@@ -157,3 +157,10 @@ class UnannouncedStateAccess(VMError):
     been specified in the transaction's read or write list, respectively.
     """
     pass
+
+
+class GasPriceAlreadySet(Exception):
+    """
+    Error raised if trying to reset the already set gas price.
+    """
+    pass
