@@ -50,6 +50,7 @@ from evm.vm.forks.sharding.vmc_utils import (
 )
 from evm.vm.forks.sharding.vmc_handler import (
     NextLogUnavailable,
+    ShardTracker,
     parse_collation_added_data,
 )
 
@@ -339,14 +340,14 @@ def mk_testing_colhdr(vmc_handler,
         ),
     )
 )
-def test_vmc_fetch_candidate_head(vmc,
-                                  mock_score,
-                                  mock_is_new_head,
-                                  expected_score,
-                                  expected_is_new_head):
+def test_shard_tracker_fetch_candidate_head(vmc,
+                                            mock_score,
+                                            mock_is_new_head,
+                                            expected_score,
+                                            expected_is_new_head):
     shard_id = 0
     log_handler = LogHandler(vmc.web3)
-    vmc.setup_log_handler(log_handler, shard_id)
+    shard_tracker = ShardTracker(shard_id, log_handler, vmc.address)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -355,13 +356,13 @@ def test_vmc_fetch_candidate_head(vmc,
         } for i in range(len(mock_score))
     ]
     # mock collation_added_logs
-    vmc.new_logs[shard_id] = mock_collation_added_logs
+    shard_tracker.new_logs = mock_collation_added_logs
     for i in range(len(mock_score)):
-        log = vmc.fetch_candidate_head(shard_id)
+        log = shard_tracker.fetch_candidate_head()
         assert log['score'] == expected_score[i]
         assert log['is_new_head'] == expected_is_new_head[i]
     with pytest.raises(NextLogUnavailable):
-        log = vmc.fetch_candidate_head(shard_id)
+        log = shard_tracker.fetch_candidate_head()
 
 
 def test_vmc_contract_calls(vmc):  # noqa: F811
@@ -372,7 +373,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     default_gas = vmc.config['DEFAULT_GAS']
 
     log_handler = LogHandler(vmc.web3)
-    vmc.setup_log_handler(log_handler, shard_id)
+    shard_tracker = ShardTracker(shard_id, log_handler, vmc.address)
+    vmc.set_shard_tracker(shard_id, shard_tracker)
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
         nonce=0,
@@ -504,7 +506,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.get_next_log(shard_id)
 
     # filter logs in multiple shards
-    vmc.setup_log_handler(LogHandler(vmc.web3), 1)
+    vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
     header1_1 = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
     vmc.add_header(header1_1)
     mine(vmc, 1)
@@ -518,7 +520,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         "fromBlock": 0,
         "toBlock": vmc.web3.eth.blockNumber,
         "topics": [
-            encode_hex(vmc.COLLATION_ADDED_TOPIC),
+            encode_hex(ShardTracker.COLLATION_ADDED_TOPIC),
         ]
     })
     assert len(logs) == 4
