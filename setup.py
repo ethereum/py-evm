@@ -27,7 +27,7 @@ setup(
         "eth-keys>=0.2.0b3,<1.0.0",
         "trie>=1.3.0,<2.0.0",
         "eth-tester==0.1.0b14",
-        "web3>=4.0.0b5",
+        "web3>=4.0.0b6",
     ],
     extras_require={
         'coincurve': [
@@ -63,4 +63,3 @@ setup(
         'console_scripts': ['trinity=trinity:main'],
     },
 )
-
