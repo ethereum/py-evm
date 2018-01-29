@@ -191,8 +191,23 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root
 
-    computation = computation_getter(fixture, code, vm)
-
+    message = Message(
+        to=fixture['exec']['address'],
+        sender=fixture['exec']['caller'],
+        value=fixture['exec']['value'],
+        data=fixture['exec']['data'],
+        code=code,
+        gas=fixture['exec']['gas'],
+    )
+    transaction_context = BaseTransactionContext(
+        origin=fixture['exec']['origin'],
+        gas_price=fixture['exec']['gasPrice'],
+    )
+    computation = vm.state.get_computation(message, transaction_context).apply_computation(
+        vm.state,
+        message,
+        transaction_context,
+    )
     # Update state_root manually
     vm.block.header.state_root = computation.vm_state.state_root
 
