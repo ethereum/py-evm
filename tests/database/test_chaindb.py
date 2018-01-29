@@ -6,6 +6,7 @@ from hypothesis import (
 )
 
 import rlp
+import trie
 
 from eth_utils import (
     keccak,
@@ -147,7 +148,10 @@ def test_lookup_block_hash(chaindb, block):
     assert block_hash == block.hash
 
 
-@pytest.mark.xfail(reason="#289 (switch to binary trie not complete yet)", strict=True)
+@pytest.mark.xfail(
+    reason="#289 (switch to binary trie not complete yet)",
+    raises=trie.exceptions.InvalidNode
+)
 def test_get_witness_nodes(populated_chaindb_and_root_hash):
     chaindb, root_hash = populated_chaindb_and_root_hash
     header = CollationHeader(
