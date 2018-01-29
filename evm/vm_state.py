@@ -31,6 +31,7 @@ class BaseVMState(Configurable):
     block_class = None
     computation_class = None
     trie_class = None
+    transaction_context_class = None
     access_logs = None
 
     def __init__(self, chaindb, execution_context, state_root, receipts=[]):
@@ -168,14 +169,27 @@ class BaseVMState(Configurable):
     #
     # Computation
     #
-    def get_computation(self, message):
-        """Return state object
+    def get_computation(self, message, transaction_context):
+        """
+        Return state object
         """
         if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this VMState")
         else:
-            computation = self.computation_class(self, message)
+            computation = self.computation_class(self, message, transaction_context)
         return computation
+
+    #
+    # Transaction context
+    #
+    @classmethod
+    def get_transaction_context_class(cls):
+        """
+
+        """
+        if cls.transaction_context_class is None:
+            raise AttributeError("No `transaction_context_class` has been set for this VMState")
+        return cls.transaction_context_class
 
     #
     # Execution

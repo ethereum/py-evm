@@ -38,6 +38,7 @@ from evm.utils.keccak import (
 from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
+from .transaction_context import FrontierTransactionContext
 from .validation import validate_frontier_transaction
 
 
@@ -102,6 +103,7 @@ def _execute_frontier_transaction(vm_state, transaction):
         code=code,
         create_address=contract_address,
     )
+    transaction_context = FrontierTransactionContext(gas_price=transaction.gas_price)
 
     #
     # 2) Apply the message to the VM.
@@ -210,6 +212,7 @@ class FrontierVMState(BaseVMState):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     trie_class = HexaryTrie
+    transaction_context_class = FrontierTransactionContext
 
     def execute_transaction(self, transaction):
         computation = _execute_frontier_transaction(self, transaction)
