@@ -103,7 +103,7 @@ def _execute_frontier_transaction(vm_state, transaction):
         code=code,
         create_address=contract_address,
     )
-    transaction_context = FrontierTransactionContext(gas_price=transaction.gas_price)
+    transaction_context = vm_state.get_transaction_context_class()(gas_price=transaction.gas_price)
 
     #
     # 2) Apply the message to the VM.
@@ -115,7 +115,7 @@ def _execute_frontier_transaction(vm_state, transaction):
         if is_collision:
             # The address of the newly created contract has *somehow* collided
             # with an existing contract address.
-            computation = vm_state.get_computation(message)
+            computation = vm_state.get_computation(message, transaction_context)
             computation._error = ContractCreationCollision(
                 "Address collision while creating contract: {0}".format(
                     encode_hex(contract_address),
@@ -126,9 +126,12 @@ def _execute_frontier_transaction(vm_state, transaction):
                 encode_hex(contract_address),
             )
         else:
-            computation = vm_state.get_computation(message).apply_create_message()
+            computation = vm_state.get_computation(
+                message,
+                transaction_context,
+            ).apply_create_message()
     else:
-        computation = vm_state.get_computation(message).apply_message()
+        computation = vm_state.get_computation(message, transaction_context).apply_message()
 
     #
     # 2) Post Computation
