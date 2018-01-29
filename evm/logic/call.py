@@ -340,5 +340,5 @@ class CallSharding(CallByzantium):
             account_is_empty = state_db.account_is_empty(to)
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
-        create_gas_fee = constants.GAS_NEWACCOUNT if not account_is_empty else 0
+        create_gas_fee = constants.GAS_NEWACCOUNT if account_is_empty else 0
         return transfer_gas_fee + create_gas_fee
