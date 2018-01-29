@@ -159,6 +159,7 @@ class CollationHeader(rlp.Serializable):
         ("coinbase", address),
         ("state_root", hash32),
         ("receipt_root", hash32),
+        ("number", big_endian_int),
         ("sig", binary)
     ]
 
@@ -167,6 +168,7 @@ class CollationHeader(rlp.Serializable):
                  expected_period_number,
                  period_start_prevhash,
                  parent_hash,
+                 number,
                  transaction_root=BLANK_ROOT_HASH,
                  coinbase=ZERO_ADDRESS,
                  state_root=BLANK_ROOT_HASH,
@@ -181,6 +183,7 @@ class CollationHeader(rlp.Serializable):
             coinbase=coinbase,
             state_root=state_root,
             receipt_root=receipt_root,
+            number=number,
             sig=sig
         )
 
@@ -212,6 +215,7 @@ class CollationHeader(rlp.Serializable):
             "period_start_prevhash": period_start_prevhash,
             "parent_hash": parent.hash,
             "state_root": parent.state_root,
+            "number": parent.number + 1,
             "sig": sig
         }
         header = cls(**header_kwargs)
