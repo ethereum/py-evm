@@ -155,6 +155,7 @@ def test_get_witness_nodes(populated_chaindb_and_root_hash):
         expected_period_number=0,
         period_start_prevhash=ZERO_HASH32,
         parent_hash=ZERO_HASH32,
+        number=0,
         state_root=root_hash
     )
 
