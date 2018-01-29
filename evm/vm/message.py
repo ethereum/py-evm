@@ -19,13 +19,11 @@ class Message(object):
     """
     A message for VM computation.
     """
-    origin = None
     to = None
     sender = None
     value = None
     data = None
     gas = None
-    gas_price = None
     access_list = None
 
     depth = None
@@ -42,13 +40,11 @@ class Message(object):
 
     def __init__(self,
                  gas,
-                 gas_price,
                  to,
                  sender,
                  value,
                  data,
                  code,
-                 origin=None,
                  access_list=None,
                  depth=0,
                  create_address=None,
@@ -57,9 +53,6 @@ class Message(object):
                  is_static=False):
         validate_uint256(gas, title="Message.gas")
         self.gas = gas
-
-        validate_uint256(gas_price, title="Message.gas_price")
-        self.gas_price = gas_price
 
         if to != CREATE_CONTRACT_ADDRESS:
             validate_canonical_address(to, title="Message.to")
@@ -73,10 +66,6 @@ class Message(object):
 
         validate_is_bytes(data, title="Message.data")
         self.data = data
-
-        if origin is not None:
-            validate_canonical_address(origin, title="Message.origin")
-        self.origin = origin
 
         validate_is_integer(depth, title="Message.depth")
         validate_gte(depth, minimum=0, title="Message.depth")
@@ -98,21 +87,6 @@ class Message(object):
 
         validate_is_boolean(is_static, title="Message.is_static")
         self.is_static = is_static
-
-    @property
-    def is_origin(self):
-        return self.sender == self.origin
-
-    @property
-    def origin(self):
-        if self._origin is not None:
-            return self._origin
-        else:
-            return self.sender
-
-    @origin.setter
-    def origin(self, value):
-        self._origin = value
 
     @property
     def code_address(self):

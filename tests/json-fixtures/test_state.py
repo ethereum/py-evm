@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+import traceback
+
 from eth_keys import keys
 
 from evm.db import (
@@ -43,11 +45,16 @@ from evm.utils.fixture_tests import (
     should_run_slow_tests,
 )
 
+from tests.conftest import vm_logger
+
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'GeneralStateTests')
+
+
+LOGGER = vm_logger()
 
 
 @to_tuple
@@ -295,6 +302,8 @@ def test_state_fixtures(fixture, fixture_vm_class):
         computation, _ = vm.apply_transaction(transaction)
     except ValidationError as err:
         transaction_error = err
+        LOGGER.warn("Got transaction error:")
+        LOGGER.warn(traceback.format_exc())
     else:
         transaction_error = False
 

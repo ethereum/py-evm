@@ -59,6 +59,7 @@ class BaseComputation(Configurable):
     """
     vm_state = None
     msg = None
+    transaction_context = None
 
     memory = None
     stack = None
@@ -81,9 +82,10 @@ class BaseComputation(Configurable):
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
-    def __init__(self, vm_state, message):
+    def __init__(self, vm_state, message, transaction_context):
         self.vm_state = vm_state
         self.msg = message
+        self.transaction_context = transaction_context
 
         self.memory = Memory()
         self.stack = Stack()
@@ -104,7 +106,7 @@ class BaseComputation(Configurable):
         """
         Is this computation the computation initiated by a transaction.
         """
-        return self.msg.is_origin
+        return self.msg.sender == self.transaction_context.origin
 
     @property
     def is_success(self):
@@ -136,8 +138,6 @@ class BaseComputation(Configurable):
 
         child_message = Message(
             gas=gas,
-            gas_price=self.msg.gas_price,
-            origin=self.msg.origin,
             to=to,
             value=value,
             data=data,
@@ -205,21 +205,24 @@ class BaseComputation(Configurable):
         child_computation = self.generate_child_computation(
             self.vm_state,
             child_msg,
+            self.transaction_context,
         )
         self.add_child_computation(child_computation)
         return child_computation
 
     @classmethod
-    def generate_child_computation(cls, vm_state, child_msg):
+    def generate_child_computation(cls, vm_state, child_msg, transaction_context):
         if child_msg.is_create:
             child_computation = cls(
                 vm_state,
                 child_msg,
+                transaction_context,
             ).apply_create_message()
         else:
             child_computation = cls(
                 vm_state,
                 child_msg,
+                transaction_context,
             ).apply_message()
         return child_computation
 
@@ -379,11 +382,11 @@ class BaseComputation(Configurable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
-    def apply_computation(cls, vm_state, message):
+    def apply_computation(cls, vm_state, message, transaction_context):
         """
         Perform the computation that would be triggered by the VM message.
         """
-        with cls(vm_state, message) as computation:
+        with cls(vm_state, message, transaction_context) as computation:
             # Early exit on pre-compiles
             if message.code_address in computation.precompiles:
                 computation.precompiles[message.code_address](computation)

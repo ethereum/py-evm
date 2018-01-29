@@ -38,6 +38,7 @@ from evm.utils.keccak import (
 from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
+from .transaction_context import FrontierTransactionContext
 from .validation import validate_frontier_transaction
 
 
@@ -94,13 +95,16 @@ def _execute_frontier_transaction(vm_state, transaction):
 
     message = Message(
         gas=message_gas,
-        gas_price=transaction.gas_price,
         to=transaction.to,
         sender=transaction.sender,
         value=transaction.value,
         data=data,
         code=code,
         create_address=contract_address,
+    )
+    transaction_context = vm_state.get_transaction_context_class()(
+        gas_price=transaction.gas_price,
+        origin=transaction.sender,
     )
 
     #
@@ -113,7 +117,7 @@ def _execute_frontier_transaction(vm_state, transaction):
         if is_collision:
             # The address of the newly created contract has *somehow* collided
             # with an existing contract address.
-            computation = vm_state.get_computation(message)
+            computation = vm_state.get_computation(message, transaction_context)
             computation._error = ContractCreationCollision(
                 "Address collision while creating contract: {0}".format(
                     encode_hex(contract_address),
@@ -124,9 +128,12 @@ def _execute_frontier_transaction(vm_state, transaction):
                 encode_hex(contract_address),
             )
         else:
-            computation = vm_state.get_computation(message).apply_create_message()
+            computation = vm_state.get_computation(
+                message,
+                transaction_context,
+            ).apply_create_message()
     else:
-        computation = vm_state.get_computation(message).apply_message()
+        computation = vm_state.get_computation(message, transaction_context).apply_message()
 
     #
     # 2) Post Computation
@@ -210,6 +217,7 @@ class FrontierVMState(BaseVMState):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     trie_class = HexaryTrie
+    transaction_context_class = FrontierTransactionContext
 
     def execute_transaction(self, transaction):
         computation = _execute_frontier_transaction(self, transaction)
