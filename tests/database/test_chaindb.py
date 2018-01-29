@@ -14,6 +14,11 @@ from eth_utils import (
 from evm.utils.numeric import (
     big_endian_to_int,
 )
+from evm.utils.state_access_restriction import (
+    get_nonce_key,
+    get_balance_key,
+    get_storage_key,
+)
 from evm.constants import (
     BLANK_ROOT_HASH,
     ZERO_HASH32,
@@ -26,8 +31,8 @@ from evm.db.chain import (
     ChainDB,
 )
 from evm.db.state import (
-    FlatTrieBackend,
-    NestedTrieBackend,
+    MainAccountStateDB,
+    ShardingAccountStateDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -56,9 +61,9 @@ A_ADDRESS = b"\xaa" * 20
 B_ADDRESS = b"\xbb" * 20
 
 
-@pytest.fixture(params=[NestedTrieBackend, FlatTrieBackend])
+@pytest.fixture(params=[MainAccountStateDB, ShardingAccountStateDB])
 def chaindb(request):
-    return ChainDB(get_db_backend(), state_backend_class=request.param)
+    return ChainDB(get_db_backend(), account_state_class=request.param)
 
 
 @pytest.fixture
@@ -164,15 +169,15 @@ def test_get_witness_nodes(populated_chaindb_and_root_hash):
     )
 
     prefixes = [
-        FlatTrieBackend.nonce_key(A_ADDRESS),
-        FlatTrieBackend.nonce_key(B_ADDRESS),
-        FlatTrieBackend.balance_key(A_ADDRESS),
-        FlatTrieBackend.balance_key(B_ADDRESS),
-        FlatTrieBackend.storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
-        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key1")),
-        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key2")),
-        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"key")),
-        FlatTrieBackend.storage_key(B_ADDRESS, big_endian_to_int(b"")),
+        get_nonce_key(A_ADDRESS),
+        get_nonce_key(B_ADDRESS),
+        get_balance_key(A_ADDRESS),
+        get_balance_key(B_ADDRESS),
+        get_storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key1")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key2")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"")),
     ]
 
     witness_nodes = chaindb.get_witness_nodes(header, prefixes)
