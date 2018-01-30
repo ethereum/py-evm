@@ -6,6 +6,7 @@ from evm.exceptions import (
     InsufficientFunds,
     StackDepthLimit,
     GasPriceAlreadySet,
+    NotTopLevelCall,
 )
 from evm.vm.message import (
     ShardingMessage,
@@ -39,6 +40,8 @@ class ShardingComputation(SpuriousDragonComputation):
 
     def set_PAYGAS_gasprice(self, gas_price):
         validate_uint256(gas_price, title="PAYGAY.gas_price")
+        if self.msg.depth != 0:
+            raise NotTopLevelCall("This should only happen in a top level call context.")
         
         if self._paygas_gasprice is None:
             self._paygas_gasprice = gas_price
