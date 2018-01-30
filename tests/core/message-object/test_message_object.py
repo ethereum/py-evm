@@ -23,7 +23,6 @@ ADDRESS_C = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x
 
 
 def _create_message(gas=1,
-                    gas_price=1,
                     to=ADDRESS_A,
                     sender=ADDRESS_B,
                     value=0,
@@ -32,7 +31,6 @@ def _create_message(gas=1,
                     **kwargs):
     return Message(
         gas=gas,
-        gas_price=gas_price,
         to=to,
         sender=sender,
         value=value,
@@ -50,10 +48,6 @@ def _create_message(gas=1,
         ({'gas': -1}, False),
         ({'gas': 1.0}, False),
         ({'gas': '1'}, False),
-        ({'gas_price': True}, False),
-        ({'gas_price': -1}, False),
-        ({'gas_price': 1.0}, False),
-        ({'gas_price': '1'}, False),
         ({'value': True}, False),
         ({'value': -1}, False),
         ({'value': 1.0}, False),
@@ -72,14 +66,6 @@ def test_parameter_validation(init_kwargs, is_valid):
     else:
         with pytest.raises(ValidationError):
             _create_message(**init_kwargs)
-
-
-def test_is_origin_property():
-    origin_message = _create_message(sender=ADDRESS_A, origin=ADDRESS_A)
-    assert origin_message.is_origin is True
-
-    not_origin_message = _create_message(sender=ADDRESS_B, origin=ADDRESS_A)
-    assert not_origin_message.is_origin is False
 
 
 def test_code_address_defaults_to_to_address():

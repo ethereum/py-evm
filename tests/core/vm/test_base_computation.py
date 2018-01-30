@@ -1,5 +1,8 @@
 import pytest
 
+from evm.transaction_context import (
+    BaseTransactionContext,
+)
 from evm.exceptions import (
     VMError,
     Revert,
@@ -26,30 +29,39 @@ CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bd
 
 
 @pytest.fixture
+def transaction_context():
+    tx_context = BaseTransactionContext(
+        gas_price=1,
+        origin=CANONICAL_ADDRESS_B,
+    )
+    return tx_context
+
+
+@pytest.fixture
 def message():
     message = Message(
-        origin=CANONICAL_ADDRESS_B,
         to=CANONICAL_ADDRESS_A,
         sender=CANONICAL_ADDRESS_B,
         value=100,
         data=b'',
         code=b'',
         gas=100,
-        gas_price=1,
     )
     return message
 
 
 @pytest.fixture
-def computation(message):
+def computation(message, transaction_context):
     computation = BaseComputation(
         vm_state=None,
         message=message,
+        transaction_context=transaction_context,
     )
     return computation
 
 
-def test_prepare_child_message(computation):
+@pytest.fixture
+def child_message(computation):
     child_message = computation.prepare_child_message(
         gas=100,
         to=CANONICAL_ADDRESS_B,
@@ -57,10 +69,31 @@ def test_prepare_child_message(computation):
         data=b'',
         code=b''
     )
+    return child_message
+
+
+def test_is_origin_computation(computation, transaction_context):
+    assert computation.is_origin_computation
+    message2 = Message(
+        to=CANONICAL_ADDRESS_A,
+        # Different sender than the tx context origin
+        sender=CANONICAL_ADDRESS_A,
+        value=100,
+        data=b'',
+        code=b'',
+        gas=100,
+    )
+    computation2 = BaseComputation(
+        vm_state=None,
+        message=message2,
+        transaction_context=transaction_context,
+    )
+    assert not computation2.is_origin_computation
+
+
+def test_prepare_child_message(computation, child_message):
     assert computation.msg.depth == 0
     assert child_message.depth == 1
-    assert computation.msg.origin == child_message.origin
-    assert computation.msg.gas_price == child_message.gas_price
     assert computation.msg.storage_address == child_message.sender
 
 

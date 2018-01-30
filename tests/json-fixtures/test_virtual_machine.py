@@ -17,6 +17,9 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.transaction_context import (
+    BaseTransactionContext,
+)
 from evm.vm.forks import (
     HomesteadVM,
 )
@@ -150,18 +153,21 @@ def test_vm_fixtures(fixture, vm_class):
     vm.block.header.state_root = vm_state.state_root
 
     message = Message(
-        origin=fixture['exec']['origin'],
         to=fixture['exec']['address'],
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
         code=code,
         gas=fixture['exec']['gas'],
+    )
+    transaction_context = BaseTransactionContext(
+        origin=fixture['exec']['origin'],
         gas_price=fixture['exec']['gasPrice'],
     )
-    computation = vm.state.get_computation(message).apply_computation(
+    computation = vm.state.get_computation(message, transaction_context).apply_computation(
         vm.state,
         message,
+        transaction_context,
     )
     # Update state_root manually
     vm.block.header.state_root = computation.vm_state.state_root
