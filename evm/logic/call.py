@@ -96,6 +96,7 @@ class BaseCall(Opcode):
                 'to': to,
                 'data': call_data,
                 'code': code,
+                'transaction_gas_limit': computation.msg.transaction_gas_limit,
                 'code_address': code_address,
                 'should_transfer_value': should_transfer_value,
                 'is_static': is_static,
