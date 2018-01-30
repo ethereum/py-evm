@@ -7,6 +7,7 @@ from typing import (  # noqa: F401
     Dict,
     List,
     Optional,
+    Set,
     Tuple,
     Type,
 )
@@ -33,7 +34,6 @@ from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
-    HandshakeFailure,
     LESAnnouncementProcessingError,
     PeerFinished,
     StopRequested,
@@ -45,25 +45,30 @@ from evm.p2p.peer import (
     BasePeer,
     LESPeer,
     PeerPool,
+    PeerPoolSubscriber,
 )
 
 
-class LightChain(Chain):
+class LightChain(Chain, PeerPoolSubscriber):
     logger = logging.getLogger("evm.p2p.lightchain.LightChain")
-    privkey = None  # type: datatypes.PrivateKey
     max_consecutive_timeouts = 5
-    peer_pool_class = PeerPool
 
-    def __init__(self, chaindb: BaseChainDB) -> None:
+    def __init__(self, chaindb: BaseChainDB, peer_pool: PeerPool) -> None:
         super(LightChain, self).__init__(chaindb)
-        self.peer_pool = self.peer_pool_class(
-            LESPeer, chaindb, self.network_id, self.privkey, self.new_peer_callback)
+        self.peer_pool = peer_pool
+        self.peer_pool.subscribe(self)
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
+        self._running_peers = set()  # type: Set[LESPeer]
 
-    def new_peer_callback(self, peer: BasePeer) -> None:
+    @classmethod
+    def from_genesis_header(cls, chaindb, genesis_header, peer_pool):
+        chaindb.persist_header_to_db(genesis_header)
+        return cls(chaindb, peer_pool)
+
+    def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))
 
     async def handle_peer(self, peer: LESPeer) -> None:
@@ -71,13 +76,11 @@ class LightChain(Chain):
 
         Returns when the peer is finished or when the LightChain is asked to stop.
         """
+        self._running_peers.add(peer)
         try:
-            await peer.do_sub_proto_handshake()
-        except HandshakeFailure as e:
-            self.logger.debug(str(e))
-            return
-        await self._handle_peer(peer)
-        self.logger.info("Peer %s finished", peer)
+            await self._handle_peer(peer)
+        finally:
+            self._running_peers.remove(peer)
 
     async def _handle_peer(self, peer: LESPeer) -> None:
         self._announcement_queue.put_nowait((peer, peer.head_info))
@@ -93,13 +96,20 @@ class LightChain(Chain):
                 peer.head_info = cmd.as_head_info(msg)
                 self._announcement_queue.put_nowait((peer, peer.head_info))
             else:
-                raise UnexpectedMessage("Unexpected msg from %s: %s", peer, msg)
+                raise UnexpectedMessage("Unexpected msg from {}: {}".format(peer, msg))
 
         await self.drop_peer(peer)
+        self.logger.debug("%s finished", peer)
 
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
         await peer.stop()
+
+    async def wait_until_finished(self):
+        while len(self._running_peers):
+            self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
+            await asyncio.sleep(0.1)
+        await self._finished.wait()
 
     async def get_best_peer(self) -> LESPeer:
         """
@@ -152,13 +162,9 @@ class LightChain(Chain):
     async def run(self) -> None:
         """Run the LightChain, ensuring headers are in sync with connected peers.
 
-        Run our PeerPool to ensure we are always connected to some peers and then loop forever,
-        waiting for announcements from connected peers and fetching new headers.
-
         If .stop() is called, we'll disconnect from all peers and return.
         """
         self.logger.info("Running LightChain...")
-        asyncio.ensure_future(self.peer_pool.run())
         while True:
             try:
                 peer, head_info = await self.wait_for_announcement()
@@ -253,8 +259,9 @@ class LightChain(Chain):
     async def stop(self):
         self.logger.info("Stopping LightChain...")
         self._should_stop.set()
-        await self.peer_pool.stop()
-        await self._finished.wait()
+        self.logger.debug("Waiting for all pending tasks to finish...")
+        await self.wait_until_finished()
+        self.logger.debug("LightChain finished")
 
     async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
         """Return the block with the given number from the canonical chain.
@@ -309,12 +316,14 @@ class LightChain(Chain):
 
 def _test():
     import argparse
+    import signal
     from evm.chains.mainnet import (
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
     from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
     from evm.exceptions import CanonicalHeadNotFound
     from evm.p2p import ecies
+    from evm.p2p.integration_test_helpers import LocalGethPeerPool
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logging.getLogger("evm.p2p.lightchain.LightChain").setLevel(logging.DEBUG)
@@ -322,6 +331,7 @@ def _test():
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-mainnet', action="store_true")
+    parser.add_argument('-local-geth', action="store_true")
     args = parser.parse_args()
 
     GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
@@ -331,28 +341,41 @@ def _test():
         NETWORK_ID = MAINNET_NETWORK_ID
     DemoLightChain = LightChain.configure(
         'DemoLightChain',
-        privkey=ecies.generate_privkey(),
         vm_configuration=MAINNET_VM_CONFIGURATION,
         network_id=NETWORK_ID,
     )
 
     chaindb = BaseChainDB(LevelDB(args.db))
+    if args.local_geth:
+        peer_pool = LocalGethPeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
+    else:
+        peer_pool = PeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         # We're starting with a fresh DB.
-        chain = DemoLightChain.from_genesis_header(chaindb, GENESIS_HEADER)
+        chain = DemoLightChain.from_genesis_header(chaindb, GENESIS_HEADER, peer_pool)
     else:
         # We're reusing an existing db.
-        chain = DemoLightChain(chaindb)
+        chain = DemoLightChain(chaindb, peer_pool)
 
+    asyncio.ensure_future(peer_pool.run())
     loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(chain.run())
-    except KeyboardInterrupt:
-        chain._finished.set()
 
-    loop.run_until_complete(chain.stop())
+    async def run():
+        # chain.run() will run in a loop until stop() (registered as SIGINT/SIGTERM handler) is
+        # called, at which point it returns and we cleanly stop the pool and chain.
+        await chain.run()
+        await peer_pool.stop()
+        await chain.stop()
+
+    def stop():
+        chain._should_stop.set()
+
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, stop)
+
+    loop.run_until_complete(run())
     loop.close()
 
 

@@ -139,14 +139,11 @@ async def test_handshake():
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
     # reader, and thus the read_msg() calls will return immediately.
-    responder_hello = await responder_peer.read_msg()
-    initiator_hello = await initiator_peer.read_msg()
+    responder_hello, _ = await responder_peer.read_msg()
+    initiator_hello, _ = await initiator_peer.read_msg()
 
-    cmd = responder_peer.get_protocol_command_for(responder_hello)
-    assert isinstance(cmd, Hello)
-
-    cmd = initiator_peer.get_protocol_command_for(initiator_hello)
-    assert isinstance(cmd, Hello)
+    assert isinstance(responder_hello, Hello)
+    assert isinstance(initiator_hello, Hello)
 
 
 def test_handshake_eip8():

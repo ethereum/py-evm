@@ -112,6 +112,9 @@ class Protocol:
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
 
+    def __repr__(self):
+        return "(%s, %d)" % (self.name.decode('ascii'), self.version)
+
 
 def _pad_to_16_byte_boundary(data):
     """Pad the given data with NULL_BYTE up to the next 16-byte boundary."""

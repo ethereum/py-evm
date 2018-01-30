@@ -13,7 +13,6 @@ from evm.chains.mainnet import (
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
 from evm.rlp.headers import BlockHeader
-from evm.p2p import ecies
 from evm.p2p.les import (
     LESProtocol,
     Announce,
@@ -119,7 +118,7 @@ async def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet
         client_chaindb=light_chain.chaindb,
         server_chaindb=server2_chaindb)
 
-    asyncio.ensure_future(light_chain._handle_peer(client2))
+    light_chain.register_peer(client2)
     await wait_for_head(light_chain.chaindb, new_head)
     assert_canonical_chains_are_equal(light_chain.chaindb, server2.chaindb, new_head.block_number)
 
@@ -219,11 +218,11 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_chaindb):
     """Return a LightChainForTests instance with a client/server peer pair.
 
     The server is a LESPeerServer instance that can be used to send Announce and BlockHeaders
-    messages, and the client will be passed to LightChain's _handle_peer() method so that a sync
+    messages, and the client will be registered with the LightChain so that a sync
     request is added to the LightChain's queue every time a new Announce message is received.
     """
     chaindb = get_fresh_mainnet_chaindb()
-    light_chain = LightChainForTests(chaindb)
+    light_chain = LightChainForTests(chaindb, MockPeerPool())
     asyncio.ensure_future(light_chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
 
@@ -234,13 +233,16 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_chaindb):
 
     client, server = await get_client_and_server_peer_pair(
         request, event_loop, chaindb, server_peer_chaindb)
-    asyncio.ensure_future(light_chain._handle_peer(client))
+    light_chain.register_peer(client)
     return light_chain, client, server
 
 
 class MockPeerPool:
 
     def __init__(self, *args, **kwargs):
+        pass
+
+    def subscribe(self, subscriber):
         pass
 
     async def run(self):
@@ -254,8 +256,6 @@ LightChainForTests = LightChain.configure(
     'LightChainForTests',
     vm_configuration=MAINNET_VM_CONFIGURATION,
     network_id=MAINNET_NETWORK_ID,
-    privkey=ecies.generate_privkey(),
-    peer_pool_class=MockPeerPool,
 )
 
 
