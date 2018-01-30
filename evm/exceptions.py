@@ -164,3 +164,10 @@ class GasPriceAlreadySet(Exception):
     Error raised if trying to reset the already set gas price.
     """
     pass
+
+
+class NotTopLevelCall(VMError):
+    """
+    Error raised if it's not executing in the top level call(i.e, msg.depth == 0)
+    """
+    pass
