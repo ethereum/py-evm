@@ -17,6 +17,9 @@ from evm.utils.hexadecimal import (
 from evm.utils.keccak import (
     keccak,
 )
+from evm.validation import (
+    validate_uint256,
+)
 
 from ..spurious_dragon.computation import (
     SpuriousDragonComputation,
@@ -42,7 +45,7 @@ class ShardingComputation(SpuriousDragonComputation):
         validate_uint256(gas_price, title="PAYGAY.gas_price")
         if self.msg.depth != 0:
             raise NotTopLevelCall("This should only happen in a top level call context.")
-        
+
         if self._paygas_gasprice is None:
             self._paygas_gasprice = gas_price
         else:
