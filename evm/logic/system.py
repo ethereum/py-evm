@@ -250,7 +250,7 @@ def paygas(computation):
     # (2) not been set already during this transaction execution
     if computation.msg.depth == 0:
         try:
-            computation.set_PAYGAS_gas_price(gas_price)
+            computation.set_PAYGAS_gasprice(gas_price)
         except GasPriceAlreadySet:
             computation.stack.push(0)
         else:
