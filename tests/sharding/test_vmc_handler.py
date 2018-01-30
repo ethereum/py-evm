@@ -123,24 +123,6 @@ def is_vmc_deployed(vmc_handler):
     )
 
 
-def mk_validation_code(address):
-    """
-    validation_code = '''
-~calldatacopy(0, 0, 128)
-~call(3000, 1, 0, 0, 128, 0, 32)
-return(~mload(0) == {})
-    '''.format(utils.checksum_encode(address))
-    return serpent.compile(validation_code)
-    """
-    # The precompiled bytecode of the validation code which
-    # verifies EC signatures
-    validation_code_bytecode = b"a\x009\x80a\x00\x0e`\x009a\x00GV`\x80`\x00`\x007` "
-    validation_code_bytecode += b"`\x00`\x80`\x00`\x00`\x01a\x0b\xb8\xf1Ps"
-    validation_code_bytecode += address
-    validation_code_bytecode += b"`\x00Q\x14` R` ` \xf3[`\x00\xf3"
-    return validation_code_bytecode
-
-
 def sign(message, privkey):
     """@privkey: Key type
     """
@@ -212,30 +194,17 @@ def do_withdraw(vmc_handler, validator_index):
     mine(vmc_handler, 1)
 
 
-def deploy_valcode_and_deposit(vmc_handler, privkey):
+def do_deposit(vmc_handler, privkey):
     """
-    Deploy validation code of and with the privkey, and do deposit
+    Deposit a validator
 
     :param privkey: PrivateKey object
-    :return: returns nothing
+    :return: returns the validator's address
     """
     address = privkey.public_key.to_canonical_address()
-    valcode = mk_validation_code(
-        privkey.public_key.to_canonical_address()
-    )
-    nonce = get_nonce(vmc_handler, address)
-    valcode_addr = generate_contract_address(address, nonce)
-    deploy_contract(
-        vmc_handler,
-        valcode,
-        privkey,
-        value=0,
-        gas=vmc_handler.config['DEFAULT_GAS'],
-        gas_price=vmc_handler.config['GAS_PRICE'],
-    )
     mine(vmc_handler, 1)
-    vmc_handler.deposit(valcode_addr, address)
-    return valcode_addr
+    vmc_handler.deposit()
+    return address
 
 
 def deploy_initiating_contracts(vmc_handler, privkey):
@@ -432,14 +401,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_num_validators()
     if num_validators == 0:
-        # deploy valcode for the validator, and deposit as the first validator
-        valcode_addr = deploy_valcode_and_deposit(
-            vmc,
-            primary_key,
-        )
+        # deposit as the first validator
+        validator_addr = do_deposit(vmc, primary_key)
         # TODO: error occurs when we don't mine so many blocks
         mine(vmc, lookahead_blocks)
-        assert vmc.get_eligible_proposer(shard_id) == valcode_addr
+        assert vmc.get_eligible_proposer(shard_id) == validator_addr
 
     # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
     # to ensure that `get_eligible_proposer` works

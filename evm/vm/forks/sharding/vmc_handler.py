@@ -266,19 +266,12 @@ class VMC(Contract):
         address_in_hex = self.call(tx_detail).get_eligible_proposer(shard_id, period)
         return decode_hex(address_in_hex)
 
-    def deposit(self,
-                validation_code_addr,
-                return_addr,
-                gas=None,
-                gas_price=None):
-        """deposit(validation_code_addr: address, return_addr: address) -> num
+    def deposit(self, gas=None, gas_price=None):
+        """deposit() -> num
         """
         tx_hash = self.send_transaction(
             'deposit',
-            [
-                to_checksum_address(validation_code_addr),
-                to_checksum_address(return_addr),
-            ],
+            [],
             value=self.config['DEPOSIT_SIZE'],
             gas=gas,
             gas_price=gas_price,
