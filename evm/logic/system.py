@@ -5,6 +5,7 @@ from evm.exceptions import (
     Revert,
     WriteProtection,
     GasPriceAlreadySet,
+    InsufficientFunds,
 )
 
 from evm.opcode import (
@@ -229,6 +230,7 @@ class Create2(CreateEIP150):
             value=value,
             data=b'',
             code=call_data,
+            transaction_gas_limit=computation.msg.transaction_gas_limit,
             is_create=True,
         )
 
