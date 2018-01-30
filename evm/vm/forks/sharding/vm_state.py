@@ -1,4 +1,7 @@
 import functools
+from cytoolz import (
+    merge,
+)
 
 from evm.constants import (
     ENTRY_POINT,
@@ -20,6 +23,9 @@ from evm.utils.hexadecimal import (
 )
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.state import (
+    make_trie_root_and_nodes,
 )
 from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
 from evm.vm.forks.frontier.constants import (
@@ -48,11 +54,7 @@ class ShardingVMState(ByzantiumVMState):
 
         self.validate_transaction(transaction)
 
-        gas_fee = transaction.gas * transaction.gas_price
         with state_db_cm() as state_db:
-            # Buy Gas
-            state_db.delta_balance(transaction.to, -1 * gas_fee)
-
             # Setup VM Message
             message_gas = transaction.gas - transaction.intrinsic_gas
 
@@ -143,12 +145,16 @@ class ShardingVMState(ByzantiumVMState):
         if num_deletions:
             computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
+        PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
+        if PAYGAS_gasprice is None:
+            PAYGAS_gasprice = 0
+
         # Gas Refunds
         gas_remaining = computation.get_gas_remaining()
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
+        gas_refund_amount = (gas_refund + gas_remaining) * PAYGAS_gasprice
 
         if gas_refund_amount:
             self.logger.debug(
@@ -161,14 +167,12 @@ class ShardingVMState(ByzantiumVMState):
                 state_db.delta_balance(message.to, gas_refund_amount)
 
         # Miner Fees
-        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * PAYGAS_gasprice
         self.logger.debug(
-            'TRANSACTION FEE: %s -> %s',
+            'TRANSACTION FEE: %s',
             transaction_fee,
-            encode_hex(self.coinbase),
         )
-        with state_db_cm() as state_db:
-            state_db.delta_balance(self.coinbase, transaction_fee)
+        computation.tx_fee = transaction_fee
 
         # Process Self Destructs
         with state_db_cm() as state_db:
@@ -186,3 +190,84 @@ class ShardingVMState(ByzantiumVMState):
 
     def validate_transaction(self, transaction):
         validate_sharding_transaction(self, transaction)
+
+    def add_transaction(self, transaction, computation, block):
+        """
+        Add a transaction to the given block and
+        return `trie_data` to store the transaction data in chaindb in VM layer.
+
+        Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
+        bloom, and used_gas of the block.
+
+        :param transaction: the executed transaction
+        :param computation: the Computation object with executed result
+        :param block: the Block which the transaction is added in
+        :type transaction: Transaction
+        :type computation: Computation
+        :type block: Block
+
+        :return: the block and the trie_data
+        :rtype: (Block, dict[bytes, bytes])
+        """
+        receipt = self.make_receipt(transaction, computation)
+        self.add_receipt(receipt)
+
+        # Create a new Block object
+        block_header = block.header.clone()
+        transactions = list(block.transactions)
+        block = self.block_class(block_header, transactions)
+
+        block.transactions.append(transaction)
+        if hasattr(block, "tx_fee_sum"):
+            block.tx_fee_sum += computation.tx_fee
+        else:
+            block.tx_fee_sum = computation.tx_fee
+
+        # Get trie roots and changed key-values.
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
+
+        trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
+
+        block.bloom_filter |= receipt.bloom
+
+        block.header.transaction_root = tx_root_hash
+        block.header.receipt_root = receipt_root_hash
+        block.header.bloom = int(block.bloom_filter)
+        block.header.gas_used = receipt.gas_used
+
+        return block, trie_data
+
+    def finalize_block(self, block):
+        """
+        Apply rewards.
+        """
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
+        )
+
+        with self.state_db() as state_db:
+            state_db.delta_balance(block.header.coinbase, block.tx_fee_sum)
+            self.logger.debug(
+                "TOTAL TRANSACTON FEE: %s -> %s",
+                block.tx_fee_sum,
+                block.header.coinbase,
+            )
+
+            state_db.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
+
+            for uncle in block.uncles:
+                uncle_reward = self.get_uncle_reward(block.number, uncle)
+                state_db.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
+        block.header.state_root = self.state_root
+        return block
