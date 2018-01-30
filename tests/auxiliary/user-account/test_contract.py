@@ -307,6 +307,7 @@ def test_call_checks_signature(vm, v, r, s):
         "sender": ENTRY_POINT,
         "value": 0,
         "code": ACCOUNT_CODE,
+        "transaction_gas_limit": transaction.gas,
         "is_create": False,
         "access_list": transaction.prefix_list,
     }
