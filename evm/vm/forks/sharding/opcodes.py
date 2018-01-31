@@ -35,7 +35,7 @@ NEW_OPCODES = {
     opcode_values.PAYGAS: as_opcode(
         logic_fn=system.paygas,
         mnemonic=mnemonics.PAYGAS,
-        gas_cost=0,
+        gas_cost=constants.GAS_VERYLOW,
     ),
 }
 
