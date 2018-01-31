@@ -429,13 +429,7 @@ class Chain(BaseChain):
         if genesis_state is None:
             genesis_state = {}
 
-        for account, account_data in genesis_state.items():
-            state_db.set_balance(account, account_data['balance'])
-            state_db.set_nonce(account, account_data['nonce'])
-            state_db.set_code(account, account_data['code'])
-
-            for slot, value in account_data['storage'].items():
-                state_db.set_storage(account, slot, value)
+        state_db.apply_state_dict(genesis_state)
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
