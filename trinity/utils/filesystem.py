@@ -1,13 +1,6 @@
 import os
 
 
-def ensure_path_exists(dir_path):
-    """
-    Make sure that a path exists
-    """
-    os.makedirs(dir_path, exist_ok=True)
-
-
 def is_same_path(p1, p2):
     n_p1 = os.path.abspath(os.path.expanduser(p1))
     n_p2 = os.path.abspath(os.path.expanduser(p2))
