@@ -88,7 +88,7 @@ async def _get_directly_linked_peers_without_handshake(
 
     # Can't assert return values, but checking that the decoder doesn't raise
     # any exceptions at least.
-    __, __ = responder.decode_authentication(auth_msg)
+    _, _ = responder.decode_authentication(auth_msg)
 
     peer2_nonce = keccak(os.urandom(constants.HASH_LEN))
     auth_ack_msg = responder.create_auth_ack_message(peer2_nonce)
