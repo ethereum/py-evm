@@ -1,33 +1,51 @@
 from __future__ import absolute_import
 
-import rlp
+import contextlib
 import logging
+import rlp
+
+from eth_utils import (
+    to_tuple,
+)
 
 from evm.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
+    MAX_UNCLES,
 )
 from evm.exceptions import (
     BlockNotFound,
+    ValidationError,
 )
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import BaseChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.utils.datatypes import (
+    Configurable,
+)
 from evm.utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
-from evm.utils.keccak import (
-    keccak,
-)
 from evm.utils.headers import (
     generate_header_from_parent_header,
 )
+from evm.utils.keccak import (
+    keccak,
+)
+from evm.validation import (
+    validate_length_lte,
+    validate_gas_limit,
+)
+
+from .execution_context import (
+    ExecutionContext,
+)
 
 
-class VM(object):
+class VM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Defining an Chain  defining
@@ -38,28 +56,10 @@ class VM(object):
     _block_class = None
     _state_class = None
 
-    _is_stateless = None
-
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, chaindb=self.chaindb)
-
-    @classmethod
-    def configure(cls,
-                  name=None,
-                  **overrides):
-        if name is None:
-            name = cls.__name__
-
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The VM.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-        return type(name, (cls,), overrides)
 
     #
     # Logging
@@ -71,56 +71,19 @@ class VM(object):
     #
     # Execution
     #
-    def add_transaction(self, transaction, computation):
-        """
-        Add a transaction to the given block and save the block data into chaindb.
-        """
-        receipt = self.state.make_receipt(transaction, computation)
-
-        transaction_idx = len(self.block.transactions)
-
-        index_key = rlp.encode(transaction_idx, sedes=rlp.sedes.big_endian_int)
-
-        self.block.transactions.append(transaction)
-
-        tx_root_hash = self.chaindb.add_transaction(self.block.header, index_key, transaction)
-        receipt_root_hash = self.chaindb.add_receipt(self.block.header, index_key, receipt)
-
-        self.block.bloom_filter |= receipt.bloom
-
-        self.block.header.transaction_root = tx_root_hash
-        self.block.header.receipt_root = receipt_root_hash
-        self.block.header.bloom = int(self.block.bloom_filter)
-        self.block.header.gas_used = receipt.gas_used
-
-        return self.block
-
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
-        if self.is_stateless:
-            computation, block, trie_data = self.get_state_class().apply_transaction(
-                self.state,
-                transaction,
-                self.block,
-                is_stateless=True,
-            )
-            self.block = block
+        computation, block, trie_data_dict = self.get_state_class().apply_transaction(
+            self.state,
+            transaction,
+            self.block,
+        )
+        self.block = block
 
-            # TODO: Modify Chain.apply_transaction to update the local vm state before
-
-            # Persist changed transaction and receipt key-values to self.chaindb.
-            for key, value in trie_data.items():
-                self.chaindb.db[key] = value
-        else:
-            computation, _, _ = self.get_state_class().apply_transaction(
-                self.state,
-                transaction,
-                self.block,
-                is_stateless=False,
-            )
-            self.add_transaction(transaction, computation)
+        # Persist changed transaction and receipt key-values to self.chaindb.
+        self.chaindb.persist_trie_data_dict_to_db(trie_data_dict)
 
         self.clear_journal()
 
@@ -129,18 +92,6 @@ class VM(object):
     #
     # Mining
     #
-    @staticmethod
-    def get_block_reward():
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    def get_uncle_reward(block_number, uncle):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    def get_nephew_reward(cls):
-        raise NotImplementedError("Must be implemented by subclasses")
-
     def import_block(self, block):
         self.configure_header(
             coinbase=block.header.coinbase,
@@ -171,26 +122,7 @@ class VM(object):
         if block.number == 0:
             return block
 
-        block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
-        )
-
-        with self.state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            self.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
-            )
-
-            for uncle in block.uncles:
-                uncle_reward = self.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
+        block = self.state.finalize_block(block)
 
         return block
 
@@ -231,21 +163,30 @@ class VM(object):
             setattr(header, key, value)
 
         # Perform validation
-        self.state.validate_block(block)
+        self.validate_block(block)
 
         return block
+
+    @contextlib.contextmanager
+    def state_in_temp_block(self):
+        header = self.block.header
+        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
+        prev_hashes = (header.hash, ) + self.previous_hashes
+        state = self.get_state(block_header=temp_block.header, prev_hashes=prev_hashes)
+        snapshot = state.snapshot()
+        yield state
+        state.revert(snapshot)
 
     @classmethod
     def create_block(
             cls,
             transaction_packages,
-            prev_headers,
-            coinbase):
+            prev_hashes,
+            coinbase,
+            parent_header):
         """
         Create a block with transaction witness
         """
-        parent_header = prev_headers[0]
-
         block = cls.generate_block_from_parent_header_and_coinbase(
             parent_header,
             coinbase,
@@ -257,16 +198,16 @@ class VM(object):
             transaction_witness.update(recent_trie_nodes)
             witness_db = BaseChainDB(MemoryDB(transaction_witness))
 
+            execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
             vm_state = cls.get_state_class()(
                 chaindb=witness_db,
-                block_header=block.header,
-                prev_headers=prev_headers,
+                execution_context=execution_context,
+                state_root=block.header.state_root,
                 receipts=receipts,
             )
             computation, result_block, _ = vm_state.apply_transaction(
                 transaction=transaction,
                 block=block,
-                is_stateless=True,
             )
 
             if not computation.is_error:
@@ -278,12 +219,14 @@ class VM(object):
 
         # Finalize
         witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+        execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
         vm_state = cls.get_state_class()(
             chaindb=witness_db,
-            block_header=block.header,
-            prev_headers=prev_headers,
+            execution_context=execution_context,
+            state_root=block.header.state_root,
+            receipts=receipts,
         )
-        block = cls.finalize_block(vm_state, block)
+        block = vm_state.finalize_block(block)
 
         return block
 
@@ -305,43 +248,101 @@ class VM(object):
         )
         return block
 
-    @classmethod
-    def finalize_block(cls, vm_state, block):
-        """
-        Finalize the given block (set rewards).
-        """
-        block_reward = cls.get_block_reward() + (
-            len(block.uncles) * cls.get_nephew_reward(cls)
-        )
+    #
+    # Validate
+    #
+    def validate_block(self, block):
+        if not block.is_genesis:
+            parent_header = get_parent_header(block.header, self.chaindb)
 
-        with vm_state.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
-            vm_state.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
+            validate_gas_limit(block.header.gas_limit, parent_header.gas_limit)
+            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+
+            # timestamp
+            if block.header.timestamp < parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is before the parent block's timestamp.\n"
+                    "- block  : {0}\n"
+                    "- parent : {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+            elif block.header.timestamp == parent_header.timestamp:
+                raise ValidationError(
+                    "`timestamp` is equal to the parent block's timestamp\n"
+                    "- block : {0}\n"
+                    "- parent: {1}. ".format(
+                        block.header.timestamp,
+                        parent_header.timestamp,
+                    )
+                )
+
+        if len(block.uncles) > MAX_UNCLES:
+            raise ValidationError(
+                "Blocks may have a maximum of {0} uncles.  Found "
+                "{1}.".format(MAX_UNCLES, len(block.uncles))
             )
 
-            for uncle in block.uncles:
-                uncle_reward = cls.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                vm_state.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
-        block.state_root = vm_state.block_header.state_root
+        for uncle in block.uncles:
+            self.validate_uncle(block, uncle)
 
-        return block
+        if not self.state.is_key_exists(block.header.state_root):
+            raise ValidationError(
+                "`state_root` was not found in the db.\n"
+                "- state_root: {0}".format(
+                    block.header.state_root,
+                )
+            )
+        local_uncle_hash = keccak(rlp.encode(block.uncles))
+        if local_uncle_hash != block.header.uncles_hash:
+            raise ValidationError(
+                "`uncles_hash` and block `uncles` do not match.\n"
+                " - num_uncles       : {0}\n"
+                " - block uncle_hash : {1}\n"
+                " - header uncle_hash: {2}".format(
+                    len(block.uncles),
+                    local_uncle_hash,
+                    block.header.uncle_hash,
+                )
+            )
+
+    def validate_uncle(self, block, uncle):
+        if uncle.block_number >= block.number:
+            raise ValidationError(
+                "Uncle number ({0}) is higher than block number ({1})".format(
+                    uncle.block_number, block.number))
+        try:
+            parent_header = get_block_header_by_hash(uncle.parent_hash, self.chaindb)
+        except BlockNotFound:
+            raise ValidationError(
+                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
+        if uncle.block_number != parent_header.block_number + 1:
+            raise ValidationError(
+                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                    uncle.block_number, parent_header.block_number))
+        if uncle.timestamp < parent_header.timestamp:
+            raise ValidationError(
+                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                    uncle.timestamp, parent_header.timestamp))
+        if uncle.gas_used > uncle.gas_limit:
+            raise ValidationError(
+                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                    uncle.gas_used, uncle.gas_limit))
 
     #
     # Transactions
     #
-    def get_transaction_class(self):
+
+    @classmethod
+    def get_transaction_class(cls):
         """
         Return the class that this VM uses for transactions.
         """
-        return self.get_block_class().get_transaction_class()
+        return cls.get_block_class().get_transaction_class()
+
+    def get_pending_transaction(self, transaction_hash):
+        return self.chaindb.get_pending_transaction(transaction_hash, self.get_transaction_class())
 
     def create_transaction(self, *args, **kwargs):
         """
@@ -354,12 +355,6 @@ class VM(object):
         Proxy for instantiating a transaction for this VM.
         """
         return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
-
-    def validate_transaction(self, transaction):
-        """
-        Perform chain-aware validation checks on the transaction.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Blocks
@@ -379,21 +374,23 @@ class VM(object):
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
-    def get_prev_headers(cls, last_block_hash, db):
-        prev_headers = []
-
+    @to_tuple
+    def get_prev_hashes(cls, last_block_hash, db):
         if last_block_hash == GENESIS_PARENT_HASH:
-            return prev_headers
+            return
 
         block_header = get_block_header_by_hash(last_block_hash, db)
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
-            prev_headers.append(block_header)
+            yield block_header.hash
             try:
                 block_header = get_parent_header(block_header, db)
             except (IndexError, BlockNotFound):
                 break
-        return prev_headers
+
+    @property
+    def previous_hashes(self):
+        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
 
     #
     # Gas Usage API
@@ -445,10 +442,6 @@ class VM(object):
     #
     # State
     #
-    @property
-    def is_stateless(self):
-        return self._is_stateless
-
     @classmethod
     def get_state_class(cls):
         """
@@ -459,23 +452,25 @@ class VM(object):
 
         return cls._state_class
 
-    def get_state(self, chaindb=None, block_header=None):
+    def get_state(self, chaindb=None, block_header=None, prev_hashes=None):
         """Return state object
         """
         if chaindb is None:
             chaindb = self.chaindb
         if block_header is None:
             block_header = self.block.header
+        if prev_hashes is None:
+            prev_hashes = self.get_prev_hashes(
+                last_block_hash=block_header.parent_hash,
+                db=chaindb,
+            )
 
-        prev_headers = self.get_prev_headers(
-            last_block_hash=self.block.header.parent_hash,
-            db=self.chaindb,
-        )
+        execution_context = ExecutionContext.from_block_header(block_header, prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
-            block_header,
-            prev_headers,
+            execution_context=execution_context,
+            state_root=block_header.state_root,
             receipts=receipts,
         )
 

@@ -15,8 +15,12 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
 )
+from evm.estimators import (
+    get_gas_estimator,
+)
 from evm.exceptions import (
     BlockNotFound,
+    TransactionNotFound,
     ValidationError,
     VMNotFound,
 )
@@ -25,13 +29,14 @@ from evm.validation import (
     validate_uint256,
     validate_word,
 )
-
 from evm.rlp.headers import (
     BlockHeader,
 )
-
 from evm.utils.chain import (
     generate_vms_by_range,
+)
+from evm.utils.datatypes import (
+    Configurable,
 )
 from evm.utils.headers import (
     compute_gas_limit_bounds,
@@ -44,7 +49,7 @@ from evm.utils.rlp import (
 )
 
 
-class Chain(object):
+class Chain(Configurable):
     """
     An Chain is a combination of one or more VM classes.  Each VM is associated
     with a range of blocks.  The Chain class acts as a wrapper around these other
@@ -55,6 +60,7 @@ class Chain(object):
     header = None
     network_id = None
     vms_by_range = None
+    gas_estimator = None
 
     def __init__(self, chaindb, header=None):
         if not self.vms_by_range:
@@ -66,24 +72,17 @@ class Chain(object):
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
+        if self.gas_estimator is None:
+            self.gas_estimator = get_gas_estimator()
 
     @classmethod
-    def configure(cls, name, vm_configuration, **overrides):
+    def configure(cls, name=None, vm_configuration=None, **overrides):
         if 'vms_by_range' in overrides:
-            raise ValueError("Cannot override vms_by_range.")
+            raise ValueError("Cannot override vms_by_range")
 
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The Chain.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-
-        # Organize the Chain classes by their starting blocks.
-        overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
-
-        return type(name, (cls,), overrides)
+        if vm_configuration is not None:
+            overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
+        return super().configure(name, **overrides)
 
     #
     # Convenience and Helpers
@@ -93,6 +92,32 @@ class Chain(object):
         Passthrough helper to the current VM class.
         """
         return self.get_vm().block
+
+    def get_canonical_transaction(self, transaction_hash):
+        (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
+        VM = self.get_vm_class_for_block_number(block_num)
+
+        transaction = self.chaindb.get_transaction_by_index(
+            block_num,
+            index,
+            VM.get_transaction_class(),
+        )
+
+        if transaction.hash == transaction_hash:
+            return transaction
+        else:
+            raise TransactionNotFound("Found transaction {} instead of {} in block {} at {}".format(
+                encode_hex(transaction.hash),
+                encode_hex(transaction_hash),
+                block_num,
+                index,
+            ))
+
+    def add_pending_transaction(self, transaction):
+        return self.chaindb.add_pending_transaction(transaction)
+
+    def get_pending_transaction(self, transaction_hash):
+        return self.get_vm().get_pending_transaction(transaction_hash)
 
     def create_transaction(self, *args, **kwargs):
         """
@@ -238,8 +263,18 @@ class Chain(object):
         Apply the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
-        computation, _ = vm.apply_transaction(transaction)
+        computation, block = vm.apply_transaction(transaction)
+
+        # Update header
+        self.header = block.header
+
         return computation
+
+    def estimate_gas(self, transaction, at_header=None):
+        if at_header is None:
+            at_header = self.get_canonical_head()
+        with self.get_vm(at_header).state_in_temp_block() as state:
+            return self.gas_estimator(state, transaction)
 
     def import_block(self, block, perform_validation=True):
         """

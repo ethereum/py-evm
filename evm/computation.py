@@ -12,6 +12,9 @@ from evm.exceptions import (
 from evm.logic.invalid import (
     InvalidOpcode,
 )
+from evm.utils.datatypes import (
+    Configurable,
+)
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -49,7 +52,7 @@ def memory_gas_cost(size_in_bytes):
     return total_cost
 
 
-class BaseComputation(object):
+class BaseComputation(Configurable):
     """
     The execution computation
     """
@@ -411,22 +414,3 @@ class BaseComputation(object):
             return opcodes[opcode]
         except KeyError:
             return InvalidOpcode(opcode)
-
-    #
-    # classmethod
-    #
-    @classmethod
-    def configure(cls,
-                  name,
-                  **overrides):
-        """
-        Class factory method for simple inline subclassing.
-        """
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The Computation.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-        return type(name, (cls,), overrides)

@@ -1,12 +1,8 @@
 from contextlib import contextmanager
-import copy
 import logging
 
 from cytoolz import (
     merge,
-)
-from eth_utils import (
-    encode_hex,
 )
 
 from evm.constants import (
@@ -15,33 +11,34 @@ from evm.constants import (
 from evm.db.tracked import (
     AccessLogs,
 )
-from evm.exceptions import (
-    BlockNotFound,
+from evm.utils.datatypes import (
+    Configurable,
 )
 from evm.utils.state import (
     make_trie_root_and_nodes,
 )
 
 
-class BaseVMState(object):
+class BaseVMState(Configurable):
     #
     # Set from __init__
     #
     _chaindb = None
-    block_header = None
-    prev_headers = None
-
-    computation_class = None
-    access_logs = None
+    execution_context = None
+    state_root = None
     receipts = None
 
-    def __init__(self, chaindb, block_header, prev_headers, receipts=[]):
-        self._chaindb = chaindb
-        self.block_header = block_header
-        self.prev_headers = prev_headers
+    block_class = None
+    computation_class = None
+    trie_class = None
+    access_logs = None
 
-        self.access_logs = AccessLogs()
+    def __init__(self, chaindb, execution_context, state_root, receipts=[]):
+        self._chaindb = chaindb
+        self.execution_context = execution_context
+        self.state_root = state_root
         self.receipts = receipts
+        self.access_logs = AccessLogs()
 
     #
     # Logging
@@ -53,44 +50,51 @@ class BaseVMState(object):
     #
     # Block Object Properties (in opcodes)
     #
-    @property
-    def blockhash(self):
-        return self.block_header.hash
 
     @property
     def coinbase(self):
-        return self.block_header.coinbase
+        return self.execution_context.coinbase
 
     @property
     def timestamp(self):
-        return self.block_header.timestamp
+        return self.execution_context.timestamp
 
     @property
     def block_number(self):
-        return self.block_header.block_number
+        return self.execution_context.block_number
 
     @property
     def difficulty(self):
-        return self.block_header.difficulty
+        return self.execution_context.difficulty
 
     @property
     def gas_limit(self):
-        return self.block_header.gas_limit
+        return self.execution_context.gas_limit
+
+    #
+    # Helpers
+    #
+    @property
+    def gas_used(self):
+        if self.receipts:
+            return self.receipts[-1].gas_used
+        else:
+            return 0
 
     #
     # state_db
     #
     @contextmanager
     def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(self.block_header.state_root, read_only)
+        state = self._chaindb.get_state_db(self.state_root, read_only)
         yield state
 
         if read_only:
             # This acts as a secondary check that no mutation took place for
             # read_only databases.
-            assert state.root_hash == self.block_header.state_root
-        elif self.block_header.state_root != state.root_hash:
-            self.block_header.state_root = state.root_hash
+            assert state.root_hash == self.state_root
+        elif self.state_root != state.root_hash:
+            self.set_state_root(state.root_hash)
 
         self.access_logs.reads.update(state.db.access_logs.reads)
         self.access_logs.writes.update(state.db.access_logs.writes)
@@ -100,6 +104,9 @@ class BaseVMState(object):
         # leaving the context.
         state.db = None
         state._trie = None
+
+    def set_state_root(self, state_root):
+        self.state_root = state_root
 
     #
     # Access self._chaindb
@@ -111,7 +118,7 @@ class BaseVMState(object):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the checkpoint_id returned from the journaled DB.
         """
-        return (self.block_header.state_root, self._chaindb.snapshot())
+        return (self.state_root, self._chaindb.snapshot())
 
     def revert(self, snapshot):
         """
@@ -141,36 +148,22 @@ class BaseVMState(object):
         return self._chaindb.exists(key)
 
     #
-    # Access self.prev_headers (Read-only)
+    # Access self.prev_hashes (Read-only)
     #
-    @property
-    def parent_header(self):
-        return self.prev_headers[0]
-
     def get_ancestor_hash(self, block_number):
         """
         Return the hash of the ancestor with the given block number.
         """
-        ancestor_depth = self.block_header.block_number - block_number - 1
-        if (ancestor_depth >= MAX_PREV_HEADER_DEPTH or
-                ancestor_depth < 0 or
-                ancestor_depth >= len(self.prev_headers)):
-            return b''
-        header = self.prev_headers[ancestor_depth]
-        return header.hash
-
-    def get_block_header_by_hash(self, block_hash):
-        """
-        Returns the block header by hash.
-        """
-        for value in self.prev_headers:
-            if value.hash == block_hash:
-                return value
-        raise BlockNotFound(
-            "No block header with hash {0} found in self.perv_headers".format(
-                encode_hex(block_hash),
-            )
+        ancestor_depth = self.block_number - block_number - 1
+        is_ancestor_depth_out_of_range = (
+            ancestor_depth >= MAX_PREV_HEADER_DEPTH or
+            ancestor_depth < 0 or
+            ancestor_depth >= len(self.execution_context.prev_hashes)
         )
+        if is_ancestor_depth_out_of_range:
+            return b''
+        ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
+        return ancestor_hash
 
     #
     # Computation
@@ -190,35 +183,27 @@ class BaseVMState(object):
     def apply_transaction(
             self,
             transaction,
-            block,
-            is_stateless=True):
+            block):
         """
         Apply transaction to the given block
 
         :param transaction: the transaction need to be applied
         :param block: the block which the transaction applies on
-        :param is_stateless: if is_stateless, call self.add_transaction to set block
         :type transaction: Transaction
         :type block: Block
-        :type is_stateless: bool
 
-        :return: the computation, applied block, and the trie_data
+        :return: the computation, applied block, and the trie_data_dict
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
-        if is_stateless:
-            # Don't modify the given block
-            block = copy.deepcopy(block)
-            self.block_header = block.header
-            computation, block_header = self.execute_transaction(transaction)
+        # Don't modify the given block
+        block.make_immutable()
+        self.set_state_root(block.header.state_root)
+        computation = self.execute_transaction(transaction)
 
-            # Set block.
-            block.header = block_header
-            block, trie_data = self.add_transaction(transaction, computation, block)
-
-            return computation, block, trie_data
-        else:
-            computation, block_header = self.execute_transaction(transaction)
-            return computation, None, None
+        # Set block.
+        block, trie_data_dict = self.add_transaction(transaction, computation, block)
+        block.header.state_root = self.state_root
+        return computation, block, trie_data_dict
 
     def add_transaction(self, transaction, computation, block):
         """
@@ -241,10 +226,15 @@ class BaseVMState(object):
         receipt = self.make_receipt(transaction, computation)
         self.add_receipt(receipt)
 
+        # Create a new Block object
+        block_header = block.header.clone()
+        transactions = list(block.transactions)
+        block = self.block_class(block_header, transactions)
+
         block.transactions.append(transaction)
 
         # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions, self.trie_class)
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
@@ -273,33 +263,44 @@ class BaseVMState(object):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def validate_block(self, block):
-        """
-        Validate the block.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def validate_uncle(self, block, uncle):
-        """
-        Validate the uncle.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
     #
-    # classmethod
+    # Finalization
     #
-    @classmethod
-    def configure(cls,
-                  name,
-                  **overrides):
+    def finalize_block(self, block):
         """
-        Class factory method for simple inline subclassing.
+        Apply rewards.
         """
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The State.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
+        )
+
+        with self.state_db() as state_db:
+            state_db.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
+
+            for uncle in block.uncles:
+                uncle_reward = self.get_uncle_reward(block.number, uncle)
+                state_db.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
                 )
-        return type(name, (cls,), overrides)
+        block.header.state_root = self.state_root
+        return block
+
+    @staticmethod
+    def get_block_reward():
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    def get_nephew_reward(cls):
+        raise NotImplementedError("Must be implemented by subclasses")

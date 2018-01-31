@@ -1,11 +1,3 @@
-from typing import TYPE_CHECKING
-
-# Workaround for import cycles caused by type annotations:
-# http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
-if TYPE_CHECKING:
-    from evm.p2p.p2p_proto import DisconnectReason  # noqa: F401
-
-
 class AuthenticationError(Exception):
     pass
 
@@ -18,7 +10,7 @@ class PeerConnectionLost(Exception):
     pass
 
 
-class PeerDisconnected(Exception):
+class HandshakeFailure(Exception):
     pass
 
 
@@ -26,7 +18,7 @@ class UnknownProtocolCommand(Exception):
     pass
 
 
-class UselessPeer(Exception):
+class UnexpectedMessage(Exception):
     pass
 
 
@@ -50,7 +42,5 @@ class StopRequested(Exception):
     pass
 
 
-class HandshakeFailure(Exception):
-
-    def __init__(self, reason: 'DisconnectReason') -> None:
-        super().__init__(reason.name)
+class PeerFinished(Exception):
+    pass

@@ -20,12 +20,13 @@ class:
   from evm import constants, Chain
   from evm.vm.forks.frontier import FrontierVM
   from evm.vm.forks.homestead import HomesteadVM
+  import evm.chains.mainnet as mainnet
 
   chain_class = Chain.configure(
       name='Test Chain',
       vm_configuration=(
           (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
-          (constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+          (mainnet.constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
       ),
   )
 

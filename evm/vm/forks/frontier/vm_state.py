@@ -1,17 +1,16 @@
 from __future__ import absolute_import
-import rlp
+
+from trie import (
+    HexaryTrie,
+)
 
 from evm import constants
 from evm.constants import (
-    GAS_LIMIT_ADJUSTMENT_FACTOR,
-    GAS_LIMIT_MAXIMUM,
-    GAS_LIMIT_MINIMUM,
-    MAX_UNCLES,
+    BLOCK_REWARD,
+    UNCLE_DEPTH_PENALTY_FACTOR,
 )
 from evm.exceptions import (
-    BlockNotFound,
     ContractCreationCollision,
-    ValidationError,
 )
 from evm.rlp.logs import (
     Log,
@@ -35,10 +34,8 @@ from evm.utils.hexadecimal import (
 from evm.utils.keccak import (
     keccak,
 )
-from evm.validation import (
-    validate_length_lte,
-)
 
+from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .validation import validate_frontier_transaction
@@ -54,7 +51,7 @@ def _execute_frontier_transaction(vm_state, transaction):
     # Validate the transaction
     transaction.validate()
 
-    validate_frontier_transaction(vm_state, transaction)
+    vm_state.validate_transaction(transaction)
 
     gas_fee = transaction.gas * transaction.gas_price
     with vm_state.state_db() as state_db:
@@ -198,11 +195,10 @@ def _make_frontier_receipt(vm_state, transaction, computation):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-
-    gas_used = vm_state.block_header.gas_used + tx_gas_used
+    gas_used = vm_state.gas_used + tx_gas_used
 
     receipt = Receipt(
-        state_root=vm_state.block_header.state_root,
+        state_root=vm_state.state_root,
         gas_used=gas_used,
         logs=logs,
     )
@@ -211,106 +207,31 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 
 
 class FrontierVMState(BaseVMState):
+    block_class = FrontierBlock
     computation_class = FrontierComputation
+    trie_class = HexaryTrie
 
     def execute_transaction(self, transaction):
         computation = _execute_frontier_transaction(self, transaction)
-        return computation, self.block_header
+        return computation
 
     def make_receipt(self, transaction, computation):
         receipt = _make_frontier_receipt(self, transaction, computation)
         return receipt
 
-    def validate_block(self, block):
-        if not block.is_genesis:
-            parent_header = self.parent_header
+    def validate_transaction(self, transaction):
+        validate_frontier_transaction(self, transaction)
 
-            self._validate_gas_limit(block)
-            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+    @staticmethod
+    def get_block_reward():
+        return BLOCK_REWARD
 
-            # timestamp
-            if block.header.timestamp < parent_header.timestamp:
-                raise ValidationError(
-                    "`timestamp` is before the parent block's timestamp.\n"
-                    "- block  : {0}\n"
-                    "- parent : {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
-                    )
-                )
-            elif block.header.timestamp == parent_header.timestamp:
-                raise ValidationError(
-                    "`timestamp` is equal to the parent block's timestamp\n"
-                    "- block : {0}\n"
-                    "- parent: {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
-                    )
-                )
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        return BLOCK_REWARD * (
+            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
+        ) // UNCLE_DEPTH_PENALTY_FACTOR
 
-        if len(block.uncles) > MAX_UNCLES:
-            raise ValidationError(
-                "Blocks may have a maximum of {0} uncles.  Found "
-                "{1}.".format(MAX_UNCLES, len(block.uncles))
-            )
-
-        for uncle in block.uncles:
-            self.validate_uncle(block, uncle)
-
-        if not self.is_key_exists(block.header.state_root):
-            raise ValidationError(
-                "`state_root` was not found in the db.\n"
-                "- state_root: {0}".format(
-                    block.header.state_root,
-                )
-            )
-        local_uncle_hash = keccak(rlp.encode(block.uncles))
-        if local_uncle_hash != block.header.uncles_hash:
-            raise ValidationError(
-                "`uncles_hash` and block `uncles` do not match.\n"
-                " - num_uncles       : {0}\n"
-                " - block uncle_hash : {1}\n"
-                " - header uncle_hash: {2}".format(
-                    len(block.uncles),
-                    local_uncle_hash,
-                    block.header.uncle_hash,
-                )
-            )
-
-    def _validate_gas_limit(self, block):
-        gas_limit = block.header.gas_limit
-        if gas_limit < GAS_LIMIT_MINIMUM:
-            raise ValidationError("Gas limit {0} is below minimum {1}".format(
-                gas_limit, GAS_LIMIT_MINIMUM))
-        if gas_limit > GAS_LIMIT_MAXIMUM:
-            raise ValidationError("Gas limit {0} is above maximum {1}".format(
-                gas_limit, GAS_LIMIT_MAXIMUM))
-        parent_gas_limit = self.parent_header.gas_limit
-        diff = gas_limit - parent_gas_limit
-        if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
-            raise ValidationError(
-                "Gas limit {0} difference to parent {1} is too big {2}".format(
-                    gas_limit, parent_gas_limit, diff))
-
-    def validate_uncle(self, block, uncle):
-        if uncle.block_number >= block.number:
-            raise ValidationError(
-                "Uncle number ({0}) is higher than block number ({1})".format(
-                    uncle.block_number, block.number))
-        try:
-            parent_header = self.get_block_header_by_hash(uncle.parent_hash)
-        except BlockNotFound:
-            raise ValidationError(
-                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
-        if uncle.block_number != parent_header.block_number + 1:
-            raise ValidationError(
-                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
-                    uncle.block_number, parent_header.block_number))
-        if uncle.timestamp < parent_header.timestamp:
-            raise ValidationError(
-                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
-                    uncle.timestamp, parent_header.timestamp))
-        if uncle.gas_used > uncle.gas_limit:
-            raise ValidationError(
-                "Uncle's gas usage ({0}) is above the limit ({1})".format(
-                    uncle.gas_used, uncle.gas_limit))
+    @classmethod
+    def get_nephew_reward(cls):
+        return cls.get_block_reward() // 32

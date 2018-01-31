@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from evm.p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
 
-_DecodedMsgType = Dict[str, Any]
+_DecodedMsgType = Union[Dict[str, Any], List[bytes], bytes]
 
 
 class Command:
@@ -31,18 +31,15 @@ class Command:
     decode_strict = True
     structure = []  # type: List[Tuple[str, Any]]
 
-    def __init__(self, id_offset: int) -> None:
-        self.id_offset = id_offset
-
-    def handle(self, proto: 'Protocol', data: bytes):
-        return self.decode(data)
+    def __init__(self, proto: 'Protocol') -> None:
+        self.proto = proto
 
     def __str__(self):
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
     @property
     def cmd_id(self) -> int:
-        return self.id_offset + self._cmd_id
+        return self.proto.cmd_id_offset + self._cmd_id
 
     def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):  # convert dict to ordered list
@@ -103,36 +100,14 @@ class Protocol:
     name = None  # type: bytes
     version = None  # type: int
     cmd_length = None  # type: int
-    handshake_msg_type = None  # type: Type[Command]
     # List of Command classes that this protocol supports.
     _commands = []  # type: List[Type[Command]]
 
     def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
-        """Initialize this protocol and send its handshake msg."""
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
-        self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
+        self.commands = [cmd_class(self) for cmd_class in self._commands]
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
-        self.cmd_by_class = dict((cmd.__class__, cmd) for cmd in self.commands)
-
-    def send_handshake(self, chain_info: 'ChainInfo') -> None:
-        """Send the handshake msg for this protocol."""
-        raise NotImplementedError()
-
-    def process_handshake(self, decoded_msg: _DecodedMsgType) -> None:
-        """Process the handshake msg for this protocol.
-
-        Should raise HandshakeFailure if the handshake fails for any reason.
-        """
-        raise NotImplementedError()
-
-    def process(self, cmd_id: int, msg: bytes) -> Tuple[Command, _DecodedMsgType]:
-        cmd = self.cmd_by_id[cmd_id]
-        decoded = cmd.handle(self, msg)
-        self.logger.debug("Successfully processed %s msg: %s", cmd, decoded)
-        if isinstance(cmd, self.handshake_msg_type):
-            self.process_handshake(decoded)
-        return cmd, decoded
 
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
