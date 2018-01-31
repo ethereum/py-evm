@@ -93,7 +93,7 @@ class LightChain(Chain):
                 peer.head_info = cmd.as_head_info(msg)
                 self._announcement_queue.put_nowait((peer, peer.head_info))
             else:
-                raise UnexpectedMessage("Unexpected msg from %s: %s", peer, msg)
+                raise UnexpectedMessage("Unexpected msg from {}: {}".format(peer, msg))
 
         await self.drop_peer(peer)
 
@@ -105,7 +105,7 @@ class LightChain(Chain):
         """
         Return the peer with the highest announced block height.
         """
-        while len(self.peer_pool.peers) == 0:
+        while not self.peer_pool.peers:
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
 
@@ -173,7 +173,7 @@ class LightChain(Chain):
                 self.logger.debug("Asked to stop, breaking out of run() loop")
                 break
             except LESAnnouncementProcessingError as e:
-                self.logger.warn(repr(e))
+                self.logger.warning(repr(e))
                 await self.drop_peer(peer)
             except Exception as e:
                 self.logger.error(

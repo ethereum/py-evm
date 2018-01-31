@@ -276,7 +276,7 @@ def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnySt
     return remote_pubkey, cmd_id, payload, message_hash
 
 
-def __test():
+def _test():
     # async def show_tasks():
     #     while True:
     #         tasks = []
@@ -334,4 +334,4 @@ def __test():
 
 
 if __name__ == "__main__":
-    __test()
+    _test()

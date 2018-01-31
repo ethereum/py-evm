@@ -10,7 +10,7 @@ from evm.p2p.state import StateSync
 def make_random_state(n):
     state_db = AccountStateDB(MemoryDB())
     contents = {}
-    for i in range(n):
+    for _ in range(n):
         addr = os.urandom(20)
         state_db.touch_account(addr)
         balance = random.randint(0, 10000)
@@ -30,7 +30,7 @@ def test_state_sync():
     dest_db = {}
     scheduler = StateSync(state_db.root_hash, dest_db, logging.getLogger())
     requests = scheduler.next_batch(10)
-    while len(requests) > 0:
+    while requests:
         results = []
         for request in requests:
             results.append([request.node_key, state_db.db[request.node_key]])

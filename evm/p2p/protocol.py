@@ -67,12 +67,11 @@ class Command:
         data = rlp.decode(rlp_data, sedes=decoder)
         if isinstance(self.structure, sedes.CountableList):
             return data
-        else:
-            return {
-                field_name: value
-                for ((field_name, _), value)
-                in zip(self.structure, data)
-            }
+        return {
+            field_name: value
+            for ((field_name, _), value)
+            in zip(self.structure, data)
+        }
 
     def decode(self, data: bytes) -> _DecodedMsgType:
         packet_type = get_devp2p_cmd_id(data)

@@ -135,7 +135,7 @@ async def get_directly_linked_peers(
 
 @pytest.mark.asyncio
 async def test_directly_linked_peers(request, event_loop):
-    peer1, peer2 = await get_directly_linked_peers(request, event_loop)
+    peer1, _ = await get_directly_linked_peers(request, event_loop)
     assert isinstance(peer1.sub_proto, LESProtocolV2)
 
 
