@@ -2,6 +2,7 @@ from eth_utils import decode_hex
 
 from evm.utils.address import generate_CREATE2_contract_address
 
+# Simple Transfer Contract
 # contract code to be deployed
 simple_transfer_contract_lll_code = ['seq',
                                         ['return',  # noqa: E127
@@ -29,6 +30,7 @@ simple_transfer_contract_address = generate_CREATE2_contract_address(
 simple_contract_factory_bytecode = b'\x61\xbe\xef\x60\x20\x52\x60\x02\x60\x3e\xf3'
 
 
+# CREATE2 Contract
 # This contract will deploy a new contract and increment it's only storage variable 'nonce'
 # every time it's invoked.
 # Contract address: generate_CREATE2_contract_address(nonce, simple_contract_factory_bytecode)
@@ -54,4 +56,30 @@ CREATE2_contract_bytecode = '0x610039566000546020526a61beef6020526002603ef360405
 CREATE2_contract_address = generate_CREATE2_contract_address(
     b'',
     decode_hex(CREATE2_contract_bytecode)
+)
+
+
+# PAYGAS Contract
+PAYGAS_contract_lll_code = ['seq',
+                                ['return',  # noqa: E127
+                                    0,
+                                    ['lll',
+                                        ['seq',
+                                            ['paygas', ['calldataload', 64]],
+                                            # Transfer value
+                                            ['mstore', 128, 1461501637330902918203684832716283019655932542976],  # noqa: E501
+                                            ['uclamplt', ['calldataload', 0], ['mload', 128]],  # noqa: E501
+                                            ['assert', ['call', 0, ['calldataload', 0], ['calldataload', 32], 0, 0, 0, 0]],  # noqa: E501
+                                            'stop'],
+                                    0]]]  # noqa: E128
+
+
+# compiled byte code
+PAYGAS_contract_bytecode = '0x61004f56604035f55074010000000000000000000000000000000000000000608052600035608051811061002e57600080fd5b5060006000600060006020356000356000f161004957600080fd5b005b61000461004f0361000460003961000461004f036000f3'  # noqa: E501
+
+
+# address where this contract will be deployed
+PAYGAS_contract_address = generate_CREATE2_contract_address(
+    b'',
+    decode_hex(PAYGAS_contract_bytecode)
 )
