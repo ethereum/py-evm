@@ -58,8 +58,9 @@ class TransactionKey(rlp.Serializable):
 
 class BaseChainDB:
 
-    def __init__(self, db):
+    def __init__(self, db, trie_class=HexaryTrie):
         self.db = JournalDB(db)
+        self.trie_class = trie_class
 
     def exists(self, key):
         return self.db.exists(key)
@@ -185,7 +186,7 @@ class BaseChainDB:
 
     @to_list
     def get_receipts(self, header, receipt_class):
-        receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
+        receipt_db = self.trie_class(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
             if receipt_key in receipt_db:
@@ -198,7 +199,7 @@ class BaseChainDB:
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -221,7 +222,7 @@ class BaseChainDB:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except KeyError:
             raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
-        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         if encoded_index in transaction_db:
             encoded_transaction = transaction_db[encoded_index]
@@ -300,7 +301,7 @@ class BaseChainDB:
         new_canonical_headers = self.persist_header_to_db(block.header)
 
         # Persist the transaction bodies
-        transaction_db = HexaryTrie(self.db, root_hash=BLANK_ROOT_HASH)
+        transaction_db = self.trie_class(self.db, root_hash=BLANK_ROOT_HASH)
         for i, transaction in enumerate(block.transactions):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
             transaction_db[index_key] = rlp.encode(transaction)
@@ -352,12 +353,12 @@ class BaseChainDB:
         )
 
     def add_transaction(self, block_header, index_key, transaction):
-        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header, index_key, receipt):
-        receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
+        receipt_db = self.trie_class(db=self.db, root_hash=block_header.receipt_root)
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
 
