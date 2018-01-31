@@ -13,7 +13,6 @@ from typing import (  # noqa: F401
 
 from async_lru import alru_cache
 
-import rlp
 from eth_keys import (  # noqa: F401
     datatypes,
     keys,
@@ -21,7 +20,6 @@ from eth_keys import (  # noqa: F401
 from eth_utils import (
     encode_hex,
 )
-from trie import HexaryTrie
 
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
@@ -33,7 +31,6 @@ from evm.rlp.accounts import Account
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.utils.keccak import keccak
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
@@ -49,7 +46,6 @@ from evm.p2p.peer import (
     LESPeer,
     PeerPool,
 )
-from evm.p2p.utils import gen_request_id
 
 
 class LightChain(Chain):
@@ -279,21 +275,10 @@ class LightChain(Chain):
             header = self.chaindb.get_block_header_by_hash(block_hash)
         except BlockNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
-            request_id = gen_request_id()
-            max_headers = 1
-            peer.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
-            reply = await peer.wait_for_reply(request_id)
-            if len(reply['headers']) == 0:
-                raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
-            header = reply['headers'][0]
+            header = await peer.get_block_header_by_hash(block_hash)
 
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_block_bodies([block_hash], request_id)
-        reply = await peer.wait_for_reply(request_id)
-        if len(reply['bodies']) == 0:
-            raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
-        body = reply['bodies'][0]
+        body = await peer.get_block_by_hash(block_hash)
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
         transactions = [
             block_class.transaction_class.from_base_transaction(tx)
@@ -309,41 +294,20 @@ class LightChain(Chain):
     async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
         peer = await self.get_best_peer()
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_receipts(block_hash, request_id)
-        reply = await peer.wait_for_reply(request_id)
-        if len(reply['receipts']) == 0:
-            raise BlockNotFound("No block with hash {} found".format(block_hash))
-        return reply['receipts'][0]
+        return await peer.get_receipts(block_hash)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: bytes, address: bytes) -> Account:
-        key = keccak(address)
-        proof = await self._get_proof(block_hash, account_key=b'', key=key)
-        block = await self.get_block_by_hash(block_hash)
-        rlp_account = HexaryTrie.get_from_proof(block.header.state_root, key, proof)
-        return rlp.decode(rlp_account, sedes=Account)
-
-    async def _get_proof(self, block_hash: bytes, account_key: bytes, key: bytes,
-                         from_level: int = 0) -> List[bytes]:
         peer = await self.get_best_peer()
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
-        reply = await peer.wait_for_reply(request_id)
-        return reply['proof']
+        return await peer.get_account(block_hash, address)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
         peer = await self.get_best_peer()
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_contract_code(block_hash, key, request_id)
-        reply = await peer.wait_for_reply(request_id)
-        if len(reply['codes']) == 0:
-            return b''
-        return reply['codes'][0]
+        return await peer.get_contract_code(block_hash, key)
 
 
-if __name__ == '__main__':
+def _test():
     import argparse
     from evm.chains.mainnet import (
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
@@ -390,3 +354,7 @@ if __name__ == '__main__':
 
     loop.run_until_complete(chain.stop())
     loop.close()
+
+
+if __name__ == '__main__':
+    _test()

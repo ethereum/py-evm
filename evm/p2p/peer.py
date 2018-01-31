@@ -23,9 +23,15 @@ from eth_keys import (
     keys,
 )
 
+from trie import HexaryTrie
+
 from evm.constants import GENESIS_BLOCK_NUMBER
+from evm.exceptions import BlockNotFound
 from evm.db.chain import BaseChainDB
+from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
+from evm.utils.keccak import keccak
 from evm.p2p import auth
 from evm.p2p import ecies
 from evm.p2p.kademlia import Address, Node
@@ -469,7 +475,7 @@ class LESPeer(BasePeer):
                 return
         super().handle_sub_proto_msg(cmd, msg)
 
-    async def wait_for_reply(self, request_id):
+    async def _wait_for_reply(self, request_id):
         reply = None
         got_reply = asyncio.Event()
 
@@ -482,6 +488,53 @@ class LESPeer(BasePeer):
         await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
         return reply
 
+    async def get_block_header_by_hash(self, block_hash: bytes) -> BlockHeader:
+        request_id = gen_request_id()
+        max_headers = 1
+        self.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if len(reply['headers']) == 0:
+            raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
+        return reply['headers'][0]
+
+    async def get_block_by_hash(self, block_hash: bytes) -> les.LESBlockBody:
+        request_id = gen_request_id()
+        self.sub_proto.send_get_block_bodies([block_hash], request_id)
+        reply = await self._wait_for_reply(request_id)
+        if len(reply['bodies']) == 0:
+            raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
+        return reply['bodies'][0]
+
+    async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
+        request_id = gen_request_id()
+        self.sub_proto.send_get_receipts(block_hash, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if len(reply['receipts']) == 0:
+            raise BlockNotFound("No block with hash {} found".format(block_hash))
+        return reply['receipts'][0]
+
+    async def get_account(self, block_hash: bytes, address: bytes) -> Account:
+        key = keccak(address)
+        proof = await self._get_proof(block_hash, account_key=b'', key=key)
+        header = await self.get_block_header_by_hash(block_hash)
+        rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
+        return rlp.decode(rlp_account, sedes=Account)
+
+    async def _get_proof(self, block_hash: bytes, account_key: bytes, key: bytes,
+                         from_level: int = 0) -> List[bytes]:
+        request_id = gen_request_id()
+        self.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
+        reply = await self._wait_for_reply(request_id)
+        return reply['proof']
+
+    async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
+        request_id = gen_request_id()
+        self.sub_proto.send_get_contract_code(block_hash, key, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if len(reply['codes']) == 0:
+            return b''
+        return reply['codes'][0]
+
     async def fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
 
@@ -490,7 +543,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
-        reply = await self.wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id)
         if len(reply['headers']) == 0:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
