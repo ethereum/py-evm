@@ -1,5 +1,3 @@
-import pytest
-
 from eth_utils import (
     int_to_big_endian,
     decode_hex,
@@ -8,7 +6,6 @@ from eth_utils import (
 from evm.exceptions import (
     IncorrectContractCreationAddress,
     ContractCreationCollision,
-    UnannouncedStateAccess,
 )
 from evm.utils.address import generate_CREATE2_contract_address
 from evm.utils.padding import pad32
@@ -28,11 +25,7 @@ from tests.core.vm.contract_fixture import (
 )
 
 
-XFAIL_REASON = "gas payment to dynamic coinbase"
-
-
-@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)  # noqa: F811
-def test_sharding_apply_transaction(shard_chain_without_block_validation):
+def test_sharding_apply_transaction(shard_chain_without_block_validation):  # noqa: F811
     chain = shard_chain_without_block_validation
     # First test: simple ether transfer contract
     first_deploy_tx = new_sharding_transaction(
@@ -110,8 +103,7 @@ def test_sharding_apply_transaction(shard_chain_without_block_validation):
         assert state_db.get_storage(CREATE2_contract_address, 0) == 1
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, raises=UnannouncedStateAccess)  # noqa: F811
-def test_CREATE2_deploy_contract_edge_cases(shard_chain_without_block_validation):
+def test_CREATE2_deploy_contract_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     # First case: computed contract address not the same as provided in `transaction.to`
     chain = shard_chain_without_block_validation
     code = b"0xf3"
