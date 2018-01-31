@@ -28,7 +28,7 @@ setup(
         "trie>=1.0.1,<2.0.0",
     ],
     extra_require={
-        'leveldb': [
+        'trinity': [
             "leveldb>=0.194",
         ]
     },
