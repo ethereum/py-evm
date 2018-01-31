@@ -31,7 +31,8 @@ def new_sharding_transaction(
 
     [destination, value, msg_data, vrs].
     """
-    tx_data = pad32(data_destination) + pad32(bytes([data_value])) + pad32(data_msgdata) + pad32(data_vrs)  # noqa: E501
+    assert len(data_vrs) in (0, 65)
+    tx_data = pad32(data_destination) + pad32(bytes([data_value])) + pad32(data_msgdata) + pad32(data_vrs[:32]) + pad32(data_vrs[32:64]) + bytes(data_vrs[64:])  # noqa: E501
     if access_list is None:
         access_list = [[tx_initiator]]
         if data_destination:
