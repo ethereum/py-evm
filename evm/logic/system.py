@@ -215,7 +215,7 @@ class Create2(CreateEIP150):
         )
 
         with computation.state_db(read_only=True) as state_db:
-            is_collision = state_db.account_has_code_or_nonce(contract_address)
+            is_collision = state_db.account_has_code(contract_address)
 
         if is_collision:
             computation.vm.logger.debug(

@@ -103,7 +103,7 @@ class ShardingVMState(ByzantiumVMState):
         #
         if message.is_create:
             with state_db_cm(read_only=True) as state_db:
-                is_collision = state_db.account_has_code_or_nonce(contract_address)
+                is_collision = state_db.account_has_code(contract_address)
 
             # Check if contract address provided by transaction is correct
             if contract_address != transaction.to:
