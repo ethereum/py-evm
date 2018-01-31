@@ -34,10 +34,6 @@ class Command:
     def __init__(self, proto: 'Protocol') -> None:
         self.proto = proto
 
-    # XXX: See if it's possible to get rid of this and use just the decode() method
-    def handle(self, data: bytes) -> _DecodedMsgType:
-        return self.decode(data)
-
     def __str__(self):
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
@@ -108,7 +104,6 @@ class Protocol:
     _commands = []  # type: List[Type[Command]]
 
     def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
-        """Initialize this protocol and send its handshake msg."""
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(self) for cmd_class in self._commands]

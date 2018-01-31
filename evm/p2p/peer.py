@@ -33,11 +33,12 @@ from evm.p2p import protocol  # noqa: F401
 from evm.p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
+    HandshakeFailure,
     PeerConnectionLost,
-    PeerDisconnected,
+    PeerFinished,
+    UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
-    UselessPeer,
 )
 from evm.p2p.utils import (
     gen_request_id,
@@ -50,7 +51,10 @@ from evm.p2p import les
 from evm.p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
+    Hello,
     P2PProtocol,
+    Ping,
+    Pong,
 )
 
 from .constants import (
@@ -71,7 +75,6 @@ async def handshake(remote: Node,
                     peer_class: 'Type[BasePeer]',
                     chaindb: BaseChainDB,
                     network_id: int,
-                    received_msg_callback: Optional[_ReceivedMsgCallbackType] = None
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
 
@@ -79,8 +82,9 @@ async def handshake(remote: Node,
     remote in case both handshakes are successful and at least one of the sub-protocols supported
     by peer_class is also supported by the remote.
 
-    Raises UnreachablePeer if we cannot connect to the peer or UselessPeer if none of the
-    sub-protocols supported by us is also supported by the remote.
+    Raises UnreachablePeer if we cannot connect to the peer or HandshakeFailure if the remote
+    disconnects before completing the handshake or if none of the sub-protocols supported by us is
+    also supported by the remote.
     """
     try:
         (aes_secret,
@@ -95,12 +99,8 @@ async def handshake(remote: Node,
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id,
-        received_msg_callback=received_msg_callback)
+        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
     await peer.do_p2p_handshake()
-    if peer.sub_proto is None:
-        raise UselessPeer("No matching sub-protocols")
-    await peer.do_sub_proto_handshake()
     return peer
 
 
@@ -127,10 +127,8 @@ class BasePeer:
                  ingress_mac: sha3.keccak_256,
                  chaindb: BaseChainDB,
                  network_id: int,
-                 received_msg_callback: Optional[_ReceivedMsgCallbackType] = None
                  ) -> None:
         self._finished = asyncio.Event()
-        self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -138,7 +136,7 @@ class BasePeer:
         self.base_protocol = P2PProtocol(self)
         self.chaindb = chaindb
         self.network_id = network_id
-        self.received_msg_callback = received_msg_callback
+        self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -153,18 +151,43 @@ class BasePeer:
     def send_sub_proto_handshake(self):
         raise NotImplementedError()
 
-    def process_sub_proto_handshake(self, msg: bytes) -> None:
+    def process_sub_proto_handshake(
+            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError()
 
     async def do_sub_proto_handshake(self):
+        """Perform the handshake for the sub-protocol agreed with the remote peer.
+
+        Raises HandshakeFailure if the handshake is not successful.
+
+        This method must be called only after the Peer's run() method is running.
+        """
         self.send_sub_proto_handshake()
-        msg = await self.read_msg()
-        self.process_sub_proto_handshake(msg)
+        cmd, msg = await self.sub_proto_msg_queue.get()
+        self.process_sub_proto_handshake(cmd, msg)
 
     async def do_p2p_handshake(self):
+        """Perform the handshake for the P2P base protocol.
+
+        Raises HandshakeFailure if the handshake is not successful.
+        """
         self.base_protocol.send_handshake()
         msg = await self.read_msg()
         self.process_p2p_handshake(msg)
+
+    async def read_sub_proto_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
+        """Read the next sub-protocol message from the queue.
+
+        Raises PeerFinished if this peer has been disconnected.
+        """
+        done, pending = await asyncio.wait(  # type: ignore
+            [self.sub_proto_msg_queue.get(), self._finished.wait()],
+            return_when=asyncio.FIRST_COMPLETED)
+        for task in pending:
+            task.cancel()
+        if self._finished.is_set():
+            raise PeerFinished()
+        return done.pop().result()
 
     @property
     def genesis(self) -> BlockHeader:
@@ -186,19 +209,6 @@ class BasePeer:
     def capabilities(self) -> List[Tuple[bytes, int]]:
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
-    async def wait_for_reply(self, request_id):
-        reply = None
-        got_reply = asyncio.Event()
-
-        def callback(r):
-            nonlocal reply
-            reply = r
-            got_reply.set()
-
-        self._pending_replies[request_id] = callback
-        await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
-        return reply
-
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
@@ -219,7 +229,7 @@ class BasePeer:
             raise PeerConnectionLost("EOF reading from stream")
         return data
 
-    async def start(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
+    async def run(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
         try:
             await self.read_loop()
         except Exception as e:
@@ -239,6 +249,12 @@ class BasePeer:
         self.writer.close()
 
     async def stop(self):
+        """Disconnect from the remote and flag this peer as finished.
+
+        If the peer is already flagged as finished, do nothing.
+        """
+        if self._finished.is_set():
+            return
         self.close()
         await self._finished.wait()
 
@@ -263,43 +279,57 @@ class BasePeer:
         frame_data = await self.read(read_size + MAC_LEN)
         return self.decrypt_body(frame_data, frame_size)
 
-    def process_msg(self, msg: bytes) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
+    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+        """Handle the base protocol (P2P) messages."""
+        if isinstance(cmd, Disconnect):
+            msg = cast(Dict[str, Any], msg)
+            self.logger.debug(
+                "%s disconnected; reason given: %s", self, msg['reason_name'])
+            self.close()
+        elif isinstance(cmd, Ping):
+            self.base_protocol.send_pong()
+        elif isinstance(cmd, Pong):
+            # Currently we don't do anything when we get a pong, but eventually we should
+            # update the last time we heard from a peer in our DB (which doesn't exist yet).
+            pass
+        else:
+            raise UnexpectedMessage("Unexpected msg: %s (%s)".format(cmd, msg))
+
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+        self.sub_proto_msg_queue.put_nowait((cmd, msg))
+
+    def process_msg(self, msg: bytes) -> None:
         cmd = self.get_protocol_command_for(msg)
-        decoded = cmd.handle(msg)
+        decoded = cmd.decode(msg)
         self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded)
-        if isinstance(decoded, dict):
-            # Check if this is a reply we're waiting for and, if so, call the callback for this
-            # request_id.
-            request_id = decoded.get('request_id')
-            if request_id is not None and request_id in self._pending_replies:
-                callback = self._pending_replies.pop(request_id)
-                callback(decoded)
+        if isinstance(cmd.proto, P2PProtocol):
+            self.handle_p2p_msg(cmd, decoded)
+        else:
+            self.handle_sub_proto_msg(cmd, decoded)
 
-        if self.received_msg_callback is not None:
-            self.received_msg_callback(self, cmd, decoded)
-        return cmd, decoded
-
-    def process_p2p_handshake(self, msg: bytes) -> None:
+    def process_p2p_handshake(self, msg: bytes):
         cmd = self.get_protocol_command_for(msg)
-        decoded_msg = cmd.handle(msg)
+        decoded_msg = cmd.decode(msg)
         decoded_msg = cast(Dict[str, Any], decoded_msg)
         if isinstance(cmd, Disconnect):
             # Peers may send a disconnect msg before they send the initial P2P handshake (e.g. when
             # they're not accepting more peers), so we special case that here because it's important
             # to distinguish this from a failed handshake (e.g. no matching protocols, etc).
-            raise PeerDisconnected("Peer disconnected before completing handshake: {}".format(
-                decoded_msg['reason_name']))
+            raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
+                self, decoded_msg['reason_name']))
+        elif not isinstance(cmd, Hello):
+            self.disconnect(DisconnectReason.other)
+            raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
         remote_capabilities = decoded_msg['capabilities']
         self.sub_proto = self.select_sub_protocol(remote_capabilities)
         if self.sub_proto is None:
-            self.logger.debug(
-                "No matching capabilities between us (%s) and %s (%s), disconnecting",
-                self.capabilities, self.remote, remote_capabilities)
             self.disconnect(DisconnectReason.useless_peer)
-        else:
-            self.logger.debug(
-                "Finished P2P handshake with %s, using sub-protocol %s",
-                self.remote, self.sub_proto)
+            raise HandshakeFailure(
+                "No matching capabilities between us ({}) and {} ({}), disconnecting".format(
+                    self.capabilities, self.remote, remote_capabilities))
+        self.logger.debug(
+            "Finished P2P handshake with %s, using sub-protocol %s",
+            self.remote, self.sub_proto)
 
     def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
@@ -399,36 +429,58 @@ class LESPeer(BasePeer):
     max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
     sub_proto = None  # type: les.LESProtocol
+    head_info = None  # type: les.HeadInfo
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
 
     def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(self._local_chain_info)
 
-    def process_sub_proto_handshake(self, msg: bytes) -> None:
-        cmd = self.get_protocol_command_for(msg)
-        decoded_msg = cast(Dict[str, Any], cmd.handle(msg))
-        self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
+    def process_sub_proto_handshake(
+            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, (les.Status, les.StatusV2)):
-            self.logger.warn("Expected a LES Status msg, got %s, disconnecting" % cmd)
             self.disconnect(DisconnectReason.other)
-            return
-        if decoded_msg['networkId'] != self.network_id:
-            self.logger.debug(
-                "%s network (%s) does not match ours (%s), disconnecting",
-                self, decoded_msg['networkId'], self.network_id)
+            raise HandshakeFailure(
+                "Expected a LES Status msg, got {}, disconnecting".format(cmd))
+        msg = cast(Dict[str, Any], msg)
+        if msg['networkId'] != self.network_id:
             self.disconnect(DisconnectReason.other)
-            return
-        if decoded_msg['genesisHash'] != self.genesis.hash:
-            self.logger.debug(
-                "%s genesis (%s) does not match ours (%s), disconnecting",
-                self, encode_hex(decoded_msg['genesisHash']), self.genesis.hex_hash)
+            raise HandshakeFailure(
+                "{} network ({}) does not match ours ({}), disconnecting".format(
+                    self, msg['networkId'], self.network_id))
+        if msg['genesisHash'] != self.genesis.hash:
             self.disconnect(DisconnectReason.other)
-            return
+            raise HandshakeFailure(
+                "{} genesis ({}) does not match ours ({}), disconnecting".format(
+                    self, encode_hex(msg['genesisHash']), self.genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
+        self.head_info = cmd.as_head_info(msg)
 
-        # FIXME: Need to find a way to avoid having to call self.received_msg_callback both here
-        # and in BasePeer.process_msg().
-        if self.received_msg_callback is not None:
-            self.received_msg_callback(self, cmd, decoded_msg)
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+        if isinstance(msg, dict):
+            request_id = msg.get('request_id')
+            if request_id is not None and request_id in self._pending_replies:
+                # This is a reply we're waiting for, so we consume it by passing it to the
+                # registered callback.
+                callback = self._pending_replies.pop(request_id)
+                callback(msg)
+                return
+        super().handle_sub_proto_msg(cmd, msg)
+
+    async def wait_for_reply(self, request_id):
+        reply = None
+        got_reply = asyncio.Event()
+
+        def callback(r):
+            nonlocal reply
+            reply = r
+            got_reply.set()
+
+        self._pending_replies[request_id] = callback
+        await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
+        return reply
 
     async def fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
@@ -455,31 +507,23 @@ class ETHPeer(BasePeer):
     def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(self._local_chain_info)
 
-    def process_sub_proto_handshake(self, msg: bytes) -> None:
-        cmd = self.get_protocol_command_for(msg)
-        decoded_msg = cast(Dict[str, Any], cmd.handle(msg))
-        self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
+    def process_sub_proto_handshake(
+            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, eth.Status):
-            self.logger.warn("Expected a ETH Status msg, got %s, disconnecting" % cmd)
             self.disconnect(DisconnectReason.other)
-            return
-        if decoded_msg['network_id'] != self.network_id:
-            self.logger.debug(
-                "%s network (%s) does not match ours (%s), disconnecting",
-                self, decoded_msg['network_id'], self.network_id)
+            raise HandshakeFailure(
+                "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
+        msg = cast(Dict[str, Any], msg)
+        if msg['network_id'] != self.network_id:
             self.disconnect(DisconnectReason.other)
-            return
-        if decoded_msg['genesis_hash'] != self.genesis.hash:
-            self.logger.debug(
-                "%s genesis (%s) does not match ours (%s), disconnecting",
-                self, encode_hex(decoded_msg['genesis_hash']), self.genesis.hex_hash)
+            raise HandshakeFailure(
+                "{} network ({}) does not match ours ({}), disconnecting".format(
+                    self, msg['network_id'], self.network_id))
+        if msg['genesis_hash'] != self.genesis.hash:
             self.disconnect(DisconnectReason.other)
-            return
-
-        # FIXME: Need to find a way to avoid having to call self.received_msg_callback both here
-        # and in BasePeer.process_msg().
-        if self.received_msg_callback is not None:
-            self.received_msg_callback(self, cmd, decoded_msg)
+            raise HandshakeFailure(
+                "{} genesis ({}) does not match ours ({}), disconnecting".format(
+                    self, encode_hex(msg['genesis_hash']), self.genesis.hex_hash))
 
 
 class PeerPool:
@@ -493,13 +537,13 @@ class PeerPool:
                  chaindb: BaseChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
-                 msg_handler: _ReceivedMsgCallbackType,
+                 new_peer_callback: Callable[['BasePeer'], None],
                  ) -> None:
         self.peer_class = peer_class
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
-        self.msg_handler = msg_handler
+        self.new_peer_callback = new_peer_callback
         self.connected_nodes = {}  # type: Dict[Node, BasePeer]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
@@ -582,13 +626,11 @@ class PeerPool:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
         expected_exceptions = (
-            UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost,
-            UselessPeer, PeerDisconnected)
+            UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost, HandshakeFailure)
         try:
             self.logger.info("Connecting to %s...", remote)
             peer = await asyncio.wait_for(
-                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
-                          self.msg_handler),
+                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
                 HANDSHAKE_TIMEOUT)
             return peer
         except expected_exceptions as e:
@@ -615,7 +657,8 @@ class PeerPool:
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
                 self.connected_nodes[peer.remote] = peer
-                asyncio.ensure_future(peer.start(finished_callback=self._peer_finished))
+                asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
+                self.new_peer_callback(peer)
 
     def _peer_finished(self, peer: BasePeer) -> None:
         """Remove the given peer from our list of connected nodes.
@@ -676,22 +719,28 @@ def _test():
             asyncio.wait_for(
                 handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id),
                 HANDSHAKE_TIMEOUT))
-        # Request some stuff from ropsten's block 2440319
-        # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
-        block_hash = decode_hex(
-            '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
-        if peer_class == ETHPeer:
-            peer = cast(ETHPeer, peer)
-            peer.sub_proto.send_get_block_headers(block_hash, 1)
-            peer.sub_proto.send_get_block_bodies([block_hash])
-            peer.sub_proto.send_get_receipts([block_hash])
-        else:
-            peer = cast(LESPeer, peer)
-            request_id = 1
-            peer.sub_proto.send_get_block_headers(block_hash, 1, request_id)
-            peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
-            peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
-        loop.run_until_complete(peer.start())
+        asyncio.ensure_future(peer.do_sub_proto_handshake())
+
+        async def request_stuff():
+            # Request some stuff from ropsten's block 2440319
+            # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
+            nonlocal peer
+            block_hash = decode_hex(
+                '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
+            if peer_class == ETHPeer:
+                peer = cast(ETHPeer, peer)
+                peer.sub_proto.send_get_block_headers(block_hash, 1)
+                peer.sub_proto.send_get_block_bodies([block_hash])
+                peer.sub_proto.send_get_receipts([block_hash])
+            else:
+                peer = cast(LESPeer, peer)
+                request_id = 1
+                peer.sub_proto.send_get_block_headers(block_hash, 1, request_id)
+                peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
+                peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
+
+        asyncio.ensure_future(request_stuff())
+        loop.run_until_complete(peer.run())
     except KeyboardInterrupt:
         pass
 

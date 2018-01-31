@@ -36,12 +36,14 @@ from evm.rlp.receipts import Receipt
 from evm.utils.keccak import keccak
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
+    HandshakeFailure,
     LESAnnouncementProcessingError,
+    PeerFinished,
     StopRequested,
     TooManyTimeouts,
+    UnexpectedMessage,
 )
 from evm.p2p import les
-from evm.p2p import protocol
 from evm.p2p.peer import (
     BasePeer,
     LESPeer,
@@ -59,25 +61,48 @@ class LightChain(Chain):
     def __init__(self, chaindb: BaseChainDB) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = self.peer_pool_class(
-            LESPeer, chaindb, self.network_id, self.privkey, self.msg_handler)
+            LESPeer, chaindb, self.network_id, self.privkey, self.new_peer_callback)
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
-        self._latest_head_info = {}  # type: Dict[LESPeer, les.HeadInfo]
         self._should_stop = asyncio.Event()
         self._finished = asyncio.Event()
 
-    def msg_handler(self, peer: BasePeer, cmd: protocol.Command,
-                    announcement: protocol._DecodedMsgType) -> None:
-        """The callback passed to BasePeer, called for every incoming message."""
-        peer = cast(LESPeer, peer)
-        if isinstance(cmd, (les.Announce, les.Status)):
-            head_info = cmd.as_head_info(announcement)
-            self._latest_head_info[peer] = head_info
-            self._announcement_queue.put_nowait((peer, head_info))
+    def new_peer_callback(self, peer: BasePeer) -> None:
+        asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))
+
+    async def handle_peer(self, peer: LESPeer) -> None:
+        """Handle the lifecycle of the given peer.
+
+        Returns when the peer is finished or when the LightChain is asked to stop.
+        """
+        try:
+            await peer.do_sub_proto_handshake()
+        except HandshakeFailure as e:
+            self.logger.debug(str(e))
+            return
+        await self._handle_peer(peer)
+        self.logger.info("Peer %s finished", peer)
+
+    async def _handle_peer(self, peer: LESPeer) -> None:
+        self._announcement_queue.put_nowait((peer, peer.head_info))
+        while True:
+            try:
+                cmd, msg = await peer.read_sub_proto_msg()
+            except PeerFinished:
+                break
+            # We currently implement only the LES commands for retrieving data (apart from
+            # Announce), and those should always come as a response to requests we make so will be
+            # handled by LESPeer.handle_sub_proto_msg().
+            if isinstance(cmd, les.Announce):
+                peer.head_info = cmd.as_head_info(msg)
+                self._announcement_queue.put_nowait((peer, peer.head_info))
+            else:
+                raise UnexpectedMessage("Unexpected msg from %s: %s", peer, msg)
+
+        await self.drop_peer(peer)
 
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
-        self._latest_head_info.pop(peer, None)
         await peer.stop()
 
     async def get_best_peer(self) -> LESPeer:
@@ -361,7 +386,7 @@ if __name__ == '__main__':
     try:
         loop.run_until_complete(chain.run())
     except KeyboardInterrupt:
-        pass
+        chain._finished.set()
 
     loop.run_until_complete(chain.stop())
     loop.close()

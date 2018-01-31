@@ -93,7 +93,8 @@ async def test_lightchain_integration(request, event_loop):
     assert encode_hex(keccak(rlp.encode(receipts[0]))) == (
         '0xf709ed2c57efc18a1675e8c740f3294c9e2cb36ba7bb3b89d3ab4c8fef9d8860')
 
-    head_info = list(chain._latest_head_info.values())[0]
+    assert len(chain.peer_pool.peers) == 1
+    head_info = chain.peer_pool.peers[0].head_info
     head = await chain.get_block_by_hash(head_info.block_hash)
     assert head.number == head_info.block_number
 

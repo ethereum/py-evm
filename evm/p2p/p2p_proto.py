@@ -58,27 +58,13 @@ class Disconnect(Command):
         raw_decoded = super(Disconnect, self).decode(data)
         return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
 
-    def handle(self, data):
-        decoded = self.decode(data)
-        self.proto.logger.debug(
-            "%s disconnected; reason given: %s", self.proto.peer, decoded['reason_name'])
-        self.proto.peer.close()
-        return decoded
-
 
 class Ping(Command):
     _cmd_id = 2
 
-    def handle(self, data):
-        self.proto.send_pong()
-        return None
-
 
 class Pong(Command):
     _cmd_id = 3
-
-    def handle(self, data):
-        return None
 
 
 class P2PProtocol(Protocol):
