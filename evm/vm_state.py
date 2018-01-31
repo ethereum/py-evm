@@ -30,6 +30,7 @@ class BaseVMState(Configurable):
 
     block_class = None
     computation_class = None
+    trie_class = None
     access_logs = None
 
     def __init__(self, chaindb, execution_context, state_root, receipts=[]):
@@ -233,7 +234,7 @@ class BaseVMState(Configurable):
         block.transactions.append(transaction)
 
         # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions, self.trie_class)
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)

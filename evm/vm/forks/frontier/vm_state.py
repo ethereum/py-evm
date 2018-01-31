@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+from trie import (
+    HexaryTrie,
+)
+
 from evm import constants
 from evm.constants import (
     BLOCK_REWARD,
@@ -205,6 +209,7 @@ def _make_frontier_receipt(vm_state, transaction, computation):
 class FrontierVMState(BaseVMState):
     block_class = FrontierBlock
     computation_class = FrontierComputation
+    trie_class = HexaryTrie
 
     def execute_transaction(self, transaction):
         computation = _execute_frontier_transaction(self, transaction)
