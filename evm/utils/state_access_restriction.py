@@ -3,7 +3,6 @@ from eth_utils import (
 )
 
 from evm.constants import (
-    NONCE_TRIE_PREFIX,
     BALANCE_TRIE_PREFIX,
     CODE_TRIE_PREFIX,
     STORAGE_TRIE_PREFIX,
@@ -67,7 +66,6 @@ def to_prefix_list_form(access_list):
     """
     for obj in access_list:
         address, *storage_prefixes = obj
-        yield get_nonce_key(address)
         yield get_balance_key(address)
         yield get_code_key(address)
         for prefix in remove_redundant_prefixes(storage_prefixes):
@@ -84,10 +82,6 @@ def get_full_storage_key(address):
 
 def get_balance_key(address):
     return keccak(address) + BALANCE_TRIE_PREFIX
-
-
-def get_nonce_key(address):
-    return keccak(address) + NONCE_TRIE_PREFIX
 
 
 def get_code_key(address):
