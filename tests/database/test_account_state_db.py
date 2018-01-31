@@ -22,7 +22,6 @@ from evm.utils.keccak import (
 from evm.utils.state_access_restriction import (
     get_balance_key,
     get_code_key,
-    get_nonce_key,
     get_storage_key,
 )
 
@@ -61,7 +60,6 @@ def test_balance(state):
 
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_nonce(state):
     assert state.get_nonce(ADDRESS) == 0
@@ -103,6 +101,19 @@ def test_code(state):
         state.set_code(INVALID_ADDRESS, b'code')
     with pytest.raises(ValidationError):
         state.set_code(ADDRESS, 'code')
+
+
+@pytest.mark.parametrize("state", [
+    ShardingAccountStateDB(MemoryDB()),
+])
+def test_has_code(state):
+    assert not state.account_has_code(ADDRESS)
+    state.set_code(ADDRESS, b"")
+    assert not state.account_has_code(ADDRESS)
+    state.set_code(ADDRESS, b"code")
+    assert state.account_has_code(ADDRESS)
+    state.set_code(ADDRESS, b"")
+    assert not state.account_has_code(ADDRESS)
 
 
 @pytest.mark.parametrize("state", [
@@ -175,7 +186,6 @@ def test_accounts(state):
 def test_access_restriction():
     # populate db
     state = ShardingAccountStateDB(MemoryDB())
-    state.set_nonce(ADDRESS, 1)
     state.set_balance(ADDRESS, 2)
     state.set_code(ADDRESS, b"code")
     state.set_storage(ADDRESS, 123, 4)
@@ -191,15 +201,9 @@ def test_access_restriction():
     # access lists to use
     CODE_ACCESS_LIST = [get_code_key(ADDRESS)]
     BALANCE_ACCESS_LIST = [get_balance_key(ADDRESS)]
-    NONCE_ACCESS_LIST = [get_nonce_key(ADDRESS)]
     STORAGE_ACCESS_LIST = [get_storage_key(ADDRESS, 123)]
 
     # test with access list
-    state = make_state(NONCE_ACCESS_LIST)
-    state.get_nonce(ADDRESS)
-    state.set_nonce(ADDRESS, 2)
-    state.increment_nonce(ADDRESS)
-
     state = make_state(BALANCE_ACCESS_LIST)
     state.get_balance(ADDRESS)
     state.set_balance(ADDRESS, 3)
@@ -215,13 +219,6 @@ def test_access_restriction():
 
     # test without access list
     state = make_state([])
-    with pytest.raises(UnannouncedStateAccess):
-        state.get_nonce(ADDRESS)
-    with pytest.raises(UnannouncedStateAccess):
-        state.set_nonce(ADDRESS, 2)
-    with pytest.raises(UnannouncedStateAccess):
-        state.increment_nonce(ADDRESS)
-
     with pytest.raises(UnannouncedStateAccess):
         state.get_balance(ADDRESS)
     with pytest.raises(UnannouncedStateAccess):
