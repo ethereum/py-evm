@@ -31,25 +31,6 @@ def test_balance_restriction(shard_chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_nonce_restriction(shard_chain):  # noqa: F811
-    vm = shard_chain.get_vm()
-    address = shard_chain.funded_address
-    access_list = to_prefix_list_form([[address]])
-
-    method_and_args = (
-        ('get_nonce', [address]),
-        ('set_nonce', [address, 1]),
-        ('increment_nonce', [address]),
-    )
-
-    for method, args in method_and_args:
-        with vm.state.state_db(access_list=access_list) as state_db:
-            getattr(state_db, method)(*args)
-        with pytest.raises(UnannouncedStateAccess):
-            with vm.state.state_db(access_list=[]) as state_db:
-                getattr(state_db, method)(*args)
-
-
 def test_code_restriction(shard_chain):  # noqa: F811
     vm = shard_chain.get_vm()
     address = shard_chain.funded_address

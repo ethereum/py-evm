@@ -170,13 +170,11 @@ def shard_chain_without_block_validation():
     genesis_state = {
         SHARD_CHAIN_CONTRACTS_FIXTURES[0]["deployed_address"]: {
             'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[0]["initial_balance"],
-            'nonce': 0,
             'code': b'',
             'storage': {},
         },
         SHARD_CHAIN_CONTRACTS_FIXTURES[1]["deployed_address"]: {
             'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[1]["initial_balance"],
-            'nonce': 0,
             'code': b'',
             'storage': {},
         },
