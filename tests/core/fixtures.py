@@ -25,6 +25,8 @@ from tests.core.vm.contract_fixture import (
     simple_transfer_contract_address,
     CREATE2_contract_bytecode,
     CREATE2_contract_address,
+    PAYGAS_contract_bytecode,
+    PAYGAS_contract_address,
 )
 
 
@@ -117,6 +119,11 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
         "deployed_address": CREATE2_contract_address,
         "initial_balance": 100000000,
     },
+    {
+        "contract_code": PAYGAS_contract_bytecode,
+        "deployed_address": PAYGAS_contract_address,
+        "initial_balance": 100000000,
+    },
 ]
 
 
@@ -169,6 +176,12 @@ def shard_chain_without_block_validation():
         },
         SHARD_CHAIN_CONTRACTS_FIXTURES[1]["deployed_address"]: {
             'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[1]["initial_balance"],
+            'nonce': 0,
+            'code': b'',
+            'storage': {},
+        },
+        SHARD_CHAIN_CONTRACTS_FIXTURES[2]["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[2]["initial_balance"],
             'nonce': 0,
             'code': b'',
             'storage': {},
