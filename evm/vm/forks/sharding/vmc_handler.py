@@ -40,7 +40,7 @@ class NextLogUnavailable(Exception):
     pass
 
 
-class ShardNotTracked(Exception):
+class UnknownShard(Exception):
     pass
 
 
@@ -78,6 +78,10 @@ class ShardTracker:
     COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
         "CollationAdded(int128,bytes4096,bool,int128)"
     )
+    # older <---------------> newer
+    current_score = None
+    new_logs = None
+    unchecked_logs = None
 
     def __init__(self, shard_id, log_handler, vmc_address):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
@@ -85,10 +89,10 @@ class ShardTracker:
         self.shard_id = shard_id
         self.log_handler = log_handler
         self.vmc_address = vmc_address
+        self.current_score = None
         # older <---------------> newer
         self.new_logs = []
         self.unchecked_logs = []
-        self.current_score = None
 
     @to_tuple
     def _get_new_logs(self):
@@ -134,12 +138,12 @@ class ShardTracker:
         # is_new_head = true log
         while True:
             # TODO: currently just raise when there is no log anymore
-            self.unchecked_logs.append(self.get_next_log())
-            if self.unchecked_logs[-1]['is_new_head'] is True:
+            log_entry = self.get_next_log()
+            if log_entry['is_new_head']:
                 break
-        log = self.unchecked_logs.pop()
-        self.current_score = log['score']
-        return log
+            self.unchecked_logs.append(log_entry)
+        self.current_score = log_entry['score']
+        return log_entry
 
 
 class VMC(Contract):
@@ -159,21 +163,17 @@ class VMC(Contract):
 
     def get_shard_tracker(self, shard_id):
         if shard_id not in self.shard_trackers:
-            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
+            raise UnknownShard('Shard {} is not tracked'.format(shard_id))
         return self.shard_trackers[shard_id]
 
     # TODO: currently just calls `shard_tracker.get_next_log`
     def get_next_log(self, shard_id):
-        if shard_id not in self.shard_trackers:
-            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
-        shard_tracker = self.shard_trackers[shard_id]
+        shard_tracker = self.get_shard_tracker(shard_id)
         return shard_tracker.get_next_log()
 
     # TODO: currently just calls `shard_tracker.fetch_candidate_head`
     def fetch_candidate_head(self, shard_id):
-        if shard_id not in self.shard_trackers:
-            raise ShardNotTracked('Shard {} is not tracked'.format(shard_id))
-        shard_tracker = self.shard_trackers[shard_id]
+        shard_tracker = self.get_shard_tracker(shard_id)
         return shard_tracker.fetch_candidate_head()
 
     @to_dict
