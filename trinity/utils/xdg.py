@@ -26,7 +26,7 @@ def get_xdg_trinity_root():
     Returns the base directory under which trinity will store all data.
     """
     return os.environ.get(
-        'TRINITY_ROOT',
+        'XDG_TRINITY_ROOT',
         os.path.join(XDG_DATA_HOME, 'trinity'),
     )
 
