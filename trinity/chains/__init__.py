@@ -10,9 +10,6 @@ from trinity.constants import (
 from trinity.utils.db import (
     get_chain_db,
 )
-from trinity.utils.filesystem import (
-    ensure_path_exists,
-)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
@@ -59,7 +56,7 @@ def is_chain_initialized(chain_config):
 # header initialization.
 def initialize_chain(chain_config, sync_mode):
     if is_under_xdg_trinity_root(chain_config.data_dir):
-        ensure_path_exists(chain_config.data_dir)
+        os.makedirs(chain_config.data_dir, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
         # we don't lazily create the base dir for non-default base directories.
         raise ValueError(
@@ -69,7 +66,7 @@ def initialize_chain(chain_config, sync_mode):
         )
 
     # Chain data-dir
-    ensure_path_exists(chain_config.database_dir)
+    os.makedirs(chain_config.database_dir, exist_ok=True)
 
     # Nodekey
     if chain_config.nodekey is None:
