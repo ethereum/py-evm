@@ -14,9 +14,6 @@ from evm.constants import (
     ZERO_HASH32,
     ENTRY_POINT,
 )
-from evm.exceptions import (
-    UnannouncedStateAccess,
-)
 from evm.vm.message import (
     ShardingMessage,
 )
