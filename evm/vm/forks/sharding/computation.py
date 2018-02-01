@@ -44,7 +44,10 @@ class ShardingComputation(SpuriousDragonComputation):
     def set_PAYGAS_gasprice(self, gas_price):
         validate_uint256(gas_price, title="PAYGAY.gas_price")
         if self.msg.depth != 0:
-            raise NotTopLevelCall("This should only happen in a top level call context.")
+            raise NotTopLevelCall(
+                "The `set_PAYGAS_gasprice` API is only valid when"
+                "called from the top level computation"
+            )
 
         if self._paygas_gasprice is None:
             self._paygas_gasprice = gas_price

@@ -166,7 +166,7 @@ class GasPriceAlreadySet(Exception):
     pass
 
 
-class NotTopLevelCall(VMError):
+class NotTopLevelCall(Exception):
     """
     Error raised if it's not executing in the top level call(i.e, msg.depth == 0)
     """
