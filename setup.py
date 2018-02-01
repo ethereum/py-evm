@@ -28,6 +28,9 @@ setup(
         "trie>=1.0.1,<2.0.0",
     ],
     extra_require={
+        'coincurve': [
+            "coincurve>=7.0.0",
+        ],
         'leveldb': [
             "leveldb>=0.194",
         ]
