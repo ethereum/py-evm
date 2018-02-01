@@ -172,7 +172,6 @@ class ShardingVMState(ByzantiumVMState):
             'TRANSACTION FEE: %s',
             transaction_fee,
         )
-        computation.tx_fee = transaction_fee
 
         # Process Self Destructs
         with state_db_cm() as state_db:
@@ -218,10 +217,23 @@ class ShardingVMState(ByzantiumVMState):
         block = self.block_class(block_header, transactions)
 
         block.transactions.append(transaction)
+
+        # Calculate gas price
+        tx_PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
+        if tx_PAYGAS_gasprice is None:
+            tx_PAYGAS_gasprice = 0
+        # Calculate gas usage
+        gas_remaining = computation.get_gas_remaining()
+        gas_refunded = computation.get_gas_refund()
+        gas_used = transaction.gas - gas_remaining
+        gas_refund = min(gas_refunded, gas_used // 2)
+        # Calculate transaction fee
+        tx_fee = (transaction.gas - gas_remaining - gas_refund) * tx_PAYGAS_gasprice
+        # Bookkeep this transaction fee
         if hasattr(block, "tx_fee_sum"):
-            block.tx_fee_sum += computation.tx_fee
+            block.tx_fee_sum += tx_fee
         else:
-            block.tx_fee_sum = computation.tx_fee
+            block.tx_fee_sum = tx_fee
 
         # Get trie roots and changed key-values.
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
