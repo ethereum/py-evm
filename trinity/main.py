@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import atexit
+import os
 
 from evm.db.chain import BaseChainDB
 from evm.exceptions import CanonicalHeadNotFound
@@ -15,9 +16,6 @@ from evm.db.backends.level import LevelDB
 
 from trinity.constants import (
     ROPSTEN,
-)
-from trinity.utils.filesystem import (
-    ensure_path_exists,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -65,7 +63,7 @@ def main():
     listener.start()
 
     db_path = get_data_dir(ROPSTEN)
-    ensure_path_exists(db_path)
+    os.makedirs(db_path, exist_ok=True)
 
     # For now we just run the light sync against ropsten by default.
     process = ctx.Process(
