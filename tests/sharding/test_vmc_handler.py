@@ -38,8 +38,8 @@ from evm.utils.keccak import (
     keccak,
 )
 
-from evm.vm.forks.spurious_dragon.transactions import (
-    SpuriousDragonTransaction,
+from evm.vm.forks.byzantium.transactions import (
+    ByzantiumTransaction,
 )
 
 from evm.vm.forks.sharding.log_handler import (
@@ -244,7 +244,7 @@ def deploy_initiating_contracts(vmc_handler, privkey):
     txs = mk_initiating_contracts(
         privkey,
         nonce,
-        SpuriousDragonTransaction,
+        ByzantiumTransaction,
         vmc_handler.config['GAS_PRICE'],
     )
     for tx in txs[:3]:
