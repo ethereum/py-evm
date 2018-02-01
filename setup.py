@@ -29,7 +29,8 @@ setup(
     ],
     extra_require={
         'trinity': [
-            "leveldb>=0.194",
+            "leveldb>=0.194,<1.0",
+            "coincurve>=7.0.0,<8.0.0",
         ]
     },
     setup_requires=['setuptools-markdown'],
