@@ -87,5 +87,3 @@ def child_computation(computation, child_message):
 def test_generate_child_computation(computation, child_computation):
     assert computation.transaction_context.gas_price == child_computation.transaction_context.gas_price  # noqa: E501
     assert computation.transaction_context.origin == child_computation.transaction_context.origin  # noqa: E501
-
-

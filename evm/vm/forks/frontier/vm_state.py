@@ -95,7 +95,6 @@ def _execute_frontier_transaction(vm_state, transaction):
 
     message = Message(
         gas=message_gas,
-        gas_price=transaction.gas_price,
         to=transaction.to,
         sender=transaction.sender,
         value=transaction.value,
