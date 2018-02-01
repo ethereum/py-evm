@@ -30,8 +30,8 @@ from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
 )
 
-from evm.vm.forks.spurious_dragon.transactions import (
-    SpuriousDragonTransaction,
+from evm.vm.forks.byzantium.transactions import (
+    ByzantiumTransaction,
 )
 
 from evm.utils.address import (
@@ -69,7 +69,7 @@ def vmc():
 
     # setup vmc's web3.eth.contract instance
     vmc_tx = create_vmc_tx(
-        SpuriousDragonTransaction,
+        ByzantiumTransaction,
         get_sharding_config()['GAS_PRICE'],
     )
     vmc_addr = get_contract_address_from_contract_tx(vmc_tx)
