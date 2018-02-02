@@ -82,6 +82,8 @@ class LogHandler:
             yield 'topics', topics
 
     def get_new_logs(self, address=None, topics=None):
+        # TODO: should see if we need to do something with revoked_hashes
+        #       it seems reasonable to revoke logs in the blocks with hashes in `revoked_hashes`
         revoked_hashes, new_block_hashes = check_chain_head(
             self.w3,
             self.recent_block_hashes,
