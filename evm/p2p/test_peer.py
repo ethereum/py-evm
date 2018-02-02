@@ -115,6 +115,9 @@ async def get_directly_linked_peers(
     assert peer1.sub_proto.version == peer2.sub_proto.version
     assert peer1.sub_proto.cmd_id_offset == peer2.sub_proto.cmd_id_offset
 
+    # Perform the handshake for the enabled sub-protocol.
+    await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
+
     asyncio.ensure_future(peer1.run())
     asyncio.ensure_future(peer2.run())
 
@@ -125,8 +128,6 @@ async def get_directly_linked_peers(
         event_loop.run_until_complete(afinalizer())
     request.addfinalizer(finalizer)
 
-    # Perform the handshake for the enabled sub-protocol.
-    await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
     return peer1, peer2
 
 
@@ -148,14 +149,11 @@ async def test_les_handshake():
 
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
-    asyncio.ensure_future(peer1.run())
-    asyncio.ensure_future(peer2.run())
     # Perform the handshake for the enabled sub-protocol (LES).
     await asyncio.gather(peer1.do_sub_proto_handshake(), peer2.do_sub_proto_handshake())
 
     assert isinstance(peer1.sub_proto, LESProtocol)
     assert isinstance(peer2.sub_proto, LESProtocol)
-    await asyncio.gather(peer1.stop(), peer2.stop())
 
 
 def test_sub_protocol_selection():

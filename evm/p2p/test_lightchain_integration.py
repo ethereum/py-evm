@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 import rlp
-from eth_keys import keys
 from eth_utils import (
     decode_hex,
     encode_hex,
@@ -16,31 +15,15 @@ from evm.utils.keccak import keccak
 from evm.vm.forks.frontier import FrontierBlock
 
 from evm.p2p import ecies
-from evm.p2p import kademlia
+from evm.p2p.integration_test_helpers import LocalGethPeerPool
 from evm.p2p.lightchain import LightChain
-from evm.p2p.peer import PeerPool
-
-
-class LocalGethPeerPool(PeerPool):
-    min_peers = 1
-
-    async def get_nodes_to_connect(self):
-        nodekey = keys.PrivateKey(decode_hex(
-            "45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"))
-        remoteid = nodekey.public_key.to_hex()
-        return [
-            kademlia.Node(
-                keys.PublicKey(decode_hex(remoteid)),
-                kademlia.Address('127.0.0.1', 30303, 30303))
-        ]
+from evm.p2p.peer import LESPeer
 
 
 IntegrationTestLightChain = LightChain.configure(
     name='IntegrationTest LightChain',
-    privkey=ecies.generate_privkey(),
     vm_configuration=MAINNET_VM_CONFIGURATION,
     network_id=ROPSTEN_NETWORK_ID,
-    peer_pool_class=LocalGethPeerPool,
     max_consecutive_timeouts=1,
 )
 
@@ -62,11 +45,14 @@ async def test_lightchain_integration(request, event_loop):
 
     chaindb = BaseChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
-    chain = IntegrationTestLightChain(chaindb)
+    peer_pool = LocalGethPeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
+    chain = IntegrationTestLightChain(chaindb, peer_pool)
+    asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
 
     def finalizer():
+        event_loop.run_until_complete(peer_pool.stop())
         event_loop.run_until_complete(chain.stop())
 
     request.addfinalizer(finalizer)

@@ -7,6 +7,7 @@ from typing import (  # noqa: F401
     cast,
     Dict,
     List,
+    Set,
 )
 
 import rlp
@@ -21,15 +22,17 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from evm.db.backends.base import BaseDB
+from evm.db.chain import BaseChainDB
 from evm.rlp.accounts import Account
 from evm.utils.keccak import keccak
 from evm.p2p import eth
-from evm.p2p import protocol
-from evm.p2p.peer import BasePeer, ETHPeer, PeerPool
+from evm.p2p.exceptions import PeerFinished
+from evm.p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from evm.p2p.eth import MAX_STATE_FETCH
 
 
-class StateDownloader:
+class StateDownloader(PeerPoolSubscriber):
     logger = logging.getLogger("evm.p2p.state.StateDownloader")
     _pending_nodes = {}  # type: Dict[Any, float]
     _total_processed_nodes = 0
@@ -43,28 +46,49 @@ class StateDownloader:
     # loop.
     _last_report_time = 0
 
-    def __init__(self, chaindb, state_db, root_hash, network_id, privkey):
-        self.peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey, self.msg_handler)
+    def __init__(self, state_db: BaseDB, root_hash: bytes, peer_pool: PeerPool) -> None:
+        self.peer_pool = peer_pool
+        self.peer_pool.subscribe(self)
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, state_db, self.logger)
+        self._running_peers = set()  # type: Set[ETHPeer]
+        self._should_stop = asyncio.Event()
 
-    def msg_handler(self, peer: BasePeer, cmd: protocol.Command,
-                    msg: protocol._DecodedMsgType) -> None:
-        """The callback passed to BasePeer, called for every incoming message."""
-        peer = cast(ETHPeer, peer)
-        if isinstance(cmd, eth.NodeData):
-            self.logger.debug("Processing NodeData with %d entries" % len(msg))
-            for node in msg:
-                self._total_processed_nodes += 1
-                node_key = keccak(node)
-                try:
-                    self.scheduler.process([(node_key, node)])
-                except SyncRequestAlreadyProcessed:
-                    # This means we received a node more than once, which can happen when we retry
-                    # after a timeout.
-                    pass
-                # A node may be received more than once, so pop() with a default value.
-                self._pending_nodes.pop(node_key, None)
+    def register_peer(self, peer: BasePeer) -> None:
+        asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
+
+    async def handle_peer(self, peer: ETHPeer) -> None:
+        """Handle the lifecycle of the given peer."""
+        self._running_peers.add(peer)
+        try:
+            await self._handle_peer(peer)
+        finally:
+            self._running_peers.remove(peer)
+
+    async def _handle_peer(self, peer: ETHPeer) -> None:
+        while not self._should_stop.is_set():
+            try:
+                cmd, msg = await peer.read_sub_proto_msg()
+            except PeerFinished:
+                break
+            if isinstance(cmd, eth.NodeData):
+                self.logger.debug("Processing NodeData with %d entries", len(msg))
+                for node in msg:
+                    self._total_processed_nodes += 1
+                    node_key = keccak(node)
+                    try:
+                        self.scheduler.process([(node_key, node)])
+                    except SyncRequestAlreadyProcessed:
+                        # This means we received a node more than once, which can happen when we
+                        # retry after a timeout.
+                        pass
+                    # A node may be received more than once, so pop() with a default value.
+                    self._pending_nodes.pop(node_key, None)
+            else:
+                # It'd be very convenient if we could ignore everything that is not a NodeData
+                # when doing a StateSync, but need to double check because peers may consider that
+                # "Bad Form" and disconnect from us.
+                self.logger.debug("Ignoring %s(%s) while doing a StateSync", cmd, msg)
 
     # FIXME: Need a better criteria to select peers here.
     async def get_random_peer(self) -> ETHPeer:
@@ -75,7 +99,11 @@ class StateDownloader:
         return cast(ETHPeer, peer)
 
     async def stop(self):
-        await self.peer_pool.stop()
+        self._should_stop.set()
+        self.peer_pool.unsubscribe(self)
+        while len(self._running_peers):
+            self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
+            await asyncio.sleep(0.1)
 
     async def request_next_batch(self):
         requests = self.scheduler.next_batch(MAX_STATE_FETCH)
@@ -89,7 +117,7 @@ class StateDownloader:
         self.logger.debug("Requesting %d trie nodes" % len(requests))
         await self.request_nodes([request.node_key for request in requests])
 
-    async def request_nodes(self, node_keys):
+    async def request_nodes(self, node_keys: List[bytes]):
         peer = await self.get_random_peer()
         now = time.time()
         for node_key in node_keys:
@@ -108,8 +136,6 @@ class StateDownloader:
         await self.request_nodes(timed_out)
 
     async def run(self):
-        asyncio.ensure_future(self.peer_pool.run())
-
         self.logger.info("Starting state sync for root hash %s" % encode_hex(self.root_hash))
         while self.scheduler.has_pending_requests:
             # Request new nodes if we haven't reached the limit of pending nodes.
@@ -160,7 +186,6 @@ if __name__ == "__main__":
     import argparse
     from evm.p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
-    from evm.db.chain import BaseChainDB
     from evm.db.backends.level import LevelDB
     from evm.db.backends.memory import MemoryDB
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -172,12 +197,12 @@ if __name__ == "__main__":
 
     chaindb = BaseChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
-    network_id = RopstenChain.network_id
-    privkey = ecies.generate_privkey()
+    peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
+    asyncio.ensure_future(peer_pool.run())
 
     state_db = LevelDB(args.db)
     root_hash = decode_hex(args.root_hash)
-    downloader = StateDownloader(chaindb, state_db, root_hash, network_id, privkey)
+    downloader = StateDownloader(state_db, root_hash, peer_pool)
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(downloader.run())
@@ -185,4 +210,5 @@ if __name__ == "__main__":
         pass
 
     loop.run_until_complete(downloader.stop())
+    loop.run_until_complete(peer_pool.stop())
     loop.close()
