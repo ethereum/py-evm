@@ -24,7 +24,6 @@ from eth_utils import (
     is_canonical_address,
     pad_left,
     to_checksum_address,
-    to_tuple,
 )
 
 from eth_keys import (
@@ -157,35 +156,30 @@ def create_viper_rlp_decoder_tx(TransactionClass):
     return create_transaction_from_hex(viper_rlp_decoder_tx_hex, TransactionClass)
 
 
-@to_tuple
-def mk_initiating_contracts(sender_privkey,
-                            sender_starting_nonce,
-                            TransactionClass,
-                            gas_price):
+def mk_initiating_transactions(sender_privkey,
+                               sender_starting_nonce,
+                               TransactionClass,
+                               gas_price):
     """Make transactions of createing initial contracts
     Including rlp_decoder, sighasher and validator_manager
     """
     nonce = sender_starting_nonce
 
-    viper_rlp_decoder_tx = create_viper_rlp_decoder_tx(TransactionClass)
-    sighasher_tx = create_sighasher_tx(TransactionClass)
     vmc_tx = create_vmc_tx(TransactionClass, gas_price=gas_price)
 
     # the sender gives all senders of the txs money, and append the
     # money-giving tx with the original tx to the return list
-    for tx in (viper_rlp_decoder_tx, sighasher_tx, vmc_tx):
-        funding_tx_for_tx_sender = TransactionClass.create_unsigned_transaction(
-            nonce,
-            gas_price,
-            500000,
-            tx.sender,
-            tx.gas * tx.gas_price + tx.value,
-            b'',
-        ).as_signed_transaction(sender_privkey)
-        nonce += 1
-        yield funding_tx_for_tx_sender
-    for tx in (viper_rlp_decoder_tx, sighasher_tx, vmc_tx):
-        yield tx
+
+    funding_tx_for_tx_sender = TransactionClass.create_unsigned_transaction(
+        nonce,
+        gas_price,
+        500000,
+        vmc_tx.sender,
+        vmc_tx.gas * vmc_tx.gas_price + vmc_tx.value,
+        b'',
+    ).as_signed_transaction(sender_privkey)
+    nonce += 1
+    return funding_tx_for_tx_sender, vmc_tx
 
 
 def do_withdraw(vmc_handler, validator_index):
@@ -212,16 +206,13 @@ def do_deposit(vmc_handler, privkey):
 def deploy_initiating_contracts(vmc_handler, privkey):
     w3 = vmc_handler.web3
     nonce = get_nonce(vmc_handler, privkey.public_key.to_canonical_address())
-    txs = mk_initiating_contracts(
+    txs = mk_initiating_transactions(
         privkey,
         nonce,
         ByzantiumTransaction,
         vmc_handler.config['GAS_PRICE'],
     )
-    for tx in txs[:3]:
-        send_raw_transaction(vmc_handler, tx)
-    mine(vmc_handler, 1)
-    for tx in txs[3:]:
+    for tx in txs:
         send_raw_transaction(vmc_handler, tx)
         mine(vmc_handler, 1)
     logger.debug(
@@ -254,14 +245,12 @@ def mk_testing_colhdr(vmc_handler,
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
     logger.debug("mk_testing_colhdr: expected_period_number=%s", expected_period_number)
-    sender_addr = privkey.public_key.to_canonical_address()
-    period_start_prevhash = vmc_handler.call(
-        vmc_handler.mk_contract_tx_detail(
-            sender_address=sender_addr,
-            gas=vmc_handler.config['DEFAULT_GAS'],
-        )
-    ).get_period_start_prevhash(expected_period_number)
+
+    period_start_prevblock_number = expected_period_number * period_length - 1
+    period_start_prev_block = vmc_handler.web3.eth.getBlock(period_start_prevblock_number)
+    period_start_prevhash = period_start_prev_block['hash']
     logger.debug("mk_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
+
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
