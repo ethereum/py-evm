@@ -145,16 +145,8 @@ class ShardingVMState(ByzantiumVMState):
         if num_deletions:
             computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
-        PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
-        if PAYGAS_gasprice is None:
-            PAYGAS_gasprice = 0
-
         # Gas Refunds
-        gas_remaining = computation.get_gas_remaining()
-        gas_refunded = computation.get_gas_refund()
-        gas_used = transaction.gas - gas_remaining
-        gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * PAYGAS_gasprice
+        transaction_fee, gas_refund_amount = computation.compute_transaction_fee_and_refund()
 
         if gas_refund_amount:
             self.logger.debug(
@@ -167,7 +159,6 @@ class ShardingVMState(ByzantiumVMState):
                 state_db.delta_balance(message.to, gas_refund_amount)
 
         # Miner Fees
-        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * PAYGAS_gasprice
         self.logger.debug(
             'TRANSACTION FEE: %s',
             transaction_fee,
@@ -218,22 +209,10 @@ class ShardingVMState(ByzantiumVMState):
 
         block.transactions.append(transaction)
 
-        # Calculate gas price
-        tx_PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
-        if tx_PAYGAS_gasprice is None:
-            tx_PAYGAS_gasprice = 0
-        # Calculate gas usage
-        gas_remaining = computation.get_gas_remaining()
-        gas_refunded = computation.get_gas_refund()
-        gas_used = transaction.gas - gas_remaining
-        gas_refund = min(gas_refunded, gas_used // 2)
         # Calculate transaction fee
-        tx_fee = (transaction.gas - gas_remaining - gas_refund) * tx_PAYGAS_gasprice
+        transaction_fee, _ = computation.compute_transaction_fee_and_refund()
         # Bookkeep this transaction fee
-        if hasattr(block, "tx_fee_sum"):
-            block.tx_fee_sum += tx_fee
-        else:
-            block.tx_fee_sum = tx_fee
+        block.transaction_fee_sum += transaction_fee
 
         # Get trie roots and changed key-values.
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
@@ -259,10 +238,10 @@ class ShardingVMState(ByzantiumVMState):
         )
 
         with self.state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block.tx_fee_sum)
+            state_db.delta_balance(block.header.coinbase, block.transaction_fee_sum)
             self.logger.debug(
                 "TOTAL TRANSACTON FEE: %s -> %s",
-                block.tx_fee_sum,
+                block.transaction_fee_sum,
                 block.header.coinbase,
             )
 
