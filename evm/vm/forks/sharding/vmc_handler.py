@@ -44,14 +44,11 @@ class UnknownShard(Exception):
     pass
 
 
-@to_dict
-def parse_collation_added_data(data_hex):
-    data_bytes = decode_hex(data_hex)
-    score = big_endian_to_int(data_bytes[-32:])
-    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
-    header_bytes = data_bytes[:-64]
+@to_tuple
+def deserialize_header_bytes(header_bytes):
     # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
-    sedes = rlp.sedes.List([
+    obj_size = 32
+    sedes = (
         rlp.sedes.big_endian_int,
         rlp.sedes.big_endian_int,
         hash32,
@@ -61,10 +58,28 @@ def parse_collation_added_data(data_hex):
         hash32,
         hash32,
         rlp.sedes.big_endian_int,
-        rlp.sedes.binary,
-    ])
-    header_values = rlp.decode(header_bytes, sedes=sedes)
-    yield 'header', header_values
+    )
+    assert len(header_bytes) == obj_size * len(sedes)
+    for idx, obj_type in enumerate(sedes):
+        start_index = idx * obj_size
+        end_index = (idx + 1) * obj_size
+        obj_bytes = header_bytes[start_index:end_index]
+        if obj_type == rlp.sedes.big_endian_int:
+            yield big_endian_to_int(obj_bytes)
+        elif obj_type == address:
+            yield obj_bytes[-20:]
+        else:
+            yield obj_bytes
+
+
+@to_dict
+def parse_collation_added_data(data_hex):
+    data_bytes = decode_hex(data_hex)
+    score = big_endian_to_int(data_bytes[-32:])
+    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
+    header_bytes = data_bytes[:-64]
+    header_tuple = deserialize_header_bytes(header_bytes)
+    yield 'header', header_tuple
     yield 'is_new_head', is_new_head
     yield 'score', score
 
@@ -292,12 +307,33 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def add_header(self, header, gas=None, gas_price=None):
+    def add_header(self,
+                   shard_id,
+                   expected_period_number,
+                   period_start_prevhash,
+                   parent_collation_hash,
+                   tx_list_root,
+                   collation_coinbase,
+                   post_state_root,
+                   receipt_root,
+                   collation_number,
+                   gas=None,
+                   gas_price=None):
         """add_header(header: bytes <= 4096) -> bool
         """
         tx_hash = self.send_transaction(
             'add_header',
-            [header],
+            [
+                shard_id,
+                expected_period_number,
+                period_start_prevhash,
+                parent_collation_hash,
+                tx_list_root,
+                to_checksum_address(collation_coinbase),
+                post_state_root,
+                receipt_root,
+                collation_number,
+            ],
             gas=gas,
             gas_price=gas_price,
         )
