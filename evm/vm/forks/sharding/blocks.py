@@ -19,3 +19,14 @@ class ShardingBlock(HomesteadBlock):
         ('transactions', CountableList(transaction_class)),
         ('uncles', CountableList(BlockHeader))
     ]
+
+    transaction_fee_sum = None
+
+    def __init__(self, header, transactions=None, uncles=None):
+        self.transaction_fee_sum = 0
+
+        super(ShardingBlock, self).__init__(
+            header=header,
+            transactions=transactions,
+            uncles=uncles,
+        )
