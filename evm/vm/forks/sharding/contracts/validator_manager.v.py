@@ -26,7 +26,7 @@ receipts: public({
     value: wei_value,
     sender: address,
     to: address,
-    data: bytes <= 4096
+    data: bytes <= 4096,
 }[num])
 
 # Current head of each shard
@@ -56,16 +56,8 @@ period_head: public(num[num])
 # The exact deposit size which you have to deposit to become a validator
 deposit_size: wei_value
 
-# Any given validator randomly gets allocated to some number of shards every SHUFFLING_CYCLE
-# Will be [DEPRECATED] for stateless client
-shuffling_cycle_length: num
-
 # Number of blocks in one period
 period_length: num
-
-# Number of validators of each cycle
-# will be [DEPRECATED] for stateless client
-num_validators_per_cycle: num
 
 # Number of shards
 shard_count: num
@@ -75,6 +67,7 @@ shard_count: num
 lookahead_periods: num
 
 # Events
+# TODO: should be added after the issue "In log declaration, `bytes` must be smaller 32" is solved.
 # CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
 
 @public
@@ -83,10 +76,8 @@ def __init__():
     self.empty_slots_stack_top = 0
     # 10 ** 20 wei = 100 ETH
     self.deposit_size = 100000000000000000000
-    self.shuffling_cycle_length = 25  # FIXME: just modified temporarily for test
     self.sig_gas_limit = 40000
     self.period_length = 5
-    self.num_validators_per_cycle = 100
     self.shard_count = 100
     self.lookahead_periods = 4
 
@@ -187,30 +178,6 @@ def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
     )
 
 
-# Will be [DEPRECATED] for stateless client
-@public
-@constant
-def sample(shard_id: num) -> address:
-    cycle = floor(decimal(block.number / self.shuffling_cycle_length))
-    cycle_start_block_number = cycle * self.shuffling_cycle_length - 1
-    if cycle_start_block_number < 0:
-        cycle_start_block_number = 0
-    cycle_seed = blockhash(cycle_start_block_number)
-    # originally, error occurs when block.number <= 4 because
-    # `seed_block_number` becomes negative in these cases.
-    # Now, just reject the cases when block.number <= 4
-    assert block.number >= self.period_length
-    seed = blockhash(block.number - (block.number % self.period_length) - 1)
-    index_in_subset = num256_mod(as_num256(sha3(concat(seed, as_bytes32(shard_id)))),
-                                 as_num256(self.num_validators_per_cycle))
-    validator_index = num256_mod(as_num256(sha3(concat(cycle_seed, as_bytes32(shard_id), as_bytes32(index_in_subset)))),
-                                 as_num256(self.get_validators_max_index()))
-    if self.validators[as_num128(validator_index)].cycle > cycle:
-        return 0x0000000000000000000000000000000000000000
-    else:
-        return self.validators[as_num128(validator_index)].addr
-
-
 # Uses a block hash as a seed to pseudorandomly select a signer from the validator set.
 # [TODO] Chance of being selected should be proportional to the validator's deposit.
 # Should be able to return a value for the current period or any future period up to.
@@ -226,6 +193,7 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
                 as_num256(
                     sha3(
                         concat(
+                            # TODO: should check further if this safe or not
                             blockhash((period - self.lookahead_periods) * self.period_length),
                             as_bytes32(shard_id)
                         )
@@ -235,41 +203,6 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
             )
         )
     ].addr
-
-
-# Get all possible shard ids that the given valcode_addr may be sampled in the current cycle
-# Will be [DEPRECATED] for stateless client
-@public
-@constant
-def get_shard_list(validator_addr: address) -> bool[100]:
-    shard_list: bool[100]
-    cycle = floor(decimal(block.number / self.shuffling_cycle_length))
-    cycle_start_block_number = cycle * self.shuffling_cycle_length - 1
-    if cycle_start_block_number < 0:
-        cycle_start_block_number = 0
-    cycle_seed = blockhash(cycle_start_block_number)
-    validators_max_index = self.get_validators_max_index()
-    if self.num_validators != 0:
-        for shard_id in range(100):
-            shard_list[shard_id] = False
-            # range(shard_count): , possible shard_id
-            for possible_index_in_subset in range(100):
-                # range(num_validators_per_cycle): possible index_in_subset
-                validator_index = num256_mod(
-                    as_num256(
-                        sha3(
-                            concat(
-                                cycle_seed,
-                                as_bytes32(shard_id),
-                                as_bytes32(possible_index_in_subset))
-                            )
-                    ),
-                    as_num256(validators_max_index)
-                )
-                if validator_addr == self.validators[as_num128(validator_index)].addr:
-                    shard_list[shard_id] = True
-                    break
-    return shard_list
 
 
 # Attempts to process a collation header, returns True on success, reverts on failure.
@@ -361,15 +294,6 @@ def add_header(
     )
 
     return True
-
-
-# Returns the block hash of block `PERIOD_LENGTH * expected_period_number - 1`
-@public
-@constant
-def get_period_start_prevhash(expected_period_number: num) -> bytes32:
-    block_number = expected_period_number * self.period_length - 1
-    assert block.number > block_number
-    return blockhash(block_number)
 
 
 # Returns the gas limit that collations can currently have (by default make
