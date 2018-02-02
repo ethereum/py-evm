@@ -56,6 +56,20 @@ class ShardingComputation(SpuriousDragonComputation):
                 "PAYGAS is already triggered once with gas price: {}".format(self._paygas_gasprice)
             )
 
+    def compute_transaction_fee_and_refund(self):
+        gas_price = self.get_PAYGAS_gas_price()
+        if gas_price is None:
+            gas_price = 0
+
+        transaction_gas = self.msg.transaction_gas_limit
+        gas_remaining = self.get_gas_remaining()
+        gas_refunded = self.get_gas_refund()
+        gas_used = transaction_gas - gas_remaining
+        gas_refund = min(gas_refunded, gas_used // 2)
+        gas_refund_amount = (gas_refund + gas_remaining) * gas_price
+        tx_fee = (transaction_gas - gas_remaining - gas_refund) * gas_price
+        return tx_fee, gas_refund_amount
+
     def apply_message(self):
         snapshot = self.vm_state.snapshot()
 
