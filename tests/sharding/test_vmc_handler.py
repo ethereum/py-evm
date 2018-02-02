@@ -3,7 +3,6 @@ import logging
 
 from cytoolz import (
     compose,
-    pipe,
 )
 
 import pytest
@@ -31,7 +30,6 @@ from eth_keys import (
 )
 
 from evm.utils.hexadecimal import (
-    decode_hex,
     encode_hex,
 )
 from evm.utils.keccak import (
