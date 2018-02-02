@@ -313,7 +313,7 @@ def add_header(
     # then there is no need to check.
     if parent_collation_hash != as_bytes32(0):
         assert (parent_collation_hash == as_bytes32(0)) or (self.collation_headers[shard_id][parent_collation_hash].score > 0)
-    # Check if only one colllation in one period
+    # Check if only one collation in one period
     assert self.period_head[shard_id] < expected_period_number
 
     # Check the signature with validation_code_addr
