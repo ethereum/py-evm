@@ -359,7 +359,7 @@ def test_no_call_if_not_enough_gas(vm):
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
         "destination": NOOP_CONTRACT_ADDRESS,
-        "gas": 55000,
+        "gas": 80000,
         "access_list": DEFAULT_TX_PARAMS["access_list"] + [[NOOP_CONTRACT_ADDRESS]],
     })).as_signed_transaction(PRIVATE_KEY)
     computation, _ = vm.apply_transaction(transaction)
