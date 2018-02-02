@@ -30,7 +30,8 @@ from evm.db.backends.base import BaseDB
 from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 from evm.p2p import eth
-from evm.p2p.exceptions import PeerFinished
+from evm.p2p.cancel_token import CancelToken
+from evm.p2p.exceptions import OperationCancelled
 from evm.p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from evm.p2p.eth import MAX_STATE_FETCH
 
@@ -55,7 +56,7 @@ class StateDownloader(PeerPoolSubscriber):
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, state_db, self.logger)
         self._running_peers = set()  # type: Set[ETHPeer]
-        self._should_stop = asyncio.Event()
+        self.cancel_token = CancelToken('StateDownloader')
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -69,10 +70,12 @@ class StateDownloader(PeerPoolSubscriber):
             self._running_peers.remove(peer)
 
     async def _handle_peer(self, peer: ETHPeer) -> None:
-        while not self._should_stop.is_set():
+        while True:
             try:
-                cmd, msg = await peer.read_sub_proto_msg()
-            except PeerFinished:
+                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+            except OperationCancelled:
+                # Either our cancel token or the peer's has been triggered, so break out of the
+                # loop.
                 break
             if isinstance(cmd, eth.NodeData):
                 self.logger.debug("Processing NodeData with %d entries", len(msg))
@@ -102,7 +105,7 @@ class StateDownloader(PeerPoolSubscriber):
         return cast(ETHPeer, peer)
 
     async def stop(self):
-        self._should_stop.set()
+        self.cancel_token.trigger()
         self.peer_pool.unsubscribe(self)
         while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
@@ -140,7 +143,7 @@ class StateDownloader(PeerPoolSubscriber):
 
     async def run(self):
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
-        while self.scheduler.has_pending_requests:
+        while self.scheduler.has_pending_requests and not self.cancel_token.triggered:
             # Request new nodes if we haven't reached the limit of pending nodes.
             if len(self._pending_nodes) < self._max_pending:
                 await self.request_next_batch()
@@ -187,6 +190,7 @@ class StateSync(HexaryTrieSync):
 
 def _test():
     import argparse
+    import signal
     from evm.p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
@@ -207,13 +211,18 @@ def _test():
     root_hash = decode_hex(args.root_hash)
     downloader = StateDownloader(state_db, root_hash, peer_pool)
     loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(downloader.run())
-    except KeyboardInterrupt:
-        pass
 
-    loop.run_until_complete(downloader.stop())
-    loop.run_until_complete(peer_pool.stop())
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, downloader.cancel_token.trigger)
+
+    async def run():
+        # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
+        # token, at which point it returns and we stop the pool and downloader.
+        await downloader.run()
+        await peer_pool.stop()
+        await downloader.stop()
+
+    loop.run_until_complete(run())
     loop.close()
 
 

@@ -242,7 +242,7 @@ def run_networking_process(chain_config, sync_mode):
 
     def cleanup():
         # This is to instruct chain.run() to exit, which will cause the event loop to stop.
-        chain._should_stop.set()
+        chain.cancel_token.trigger()
 
         loop.close()
 

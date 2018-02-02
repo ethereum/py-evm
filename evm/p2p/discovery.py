@@ -70,6 +70,7 @@ CMD_NEIGHBOURS = Command("neighbours", 4, 2)
 CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, CMD_NEIGHBOURS])
 
 
+# TODO: Use a CancelToken here, to cancel pending operations when we stop()
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")

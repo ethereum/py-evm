@@ -99,7 +99,7 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
 
     def cleanup():
         # Instruct chain.run() to exit, which will cause the event loop to stop.
-        chain._should_stop.set()
+        chain.cancel_token.trigger()
         # Block until the event loop has stopped.
         t.join()
         # The above was needed because the event loop stops when chain.run() returns and then

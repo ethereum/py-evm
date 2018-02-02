@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -14,10 +15,6 @@ from typing import (  # noqa: F401
 
 from async_lru import alru_cache
 
-from eth_keys import (  # noqa: F401
-    datatypes,
-    keys,
-)
 from eth_utils import (
     encode_hex,
 )
@@ -35,8 +32,7 @@ from evm.rlp.receipts import Receipt
 from evm.p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
-    PeerFinished,
-    StopRequested,
+    OperationCancelled,
     TooManyTimeouts,
     UnexpectedMessage,
 )
@@ -47,6 +43,7 @@ from evm.p2p.peer import (
     PeerPool,
     PeerPoolSubscriber,
 )
+from evm.p2p.cancel_token import CancelToken, wait_with_token
 
 
 class LightChain(Chain, PeerPoolSubscriber):
@@ -59,8 +56,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         self.peer_pool.subscribe(self)
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
-        self._should_stop = asyncio.Event()
-        self._finished = asyncio.Event()
+        self.cancel_token = CancelToken('LightChain')
         self._running_peers = set()  # type: Set[LESPeer]
 
     @classmethod
@@ -86,8 +82,10 @@ class LightChain(Chain, PeerPoolSubscriber):
         self._announcement_queue.put_nowait((peer, peer.head_info))
         while True:
             try:
-                cmd, msg = await peer.read_sub_proto_msg()
-            except PeerFinished:
+                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+            except OperationCancelled:
+                # Either the peer disconnected or our cancel_token has been triggered, so break
+                # out of the loop to stop attempting to sync with this peer.
                 break
             # We currently implement only the LES commands for retrieving data (apart from
             # Announce), and those should always come as a response to requests we make so will be
@@ -106,10 +104,15 @@ class LightChain(Chain, PeerPoolSubscriber):
         await peer.stop()
 
     async def wait_until_finished(self):
-        while self._running_peers:
+        start_at = time.time()
+        # Wait at most 5 seconds for pending peers to finish.
+        while time.time() < start_at + 5:
+            if not self._running_peers:
+                break
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
-        await self._finished.wait()
+        else:
+            self.logger.info("Waited too long for peers to finish, exiting anyway")
 
     async def get_best_peer(self) -> LESPeer:
         """
@@ -137,27 +140,10 @@ class LightChain(Chain, PeerPoolSubscriber):
         Returns a tuple containing the LESPeer on which the announcement was received and the
         announcement info.
 
-        Raises StopRequested when LightChain.stop() has been called.
+        Raises OperationCancelled when LightChain.stop() has been called.
         """
-        should_stop = False
-
-        async def wait_for_stop_event():
-            nonlocal should_stop
-            await self._should_stop.wait()
-            should_stop = True
-
-        # Wait for either a new announcement or the _should_stop event.
-        done, pending = await asyncio.wait(
-            [self._announcement_queue.get(), wait_for_stop_event()],
-            return_when=asyncio.FIRST_COMPLETED)
-        # The asyncio.wait() call above may return both tasks as done, but never both as pending,
-        # although to be future-proof (in case more than 2 tasks are passed in to wait()), we
-        # iterate over all pending tasks and cancel all of them.
-        for task in pending:
-            task.cancel()
-        if should_stop:
-            raise StopRequested()
-        return done.pop().result()
+        # Wait for either a new announcement or our cancel_token to be triggered.
+        return await wait_with_token(self._announcement_queue.get(), self.cancel_token)
 
     async def run(self) -> None:
         """Run the LightChain, ensuring headers are in sync with connected peers.
@@ -168,14 +154,14 @@ class LightChain(Chain, PeerPoolSubscriber):
         while True:
             try:
                 peer, head_info = await self.wait_for_announcement()
-            except StopRequested:
+            except OperationCancelled:
                 self.logger.debug("Asked to stop, breaking out of run() loop")
                 break
 
             try:
                 await self.process_announcement(peer, head_info)
                 self._last_processed_announcements[peer] = head_info
-            except StopRequested:
+            except OperationCancelled:
                 self.logger.debug("Asked to stop, breaking out of run() loop")
                 break
             except LESAnnouncementProcessingError as e:
@@ -186,14 +172,10 @@ class LightChain(Chain, PeerPoolSubscriber):
                     "Unexpected error when processing announcement: %s", repr(e))
                 await self.drop_peer(peer)
 
-        self._finished.set()
-
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
         for i in range(self.max_consecutive_timeouts):
-            if self._should_stop.is_set():
-                raise StopRequested()
             try:
-                return await peer.fetch_headers_starting_at(start_block)
+                return await peer.fetch_headers_starting_at(start_block, self.cancel_token)
             except asyncio.TimeoutError:
                 self.logger.info(
                     "Timeout when fetching headers from %s (attempt %d of %d)",
@@ -242,8 +224,6 @@ class LightChain(Chain, PeerPoolSubscriber):
 
         start_block = await self.get_sync_start_block(peer, head_info)
         while start_block < head_info.block_number:
-            # TODO: Need to check that the peer is not finished (peer._finished.is_set()), because
-            # if they are we're going to get errors when trying to use them to make requests.
             try:
                 # We should use "start_block + 1" here, but we always re-fetch the last synced
                 # block to work around https://github.com/ethereum/go-ethereum/issues/15447
@@ -258,7 +238,7 @@ class LightChain(Chain, PeerPoolSubscriber):
 
     async def stop(self):
         self.logger.info("Stopping LightChain...")
-        self._should_stop.set()
+        self.cancel_token.trigger()
         self.logger.debug("Waiting for all pending tasks to finish...")
         await self.wait_until_finished()
         self.logger.debug("LightChain finished")
@@ -282,10 +262,10 @@ class LightChain(Chain, PeerPoolSubscriber):
             header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
         except BlockNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
-            header = await peer.get_block_header_by_hash(block_hash)
+            header = await peer.get_block_header_by_hash(block_hash, self.cancel_token)
 
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        body = await peer.get_block_by_hash(block_hash)
+        body = await peer.get_block_by_hash(block_hash, self.cancel_token)
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
         transactions = [
             block_class.transaction_class.from_base_transaction(tx)
@@ -301,17 +281,17 @@ class LightChain(Chain, PeerPoolSubscriber):
     async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
         peer = await self.get_best_peer()
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
-        return await peer.get_receipts(block_hash)
+        return await peer.get_receipts(block_hash, self.cancel_token)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: bytes, address: bytes) -> Account:
         peer = await self.get_best_peer()
-        return await peer.get_account(block_hash, address)
+        return await peer.get_account(block_hash, address, self.cancel_token)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
         peer = await self.get_best_peer()
-        return await peer.get_contract_code(block_hash, key)
+        return await peer.get_contract_code(block_hash, key, self.cancel_token)
 
 
 def _test():
@@ -363,17 +343,14 @@ def _test():
     loop = asyncio.get_event_loop()
 
     async def run():
-        # chain.run() will run in a loop until stop() (registered as SIGINT/SIGTERM handler) is
-        # called, at which point it returns and we cleanly stop the pool and chain.
+        # chain.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
+        # token, at which point it returns and we stop the pool and chain.
         await chain.run()
         await peer_pool.stop()
         await chain.stop()
 
-    def stop():
-        chain._should_stop.set()
-
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, stop)
+        loop.add_signal_handler(sig, chain.cancel_token.trigger)
 
     loop.run_until_complete(run())
     loop.close()
