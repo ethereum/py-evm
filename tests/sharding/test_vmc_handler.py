@@ -2,6 +2,7 @@ import functools
 import logging
 
 from cytoolz import (
+    compose,
     pipe,
 )
 
@@ -19,6 +20,9 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
+    int_to_big_endian,
+    is_canonical_address,
+    pad_left,
     to_checksum_address,
     to_tuple,
 )
@@ -27,9 +31,6 @@ from eth_keys import (
     keys,
 )
 
-from evm.utils.address import (
-    generate_contract_address,
-)
 from evm.utils.hexadecimal import (
     decode_hex,
     encode_hex,
@@ -51,6 +52,7 @@ from evm.vm.forks.sharding.vmc_utils import (
 from evm.vm.forks.sharding.vmc_handler import (
     NextLogUnavailable,
     ShardTracker,
+    deserialize_header_bytes,
     parse_collation_added_data,
 )
 
@@ -263,21 +265,28 @@ def mk_testing_colhdr(vmc_handler,
     tx_list_root = b"tx_list " * 4
     post_state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
-    sighash = keccak(
-        rlp.encode([
-            shard_id,
-            expected_period_number,
-            period_start_prevhash,
-            parent_collation_hash,
-            tx_list_root,
-            collation_coinbase,
-            post_state_root,
-            receipt_root,
-            number,
-        ])
+    # temp function for casting int to bytes32
+    pad_bytes_to_bytes32 = functools.partial(pad_left, to_size=32, pad_with=b'\x00')
+    int_to_bytes32 = compose(
+        pad_bytes_to_bytes32,
+        int_to_big_endian,
     )
-    sig = sign(sighash, privkey)
-    return rlp.encode([
+    header_hash = keccak(
+        b''.join(
+            (
+                int_to_bytes32(shard_id),
+                int_to_bytes32(expected_period_number),
+                period_start_prevhash,
+                parent_collation_hash,
+                tx_list_root,
+                pad_bytes_to_bytes32(collation_coinbase),
+                post_state_root,
+                receipt_root,
+                int_to_bytes32(number),
+            )
+        )
+    )
+    header_tuple = (
         shard_id,
         expected_period_number,
         period_start_prevhash,
@@ -287,8 +296,8 @@ def mk_testing_colhdr(vmc_handler,
         post_state_root,
         receipt_root,
         number,
-        sig,
-    ])
+    )
+    return header_tuple, header_hash
 
 
 @pytest.mark.parametrize(  # noqa: F811
@@ -424,36 +433,44 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `add_header` ######################################
     genesis_colhdr_hash = b'\x00' * 32
     # create a testing collation header, whose parent is the genesis
-    header0_1 = mk_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
-    header0_1_hash = keccak(header0_1)
+    header0_1, header0_1_hash = mk_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
-        header_parent_not_added = mk_testing_colhdr(
+        header_parent_not_added, _ = mk_testing_colhdr(
             vmc,
             shard_id,
             header0_1_hash,
             1,
         )
+        header_tuple_casting_address = (
+            to_checksum_address(item)
+            if is_canonical_address(item) else item
+            for item in header_parent_not_added
+        )
         vmc.call(vmc.mk_contract_tx_detail(
             sender_address=primary_addr,
             gas=default_gas,
             gas_price=1,
-        )).add_header(header_parent_not_added)
+        )).add_header(*header_tuple_casting_address)
     # when a valid header is added, the `add_header` call should succeed
-    vmc.add_header(header0_1)
+    vmc.add_header(*header0_1)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
+        header0_1_casting_address = (
+            to_checksum_address(item)
+            if is_canonical_address(item) else item
+            for item in header0_1
+        )
         vmc.call(vmc.mk_contract_tx_detail(
             sender_address=primary_addr,
             gas=default_gas,
             gas_price=1,
-        )).add_header(header0_1)
+        )).add_header(*header0_1_casting_address)
     # when a valid header is added, the `add_header` call should succeed
-    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
-    header0_2_hash = keccak(header0_2)
-    vmc.add_header(header0_2)
+    header0_2, header0_2_hash = mk_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
+    vmc.add_header(*header0_2)
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
@@ -473,11 +490,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
-    header1_1 = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
-    vmc.add_header(header1_1)
+    header1_1, _ = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
+    vmc.add_header(*header1_1)
     mine(vmc, 1)
-    header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
-    vmc.add_header(header0_3)
+    header0_3, _ = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
+    vmc.add_header(*header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
@@ -511,7 +528,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `get_num_validators` must be 0.
-    # print(vmc.get_eligible_proposer(shard_id))
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_num_validators()
@@ -519,17 +535,35 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
 
 @pytest.mark.parametrize(
-    'data_hex,expected_header,expected_is_new_head,expected_score',
+    'header_bytes, expected_header_tuple',
     (
         (
-            "0xf9011f8005a0548cb741e565bc030f2b831d558cc197cddd1e7aab9549e77910ddbe65dde4b2a00000000000000000000000000000000000000000000000000000000000000000a074785f6c6973742074785f6c6973742074785f6c6973742074785f6c69737420947e5f4552091a69125d5dfcb7b8c2659029395bdfa0706f73745f737461706f73745f737461706f73745f737461706f73745f737461a0726563656970742072656365697074207265636569707420726563656970742001b860000000000000000000000000000000000000000000000000000000000000001b2c3dbf1b660db4c5eba798dbccd187105767247e6648cdd9c664a81af5fc217a194d54c0ba0a4b57c4eb70edc45367c6a1044b0e5f29b5a9339d214c9ea8016c00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",  # noqa: E501
-            (0, 5, b'T\x8c\xb7A\xe5e\xbc\x03\x0f+\x83\x1dU\x8c\xc1\x97\xcd\xdd\x1ez\xab\x95I\xe7y\x10\xdd\xbee\xdd\xe4\xb2', b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1, b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1b,=\xbf\x1bf\r\xb4\xc5\xeb\xa7\x98\xdb\xcc\xd1\x87\x10Wg$~fH\xcd\xd9\xc6d\xa8\x1a\xf5\xfc!z\x19MT\xc0\xba\nKW\xc4\xebp\xed\xc4Sg\xc6\xa1\x04K\x0e_)\xb5\xa93\x9d!L\x9e\xa8\x01l'),  # noqa: E501
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x16\xa4\x96\xc9\r\x05\x05S\xee\xe2\xe2y\x95\x8fH\xa0\x8aT'j-\x94V\x1f\xa7|9r\xd7%\xdb\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00tx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",  # noqa: E501
+            (0, 5, b"\x16\xa4\x96\xc9\r\x05\x05S\xee\xe2\xe2y\x95\x8fH\xa0\x8aT'j-\x94V\x1f\xa7|9r\xd7%\xdb\x1c", b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1),  # noqa: E501
+        ),
+        (
+            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x07\x11\x9b\x8f\xd4\xf2\xbbe /\xdf\'\xbcf~]\x9c\xf5\x08S\xe4\xbd\xa7\xee\xe2c\x83\x92\xdc-6>\xea\x8f8\x92\x998\x1aO}\x8c\xc0\xf0j\x90=O\xa2\x08o\rs\xa3d"a\x8d\xe3\x8dV\x80hC\xc0tx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03',  # noqa: E501
+            (0, 7, b"\x11\x9b\x8f\xd4\xf2\xbbe /\xdf'\xbcf~]\x9c\xf5\x08S\xe4\xbd\xa7\xee\xe2c\x83\x92\xdc-6>\xea", b'\x8f8\x92\x998\x1aO}\x8c\xc0\xf0j\x90=O\xa2\x08o\rs\xa3d"a\x8d\xe3\x8dV\x80hC\xc0', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 3),  # noqa: E501
+        ),
+    )
+)
+def test_deserialize_header_bytes(header_bytes, expected_header_tuple):
+    actual_header_tuple = deserialize_header_bytes(header_bytes)
+    assert actual_header_tuple == expected_header_tuple
+
+
+@pytest.mark.parametrize(
+    'data_hex, expected_header, expected_is_new_head, expected_score',
+    (
+        (
+            '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000587c46811ccae07f8e7b03c5f111764f6881bfe77dfbbbe9d3c0a86c054aee2b0000000000000000000000000000000000000000000000000000000000000000074785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001',  # noqa: E501
+            (0, 5, b'\x87\xc4h\x11\xcc\xae\x07\xf8\xe7\xb0<_\x11\x17d\xf6\x88\x1b\xfew\xdf\xbb\xbe\x9d<\n\x86\xc0T\xae\xe2\xb0', b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1),  # noqa: E501
             True,
             1,
         ),
         (
-            "0xf9011f8006a0a149733c7160ada7d19fbec374c95c8a677303909c1d36f9a8bb994e3af96bbea0000e88d3cd262be90531edadf213219cf94a1fa296483307ba323a7c5519c7e9a074785f6c6973742074785f6c6973742074785f6c6973742074785f6c69737420947e5f4552091a69125d5dfcb7b8c2659029395bdfa0706f73745f737461706f73745f737461706f73745f737461706f73745f737461a0726563656970742072656365697074207265636569707420726563656970742002b860000000000000000000000000000000000000000000000000000000000000001b933e6e5627669b1b51d5b0759b311ad7c2bbff17fd44aec86dd66e8886b7d76b7bbdb064b4bea863a662113b5056dff996f589828cd973644c4dbbf739e261d500000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002",  # noqa: E501
-            (0, 6, b'\xa1Is<q`\xad\xa7\xd1\x9f\xbe\xc3t\xc9\\\x8ags\x03\x90\x9c\x1d6\xf9\xa8\xbb\x99N:\xf9k\xbe', b'\x00\x0e\x88\xd3\xcd&+\xe9\x051\xed\xad\xf2\x13!\x9c\xf9J\x1f\xa2\x96H3\x07\xba2:|U\x19\xc7\xe9', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 2, b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1b\x93>nV'f\x9b\x1bQ\xd5\xb0u\x9b1\x1a\xd7\xc2\xbb\xff\x17\xfdD\xae\xc8m\xd6n\x88\x86\xb7\xd7k{\xbd\xb0d\xb4\xbe\xa8c\xa6b\x11;PV\xdf\xf9\x96\xf5\x89\x82\x8c\xd9sdLM\xbb\xf79\xe2a\xd5"),  # noqa: E501
+            '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006df996fe0bada20c6762c52239a5d8f4aed951903a649725737cbf88ea1009cc2835a26c9fee813d4301f6052c5970f4a01185f47a814bb6c5bfe98b26c77d3a474785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002',  # noqa: E501
+            (0, 6, b'\xdf\x99o\xe0\xba\xda \xc6v,R#\x9a]\x8fJ\xed\x95\x19\x03\xa6IrW7\xcb\xf8\x8e\xa1\x00\x9c\xc2', b'\x83Z&\xc9\xfe\xe8\x13\xd40\x1f`R\xc5\x97\x0fJ\x01\x18_G\xa8\x14\xbbl[\xfe\x98\xb2lw\xd3\xa4', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 2),  # noqa: E501
             True,
             2,
         ),
