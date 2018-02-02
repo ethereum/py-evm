@@ -167,8 +167,8 @@ def deposit() -> num:
 def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
     msg_hash = sha3("withdraw")
     validator_addr = self.validators[validator_index].addr
+    validator_deposit = self.validators[validator_index].deposit
     assert msg.sender == validator_addr
-    send(validator_addr, self.validators[validator_index].deposit)
     self.is_validator_deposited[validator_addr] = False
     self.validators[validator_index] = {
         deposit: 0,
@@ -177,6 +177,9 @@ def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
     }
     self.stack_push(validator_index)
     self.num_validators -= 1
+
+    send(validator_addr, validator_deposit)
+
     # TODO: determine the signature of the log Withdraw
     raw_log(
         [sha3("withdraw(int128,bytes4096)")],
@@ -269,44 +272,20 @@ def get_shard_list(validator_addr: address) -> bool[100]:
     return shard_list
 
 
-# emit a log which is equivalent to
-# CollationAdded: __log__({shard_id: indexed(num), collation_header: bytes <= 4096, is_new_head: bool, score: num})
-# TODO: should be replaced by `log.CollationAdded`
-@internal
-def emit_collation_added(shard_id: num, collation_header: bytes <= 4096, is_new_head: bool, score: num):
-    if is_new_head:
-        new_head_in_num = 1
-    else:
-        new_head_in_num = 0
-    raw_log(
-        [
-            sha3("CollationAdded(int128,bytes4096,bool,int128)"),
-            as_bytes32(shard_id),
-        ],
-        concat(
-            collation_header,
-            as_bytes32(new_head_in_num),
-            as_bytes32(score),
-        )
-    )
-
-
 # Attempts to process a collation header, returns True on success, reverts on failure.
 @public
-def add_header(header: bytes <= 4096) -> bool:
+def add_header(
+        shard_id: num,
+        expected_period_number: num,
+        period_start_prevhash: bytes32,
+        parent_collation_hash: bytes32,
+        tx_list_root: bytes32,
+        collation_coinbase: address,
+        post_state_root: bytes32,
+        receipt_root: bytes32,
+        collation_number: num,
+    ) -> bool:
     zero_addr = 0x0000000000000000000000000000000000000000
-
-    values = RLPList(header, [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes])
-    shard_id = values[0]
-    expected_period_number = values[1]
-    period_start_prevhash = values[2]
-    parent_collation_hash = values[3]
-    tx_list_root = values[4]
-    collation_coinbase = values[5]
-    post_state_root = values[6]
-    receipt_root = values[7]
-    collation_number = values[8]
-    sig = values[9]
 
     # Check if the header is valid
     assert (shard_id >= 0) and (shard_id < self.shard_count)
@@ -315,7 +294,18 @@ def add_header(header: bytes <= 4096) -> bool:
     assert period_start_prevhash == blockhash(expected_period_number * self.period_length - 1)
 
     # Check if this header already exists
-    entire_header_hash = sha3(header)
+    header_bytes = concat(
+        as_bytes32(shard_id),
+        as_bytes32(expected_period_number),
+        period_start_prevhash,
+        parent_collation_hash,
+        tx_list_root,
+        as_bytes32(collation_coinbase),
+        post_state_root,
+        receipt_root,
+        as_bytes32(collation_number),
+    )
+    entire_header_hash = sha3(header_bytes)
     assert entire_header_hash != as_bytes32(0)
     assert self.collation_headers[shard_id][entire_header_hash].score == 0
     # Check whether the parent exists.
@@ -351,8 +341,24 @@ def add_header(header: bytes <= 4096) -> bool:
         self.shard_head[shard_id] = entire_header_hash
         is_new_head = True
 
-    # Emit log
-    self.emit_collation_added(shard_id, header, is_new_head, _score)
+    # Emit a log which is equivalent to
+    # CollationAdded: __log__({shard_id: indexed(num), collation_header: bytes <= 4096, is_new_head: bool, score: num})
+    # TODO: should be replaced by `log.CollationAdded`
+    if is_new_head:
+        new_head_in_num = 1
+    else:
+        new_head_in_num = 0
+    raw_log(
+        [
+            sha3("CollationAdded(int128,bytes4096,bool,int128)"),
+            as_bytes32(shard_id),
+        ],
+        concat(
+            header_bytes,
+            as_bytes32(new_head_in_num),
+            as_bytes32(_score),
+        )
+    )
 
     return True
 
