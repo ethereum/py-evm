@@ -6,9 +6,22 @@ from hypothesis import (
 )
 
 import rlp
+import trie
 
 from evm.utils.fixture_tests import (
     assert_rlp_equal,
+)
+from evm.utils.numeric import (
+    big_endian_to_int,
+)
+from evm.utils.state_access_restriction import (
+    get_nonce_key,
+    get_balance_key,
+    get_storage_key,
+)
+from evm.constants import (
+    BLANK_ROOT_HASH,
+    ZERO_HASH32,
 )
 
 from evm.db import (
@@ -16,6 +29,10 @@ from evm.db import (
 )
 from evm.db.chain import (
     BaseChainDB,
+)
+from evm.db.state import (
+    MainAccountStateDB,
+    ShardingAccountStateDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -31,6 +48,7 @@ from evm.vm.forks.homestead.blocks import (
 
 from evm.rlp.headers import (
     BlockHeader,
+    CollationHeader,
 )
 
 from evm.utils.db import (
@@ -42,9 +60,24 @@ from evm.utils.keccak import (
 )
 
 
+A_ADDRESS = b"\xaa" * 20
+B_ADDRESS = b"\xbb" * 20
+
+
+@pytest.fixture(params=[MainAccountStateDB, ShardingAccountStateDB])
+def chaindb(request):
+    return BaseChainDB(get_db_backend(), account_state_class=request.param)
+
+
 @pytest.fixture
-def chaindb():
-    return BaseChainDB(get_db_backend())
+def populated_chaindb_and_root_hash(chaindb):
+    state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
+    state_db.set_balance(A_ADDRESS, 1)
+    state_db.set_code(B_ADDRESS, b"code")
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key1"), 100)
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key2"), 200)
+    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key"), 300)
+    return chaindb, state_db.root_hash
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -121,3 +154,35 @@ def test_lookup_block_hash(chaindb, block):
     chaindb.add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash
+
+
+@pytest.mark.xfail(
+    reason="#289 (switch to binary trie not complete yet)",
+    raises=trie.exceptions.InvalidNode
+)
+def test_get_witness_nodes(populated_chaindb_and_root_hash):
+    chaindb, root_hash = populated_chaindb_and_root_hash
+    header = CollationHeader(
+        shard_id=1,
+        expected_period_number=0,
+        period_start_prevhash=ZERO_HASH32,
+        parent_hash=ZERO_HASH32,
+        number=0,
+        state_root=root_hash
+    )
+
+    prefixes = [
+        get_nonce_key(A_ADDRESS),
+        get_nonce_key(B_ADDRESS),
+        get_balance_key(A_ADDRESS),
+        get_balance_key(B_ADDRESS),
+        get_storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key1")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key2")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"key")),
+        get_storage_key(B_ADDRESS, big_endian_to_int(b"")),
+    ]
+
+    witness_nodes = chaindb.get_witness_nodes(header, prefixes)
+    assert len(witness_nodes) == len(set(witness_nodes))  # no duplicates
+    assert sorted(witness_nodes) == witness_nodes  # sorted
