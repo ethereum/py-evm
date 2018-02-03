@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import atexit
+import sys
 
 from evm.exceptions import CanonicalHeadNotFound
 
@@ -10,6 +11,7 @@ from trinity.chains import (
     initialize_chain,
     get_chain_protocol_class,
 )
+from trinity.cli import console
 from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
@@ -87,14 +89,27 @@ parser.add_argument(
 )
 
 
+def chain_obj(chain_config, sync_mode):
+    if not is_chain_initialized(chain_config):
+        # TODO: this will only work as is for chains with known genesis
+        # parameters.  Need to flesh out how genesis parameters for custom
+        # chains are defined and passed around.
+        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
+    else:
+        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+
+    chaindb = get_chain_db(chain_config.data_dir)
+    try:
+        chaindb.get_canonical_head()
+    except CanonicalHeadNotFound:
+        # TODO: figure out amore appropriate error to raise here.
+        raise ValueError('Chain not intiialized')
+
+    return chain_class(chaindb)
+
+
 def main():
     args = parser.parse_args()
-
-    logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
-
-    # start the listener thread to handle logs produced by other processes in
-    # the local logger.
-    listener.start()
 
     if args.ropsten:
         chain_identifier = ROPSTEN
@@ -109,6 +124,21 @@ def main():
         sync_mode = SYNC_LIGHT
 
     chain_config = ChainConfig.from_parser_args(chain_identifier, args)
+
+    # if console command, run the trinity CLI
+    if args.console:
+        use_ipython = not args.vanilla_shell
+        debug = args.log_level.upper() == 'DEBUG'
+
+        chain = chain_obj(chain_config, sync_mode)
+        console(chain, use_ipython=use_ipython, debug=debug)
+        sys.exit(0)
+
+    logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
+
+    # start the listener thread to handle logs produced by other processes in
+    # the local logger.
+    listener.start()
 
     # For now we just run the light sync against ropsten by default.
     process = ctx.Process(
@@ -127,22 +157,7 @@ def main():
 
 @with_queued_logging
 def run_chain(chain_config, sync_mode):
-    if not is_chain_initialized(chain_config):
-        # TODO: this will only work as is for chains with known genesis
-        # parameters.  Need to flesh out how genesis parameters for custom
-        # chains are defined and passed around.
-        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
-    else:
-        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-
-    chaindb = get_chain_db(chain_config.data_dir)
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # TODO: figure out amore appropriate error to raise here.
-        raise ValueError('Chain not intiialized')
-
-    chain = chain_class(chaindb)
+    chain = chain_obj(chain_config, sync_mode)
 
     loop = asyncio.get_event_loop()
 
