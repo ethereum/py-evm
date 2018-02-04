@@ -38,9 +38,6 @@ empty_slots_stack: num[num]
 # The top index of the stack in empty_slots_stack
 empty_slots_stack_top: num
 
-# Gas limit of the signature validation code
-sig_gas_limit: num
-
 # Has the validator deposited before?
 is_validator_deposited: public(bool[address])
 
@@ -73,7 +70,6 @@ def __init__():
     self.empty_slots_stack_top = 0
     # 10 ** 20 wei = 100 ETH
     self.deposit_size = 100000000000000000000
-    self.sig_gas_limit = 40000
     self.period_length = 5
     self.shard_count = 100
     self.lookahead_periods = 4

@@ -55,6 +55,7 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 
 PASSPHRASE = '123'
+GENESIS_COLHDR_HASH = b'\x00' * 32
 ZERO_ADDR = b'\x00' * 20
 
 test_keys = get_default_account_keys()
@@ -121,17 +122,16 @@ def do_withdraw(vmc_handler, validator_index):
     mine(vmc_handler, 1)
 
 
-def do_deposit(vmc_handler, privkey):
+def do_deposit(vmc_handler):
     """
-    Deposit a validator
+    Do deposit in VMC to be a validator
 
     :param privkey: PrivateKey object
     :return: returns the validator's address
     """
-    address = privkey.public_key.to_canonical_address()
     mine(vmc_handler, 1)
     vmc_handler.deposit()
-    return address
+    return vmc_handler.get_default_sender_address()
 
 
 def deploy_initiating_contracts(vmc_handler, privkey):
@@ -330,7 +330,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     ).get_num_validators()
     if num_validators == 0:
         # deposit as the first validator
-        validator_addr = do_deposit(vmc, primary_key)
+        validator_addr = do_deposit(vmc)
         # TODO: error occurs when we don't mine so many blocks
         mine(vmc, lookahead_blocks)
         assert vmc.get_eligible_proposer(shard_id) == validator_addr
@@ -350,9 +350,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
 
     # test `add_header` ######################################
-    genesis_colhdr_hash = b'\x00' * 32
     # create a testing collation header, whose parent is the genesis
-    header0_1, header0_1_hash = mk_testing_colhdr(vmc, shard_id, genesis_colhdr_hash, 1)
+    header0_1, header0_1_hash = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
@@ -409,7 +408,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
-    header1_1, _ = mk_testing_colhdr(vmc, 1, genesis_colhdr_hash, 1)
+    header1_1, _ = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
     vmc.add_header(*header1_1)
     mine(vmc, 1)
     header0_3, _ = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
