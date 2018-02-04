@@ -4,9 +4,6 @@ validators: public({
     deposit: wei_value,
     # Address of the validator
     addr: address,
-    # The cycle number which the validator would be included after
-    # Will be [DEPRECATED] for stateless client
-    cycle: num,
 }[num])
 
 # Number of validators
@@ -136,7 +133,6 @@ def deposit() -> num:
     self.validators[index] = {
         deposit: msg.value,
         addr: validator_addr,
-        cycle: 0,
     }
     self.num_validators += 1
     self.is_validator_deposited[validator_addr] = True
@@ -164,7 +160,6 @@ def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
     self.validators[validator_index] = {
         deposit: 0,
         addr: None,
-        cycle: 0,
     }
     self.stack_push(validator_index)
     self.num_validators -= 1
