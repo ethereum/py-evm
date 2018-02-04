@@ -23,12 +23,11 @@ from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
 
 from tests.core.vm.contract_fixture import (
-    simple_transfer_contract_bytecode,
-    simple_transfer_contract_address,
-    CREATE2_contract_bytecode,
-    CREATE2_contract_address,
-    PAYGAS_contract_bytecode,
-    PAYGAS_contract_address,
+    simple_transfer_contract,
+    CREATE2_contract,
+    PAYGAS_contract_normal,
+    simple_forwarder_contract,
+    PAYGAS_contract_triggered_twice,
 )
 
 
@@ -121,18 +120,28 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
 
 SHARD_CHAIN_CONTRACTS_FIXTURES = [
     {
-        "contract_code": simple_transfer_contract_bytecode,
-        "deployed_address": simple_transfer_contract_address,
+        "contract_code": simple_transfer_contract['bytecode'],
+        "deployed_address": simple_transfer_contract['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": CREATE2_contract_bytecode,
-        "deployed_address": CREATE2_contract_address,
+        "contract_code": CREATE2_contract['bytecode'],
+        "deployed_address": CREATE2_contract['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": PAYGAS_contract_bytecode,
-        "deployed_address": PAYGAS_contract_address,
+        "contract_code": PAYGAS_contract_normal['bytecode'],
+        "deployed_address": PAYGAS_contract_normal['address'],
+        "initial_balance": 100000000,
+    },
+    {
+        "contract_code": simple_forwarder_contract['bytecode'],
+        "deployed_address": simple_forwarder_contract['address'],
+        "initial_balance": 100000000,
+    },
+    {
+        "contract_code": PAYGAS_contract_triggered_twice['bytecode'],
+        "deployed_address": PAYGAS_contract_triggered_twice['address'],
         "initial_balance": 100000000,
     },
 ]
@@ -211,22 +220,11 @@ def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
         'receipt_root': constants.EMPTY_SHA3,
     }
     genesis_state = {
-        SHARD_CHAIN_CONTRACTS_FIXTURES[0]["deployed_address"]: {
-            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[0]["initial_balance"],
+        SHARD_CHAIN_CONTRACTS_FIXTURES[i]["deployed_address"]: {
+            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[i]["initial_balance"],
             'code': b'',
             'storage': {},
-        },
-        SHARD_CHAIN_CONTRACTS_FIXTURES[1]["deployed_address"]: {
-            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[1]["initial_balance"],
-            'code': b'',
-            'storage': {},
-        },
-        SHARD_CHAIN_CONTRACTS_FIXTURES[2]["deployed_address"]: {
-            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[2]["initial_balance"],
-            'nonce': 0,
-            'code': b'',
-            'storage': {},
-        }
+        } for i in range(len(SHARD_CHAIN_CONTRACTS_FIXTURES))
     }
     shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
     return shard
