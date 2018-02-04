@@ -15,7 +15,6 @@ from evm.utils.numeric import (
     big_endian_to_int,
 )
 from evm.utils.state_access_restriction import (
-    get_nonce_key,
     get_balance_key,
     get_storage_key,
 )
@@ -172,8 +171,6 @@ def test_get_witness_nodes(populated_chaindb_and_root_hash):
     )
 
     prefixes = [
-        get_nonce_key(A_ADDRESS),
-        get_nonce_key(B_ADDRESS),
         get_balance_key(A_ADDRESS),
         get_balance_key(B_ADDRESS),
         get_storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
