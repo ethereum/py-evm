@@ -4,8 +4,10 @@ from eth_utils import (
     decode_hex,
     to_canonical_address,
 )
-
 from eth_keys import KeyAPI
+from trie import (
+    BinaryTrie,
+)
 
 from evm import Chain
 from evm import constants
@@ -113,8 +115,51 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
 
 @pytest.fixture
 def shard_chain():
-    shard_chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
-    return chain(shard_chaindb)
+    shard_chaindb = BaseChainDB(
+        get_db_backend(),
+        account_state_class=ShardingAccountStateDB,
+        trie_class=BinaryTrie,
+    )
+
+    genesis_params = {
+        "bloom": 0,
+        "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
+        "difficulty": 131072,
+        "extra_data": b"B",
+        "gas_limit": 3141592,
+        "gas_used": 0,
+        "mix_hash": decode_hex(
+            "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+        "nonce": decode_hex("0102030405060708"),
+        "block_number": 0,
+        "parent_hash": decode_hex(
+            "0000000000000000000000000000000000000000000000000000000000000000"),
+        "transaction_root": constants.EMPTY_SHA3,
+        "receipt_root": constants.EMPTY_SHA3,
+        "timestamp": 1422494849,
+        "uncles_hash": decode_hex(
+            "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")
+    }
+    funded_addr = to_canonical_address("a94f5374fce5edbc8e2a8697c15331677e6ebf0b")
+    initial_balance = 10000000000
+    genesis_state = {
+        funded_addr: {
+            "balance": initial_balance,
+            "nonce": 0,
+            "code": b"",
+            "storage": {}
+        }
+    }
+    klass = Shard.configure(
+        name='TestChain',
+        vm_configuration=(
+            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
+        ))
+    shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
+    shard.funded_address = funded_addr
+    shard.funded_address_initial_balance = initial_balance
+
+    return shard
 
 
 @pytest.fixture
@@ -130,7 +175,11 @@ def shard_chain_without_block_validation():
     """
     # TODO: Once the helper function which generates access list for a transaction is implemented,
     # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
-    shard_chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
+    shard_chaindb = BaseChainDB(
+        get_db_backend(),
+        account_state_class=ShardingAccountStateDB,
+        trie_class=BinaryTrie,
+    )
     overrides = {
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
@@ -152,6 +201,8 @@ def shard_chain_without_block_validation():
         'mix_hash': constants.GENESIS_MIX_HASH,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
+        'transaction_root': constants.EMPTY_SHA3,
+        'receipt_root': constants.EMPTY_SHA3,
     }
     genesis_state = {
         SHARD_CHAIN_CONTRACTS_FIXTURES[0]["deployed_address"]: {
@@ -171,8 +222,8 @@ def shard_chain_without_block_validation():
             'storage': {},
         }
     }
-    chain = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
-    return chain
+    shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
+    return shard
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
