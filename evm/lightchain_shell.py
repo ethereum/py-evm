@@ -19,6 +19,10 @@ from evm.chains.ropsten import (
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.p2p import ecies
 from evm.p2p.lightchain import LightChain
+from evm.p2p.peer import (
+    LESPeer,
+    PeerPool,
+)
 from evm.db.backends.level import LevelDB
 
 
@@ -37,23 +41,33 @@ logging.basicConfig(level=LOGLEVEL, filename=LOGFILE)
 
 DemoLightChain = LightChain.configure(
     name='Demo LightChain',
-    privkey=ecies.generate_privkey(),
     vm_configuration=MAINNET_VM_CONFIGURATION,
     network_id=ROPSTEN_NETWORK_ID,
 )
 
 chaindb = BaseChainDB(LevelDB(args.db))
+peer_pool = PeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
 try:
     chaindb.get_canonical_head()
 except CanonicalHeadNotFound:
     # We're starting with a fresh DB.
-    chain = DemoLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+    chain = DemoLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER, peer_pool)
 else:
     # We're reusing an existing db.
-    chain = DemoLightChain(chaindb)
+    chain = DemoLightChain(chaindb, peer_pool)
+
+
+async def run():
+    asyncio.ensure_future(peer_pool.run())
+    # chain.run() will run in a loop until our atexit handler is called, at which point it returns
+    # and we cleanly stop the pool and chain.
+    await chain.run()
+    await peer_pool.stop()
+    await chain.stop()
+
 
 loop = asyncio.get_event_loop()
-t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),), daemon=True)
+t = threading.Thread(target=loop.run_until_complete, args=(run(),), daemon=True)
 t.start()
 
 
@@ -63,14 +77,9 @@ def wait_for_result(coroutine):
 
 
 def cleanup():
-    # This is to instruct chain.run() to exit, which will cause the event loop to stop.
     chain._should_stop.set()
-    # This will block until the event loop has stopped.
+    # Wait until run() finishes.
     t.join()
-    # The above was needed because the event loop stops when chain.run() returns and then
-    # chain.stop() would never finish if we just ran it with run_coroutine_threadsafe().
-    loop.run_until_complete(chain.stop())
-    loop.close()
 
 
 atexit.register(cleanup)
