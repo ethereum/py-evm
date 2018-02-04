@@ -55,6 +55,30 @@ CREATE2_contract = {
 }
 
 
+# Forwarder Contract
+simple_forwarder_contract = {
+    'lll_code': ['seq',
+                    ['return',  # noqa: E127
+                        0,
+                        ['lll',
+                            ['seq',
+                                ['mstore', 32, 1461501637330902918203684832716283019655932542976],  # noqa: E501
+                                ['uclamplt', ['calldataload', 0], ['mload', 32]],  # noqa: E501
+                                ['calldatacopy', 64, 64, 32],
+                                ['calldatacopy', 96, 32, ['calldatasize']],
+                                ['assert', ['call', ['sub', ['gas'], 100000], ['calldataload', 0], ['calldataload', 32], 64, ['calldatasize'], 0, 0]],  # noqa: E501
+                                'stop'],
+                        0]]],  # noqa: E128
+    # compiled byte code
+    'bytecode': b'0x61005a5674010000000000000000000000000000000000000000602052600035602051811061002957600080fd5b506020604060403736602060603760006000366040602035600035620186a05a03f161005457600080fd5b005b61000461005a0361000460003961000461005a036000f3',  # noqa: E501
+    # address where this contract will be deployed
+    'address': generate_CREATE2_contract_address(
+        b'',
+        decode_hex(b'0x61005a5674010000000000000000000000000000000000000000602052600035602051811061002957600080fd5b506020604060403736602060603760006000366040602035600035620186a05a03f161005457600080fd5b005b61000461005a0361000460003961000461005a036000f3')  # noqa: E501
+    )
+}
+
+
 # Normal PAYGAS Contract
 PAYGAS_contract_normal = {
     'lll_code': ['seq',
@@ -75,5 +99,30 @@ PAYGAS_contract_normal = {
     'address': generate_CREATE2_contract_address(
         b'',
         decode_hex(b'0x61005356604035f55074010000000000000000000000000000000000000000608052600035608051811061002e57600080fd5b506000600060006000602035600035620186a05a03f161004d57600080fd5b005b61000461005303610004600039610004610053036000f3')  # noqa: E501
+    )
+}
+
+
+# PAYGAS Contract that trigger PAYGAS opcode twice
+PAYGAS_contract_triggered_twice = {
+    'lll_code': ['seq',
+                    ['return',  # noqa: E127
+                        0,
+                        ['lll',
+                            ['seq',
+                                ['paygas', ['calldataload', 64]],
+                                # Transfer value
+                                ['mstore', 128, 1461501637330902918203684832716283019655932542976],  # noqa: E501
+                                ['uclamplt', ['calldataload', 0], ['mload', 128]],  # noqa: E501
+                                ['assert', ['call', ['sub', ['gas'], 100000], ['calldataload', 0], ['calldataload', 32], 0, 0, 0, 0]],  # noqa: E501
+                                ['paygas', ['mul', ['calldataload', 64], 10]],
+                                'stop'],
+                        0]]],  # noqa: E128
+    # compiled byte code
+    'bytecode': b'0x61005b56604035f55074010000000000000000000000000000000000000000608052600035608051811061002e57600080fd5b506000600060006000602035600035620186a05a03f161004d57600080fd5b600a60403502f550005b61000461005b0361000460003961000461005b036000f3',  # noqa: E501
+    # address where this contract will be deployed
+    'address': generate_CREATE2_contract_address(
+        b'',
+        decode_hex(b'0x61005b56604035f55074010000000000000000000000000000000000000000608052600035608051811061002e57600080fd5b506000600060006000602035600035620186a05a03f161004d57600080fd5b600a60403502f550005b61000461005b0361000460003961000461005b036000f3')  # noqa: E501
     )
 }
