@@ -173,6 +173,9 @@ class VMC(Contract):
 
         super().__init__(*args, **kwargs)
 
+    def get_default_sender_address(self):
+        return self.default_sender_address
+
     def set_shard_tracker(self, shard_id, shard_tracker):
         self.shard_trackers[shard_id] = shard_tracker
 
@@ -271,7 +274,7 @@ class VMC(Contract):
     # contract calls ##############################################
 
     def get_eligible_proposer(self, shard_id, period=None, gas=None):
-        """get_eligible_proposer(shard_id: num, period: num) -> address
+        """Get the eligible proposer in the specified period
         """
         if gas is None:
             gas = self.config['DEFAULT_GAS']
@@ -282,7 +285,7 @@ class VMC(Contract):
         return decode_hex(address_in_hex)
 
     def deposit(self, gas=None, gas_price=None):
-        """deposit() -> num
+        """Do deposit to become a validator
         """
         tx_hash = self.send_transaction(
             'deposit',
@@ -294,7 +297,7 @@ class VMC(Contract):
         return tx_hash
 
     def withdraw(self, validator_index, gas=None, gas_price=None):
-        """withdraw(validator_index: num) -> bool
+        """Withdraw the validator whose index is `validator_index`
         """
         tx_hash = self.send_transaction(
             'withdraw',
@@ -318,7 +321,7 @@ class VMC(Contract):
                    collation_number,
                    gas=None,
                    gas_price=None):
-        """add_header(header: bytes <= 4096) -> bool
+        """Add the collation header with the given parameters
         """
         tx_hash = self.send_transaction(
             'add_header',
@@ -347,9 +350,7 @@ class VMC(Contract):
                     value,
                     gas=None,
                     gas_price=None):
-        """tx_to_shard(
-            to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
-           ) -> num
+        """Make a receipt with the given parameters
         """
         tx_hash = self.send_transaction(
             'tx_to_shard',
