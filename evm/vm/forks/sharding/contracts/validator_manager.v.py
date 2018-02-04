@@ -146,13 +146,11 @@ def deposit() -> num:
     return index
 
 
-# Verifies that the signature is correct (ie. a call with 200000 gas, validationCodeAddr as
-# destination, 0 value and sha3("withdraw") + sig as data returns 1), and if it is removes
-# the validator from the validator set and refunds the deposited ETH.
+# Verifies that `msg.sender == validators[validator_index].addr`. if it is removes the validator
+# from the validator set and refunds the deposited ETH.
 @public
 @payable
-def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
-    msg_hash = sha3("withdraw")
+def withdraw(validator_index: num) -> bool:
     validator_addr = self.validators[validator_index].addr
     validator_deposit = self.validators[validator_index].deposit
     assert msg.sender == validator_addr
@@ -168,7 +166,7 @@ def withdraw(validator_index: num, sig: bytes <= 4096) -> bool:
 
     # TODO: determine the signature of the log Withdraw
     raw_log(
-        [sha3("withdraw(int128,bytes4096)")],
+        [sha3("withdraw(int128)")],
         concat('', as_bytes32(validator_index)),
     )
 
@@ -246,8 +244,7 @@ def add_header(
 
     # Check the signature with validation_code_addr
     validator_addr = self.get_eligible_proposer(shard_id, block.number / self.period_length)
-    if validator_addr == zero_addr:
-        return False
+    assert validator_addr != zero_addr
     assert msg.sender == validator_addr
 
     # Check score == collation_number
