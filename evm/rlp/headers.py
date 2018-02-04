@@ -112,7 +112,9 @@ class BlockHeader(rlp.Serializable):
                     timestamp,
                     coinbase=ZERO_ADDRESS,
                     nonce=None,
-                    extra_data=None):
+                    extra_data=None,
+                    transaction_root=None,
+                    receipt_root=None):
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.
@@ -130,6 +132,10 @@ class BlockHeader(rlp.Serializable):
             header_kwargs['nonce'] = nonce
         if extra_data is not None:
             header_kwargs['extra_data'] = extra_data
+        if transaction_root is not None:
+            header_kwargs['transaction_root'] = transaction_root
+        if receipt_root is not None:
+            header_kwargs['receipt_root'] = receipt_root
 
         header = cls(**header_kwargs)
         return header
