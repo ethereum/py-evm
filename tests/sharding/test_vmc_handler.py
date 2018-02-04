@@ -25,10 +25,6 @@ from eth_utils import (
     to_checksum_address,
 )
 
-from eth_keys import (
-    keys,
-)
-
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -60,9 +56,6 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 PASSPHRASE = '123'
 ZERO_ADDR = b'\x00' * 20
-# for testing we set it to 5, 25 or 2500 originally
-SHUFFLING_CYCLE_LENGTH = 25
-WITHDRAW_HASH = keccak(b"withdraw")
 
 test_keys = get_default_account_keys()
 
@@ -96,16 +89,6 @@ def is_vmc_deployed(vmc_handler):
     )
 
 
-def sign(message, privkey):
-    """@privkey: Key type
-    """
-    signature = keys.ecdsa_sign(message, privkey)
-    v, r, s = signature.vrs
-    v += 27
-    signature_bytes = b''.join([item.to_bytes(32, 'big') for item in (v, r, s)])
-    return signature_bytes
-
-
 def mk_initiating_transactions(sender_privkey,
                                sender_starting_nonce,
                                TransactionClass,
@@ -134,9 +117,7 @@ def mk_initiating_transactions(sender_privkey,
 
 def do_withdraw(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
-    privkey = test_keys[validator_index]
-    signature = sign(WITHDRAW_HASH, privkey)
-    vmc_handler.withdraw(validator_index, signature)
+    vmc_handler.withdraw(validator_index)
     mine(vmc_handler, 1)
 
 
@@ -189,8 +170,7 @@ def mk_testing_colhdr(vmc_handler,
                       shard_id,
                       parent_collation_hash,
                       number,
-                      collation_coinbase=test_keys[0].public_key.to_canonical_address(),
-                      privkey=test_keys[0]):
+                      collation_coinbase=test_keys[0].public_key.to_canonical_address()):
     period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length

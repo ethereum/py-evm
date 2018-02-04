@@ -293,14 +293,13 @@ class VMC(Contract):
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, gas=None, gas_price=None):
-        """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
+    def withdraw(self, validator_index, gas=None, gas_price=None):
+        """withdraw(validator_index: num) -> bool
         """
         tx_hash = self.send_transaction(
             'withdraw',
             [
                 validator_index,
-                sig,
             ],
             gas=gas,
             gas_price=gas_price,
