@@ -1,7 +1,8 @@
 import rlp
 
 from trie import (
-    HexaryTrie
+    BinaryTrie,
+    HexaryTrie,
 )
 
 from eth_utils import (
@@ -298,12 +299,12 @@ class MainAccountStateDB(BaseAccountStateDB):
 
 class ShardingAccountStateDB(BaseAccountStateDB):
 
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False, access_list=None):
+    def __init__(self, db, root_hash=EMPTY_SHA3, read_only=False, access_list=None):
         if read_only:
             self.db = ImmutableDB(db)
         else:
             self.db = TrackedDB(db)
-        self._trie = HexaryTrie(self.db, root_hash)
+        self._trie = BinaryTrie(self.db, root_hash)
         self.is_access_restricted = access_list is not None
         self.access_list = access_list
 
