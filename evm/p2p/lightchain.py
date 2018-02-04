@@ -106,7 +106,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         await peer.stop()
 
     async def wait_until_finished(self):
-        while len(self._running_peers):
+        while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
         await self._finished.wait()

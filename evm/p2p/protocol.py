@@ -48,9 +48,8 @@ class Command:
             expected_keys = sorted(name for name, _ in self.structure)
             data_keys = sorted(data.keys())
             if data_keys != expected_keys:
-                raise rlp.EncodingError(
-                    "Keys in data dict ({}) do not match expected keys ({})".format(
-                        data_keys, expected_keys))
+                raise ValueError("Keys in data dict ({}) do not match expected keys ({})".format(
+                    data_keys, expected_keys))
             data = [data[name] for name, _ in self.structure]
         if isinstance(self.structure, sedes.CountableList):
             encoder = self.structure

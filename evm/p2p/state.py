@@ -101,7 +101,7 @@ class StateDownloader(PeerPoolSubscriber):
     async def stop(self):
         self._should_stop.set()
         self.peer_pool.unsubscribe(self)
-        while len(self._running_peers):
+        while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
 
