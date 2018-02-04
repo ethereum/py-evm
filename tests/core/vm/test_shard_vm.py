@@ -14,11 +14,9 @@ from tests.core.helpers import (
     new_sharding_transaction,
 )
 from tests.core.vm.contract_fixture import (
-    simple_transfer_contract_bytecode,
-    simple_transfer_contract_address,
+    simple_transfer_contract,
     simple_contract_factory_bytecode,
-    CREATE2_contract_bytecode,
-    CREATE2_contract_address,
+    CREATE2_contract,
 )
 
 
@@ -26,12 +24,12 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     chain = unvalidated_shard_chain
     # First test: simple ether transfer contract
     first_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract_address,
+        tx_initiator=simple_transfer_contract['address'],
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
-        code=simple_transfer_contract_bytecode,
+        code=simple_transfer_contract['bytecode'],
     )
 
     vm = chain.get_vm()
@@ -44,7 +42,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     # Transfer ether to recipient
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    tx_initiator = simple_transfer_contract_address
+    tx_initiator = simple_transfer_contract['address']
     transfer_tx = new_sharding_transaction(tx_initiator, recipient, amount, b'', b'', b'')
 
     computation, _ = vm.apply_transaction(transfer_tx)
@@ -57,12 +55,12 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
 
     # Second test: contract that deploy new contract with CREATE2
     second_deploy_tx = new_sharding_transaction(
-        tx_initiator=CREATE2_contract_address,
+        tx_initiator=CREATE2_contract['address'],
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
-        code=CREATE2_contract_bytecode,
+        code=CREATE2_contract['bytecode'],
     )
 
     computation, _ = vm.apply_transaction(second_deploy_tx)
@@ -72,7 +70,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     last_gas_used = vm.block.header.gas_used
 
     # Invoke the contract to deploy new contract
-    tx_initiator = CREATE2_contract_address
+    tx_initiator = CREATE2_contract['address']
     newly_deployed_contract_address = generate_CREATE2_contract_address(
         int_to_big_endian(0),
         simple_contract_factory_bytecode
@@ -97,7 +95,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
             simple_contract_factory_bytecode
         )
         assert state_db.get_code(newly_deployed_contract_address) == b'\xbe\xef'
-        assert state_db.get_storage(CREATE2_contract_address, 0) == 1
+        assert state_db.get_storage(CREATE2_contract['address'], 0) == 1
 
 
 def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F811
@@ -106,13 +104,13 @@ def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F
     code = b"0xf3"
     computed_address = generate_CREATE2_contract_address(b"", decode_hex(code))
     first_failed_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract_address,
+        tx_initiator=simple_transfer_contract['address'],
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
         code=code,
-        access_list=[[simple_transfer_contract_address], [computed_address]]
+        access_list=[[simple_transfer_contract['address']], [computed_address]]
     )
 
     vm = chain.get_vm()
@@ -124,12 +122,12 @@ def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F
 
     # Next, complete deploying the contract
     successful_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract_address,
+        tx_initiator=simple_transfer_contract['address'],
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
-        code=simple_transfer_contract_bytecode,
+        code=simple_transfer_contract['bytecode'],
     )
     computation, _ = vm.apply_transaction(successful_deploy_tx)
     assert not computation.is_error
