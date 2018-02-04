@@ -1,6 +1,9 @@
 import pytest
 
 from eth_keys import keys
+from trie import (
+    BinaryTrie,
+)
 
 from cytoolz import (
     merge,
@@ -13,6 +16,7 @@ from evm.constants import (
     SECPK1_N,
     ZERO_HASH32,
     ENTRY_POINT,
+    EMPTY_SHA3,
 )
 from evm.vm.message import (
     ShardingMessage,
@@ -147,8 +151,14 @@ def vm():
         gas_limit=3141592,
         timestamp=1422494849,
         parent_hash=ZERO_HASH32,
+        transaction_root=EMPTY_SHA3,
+        receipt_root=EMPTY_SHA3,
     )
-    chaindb = BaseChainDB(get_db_backend(), account_state_class=ShardingAccountStateDB)
+    chaindb = BaseChainDB(
+        get_db_backend(),
+        account_state_class=ShardingAccountStateDB,
+        trie_class=BinaryTrie,
+    )
     vm = ShardingVM(header=header, chaindb=chaindb)
     vm_state = vm.state
     with vm_state.state_db() as statedb:
