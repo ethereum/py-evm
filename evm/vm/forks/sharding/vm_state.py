@@ -3,6 +3,10 @@ from cytoolz import (
     merge,
 )
 
+from trie import (
+    BinaryTrie,
+)
+
 from evm.constants import (
     ENTRY_POINT,
 )
@@ -40,6 +44,7 @@ from .validation import validate_sharding_transaction
 class ShardingVMState(ByzantiumVMState):
     block_class = ShardingBlock
     computation_class = ShardingComputation
+    trie_class = BinaryTrie
 
     def execute_transaction(self, transaction):
         # state_db ontext manager that restricts access as specified in the transacion
@@ -216,7 +221,10 @@ class ShardingVMState(ByzantiumVMState):
 
         # Get trie roots and changed key-values.
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(
+            self.receipts,
+            trie_class=BinaryTrie,
+        )
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
 
