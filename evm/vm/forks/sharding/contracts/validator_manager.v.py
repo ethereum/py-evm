@@ -11,7 +11,7 @@ num_validators: public(num)
 
 # Collation headers
 collation_headers: public({
-    parent_collation_hash: bytes32,
+    parent_hash: bytes32,
     score: num,
 }[bytes32][num])
 
@@ -200,12 +200,12 @@ def add_header(
         shard_id: num,
         expected_period_number: num,
         period_start_prevhash: bytes32,
-        parent_collation_hash: bytes32,
-        tx_list_root: bytes32,
-        collation_coinbase: address,
-        post_state_root: bytes32,
+        parent_hash: bytes32,
+        transaction_root: bytes32,
+        collation_coinbase: address,  # TODO: cannot be named `coinbase` since it is reserved
+        state_root: bytes32,
         receipt_root: bytes32,
-        collation_number: num,
+        collation_number: num,  # TODO: cannot be named `number` since it is reserved
     ) -> bool:
     zero_addr = 0x0000000000000000000000000000000000000000
 
@@ -220,10 +220,10 @@ def add_header(
         as_bytes32(shard_id),
         as_bytes32(expected_period_number),
         period_start_prevhash,
-        parent_collation_hash,
-        tx_list_root,
+        parent_hash,
+        transaction_root,
         as_bytes32(collation_coinbase),
-        post_state_root,
+        state_root,
         receipt_root,
         as_bytes32(collation_number),
     )
@@ -231,10 +231,10 @@ def add_header(
     assert entire_header_hash != as_bytes32(0)
     assert self.collation_headers[shard_id][entire_header_hash].score == 0
     # Check whether the parent exists.
-    # if (parent_collation_hash == 0), i.e., is the genesis,
+    # if (parent_hash == 0), i.e., is the genesis,
     # then there is no need to check.
-    if parent_collation_hash != as_bytes32(0):
-        assert (parent_collation_hash == as_bytes32(0)) or (self.collation_headers[shard_id][parent_collation_hash].score > 0)
+    if parent_hash != as_bytes32(0):
+        assert self.collation_headers[shard_id][parent_hash].score > 0
     # Check if only one collation in one period
     assert self.period_head[shard_id] < expected_period_number
 
@@ -244,12 +244,12 @@ def add_header(
     assert msg.sender == validator_addr
 
     # Check score == collation_number
-    _score = self.collation_headers[shard_id][parent_collation_hash].score + 1
+    _score = self.collation_headers[shard_id][parent_hash].score + 1
     assert collation_number == _score
 
     # Add the header
     self.collation_headers[shard_id][entire_header_hash] = {
-        parent_collation_hash: parent_collation_hash,
+        parent_hash: parent_hash,
         score: _score
     }
 
