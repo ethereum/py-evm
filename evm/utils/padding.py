@@ -1,9 +1,12 @@
 from cytoolz import (
     curry,
+    memoize,
 )
+import lru
 
 
 @curry
+@memoize(cache=lru.LRU(64))
 def pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
@@ -19,6 +22,7 @@ def pad_left(value, to_size, pad_with):
 
 
 @curry
+@memoize(cache=lru.LRU(64))
 def pad_right(value, to_size, pad_with):
     """
     Should be called to pad value to expected length

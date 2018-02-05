@@ -20,11 +20,12 @@ setup(
         "cryptography>=2.0.3",
         "cytoolz==0.9.0,<1.0.0",
         "eth-bloom>=0.5.2",
+        "eth-keys==0.1.0b3",
         "eth-utils>=0.7.1",
+        "lru-dict>=1.1.6,<2.0.0",
         "pyethash>=0.1.27",
         "py-ecc==1.4.2",
         "rlp==0.4.7",
-        "eth-keys==0.1.0b3",
         "trie>=1.0.1,<2.0.0",
     ],
     extra_require={

@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
+from cytoolz import memoize
+import lru
+
 try:
     from sha3 import keccak_256
 except ImportError:
     from sha3 import sha3_256 as keccak_256
 
 
+@memoize(cache=lru.LRU(64))
 def keccak(value):
     return keccak_256(value).digest()
 
