@@ -48,9 +48,8 @@ class Command:
             expected_keys = sorted(name for name, _ in self.structure)
             data_keys = sorted(data.keys())
             if data_keys != expected_keys:
-                raise rlp.EncodingError(
-                    "Keys in data dict ({}) do not match expected keys ({})".format(
-                        data_keys, expected_keys))
+                raise ValueError("Keys in data dict ({}) do not match expected keys ({})".format(
+                    data_keys, expected_keys))
             data = [data[name] for name, _ in self.structure]
         if isinstance(self.structure, sedes.CountableList):
             encoder = self.structure
@@ -67,12 +66,11 @@ class Command:
         data = rlp.decode(rlp_data, sedes=decoder)
         if isinstance(self.structure, sedes.CountableList):
             return data
-        else:
-            return {
-                field_name: value
-                for ((field_name, _), value)
-                in zip(self.structure, data)
-            }
+        return {
+            field_name: value
+            for ((field_name, _), value)
+            in zip(self.structure, data)
+        }
 
     def decode(self, data: bytes) -> _DecodedMsgType:
         packet_type = get_devp2p_cmd_id(data)

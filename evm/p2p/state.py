@@ -92,7 +92,7 @@ class StateDownloader(PeerPoolSubscriber):
 
     # FIXME: Need a better criteria to select peers here.
     async def get_random_peer(self) -> ETHPeer:
-        while len(self.peer_pool.peers) == 0:
+        while not self.peer_pool.peers:
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
         peer = random.choice(self.peer_pool.peers)
@@ -101,20 +101,20 @@ class StateDownloader(PeerPoolSubscriber):
     async def stop(self):
         self._should_stop.set()
         self.peer_pool.unsubscribe(self)
-        while len(self._running_peers):
+        while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
 
     async def request_next_batch(self):
         requests = self.scheduler.next_batch(MAX_STATE_FETCH)
-        if not len(requests):
+        if not requests:
             # Although our run() loop frequently yields control to let our msg handler process
             # received nodes (scheduling new requests), there may be cases when the pending nodes
             # take a while to arrive thus causing the scheduler to run out of new requests for a
             # while.
             self.logger.debug("Scheduler queue is empty, not requesting any nodes")
             return
-        self.logger.debug("Requesting %d trie nodes" % len(requests))
+        self.logger.debug("Requesting %d trie nodes", len(requests))
         await self.request_nodes([request.node_key for request in requests])
 
     async def request_nodes(self, node_keys: List[bytes]):
@@ -130,20 +130,20 @@ class StateDownloader(PeerPoolSubscriber):
         for node_key, req_time in list(self._pending_nodes.items()):
             if now - req_time > self._reply_timeout:
                 timed_out.append(node_key)
-        if len(timed_out) == 0:
+        if not timed_out:
             return
-        self.logger.debug("Re-requesting %d trie nodes" % len(timed_out))
+        self.logger.debug("Re-requesting %d trie nodes", len(timed_out))
         await self.request_nodes(timed_out)
 
     async def run(self):
-        self.logger.info("Starting state sync for root hash %s" % encode_hex(self.root_hash))
+        self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
         while self.scheduler.has_pending_requests:
             # Request new nodes if we haven't reached the limit of pending nodes.
             if len(self._pending_nodes) < self._max_pending:
                 await self.request_next_batch()
 
             # Retry pending nodes that timed out.
-            if len(self._pending_nodes):
+            if self._pending_nodes:
                 await self.retry_timedout()
 
             if len(self._pending_nodes) > self._max_pending:
@@ -158,16 +158,16 @@ class StateDownloader(PeerPoolSubscriber):
 
             self._maybe_report_progress()
 
-        self.logger.info("Finished state sync with root hash %s" % encode_hex(self.root_hash))
+        self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
     def _maybe_report_progress(self):
         if (time.time() - self._last_report_time) >= self._report_interval:
             self._last_report_time = time.time()
-            self.logger.info("Nodes processed: %d" % self._total_processed_nodes)
+            self.logger.info("Nodes processed: %d", self._total_processed_nodes)
             self.logger.info(
-                "Nodes requested but not received yet: %d" % len(self._pending_nodes))
+                "Nodes requested but not received yet: %d", len(self._pending_nodes))
             self.logger.info(
-                "Nodes scheduled but not requested yet: %d" % len(self.scheduler.requests))
+                "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
 
 
 class StateSync(HexaryTrieSync):
@@ -182,7 +182,7 @@ class StateSync(HexaryTrieSync):
             self.schedule(account.code_hash, parent, depth, leaf_callback=None, is_raw=True)
 
 
-if __name__ == "__main__":
+def _test():
     import argparse
     from evm.p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
@@ -212,3 +212,7 @@ if __name__ == "__main__":
     loop.run_until_complete(downloader.stop())
     loop.run_until_complete(peer_pool.stop())
     loop.close()
+
+
+if __name__ == "__main__":
+    _test()

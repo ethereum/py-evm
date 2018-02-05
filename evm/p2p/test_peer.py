@@ -85,7 +85,10 @@ async def _get_directly_linked_peers_without_handshake(
 
     responder = auth.HandshakeResponder(peer2_remote, peer2_private_key)
     auth_msg = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
-    peer1_ephemeral_pubkey, peer1_nonce = responder.decode_authentication(auth_msg)
+
+    # Can't assert return values, but checking that the decoder doesn't raise
+    # any exceptions at least.
+    _, _ = responder.decode_authentication(auth_msg)
 
     peer2_nonce = keccak(os.urandom(constants.HASH_LEN))
     auth_ack_msg = responder.create_auth_ack_message(peer2_nonce)
@@ -133,7 +136,7 @@ async def get_directly_linked_peers(
 
 @pytest.mark.asyncio
 async def test_directly_linked_peers(request, event_loop):
-    peer1, peer2 = await get_directly_linked_peers(request, event_loop)
+    peer1, _ = await get_directly_linked_peers(request, event_loop)
     assert isinstance(peer1.sub_proto, LESProtocolV2)
 
 

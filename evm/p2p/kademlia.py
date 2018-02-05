@@ -321,13 +321,13 @@ class KademliaProtocol:
         neighbours_callbacks, which is added (and removed after it's done or timed out) in
         wait_neighbours().
         """
-        self.logger.debug('<<< neighbours from {}: {}'.format(remote, neighbours))
+        self.logger.debug('<<< neighbours from %s: %s', remote, neighbours)
         callback = self.neighbours_callbacks.get(remote)
         if callback is not None:
             callback(neighbours)
         else:
             self.logger.debug(
-                'unexpected neighbours from {}, probably came too late'.format(remote))
+                'unexpected neighbours from %s, probably came too late', remote)
 
     def recv_pong(self, remote: Node, token: AnyStr) -> None:
         """Process a pong packet.
@@ -336,15 +336,15 @@ class KademliaProtocol:
         left to the callback from pong_callbacks, which is added (and removed after it's done
         or timed out) in wait_pong().
         """
-        self.logger.debug('<<< pong from {}'.format(remote))
+        self.logger.debug('<<< pong from %s', remote)
         pingid = self._mkpingid(token, remote)
         callback = self.pong_callbacks.get(pingid)
         if callback is not None:
             callback()
         else:
             self.logger.debug(
-                'unexpected pong from {} with pingid {}, probably came too late'.format(
-                    remote, encode_hex(pingid)))
+                'unexpected pong from %s with pingid %s, probably came too late',
+                remote, encode_hex(pingid))
 
     def recv_ping(self, remote: Node, hash_: AnyStr) -> None:
         """Process a received ping packet.
@@ -353,7 +353,7 @@ class KademliaProtocol:
         new node. In the former case we'll just update the sender's entry in our routing table and
         reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
         """
-        self.logger.debug('<<< ping from {}'.format(remote))
+        self.logger.debug('<<< ping from %s', remote)
         self.update_routing_table(remote)
         self.wire.send_pong(remote, hash_)
         # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
@@ -367,7 +367,7 @@ class KademliaProtocol:
             # FIXME: This is not correct; a node we've bonded before may have become unavailable
             # and thus removed from self.routing, but once it's back online we should accept
             # find_nodes from them.
-            self.logger.debug("Ignoring find_node request from unknown node {}".format(remote))
+            self.logger.debug('Ignoring find_node request from unknown node %s', remote)
             return
         self.update_routing_table(remote)
         found = self.routing.neighbours(targetid)
@@ -399,9 +399,9 @@ class KademliaProtocol:
         got_ping = False
         try:
             got_ping = await asyncio.wait_for(event.wait(), k_request_timeout)
-            self.logger.debug('got expected ping from {}'.format(remote))
+            self.logger.debug('got expected ping from %s', remote)
         except asyncio.futures.TimeoutError:
-            self.logger.debug('timed out waiting for ping from {}'.format(remote))
+            self.logger.debug('timed out waiting for ping from %s', remote)
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.ping_callbacks[remote]
         return got_ping
@@ -422,10 +422,10 @@ class KademliaProtocol:
         got_pong = False
         try:
             got_pong = await asyncio.wait_for(event.wait(), k_request_timeout)
-            self.logger.debug('got expected pong with pingid {}'.format(encode_hex(pingid)))
+            self.logger.debug('got expected pong with pingid %s', encode_hex(pingid))
         except asyncio.futures.TimeoutError:
             self.logger.debug(
-                'timed out waiting for pong with pingid {}'.format(encode_hex(pingid)))
+                'timed out waiting for pong with pingid %s', encode_hex(pingid))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.pong_callbacks[pingid]
         return got_pong
@@ -453,10 +453,10 @@ class KademliaProtocol:
         self.neighbours_callbacks[remote] = process
         try:
             await asyncio.wait_for(event.wait(), k_request_timeout)
-            self.logger.debug('got expected neighbours response from {}'.format(remote))
+            self.logger.debug('got expected neighbours response from %s', remote)
         except asyncio.TimeoutError:
-            pass
-            self.logger.debug('timed out waiting for neighbours response from {}'.format(remote))
+            self.logger.debug('timed out waiting for neighbours response from %s', remote)
+
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.neighbours_callbacks[remote]
         return [n for n in neighbours if n != self.this_node]
@@ -481,7 +481,7 @@ class KademliaProtocol:
 
         got_pong = await self.wait_pong(pingid)
         if not got_pong:
-            self.logger.debug("bonding failed, didn't receive pong from {}".format(node))
+            self.logger.debug("bonding failed, didn't receive pong from %s", node)
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
             # fill its spot.
             self.routing.remove_node(node)
@@ -493,14 +493,14 @@ class KademliaProtocol:
         # the remote remembers us.
         await self.wait_ping(node)
 
-        self.logger.debug("bonding completed successfully with {}".format(node))
+        self.logger.debug("bonding completed successfully with %s", node)
         self.update_routing_table(node)
         return True
 
     async def bootstrap(self, bootstrap_nodes: List[Node]) -> None:
         bonded = await asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
         if not any(bonded):
-            self.logger.info("Failed to bond with bootstrap nodes {}".format(bootstrap_nodes))
+            self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
             return
         await self.lookup(self.this_node.id)
 
@@ -516,16 +516,16 @@ class KademliaProtocol:
         async def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
             candidates = await self.wait_neighbours(remote)
-            if len(candidates) == 0:
-                self.logger.debug("got no candidates from {}, returning".format(remote))
+            if not candidates:
+                self.logger.debug("got no candidates from %s, returning", remote)
                 return candidates
             candidates = [c for c in candidates if c not in nodes_seen]
-            self.logger.debug("got {} new candidates".format(len(candidates)))
+            self.logger.debug("got %s new candidates", len(candidates))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
             bonded = await asyncio.gather(*[self.bond(c) for c in candidates])
-            self.logger.debug("bonded with {} candidates".format(bonded.count(True)))
+            self.logger.debug("bonded with %s candidates", bonded.count(True))
             return [c for c in candidates if bonded[candidates.index(c)]]
 
         def _exclude_if_asked(nodes):
@@ -533,10 +533,10 @@ class KademliaProtocol:
             return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
 
         closest = self.routing.neighbours(node_id)
-        self.logger.debug("starting lookup; initial neighbours: {}".format(closest))
+        self.logger.debug("starting lookup; initial neighbours: %s", closest)
         nodes_to_ask = _exclude_if_asked(closest)
         while nodes_to_ask:
-            self.logger.debug("node lookup; querying {}".format(nodes_to_ask))
+            self.logger.debug("node lookup; querying %s", nodes_to_ask)
             nodes_asked.update(nodes_to_ask)
             results = await asyncio.gather(
                 *[_find_node(node_id, n) for n in nodes_to_ask])
@@ -545,7 +545,7 @@ class KademliaProtocol:
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        self.logger.info("lookup finished for {}: {}".format(node_id, closest))
+        self.logger.info("lookup finished for %s: %s", node_id, closest)
         return closest
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the

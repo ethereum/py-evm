@@ -227,7 +227,7 @@ class Proofs(Command):
         # This is just to make Proofs messages compatible with ProofsV2, so that LightChain
         # doesn't have to special-case them. Soon we should be able to drop support for LES/1
         # anyway, and then all this code will go away.
-        if len(decoded['proofs']) == 0:
+        if not decoded['proofs']:
             decoded['proof'] = []
         else:
             decoded['proof'] = decoded['proofs'][0]

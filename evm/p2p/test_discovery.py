@@ -81,7 +81,7 @@ def test_pack():
 
     message = discovery._pack(discovery.CMD_PING.id, payload, privkey)
 
-    pubkey, cmd_id, payload, hash_ = discovery._unpack(message)
+    pubkey, cmd_id, payload, _ = discovery._unpack(message)
     assert pubkey == privkey.public_key
     assert cmd_id == discovery.CMD_PING.id
     assert len(payload) == discovery.CMD_PING.elem_count
@@ -91,7 +91,7 @@ def test_unpack_eip8_packets():
     # Test our _unpack() function against the sample packets specified in
     # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md
     for cmd, packets in eip8_packets.items():
-        for name, packet in packets.items():
+        for _, packet in packets.items():
             pubkey, cmd_id, payload, _ = discovery._unpack(packet)
             assert pubkey.to_hex() == '0xca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31387574077f301b421bc84df7266c44e9e6d569fc56be00812904767bf5ccd1fc7f'  # noqa: E501
             assert cmd.id == cmd_id

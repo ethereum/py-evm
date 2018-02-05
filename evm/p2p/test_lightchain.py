@@ -39,7 +39,7 @@ async def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100)
     # Here, server will be a peer with a pre-populated chaindb, and we'll use it to send Announce
     # msgs to the client, which will then ask the server for any headers it's missing until their
     # chaindbs are in sync.
-    light_chain, client, server = await get_lightchain_with_peers(
+    light_chain, _, server = await get_lightchain_with_peers(
         request, event_loop, get_fresh_mainnet_chaindb())
 
     # We start the client/server with fresh chaindbs above because we don't want them to start
@@ -69,7 +69,7 @@ async def test_incremental_header_sync(request, event_loop, chaindb_mainnet_100)
 async def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_100):
     # Here we create our server with a populated chaindb, so upon startup it will announce its
     # chain head and the client will fetch all headers
-    light_chain, client, server = await get_lightchain_with_peers(
+    light_chain, _, server = await get_lightchain_with_peers(
         request, event_loop, chaindb_mainnet_100)
 
     # ... and our client should then fetch all headers.
@@ -94,7 +94,7 @@ async def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_1
 async def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet_100):
     # In this test we start with one of our peers announcing block #100, and we sync all
     # headers up to that...
-    light_chain, client, server = await get_lightchain_with_peers(
+    light_chain, _, server = await get_lightchain_with_peers(
         request, event_loop, chaindb_mainnet_100)
 
     head = server.chaindb.get_canonical_head()
@@ -164,8 +164,8 @@ class LESPeerServer(LESPeer):
     def head_number(self):
         if self._head_number is not None:
             return self._head_number
-        else:
-            return self.chaindb.get_canonical_head().block_number
+
+        return self.chaindb.get_canonical_head().block_number
 
     def send_announce(self, head_number=None, reorg_depth=0):
         if head_number is not None:

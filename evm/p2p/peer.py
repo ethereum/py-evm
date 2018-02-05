@@ -1,10 +1,11 @@
 import asyncio
 import logging
 import operator
-import sha3
 import struct
 import traceback
 from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
+
+import sha3
 
 import rlp
 from rlp import sedes
@@ -247,7 +248,7 @@ class BasePeer:
     async def run(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
         try:
             await self.read_loop()
-        except Exception as e:
+        except Exception:
             self.logger.error(
                 "Unexpected error when handling remote msg: %s", traceback.format_exc())
         finally:
@@ -312,7 +313,7 @@ class BasePeer:
             # update the last time we heard from a peer in our DB (which doesn't exist yet).
             pass
         else:
-            raise UnexpectedMessage("Unexpected msg: %s (%s)".format(cmd, msg))
+            raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
         self.sub_proto_msg_queue.put_nowait((cmd, msg))
@@ -398,7 +399,7 @@ class BasePeer:
 
     def send(self, header: bytes, body: bytes) -> None:
         cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
-        self.logger.debug("Sending msg with cmd_id: {}".format(cmd_id))
+        self.logger.debug("Sending msg with cmd_id: %s", cmd_id)
         self.writer.write(self.encrypt(header, body))
 
     def disconnect(self, reason: DisconnectReason) -> None:
@@ -407,9 +408,9 @@ class BasePeer:
         :param reason: An item from the DisconnectReason enum.
         """
         if not isinstance(reason, DisconnectReason):
+            self.logger.debug("Disconnecting from remote peer; reason: %s", reason.value)
             raise ValueError(
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
-            self.logger.debug("Disconnecting from remote peer; reason: %s", reason.value)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 
@@ -495,7 +496,7 @@ class LESPeer(BasePeer):
         max_headers = 1
         self.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
         reply = await self._wait_for_reply(request_id)
-        if len(reply['headers']) == 0:
+        if not reply['headers']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
         return reply['headers'][0]
 
@@ -503,7 +504,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await self._wait_for_reply(request_id)
-        if len(reply['bodies']) == 0:
+        if not reply['bodies']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
         return reply['bodies'][0]
 
@@ -511,7 +512,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_receipts(block_hash, request_id)
         reply = await self._wait_for_reply(request_id)
-        if len(reply['receipts']) == 0:
+        if not reply['receipts']:
             raise BlockNotFound("No block with hash {} found".format(block_hash))
         return reply['receipts'][0]
 
@@ -533,7 +534,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_contract_code(block_hash, key, request_id)
         reply = await self._wait_for_reply(request_id)
-        if len(reply['codes']) == 0:
+        if not reply['codes']:
             return b''
         return reply['codes'][0]
 
@@ -546,7 +547,7 @@ class LESPeer(BasePeer):
         self.sub_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
         reply = await self._wait_for_reply(request_id)
-        if len(reply['headers']) == 0:
+        if not reply['headers']:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
         self.logger.info(
@@ -661,7 +662,7 @@ class PeerPool:
                     Address("51.15.75.138", 30303, 30303)),
             ]
         else:
-            raise ValueError("Unknown network_id: %s", self.network_id)
+            raise ValueError("Unknown network_id: {}".format(self.network_id))
 
     async def run(self):
         self.logger.info("Running PeerPool...")
@@ -705,8 +706,8 @@ class PeerPool:
         except expected_exceptions as e:
             self.logger.info("Could not complete handshake with %s: %s", remote, repr(e))
         except Exception:
-            self.logger.warn("Unexpected error during auth/p2p handshake with %s: %s",
-                             remote, traceback.format_exc())
+            self.logger.warning("Unexpected error during auth/p2p handshake with %s: %s",
+                                remote, traceback.format_exc())
         return None
 
     async def maybe_connect_to_more_peers(self):

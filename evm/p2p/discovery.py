@@ -119,7 +119,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # FIXME: Instead of sleeping here to wait until connection_made() is called to set
             # .transport we should instead only call it after we know it's been set.
             await asyncio.sleep(1)
-        self.logger.debug("boostrapping with {}".format(self.bootstrap_nodes))
+        self.logger.debug("boostrapping with %s", self.bootstrap_nodes)
         await self.kademlia.bootstrap(self.bootstrap_nodes)
 
     # FIXME: Enable type checking here once we have a mypy version that
@@ -129,7 +129,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.receive(kademlia.Address(ip_address, udp_port), data)  # type: ignore
 
     def error_received(self, exc: Exception) -> None:
-        self.logger.error('error received: {}'.format(exc))
+        self.logger.error('error received: %s', exc)
 
     def send(self, node: kademlia.Node, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
@@ -142,7 +142,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         try:
             remote_pubkey, cmd_id, payload, message_hash = _unpack(message)
         except DefectiveMessage as e:
-            self.logger.error('error unpacking message: {}'.format(e))
+            self.logger.error('error unpacking message: %s', e)
             return
 
         # As of discovery version 4, expiration is the last element for all packets, so
@@ -155,7 +155,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         cmd = CMD_ID_MAP[cmd_id]
         if len(payload) != cmd.elem_count:
-            self.logger.error('invalid {} payload: {}'.format(cmd.name, payload))
+            self.logger.error('invalid %s payload: %s', cmd.name, payload)
             return
         node = kademlia.Node(remote_pubkey, address)
         handler = self._get_handler(cmd)
@@ -176,12 +176,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
         # The find_node payload should have 2 elements: node_id, expiration
-        self.logger.debug('<<< find_node from {}'.format(node))
+        self.logger.debug('<<< find_node from %s', node)
         node_id, _ = payload
         self.kademlia.recv_find_node(node, big_endian_to_int(node_id))
 
     def send_ping(self, node: kademlia.Node) -> bytes:
-        self.logger.debug('>>> pinging {}'.format(node))
+        self.logger.debug('>>> pinging %s', node)
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
         message = _pack(CMD_PING.id, payload, self.privkey)
@@ -192,12 +192,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
         target_node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
-        self.logger.debug('>>> find_node to {}'.format(node))
+        self.logger.debug('>>> find_node to %s', node)
         message = _pack(CMD_FIND_NODE.id, [target_node_id], self.privkey)
         self.send(node, message)
 
     def send_pong(self, node: kademlia.Node, token: AnyStr) -> None:
-        self.logger.debug('>>> ponging {}'.format(node))
+        self.logger.debug('>>> ponging %s', node)
         payload = [node.address.to_endpoint(), token]
         message = _pack(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
@@ -211,8 +211,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         max_neighbours = self._get_max_neighbours_per_packet()
         for i in range(0, len(nodes), max_neighbours):
             message = _pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
-            self.logger.debug('>>> neighbours to {}: {}'.format(
-                node, neighbours[i:i + max_neighbours]))
+            self.logger.debug('>>> neighbours to %s: %s',
+                              node, neighbours[i:i + max_neighbours])
             self.send(node, message)
 
 
@@ -276,16 +276,16 @@ def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnySt
     return remote_pubkey, cmd_id, payload, message_hash
 
 
-if __name__ == "__main__":
-    async def show_tasks():
-        while True:
-            tasks = []
-            for task in asyncio.Task.all_tasks():
-                if task._coro.__name__ != "show_tasks":
-                    tasks.append(task._coro.__name__)
-            if tasks:
-                logger.debug("Active tasks: {}".format(tasks))
-            await asyncio.sleep(3)
+def _test():
+    # async def show_tasks():
+    #     while True:
+    #         tasks = []
+    #         for task in asyncio.Task.all_tasks():
+    #             if task._coro.__name__ != "show_tasks":
+    #                 tasks.append(task._coro.__name__)
+    #         if tasks:
+    #             logger.debug("Active tasks: %s", tasks)
+    #         await asyncio.sleep(3)
 
     privkey_hex = '65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b'
     listen_host = '0.0.0.0'
@@ -304,7 +304,7 @@ if __name__ == "__main__":
         b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
     ]
 
-    logger = logging.getLogger("evm.p2p.discovery")
+    # logger = logging.getLogger("evm.p2p.discovery")
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     loop = asyncio.get_event_loop()
@@ -329,5 +329,9 @@ if __name__ == "__main__":
 
     # task_monitor.set_result(None)
     discovery.stop()
-    # logger.info("Pending tasks at exit: {}".format(asyncio.Task.all_tasks(loop)))
+    # logger.info("Pending tasks at exit: %s", asyncio.Task.all_tasks(loop))
     loop.close()
+
+
+if __name__ == "__main__":
+    _test()

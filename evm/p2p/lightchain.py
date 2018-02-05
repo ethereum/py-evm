@@ -106,7 +106,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         await peer.stop()
 
     async def wait_until_finished(self):
-        while len(self._running_peers):
+        while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
         await self._finished.wait()
@@ -115,7 +115,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         """
         Return the peer with the highest announced block height.
         """
-        while len(self.peer_pool.peers) == 0:
+        while not self.peer_pool.peers:
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
 
@@ -179,7 +179,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 self.logger.debug("Asked to stop, breaking out of run() loop")
                 break
             except LESAnnouncementProcessingError as e:
-                self.logger.warn(repr(e))
+                self.logger.warning(repr(e))
                 await self.drop_peer(peer)
             except Exception as e:
                 self.logger.error(

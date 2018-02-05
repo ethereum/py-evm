@@ -145,7 +145,7 @@ def test_update_routing_table():
     proto = get_wired_protocol()
     node = random_node()
 
-    proto.update_routing_table(node) is None
+    assert proto.update_routing_table(node) is None
 
     assert node in proto.routing
 
@@ -219,7 +219,7 @@ def test_routingtable_neighbours():
     table = kademlia.RoutingTable(random_node())
     for i in range(1000):
         assert table.add_node(random_node()) is None
-    assert i == len(table) - 1
+        assert i == len(table) - 1
 
     for i in range(100):
         node = random_node()
@@ -281,7 +281,7 @@ def test_bucket_ordering():
     third = random_node()
     assert first < second
     with pytest.raises(TypeError):
-        first > third
+        assert first > third
 
 
 @pytest.mark.parametrize(
