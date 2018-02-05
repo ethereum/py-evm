@@ -203,7 +203,7 @@ def get_collation_header_dict(collation_header):
     }
 
 
-def send_add_header_tx(vmc_handler, collation_header):
+def add_header_send_tx(vmc_handler, collation_header):
     colhdr_dict = get_collation_header_dict(collation_header)
     tx_hash = vmc_handler.add_header(**colhdr_dict)
     return tx_hash
@@ -372,14 +372,14 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         )
         add_header_constant_call(vmc, header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    send_add_header_tx(vmc, header0_1)
+    add_header_send_tx(vmc, header0_1)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
         add_header_constant_call(vmc, header0_1)
     # when a valid header is added, the `add_header` call should succeed
     header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
-    send_add_header_tx(vmc, header0_2)
+    add_header_send_tx(vmc, header0_2)
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
@@ -400,10 +400,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
     header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
-    send_add_header_tx(vmc, header1_1)
+    add_header_send_tx(vmc, header1_1)
     mine(vmc, 1)
     header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2.hash, 3)
-    send_add_header_tx(vmc, header0_3)
+    add_header_send_tx(vmc, header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
