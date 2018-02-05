@@ -6,8 +6,7 @@ import lru
 
 
 @memoize(cache=lru.LRU(64))
-@curry
-def pad_left(value, to_size, pad_with):
+def _pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
     """
@@ -19,11 +18,15 @@ def pad_left(value, to_size, pad_with):
         ))
     else:
         return value
+
+
+@curry
+def pad_left(value, to_size, pad_with):
+    return _pad_left(value, to_size, pad_with)
 
 
 @memoize(cache=lru.LRU(64))
-@curry
-def pad_right(value, to_size, pad_with):
+def _pad_right(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
     """
@@ -35,6 +38,11 @@ def pad_right(value, to_size, pad_with):
         ))
     else:
         return value
+
+
+@curry
+def pad_right(value, to_size, pad_with):
+    return _pad_right(value, to_size, pad_with)
 
 
 zpad_right = pad_right(pad_with=b'\x00')
