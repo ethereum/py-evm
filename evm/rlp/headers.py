@@ -1,5 +1,9 @@
 import time
 
+from cytoolz import (
+    compose,
+)
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -22,6 +26,12 @@ from evm.constants import (
 
 from evm.utils.hexadecimal import (
     encode_hex,
+)
+from evm.utils.numeric import (
+    int_to_big_endian,
+)
+from evm.utils.padding import (
+    pad32,
 )
 
 from .sedes import (
@@ -162,7 +172,6 @@ class CollationHeader(rlp.Serializable):
         ("state_root", hash32),
         ("receipt_root", hash32),
         ("number", big_endian_int),
-        ("sig", binary)
     ]
 
     def __init__(self,
@@ -186,7 +195,6 @@ class CollationHeader(rlp.Serializable):
             state_root=state_root,
             receipt_root=receipt_root,
             number=number,
-            sig=sig
         )
 
     def __repr__(self):
@@ -198,15 +206,33 @@ class CollationHeader(rlp.Serializable):
 
     @property
     def hash(self):
-        return keccak(rlp.encode(self))
+        int_to_bytes32 = compose(
+            pad32,
+            int_to_big_endian,
+        )
+        header_hash = keccak(
+            b''.join(
+                (
+                    int_to_bytes32(self.shard_id),
+                    int_to_bytes32(self.expected_period_number),
+                    self.period_start_prevhash,
+                    self.parent_hash,
+                    self.transaction_root,
+                    pad32(self.coinbase),
+                    self.state_root,
+                    self.receipt_root,
+                    int_to_bytes32(self.number),
+                )
+            )
+        )
+        return header_hash
 
     @classmethod
     def from_parent(cls,
                     parent,
                     period_start_prevhash,
                     expected_period_number,
-                    coinbase=ZERO_ADDRESS,
-                    sig=b""):
+                    coinbase=ZERO_ADDRESS):
         """
         Initialize a new collation header with the `parent` header as the collation's
         parent hash.
@@ -218,7 +244,6 @@ class CollationHeader(rlp.Serializable):
             "parent_hash": parent.hash,
             "state_root": parent.state_root,
             "number": parent.number + 1,
-            "sig": sig
         }
         header = cls(**header_kwargs)
         return header

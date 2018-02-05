@@ -1,8 +1,7 @@
-import functools
 import logging
 
-from cytoolz import (
-    compose,
+from cytoolz.dicttoolz import (
+    assoc,
 )
 
 import pytest
@@ -19,34 +18,31 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
-    int_to_big_endian,
-    is_canonical_address,
-    pad_left,
     to_checksum_address,
 )
 
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.utils.keccak import (
-    keccak,
-)
 
 from evm.vm.forks.byzantium.transactions import (
     ByzantiumTransaction,
 )
 
+from evm.rlp.headers import (
+    CollationHeader,
+)
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
-)
-from evm.vm.forks.sharding.vmc_utils import (
-    create_vmc_tx,
 )
 from evm.vm.forks.sharding.vmc_handler import (
     NextLogUnavailable,
     ShardTracker,
     deserialize_header_bytes,
     parse_collation_added_data,
+)
+from evm.vm.forks.sharding.vmc_utils import (
+    create_vmc_tx,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
@@ -116,13 +112,13 @@ def mk_initiating_transactions(sender_privkey,
     return funding_tx_for_tx_sender, vmc_tx
 
 
-def do_withdraw(vmc_handler, validator_index):
+def send_withdraw_tx(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
     vmc_handler.withdraw(validator_index)
     mine(vmc_handler, 1)
 
 
-def do_deposit(vmc_handler):
+def send_deposit_tx(vmc_handler):
     """
     Do deposit in VMC to be a validator
 
@@ -168,9 +164,9 @@ def import_key(vmc_handler, privkey):
 
 def mk_testing_colhdr(vmc_handler,
                       shard_id,
-                      parent_collation_hash,
+                      parent_hash,
                       number,
-                      collation_coinbase=test_keys[0].public_key.to_canonical_address()):
+                      coinbase=test_keys[0].public_key.to_canonical_address()):
     period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
@@ -181,42 +177,55 @@ def mk_testing_colhdr(vmc_handler,
     period_start_prevhash = period_start_prev_block['hash']
     logger.debug("mk_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
 
-    tx_list_root = b"tx_list " * 4
-    post_state_root = b"post_sta" * 4
+    transaction_root = b"tx_list " * 4
+    state_root = b"post_sta" * 4
     receipt_root = b"receipt " * 4
-    # temp function for casting int to bytes32
-    pad_bytes_to_bytes32 = functools.partial(pad_left, to_size=32, pad_with=b'\x00')
-    int_to_bytes32 = compose(
-        pad_bytes_to_bytes32,
-        int_to_big_endian,
+
+    collation_header = CollationHeader(
+        shard_id=shard_id,
+        expected_period_number=expected_period_number,
+        period_start_prevhash=period_start_prevhash,
+        parent_hash=parent_hash,
+        transaction_root=transaction_root,
+        coinbase=coinbase,
+        state_root=state_root,
+        receipt_root=receipt_root,
+        number=number,
     )
-    header_hash = keccak(
-        b''.join(
-            (
-                int_to_bytes32(shard_id),
-                int_to_bytes32(expected_period_number),
-                period_start_prevhash,
-                parent_collation_hash,
-                tx_list_root,
-                pad_bytes_to_bytes32(collation_coinbase),
-                post_state_root,
-                receipt_root,
-                int_to_bytes32(number),
-            )
-        )
+    return collation_header
+
+
+def get_collation_header_dict(collation_header):
+    field_names = (item[0] for item in collation_header.fields)
+    return {
+        field_name: getattr(collation_header, field_name)
+        for field_name in field_names
+    }
+
+
+def send_add_header_tx(vmc_handler, collation_header):
+    colhdr_dict = get_collation_header_dict(collation_header)
+    tx_hash = vmc_handler.add_header(**colhdr_dict)
+    return tx_hash
+
+
+def add_header_constant_call(vmc_handler, collation_header):
+    field_names = (item[0] for item in collation_header.fields)
+    colhdr_dict = get_collation_header_dict(collation_header)
+    colhdr_dict_with_chksum_addr = assoc(
+        colhdr_dict,
+        'coinbase',
+        to_checksum_address(colhdr_dict['coinbase']),
     )
-    header_tuple = (
-        shard_id,
-        expected_period_number,
-        period_start_prevhash,
-        parent_collation_hash,
-        tx_list_root,
-        collation_coinbase,
-        post_state_root,
-        receipt_root,
-        number,
-    )
-    return header_tuple, header_hash
+    args = (colhdr_dict_with_chksum_addr[item] for item in field_names)
+    # Here we use *args instead of **colhdr_dict_with_chksum_addr as the argument.
+    # Since the parameter names are not identical. e.g. `collation_coinbase` v.s. `coinbase`
+    result = vmc_handler.call(vmc_handler.mk_contract_tx_detail(
+        sender_address=vmc_handler.get_default_sender_address(),
+        gas=vmc_handler.config['DEFAULT_GAS'],
+        gas_price=1,
+    )).add_header(*args)
+    return result
 
 
 @pytest.mark.parametrize(  # noqa: F811
@@ -266,7 +275,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     shard_id = 0
     validator_index = 0
     primary_key = test_keys[validator_index]
-    primary_addr = test_keys[validator_index].public_key.to_canonical_address()
+    primary_addr = primary_key.public_key.to_canonical_address()
     default_gas = vmc.config['DEFAULT_GAS']
 
     log_handler = LogHandler(vmc.web3)
@@ -330,7 +339,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     ).get_num_validators()
     if num_validators == 0:
         # deposit as the first validator
-        validator_addr = do_deposit(vmc)
+        validator_addr = send_deposit_tx(vmc)
         # TODO: error occurs when we don't mine so many blocks
         mine(vmc, lookahead_blocks)
         assert vmc.get_eligible_proposer(shard_id) == validator_addr
@@ -351,54 +360,36 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
-    header0_1, header0_1_hash = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
+    header0_1 = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
-        header_parent_not_added, _ = mk_testing_colhdr(
+        header_parent_not_added = mk_testing_colhdr(
             vmc,
             shard_id,
-            header0_1_hash,
+            header0_1.hash,
             1,
         )
-        header_tuple_casting_address = (
-            to_checksum_address(item)
-            if is_canonical_address(item) else item
-            for item in header_parent_not_added
-        )
-        vmc.call(vmc.mk_contract_tx_detail(
-            sender_address=primary_addr,
-            gas=default_gas,
-            gas_price=1,
-        )).add_header(*header_tuple_casting_address)
+        add_header_constant_call(vmc, header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    vmc.add_header(*header0_1)
+    send_add_header_tx(vmc, header0_1)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
-        header0_1_casting_address = (
-            to_checksum_address(item)
-            if is_canonical_address(item) else item
-            for item in header0_1
-        )
-        vmc.call(vmc.mk_contract_tx_detail(
-            sender_address=primary_addr,
-            gas=default_gas,
-            gas_price=1,
-        )).add_header(*header0_1_casting_address)
+        add_header_constant_call(vmc, header0_1)
     # when a valid header is added, the `add_header` call should succeed
-    header0_2, header0_2_hash = mk_testing_colhdr(vmc, shard_id, header0_1_hash, 2)
-    vmc.add_header(*header0_2)
+    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
+    send_add_header_tx(vmc, header0_2)
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header0_1_hash)
+    ).get_collation_headers__score(shard_id, header0_1.hash)
     assert colhdr0_1_score == 1
     colhdr0_2_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header0_2_hash)
+    ).get_collation_headers__score(shard_id, header0_2.hash)
     assert colhdr0_2_score == 2
     # confirm the logs are correct
     assert vmc.get_next_log(shard_id)['score'] == 2
@@ -408,11 +399,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
-    header1_1, _ = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
-    vmc.add_header(*header1_1)
+    header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
+    send_add_header_tx(vmc, header1_1)
     mine(vmc, 1)
-    header0_3, _ = mk_testing_colhdr(vmc, shard_id, header0_2_hash, 3)
-    vmc.add_header(*header0_3)
+    header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2.hash, 3)
+    send_add_header_tx(vmc, header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
@@ -442,7 +433,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert receipt_value == 1234567
 
     # test `withdraw` ######################################
-    do_withdraw(vmc, validator_index)
+    send_withdraw_tx(vmc, validator_index)
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `get_num_validators` must be 0.
@@ -453,45 +444,45 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
 
 @pytest.mark.parametrize(
-    'header_bytes, expected_header_tuple',
+    'header_bytes, expected_header_dict',
     (
         (
-            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x16\xa4\x96\xc9\r\x05\x05S\xee\xe2\xe2y\x95\x8fH\xa0\x8aT'j-\x94V\x1f\xa7|9r\xd7%\xdb\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00tx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",  # noqa: E501
-            (0, 5, b"\x16\xa4\x96\xc9\r\x05\x05S\xee\xe2\xe2y\x95\x8fH\xa0\x8aT'j-\x94V\x1f\xa7|9r\xd7%\xdb\x1c", b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1),  # noqa: E501
+            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\xbd&\xfb\x06L\x1c\x85\xc9\x14\xad%\xfb\xbc\xfc\xef\xc5\x8bW\xe7\xaaJ\x91N\x9cj\xd0\x19n\xd7\xe1u\xc6\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00tx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01',  # noqa: E501
+            {'shard_id': 0, 'expected_period_number': 5, 'period_start_prevhash': b'\xbd&\xfb\x06L\x1c\x85\xc9\x14\xad%\xfb\xbc\xfc\xef\xc5\x8bW\xe7\xaaJ\x91N\x9cj\xd0\x19n\xd7\xe1u\xc6', 'parent_hash': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'transaction_root': b'tx_list tx_list tx_list tx_list ', 'coinbase': b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', 'state_root': b'post_stapost_stapost_stapost_sta', 'receipt_root': b'receipt receipt receipt receipt ', 'number': 1},  # noqa: E501
         ),
         (
-            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x07\x11\x9b\x8f\xd4\xf2\xbbe /\xdf\'\xbcf~]\x9c\xf5\x08S\xe4\xbd\xa7\xee\xe2c\x83\x92\xdc-6>\xea\x8f8\x92\x998\x1aO}\x8c\xc0\xf0j\x90=O\xa2\x08o\rs\xa3d"a\x8d\xe3\x8dV\x80hC\xc0tx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03',  # noqa: E501
-            (0, 7, b"\x11\x9b\x8f\xd4\xf2\xbbe /\xdf'\xbcf~]\x9c\xf5\x08S\xe4\xbd\xa7\xee\xe2c\x83\x92\xdc-6>\xea", b'\x8f8\x92\x998\x1aO}\x8c\xc0\xf0j\x90=O\xa2\x08o\rs\xa3d"a\x8d\xe3\x8dV\x80hC\xc0', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 3),  # noqa: E501
+            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x06\xd0x\t\x1a\xc1\xff!l\x19@\xd0T\x0fX\xd3!Ny\x89\xc3\x1dg\xa36\x11\xd5\x00j\x92\xb5\xd5\xeb\xd3\xf5\x00Y\xc7d\x82\xa4\x12\x16\xf3i=R\x1dS=j_N\xe9\xea\xb44`{pC\xacG\xcb\x9atx_list tx_list tx_list tx_list \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdfpost_stapost_stapost_stapost_stareceipt receipt receipt receipt \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02',  # noqa: E501
+            {'shard_id': 0, 'expected_period_number': 6, 'period_start_prevhash': b'\xd0x\t\x1a\xc1\xff!l\x19@\xd0T\x0fX\xd3!Ny\x89\xc3\x1dg\xa36\x11\xd5\x00j\x92\xb5\xd5\xeb', 'parent_hash': b'\xd3\xf5\x00Y\xc7d\x82\xa4\x12\x16\xf3i=R\x1dS=j_N\xe9\xea\xb44`{pC\xacG\xcb\x9a', 'transaction_root': b'tx_list tx_list tx_list tx_list ', 'coinbase': b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', 'state_root': b'post_stapost_stapost_stapost_sta', 'receipt_root': b'receipt receipt receipt receipt ', 'number': 2},  # noqa: E501
         ),
     )
 )
-def test_deserialize_header_bytes(header_bytes, expected_header_tuple):
-    actual_header_tuple = deserialize_header_bytes(header_bytes)
-    assert actual_header_tuple == expected_header_tuple
+def test_deserialize_header_bytes(header_bytes, expected_header_dict):
+    actual_header_dict = deserialize_header_bytes(header_bytes)
+    assert actual_header_dict == expected_header_dict
 
 
 @pytest.mark.parametrize(
-    'data_hex, expected_header, expected_is_new_head, expected_score',
+    'data_hex, expected_header_dict, expected_is_new_head, expected_score',
     (
         (
-            '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000587c46811ccae07f8e7b03c5f111764f6881bfe77dfbbbe9d3c0a86c054aee2b0000000000000000000000000000000000000000000000000000000000000000074785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001',  # noqa: E501
-            (0, 5, b'\x87\xc4h\x11\xcc\xae\x07\xf8\xe7\xb0<_\x11\x17d\xf6\x88\x1b\xfew\xdf\xbb\xbe\x9d<\n\x86\xc0T\xae\xe2\xb0', b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 1),  # noqa: E501
+            '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005db8d539409750d68b988e384ad6159d76f7a9f7985f8b290ea0875bf13d448c2000000000000000000000000000000000000000000000000000000000000000074785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001',  # noqa: E501
+            {'shard_id': 0, 'expected_period_number': 5, 'period_start_prevhash': b'\xdb\x8dS\x94\tu\rh\xb9\x88\xe3\x84\xadaY\xd7oz\x9fy\x85\xf8\xb2\x90\xea\x08u\xbf\x13\xd4H\xc2', 'parent_hash': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'transaction_root': b'tx_list tx_list tx_list tx_list ', 'coinbase': b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', 'state_root': b'post_stapost_stapost_stapost_sta', 'receipt_root': b'receipt receipt receipt receipt ', 'number': 1},  # noqa: E501
             True,
             1,
         ),
         (
-            '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006df996fe0bada20c6762c52239a5d8f4aed951903a649725737cbf88ea1009cc2835a26c9fee813d4301f6052c5970f4a01185f47a814bb6c5bfe98b26c77d3a474785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002',  # noqa: E501
-            (0, 6, b'\xdf\x99o\xe0\xba\xda \xc6v,R#\x9a]\x8fJ\xed\x95\x19\x03\xa6IrW7\xcb\xf8\x8e\xa1\x00\x9c\xc2', b'\x83Z&\xc9\xfe\xe8\x13\xd40\x1f`R\xc5\x97\x0fJ\x01\x18_G\xa8\x14\xbbl[\xfe\x98\xb2lw\xd3\xa4', b'tx_list tx_list tx_list tx_list ', b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', b'post_stapost_stapost_stapost_sta', b'receipt receipt receipt receipt ', 2),  # noqa: E501
+            '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006d5e5e9350bb8ad57dd56e55e0b7aac054259b51c484e8d8ff64719e0a9d8d04698c7166041754720996f25b0988fb8192796a7f95879f397f6fc3a72dfa7023e74785f6c6973742074785f6c6973742074785f6c6973742074785f6c697374200000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf706f73745f737461706f73745f737461706f73745f737461706f73745f7374617265636569707420726563656970742072656365697074207265636569707420000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002',  # noqa: E501
+            {'shard_id': 0, 'expected_period_number': 6, 'period_start_prevhash': b'\xd5\xe5\xe95\x0b\xb8\xadW\xddV\xe5^\x0bz\xac\x05BY\xb5\x1cHN\x8d\x8f\xf6G\x19\xe0\xa9\xd8\xd0F', 'parent_hash': b"\x98\xc7\x16`AuG \x99o%\xb0\x98\x8f\xb8\x19'\x96\xa7\xf9Xy\xf3\x97\xf6\xfc:r\xdf\xa7\x02>", 'transaction_root': b'tx_list tx_list tx_list tx_list ', 'coinbase': b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf', 'state_root': b'post_stapost_stapost_stapost_sta', 'receipt_root': b'receipt receipt receipt receipt ', 'number': 2},  # noqa: E501
             True,
             2,
         ),
     )
 )
 def test_parse_collation_added_data(data_hex,
-                                    expected_header,
+                                    expected_header_dict,
                                     expected_is_new_head,
                                     expected_score):
     parsed_data = parse_collation_added_data(data_hex)
-    assert parsed_data['header'] == expected_header
+    assert parsed_data['header'] == CollationHeader(**expected_header_dict)
     assert parsed_data['is_new_head'] == expected_is_new_head
     assert parsed_data['score'] == expected_score
