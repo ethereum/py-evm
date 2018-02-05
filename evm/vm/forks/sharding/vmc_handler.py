@@ -18,9 +18,11 @@ from eth_utils import (
     to_tuple,
 )
 
+from evm.rlp.headers import (
+    CollationHeader,
+)
 from evm.rlp.sedes import (
     address,
-    hash32,
 )
 
 from evm.utils.hexadecimal import (
@@ -44,32 +46,24 @@ class UnknownShard(Exception):
     pass
 
 
-@to_tuple
+@to_dict
 def deserialize_header_bytes(header_bytes):
-    # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
+    header_sedes = CollationHeader.get_sedes()
+    # assume all fields are padded to 32 bytes
     obj_size = 32
-    sedes = (
-        rlp.sedes.big_endian_int,
-        rlp.sedes.big_endian_int,
-        hash32,
-        hash32,
-        hash32,
-        address,
-        hash32,
-        hash32,
-        rlp.sedes.big_endian_int,
-    )
-    assert len(header_bytes) == obj_size * len(sedes)
-    for idx, obj_type in enumerate(sedes):
+    assert len(header_bytes) == obj_size * len(header_sedes)
+    for idx, field in enumerate(CollationHeader.fields):
+        field_name, field_type = field
         start_index = idx * obj_size
-        end_index = (idx + 1) * obj_size
-        obj_bytes = header_bytes[start_index:end_index]
-        if obj_type == rlp.sedes.big_endian_int:
-            yield big_endian_to_int(obj_bytes)
-        elif obj_type == address:
-            yield obj_bytes[-20:]
+        field_bytes = header_bytes[start_index:(start_index + obj_size)]
+        if field_type == rlp.sedes.big_endian_int:
+            # remove the leading zeros, to avoid `not minimal length` error in deserialization
+            formatted_field_bytes = field_bytes.lstrip(b'\x00')
+        elif field_type == address:
+            formatted_field_bytes = field_bytes[-20:]
         else:
-            yield obj_bytes
+            formatted_field_bytes = field_bytes
+        yield field_name, field_type.deserialize(formatted_field_bytes)
 
 
 @to_dict
@@ -78,8 +72,9 @@ def parse_collation_added_data(data_hex):
     score = big_endian_to_int(data_bytes[-32:])
     is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
     header_bytes = data_bytes[:-64]
-    header_tuple = deserialize_header_bytes(header_bytes)
-    yield 'header', header_tuple
+    header_dict = deserialize_header_bytes(header_bytes)
+    collation_header = CollationHeader(**header_dict)
+    yield 'header', collation_header
     yield 'is_new_head', is_new_head
     yield 'score', score
 
@@ -313,12 +308,12 @@ class VMC(Contract):
                    shard_id,
                    expected_period_number,
                    period_start_prevhash,
-                   parent_collation_hash,
-                   tx_list_root,
-                   collation_coinbase,
-                   post_state_root,
+                   parent_hash,
+                   transaction_root,
+                   coinbase,
+                   state_root,
                    receipt_root,
-                   collation_number,
+                   number,
                    gas=None,
                    gas_price=None):
         """Add the collation header with the given parameters
@@ -329,12 +324,12 @@ class VMC(Contract):
                 shard_id,
                 expected_period_number,
                 period_start_prevhash,
-                parent_collation_hash,
-                tx_list_root,
-                to_checksum_address(collation_coinbase),
-                post_state_root,
+                parent_hash,
+                transaction_root,
+                to_checksum_address(coinbase),
+                state_root,
                 receipt_root,
-                collation_number,
+                number,
             ],
             gas=gas,
             gas_price=gas_price,
