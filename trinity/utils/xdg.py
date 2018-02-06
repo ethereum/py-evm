@@ -1,5 +1,9 @@
 import os
 
+from .filesystem import (
+    is_under_path,
+)
+
 
 XDG_CACHE_HOME = os.environ.get(
     'XDG_CACHE_HOME',
@@ -17,47 +21,18 @@ XDG_DATA_HOME = os.environ.get(
 )
 
 
-def get_trinity_home():
+def get_xdg_trinity_root():
     """
     Returns the base directory under which trinity will store all data.
     """
     return os.environ.get(
-        'TRINITY_HOME',
+        'XDG_TRINITY_ROOT',
         os.path.join(XDG_DATA_HOME, 'trinity'),
     )
 
 
-def get_chain_dir(chain_identifier):
-    """
-    Returns the base directory path where data for a given chain will be stored.
-    """
-    return os.environ.get(
-        'TRINITY_CHAIN_DIR',
-        os.path.join(get_trinity_home(), chain_identifier),
-    )
-
-
-DATA_DIR_NAME = 'chain'
-
-
-def get_data_dir(chain_identifier):
-    """
-    Returns the directory path where chain data will be stored.
-    """
-    return os.environ.get(
-        'TRINITY_DATA_DIR',
-        os.path.join(get_chain_dir(chain_identifier), DATA_DIR_NAME),
-    )
-
-
-NODEKEY_FILENAME = 'nodekey'
-
-
-def get_nodekey_path(chain_identifier):
-    """
-    Returns the path to the private key used for devp2p connections.
-    """
-    return os.environ.get(
-        'TRINITY_NODEKEY',
-        os.path.join(get_chain_dir(chain_identifier), NODEKEY_FILENAME),
+def is_under_xdg_trinity_root(path):
+    return is_under_path(
+        get_xdg_trinity_root(),
+        path,
     )

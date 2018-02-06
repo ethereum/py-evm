@@ -33,6 +33,10 @@ setup(
         ],
         'leveldb': [
             "leveldb>=0.194",
+        ],
+        'trinity': [
+            "leveldb>=0.194,<1.0",
+            "coincurve>=7.0.0,<8.0.0",
         ]
     },
     setup_requires=['setuptools-markdown'],
