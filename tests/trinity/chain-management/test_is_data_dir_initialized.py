@@ -64,7 +64,7 @@ NODEKEY = decode_hex('0xd18445cc77139cd8e09110e99c9384f0601bd2dfa5b230cda917df7e
 
 
 def test_full_initialized_data_dir_with_custom_nodekey():
-    return ChainConfig('test_chain', nodekey=NODEKEY)
+    chain_config = ChainConfig('test_chain', nodekey=NODEKEY)
 
     os.makedirs(chain_config.data_dir, exist_ok=True)
     os.makedirs(chain_config.database_dir, exist_ok=True)
