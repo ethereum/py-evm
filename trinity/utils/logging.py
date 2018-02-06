@@ -1,6 +1,9 @@
+import functools
 import logging
 from logging import handlers
 import sys
+
+from cytoolz import dissoc
 
 
 def setup_trinity_logging(level):
@@ -26,7 +29,7 @@ def setup_trinity_logging(level):
     return logger, log_queue, listener
 
 
-def setup_queue_logging(log_queue, level=logging.INFO):
+def setup_queue_logging(log_queue, level):
     queue_handler = handlers.QueueHandler(log_queue)
     logging.basicConfig(
         level=level,
@@ -35,3 +38,23 @@ def setup_queue_logging(log_queue, level=logging.INFO):
 
     logger = logging.getLogger()
     logger.debug('Logging initialized')
+
+
+def with_queued_logging(fn):
+    @functools.wraps(fn)
+    def inner(*args, **kwargs):
+        print(args, kwargs)
+        try:
+            log_queue = kwargs['log_queue']
+        except KeyError:
+            raise KeyError("The `log_queue` argument is required when calling `{0}`".format(
+                fn.__name__,
+            ))
+        else:
+            log_level = kwargs.get('log_level', logging.INFO)
+            setup_queue_logging(log_queue, level=log_level)
+
+            inner_kwargs = dissoc(kwargs, 'log_queue', 'log_level')
+
+            return fn(*args, **inner_kwargs)
+    return inner
