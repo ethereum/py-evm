@@ -1,3 +1,22 @@
+# Events
+CollationAdded: __log__({
+    shard_id: indexed(num),
+    expected_period_number: num,
+    period_start_prevhash: bytes32,
+    parent_hash: bytes32,
+    transaction_root: bytes32,
+    collation_coinbase: address,
+    state_root: bytes32,
+    receipt_root: bytes32,
+    collation_number: num,
+    is_new_head: bool,
+    score: num,
+})
+# TODO: determine the signature of the log `Deposit` and `Withdraw`
+Deposit: __log__({validator_index: num, validator_addr: address, deposit: wei_value})
+Withdraw: __log__({validator_index: num, validator_addr: address, deposit: wei_value})
+
+
 # Information about validators
 validators: public({
     # Amount of wei the validator holds
@@ -60,9 +79,6 @@ shard_count: num
 # is able to return the collator of that period
 lookahead_periods: num
 
-# Events
-# TODO: should be added after the issue "In log declaration, `bytes` must be smaller 32" is solved.
-# CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
 
 @public
 def __init__():
@@ -133,11 +149,7 @@ def deposit() -> num:
     self.num_validators += 1
     self.is_validator_deposited[validator_addr] = True
 
-    # TODO: determine the signature of the log Deposit
-    raw_log(
-        [sha3("deposit()"), as_bytes32(validator_addr)],
-        concat('', as_bytes32(index))
-    )
+    log.Deposit(index, validator_addr, msg.value)
 
     return index
 
@@ -160,11 +172,9 @@ def withdraw(validator_index: num) -> bool:
 
     send(validator_addr, validator_deposit)
 
-    # TODO: determine the signature of the log Withdraw
-    raw_log(
-        [sha3("withdraw(int128)")],
-        concat('', as_bytes32(validator_index)),
-    )
+    log.Withdraw(validator_index, validator_addr, validator_deposit)
+
+    return True
 
 
 # Uses a block hash as a seed to pseudorandomly select a signer from the validator set.
@@ -182,9 +192,9 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
                 as_num256(
                     sha3(
                         concat(
-                            # TODO: should check further if this safe or not
+                            # TODO: should check further if this is safe or not
                             blockhash((period - self.lookahead_periods) * self.period_length),
-                            as_bytes32(shard_id)
+                            as_bytes32(shard_id),
                         )
                     )
                 ),
@@ -268,16 +278,18 @@ def add_header(
         new_head_in_num = 1
     else:
         new_head_in_num = 0
-    raw_log(
-        [
-            sha3("CollationAdded(int128,bytes4096,bool,int128)"),
-            as_bytes32(shard_id),
-        ],
-        concat(
-            header_bytes,
-            as_bytes32(new_head_in_num),
-            as_bytes32(_score),
-        )
+    log.CollationAdded(
+        shard_id,
+        expected_period_number,
+        period_start_prevhash,
+        parent_hash,
+        transaction_root,
+        collation_coinbase,
+        state_root,
+        receipt_root,
+        collation_number,
+        is_new_head,
+        _score,
     )
 
     return True
