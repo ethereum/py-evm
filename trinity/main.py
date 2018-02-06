@@ -109,7 +109,7 @@ def chain_obj(chain_config, sync_mode):
     else:
         chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
 
-    chaindb = get_chain_db(chain_config.data_dir)
+    chaindb = get_chain_db(chain_config.database_dir)
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
