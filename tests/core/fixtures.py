@@ -140,6 +140,7 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
 
 @pytest.fixture
 def shard_chain(shard_chaindb):
+    shard_chaindb = shard_chaindb
     genesis_params = {
         "bloom": 0,
         "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
@@ -183,6 +184,7 @@ def shard_chain(shard_chaindb):
 
 @pytest.fixture
 def shard_chain_without_block_validation(shard_chaindb):
+    shard_chaindb = shard_chaindb
     """
     Return a Chain object containing just the genesis block.
 

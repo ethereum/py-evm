@@ -2,9 +2,6 @@ from eth_utils import (
     decode_hex,
 )
 
-from tests.core.fixtures import (  # noqa: F401
-    shard_chain_without_block_validation,
-)
 from tests.core.helpers import (
     new_sharding_transaction,
 )
@@ -14,8 +11,8 @@ from tests.core.vm.contract_fixture import (
 )
 
 
-def test_trigger_PAYGAS(shard_chain_without_block_validation):  # noqa: F811
-    chain = shard_chain_without_block_validation
+def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
+    chain = unvalidated_shard_chain
     deploy_tx = new_sharding_transaction(
         tx_initiator=PAYGAS_contract_address,
         data_destination=b'',
