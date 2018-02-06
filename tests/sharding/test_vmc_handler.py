@@ -199,12 +199,13 @@ def add_header_constant_call(vmc_handler, collation_header):
         getattr(collation_header, field[0])
         for field in collation_header.fields
     )
+    # transform address from canonical to checksum_address, to comply with web3.py
     args_with_checksum_address = (
         to_checksum_address(item) if is_address(item) else item
         for item in args
     )
-    # Here we use *args instead of **colhdr_dict_with_chksum_addr as the argument.
-    # Since the parameter names are not identical. e.g. `collation_coinbase` v.s. `coinbase`
+    # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
+    # is the same as the one of parameters of `VMC.add_header`
     result = vmc_handler.call(vmc_handler.mk_contract_tx_detail(
         sender_address=vmc_handler.get_default_sender_address(),
         gas=vmc_handler.config['DEFAULT_GAS'],
