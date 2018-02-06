@@ -84,11 +84,6 @@ def initialize_database(chain_config, chain_class, chaindb):
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
             raise NotImplementedError("Not implemented for other chains yet")
-    finally:
-        del chaindb.db
-        del chaindb
-
-    return chain_class
 
 
 def get_chain_protocol_class(chain_config, sync_mode):

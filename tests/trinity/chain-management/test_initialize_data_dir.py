@@ -4,6 +4,7 @@ import os
 
 from trinity.chains import (
     is_data_dir_initialized,
+    initialize_data_dir,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -36,24 +37,28 @@ def nodekey(chain_config, data_dir):
     return chain_config.nodekey_path
 
 
-def test_not_initialized_without_data_dir(chain_config):
+def test_initializing_data_dir_from_nothing(chain_config):
     assert not os.path.exists(chain_config.data_dir)
     assert not is_data_dir_initialized(chain_config)
 
+    initialize_data_dir(chain_config)
 
-def test_not_initialized_without_database_dir(chain_config, data_dir):
+    assert is_data_dir_initialized(chain_config)
+
+
+def test_initializing_data_dir_from_empty_data_dir(chain_config, data_dir):
     assert not os.path.exists(chain_config.database_dir)
     assert not is_data_dir_initialized(chain_config)
 
+    initialize_data_dir(chain_config)
 
-def test_not_initialized_without_nodekey_file(chain_config, data_dir, database_dir):
+    assert is_data_dir_initialized(chain_config)
+
+
+def test_initializing_data_dir_with_missing_nodekey(chain_config, data_dir, database_dir):
     assert not os.path.exists(chain_config.nodekey_path)
     assert not is_data_dir_initialized(chain_config)
 
-
-def test_full_initialized_data_dir(chain_config, data_dir, database_dir, nodekey):
-    assert os.path.exists(chain_config.data_dir)
-    assert os.path.exists(chain_config.database_dir)
-    assert chain_config.nodekey is not None
+    initialize_data_dir(chain_config)
 
     assert is_data_dir_initialized(chain_config)
