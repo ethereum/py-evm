@@ -34,14 +34,14 @@ def is_chain_initialized(chain_config):
 
     if chain_config.nodekey_path is None:
         # has an explicitely defined nodekey
-        return True
+        pass
     elif not os.path.exists(chain_config.nodekey_path):
         return False
 
     if chain_config.nodekey is None:
         return False
 
-    chaindb = get_chain_db(chain_config.data_dir)
+    chaindb = get_chain_db(chain_config.database_dir)
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -77,7 +77,7 @@ def initialize_chain(chain_config, sync_mode):
     chain_class = get_chain_protocol_class(chain_config, sync_mode)
 
     # Database Initialization
-    chaindb = get_chain_db(chain_config.data_dir)
+    chaindb = get_chain_db(chain_config.database_dir)
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:

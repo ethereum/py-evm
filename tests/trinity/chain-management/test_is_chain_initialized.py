@@ -75,7 +75,7 @@ def test_fully_initialized_chain_datadir(chain_config,
                                          database_dir,
                                          nodekey):
     # Database Initialization
-    chaindb = get_chain_db(chain_config.data_dir)
+    chaindb = get_chain_db(chain_config.database_dir)
     chain = RopstenLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
 
     # we need to delete the chaindb in order to release the leveldb LOCK.

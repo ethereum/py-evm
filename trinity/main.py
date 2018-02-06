@@ -135,8 +135,6 @@ def run_chain(chain_config, sync_mode):
     else:
         chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
 
-    # TODO: this should probably be something that is passed in to allow
-    # specifying the db_path via the CLI as well as the db class.
     chaindb = get_chain_db(chain_config.data_dir)
     try:
         chaindb.get_canonical_head()
