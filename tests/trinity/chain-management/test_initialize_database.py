@@ -9,9 +9,6 @@ from trinity.chains import (
     initialize_database,
     is_database_initialized,
 )
-from trinity.chains.ropsten import (
-    RopstenLightChain,
-)
 from trinity.utils.chains import (
     ChainConfig,
 )
@@ -31,5 +28,5 @@ def chaindb(chain_config):
 
 def test_initialize_database(chain_config, chaindb):
     assert not is_database_initialized(chaindb)
-    initialize_database(chain_config, RopstenLightChain, chaindb)
+    initialize_database(chain_config, chaindb)
     assert is_database_initialized(chaindb)

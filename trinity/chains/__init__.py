@@ -72,14 +72,14 @@ def initialize_data_dir(chain_config):
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config, chain_class, chaindb):
+def initialize_database(chain_config, chaindb):
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         if chain_config.chain_identifier == ROPSTEN:
             # We're starting with a fresh DB.
             # TODO: log that we initialized the chain
-            chain_class.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+            chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.

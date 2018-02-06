@@ -188,11 +188,10 @@ def run_chain(chain_config, sync_mode, db_pipe):
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
 
-    chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-
     if not is_database_initialized(chaindb):
-        initialize_database(chain_config, chain_class, chaindb)
+        initialize_database(chain_config, chaindb)
 
+    chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
     chain = chain_class(chaindb)
 
     loop = asyncio.get_event_loop()

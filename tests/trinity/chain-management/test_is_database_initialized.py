@@ -9,9 +9,6 @@ from trinity.chains import (
     initialize_data_dir,
     is_database_initialized,
 )
-from trinity.chains.ropsten import (
-    RopstenLightChain,
-)
 from trinity.utils.chains import (
     ChainConfig,
 )
@@ -35,5 +32,5 @@ def test_database_dir_not_initialized_without_canonical_head_block(chaindb):
 
 def test_fully_initialized_database_dir(chaindb):
     assert not is_database_initialized(chaindb)
-    RopstenLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     assert is_database_initialized(chaindb)
