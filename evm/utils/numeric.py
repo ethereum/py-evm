@@ -2,17 +2,22 @@ import functools
 import itertools
 import math
 
+from cytoolz import memoize
+import lru
+
 from evm.constants import (
     UINT_255_MAX,
     UINT_256_CEILING,
 )
 
 
+@memoize(cache=lru.LRU(256))
 def int_to_big_endian(value):
     byte_length = math.ceil(value.bit_length() / 8)
     return (value).to_bytes(byte_length, byteorder='big')
 
 
+@memoize(cache=lru.LRU(256))
 def big_endian_to_int(value):
     return int.from_bytes(value, byteorder='big')
 

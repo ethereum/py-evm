@@ -1,10 +1,12 @@
 from cytoolz import (
     curry,
+    memoize,
 )
+import lru
 
 
-@curry
-def pad_left(value, to_size, pad_with):
+@memoize(cache=lru.LRU(256))
+def _pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
     """
@@ -13,6 +15,26 @@ def pad_left(value, to_size, pad_with):
         return b"".join((
             pad_with * pad_amount,
             value,
+        ))
+    else:
+        return value
+
+
+@curry
+def pad_left(value, to_size, pad_with):
+    return _pad_left(value, to_size, pad_with)
+
+
+@memoize(cache=lru.LRU(256))
+def _pad_right(value, to_size, pad_with):
+    """
+    Should be called to pad value to expected length
+    """
+    pad_amount = to_size - len(value)
+    if pad_amount > 0:
+        return b"".join((
+            value,
+            pad_with * pad_amount,
         ))
     else:
         return value
@@ -20,17 +42,7 @@ def pad_left(value, to_size, pad_with):
 
 @curry
 def pad_right(value, to_size, pad_with):
-    """
-    Should be called to pad value to expected length
-    """
-    pad_amount = to_size - len(value)
-    if pad_amount > 0:
-        return b"".join((
-            value,
-            pad_with * pad_amount,
-        ))
-    else:
-        return value
+    return _pad_right(value, to_size, pad_with)
 
 
 zpad_right = pad_right(pad_with=b'\x00')
