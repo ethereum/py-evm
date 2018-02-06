@@ -1,6 +1,11 @@
 import logging
 import uuid
 
+from cytoolz import (
+    concatv,
+    curry,
+)
+
 from evm.db.backends.base import (
     BaseDB,
 )
@@ -12,59 +17,33 @@ EXISTS = 2
 DELETE = 3
 
 
+@curry
+def run_command(pipe_db, *params, command):
+    req_id = uuid.uuid4()
+    pipe_db.pipe.send(list(concatv(
+        [req_id, command],
+        params,
+    )))
+
+    resp_id, response = pipe_db.pipe.recv()
+    if resp_id != req_id:
+        raise ValueError('Request/Response id mismatch')
+
+    if isinstance(response, Exception):
+        raise response
+    return response
+
+
 class PipeDB(BaseDB):
     pipe = None
 
     def __init__(self, pipe):
         self.pipe = pipe
 
-    def get(self, key):
-        req_id = uuid.uuid4()
-        self.pipe.send([req_id, GET, key])
-
-        resp_id, response = self.pipe.recv()
-        if resp_id != req_id:
-            raise ValueError('Request/Response id mismatch')
-
-        if isinstance(response, Exception):
-            raise response
-        return response
-
-    def set(self, key, value):
-        req_id = uuid.uuid4()
-        self.pipe.send([req_id, SET, key, value])
-
-        resp_id, response = self.pipe.recv()
-        if resp_id != req_id:
-            raise ValueError('Request/Response id mismatch')
-
-        if isinstance(response, Exception):
-            raise response
-        return response
-
-    def exists(self, key):
-        req_id = uuid.uuid4()
-        self.pipe.send([req_id, EXISTS, key])
-
-        resp_id, response = self.pipe.recv()
-        if resp_id != req_id:
-            raise ValueError('Request/Response id mismatch')
-
-        if isinstance(response, Exception):
-            raise response
-        return response
-
-    def delete(self, key):
-        req_id = uuid.uuid4()
-        self.connection.send([req_id, DELETE, key])
-
-        resp_id, response = self.pipe.recv()
-        if resp_id != req_id:
-            raise ValueError('Request/Response id mismatch')
-
-        if isinstance(response, Exception):
-            raise response
-        return response
+    get = run_command(command=GET)
+    set = run_command(command=SET)
+    exists = run_command(command=EXISTS)
+    delete = run_command(command=DELETE)
 
 
 def db_over_pipe(db, pipe):
