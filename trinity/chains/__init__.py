@@ -38,6 +38,8 @@ def is_data_dir_initialized(chain_config):
     if chain_config.nodekey is None:
         return False
 
+    return True
+
 
 def is_database_initialized(chaindb):
     try:

@@ -3,6 +3,7 @@ import asyncio
 import atexit
 import sys
 
+from evm.db.backends.level import LevelDB
 from evm.db.chain import BaseChainDB
 
 from trinity.__version__ import __version__
@@ -18,15 +19,12 @@ from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
 )
-from trinity.db.mp import (
+from trinity.db.pipe import (
     PipeDB,
     db_over_pipe,
 )
 from trinity.utils.chains import (
     ChainConfig,
-)
-from trinity.utils.db import (
-    get_chain_db,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -165,7 +163,7 @@ def main():
     db_process = ctx.Process(
         target=backend_db_process,
         args=(
-            'evm.db.backends.level.LevelDB',
+            LevelDB,
             {'db_path': chain_config.database_dir},
             db_process_pipe,
         ),
@@ -190,8 +188,8 @@ def main():
 
 
 @with_queued_logging
-def backend_db_process(db_class_path, db_init_kwargs, pipe):
-    db = get_chain_db(db_class_path, init_kwargs=db_init_kwargs)
+def backend_db_process(db_class, db_init_kwargs, pipe):
+    db = db_class(**db_init_kwargs)
 
     db_over_pipe(db, pipe)
 

@@ -2,13 +2,8 @@ import pytest
 
 import os
 
-from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
-
 from trinity.chains import (
-    is_chain_initialized,
-)
-from trinity.chains.ropsten import (
-    RopstenLightChain,
+    is_data_dir_initialized,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -43,35 +38,22 @@ def nodekey(chain_config, data_dir):
 
 def test_not_initialized_without_data_dir(chain_config):
     assert not os.path.exists(chain_config.data_dir)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
 def test_not_initialized_without_database_dir(chain_config, data_dir):
     assert not os.path.exists(chain_config.database_dir)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
 def test_not_initialized_without_nodekey_file(chain_config, data_dir, database_dir):
     assert not os.path.exists(chain_config.nodekey_path)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
-def test_not_initialized_without_initialized_chaindb(chain_config,
-                                                     data_dir,
-                                                     database_dir,
-                                                     nodekey):
+def test_full_initialized_data_dir(chain_config, data_dir, database_dir, nodekey):
     assert os.path.exists(chain_config.data_dir)
     assert os.path.exists(chain_config.database_dir)
     assert chain_config.nodekey is not None
 
-    assert not is_chain_initialized(chain_config)
-
-
-def test_fully_initialized_chain_datadir(chain_config,
-                                         data_dir,
-                                         database_dir,
-                                         nodekey):
-    # Database Initialization
-    RopstenLightChain.from_genesis_header(chain_config.chaindb, ROPSTEN_GENESIS_HEADER)
-
-    assert is_chain_initialized(chain_config)
+    assert is_data_dir_initialized(chain_config)
