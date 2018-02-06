@@ -18,6 +18,7 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
+    is_address,
     to_checksum_address,
 )
 
@@ -89,8 +90,7 @@ def mk_initiating_transactions(sender_privkey,
                                sender_starting_nonce,
                                TransactionClass,
                                gas_price):
-    """Make transactions of createing initial contracts
-    Including rlp_decoder, sighasher and validator_manager
+    """Make VMC and its dependent transactions
     """
     nonce = sender_starting_nonce
 
@@ -194,36 +194,22 @@ def mk_testing_colhdr(vmc_handler,
     return collation_header
 
 
-def get_collation_header_dict(collation_header):
-    field_names = (item[0] for item in collation_header.fields)
-    return {
-        field_name: getattr(collation_header, field_name)
-        for field_name in field_names
-    }
-
-
-def add_header_send_tx(vmc_handler, collation_header):
-    colhdr_dict = get_collation_header_dict(collation_header)
-    tx_hash = vmc_handler.add_header(**colhdr_dict)
-    return tx_hash
-
-
 def add_header_constant_call(vmc_handler, collation_header):
-    field_names = (item[0] for item in collation_header.fields)
-    colhdr_dict = get_collation_header_dict(collation_header)
-    colhdr_dict_with_chksum_addr = assoc(
-        colhdr_dict,
-        'coinbase',
-        to_checksum_address(colhdr_dict['coinbase']),
+    args = (
+        getattr(collation_header, field[0])
+        for field in collation_header.fields
     )
-    args = (colhdr_dict_with_chksum_addr[item] for item in field_names)
+    args_with_checksum_address = (
+        to_checksum_address(item) if is_address(item) else item
+        for item in args
+    )
     # Here we use *args instead of **colhdr_dict_with_chksum_addr as the argument.
     # Since the parameter names are not identical. e.g. `collation_coinbase` v.s. `coinbase`
     result = vmc_handler.call(vmc_handler.mk_contract_tx_detail(
         sender_address=vmc_handler.get_default_sender_address(),
         gas=vmc_handler.config['DEFAULT_GAS'],
         gas_price=1,
-    )).add_header(*args)
+    )).add_header(*args_with_checksum_address)
     return result
 
 
@@ -371,14 +357,14 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         )
         add_header_constant_call(vmc, header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
-    add_header_send_tx(vmc, header0_1)
+    vmc.add_header(header0_1)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
         add_header_constant_call(vmc, header0_1)
     # when a valid header is added, the `add_header` call should succeed
     header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
-    add_header_send_tx(vmc, header0_2)
+    vmc.add_header(header0_2)
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
@@ -399,10 +385,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
     header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
-    add_header_send_tx(vmc, header1_1)
+    vmc.add_header(header1_1)
     mine(vmc, 1)
     header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2.hash, 3)
-    add_header_send_tx(vmc, header0_3)
+    vmc.add_header(header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`

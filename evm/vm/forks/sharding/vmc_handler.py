@@ -279,15 +279,7 @@ class VMC(Contract):
         return tx_hash
 
     def add_header(self,
-                   shard_id,
-                   expected_period_number,
-                   period_start_prevhash,
-                   parent_hash,
-                   transaction_root,
-                   coinbase,
-                   state_root,
-                   receipt_root,
-                   number,
+                   collation_header,
                    gas=None,
                    gas_price=None):
         """Add the collation header with the given parameters
@@ -295,15 +287,15 @@ class VMC(Contract):
         tx_hash = self.send_transaction(
             'add_header',
             [
-                shard_id,
-                expected_period_number,
-                period_start_prevhash,
-                parent_hash,
-                transaction_root,
-                to_checksum_address(coinbase),
-                state_root,
-                receipt_root,
-                number,
+                collation_header.shard_id,
+                collation_header.expected_period_number,
+                collation_header.period_start_prevhash,
+                collation_header.parent_hash,
+                collation_header.transaction_root,
+                to_checksum_address(collation_header.coinbase),
+                collation_header.state_root,
+                collation_header.receipt_root,
+                collation_header.number,
             ],
             gas=gas,
             gas_price=gas_price,
