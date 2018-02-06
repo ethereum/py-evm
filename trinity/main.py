@@ -104,25 +104,6 @@ console_parser.add_argument(
 console_parser.set_defaults(func=console)
 
 
-def chain_obj(chain_config, sync_mode):
-    if not is_chain_initialized(chain_config):
-        # TODO: this will only work as is for chains with known genesis
-        # parameters.  Need to flesh out how genesis parameters for custom
-        # chains are defined and passed around.
-        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
-    else:
-        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-
-    chaindb = get_chain_db(chain_config.database_dir)
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # TODO: figure out amore appropriate error to raise here.
-        raise ValueError('Chain not intiialized')
-
-    return chain_class(chaindb)
-
-
 def main():
     args = parser.parse_args()
 
@@ -148,7 +129,9 @@ def main():
         use_ipython = not args.vanilla_shell
         debug = args.log_level.upper() == 'DEBUG'
 
-        chain = chain_obj(chain_config, sync_mode)
+        chain_class = get_chain_protocol_class(chain_config, sync_mode)
+        chaindb = BaseChainDB(LevelDB(chain_config.database_dir))
+        chain = chain_class(chaindb)
         args.func(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
 
