@@ -88,6 +88,17 @@ parser.add_argument(
     )
 )
 
+# Add console sub-command to trinity CLI.
+subparser = parser.add_subparsers(dest='subcommand')
+console_parser = subparser.add_parser('console', help='start the trinity REPL')
+console_parser.add_argument(
+    '--vanilla-shell',
+    action='store_true',
+    default=False,
+    help='start a native Python shell'
+)
+console_parser.set_defaults(func=console)
+
 
 def chain_obj(chain_config, sync_mode):
     if not is_chain_initialized(chain_config):
@@ -126,12 +137,12 @@ def main():
     chain_config = ChainConfig.from_parser_args(chain_identifier, args)
 
     # if console command, run the trinity CLI
-    if args.console:
+    if args.subcommand == 'console':
         use_ipython = not args.vanilla_shell
         debug = args.log_level.upper() == 'DEBUG'
 
         chain = chain_obj(chain_config, sync_mode)
-        console(chain, use_ipython=use_ipython, debug=debug)
+        args.func(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
 
     logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
