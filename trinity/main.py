@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 import atexit
+import logging
+import multiprocessing
 import sys
 
 from evm.exceptions import CanonicalHeadNotFound
@@ -21,6 +23,12 @@ from trinity.utils.chains import (
 )
 from trinity.utils.db import (
     get_chain_db,
+)
+from trinity.db.mp import (
+    GET,
+    SET,
+    EXISTS,
+    DELETE,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -151,24 +159,101 @@ def main():
     # the local logger.
     listener.start()
 
+    db_process_pipe, db_connection_pipe = ctx.Pipe()
+
     # For now we just run the light sync against ropsten by default.
-    process = ctx.Process(
+    chain_process = ctx.Process(
         target=run_chain,
-        args=(chain_config, sync_mode),
+        args=(chain_config, sync_mode, db_connection_pipe),
+        kwargs={'log_queue': log_queue}
+    )
+    db_process = ctx.Process(
+        target=base_db_process,
+        args=(
+            'evm.db.backends.level.LevelDB',
+            {'db_path': chain_config.database_dir},
+            db_process_pipe,
+        ),
         kwargs={'log_queue': log_queue}
     )
 
     try:
-        process.start()
-        process.join()
+        db_process.start()
+        chain_process.start()
+        chain_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
-        process.terminate()
+        chain_process.terminate()
+        db_process.terminate()
 
 
 @with_queued_logging
-def run_chain(chain_config, sync_mode):
-    chain = chain_obj(chain_config, sync_mode)
+def base_db_process(db_class_path, db_init_kwargs, mp_pipe, log_queue):
+    db = get_chain_db(db_class_path, **db_init_kwargs)
+    logger = logging.getLogger('trinity.main.db_process')
+
+    logger.info('Starting DB Process')
+    while True:
+        try:
+            request = mp_pipe.recv()
+        except multiprocessing.EOFError as err:
+            logger.info('Breaking out of loop: %s', err)
+            break
+
+        method, *params = request
+
+        if method == GET:
+            key = params[0]
+            logger.debug('GET: %s', key)
+
+            try:
+                mp_pipe.send(db.get(key))
+            except KeyError as err:
+                mp_pipe.send(err)
+        elif method == SET:
+            key, value = params
+            logger.debug('SET: %s -> %s', key, value)
+            try:
+                mp_pipe.send(db.set(key, value))
+            except KeyError as err:
+                mp_pipe.send(err)
+        elif method == EXISTS:
+            key = params[0]
+            logger.debug('EXISTS: %s', key)
+            try:
+                mp_pipe.send(db.exists(key))
+            except KeyError as err:
+                mp_pipe.send(err)
+        elif method == DELETE:
+            key = params[0]
+            logger.debug('DELETE: %s', key)
+            try:
+                mp_pipe.send(db.delete(key))
+            except KeyError as err:
+                mp_pipe.send(err)
+        else:
+            logger.error("Got unknown method: %s: %s", method, params)
+            raise Exception('Invalid request method')
+
+
+@with_queued_logging
+def run_chain(chain_config, sync_mode, db_pipe):
+    if not is_chain_initialized(chain_config):
+        # TODO: this will only work as is for chains with known genesis
+        # parameters.  Need to flesh out how genesis parameters for custom
+        # chains are defined and passed around.
+        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
+    else:
+        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+
+    chaindb = get_chain_db('trinity.db.mp.MPDB', init_kwargs={'mp_pipe': db_pipe})
+    try:
+        chaindb.get_canonical_head()
+    except CanonicalHeadNotFound:
+        # TODO: figure out a more appropriate error to raise here.
+        raise ValueError('Chain not intiialized')
+
+    chain = chain_class(chaindb)
 
     loop = asyncio.get_event_loop()
 
