@@ -5,7 +5,7 @@ from cytoolz import (
 import lru
 
 
-@memoize(cache=lru.LRU(64))
+@memoize(cache=lru.LRU(256))
 def _pad_left(value, to_size, pad_with):
     """
     Should be called to pad value to expected length
@@ -25,7 +25,7 @@ def pad_left(value, to_size, pad_with):
     return _pad_left(value, to_size, pad_with)
 
 
-@memoize(cache=lru.LRU(64))
+@memoize(cache=lru.LRU(256))
 def _pad_right(value, to_size, pad_with):
     """
     Should be called to pad value to expected length

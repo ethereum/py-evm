@@ -9,7 +9,7 @@ except ImportError:
     from sha3 import sha3_256 as keccak_256
 
 
-@memoize(cache=lru.LRU(64))
+@memoize(cache=lru.LRU(1024))
 def keccak(value):
     return keccak_256(value).digest()
 
