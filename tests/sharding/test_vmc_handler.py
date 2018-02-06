@@ -1,9 +1,5 @@
 import logging
 
-from cytoolz.dicttoolz import (
-    assoc,
-)
-
 import pytest
 
 import rlp
