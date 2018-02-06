@@ -57,37 +57,47 @@ def db_over_pipe(db, pipe):
             logger.info('Breaking out of loop: %s', err)
             break
 
-        req_id, method, *params = request
+        try:
+            req_id, method, *params = request
+        except (TypeError, ValueError) as err:
+            # TypeError: request is non iterable
+            # ValueError: request is less than length-2
+            pipe.send(err)
 
-        if method == GET:
-            key = params[0]
-            logger.debug('GET: %s', key)
+        try:
+            if method == GET:
+                key = params[0]
+                logger.debug('GET: %s', key)
 
-            try:
-                pipe.send([req_id, db.get(key)])
-            except KeyError as err:
-                pipe.send([req_id, err])
-        elif method == SET:
-            key, value = params
-            logger.debug('SET: %s -> %s', key, value)
-            try:
-                pipe.send([req_id, db.set(key, value)])
-            except KeyError as err:
-                pipe.send([req_id, err])
-        elif method == EXISTS:
-            key = params[0]
-            logger.debug('EXISTS: %s', key)
-            try:
-                pipe.send([req_id, db.exists(key)])
-            except KeyError as err:
-                pipe.send([req_id, err])
-        elif method == DELETE:
-            key = params[0]
-            logger.debug('DELETE: %s', key)
-            try:
-                pipe.send([req_id, db.delete(key)])
-            except KeyError as err:
-                pipe.send([req_id, err])
-        else:
-            logger.error("Got unknown method: %s: %s", method, params)
-            raise Exception('Invalid request method')
+                try:
+                    pipe.send([req_id, db.get(key)])
+                except KeyError as err:
+                    pipe.send([req_id, err])
+            elif method == SET:
+                key, value = params
+                logger.debug('SET: %s -> %s', key, value)
+                try:
+                    pipe.send([req_id, db.set(key, value)])
+                except KeyError as err:
+                    pipe.send([req_id, err])
+            elif method == EXISTS:
+                key = params[0]
+                logger.debug('EXISTS: %s', key)
+                try:
+                    pipe.send([req_id, db.exists(key)])
+                except KeyError as err:
+                    pipe.send([req_id, err])
+            elif method == DELETE:
+                key = params[0]
+                logger.debug('DELETE: %s', key)
+                try:
+                    pipe.send([req_id, db.delete(key)])
+                except KeyError as err:
+                    pipe.send([req_id, err])
+            else:
+                logger.error("Got unknown method: %s: %s", method, params)
+                pipe.send(Exception("Invalid request method: {0}".format(method)))
+        except Exception as err:
+            # Push the failure out to whatever process was trying to interact
+            # with the database.
+            pipe.send(err)
