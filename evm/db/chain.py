@@ -14,6 +14,7 @@ from eth_utils import (
 
 from evm.constants import (
     BLANK_ROOT_HASH,
+    EMPTY_SHA3,
     GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
@@ -301,7 +302,12 @@ class BaseChainDB:
         new_canonical_headers = self.persist_header_to_db(block.header)
 
         # Persist the transaction bodies
-        transaction_db = self.trie_class(self.db, root_hash=BLANK_ROOT_HASH)
+        if self.trie_class is HexaryTrie:
+            root_hash = BLANK_ROOT_HASH
+        else:
+            root_hash = EMPTY_SHA3
+
+        transaction_db = self.trie_class(self.db, root_hash=root_hash)
         for i, transaction in enumerate(block.transactions):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
             transaction_db[index_key] = rlp.encode(transaction)
