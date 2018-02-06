@@ -42,11 +42,14 @@ class UnknownShard(Exception):
 
 
 @to_dict
-def parse_collation_added_data(data_hex):
+def parse_collation_added_log(log):
+    # here assume `shard_id` is the first indexed , which is the second element in topics
+    shard_id_bytes32 = log['topics'][1]
+    data_hex = log['data']
     data_bytes = decode_hex(data_hex)
     score = big_endian_to_int(data_bytes[-32:])
     is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
-    header_bytes = data_bytes[:-64]
+    header_bytes = shard_id_bytes32 + data_bytes[:-64]
     collation_header = CollationHeader.from_bytes(header_bytes)
     yield 'header', collation_header
     yield 'is_new_head', is_new_head
@@ -60,7 +63,7 @@ class ShardTracker:
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
-        "CollationAdded(int128,bytes4096,bool,int128)"
+        "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
     )
     # older <---------------> newer
     current_score = None
@@ -89,7 +92,7 @@ class ShardTracker:
             ],
         )
         for log in new_logs:
-            yield parse_collation_added_data(log['data'])
+            yield parse_collation_added_log(log)
 
     def get_next_log(self):
         new_logs = self._get_new_logs()
