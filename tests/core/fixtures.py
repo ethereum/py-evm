@@ -66,7 +66,16 @@ def chaindb():
 
 
 @pytest.fixture
-def chain(chaindb, funded_address, funded_address_initial_balance):
+def shard_chaindb():
+    return ChainDB(
+        get_db_backend(),
+        account_state_class=ShardingAccountStateDB,
+        trie_class=BinaryTrie,
+    )
+
+
+@pytest.fixture
+def chain(chaindb):
     """
     Return a Chain object containing just the genesis block.
 
@@ -130,13 +139,7 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
 
 
 @pytest.fixture
-def shard_chain():
-    shard_chaindb = ChainDB(
-        get_db_backend(),
-        account_state_class=ShardingAccountStateDB,
-        trie_class=BinaryTrie,
-    )
-
+def shard_chain(shard_chaindb):
     genesis_params = {
         "bloom": 0,
         "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
@@ -179,7 +182,7 @@ def shard_chain():
 
 
 @pytest.fixture
-def shard_chain_without_block_validation():
+def shard_chain_without_block_validation(shard_chaindb):
     """
     Return a Chain object containing just the genesis block.
 
@@ -189,13 +192,6 @@ def shard_chain_without_block_validation():
 
     contract will be deployed at.
     """
-    # TODO: Once the helper function which generates access list for a transaction is implemented,
-    # replace NestedTrieBackend in `get_db_backend` with FlatTrieBackend.
-    shard_chaindb = ChainDB(
-        get_db_backend(),
-        account_state_class=ShardingAccountStateDB,
-        trie_class=BinaryTrie,
-    )
     overrides = {
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
