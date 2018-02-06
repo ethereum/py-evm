@@ -228,14 +228,13 @@ def add_header(
         as_bytes32(collation_number),
     )
     entire_header_hash = sha3(header_bytes)
-    assert entire_header_hash != as_bytes32(0)
     assert self.collation_headers[shard_id][entire_header_hash].score == 0
     # Check whether the parent exists.
     # if (parent_hash == 0), i.e., is the genesis,
     # then there is no need to check.
     if parent_hash != as_bytes32(0):
         assert self.collation_headers[shard_id][parent_hash].score > 0
-    # Check if only one collation in one period
+    # Check if only one collation in one period perd shard
     assert self.period_head[shard_id] < expected_period_number
 
     # Check the signature with validation_code_addr
