@@ -153,6 +153,7 @@ def vm():
         parent_hash=ZERO_HASH32,
         transaction_root=EMPTY_SHA3,
         receipt_root=EMPTY_SHA3,
+        state_root=EMPTY_SHA3,
     )
     chaindb = BaseChainDB(
         get_db_backend(),

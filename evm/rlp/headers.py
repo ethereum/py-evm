@@ -17,6 +17,7 @@ from evm.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
+    EMPTY_SHA3,
 )
 
 from evm.utils.hexadecimal import (
@@ -170,10 +171,10 @@ class CollationHeader(rlp.Serializable):
                  period_start_prevhash,
                  parent_hash,
                  number,
-                 transaction_root=BLANK_ROOT_HASH,
+                 transaction_root=EMPTY_SHA3,
                  coinbase=ZERO_ADDRESS,
-                 state_root=BLANK_ROOT_HASH,
-                 receipt_root=BLANK_ROOT_HASH,
+                 state_root=EMPTY_SHA3,
+                 receipt_root=EMPTY_SHA3,
                  sig=b""):
         super(CollationHeader, self).__init__(
             shard_id=shard_id,
