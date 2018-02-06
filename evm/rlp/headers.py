@@ -13,6 +13,7 @@ from rlp.sedes import (
 
 from eth_utils import (
     keccak,
+    to_dict,
 )
 
 from evm.constants import (
@@ -211,21 +212,45 @@ class CollationHeader(rlp.Serializable):
             int_to_big_endian,
         )
         header_hash = keccak(
-            b''.join(
-                (
-                    int_to_bytes32(self.shard_id),
-                    int_to_bytes32(self.expected_period_number),
-                    self.period_start_prevhash,
-                    self.parent_hash,
-                    self.transaction_root,
-                    pad32(self.coinbase),
-                    self.state_root,
-                    self.receipt_root,
-                    int_to_bytes32(self.number),
-                )
-            )
+            b''.join((
+                int_to_bytes32(self.shard_id),
+                int_to_bytes32(self.expected_period_number),
+                self.period_start_prevhash,
+                self.parent_hash,
+                self.transaction_root,
+                pad32(self.coinbase),
+                self.state_root,
+                self.receipt_root,
+                int_to_bytes32(self.number),
+            ))
         )
         return header_hash
+
+    @classmethod
+    @to_dict
+    def _deserialize_header_bytes_to_dict(cls, header_bytes):
+        header_sedes = cls.get_sedes()
+        # assume all fields are padded to 32 bytes
+        obj_size = 32
+        assert len(header_bytes) == obj_size * len(header_sedes)
+        for idx, field in enumerate(cls.fields):
+            field_name, field_type = field
+            start_index = idx * obj_size
+            field_bytes = header_bytes[start_index:(start_index + obj_size)]
+            if field_type == rlp.sedes.big_endian_int:
+                # remove the leading zeros, to avoid `not minimal length` error in deserialization
+                formatted_field_bytes = field_bytes.lstrip(b'\x00')
+            elif field_type == address:
+                formatted_field_bytes = field_bytes[-20:]
+            else:
+                formatted_field_bytes = field_bytes
+            yield field_name, field_type.deserialize(formatted_field_bytes)
+
+    @classmethod
+    def from_bytes(cls, header_bytes):
+        header_kwargs = cls._deserialize_header_bytes_to_dict(header_bytes)
+        header = cls(**header_kwargs)
+        return header
 
     @classmethod
     def from_parent(cls,
