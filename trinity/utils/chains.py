@@ -88,6 +88,11 @@ class ChainConfig:
 
     @property
     def data_dir(self):
+        """
+        The data_dir is the base directory that all chain specific information
+        for a given chain is stored.  All other chain directories are by
+        default relative to this directory.
+        """
         if self._data_dir is None:
             return get_default_data_dir(self.chain_identifier)
         else:

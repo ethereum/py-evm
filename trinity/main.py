@@ -1,33 +1,32 @@
 import argparse
 import asyncio
 import atexit
-import logging
 import sys
 
-from evm.exceptions import CanonicalHeadNotFound
+from evm.db.chain import BaseChainDB
 
 from trinity.__version__ import __version__
 from trinity.chains import (
-    is_chain_initialized,
-    initialize_chain,
     get_chain_protocol_class,
+    initialize_data_dir,
+    initialize_database,
+    is_data_dir_initialized,
+    is_database_initialized,
 )
 from trinity.cli import console
 from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
 )
+from trinity.db.mp import (
+    PipeDB,
+    db_over_pipe,
+)
 from trinity.utils.chains import (
     ChainConfig,
 )
 from trinity.utils.db import (
     get_chain_db,
-)
-from trinity.db.mp import (
-    GET,
-    SET,
-    EXISTS,
-    DELETE,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -141,7 +140,10 @@ def main():
         # TODO: actually use args.sync_mode (--sync-mode)
         sync_mode = SYNC_LIGHT
 
-    chain_config = ChainConfig.from_parser_args(chain_identifier, args)
+    chain_config = ChainConfig.from_parser_args(
+        chain_identifier,
+        args,
+    )
 
     # if console command, run the trinity CLI
     if args.subcommand == 'console':
@@ -158,21 +160,22 @@ def main():
     # the local logger.
     listener.start()
 
+    # First initialize the database process.
     db_process_pipe, db_connection_pipe = ctx.Pipe()
-
-    # For now we just run the light sync against ropsten by default.
-    chain_process = ctx.Process(
-        target=run_chain,
-        args=(chain_config, sync_mode, db_connection_pipe),
-        kwargs={'log_queue': log_queue}
-    )
     db_process = ctx.Process(
-        target=base_db_process,
+        target=backend_db_process,
         args=(
             'evm.db.backends.level.LevelDB',
             {'db_path': chain_config.database_dir},
             db_process_pipe,
         ),
+        kwargs={'log_queue': log_queue}
+    )
+
+    # For now we just run the light sync against ropsten by default.
+    chain_process = ctx.Process(
+        target=run_chain,
+        args=(chain_config, sync_mode, db_connection_pipe),
         kwargs={'log_queue': log_queue}
     )
 
@@ -187,70 +190,27 @@ def main():
 
 
 @with_queued_logging
-def base_db_process(db_class_path, db_init_kwargs, mp_pipe, log_queue):
-    db = get_chain_db(db_class_path, **db_init_kwargs)
-    logger = logging.getLogger('trinity.main.db_process')
+def backend_db_process(db_class_path, db_init_kwargs, pipe):
+    db = get_chain_db(db_class_path, init_kwargs=db_init_kwargs)
 
-    logger.info('Starting DB Process')
-    while True:
-        try:
-            request = mp_pipe.recv()
-        except EOFError as err:
-            logger.info('Breaking out of loop: %s', err)
-            break
-
-        req_id, method, *params = request
-
-        if method == GET:
-            key = params[0]
-            logger.debug('GET: %s', key)
-
-            try:
-                mp_pipe.send([req_id, db.get(key)])
-            except KeyError as err:
-                mp_pipe.send([req_id, err])
-        elif method == SET:
-            key, value = params
-            logger.debug('SET: %s -> %s', key, value)
-            try:
-                mp_pipe.send([req_id, db.set(key, value)])
-            except KeyError as err:
-                mp_pipe.send([req_id, err])
-        elif method == EXISTS:
-            key = params[0]
-            logger.debug('EXISTS: %s', key)
-            try:
-                mp_pipe.send([req_id, db.exists(key)])
-            except KeyError as err:
-                mp_pipe.send([req_id, err])
-        elif method == DELETE:
-            key = params[0]
-            logger.debug('DELETE: %s', key)
-            try:
-                mp_pipe.send([req_id, db.delete(key)])
-            except KeyError as err:
-                mp_pipe.send([req_id, err])
-        else:
-            logger.error("Got unknown method: %s: %s", method, params)
-            raise Exception('Invalid request method')
+    db_over_pipe(db, pipe)
 
 
 @with_queued_logging
 def run_chain(chain_config, sync_mode, db_pipe):
-    if not is_chain_initialized(chain_config):
+    backend_db = PipeDB(db_pipe)
+    chaindb = BaseChainDB(backend_db)
+
+    if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
         # parameters.  Need to flesh out how genesis parameters for custom
         # chains are defined and passed around.
-        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
-    else:
-        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+        initialize_data_dir(chain_config)
 
-    chaindb = get_chain_db('trinity.db.mp.MPDB', init_kwargs={'mp_pipe': db_pipe})
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # TODO: figure out a more appropriate error to raise here.
-        raise ValueError('Chain not intiialized')
+    chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+
+    if not is_database_initialized(chaindb):
+        initialize_database(chain_config, chain_class, chaindb)
 
     chain = chain_class(chaindb)
 

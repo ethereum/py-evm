@@ -7,9 +7,6 @@ from evm.exceptions import CanonicalHeadNotFound
 from trinity.constants import (
     ROPSTEN,
 )
-from trinity.utils.db import (
-    get_chain_db,
-)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
@@ -19,7 +16,7 @@ from .ropsten import (
 )
 
 
-def is_chain_initialized(chain_config):
+def is_data_dir_initialized(chain_config):
     """
     - base dir exists
     - chain data-dir exists
@@ -41,20 +38,18 @@ def is_chain_initialized(chain_config):
     if chain_config.nodekey is None:
         return False
 
-    chaindb = get_chain_db(chain_config.database_dir)
+
+def is_database_initialized(chaindb):
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         # empty chain database
         return False
+    else:
+        return True
 
-    return True
 
-
-# TODO: this function shouldn't care about the sync_mode.  We should have some
-# sort of `BaseChain` class that we can retrieve which knows how to do the
-# header initialization.
-def initialize_chain(chain_config, sync_mode):
+def initialize_data_dir(chain_config):
     if is_under_xdg_trinity_root(chain_config.data_dir):
         os.makedirs(chain_config.data_dir, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
@@ -74,10 +69,8 @@ def initialize_chain(chain_config, sync_mode):
         with open(chain_config.nodekey_path, 'wb') as nodekey_file:
             nodekey_file.write(nodekey.to_bytes())
 
-    chain_class = get_chain_protocol_class(chain_config, sync_mode)
 
-    # Database Initialization
-    chaindb = get_chain_db(chain_config.database_dir)
+def initialize_database(chain_config, chain_class, chaindb):
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -89,6 +82,9 @@ def initialize_chain(chain_config, sync_mode):
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
             raise NotImplementedError("Not implemented for other chains yet")
+    finally:
+        del chaindb.db
+        del chaindb
 
     return chain_class
 

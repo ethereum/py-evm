@@ -13,9 +13,6 @@ from trinity.chains.ropsten import (
 from trinity.utils.chains import (
     ChainConfig,
 )
-from trinity.utils.db import (
-    get_chain_db,
-)
 
 
 @pytest.fixture
@@ -75,12 +72,6 @@ def test_fully_initialized_chain_datadir(chain_config,
                                          database_dir,
                                          nodekey):
     # Database Initialization
-    chaindb = get_chain_db(chain_config.database_dir)
-    chain = RopstenLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
-
-    # we need to delete the chaindb in order to release the leveldb LOCK.
-    del chain
-    del chaindb.db
-    del chaindb
+    RopstenLightChain.from_genesis_header(chain_config.chaindb, ROPSTEN_GENESIS_HEADER)
 
     assert is_chain_initialized(chain_config)
