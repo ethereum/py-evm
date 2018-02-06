@@ -4,8 +4,6 @@ from cytoolz import (
     pipe,
 )
 
-import rlp
-
 from web3.contract import (
     Contract,
 )
@@ -20,9 +18,6 @@ from eth_utils import (
 
 from evm.rlp.headers import (
     CollationHeader,
-)
-from evm.rlp.sedes import (
-    address,
 )
 
 from evm.utils.hexadecimal import (
@@ -47,33 +42,12 @@ class UnknownShard(Exception):
 
 
 @to_dict
-def deserialize_header_bytes(header_bytes):
-    header_sedes = CollationHeader.get_sedes()
-    # assume all fields are padded to 32 bytes
-    obj_size = 32
-    assert len(header_bytes) == obj_size * len(header_sedes)
-    for idx, field in enumerate(CollationHeader.fields):
-        field_name, field_type = field
-        start_index = idx * obj_size
-        field_bytes = header_bytes[start_index:(start_index + obj_size)]
-        if field_type == rlp.sedes.big_endian_int:
-            # remove the leading zeros, to avoid `not minimal length` error in deserialization
-            formatted_field_bytes = field_bytes.lstrip(b'\x00')
-        elif field_type == address:
-            formatted_field_bytes = field_bytes[-20:]
-        else:
-            formatted_field_bytes = field_bytes
-        yield field_name, field_type.deserialize(formatted_field_bytes)
-
-
-@to_dict
 def parse_collation_added_data(data_hex):
     data_bytes = decode_hex(data_hex)
     score = big_endian_to_int(data_bytes[-32:])
     is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
     header_bytes = data_bytes[:-64]
-    header_dict = deserialize_header_bytes(header_bytes)
-    collation_header = CollationHeader(**header_dict)
+    collation_header = CollationHeader.from_bytes(header_bytes)
     yield 'header', collation_header
     yield 'is_new_head', is_new_head
     yield 'score', score
