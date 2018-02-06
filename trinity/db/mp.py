@@ -1,3 +1,5 @@
+import uuid
+
 from evm.db.backends.base import (
     BaseDB,
 )
@@ -16,28 +18,49 @@ class MPDB(BaseDB):
         self.mp_pipe = mp_pipe
 
     def get(self, key):
-        self.mp_pipe.send([GET, key])
-        response = self.mp_pipe.recv()
+        req_id = uuid.uuid4()
+        self.mp_pipe.send([req_id, GET, key])
+
+        resp_id, response = self.mp_pipe.recv()
+        if resp_id != req_id:
+            raise ValueError('Request/Response id mismatch')
+
         if isinstance(response, Exception):
             raise response
         return response
 
     def set(self, key, value):
-        self.mp_pipe.send([SET, key, value])
-        response = self.mp_pipe.recv()
+        req_id = uuid.uuid4()
+        self.mp_pipe.send([req_id, SET, key, value])
+
+        resp_id, response = self.mp_pipe.recv()
+        if resp_id != req_id:
+            raise ValueError('Request/Response id mismatch')
+
         if isinstance(response, Exception):
             raise response
+        return response
 
     def exists(self, key):
-        self.mp_pipe.send([EXISTS, key])
-        response = self.mp_pipe.recv()
+        req_id = uuid.uuid4()
+        self.mp_pipe.send([req_id, EXISTS, key])
+
+        resp_id, response = self.mp_pipe.recv()
+        if resp_id != req_id:
+            raise ValueError('Request/Response id mismatch')
+
         if isinstance(response, Exception):
             raise response
         return response
 
     def delete(self, key):
-        self.mp_connection.send([DELETE, key])
-        response = self.mp_pipe.recv()
+        req_id = uuid.uuid4()
+        self.mp_connection.send([req_id, DELETE, key])
+
+        resp_id, response = self.mp_pipe.recv()
+        if resp_id != req_id:
+            raise ValueError('Request/Response id mismatch')
+
         if isinstance(response, Exception):
             raise response
         return response

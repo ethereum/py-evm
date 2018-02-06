@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import atexit
 import logging
-import multiprocessing
 import sys
 
 from evm.exceptions import CanonicalHeadNotFound
@@ -196,41 +195,41 @@ def base_db_process(db_class_path, db_init_kwargs, mp_pipe, log_queue):
     while True:
         try:
             request = mp_pipe.recv()
-        except multiprocessing.EOFError as err:
+        except EOFError as err:
             logger.info('Breaking out of loop: %s', err)
             break
 
-        method, *params = request
+        req_id, method, *params = request
 
         if method == GET:
             key = params[0]
             logger.debug('GET: %s', key)
 
             try:
-                mp_pipe.send(db.get(key))
+                mp_pipe.send([req_id, db.get(key)])
             except KeyError as err:
-                mp_pipe.send(err)
+                mp_pipe.send([req_id, err])
         elif method == SET:
             key, value = params
             logger.debug('SET: %s -> %s', key, value)
             try:
-                mp_pipe.send(db.set(key, value))
+                mp_pipe.send([req_id, db.set(key, value)])
             except KeyError as err:
-                mp_pipe.send(err)
+                mp_pipe.send([req_id, err])
         elif method == EXISTS:
             key = params[0]
             logger.debug('EXISTS: %s', key)
             try:
-                mp_pipe.send(db.exists(key))
+                mp_pipe.send([req_id, db.exists(key)])
             except KeyError as err:
-                mp_pipe.send(err)
+                mp_pipe.send([req_id, err])
         elif method == DELETE:
             key = params[0]
             logger.debug('DELETE: %s', key)
             try:
-                mp_pipe.send(db.delete(key))
+                mp_pipe.send([req_id, db.delete(key)])
             except KeyError as err:
-                mp_pipe.send(err)
+                mp_pipe.send([req_id, err])
         else:
             logger.error("Got unknown method: %s: %s", method, params)
             raise Exception('Invalid request method')
