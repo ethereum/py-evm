@@ -10,9 +10,6 @@ from evm.exceptions import (
 from evm.utils.address import generate_CREATE2_contract_address
 from evm.utils.padding import pad32
 
-from tests.core.fixtures import (  # noqa: F401
-    shard_chain_without_block_validation,
-)
 from tests.core.helpers import (
     new_sharding_transaction,
 )
@@ -25,8 +22,8 @@ from tests.core.vm.contract_fixture import (
 )
 
 
-def test_sharding_apply_transaction(shard_chain_without_block_validation):  # noqa: F811
-    chain = shard_chain_without_block_validation
+def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
+    chain = unvalidated_shard_chain
     # First test: simple ether transfer contract
     first_deploy_tx = new_sharding_transaction(
         tx_initiator=simple_transfer_contract_address,
@@ -103,9 +100,9 @@ def test_sharding_apply_transaction(shard_chain_without_block_validation):  # no
         assert state_db.get_storage(CREATE2_contract_address, 0) == 1
 
 
-def test_CREATE2_deploy_contract_edge_cases(shard_chain_without_block_validation):  # noqa: F811
+def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F811
     # First case: computed contract address not the same as provided in `transaction.to`
-    chain = shard_chain_without_block_validation
+    chain = unvalidated_shard_chain
     code = b"0xf3"
     computed_address = generate_CREATE2_contract_address(b"", decode_hex(code))
     first_failed_deploy_tx = new_sharding_transaction(
