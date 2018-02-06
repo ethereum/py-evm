@@ -6,7 +6,10 @@ from hypothesis import (
 )
 
 import rlp
-import trie
+from trie import (
+    BinaryTrie,
+    HexaryTrie,
+)
 
 from eth_utils import (
     keccak,
@@ -20,6 +23,7 @@ from evm.utils.state_access_restriction import (
 )
 from evm.constants import (
     BLANK_ROOT_HASH,
+    EMPTY_SHA3,
     ZERO_HASH32,
 )
 
@@ -45,6 +49,7 @@ from evm.tools.fixture_tests import (
     assert_rlp_equal,
 )
 from evm.utils.db import (
+    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
 )
@@ -60,20 +65,49 @@ A_ADDRESS = b"\xaa" * 20
 B_ADDRESS = b"\xbb" * 20
 
 
+def set_empty_root(chaindb, header):
+    root_hash = get_empty_root_hash(chaindb)
+    header.transaction_root = root_hash
+    header.receipt_root = root_hash
+    header.state_root = root_hash
+
+
 @pytest.fixture(params=[MainAccountStateDB, ShardingAccountStateDB])
 def chaindb(request):
-    return ChainDB(get_db_backend(), account_state_class=request.param)
+    if request.param is MainAccountStateDB:
+        trie_class = HexaryTrie
+    else:
+        trie_class = BinaryTrie
+    return ChainDB(
+        get_db_backend(),
+        account_state_class=request.param,
+        trie_class=trie_class,
+    )
 
 
 @pytest.fixture
-def populated_chaindb_and_root_hash(chaindb):
-    state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
+def shard_chaindb(request):
+    return ChainDB(
+        get_db_backend(),
+        account_state_class=ShardingAccountStateDB,
+        trie_class=BinaryTrie,
+    )
+
+
+@pytest.fixture
+def populated_shard_chaindb_and_root_hash(shard_chaindb):
+    if shard_chaindb.trie_class is HexaryTrie:
+        root_hash = BLANK_ROOT_HASH
+    else:
+        root_hash = EMPTY_SHA3
+
+    state_db = shard_chaindb.get_state_db(root_hash, read_only=False)
     state_db.set_balance(A_ADDRESS, 1)
     state_db.set_code(B_ADDRESS, b"code")
     state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key1"), 100)
     state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key2"), 200)
     state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key"), 300)
-    return chaindb, state_db.root_hash
+    return shard_chaindb, state_db.root_hash
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -116,6 +150,7 @@ def test_persist_header_to_db_unknown_parent(chaindb, header, seed):
 
 
 def test_persist_block_to_db(chaindb, block):
+    set_empty_root(chaindb, block.header)
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block_to_db(block)
@@ -141,23 +176,22 @@ def test_get_score(chaindb):
 
 
 def test_get_block_header_by_hash(chaindb, block, header):
+    set_empty_root(chaindb, block.header)
+    set_empty_root(chaindb, header)
     chaindb.persist_block_to_db(block)
     block_header = chaindb.get_block_header_by_hash(block.hash)
     assert_rlp_equal(block_header, header)
 
 
 def test_lookup_block_hash(chaindb, block):
+    set_empty_root(chaindb, block.header)
     chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash
 
 
-@pytest.mark.xfail(
-    reason="#289 (switch to binary trie not complete yet)",
-    raises=trie.exceptions.InvalidNode
-)
-def test_get_witness_nodes(populated_chaindb_and_root_hash):
-    chaindb, root_hash = populated_chaindb_and_root_hash
+def test_get_witness_nodes(populated_shard_chaindb_and_root_hash):
+    chaindb, root_hash = populated_shard_chaindb_and_root_hash
     header = CollationHeader(
         shard_id=1,
         expected_period_number=0,
@@ -179,4 +213,4 @@ def test_get_witness_nodes(populated_chaindb_and_root_hash):
 
     witness_nodes = chaindb.get_witness_nodes(header, prefixes)
     assert len(witness_nodes) == len(set(witness_nodes))  # no duplicates
-    assert sorted(witness_nodes) == witness_nodes  # sorted
+    assert sorted(witness_nodes) == sorted(witness_nodes)  # sorted

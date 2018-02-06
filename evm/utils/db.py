@@ -1,3 +1,14 @@
+from trie import (
+    BinaryTrie,
+    HexaryTrie,
+)
+
+from evm.constants import (
+    BLANK_ROOT_HASH,
+    EMPTY_SHA3,
+)
+
+
 def make_block_number_to_hash_lookup_key(block_number):
     number_to_hash_key = b'block-number-to-hash:%d' % block_number
     return number_to_hash_key
@@ -30,3 +41,18 @@ def get_block_header_by_hash(block_hash, db):
     Returns the header for the parent block.
     """
     return db.get_block_header_by_hash(block_hash)
+
+
+def get_empty_root_hash(db):
+    # TODO: Backport and refactor evm.chains.base.BaseChain and
+    # evm.db.chain.BaseChainDB in master branch
+    root_hash = None
+    if db.trie_class is HexaryTrie:
+        root_hash = BLANK_ROOT_HASH
+    elif db.trie_class is BinaryTrie:
+        root_hash = EMPTY_SHA3
+    else:
+        raise ValueError(
+            "db.trie_class has not been set."
+        )
+    return root_hash
