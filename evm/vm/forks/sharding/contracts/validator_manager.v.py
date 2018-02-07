@@ -192,7 +192,8 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
                 as_num256(
                     sha3(
                         concat(
-                            # TODO: should check further if this is safe or not
+                            # TODO: should check further if this can be further optimized or not
+                            #       e.g. be able to get the proposer of one period earlier
                             blockhash((period - self.lookahead_periods) * self.period_length),
                             as_bytes32(shard_id),
                         )
