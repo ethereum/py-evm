@@ -1,5 +1,9 @@
 import pytest
 
+from eth_utils import (
+    decode_hex,
+)
+
 from eth_keys import keys
 
 from trinity.utils.chains import (
@@ -7,9 +11,6 @@ from trinity.utils.chains import (
     get_database_dir,
     get_nodekey_path,
     ChainConfig,
-)
-from trinity.utils.hexadecimal import (
-    decode_hex,
 )
 from trinity.utils.filesystem import (
     is_same_path,

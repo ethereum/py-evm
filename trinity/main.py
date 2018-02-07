@@ -21,7 +21,7 @@ from trinity.constants import (
 )
 from trinity.db.pipe import (
     PipeDB,
-    db_over_pipe,
+    db_server,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -32,6 +32,7 @@ from trinity.utils.logging import (
 )
 from trinity.utils.mp import (
     ctx,
+    wait_for_ipc,
 )
 
 
@@ -142,13 +143,12 @@ def main():
     listener.start()
 
     # First initialize the database process.
-    db_process_pipe, db_connection_pipe = ctx.Pipe()
-    db_process = ctx.Process(
+    db_server_process = ctx.Process(
         target=backend_db_process,
         args=(
             LevelDB,
             {'db_path': chain_config.database_dir},
-            db_process_pipe,
+            chain_config.database_ipc_path,
         ),
         kwargs={'log_queue': log_queue}
     )
@@ -156,30 +156,33 @@ def main():
     # For now we just run the light sync against ropsten by default.
     chain_process = ctx.Process(
         target=run_chain,
-        args=(chain_config, sync_mode, db_connection_pipe),
+        args=(chain_config, sync_mode),
         kwargs={'log_queue': log_queue}
     )
 
+    # start the processes
+    db_server_process.start()
+    wait_for_ipc(chain_config.database_ipc_path)
+    chain_process.start()
+
     try:
-        db_process.start()
-        chain_process.start()
         chain_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
         chain_process.terminate()
-        db_process.terminate()
+        db_server_process.terminate()
 
 
 @with_queued_logging
-def backend_db_process(db_class, db_init_kwargs, pipe):
+def backend_db_process(db_class, db_init_kwargs, ipc_path):
     db = db_class(**db_init_kwargs)
 
-    db_over_pipe(db, pipe)
+    db_server(db, ipc_path)
 
 
 @with_queued_logging
-def run_chain(chain_config, sync_mode, db_pipe):
-    backend_db = PipeDB(db_pipe)
+def run_chain(chain_config, sync_mode):
+    backend_db = PipeDB(chain_config.database_ipc_path)
     chaindb = ChainDB(backend_db)
 
     if not is_data_dir_initialized(chain_config):

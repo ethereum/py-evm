@@ -1,20 +1,21 @@
 import os
 
 from eth_utils import (
+    decode_hex,
     to_dict,
 )
 
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
-from .hexadecimal import (
-    decode_hex,
-)
 from .xdg import (
     get_xdg_trinity_root,
 )
 
 
+#
+# Filesystem path utils
+#
 def get_default_data_dir(chain_identifier):
     """
     Returns the base directory path where data for a given chain will be stored.
@@ -52,6 +53,24 @@ def get_nodekey_path(chain_identifier, data_dir=None):
     )
 
 
+DATABASE_SOCKET_FILENAME = 'db.ipc'
+
+
+def get_database_socket_path(chain_identifier, data_dir=None):
+    """
+    Returns the path to the private key used for devp2p connections.
+    """
+    if data_dir is None:
+        data_dir = get_default_data_dir(chain_identifier)
+    return os.environ.get(
+        'TRINITY_DATABASE_IPC',
+        os.path.join(data_dir, DATABASE_SOCKET_FILENAME),
+    )
+
+
+#
+# Nodekey loading
+#
 def load_nodekey(nodekey_path):
     with open(nodekey_path, 'rb') as nodekey_file:
         nodekey_raw = nodekey_file.read()
@@ -105,6 +124,10 @@ class ChainConfig:
     @property
     def database_dir(self):
         return get_database_dir(self.chain_identifier, self.data_dir)
+
+    @property
+    def database_ipc_path(self):
+        return get_database_socket_path(self.chain_identifier, self.data_dir)
 
     @property
     def nodekey_path(self):
