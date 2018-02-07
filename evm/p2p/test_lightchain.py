@@ -11,7 +11,7 @@ from evm.chains.mainnet import (
     MAINNET_VM_CONFIGURATION,
 )
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.rlp.headers import BlockHeader
 from evm.p2p.les import (
     LESProtocol,
@@ -275,7 +275,7 @@ def chaindb_mainnet_100():
     here = os.path.dirname(__file__)
     headers_rlp = open(os.path.join(here, 'testdata', 'sample_1000_headers_rlp'), 'r+b').read()
     headers = rlp.decode(headers_rlp, sedes=sedes.CountableList(BlockHeader))
-    chaindb = BaseChainDB(MemoryDB())
+    chaindb = ChainDB(MemoryDB())
     for i in range(0, 101):
         chaindb.persist_header_to_db(headers[i])
     return chaindb

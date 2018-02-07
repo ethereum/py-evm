@@ -88,7 +88,7 @@ if __name__ == '__main__':
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
     from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
-    from evm.db.chain import BaseChainDB
+    from evm.db.chain import ChainDB
     from evm.exceptions import CanonicalHeadNotFound
     from evm.p2p import ecies
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         privkey=ecies.generate_privkey(),
     )
 
-    chaindb = BaseChainDB(LevelDB(args.db))
+    chaindb = ChainDB(LevelDB(args.db))
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:

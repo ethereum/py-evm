@@ -60,10 +60,10 @@ To access the Mainnet chain you can use:
   from evm import MainnetChain
   from evm.chains.mainnet import MAINNET_GENESIS_HEADER
   from evm.db.backends.level import LevelDB
-  from evm.db.chain import BaseChainDB
+  from evm.db.chain import ChainDB
 
   # Read the previously saved chain database
-  chaindb = BaseChainDB(LevelDB('/tmp/mainnet.db'))
+  chaindb = ChainDB(LevelDB('/tmp/mainnet.db'))
 
   # Load the saved database into a mainnet chain object
   chain = MainnetChain(chaindb)

@@ -13,7 +13,7 @@ from eth_utils import (
     to_tuple,
 )
 
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.exceptions import (
     ValidationError,
 )
@@ -253,7 +253,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
     )
-    chaindb = BaseChainDB(get_db_backend())
+    chaindb = ChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     vm_state = vm.state

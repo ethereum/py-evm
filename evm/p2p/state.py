@@ -23,7 +23,7 @@ from evm.constants import (
     EMPTY_SHA3,
 )
 from evm.db.backends.base import BaseDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 from evm.utils.keccak import keccak
 from evm.p2p import eth
@@ -195,7 +195,7 @@ def _test():
     parser.add_argument('-root-hash', type=str, required=True, help='Hex encoded root hash')
     args = parser.parse_args()
 
-    chaindb = BaseChainDB(MemoryDB())
+    chaindb = ChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
     asyncio.ensure_future(peer_pool.run())

@@ -7,7 +7,7 @@ from trie import (
 )
 
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 
 @to_tuple
@@ -41,7 +41,7 @@ def diff_state_db(expected_state, state_db):
 
 # Make the root of a receipt tree
 def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie):
-    chaindb = BaseChainDB(MemoryDB())
+    chaindb = ChainDB(MemoryDB())
     db = chaindb.db
     transaction_db = trie_class(db)
 

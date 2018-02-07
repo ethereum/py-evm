@@ -18,7 +18,7 @@ from evm.exceptions import (
     ValidationError,
 )
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -196,7 +196,7 @@ class VM(Configurable):
         receipts = []
         for (transaction, transaction_witness) in transaction_packages:
             transaction_witness.update(recent_trie_nodes)
-            witness_db = BaseChainDB(MemoryDB(transaction_witness))
+            witness_db = ChainDB(MemoryDB(transaction_witness))
 
             execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
             vm_state = cls.get_state_class()(
@@ -218,7 +218,7 @@ class VM(Configurable):
                 pass
 
         # Finalize
-        witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+        witness_db = ChainDB(MemoryDB(recent_trie_nodes))
         execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
         vm_state = cls.get_state_class()(
             chaindb=witness_db,
