@@ -1,20 +1,13 @@
+import os
 import pytest
 
-import os
-
-from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from eth_utils import decode_hex
 
 from trinity.chains import (
-    is_chain_initialized,
-)
-from trinity.chains.ropsten import (
-    RopstenLightChain,
+    is_data_dir_initialized,
 )
 from trinity.utils.chains import (
     ChainConfig,
-)
-from trinity.utils.db import (
-    get_chain_db,
 )
 
 
@@ -46,41 +39,37 @@ def nodekey(chain_config, data_dir):
 
 def test_not_initialized_without_data_dir(chain_config):
     assert not os.path.exists(chain_config.data_dir)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
 def test_not_initialized_without_database_dir(chain_config, data_dir):
     assert not os.path.exists(chain_config.database_dir)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
 def test_not_initialized_without_nodekey_file(chain_config, data_dir, database_dir):
     assert not os.path.exists(chain_config.nodekey_path)
-    assert not is_chain_initialized(chain_config)
+    assert not is_data_dir_initialized(chain_config)
 
 
-def test_not_initialized_without_initialized_chaindb(chain_config,
-                                                     data_dir,
-                                                     database_dir,
-                                                     nodekey):
+def test_full_initialized_data_dir(chain_config, data_dir, database_dir, nodekey):
     assert os.path.exists(chain_config.data_dir)
     assert os.path.exists(chain_config.database_dir)
     assert chain_config.nodekey is not None
 
-    assert not is_chain_initialized(chain_config)
+    assert is_data_dir_initialized(chain_config)
 
 
-def test_fully_initialized_chain_datadir(chain_config,
-                                         data_dir,
-                                         database_dir,
-                                         nodekey):
-    # Database Initialization
-    chaindb = get_chain_db(chain_config.database_dir)
-    chain = RopstenLightChain.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+NODEKEY = decode_hex('0xd18445cc77139cd8e09110e99c9384f0601bd2dfa5b230cda917df7e56b69949')
 
-    # we need to delete the chaindb in order to release the leveldb LOCK.
-    del chain
-    del chaindb.db
-    del chaindb
 
-    assert is_chain_initialized(chain_config)
+def test_full_initialized_data_dir_with_custom_nodekey():
+    chain_config = ChainConfig('test_chain', nodekey=NODEKEY)
+
+    os.makedirs(chain_config.data_dir, exist_ok=True)
+    os.makedirs(chain_config.database_dir, exist_ok=True)
+
+    assert chain_config.nodekey_path is None
+    assert chain_config.nodekey is not None
+
+    assert is_data_dir_initialized(chain_config)
