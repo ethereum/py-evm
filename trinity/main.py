@@ -238,3 +238,11 @@ def run_chain(chain_config, sync_mode):
         loop.close()
 
     atexit.register(cleanup)
+
+
+@with_queued_logging
+def run_chaindb(chain_config):
+    backend_db = PipeDB(chain_config.database_ipc_path)
+    chaindb = BaseChainDB(backend_db)
+
+    chaindb_server(chaindb)
