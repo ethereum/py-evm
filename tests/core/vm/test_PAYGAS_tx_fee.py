@@ -1,3 +1,6 @@
+import os
+import json
+
 from eth_utils import (
     decode_hex,
 )
@@ -5,19 +8,23 @@ from eth_utils import (
 from tests.core.helpers import (
     new_sharding_transaction,
 )
-from tests.core.vm.contract_fixture import (
-    PAYGAS_contract_normal,
-    simple_forwarder_contract,
-    PAYGAS_contract_triggered_twice,
-)
+
+
+DIR = os.path.dirname(__file__)
 
 
 def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
     chain = unvalidated_shard_chain
     vm = chain.get_vm()
 
+    PAYGAS_contracts = json.load(
+        open(os.path.join(DIR, '../contract_fixtures/PAYGAS_contracts.json'))
+    )
+    PAYGAS_contract_normal = PAYGAS_contracts["PAYGAS_contract_normal"]
+    simple_forwarder_contract = PAYGAS_contracts["simple_forwarder_contract"]
+
     deploy_tx = new_sharding_transaction(
-        tx_initiator=PAYGAS_contract_normal['address'],
+        tx_initiator=decode_hex(PAYGAS_contract_normal['address']),
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
@@ -33,7 +40,7 @@ def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
     # Trigger the contract
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 0
-    tx_initiator = PAYGAS_contract_normal['address']
+    tx_initiator = decode_hex(PAYGAS_contract_normal['address'])
     gas_price = 33
     vrs = 64 * b'\xAA' + b'\x01'
     trigger_tx = new_sharding_transaction(
@@ -46,7 +53,9 @@ def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
     )
 
     with vm.state.state_db(read_only=True) as state_db:
-        balance_before_trigger = state_db.get_balance(simple_forwarder_contract['address'])
+        balance_before_trigger = state_db.get_balance(
+            decode_hex(simple_forwarder_contract['address'])
+        )
     computation, _ = vm.apply_transaction(trigger_tx)
     assert not computation.is_error
     gas_used = vm.block.header.gas_used - last_gas_used
@@ -62,7 +71,14 @@ def test_PAYGAS_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     chain = shard_chain_without_block_validation
     vm = chain.get_vm()
 
-    forwarder_addr = simple_forwarder_contract['address']
+    PAYGAS_contracts = json.load(
+        open(os.path.join(DIR, '../contract_fixtures/PAYGAS_contracts.json'))
+    )
+    PAYGAS_contract_normal = PAYGAS_contracts["PAYGAS_contract_normal"]
+    simple_forwarder_contract = PAYGAS_contracts["simple_forwarder_contract"]
+    PAYGAS_contract_triggered_twice = PAYGAS_contracts["PAYGAS_contract_triggered_twice"]
+
+    forwarder_addr = decode_hex(simple_forwarder_contract['address'])
     forwarder_contract_deploy_tx = new_sharding_transaction(
         tx_initiator=forwarder_addr,
         data_destination=b'',
@@ -89,9 +105,9 @@ def test_PAYGAS_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     with vm.state.state_db(read_only=True) as state_db:
         # Check that balance of the contract is the same
         assert balance_before_trigger == state_db.get_balance(forwarder_addr)
-    
+
     # Case 2: PAYGAS triggered with 0 gas price
-    PAYGAS_contract_addr = PAYGAS_contract_normal['address']
+    PAYGAS_contract_addr = decode_hex(PAYGAS_contract_normal['address'])
     normal_PAYGAS_contract_deploy_tx = new_sharding_transaction(
         tx_initiator=PAYGAS_contract_addr,
         data_destination=b'',
@@ -118,7 +134,7 @@ def test_PAYGAS_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     with vm.state.state_db(read_only=True) as state_db:
         # Check that balance of the contract is the same except the amount transfered
         assert balance_before_trigger == state_db.get_balance(PAYGAS_contract_addr) + amount
-    
+
     # Case 3: PAYGAS is not triggered in a top level call
     # Use the forwarder contract in case 1 to make the call to PAYGAS contract in case 2
     # Order: forwarder -> PAYGAS contract -> recipient
@@ -150,7 +166,7 @@ def test_PAYGAS_edge_cases(shard_chain_without_block_validation):  # noqa: F811
         assert state_db.get_balance(recipient) == recipient_balance_before_trigger + amount
 
     # Case 4: PAYGAS triggered twice
-    PAYGAS_triggered_twice_addr = PAYGAS_contract_triggered_twice['address']
+    PAYGAS_triggered_twice_addr = decode_hex(PAYGAS_contract_triggered_twice['address'])
     PAYGAS_triggered_twice_deploy_tx = new_sharding_transaction(
         tx_initiator=PAYGAS_triggered_twice_addr,
         data_destination=b'',
@@ -189,5 +205,6 @@ def test_PAYGAS_edge_cases(shard_chain_without_block_validation):  # noqa: F811
     with vm.state.state_db(read_only=True) as state_db:
         # Check that PAYGAS account is charged with normal gas_price instead of 10*gas_price
         tx_fee = gas_used * gas_price
-        assert balance_before_trigger == state_db.get_balance(PAYGAS_triggered_twice_addr) + tx_fee + amount
+        balance_after_trigger = state_db.get_balance(PAYGAS_triggered_twice_addr) + tx_fee + amount
+        assert balance_before_trigger == balance_after_trigger
         assert state_db.get_balance(recipient) == recipient_balance_before_trigger + amount

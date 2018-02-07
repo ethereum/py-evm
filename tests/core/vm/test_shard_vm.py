@@ -1,3 +1,7 @@
+import os
+
+import json
+
 from eth_utils import (
     int_to_big_endian,
     decode_hex,
@@ -13,18 +17,24 @@ from evm.utils.padding import pad32
 from tests.core.helpers import (
     new_sharding_transaction,
 )
-from tests.core.vm.contract_fixture import (
-    simple_transfer_contract,
-    simple_contract_factory_bytecode,
-    CREATE2_contract,
-)
+
+
+DIR = os.path.dirname(__file__)
 
 
 def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     chain = unvalidated_shard_chain
+
+    CREATE2_contracts = json.load(
+        open(os.path.join(DIR, '../contract_fixtures/CREATE2_contracts.json'))
+    )
+    simple_transfer_contract = CREATE2_contracts["simple_transfer_contract"]
+    CREATE2_contract = CREATE2_contracts["CREATE2_contract"]
+    simple_factory_contract_bytecode = CREATE2_contracts["simple_factory_contract"]["bytecode"]
+
     # First test: simple ether transfer contract
     first_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract['address'],
+        tx_initiator=decode_hex(simple_transfer_contract['address']),
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
@@ -42,7 +52,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     # Transfer ether to recipient
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    tx_initiator = simple_transfer_contract['address']
+    tx_initiator = decode_hex(simple_transfer_contract['address'])
     transfer_tx = new_sharding_transaction(tx_initiator, recipient, amount, b'', b'', b'')
 
     computation, _ = vm.apply_transaction(transfer_tx)
@@ -55,7 +65,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
 
     # Second test: contract that deploy new contract with CREATE2
     second_deploy_tx = new_sharding_transaction(
-        tx_initiator=CREATE2_contract['address'],
+        tx_initiator=decode_hex(CREATE2_contract['address']),
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
@@ -70,10 +80,10 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     last_gas_used = vm.block.header.gas_used
 
     # Invoke the contract to deploy new contract
-    tx_initiator = CREATE2_contract['address']
+    tx_initiator = decode_hex(CREATE2_contract['address'])
     newly_deployed_contract_address = generate_CREATE2_contract_address(
         int_to_big_endian(0),
-        simple_contract_factory_bytecode
+        decode_hex(simple_factory_contract_bytecode)
     )
     invoke_tx = new_sharding_transaction(
         tx_initiator,
@@ -92,25 +102,30 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     with vm.state.state_db(read_only=True) as state_db:
         newly_deployed_contract_address = generate_CREATE2_contract_address(
             int_to_big_endian(0),
-            simple_contract_factory_bytecode
+            decode_hex(simple_factory_contract_bytecode)
         )
         assert state_db.get_code(newly_deployed_contract_address) == b'\xbe\xef'
-        assert state_db.get_storage(CREATE2_contract['address'], 0) == 1
+        assert state_db.get_storage(decode_hex(CREATE2_contract['address']), 0) == 1
 
 
 def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F811
+    CREATE2_contracts = json.load(
+        open(os.path.join(DIR, '../contract_fixtures/CREATE2_contracts.json'))
+    )
+    simple_transfer_contract = CREATE2_contracts["simple_transfer_contract"]
+
     # First case: computed contract address not the same as provided in `transaction.to`
     chain = unvalidated_shard_chain
     code = b"0xf3"
     computed_address = generate_CREATE2_contract_address(b"", decode_hex(code))
     first_failed_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract['address'],
+        tx_initiator=decode_hex(simple_transfer_contract['address']),
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
         data_vrs=b'',
         code=code,
-        access_list=[[simple_transfer_contract['address']], [computed_address]]
+        access_list=[[decode_hex(simple_transfer_contract['address'])], [computed_address]]
     )
 
     vm = chain.get_vm()
@@ -122,7 +137,7 @@ def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F
 
     # Next, complete deploying the contract
     successful_deploy_tx = new_sharding_transaction(
-        tx_initiator=simple_transfer_contract['address'],
+        tx_initiator=decode_hex(simple_transfer_contract['address']),
         data_destination=b'',
         data_value=0,
         data_msgdata=b'',
