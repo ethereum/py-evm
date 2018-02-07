@@ -1,9 +1,5 @@
 import time
 
-from cytoolz import (
-    compose,
-)
-
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -23,6 +19,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -31,7 +30,7 @@ from evm.utils.keccak import (
     keccak,
 )
 from evm.utils.numeric import (
-    int_to_big_endian,
+    int_to_bytes32,
 )
 from evm.utils.padding import (
     pad32,
@@ -209,10 +208,6 @@ class CollationHeader(rlp.Serializable):
 
     @property
     def hash(self):
-        int_to_bytes32 = compose(
-            pad32,
-            int_to_big_endian,
-        )
         header_hash = keccak(
             b''.join((
                 int_to_bytes32(self.shard_id),
@@ -231,10 +226,12 @@ class CollationHeader(rlp.Serializable):
     @classmethod
     @to_dict
     def _deserialize_header_bytes_to_dict(cls, header_bytes):
-        header_sedes = cls.get_sedes()
         # assume all fields are padded to 32 bytes
         obj_size = 32
-        assert len(header_bytes) == obj_size * len(header_sedes)
+        if len(header_bytes) != obj_size * len(cls.fields):
+            raise ValidationError(
+                "Length of header bytes should be equal to obj_size * len(cls.fields)"
+            )
         for idx, field in enumerate(cls.fields):
             field_name, field_type = field
             start_index = idx * obj_size
