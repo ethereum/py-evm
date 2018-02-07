@@ -51,8 +51,12 @@ def get_empty_root_hash(db):
         root_hash = BLANK_ROOT_HASH
     elif db.trie_class is BinaryTrie:
         root_hash = EMPTY_SHA3
+    elif db.trie_class is None:
+        raise AttributeError(
+            "BaseChainDB must declare a trie_class."
+        )
     else:
-        raise ValueError(
-            "db.trie_class has not been set."
+        raise NotImplementedError(
+            "db.trie_class {} is not supported.".format(db.trie_class)
         )
     return root_hash
