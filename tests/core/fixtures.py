@@ -75,7 +75,7 @@ def shard_chaindb():
 
 
 @pytest.fixture
-def chain(chaindb):
+def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F811
     """
     Return a Chain object containing just the genesis block.
 
@@ -139,8 +139,7 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
 
 
 @pytest.fixture
-def shard_chain(shard_chaindb):
-    shard_chaindb = shard_chaindb
+def shard_chain(shard_chaindb, funded_address, funded_address_initial_balance):  # noqa: F811
     genesis_params = {
         "bloom": 0,
         "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
@@ -148,23 +147,18 @@ def shard_chain(shard_chaindb):
         "extra_data": b"B",
         "gas_limit": 3141592,
         "gas_used": 0,
-        "mix_hash": decode_hex(
-            "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
         "nonce": decode_hex("0102030405060708"),
         "block_number": 0,
-        "parent_hash": decode_hex(
-            "0000000000000000000000000000000000000000000000000000000000000000"),
+        "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
         "transaction_root": constants.EMPTY_SHA3,
         "receipt_root": constants.EMPTY_SHA3,
         "timestamp": 1422494849,
-        "uncles_hash": decode_hex(
-            "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")
+        "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
     }
-    funded_addr = to_canonical_address("a94f5374fce5edbc8e2a8697c15331677e6ebf0b")
-    initial_balance = 10000000000
     genesis_state = {
-        funded_addr: {
-            "balance": initial_balance,
+        funded_address: {
+            "balance": funded_address_initial_balance,
             "nonce": 0,
             "code": b"",
             "storage": {}
@@ -176,14 +170,12 @@ def shard_chain(shard_chaindb):
             (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
         ))
     shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
-    shard.funded_address = funded_addr
-    shard.funded_address_initial_balance = initial_balance
 
     return shard
 
 
 @pytest.fixture
-def shard_chain_without_block_validation(shard_chaindb):
+def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
     shard_chaindb = shard_chaindb
     """
     Return a Chain object containing just the genesis block.
@@ -244,7 +236,7 @@ def shard_chain_without_block_validation(shard_chaindb):
 def chain_without_block_validation(
         chaindb,
         funded_address,
-        funded_address_initial_balance):
+        funded_address_initial_balance):  # noqa: F811
     """
     Return a Chain object containing just the genesis block.
 
