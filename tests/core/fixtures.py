@@ -1,3 +1,7 @@
+import os
+
+import json
+
 import pytest
 
 from eth_utils import (
@@ -21,14 +25,6 @@ from evm.db.state import (
 )
 from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
-
-from tests.core.vm.contract_fixture import (
-    simple_transfer_contract,
-    CREATE2_contract,
-    PAYGAS_contract_normal,
-    simple_forwarder_contract,
-    PAYGAS_contract_triggered_twice,
-)
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
@@ -118,30 +114,40 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
     return chain
 
 
+PAYGAS_contracts = json.load(
+    open(os.path.join(os.path.dirname(__file__), './contract_fixtures/PAYGAS_contracts.json'))
+)
+
+
+CREATE2_contracts = json.load(
+    open(os.path.join(os.path.dirname(__file__), './contract_fixtures/CREATE2_contracts.json'))
+)
+
+
 SHARD_CHAIN_CONTRACTS_FIXTURES = [
     {
-        "contract_code": simple_transfer_contract['bytecode'],
-        "deployed_address": simple_transfer_contract['address'],
+        "contract_code": CREATE2_contracts['simple_transfer_contract']['bytecode'],
+        "deployed_address": CREATE2_contracts['simple_transfer_contract']['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": CREATE2_contract['bytecode'],
-        "deployed_address": CREATE2_contract['address'],
+        "contract_code": CREATE2_contracts['CREATE2_contract']['bytecode'],
+        "deployed_address": CREATE2_contracts['CREATE2_contract']['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": PAYGAS_contract_normal['bytecode'],
-        "deployed_address": PAYGAS_contract_normal['address'],
+        "contract_code": PAYGAS_contracts['PAYGAS_contract_normal']['bytecode'],
+        "deployed_address": PAYGAS_contracts['PAYGAS_contract_normal']['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": simple_forwarder_contract['bytecode'],
-        "deployed_address": simple_forwarder_contract['address'],
+        "contract_code": PAYGAS_contracts['simple_forwarder_contract']['bytecode'],
+        "deployed_address": PAYGAS_contracts['simple_forwarder_contract']['address'],
         "initial_balance": 100000000,
     },
     {
-        "contract_code": PAYGAS_contract_triggered_twice['bytecode'],
-        "deployed_address": PAYGAS_contract_triggered_twice['address'],
+        "contract_code": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['bytecode'],
+        "deployed_address": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['address'],
         "initial_balance": 100000000,
     },
 ]
@@ -220,7 +226,7 @@ def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
         'receipt_root': constants.EMPTY_SHA3,
     }
     genesis_state = {
-        SHARD_CHAIN_CONTRACTS_FIXTURES[i]["deployed_address"]: {
+        decode_hex(SHARD_CHAIN_CONTRACTS_FIXTURES[i]["deployed_address"]): {
             'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[i]["initial_balance"],
             'code': b'',
             'storage': {},
