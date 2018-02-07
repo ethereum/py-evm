@@ -199,7 +199,7 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
                         )
                     )
                 ),
-                as_num256(self.get_validators_max_index())
+                as_num256(self.get_validators_max_index()),
             )
         )
     ].addr
@@ -216,8 +216,7 @@ def add_header(
         collation_coinbase: address,  # TODO: cannot be named `coinbase` since it is reserved
         state_root: bytes32,
         receipt_root: bytes32,
-        collation_number: num,  # TODO: cannot be named `number` since it is reserved
-    ) -> bool:
+        collation_number: num) -> bool:  # TODO: cannot be named `number` since it is reserved
     zero_addr = 0x0000000000000000000000000000000000000000
 
     # Check if the header is valid
@@ -260,7 +259,7 @@ def add_header(
     # Add the header
     self.collation_headers[shard_id][entire_header_hash] = {
         parent_hash: parent_hash,
-        score: _score
+        score: _score,
     }
 
     # Update the latest period number
@@ -272,13 +271,7 @@ def add_header(
         self.shard_head[shard_id] = entire_header_hash
         is_new_head = True
 
-    # Emit a log which is equivalent to
-    # CollationAdded: __log__({shard_id: indexed(num), collation_header: bytes <= 4096, is_new_head: bool, score: num})
-    # TODO: should be replaced by `log.CollationAdded`
-    if is_new_head:
-        new_head_in_num = 1
-    else:
-        new_head_in_num = 0
+    # Emit log
     log.CollationAdded(
         shard_id,
         expected_period_number,
@@ -310,7 +303,12 @@ def get_collation_gas_limit() -> num:
 # `gasprice`, and `data`.
 @public
 @payable
-def tx_to_shard(to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096) -> num:
+def tx_to_shard(
+        to: address,
+        shard_id: num,
+        tx_startgas: num,
+        tx_gasprice: num,
+        data: bytes <= 4096) -> num:
     self.receipts[self.num_receipts] = {
         shard_id: shard_id,
         tx_startgas: tx_startgas,
@@ -318,15 +316,19 @@ def tx_to_shard(to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, 
         value: msg.value,
         sender: msg.sender,
         to: to,
-        data: data
+        data: data,
     }
     receipt_id = self.num_receipts
     self.num_receipts += 1
 
     # TODO: determine the signature of the log TxToShard
     raw_log(
-        [sha3("tx_to_shard(address,num,num,num,bytes4096)"), as_bytes32(to), as_bytes32(shard_id)],
-        concat('', as_bytes32(receipt_id))
+        [
+            sha3("tx_to_shard(address,num,num,num,bytes4096)"),
+            as_bytes32(to),
+            as_bytes32(shard_id),
+        ],
+        concat('', as_bytes32(receipt_id)),
     )
 
     return receipt_id
