@@ -3,24 +3,28 @@ import asyncio
 import atexit
 import sys
 
-from evm.exceptions import CanonicalHeadNotFound
+from evm.db.backends.level import LevelDB
+from evm.db.chain import BaseChainDB
 
 from trinity.__version__ import __version__
 from trinity.chains import (
-    is_chain_initialized,
-    initialize_chain,
     get_chain_protocol_class,
+    initialize_data_dir,
+    initialize_database,
+    is_data_dir_initialized,
+    is_database_initialized,
 )
 from trinity.cli import console
 from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
 )
+from trinity.db.pipe import (
+    PipeDB,
+    db_over_pipe,
+)
 from trinity.utils.chains import (
     ChainConfig,
-)
-from trinity.utils.db import (
-    get_chain_db,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -100,25 +104,6 @@ console_parser.add_argument(
 console_parser.set_defaults(func=console)
 
 
-def chain_obj(chain_config, sync_mode):
-    if not is_chain_initialized(chain_config):
-        # TODO: this will only work as is for chains with known genesis
-        # parameters.  Need to flesh out how genesis parameters for custom
-        # chains are defined and passed around.
-        chain_class = initialize_chain(chain_config, sync_mode=sync_mode)
-    else:
-        chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-
-    chaindb = get_chain_db(chain_config.database_dir)
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # TODO: figure out amore appropriate error to raise here.
-        raise ValueError('Chain not intiialized')
-
-    return chain_class(chaindb)
-
-
 def main():
     args = parser.parse_args()
 
@@ -134,14 +119,19 @@ def main():
         # TODO: actually use args.sync_mode (--sync-mode)
         sync_mode = SYNC_LIGHT
 
-    chain_config = ChainConfig.from_parser_args(chain_identifier, args)
+    chain_config = ChainConfig.from_parser_args(
+        chain_identifier,
+        args,
+    )
 
     # if console command, run the trinity CLI
     if args.subcommand == 'console':
         use_ipython = not args.vanilla_shell
         debug = args.log_level.upper() == 'DEBUG'
 
-        chain = chain_obj(chain_config, sync_mode)
+        chain_class = get_chain_protocol_class(chain_config, sync_mode)
+        chaindb = BaseChainDB(LevelDB(chain_config.database_dir))
+        chain = chain_class(chaindb)
         args.func(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
 
@@ -151,24 +141,58 @@ def main():
     # the local logger.
     listener.start()
 
+    # First initialize the database process.
+    db_process_pipe, db_connection_pipe = ctx.Pipe()
+    db_process = ctx.Process(
+        target=backend_db_process,
+        args=(
+            LevelDB,
+            {'db_path': chain_config.database_dir},
+            db_process_pipe,
+        ),
+        kwargs={'log_queue': log_queue}
+    )
+
     # For now we just run the light sync against ropsten by default.
-    process = ctx.Process(
+    chain_process = ctx.Process(
         target=run_chain,
-        args=(chain_config, sync_mode),
+        args=(chain_config, sync_mode, db_connection_pipe),
         kwargs={'log_queue': log_queue}
     )
 
     try:
-        process.start()
-        process.join()
+        db_process.start()
+        chain_process.start()
+        chain_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
-        process.terminate()
+        chain_process.terminate()
+        db_process.terminate()
 
 
 @with_queued_logging
-def run_chain(chain_config, sync_mode):
-    chain = chain_obj(chain_config, sync_mode)
+def backend_db_process(db_class, db_init_kwargs, pipe):
+    db = db_class(**db_init_kwargs)
+
+    db_over_pipe(db, pipe)
+
+
+@with_queued_logging
+def run_chain(chain_config, sync_mode, db_pipe):
+    backend_db = PipeDB(db_pipe)
+    chaindb = BaseChainDB(backend_db)
+
+    if not is_data_dir_initialized(chain_config):
+        # TODO: this will only work as is for chains with known genesis
+        # parameters.  Need to flesh out how genesis parameters for custom
+        # chains are defined and passed around.
+        initialize_data_dir(chain_config)
+
+    if not is_database_initialized(chaindb):
+        initialize_database(chain_config, chaindb)
+
+    chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+    chain = chain_class(chaindb)
 
     loop = asyncio.get_event_loop()
 

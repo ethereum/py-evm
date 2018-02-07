@@ -7,9 +7,6 @@ from evm.exceptions import CanonicalHeadNotFound
 from trinity.constants import (
     ROPSTEN,
 )
-from trinity.utils.db import (
-    get_chain_db,
-)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
@@ -19,7 +16,7 @@ from .ropsten import (
 )
 
 
-def is_chain_initialized(chain_config):
+def is_data_dir_initialized(chain_config):
     """
     - base dir exists
     - chain data-dir exists
@@ -41,20 +38,20 @@ def is_chain_initialized(chain_config):
     if chain_config.nodekey is None:
         return False
 
-    chaindb = get_chain_db(chain_config.database_dir)
+    return True
+
+
+def is_database_initialized(chaindb):
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         # empty chain database
         return False
+    else:
+        return True
 
-    return True
 
-
-# TODO: this function shouldn't care about the sync_mode.  We should have some
-# sort of `BaseChain` class that we can retrieve which knows how to do the
-# header initialization.
-def initialize_chain(chain_config, sync_mode):
+def initialize_data_dir(chain_config):
     if is_under_xdg_trinity_root(chain_config.data_dir):
         os.makedirs(chain_config.data_dir, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
@@ -74,23 +71,19 @@ def initialize_chain(chain_config, sync_mode):
         with open(chain_config.nodekey_path, 'wb') as nodekey_file:
             nodekey_file.write(nodekey.to_bytes())
 
-    chain_class = get_chain_protocol_class(chain_config, sync_mode)
 
-    # Database Initialization
-    chaindb = get_chain_db(chain_config.database_dir)
+def initialize_database(chain_config, chaindb):
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         if chain_config.chain_identifier == ROPSTEN:
             # We're starting with a fresh DB.
             # TODO: log that we initialized the chain
-            chain_class.from_genesis_header(chaindb, ROPSTEN_GENESIS_HEADER)
+            chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
             raise NotImplementedError("Not implemented for other chains yet")
-
-    return chain_class
 
 
 def get_chain_protocol_class(chain_config, sync_mode):
