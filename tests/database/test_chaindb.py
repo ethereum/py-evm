@@ -62,21 +62,21 @@ def block(request, header):
 
 def test_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = make_block_number_to_hash_lookup_key(block.number)
-    assert not chaindb.db.exists(block_number_to_hash_key)
+    assert not chaindb.exists(block_number_to_hash_key)
     chaindb._add_block_number_to_hash_lookup(block.header)
-    assert chaindb.db.exists(block_number_to_hash_key)
+    assert chaindb.exists(block_number_to_hash_key)
 
 
 def test_persist_header_to_db(chaindb, header):
     with pytest.raises(BlockNotFound):
         chaindb.get_block_header_by_hash(header.hash)
     number_to_hash_key = make_block_hash_to_score_lookup_key(header.hash)
-    assert not chaindb.db.exists(number_to_hash_key)
+    assert not chaindb.exists(number_to_hash_key)
 
     chaindb.persist_header_to_db(header)
 
     assert chaindb.get_block_header_by_hash(header.hash) == header
-    assert chaindb.db.exists(number_to_hash_key)
+    assert chaindb.exists(number_to_hash_key)
 
 
 @given(seed=st.binary(min_size=32, max_size=32))
@@ -88,9 +88,9 @@ def test_persist_header_to_db_unknown_parent(chaindb, header, seed):
 
 def test_persist_block_to_db(chaindb, block):
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
-    assert not chaindb.db.exists(block_to_hash_key)
+    assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block_to_db(block)
-    assert chaindb.db.exists(block_to_hash_key)
+    assert chaindb.exists(block_to_hash_key)
 
 
 def test_get_score(chaindb):
