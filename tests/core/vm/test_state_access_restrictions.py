@@ -10,10 +10,10 @@ from evm.utils.state_access_restriction import (
 )
 
 
-def test_balance_restriction(valid_shard_chain):  # noqa: F811
+def test_balance_restriction(valid_shard_chain, funded_address):  # noqa: F811
     shard_chain = valid_shard_chain
     vm = shard_chain.get_vm()
-    address = shard_chain.funded_address
+    address = funded_address
     access_list = to_prefix_list_form([[address]])
 
     method_and_args = (
@@ -30,10 +30,10 @@ def test_balance_restriction(valid_shard_chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_code_restriction(valid_shard_chain):  # noqa: F811
+def test_code_restriction(valid_shard_chain, funded_address):  # noqa: F811
     shard_chain = valid_shard_chain
     vm = shard_chain.get_vm()
-    address = shard_chain.funded_address
+    address = funded_address
     access_list = to_prefix_list_form([[address]])
 
     method_and_args = (
@@ -50,10 +50,10 @@ def test_code_restriction(valid_shard_chain):  # noqa: F811
                 getattr(state_db, method)(*args)
 
 
-def test_storage_restriction(valid_shard_chain):  # noqa: F811
+def test_storage_restriction(valid_shard_chain, funded_address):  # noqa: F811
     shard_chain = valid_shard_chain
     vm = shard_chain.get_vm()
-    address = shard_chain.funded_address
+    address = funded_address
     other_address = b'\xaa' * 20
     access_list = to_prefix_list_form([[address, b'\x00', b'\xff' * 32]])
 
