@@ -61,7 +61,10 @@ def test_state_db(state):  # noqa: F811
             state_db.set_balance(address, 0)
 
 
-def test_apply_transaction(chain_without_block_validation):  # noqa: F811
+def test_apply_transaction(  # noqa: F811
+        chain_without_block_validation,
+        funded_address,
+        funded_address_private_key):
     chain = chain_without_block_validation  # noqa: F811
 
     # Don't change these variables
@@ -77,13 +80,13 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     vm_example = chain1.get_vm()
     recipient1 = decode_hex('0x1111111111111111111111111111111111111111')
     amount = 100
-    from_ = chain.funded_address
+    from_ = funded_address
     tx1 = new_transaction(
         vm_example,
         from_,
         recipient1,
         amount,
-        private_key=chain.funded_address_private_key,
+        private_key=funded_address_private_key,
     )
     computation, result_block = vm_example.apply_transaction(tx1)
 
@@ -94,7 +97,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
         from_,
         recipient2,
         amount,
-        private_key=chain.funded_address_private_key,
+        private_key=funded_address_private_key,
     )
     computation, result_block = vm_example.apply_transaction(tx2)
     assert len(result_block.transactions) == 2
