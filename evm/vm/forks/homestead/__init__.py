@@ -1,5 +1,5 @@
 from evm.chains.mainnet.constants import (
-    DAO_FORK_BLOCK_NUMBER
+    DAO_FORK_MAINNET_BLOCK
 )
 from evm.vm.forks.frontier import FrontierVM
 
@@ -14,7 +14,7 @@ from .vm_state import HomesteadVMState
 
 class MetaHomesteadVM(FrontierVM):
     support_dao_fork = True
-    dao_fork_block_number = DAO_FORK_BLOCK_NUMBER
+    dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
 
 
 HomesteadVM = MetaHomesteadVM.configure(

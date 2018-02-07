@@ -1,12 +1,12 @@
 from eth_utils import decode_hex
 
-from evm import constants
 from .constants import (
     BYZANTIUM_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
 )
+from evm import constants
 
 from evm.chains.chain import Chain
 from evm.rlp.headers import BlockHeader

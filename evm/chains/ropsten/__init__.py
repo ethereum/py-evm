@@ -1,9 +1,27 @@
 from eth_utils import decode_hex
 
+from .constants import (
+    BYZANTIUM_ROPSTEN_BLOCK,
+    SPURIOUS_DRAGON_ROPSTEN_BLOCK,
+    TANGERINE_WHISTLE_ROPSTEN_BLOCK,
+)
 from evm import constants
+
 from evm.chains.chain import Chain
-from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.rlp.headers import BlockHeader
+from evm.vm.forks import (
+    ByzantiumVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
+)
+
+
+ROPSTEN_VM_CONFIGURATION = (
+    # Note: Frontier and Homestead are excluded since this chain starts at Tangerine Whistle.
+    (TANGERINE_WHISTLE_ROPSTEN_BLOCK, TangerineWhistleVM),
+    (SPURIOUS_DRAGON_ROPSTEN_BLOCK, SpuriousDragonVM),
+    (BYZANTIUM_ROPSTEN_BLOCK, ByzantiumVM),
+)
 
 
 ROPSTEN_NETWORK_ID = 3
@@ -11,7 +29,7 @@ ROPSTEN_NETWORK_ID = 3
 
 RopstenChain = Chain.configure(
     'RopstenChain',
-    vm_configuration=MAINNET_VM_CONFIGURATION,
+    vm_configuration=ROPSTEN_VM_CONFIGURATION,
     network_id=ROPSTEN_NETWORK_ID,
 )
 
