@@ -2,9 +2,17 @@ import functools
 import itertools
 import math
 
+from cytoolz import (
+    pipe,
+)
+
 from evm.constants import (
     UINT_255_MAX,
     UINT_256_CEILING,
+)
+
+from evm.utils.padding import (
+    pad32,
 )
 
 
@@ -19,6 +27,14 @@ def big_endian_to_int(value):
 
 def int_to_byte(value):
     return bytes([value])
+
+
+def int_to_bytes32(value):
+    return pipe(
+        value,
+        int_to_big_endian,
+        pad32,
+    )
 
 
 byte_to_int = ord
