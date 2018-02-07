@@ -30,11 +30,14 @@ def int_to_byte(value):
 
 
 def int_to_bytes32(value):
-    return pipe(
+    value_bytes = pipe(
         value,
         int_to_big_endian,
         pad32,
     )
+    if len(value_bytes) > 32:
+        raise ValueError("value is too large")
+    return value_bytes
 
 
 byte_to_int = ord
