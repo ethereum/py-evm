@@ -23,12 +23,12 @@ def test_int_to_bytes32_valid(value, expected):
 
 
 @pytest.mark.parametrize(
-    'value, ErrorType',
+    'value',
     (
-        (-1, OverflowError),
-        (UINT_256_MAX + 1, ValueError),
+        -1,
+        UINT_256_MAX + 1,
     )
 )
-def test_int_to_bytes32_invalid(value, ErrorType):
-    with pytest.raises(ErrorType):
+def test_int_to_bytes32_invalid(value):
+    with pytest.raises(ValueError):
         int_to_bytes32(value)
