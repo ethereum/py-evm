@@ -150,13 +150,13 @@ def serve_object_over_ipc(obj,
         thread.start()
 
         while True:
-            # If we have no connections, sleep for a moment, otherwise `wait`
-            # blocks indefinitely on an empty list.
-            if not connections:
-                time.sleep(0.1)
-                continue
-
             try:
+                # If we have no connections, sleep for a moment, otherwise `wait`
+                # blocks indefinitely on an empty list.
+                if not connections:
+                    time.sleep(0.1)
+                    continue
+
                 ready_connections = wait(connections)
                 # For each connection which is ready to be read from, serve the
                 # request
