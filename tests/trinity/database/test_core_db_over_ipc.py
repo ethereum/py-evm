@@ -3,6 +3,8 @@ import os
 import tempfile
 import time
 
+import pytest
+
 from trinity.db.core import (
     PipeDB,
 )
@@ -16,7 +18,8 @@ from trinity.utils.ipc import (
 )
 
 
-def test_database_server():
+@pytest.fixture
+def core_db_ipc_path():
     base_db = MemoryDB()
     base_db[b'key-a'] = b'value-a'
     base_db[b'key-b'] = b'value-b'
@@ -33,18 +36,23 @@ def test_database_server():
         wait_for_ipc(ipc_path)
         time.sleep(0.1)
 
-        db = PipeDB(ipc_path)
+        try:
+            yield ipc_path
+        finally:
+            kill_processes_gracefully(db_server_process)
 
-        assert db[b'key-a'] == b'value-a'
-        assert db[b'key-b'] == b'value-b'
 
-        assert b'key-c' not in db
-        db[b'key-c'] = b'value-c'
-        assert b'key-c' in db
-        assert db[b'key-c'] == b'value-c'
+def test_core_db_over_ipc_server(core_db_ipc_path):
+    db = PipeDB(core_db_ipc_path)
 
-        assert b'key-b' in db
-        del db[b'key-b']
-        assert b'key-b' not in db
+    assert db[b'key-a'] == b'value-a'
+    assert db[b'key-b'] == b'value-b'
 
-        kill_processes_gracefully(db_server_process)
+    assert b'key-c' not in db
+    db[b'key-c'] = b'value-c'
+    assert b'key-c' in db
+    assert db[b'key-c'] == b'value-c'
+
+    assert b'key-b' in db
+    del db[b'key-b']
+    assert b'key-b' not in db
