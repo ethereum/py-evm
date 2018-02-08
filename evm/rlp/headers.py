@@ -228,7 +228,11 @@ class CollationHeader(rlp.Serializable):
         obj_size = 32
         if len(header_bytes) != obj_size * len(cls.fields):
             raise ValidationError(
-                "Length of header bytes should be equal to obj_size * len(cls.fields)"
+                "Expected header bytes to be of length: {0}. Got length {1} instead.\n- {2}".format(
+                    obj_size * len(cls.fields),
+                    len(header_bytes),
+                    encode_hex(header_bytes),
+                )
             )
         for idx, field in enumerate(cls.fields):
             field_name, field_type = field

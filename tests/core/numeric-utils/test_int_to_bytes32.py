@@ -1,5 +1,10 @@
 import pytest
 
+from evm.constants import(
+    NULL_BYTE,
+    UINT_256_MAX,
+)
+
 from evm.utils.numeric import (
     int_to_bytes32,
 )
@@ -8,9 +13,9 @@ from evm.utils.numeric import (
 @pytest.mark.parametrize(
     'value, expected',
     (
-        (0, b'\x00' * 32),
-        (1, b'\x00' * 31 + b'\x01'),
-        ((2 ** 256) - 1, b'\xff' * 32),
+        (0, NULL_BYTE * 32),
+        (1, NULL_BYTE * 31 + b'\x01'),
+        (UINT_256_MAX, b'\xff' * 32),
     )
 )
 def test_int_to_bytes32_valid(value, expected):
@@ -21,7 +26,7 @@ def test_int_to_bytes32_valid(value, expected):
     'value, ErrorType',
     (
         (-1, OverflowError),
-        (2 ** 256, ValueError),
+        (UINT_256_MAX + 1, ValueError),
     )
 )
 def test_int_to_bytes32_invalid(value, ErrorType):
