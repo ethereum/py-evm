@@ -69,9 +69,9 @@ def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
         assert state_db.get_balance(recipient) == amount
 
 
-def test_PAYGAS_not_triggered(shard_chain_without_block_validation):  # noqa: F811
+def test_PAYGAS_not_triggered(unvalidated_shard_chain):  # noqa: F811
     # Case 1: PAYGAS not triggered
-    chain = shard_chain_without_block_validation
+    chain = unvalidated_shard_chain
     vm = chain.get_vm()
 
     simple_forwarder_contract = PAYGAS_contracts["simple_forwarder_contract"]
@@ -105,9 +105,9 @@ def test_PAYGAS_not_triggered(shard_chain_without_block_validation):  # noqa: F8
         assert balance_before_trigger == state_db.get_balance(forwarder_addr)
 
 
-def test_PAYGAS_zero_gas_price(shard_chain_without_block_validation):  # noqa: F811
+def test_PAYGAS_zero_gas_price(unvalidated_shard_chain):  # noqa: F811
     # Case 2: PAYGAS triggered with 0 gas price
-    chain = shard_chain_without_block_validation
+    chain = unvalidated_shard_chain
     vm = chain.get_vm()
 
     PAYGAS_contract_normal = PAYGAS_contracts["PAYGAS_contract_normal"]
@@ -141,9 +141,9 @@ def test_PAYGAS_zero_gas_price(shard_chain_without_block_validation):  # noqa: F
         assert balance_before_trigger == state_db.get_balance(PAYGAS_contract_addr) + amount
 
 
-def test_PAYGAS_not_in_top_level_call(shard_chain_without_block_validation):  # noqa: F811
+def test_PAYGAS_not_in_top_level_call(unvalidated_shard_chain):  # noqa: F811
     # Case 3: PAYGAS is not triggered in a top level call
-    chain = shard_chain_without_block_validation
+    chain = unvalidated_shard_chain
     vm = chain.get_vm()
 
     PAYGAS_contract_normal = PAYGAS_contracts["PAYGAS_contract_normal"]
@@ -204,9 +204,9 @@ def test_PAYGAS_not_in_top_level_call(shard_chain_without_block_validation):  # 
         assert state_db.get_balance(recipient) == recipient_balance_before_trigger + amount
 
 
-def test_PAYGAS_triggered_twice(shard_chain_without_block_validation):  # noqa: F811
+def test_PAYGAS_triggered_twice(unvalidated_shard_chain):  # noqa: F811
     # Case 4: PAYGAS triggered twice
-    chain = shard_chain_without_block_validation
+    chain = unvalidated_shard_chain
     vm = chain.get_vm()
 
     PAYGAS_contract_triggered_twice = PAYGAS_contracts["PAYGAS_contract_triggered_twice"]
