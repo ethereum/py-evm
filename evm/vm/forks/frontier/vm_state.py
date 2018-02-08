@@ -102,7 +102,10 @@ def _execute_frontier_transaction(vm_state, transaction):
         code=code,
         create_address=contract_address,
     )
-    transaction_context = vm_state.get_transaction_context_class()(gas_price=transaction.gas_price)
+    transaction_context = vm_state.get_transaction_context_class()(
+        gas_price=transaction.gas_price,
+        origin=transaction.sender,
+    )
 
     #
     # 2) Apply the message to the VM.

@@ -12,11 +12,10 @@ class BaseTransactionContext(object):
     _gas_price = None
     _origin = None
 
-    def __init__(self, gas_price, origin=None):
+    def __init__(self, gas_price, origin):
         validate_uint256(gas_price, title="TransactionContext.gas_price")
         self._gas_price = gas_price
-        if origin is not None:
-            validate_canonical_address(origin, title="TransactionContext.origin")
+        validate_canonical_address(origin, title="TransactionContext.origin")
         self._origin = origin
 
     @property
