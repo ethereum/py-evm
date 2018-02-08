@@ -1,6 +1,6 @@
 import pytest
 
-from evm.constants import(
+from evm.constants import (
     NULL_BYTE,
     UINT_256_MAX,
 )
