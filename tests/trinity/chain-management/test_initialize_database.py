@@ -2,7 +2,7 @@ import pytest
 
 # TODO: use a custom chain class only for testing.
 from evm.db.backends.level import LevelDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 from trinity.chains import (
     initialize_data_dir,
@@ -23,7 +23,7 @@ def chain_config():
 
 @pytest.fixture
 def chaindb(chain_config):
-    return BaseChainDB(LevelDB(db_path=chain_config.database_dir))
+    return ChainDB(LevelDB(db_path=chain_config.database_dir))
 
 
 def test_initialize_database(chain_config, chaindb):

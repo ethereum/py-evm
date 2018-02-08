@@ -4,7 +4,7 @@ import atexit
 import sys
 
 from evm.db.backends.level import LevelDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 from trinity.__version__ import __version__
 from trinity.chains import (
@@ -130,7 +130,7 @@ def main():
         debug = args.log_level.upper() == 'DEBUG'
 
         chain_class = get_chain_protocol_class(chain_config, sync_mode)
-        chaindb = BaseChainDB(LevelDB(chain_config.database_dir))
+        chaindb = ChainDB(LevelDB(chain_config.database_dir))
         chain = chain_class(chaindb)
         args.func(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
@@ -180,7 +180,7 @@ def backend_db_process(db_class, db_init_kwargs, pipe):
 @with_queued_logging
 def run_chain(chain_config, sync_mode, db_pipe):
     backend_db = PipeDB(db_pipe)
-    chaindb = BaseChainDB(backend_db)
+    chaindb = ChainDB(backend_db)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
