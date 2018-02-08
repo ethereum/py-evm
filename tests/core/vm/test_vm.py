@@ -15,13 +15,17 @@ from tests.core.helpers import (
 )
 
 
-def test_apply_transaction(chain):
+def test_apply_transaction(
+        chain,
+        funded_address,
+        funded_address_private_key,
+        funded_address_initial_balance):
     vm = chain.get_vm()
     tx_idx = len(vm.block.transactions)
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    from_ = chain.funded_address
-    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    from_ = funded_address
+    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
     computation, _ = vm.apply_transaction(tx)
     access_logs = computation.vm_state.access_logs
 
@@ -29,7 +33,7 @@ def test_apply_transaction(chain):
     tx_gas = tx.gas_price * constants.GAS_TX
     with vm.state.state_db(read_only=True) as state_db:
         assert state_db.get_balance(from_) == (
-            chain.funded_address_initial_balance - amount - tx_gas)
+            funded_address_initial_balance - amount - tx_gas)
         assert state_db.get_balance(recipient) == amount
     block = vm.block
     assert block.transactions[tx_idx] == tx
@@ -46,12 +50,12 @@ def test_mine_block(chain):
         assert state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
 
 
-def test_import_block(chain):
+def test_import_block(chain, funded_address, funded_address_private_key):
     vm = chain.get_vm()
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    from_ = chain.funded_address
-    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    from_ = funded_address
+    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
     computation, _ = vm.apply_transaction(tx)
 
     assert not computation.is_error
@@ -60,7 +64,7 @@ def test_import_block(chain):
     assert block.transactions == [tx]
 
 
-def test_get_cumulative_gas_used(chain):
+def test_get_cumulative_gas_used(chain, funded_address, funded_address_private_key):
     vm = chain.get_vm()
 
     # Empty block.
@@ -76,8 +80,8 @@ def test_get_cumulative_gas_used(chain):
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     vm = chain.get_vm()
-    from_ = chain.funded_address
-    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    from_ = funded_address
+    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
 
     vm.apply_transaction(tx)
     block = vm.mine_block()
@@ -89,7 +93,7 @@ def test_get_cumulative_gas_used(chain):
     assert blockgas == constants.GAS_TX
 
 
-def test_create_block(chain):
+def test_create_block(chain, funded_address, funded_address_private_key):
 
     # (1) Empty block.
     # block = vm.mine_block()
@@ -104,8 +108,8 @@ def test_create_block(chain):
     vm = chain.get_vm()
     recipient1 = decode_hex('0x1111111111111111111111111111111111111111')
     amount = 100
-    from_ = chain.funded_address
-    tx1 = new_transaction(vm1, from_, recipient1, amount, chain.funded_address_private_key)
+    from_ = funded_address
+    tx1 = new_transaction(vm1, from_, recipient1, amount, funded_address_private_key)
 
     # Get the witness of tx1
     computation, _ = vm1.apply_transaction(tx1)
@@ -113,7 +117,7 @@ def test_create_block(chain):
 
     # The second transaction
     recipient2 = decode_hex('0x2222222222222222222222222222222222222222')
-    tx2 = new_transaction(vm1, from_, recipient2, amount, chain.funded_address_private_key)
+    tx2 = new_transaction(vm1, from_, recipient2, amount, funded_address_private_key)
 
     # Get the witness of tx2
     computation, block = vm1.apply_transaction(tx2)
