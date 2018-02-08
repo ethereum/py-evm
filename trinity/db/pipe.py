@@ -4,6 +4,7 @@ from multiprocessing.connection import (
     Client,
     wait,
 )
+import os
 import threading
 import uuid
 import time
@@ -70,6 +71,16 @@ def db_server(db, ipc_path):
     logger = logging.getLogger('trinity.db.pipe.db_server')
 
     logger.info('Starting DB Process')
+
+    # TODO: this check should be moved higher in the stack so that things fail
+    # prior to spinning up the database server.
+    if os.path.exists(ipc_path):
+        raise OSError(
+            "Found existing IPC socket at {0}.  Either there is another running "
+            "process using this socket or the client **may** have failed to "
+            "failed to shut down cleanly."
+        )
+
     with Listener(ipc_path) as listener:
         connections = []
 
@@ -96,7 +107,7 @@ def db_server(db, ipc_path):
                 for conn in ready_connections:
                     logger.debug('Serving db for connection: %s', conn)
                     try:
-                        serve_db(db, conn)
+                        handle_db_request(db, conn)
                     except EOFError as err:
                         # This indicates the connection is closed, so we remove
                         # it from our connection list.
@@ -116,8 +127,8 @@ def db_server(db, ipc_path):
     thread.join()
 
 
-def serve_db(db, conn):
-    logger = logging.getLogger('trinity.db.pipe.serve_db')
+def handle_db_request(db, conn):
+    logger = logging.getLogger('trinity.db.pipe.handle_db_request')
 
     request = conn.recv()
 

@@ -1,5 +1,9 @@
 import os
 
+from cytoolz import (
+    get_in,
+)
+
 from eth_utils import (
     decode_hex,
     to_dict,
@@ -8,6 +12,13 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
+from evm.chains.ropsten import (
+    ROPSTEN_NETWORK_ID,
+)
+
+from trinity.constants import (
+    ROPSTEN,
+)
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -78,18 +89,28 @@ def load_nodekey(nodekey_path):
     return nodekey
 
 
+# TODO: move this somewhere more appropriate
+CHAIN_CONFIG_DEFAULTS = {
+    ROPSTEN: {
+        'network_id': ROPSTEN_NETWORK_ID,
+    }
+}
+
+
 class ChainConfig:
     chain_identifier = None
 
     _data_dir = None
     _nodekey_path = None
     _nodekey = None
+    _network_id = None
 
     def __init__(self,
                  chain_identifier,
                  data_dir=None,
                  nodekey_path=None,
-                 nodekey=None):
+                 nodekey=None,
+                 network_id=None):
         # validation
         if nodekey is not None and nodekey_path is not None:
             raise ValueError("It is invalid to provide both a `nodekey` and a `nodekey_path`")
@@ -170,6 +191,23 @@ class ChainConfig:
                 "`PrivateKey` instance"
             )
 
+    @property
+    def network_id(self):
+        if self._network_id is not None:
+            return self._network_id
+
+        try:
+            return get_in(
+                [self.chain_identifier, 'network_id'],
+                CHAIN_CONFIG_DEFAULTS,
+                no_default=True,
+            )
+        except KeyError:
+            raise ValueError(
+                "The network_id for the chain '{0}' was not explicitely set and "
+                "is not for a known network.  Please specify a network_id"
+            )
+
     @classmethod
     def from_parser_args(cls, chain_identifier, parser_args):
         constructor_kwargs = construct_chain_config_params(parser_args)
@@ -179,7 +217,7 @@ class ChainConfig:
 @to_dict
 def construct_chain_config_params(args):
     """
-    Hel
+    Helper function for constructing the kwargs to initialize a ChainConfig object.
     """
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir

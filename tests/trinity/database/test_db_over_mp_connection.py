@@ -2,7 +2,6 @@ import multiprocessing
 import os
 import tempfile
 import time
-import signal
 
 from trinity.db.pipe import (
     db_server,
@@ -10,6 +9,7 @@ from trinity.db.pipe import (
 )
 from trinity.utils.mp import (
     wait_for_ipc,
+    kill_processes_gracefully,
 )
 from trinity.utils.db import (
     MemoryDB,
@@ -47,5 +47,4 @@ def test_database_server():
         del db[b'key-b']
         assert b'key-b' not in db
 
-        os.kill(db_server_process.pid, signal.SIGINT)
-        db_server_process.join(1)
+        kill_processes_gracefully(db_server_process)
