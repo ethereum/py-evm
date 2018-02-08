@@ -3,16 +3,16 @@ import os
 import tempfile
 import time
 
-from trinity.db.pipe import (
-    db_server,
+from trinity.db.core import (
     PipeDB,
-)
-from trinity.utils.mp import (
-    wait_for_ipc,
-    kill_processes_gracefully,
 )
 from trinity.utils.db import (
     MemoryDB,
+)
+from trinity.utils.ipc import (
+    wait_for_ipc,
+    kill_processes_gracefully,
+    serve_object_over_ipc,
 )
 
 
@@ -25,7 +25,7 @@ def test_database_server():
         ipc_path = os.path.join(temp_dir, 'db.ipc')
 
         db_server_process = multiprocessing.Process(
-            target=db_server,
+            target=serve_object_over_ipc,
             args=(base_db, ipc_path),
         )
         db_server_process.start()

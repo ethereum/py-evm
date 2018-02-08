@@ -25,12 +25,16 @@ from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
 )
-from trinity.db.pipe import (
+from trinity.db.core import (
     PipeDB,
-    db_server,
 )
 from trinity.utils.chains import (
     ChainConfig,
+)
+from trinity.utils.ipc import (
+    wait_for_ipc,
+    kill_processes_gracefully,
+    serve_object_over_ipc,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -38,8 +42,6 @@ from trinity.utils.logging import (
 )
 from trinity.utils.mp import (
     ctx,
-    wait_for_ipc,
-    kill_processes_gracefully,
 )
 
 
@@ -161,7 +163,7 @@ def main():
 
     # First initialize the database process.
     db_server_process = ctx.Process(
-        target=backend_db_process,
+        target=core_db_process,
         args=(
             LevelDB,
             {'db_path': chain_config.database_dir},
@@ -190,17 +192,18 @@ def main():
 
 
 @with_queued_logging
-def backend_db_process(db_class, db_init_kwargs, ipc_path):
+def core_db_process(db_class, db_init_kwargs, ipc_path):
     db = db_class(**db_init_kwargs)
+    logger = logging.getLogger('trinity.core_db.server')
 
-    db_server(db, ipc_path)
+    serve_object_over_ipc(db, ipc_path, logger=logger)
 
 
 @with_queued_logging
 def run_chain(chain_config, sync_mode):
     logger = logging.getLogger('trinity.main.run_chain')
-    backend_db = PipeDB(chain_config.database_ipc_path)
-    chaindb = ChainDB(backend_db)
+    core_db = PipeDB(chain_config.database_ipc_path)
+    chaindb = ChainDB(core_db)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -241,8 +244,10 @@ def run_chain(chain_config, sync_mode):
 
 
 @with_queued_logging
-def run_chaindb(chain_config):
-    backend_db = PipeDB(chain_config.database_ipc_path)
-    chaindb = BaseChainDB(backend_db)
+def run_chaindb(chain_config, ipc_path):
+    logger = logging.getLogger('trinity.chaindb.server')
 
-    chaindb_server(chaindb)
+    core_db = PipeDB(chain_config.database_ipc_path)
+    chaindb = ChainDB(core_db)
+
+    serve_object_over_ipc(chaindb, ipc_path, logger=logger)
