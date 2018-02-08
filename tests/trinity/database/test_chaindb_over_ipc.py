@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import tempfile
-import time
 
 import pytest
 
@@ -43,7 +42,6 @@ def chaindb_server_ipc_path():
         chaindb_server_process.start()
 
         wait_for_ipc(ipc_path)
-        time.sleep(0.1)
 
         try:
             yield ipc_path

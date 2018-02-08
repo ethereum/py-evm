@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import tempfile
-import time
 
 import pytest
 
@@ -34,7 +33,6 @@ def core_db_ipc_path():
         db_server_process.start()
 
         wait_for_ipc(ipc_path)
-        time.sleep(0.1)
 
         try:
             yield ipc_path
