@@ -41,7 +41,7 @@ from evm.vm.forks import (
 )
 
 from evm.db import get_db_backend
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 from .numeric import (
     big_endian_to_int,
@@ -628,7 +628,7 @@ def genesis_params_from_fixture(fixture):
 
 
 def new_chain_from_fixture(fixture):
-    db = BaseChainDB(get_db_backend())
+    db = ChainDB(get_db_backend())
 
     vm_config = chain_vm_configuration(fixture)
 

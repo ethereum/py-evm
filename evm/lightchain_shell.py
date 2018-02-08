@@ -10,7 +10,7 @@ import atexit
 import logging
 import threading
 
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.exceptions import CanonicalHeadNotFound
 from evm.chains.ropsten import (
     ROPSTEN_GENESIS_HEADER,
@@ -45,7 +45,7 @@ DemoLightChain = LightChain.configure(
     network_id=ROPSTEN_NETWORK_ID,
 )
 
-chaindb = BaseChainDB(LevelDB(args.db))
+chaindb = ChainDB(LevelDB(args.db))
 peer_pool = PeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
 try:
     chaindb.get_canonical_head()

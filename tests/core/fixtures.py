@@ -10,7 +10,7 @@ from eth_keys import KeyAPI
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.vm.forks.frontier import FrontierVM
 
 
@@ -64,7 +64,7 @@ def chain():
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
-    chain = klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = klass.from_genesis(ChainDB(get_db_backend()), genesis_params, genesis_state)
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     return chain
@@ -129,7 +129,7 @@ def chain_without_block_validation():
             'storage': {},
         }
     }
-    chain = klass.from_genesis(BaseChainDB(get_db_backend()), genesis_params, genesis_state)
+    chain = klass.from_genesis(ChainDB(get_db_backend()), genesis_params, genesis_state)
     chain.funded_address = funded_addr
     chain.funded_address_initial_balance = initial_balance
     chain.funded_address_private_key = private_key

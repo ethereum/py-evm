@@ -10,7 +10,7 @@ from eth_utils import (
 )
 
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.vm.execution_context import (
     ExecutionContext,
 )
@@ -141,7 +141,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     post_vm_state = computation.vm_state
 
     # Check AccessLogs
-    witness_db = BaseChainDB(MemoryDB(access_logs2.writes))
+    witness_db = ChainDB(MemoryDB(access_logs2.writes))
     state_db = witness_db.get_state_db(block.header.state_root, read_only=True)
     assert state_db.get_balance(recipient2) == amount
     with pytest.raises(KeyError):
@@ -161,7 +161,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
     # Witness_db
     block2 = copy.deepcopy(block0)
 
-    witness_db = BaseChainDB(MemoryDB(access_logs1.reads))
+    witness_db = ChainDB(MemoryDB(access_logs1.reads))
     prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
@@ -181,7 +181,7 @@ def test_apply_transaction(chain_without_block_validation):  # noqa: F811
 
     # Update witness_db
     recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
-    witness_db = BaseChainDB(MemoryDB(recent_trie_nodes))
+    witness_db = ChainDB(MemoryDB(recent_trie_nodes))
     execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
     # Apply the second transaction
     vm_state2 = FrontierVMState(

@@ -35,11 +35,11 @@ Then to initialize, you can start it up with an in-memory database:
 ::
 
   from evm.db.backends.memory import MemoryDB
-  from evm.db.chain import BaseChainDB
+  from evm.db.chain import ChainDB
   from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 
   # start a fresh in-memory db
-  chaindb = BaseChainDB(MemoryDB())
+  chaindb = ChainDB(MemoryDB())
 
   # initialize a fresh chain
   chain = chain_class.from_genesis_header(chaindb, MAINNET_GENESIS_HEADER)
@@ -74,10 +74,10 @@ headers, you should tell asyncio to execute its run() method:
 
   import asyncio
   from evm.db.backends.memory import MemoryDB
-  from evm.db.chain import BaseChainDB
+  from evm.db.chain import ChainDB
   from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 
-  chain = DemoLightChain.from_genesis_header(BaseChainDB(MemoryDB()), MAINNET_GENESIS_HEADER)
+  chain = DemoLightChain.from_genesis_header(ChainDB(MemoryDB()), MAINNET_GENESIS_HEADER)
   loop = asyncio.get_event_loop()
   loop.run_until_complete(chain.run())
 

@@ -5,7 +5,7 @@ import pytest
 from evm.db import (
     get_db_backend,
 )
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 from eth_utils import (
     keccak,
@@ -133,7 +133,7 @@ def vm_class(request):
 
 
 def test_vm_fixtures(fixture, vm_class):
-    chaindb = BaseChainDB(get_db_backend())
+    chaindb = ChainDB(get_db_backend())
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],

@@ -5,7 +5,7 @@ import pytest
 
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.utils.keccak import keccak
 from evm.p2p import auth
 from evm.p2p import constants
@@ -141,7 +141,7 @@ async def test_directly_linked_peers(request, event_loop):
 
 
 def get_fresh_mainnet_chaindb():
-    chaindb = BaseChainDB(MemoryDB())
+    chaindb = ChainDB(MemoryDB())
     chaindb.persist_header_to_db(MAINNET_GENESIS_HEADER)
     return chaindb
 

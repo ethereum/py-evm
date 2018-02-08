@@ -58,14 +58,164 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB:
+    #
+    # Canonical chain API
+    #
+    def get_canonical_head(self):
+        """
+        Returns the current block header at the head of the chain.
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
 
+    def get_canonical_block_header_by_number(self, block_number):
+        """
+        Returns the block header with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block header with the given number in the
+        canonical chain.
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    #
+    # Block Header API
+    #
+    def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Raises BlockNotFound if it is not present in the db.
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def header_exists(self, block_hash):
+        """
+        Returns True if the header with the given block hash is in our DB.
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def persist_header_to_db(self, header):
+        """
+        :returns: iterable of headers newly on the canonical chain
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    #
+    # Block API
+    def lookup_block_hash(self, block_number):
+        """
+        Return the block hash for the given block number.
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_block_uncles(self, uncles_hash):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_score(self, block_hash):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def persist_block_to_db(self, block):
+        '''
+        Chain must do follow-up work to persist transactions to db
+        '''
+        new_canonical_headers = self.persist_header_to_db(block.header)
+
+        # Persist the transaction bodies
+        if self.trie_class is HexaryTrie:
+            root_hash = BLANK_ROOT_HASH
+        else:
+            root_hash = EMPTY_SHA3
+
+        transaction_db = self.trie_class(self.db, root_hash=root_hash)
+        for i, transaction in enumerate(block.transactions):
+            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
+            transaction_db[index_key] = rlp.encode(transaction)
+        assert transaction_db.root_hash == block.header.transaction_root
+
+        for header in new_canonical_headers:
+            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
+                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
+
+        # Persist the uncles list
+        self.db.set(
+            block.header.uncles_hash,
+            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
+        )
+
+    #
+    # Transaction and Receipt API
+    #
+    @to_list
+    def get_receipts(self, header, receipt_class):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @to_list
+    def get_block_transaction_hashes(self, block_header):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @to_list
+    def get_block_transactions(self, block_header, transaction_class):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_transaction_by_index(self, block_number, transaction_index, transaction_class):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_pending_transaction(self, transaction_hash, transaction_class):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_transaction_index(self, transaction_hash):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def add_pending_transaction(self, transaction):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def add_transaction(self, block_header, index_key, transaction):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def add_receipt(self, block_header, index_key, receipt):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    #
+    # Raw Database API
+    #
+    def exists(self, key):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def persist_trie_data_dict_to_db(self, trie_data_dict):
+        """
+        Store raw trie data to db from a dict
+        """
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    #
+    # Snapshot and revert API
+    #
+    def snapshot(self):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def revert(self, checkpoint):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def commit(self, checkpoint):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def clear(self):
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    #
+    # State Database API
+    #
+    def get_state_db(self, state_root, read_only):
+        return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)
+
+
+class ChainDB(BaseChainDB):
     def __init__(self, db, trie_class=HexaryTrie):
         self.db = JournalDB(db)
         self.trie_class = trie_class
 
-    def exists(self, key):
-        return self.db.exists(key)
-
+    #
+    # Canonical chain API
+    #
     def get_canonical_head(self):
         if not self.exists(CANONICAL_HEAD_HASH_DB_KEY):
             raise CanonicalHeadNotFound("No canonical head set for this chain")
@@ -81,10 +231,62 @@ class BaseChainDB:
         validate_uint256(block_number, title="Block Number")
         return self.get_block_header_by_hash(self.lookup_block_hash(block_number))
 
-    def get_score(self, block_hash):
-        return rlp.decode(
-            self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
-            sedes=rlp.sedes.big_endian_int)
+    #
+    # Block Header API
+    #
+    def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Raises BlockNotFound if it is not present in the db.
+        """
+        validate_word(block_hash, title="Block Hash")
+        try:
+            block = self.db.get(block_hash)
+        except KeyError:
+            raise BlockNotFound("No block with hash {0} found".format(
+                encode_hex(block_hash)))
+        return rlp.decode(block, sedes=BlockHeader)
+
+    def header_exists(self, block_hash):
+        """Returns True if the header with the given block hash is in our DB."""
+        return self.db.exists(block_hash)
+
+    # TODO: This method sould take a chain of headers as that's the most common use case
+    # and it'd be much faster than inserting each header individually.
+    def persist_header_to_db(self, header):
+        """
+        :returns: iterable of headers newly on the canonical chain
+        """
+        if header.parent_hash != GENESIS_PARENT_HASH and not self.header_exists(header.parent_hash):
+            raise ParentNotFound(
+                "Cannot persist block header ({}) with unknown parent ({})".format(
+                    encode_hex(header.hash), encode_hex(header.parent_hash)))
+
+        self.db.set(
+            header.hash,
+            rlp.encode(header),
+        )
+
+        if header.parent_hash == GENESIS_PARENT_HASH:
+            score = header.difficulty
+        else:
+            score = self.get_score(header.parent_hash) + header.difficulty
+        self.db.set(
+            make_block_hash_to_score_lookup_key(header.hash),
+            rlp.encode(score, sedes=rlp.sedes.big_endian_int))
+
+        try:
+            head_score = self.get_score(self.get_canonical_head().hash)
+        except CanonicalHeadNotFound:
+            new_headers = self._set_as_canonical_chain_head(header)
+        else:
+            if score > head_score:
+                new_headers = self._set_as_canonical_chain_head(header)
+            else:
+                new_headers = []
+
+        return new_headers
 
     def _set_as_canonical_chain_head(self, header):
         """
@@ -113,7 +315,7 @@ class BaseChainDB:
                     pass
 
         for h in new_canonical_headers:
-            self.add_block_number_to_hash_lookup(h)
+            self._add_block_number_to_hash_lookup(h)
 
         self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
 
@@ -152,23 +354,22 @@ class BaseChainDB:
             else:
                 h = self.get_block_header_by_hash(h.parent_hash)
 
-    def get_block_header_by_hash(self, block_hash):
-        """
-        Returns the requested block header as specified by block hash.
+    def _add_block_number_to_hash_lookup(self, header):
+        block_number_to_hash_key = make_block_number_to_hash_lookup_key(
+            header.block_number
+        )
+        self.db.set(
+            block_number_to_hash_key,
+            rlp.encode(header.hash, sedes=rlp.sedes.binary),
+        )
 
-        Raises BlockNotFound if it is not present in the db.
-        """
-        validate_word(block_hash, title="Block Hash")
-        try:
-            block = self.db.get(block_hash)
-        except KeyError:
-            raise BlockNotFound("No block with hash {0} found".format(
-                encode_hex(block_hash)))
-        return rlp.decode(block, sedes=BlockHeader)
-
-    def header_exists(self, block_hash):
-        """Returns True if the header with the given block hash is in our DB."""
-        return self.db.exists(block_hash)
+    #
+    # Block API
+    #
+    def get_score(self, block_hash):
+        return rlp.decode(
+            self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
+            sedes=rlp.sedes.big_endian_int)
 
     def lookup_block_hash(self, block_number):
         """
@@ -181,10 +382,41 @@ class BaseChainDB:
             sedes=rlp.sedes.binary,
         )
 
+    def persist_block_to_db(self, block):
+        '''
+        Chain must do follow-up work to persist transactions to db
+        '''
+        new_canonical_headers = self.persist_header_to_db(block.header)
+
+        # Persist the transaction bodies
+        if self.trie_class is HexaryTrie:
+            root_hash = BLANK_ROOT_HASH
+        else:
+            root_hash = EMPTY_SHA3
+
+        transaction_db = self.trie_class(self.db, root_hash=root_hash)
+        for i, transaction in enumerate(block.transactions):
+            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
+            transaction_db[index_key] = rlp.encode(transaction)
+        assert transaction_db.root_hash == block.header.transaction_root
+
+        for header in new_canonical_headers:
+            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
+                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
+
+        # Persist the uncles list
+        self.db.set(
+            block.header.uncles_hash,
+            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
+        )
+
     def get_block_uncles(self, uncles_hash):
         validate_word(uncles_hash, title="Uncles Hash")
         return rlp.decode(self.db.get(uncles_hash), sedes=rlp.sedes.CountableList(BlockHeader))
 
+    #
+    # Transaction and Receipt API
+    #
     @to_list
     def get_receipts(self, header, receipt_class):
         receipt_db = self.trie_class(db=self.db, root_hash=header.receipt_root)
@@ -250,86 +482,6 @@ class BaseChainDB:
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
 
-    def add_block_number_to_hash_lookup(self, header):
-        block_number_to_hash_key = make_block_number_to_hash_lookup_key(
-            header.block_number
-        )
-        self.db.set(
-            block_number_to_hash_key,
-            rlp.encode(header.hash, sedes=rlp.sedes.binary),
-        )
-
-    # TODO: This method sould take a chain of headers as that's the most common use case
-    # and it'd be much faster than inserting each header individually.
-    def persist_header_to_db(self, header):
-        """
-        :returns: iterable of headers newly on the canonical chain
-        """
-        if header.parent_hash != GENESIS_PARENT_HASH and not self.header_exists(header.parent_hash):
-            raise ParentNotFound(
-                "Cannot persist block header ({}) with unknown parent ({})".format(
-                    encode_hex(header.hash), encode_hex(header.parent_hash)))
-
-        self.db.set(
-            header.hash,
-            rlp.encode(header),
-        )
-
-        if header.parent_hash == GENESIS_PARENT_HASH:
-            score = header.difficulty
-        else:
-            score = self.get_score(header.parent_hash) + header.difficulty
-        self.db.set(
-            make_block_hash_to_score_lookup_key(header.hash),
-            rlp.encode(score, sedes=rlp.sedes.big_endian_int))
-
-        try:
-            head_score = self.get_score(self.get_canonical_head().hash)
-        except CanonicalHeadNotFound:
-            new_headers = self._set_as_canonical_chain_head(header)
-        else:
-            if score > head_score:
-                new_headers = self._set_as_canonical_chain_head(header)
-            else:
-                new_headers = []
-
-        return new_headers
-
-    def persist_block_to_db(self, block):
-        '''
-        Chain must do follow-up work to persist transactions to db
-        '''
-        new_canonical_headers = self.persist_header_to_db(block.header)
-
-        # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
-        for i, transaction in enumerate(block.transactions):
-            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(transaction)
-        assert transaction_db.root_hash == block.header.transaction_root
-
-        for header in new_canonical_headers:
-            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
-                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
-
-        # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
-
-    def persist_trie_data_dict_to_db(self, trie_data_dict):
-        """
-        Store raw trie data to db from a dict
-        """
-        for key, value in trie_data_dict.items():
-            self.db[key] = value
-
     def _remove_transaction_from_canonical_chain(self, transaction_hash):
         self.db.delete(make_transaction_hash_to_block_lookup_key(transaction_hash))
 
@@ -368,6 +520,22 @@ class BaseChainDB:
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
 
+    #
+    # Raw Database API
+    #
+    def exists(self, key):
+        return self.db.exists(key)
+
+    def persist_trie_data_dict_to_db(self, trie_data_dict):
+        """
+        Store raw trie data to db from a dict
+        """
+        for key, value in trie_data_dict.items():
+            self.db[key] = value
+
+    #
+    # Snapshot and revert API
+    #
     def snapshot(self):
         return self.db.snapshot()
 
@@ -380,5 +548,8 @@ class BaseChainDB:
     def clear(self):
         self.db.clear()
 
+    #
+    # State Database API
+    #
     def get_state_db(self, state_root, read_only):
         return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)

@@ -28,7 +28,7 @@ from trie import HexaryTrie
 
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.exceptions import BlockNotFound
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
@@ -80,7 +80,7 @@ _ReceivedMsgCallbackType = Callable[
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
-                    chaindb: BaseChainDB,
+                    chaindb: ChainDB,
                     network_id: int,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -133,7 +133,7 @@ class BasePeer:
                  mac_secret: bytes,
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
-                 chaindb: BaseChainDB,
+                 chaindb: ChainDB,
                  network_id: int,
                  ) -> None:
         self._finished = asyncio.Event()
@@ -596,7 +596,7 @@ class PeerPool:
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: BaseChainDB,
+                 chaindb: ChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  ) -> None:
@@ -781,7 +781,7 @@ def _test():
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-    chaindb = BaseChainDB(MemoryDB())
+    chaindb = ChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()

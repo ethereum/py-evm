@@ -5,7 +5,7 @@ import pytest
 
 from evm import constants
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import ChainDB
 
 from tests.core.helpers import new_transaction
 
@@ -115,7 +115,7 @@ def test_create_block(chain):
     transaction_witness2 = computation.vm_state.access_logs.reads
 
     # Check AccessLogs
-    witness_db = BaseChainDB(MemoryDB(computation.vm_state.access_logs.writes))
+    witness_db = ChainDB(MemoryDB(computation.vm_state.access_logs.writes))
     state_db = witness_db.get_state_db(block.header.state_root, read_only=True)
     assert state_db.get_balance(recipient2) == amount
     with pytest.raises(KeyError):

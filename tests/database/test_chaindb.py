@@ -15,7 +15,7 @@ from evm.db import (
     get_db_backend,
 )
 from evm.db.chain import (
-    BaseChainDB,
+    ChainDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -44,7 +44,7 @@ from evm.utils.keccak import (
 
 @pytest.fixture
 def chaindb():
-    return BaseChainDB(get_db_backend())
+    return ChainDB(get_db_backend())
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -63,7 +63,7 @@ def block(request, header):
 def test_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
-    chaindb.add_block_number_to_hash_lookup(block.header)
+    chaindb._add_block_number_to_hash_lookup(block.header)
     assert chaindb.exists(block_number_to_hash_key)
 
 
@@ -118,6 +118,6 @@ def test_get_block_header_by_hash(chaindb, block, header):
 
 
 def test_lookup_block_hash(chaindb, block):
-    chaindb.add_block_number_to_hash_lookup(block.header)
+    chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash
