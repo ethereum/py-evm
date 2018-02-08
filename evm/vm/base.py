@@ -111,6 +111,7 @@ class VM(Configurable):
             value=value,
             data=data,
             code=code,
+            origin=origin,
         )
 
         # Execute it in the VM
