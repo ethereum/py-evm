@@ -51,8 +51,8 @@ from .execution_context import (
 class VM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
-    such as the Frontier or Homestead network.  Define a Chain defining
-    individual VM classes for each fork of the protocol rules within that
+    such as the Frontier or Homestead network.  Define a Chain which specifies
+    the individual VM classes for each fork of the protocol rules within that
     network.
     """
     chaindb = None
@@ -93,29 +93,41 @@ class VM(Configurable):
         return computation, self.block
 
     def execute_bytecode(self,
-                         gas,
+                         origin,
                          gas_price,
+                         gas,
                          to,
                          sender,
                          value,
                          data,
                          code,
-                         origin,
+                         code_address,
                          ):
+        if origin is None:
+            origin = sender
+
         # Construct a message
         message = Message(
             gas=gas,
-            gas_price=gas_price,
             to=to,
             sender=sender,
             value=value,
             data=data,
             code=code,
+            code_address=code_address,
+        )
+
+        # Construction a tx context
+        transaction_context = self.state.get_transaction_context_class()(
+            gas_price=gas_price,
             origin=origin,
         )
 
         # Execute it in the VM
-        return self.state.get_computation(message).apply_computation(self.state, message)
+        return self.state.get_computation(message, transaction_context).apply_computation(
+            self.state,
+            message,
+        )
 
     #
     # Mining
@@ -461,7 +473,7 @@ class VM(Configurable):
     #
     def clear_journal(self):
         """
-        Cleare the journal.  This should be called at any point of VM execution
+        Clear the journal.  This should be called at any point of VM execution
         where the statedb is being committed, such as after a transaction has
         been applied to a block.
         """

@@ -158,13 +158,13 @@ def fixture_to_computation(fixture, code, vm):
 def fixture_to_bytecode_computation(fixture, code, vm):
     return vm.execute_bytecode(
         origin=fixture['exec']['origin'],
+        gas_price=fixture['exec']['gasPrice'],
+        gas=fixture['exec']['gas'],
         to=fixture['exec']['address'],
         sender=fixture['exec']['caller'],
         value=fixture['exec']['value'],
         data=fixture['exec']['data'],
         code=code,
-        gas=fixture['exec']['gas'],
-        gas_price=fixture['exec']['gasPrice'],
     )
 
 
