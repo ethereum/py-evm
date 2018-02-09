@@ -113,12 +113,6 @@ console_parser.add_argument(
 )
 console_parser.set_defaults(func=console)
 
-"""
-chaindb = ChainDB(LevelDB(args.db))
-peer_pool = PeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
-chain = DemoLightChain(chaindb, peer_pool)
-"""
-
 
 def main():
     args = parser.parse_args()
