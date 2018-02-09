@@ -1,10 +1,16 @@
 import argparse
 import asyncio
 import atexit
+import logging
 import sys
 
 from evm.db.backends.level import LevelDB
 from evm.db.chain import ChainDB
+
+from evm.p2p.peer import (
+    LESPeer,
+    PeerPool,
+)
 
 from trinity.__version__ import __version__
 from trinity.chains import (
@@ -21,7 +27,7 @@ from trinity.constants import (
 )
 from trinity.db.pipe import (
     PipeDB,
-    db_over_pipe,
+    db_server,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -32,6 +38,8 @@ from trinity.utils.logging import (
 )
 from trinity.utils.mp import (
     ctx,
+    wait_for_ipc,
+    kill_processes_gracefully,
 )
 
 
@@ -103,6 +111,12 @@ console_parser.add_argument(
 )
 console_parser.set_defaults(func=console)
 
+"""
+chaindb = ChainDB(LevelDB(args.db))
+peer_pool = PeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
+chain = DemoLightChain(chaindb, peer_pool)
+"""
+
 
 def main():
     args = parser.parse_args()
@@ -129,9 +143,13 @@ def main():
         use_ipython = not args.vanilla_shell
         debug = args.log_level.upper() == 'DEBUG'
 
+        # TODO: this should use the base `Chain` class rather than the protocol
+        # class since it's just a repl with access to the chain.
         chain_class = get_chain_protocol_class(chain_config, sync_mode)
         chaindb = ChainDB(LevelDB(chain_config.database_dir))
-        chain = chain_class(chaindb)
+        peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+
+        chain = chain_class(chaindb, peer_pool)
         args.func(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
 
@@ -142,13 +160,12 @@ def main():
     listener.start()
 
     # First initialize the database process.
-    db_process_pipe, db_connection_pipe = ctx.Pipe()
-    db_process = ctx.Process(
+    db_server_process = ctx.Process(
         target=backend_db_process,
         args=(
             LevelDB,
             {'db_path': chain_config.database_dir},
-            db_process_pipe,
+            chain_config.database_ipc_path,
         ),
         kwargs={'log_queue': log_queue}
     )
@@ -156,30 +173,33 @@ def main():
     # For now we just run the light sync against ropsten by default.
     chain_process = ctx.Process(
         target=run_chain,
-        args=(chain_config, sync_mode, db_connection_pipe),
+        args=(chain_config, sync_mode),
         kwargs={'log_queue': log_queue}
     )
 
+    # start the processes
+    db_server_process.start()
+    wait_for_ipc(chain_config.database_ipc_path)
+    chain_process.start()
+
     try:
-        db_process.start()
-        chain_process.start()
         chain_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
-        chain_process.terminate()
-        db_process.terminate()
+        kill_processes_gracefully(chain_process, db_server_process)
 
 
 @with_queued_logging
-def backend_db_process(db_class, db_init_kwargs, pipe):
+def backend_db_process(db_class, db_init_kwargs, ipc_path):
     db = db_class(**db_init_kwargs)
 
-    db_over_pipe(db, pipe)
+    db_server(db, ipc_path)
 
 
 @with_queued_logging
-def run_chain(chain_config, sync_mode, db_pipe):
-    backend_db = PipeDB(db_pipe)
+def run_chain(chain_config, sync_mode):
+    logger = logging.getLogger('trinity.main.run_chain')
+    backend_db = PipeDB(chain_config.database_ipc_path)
     chaindb = ChainDB(backend_db)
 
     if not is_data_dir_initialized(chain_config):
@@ -192,19 +212,29 @@ def run_chain(chain_config, sync_mode, db_pipe):
         initialize_database(chain_config, chaindb)
 
     chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-    chain = chain_class(chaindb)
+    peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+
+    async def run():
+        asyncio.ensure_future(peer_pool.run())
+        # chain.run() will run in a loop until our atexit handler is called, at which point it returns
+        # and we cleanly stop the pool and chain.
+        await chain.run()
+        await peer_pool.stop()
+        await chain.stop()
+
+    chain = chain_class(chaindb, peer_pool)
 
     loop = asyncio.get_event_loop()
 
-    loop.run_until_complete(chain.run())
+    try:
+        loop.run_until_complete(run())
+    except KeyboardInterrupt:
+        logger.info('KeyboardInterrupt: Stopping')
 
     def cleanup():
         # This is to instruct chain.run() to exit, which will cause the event loop to stop.
         chain._should_stop.set()
 
-        # The above was needed because the event loop stops when chain.run() returns and then
-        # chain.stop() would never finish if we just ran it with run_coroutine_threadsafe().
-        loop.run_until_complete(chain.stop())
         loop.close()
 
     atexit.register(cleanup)
