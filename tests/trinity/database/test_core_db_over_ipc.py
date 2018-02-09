@@ -54,3 +54,8 @@ def test_core_db_over_ipc_server(core_db_ipc_path):
     assert b'key-b' in db
     del db[b'key-b']
     assert b'key-b' not in db
+
+    assert b'key-does-not-exist' not in db
+
+    with pytest.raises(KeyError):
+        db[b'key-does-not-exist']

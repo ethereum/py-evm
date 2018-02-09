@@ -17,6 +17,7 @@ def wait_for_ipc(ipc_path, timeout=1):
     while time.time() - start_at < timeout:
         if os.path.exists(ipc_path):
             break
+        time.sleep(0.05)
 
 
 def kill_processes_gracefully(*processes, logger=None, SIGINT_timeout=5, SIGTERM_timeout=3):
@@ -79,7 +80,7 @@ def ipc_operator(operator_fn, *op_args, **op_kwargs):
         req_id = uuid.uuid4()
         obj.connection.send([
             req_id,
-            operator.methodcaller(*op_args, *fn_args, **op_kwargs, **fn_kwargs),
+            operator_fn(*op_args, *fn_args, **op_kwargs, **fn_kwargs),
         ])
         resp_id, response = obj.connection.recv()
         if resp_id != req_id:
