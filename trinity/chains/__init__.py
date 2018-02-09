@@ -97,5 +97,5 @@ def get_chain_protocol_class(chain_config, sync_mode):
         raise NotImplementedError("Ropsten is the only chain currently supported.")
 
     return RopstenLightChain.configure(
-        privkey=chain_config.nodekey,
+        #privkey=chain_config.nodekey,
     )
