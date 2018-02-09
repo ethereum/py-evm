@@ -117,29 +117,7 @@ class BaseChainDB:
         '''
         Chain must do follow-up work to persist transactions to db
         '''
-        new_canonical_headers = self.persist_header_to_db(block.header)
-
-        # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
-        for i, transaction in enumerate(block.transactions):
-            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(transaction)
-        assert transaction_db.root_hash == block.header.transaction_root
-
-        for header in new_canonical_headers:
-            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
-                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
-
-        # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
+        raise NotImplementedError("ChainDB classes must implement this method")
 
     #
     # Transaction and Receipt API
@@ -205,7 +183,7 @@ class BaseChainDB:
     # State Database API
     #
     def get_state_db(self, state_root, read_only):
-        return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)
+        raise NotImplementedError("ChainDB classes must implement this method")
 
 
 class ChainDB(BaseChainDB):
