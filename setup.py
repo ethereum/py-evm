@@ -20,7 +20,7 @@ setup(
         "cryptography>=2.0.3",
         "cytoolz==0.9.0,<1.0.0",
         "eth-bloom>=0.5.2",
-        "eth-utils>=0.7.1",
+        "eth-utils>=1.0.0b1,<2.0.0",
         "pyethash>=0.1.27",
         "py-ecc==1.4.2",
         "rlp==0.4.7",
