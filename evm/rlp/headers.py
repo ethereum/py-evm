@@ -7,6 +7,10 @@ from rlp.sedes import (
     binary,
 )
 
+from eth_utils import (
+    to_dict,
+)
+
 from evm.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
@@ -15,12 +19,21 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from evm.exceptions import (
+    ValidationError,
+)
 
 from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.utils.keccak import (
     keccak,
+)
+from evm.utils.numeric import (
+    int_to_bytes32,
+)
+from evm.utils.padding import (
+    pad32,
 )
 
 from .sedes import (
@@ -161,7 +174,6 @@ class CollationHeader(rlp.Serializable):
         ("state_root", hash32),
         ("receipt_root", hash32),
         ("number", big_endian_int),
-        ("sig", binary)
     ]
 
     def __init__(self,
@@ -185,7 +197,6 @@ class CollationHeader(rlp.Serializable):
             state_root=state_root,
             receipt_root=receipt_root,
             number=number,
-            sig=sig
         )
 
     def __repr__(self):
@@ -197,15 +208,59 @@ class CollationHeader(rlp.Serializable):
 
     @property
     def hash(self):
-        return keccak(rlp.encode(self))
+        header_hash = keccak(
+            b''.join((
+                int_to_bytes32(self.shard_id),
+                int_to_bytes32(self.expected_period_number),
+                self.period_start_prevhash,
+                self.parent_hash,
+                self.transaction_root,
+                pad32(self.coinbase),
+                self.state_root,
+                self.receipt_root,
+                int_to_bytes32(self.number),
+            ))
+        )
+        return header_hash
+
+    @classmethod
+    @to_dict
+    def _deserialize_header_bytes_to_dict(cls, header_bytes):
+        # assume all fields are padded to 32 bytes
+        obj_size = 32
+        if len(header_bytes) != obj_size * len(cls.fields):
+            raise ValidationError(
+                "Expected header bytes to be of length: {0}. Got length {1} instead.\n- {2}".format(
+                    obj_size * len(cls.fields),
+                    len(header_bytes),
+                    encode_hex(header_bytes),
+                )
+            )
+        for idx, field in enumerate(cls.fields):
+            field_name, field_type = field
+            start_index = idx * obj_size
+            field_bytes = header_bytes[start_index:(start_index + obj_size)]
+            if field_type == rlp.sedes.big_endian_int:
+                # remove the leading zeros, to avoid `not minimal length` error in deserialization
+                formatted_field_bytes = field_bytes.lstrip(b'\x00')
+            elif field_type == address:
+                formatted_field_bytes = field_bytes[-20:]
+            else:
+                formatted_field_bytes = field_bytes
+            yield field_name, field_type.deserialize(formatted_field_bytes)
+
+    @classmethod
+    def from_bytes(cls, header_bytes):
+        header_kwargs = cls._deserialize_header_bytes_to_dict(header_bytes)
+        header = cls(**header_kwargs)
+        return header
 
     @classmethod
     def from_parent(cls,
                     parent,
                     period_start_prevhash,
                     expected_period_number,
-                    coinbase=ZERO_ADDRESS,
-                    sig=b""):
+                    coinbase=ZERO_ADDRESS):
         """
         Initialize a new collation header with the `parent` header as the collation's
         parent hash.
@@ -217,7 +272,6 @@ class CollationHeader(rlp.Serializable):
             "parent_hash": parent.hash,
             "state_root": parent.state_root,
             "number": parent.number + 1,
-            "sig": sig
         }
         header = cls(**header_kwargs)
         return header

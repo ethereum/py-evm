@@ -4,8 +4,6 @@ from cytoolz import (
     pipe,
 )
 
-import rlp
-
 from web3.contract import (
     Contract,
 )
@@ -18,9 +16,8 @@ from eth_utils import (
     to_tuple,
 )
 
-from evm.rlp.sedes import (
-    address,
-    hash32,
+from evm.rlp.headers import (
+    CollationHeader,
 )
 
 from evm.utils.hexadecimal import (
@@ -45,26 +42,16 @@ class UnknownShard(Exception):
 
 
 @to_dict
-def parse_collation_added_data(data_hex):
+def parse_collation_added_log(log):
+    # here assume `shard_id` is the first indexed , which is the second element in topics
+    shard_id_bytes32 = log['topics'][1]
+    data_hex = log['data']
     data_bytes = decode_hex(data_hex)
     score = big_endian_to_int(data_bytes[-32:])
     is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
-    header_bytes = data_bytes[:-64]
-    # [num, num, bytes32, bytes32, bytes32, address, bytes32, bytes32, num, bytes]
-    sedes = rlp.sedes.List([
-        rlp.sedes.big_endian_int,
-        rlp.sedes.big_endian_int,
-        hash32,
-        hash32,
-        hash32,
-        address,
-        hash32,
-        hash32,
-        rlp.sedes.big_endian_int,
-        rlp.sedes.binary,
-    ])
-    header_values = rlp.decode(header_bytes, sedes=sedes)
-    yield 'header', header_values
+    header_bytes = shard_id_bytes32 + data_bytes[:-64]
+    collation_header = CollationHeader.from_bytes(header_bytes)
+    yield 'header', collation_header
     yield 'is_new_head', is_new_head
     yield 'score', score
 
@@ -76,7 +63,7 @@ class ShardTracker:
     # Event:
     #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
     COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
-        "CollationAdded(int128,bytes4096,bool,int128)"
+        "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
     )
     # older <---------------> newer
     current_score = None
@@ -105,7 +92,7 @@ class ShardTracker:
             ],
         )
         for log in new_logs:
-            yield parse_collation_added_data(log['data'])
+            yield parse_collation_added_log(log)
 
     def get_next_log(self):
         new_logs = self._get_new_logs()
@@ -157,6 +144,9 @@ class VMC(Contract):
         self.shard_trackers = {}
 
         super().__init__(*args, **kwargs)
+
+    def get_default_sender_address(self):
+        return self.default_sender_address
 
     def set_shard_tracker(self, shard_id, shard_tracker):
         self.shard_trackers[shard_id] = shard_tracker
@@ -256,7 +246,7 @@ class VMC(Contract):
     # contract calls ##############################################
 
     def get_eligible_proposer(self, shard_id, period=None, gas=None):
-        """get_eligible_proposer(shard_id: num, period: num) -> address
+        """Get the eligible proposer in the specified period
         """
         if gas is None:
             gas = self.config['DEFAULT_GAS']
@@ -266,45 +256,50 @@ class VMC(Contract):
         address_in_hex = self.call(tx_detail).get_eligible_proposer(shard_id, period)
         return decode_hex(address_in_hex)
 
-    def deposit(self,
-                validation_code_addr,
-                return_addr,
-                gas=None,
-                gas_price=None):
-        """deposit(validation_code_addr: address, return_addr: address) -> num
+    def deposit(self, gas=None, gas_price=None):
+        """Do deposit to become a validator
         """
         tx_hash = self.send_transaction(
             'deposit',
-            [
-                to_checksum_address(validation_code_addr),
-                to_checksum_address(return_addr),
-            ],
+            [],
             value=self.config['DEPOSIT_SIZE'],
             gas=gas,
             gas_price=gas_price,
         )
         return tx_hash
 
-    def withdraw(self, validator_index, sig, gas=None, gas_price=None):
-        """withdraw(validator_index: num, sig: bytes <= 1000) -> bool
+    def withdraw(self, validator_index, gas=None, gas_price=None):
+        """Withdraw the validator whose index is `validator_index`
         """
         tx_hash = self.send_transaction(
             'withdraw',
             [
                 validator_index,
-                sig,
             ],
             gas=gas,
             gas_price=gas_price,
         )
         return tx_hash
 
-    def add_header(self, header, gas=None, gas_price=None):
-        """add_header(header: bytes <= 4096) -> bool
+    def add_header(self,
+                   collation_header,
+                   gas=None,
+                   gas_price=None):
+        """Add the collation header with the given parameters
         """
         tx_hash = self.send_transaction(
             'add_header',
-            [header],
+            [
+                collation_header.shard_id,
+                collation_header.expected_period_number,
+                collation_header.period_start_prevhash,
+                collation_header.parent_hash,
+                collation_header.transaction_root,
+                to_checksum_address(collation_header.coinbase),
+                collation_header.state_root,
+                collation_header.receipt_root,
+                collation_header.number,
+            ],
             gas=gas,
             gas_price=gas_price,
         )
@@ -319,9 +314,7 @@ class VMC(Contract):
                     value,
                     gas=None,
                     gas_price=None):
-        """tx_to_shard(
-            to: address, shard_id: num, tx_startgas: num, tx_gasprice: num, data: bytes <= 4096
-           ) -> num
+        """Make a receipt with the given parameters
         """
         tx_hash = self.send_transaction(
             'tx_to_shard',

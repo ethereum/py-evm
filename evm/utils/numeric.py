@@ -2,9 +2,18 @@ import functools
 import itertools
 import math
 
+from cytoolz import (
+    pipe,
+)
+
 from evm.constants import (
     UINT_255_MAX,
+    UINT_256_MAX,
     UINT_256_CEILING,
+)
+
+from evm.utils.padding import (
+    pad32,
 )
 
 
@@ -19,6 +28,33 @@ def big_endian_to_int(value):
 
 def int_to_byte(value):
     return bytes([value])
+
+
+def int_to_bytes32(value):
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(
+            "Value must be an integer: Got: {0}".format(
+                type(value),
+            )
+        )
+    if value < 0:
+        raise ValueError(
+            "Value cannot be negative: Got: {0}".format(
+                value,
+            )
+        )
+    if value > UINT_256_MAX:
+        raise ValueError(
+            "Value exeeds maximum UINT256 size.  Got: {0}".format(
+                value,
+            )
+        )
+    value_bytes = pipe(
+        value,
+        int_to_big_endian,
+        pad32,
+    )
+    return value_bytes
 
 
 byte_to_int = ord
