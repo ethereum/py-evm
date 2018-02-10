@@ -124,6 +124,13 @@ CREATE2_contracts = json.load(
 )
 
 
+nonce_tracking_contracts = json.load(
+    open(
+        os.path.join(os.path.dirname(__file__), './contract_fixtures/nonce_tracking_contracts.json')
+    )
+)
+
+
 SHARD_CHAIN_CONTRACTS_FIXTURES = [
     {
         "contract_code": CREATE2_contracts['simple_transfer_contract']['bytecode'],
@@ -148,6 +155,16 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
     {
         "contract_code": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['bytecode'],
         "deployed_address": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['address'],
+        "initial_balance": 100000000,
+    },
+    {
+        "contract_code": nonce_tracking_contracts['nonce_tracking_contract']['bytecode'],
+        "deployed_address": nonce_tracking_contracts['nonce_tracking_contract']['address'],
+        "initial_balance": 100000000,
+    },
+    {
+        "contract_code": nonce_tracking_contracts['no_nonce_tracking_contract']['bytecode'],
+        "deployed_address": nonce_tracking_contracts['no_nonce_tracking_contract']['address'],
         "initial_balance": 100000000,
     },
 ]

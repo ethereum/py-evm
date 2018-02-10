@@ -24,6 +24,10 @@ from tests.core.contract_fixtures.PAYGAS_contract import (
     PAYGAS_contract_normal_lll_code,
     PAYGAS_contract_triggered_twice_lll_code,
 )
+from tests.core.contract_fixtures.nonce_tracking_contract import (
+    nonce_tracking_lll_code,
+    no_nonce_tracking_lll_code,
+)
 
 
 DIR = os.path.dirname(__file__)
@@ -111,3 +115,37 @@ PAYGAS_json = {
 
 with open(os.path.join(DIR, 'PAYGAS_contracts.json'), 'w') as f:
     json.dump(PAYGAS_json, f, indent=4, sort_keys=True)
+
+
+nonce_tracking_contract_bytecode = assembly_to_evm(
+    compile_to_assembly(
+        LLLnode.from_list(nonce_tracking_lll_code)
+    )
+)
+
+
+no_nonce_tracking_contract_bytecode = assembly_to_evm(
+    compile_to_assembly(
+        LLLnode.from_list(no_nonce_tracking_lll_code)
+    )
+)
+
+
+nonce_tracking_json = {
+    "nonce_tracking_contract": {
+        "bytecode": encode_hex(nonce_tracking_contract_bytecode),
+        "address": encode_hex(
+            generate_CREATE2_contract_address(b'', nonce_tracking_contract_bytecode)
+        ),
+    },
+    "no_nonce_tracking_contract": {
+        "bytecode": encode_hex(no_nonce_tracking_contract_bytecode),
+        "address": encode_hex(
+            generate_CREATE2_contract_address(b'', no_nonce_tracking_contract_bytecode)
+        ),
+    },
+}
+
+
+with open(os.path.join(DIR, 'nonce_tracking_contracts.json'), 'w') as f:
+    json.dump(nonce_tracking_json, f, indent=4, sort_keys=True)
