@@ -101,7 +101,7 @@ class VM(Configurable):
                          value,
                          data,
                          code,
-                         code_address,
+                         code_address=None,
                          ):
         if origin is None:
             origin = sender
