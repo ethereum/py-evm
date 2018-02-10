@@ -46,7 +46,7 @@ class ShardingVMState(ByzantiumVMState):
     computation_class = ShardingComputation
     trie_class = BinaryTrie
 
-    def execute_transaction(self, transaction):
+    def execute_transaction(self, transaction, probe_PAYGAS_mode=False, probe_mode_gas_allocated=100000):
         # state_db ontext manager that restricts access as specified in the transacion
         state_db_cm = functools.partial(self.state_db, access_list=transaction.prefix_list)
 
@@ -61,7 +61,10 @@ class ShardingVMState(ByzantiumVMState):
 
         with state_db_cm() as state_db:
             # Setup VM Message
-            message_gas = transaction.gas - transaction.intrinsic_gas
+            if probe_PAYGAS_mode:
+                message_gas = probe_mode_gas_allocated
+            else:
+                message_gas = transaction.gas - transaction.intrinsic_gas
 
             if transaction.code:
                 contract_address = generate_CREATE2_contract_address(
@@ -142,6 +145,8 @@ class ShardingVMState(ByzantiumVMState):
         else:
             computation = self.get_computation(message).apply_message()
 
+        if probe_PAYGAS_mode:
+            return computation
         #
         # 2) Post Computation
         #
