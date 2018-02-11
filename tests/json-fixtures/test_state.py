@@ -2,8 +2,6 @@ import os
 
 import pytest
 
-import traceback
-
 from eth_keys import keys
 
 from evm.db import (
@@ -302,8 +300,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         computation, _ = vm.apply_transaction(transaction)
     except ValidationError as err:
         transaction_error = err
-        LOGGER.warn("Got transaction error:")
-        LOGGER.warn(traceback.format_exc())
+        LOGGER.warn("Got transaction error", exc_info=True)
     else:
         transaction_error = False
 
