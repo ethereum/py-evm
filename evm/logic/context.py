@@ -180,4 +180,4 @@ def returndatacopy(computation):
 
 
 def sighash(computation):
-    computation.stack.push(computation.msg.sig_hash)
+    computation.stack.push(computation.transaction_context.sig_hash)
