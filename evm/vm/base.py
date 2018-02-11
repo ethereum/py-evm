@@ -127,6 +127,7 @@ class VM(Configurable):
         return self.state.get_computation(message, transaction_context).apply_computation(
             self.state,
             message,
+            transaction_context,
         )
 
     #
