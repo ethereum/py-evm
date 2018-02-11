@@ -38,12 +38,14 @@ from evm.vm.forks.frontier.constants import (
 
 from .blocks import ShardingBlock
 from .computation import ShardingComputation
+from .transaction_context import ShardingTransactionContext
 from .validation import validate_sharding_transaction
 
 
 class ShardingVMState(ByzantiumVMState):
     block_class = ShardingBlock
     computation_class = ShardingComputation
+    transaction_context_class = ShardingTransactionContext
     trie_class = BinaryTrie
 
     def execute_transaction(self, transaction):
@@ -91,16 +93,19 @@ class ShardingVMState(ByzantiumVMState):
 
         message = ShardingMessage(
             gas=message_gas,
-            gas_price=transaction.gas_price,
             to=transaction.to,
-            sig_hash=transaction.sig_hash,
             sender=ENTRY_POINT,
             value=0,
             data=data,
             code=code,
-            transaction_gas_limit=transaction.gas,
             is_create=is_create,
             access_list=transaction.prefix_list,
+        )
+        transaction_context = self.get_transaction_context_class()(
+            gas_price=transaction.gas_price,
+            origin=ENTRY_POINT,
+            sig_hash=transaction.sig_hash,
+            transaction_gas_limit=transaction.gas,
         )
 
         #
@@ -112,7 +117,7 @@ class ShardingVMState(ByzantiumVMState):
 
             # Check if contract address provided by transaction is correct
             if contract_address != transaction.to:
-                computation = self.get_computation(message)
+                computation = self.get_computation(message, transaction_context)
                 computation._error = IncorrectContractCreationAddress(
                     "Contract address calculated: {0} but {1} is provided".format(
                         encode_hex(contract_address),
@@ -127,7 +132,7 @@ class ShardingVMState(ByzantiumVMState):
             elif is_collision:
                 # The address of the newly created contract has collided
                 # with an existing contract address.
-                computation = self.get_computation(message)
+                computation = self.get_computation(message, transaction_context)
                 computation._error = ContractCreationCollision(
                     "Address collision while creating contract: {0}".format(
                         encode_hex(contract_address),
@@ -138,9 +143,12 @@ class ShardingVMState(ByzantiumVMState):
                     encode_hex(contract_address),
                 )
             else:
-                computation = self.get_computation(message).apply_create_message()
+                computation = self.get_computation(
+                    message,
+                    transaction_context,
+                ).apply_create_message()
         else:
-            computation = self.get_computation(message).apply_message()
+            computation = self.get_computation(message, transaction_context).apply_message()
 
         #
         # 2) Post Computation

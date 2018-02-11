@@ -231,7 +231,6 @@ class Create2(CreateEIP150):
             value=value,
             data=b'',
             code=call_data,
-            transaction_gas_limit=computation.msg.transaction_gas_limit,
             is_create=True,
         )
 
@@ -261,7 +260,9 @@ def paygas(computation):
             PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
             if PAYGAS_gasprice is None:
                 PAYGAS_gasprice = 0
-            fee_to_be_charged = PAYGAS_gasprice * computation.msg.transaction_gas_limit
+            fee_to_be_charged = (
+                PAYGAS_gasprice * computation.transaction_context.transaction_gas_limit
+            )
 
             if tx_initiator_balance < fee_to_be_charged:
                 raise InsufficientFunds(
