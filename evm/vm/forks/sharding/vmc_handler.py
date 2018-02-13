@@ -259,6 +259,12 @@ class VMC(Contract):
         address_in_hex = self.call(tx_detail).get_eligible_proposer(shard_id, period)
         return decode_hex(address_in_hex)
 
+    def get_parent_hash(self, shard_id, collation_hash, gas=None):
+        if gas is None:
+            gas = self.config['DEFAULT_GAS']
+        tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
+        return self.call(tx_detail).get_collation_headers__parent_hash(shard_id, collation_hash)
+
     def deposit(self, gas=None, gas_price=None):
         """Do deposit to become a validator
         """

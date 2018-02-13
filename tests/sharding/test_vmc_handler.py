@@ -18,6 +18,11 @@ from eth_utils import (
     to_checksum_address,
 )
 
+from evm.constants import (
+    ZERO_ADDRESS,
+    ZERO_HASH32,
+)
+
 from evm.utils.hexadecimal import (
     encode_hex,
 )
@@ -48,7 +53,7 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 PASSPHRASE = '123'
 GENESIS_COLHDR_HASH = b'\x00' * 32
-ZERO_ADDR = b'\x00' * 20
+ZERO_ADDRESS = b'\x00' * 20
 
 test_keys = get_default_account_keys()
 
@@ -284,14 +289,14 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
-        sender_address=ZERO_ADDR,
+        sender_address=ZERO_ADDRESS,
         gas=vmc.config['DEFAULT_GAS'],
     )
     assert 'from' in tx_detail
     assert 'gas' in tx_detail
     with pytest.raises(ValueError):
         tx_detail = vmc.mk_contract_tx_detail(
-            sender_address=ZERO_ADDR,
+            sender_address=ZERO_ADDRESS,
             gas=None,
         )
     with pytest.raises(ValueError):
@@ -373,6 +378,9 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     ).get_collation_header_score(shard_id, header0_2.hash)
     assert colhdr0_2_score == 2
+    # assert parent_hashes
+    assert vmc.get_parent_hash(shard_id, header0_1.hash) == ZERO_HASH32
+    assert vmc.get_parent_hash(shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
     assert vmc.get_next_log(shard_id)['score'] == 2
     assert vmc.get_next_log(shard_id)['score'] == 1
