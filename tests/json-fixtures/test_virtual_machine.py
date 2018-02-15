@@ -135,7 +135,47 @@ def vm_class(request):
         assert False, "Unsupported VM: {0}".format(request.param)
 
 
-def test_vm_fixtures(fixture, vm_class):
+def fixture_to_computation(fixture, code, vm):
+    message = Message(
+        to=fixture['exec']['address'],
+        sender=fixture['exec']['caller'],
+        value=fixture['exec']['value'],
+        data=fixture['exec']['data'],
+        code=code,
+        gas=fixture['exec']['gas'],
+    )
+    transaction_context = BaseTransactionContext(
+        origin=fixture['exec']['origin'],
+        gas_price=fixture['exec']['gasPrice'],
+    )
+    return vm.state.get_computation(message, transaction_context).apply_computation(
+        vm.state,
+        message,
+        transaction_context,
+    )
+
+
+def fixture_to_bytecode_computation(fixture, code, vm):
+    return vm.execute_bytecode(
+        origin=fixture['exec']['origin'],
+        gas_price=fixture['exec']['gasPrice'],
+        gas=fixture['exec']['gas'],
+        to=fixture['exec']['address'],
+        sender=fixture['exec']['caller'],
+        value=fixture['exec']['value'],
+        data=fixture['exec']['data'],
+        code=code,
+    )
+
+
+@pytest.mark.parametrize(
+    'computation_getter',
+    (
+        fixture_to_bytecode_computation,
+        fixture_to_computation,
+    ),
+)
+def test_vm_fixtures(fixture, vm_class, computation_getter):
     chaindb = ChainDB(get_db_backend())
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
@@ -152,23 +192,8 @@ def test_vm_fixtures(fixture, vm_class):
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root
 
-    message = Message(
-        to=fixture['exec']['address'],
-        sender=fixture['exec']['caller'],
-        value=fixture['exec']['value'],
-        data=fixture['exec']['data'],
-        code=code,
-        gas=fixture['exec']['gas'],
-    )
-    transaction_context = BaseTransactionContext(
-        origin=fixture['exec']['origin'],
-        gas_price=fixture['exec']['gasPrice'],
-    )
-    computation = vm.state.get_computation(message, transaction_context).apply_computation(
-        vm.state,
-        message,
-        transaction_context,
-    )
+    computation = computation_getter(fixture, code, vm)
+
     # Update state_root manually
     vm.block.header.state_root = computation.vm_state.state_root
 
