@@ -12,7 +12,10 @@ from evm.exceptions import (
 )
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
-from tests.core.fixtures import valid_block_rlp
+from tests.core.fixtures import (  # noqa: F401
+    valid_block_rlp,
+    chaindb,
+)
 from tests.core.helpers import new_transaction
 
 
@@ -20,12 +23,12 @@ ADDRESS_2 = b'\0' * 19 + b'\x02'
 
 
 @pytest.fixture()
-def tx(chain):
+def tx(chain, funded_address, funded_address_private_key):
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     vm = chain.get_vm()
-    from_ = chain.funded_address
-    return new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key)
+    from_ = funded_address
+    return new_transaction(vm, from_, recipient, amount, funded_address_private_key)
 
 
 def test_apply_transaction(chain, tx):
@@ -40,7 +43,7 @@ def test_apply_transaction(chain, tx):
         assert state_db.get_balance(tx.to) == tx.value
 
 
-def test_import_block_validation(valid_chain):
+def test_import_block_validation(valid_chain, funded_address, funded_address_initial_balance):
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
     imported_block = valid_chain.import_block(block)
     assert len(imported_block.transactions) == 1
@@ -51,8 +54,8 @@ def test_import_block_validation(valid_chain):
         assert state_db.get_balance(
             decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
         tx_gas = tx.gas_price * constants.GAS_TX
-        assert state_db.get_balance(valid_chain.funded_address) == (
-            valid_chain.funded_address_initial_balance - tx.value - tx_gas)
+        assert state_db.get_balance(funded_address) == (
+            funded_address_initial_balance - tx.value - tx_gas)
 
 
 def test_import_block(chain, tx):
@@ -113,7 +116,15 @@ def test_empty_transaction_lookups(chain):
         'sha3 precompile 32 bytes 1000_tolerance binary pending',
     ],
 )
-def test_estimate_gas(chain, data, gas_estimator, to, on_pending, expected):
+def test_estimate_gas(
+        chain,
+        data,
+        gas_estimator,
+        to,
+        on_pending,
+        expected,
+        funded_address,
+        funded_address_private_key):
     if gas_estimator:
         chain.gas_estimator = gas_estimator
     vm = chain.get_vm()
@@ -122,8 +133,8 @@ def test_estimate_gas(chain, data, gas_estimator, to, on_pending, expected):
     else:
         recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
-    from_ = chain.funded_address
-    tx = new_transaction(vm, from_, recipient, amount, chain.funded_address_private_key, data=data)
+    from_ = funded_address
+    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key, data=data)
     if on_pending:
         # estimate on *pending* block
         assert chain.estimate_gas(tx, chain.header) == expected
