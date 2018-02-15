@@ -8,6 +8,9 @@ from trie import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
+from evm.utils.db import (
+    get_empty_root_hash,
+)
 
 
 @to_tuple
@@ -40,10 +43,11 @@ def diff_state_db(expected_state, state_db):
 
 
 # Make the root of a receipt tree
-def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie):
-    chaindb = ChainDB(MemoryDB())
+def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie, chain_db_class=ChainDB):
+    chaindb = chain_db_class(MemoryDB(), trie_class=trie_class)
     db = chaindb.db
-    transaction_db = trie_class(db)
+    root_hash = get_empty_root_hash(chaindb)
+    transaction_db = trie_class(db, root_hash)
 
     for index, transaction in enumerate(transactions):
         index_key = rlp.encode(index, sedes=rlp.sedes.big_endian_int)

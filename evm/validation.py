@@ -231,6 +231,8 @@ ALLOWED_HEADER_FIELDS = {
     'mix_hash',
     'nonce',
     'uncles_hash',
+    'transaction_root',
+    'receipt_root',
 }
 
 

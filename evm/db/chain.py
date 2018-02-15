@@ -13,8 +13,6 @@ from eth_utils import (
 )
 
 from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
     GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
@@ -40,6 +38,7 @@ from evm.validation import (
     validate_word,
 )
 from evm.utils.db import (
+    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
     make_transaction_hash_to_block_lookup_key,
@@ -114,32 +113,7 @@ class BaseChainDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     def persist_block_to_db(self, block):
-        '''
-        Chain must do follow-up work to persist transactions to db
-        '''
-        new_canonical_headers = self.persist_header_to_db(block.header)
-
-        # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
-        for i, transaction in enumerate(block.transactions):
-            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(transaction)
-        assert transaction_db.root_hash == block.header.transaction_root
-
-        for header in new_canonical_headers:
-            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
-                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
-
-        # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
+        raise NotImplementedError("ChainDB classes must implement this method")
 
     #
     # Transaction and Receipt API
@@ -389,10 +363,7 @@ class ChainDB(BaseChainDB):
         new_canonical_headers = self.persist_header_to_db(block.header)
 
         # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
+        root_hash = get_empty_root_hash(self)
 
         transaction_db = self.trie_class(self.db, root_hash=root_hash)
         for i, transaction in enumerate(block.transactions):

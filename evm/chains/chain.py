@@ -8,16 +8,11 @@ from cytoolz import (
 from eth_utils import (
     to_tuple,
 )
-from trie import (
-    HexaryTrie,
-)
 
 from evm.consensus.pow import (
     check_pow,
 )
 from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
     MAX_UNCLE_DEPTH,
 )
 from evm.estimators import (
@@ -42,6 +37,9 @@ from evm.utils.chain import (
 )
 from evm.utils.datatypes import (
     Configurable,
+)
+from evm.utils.db import (
+    get_empty_root_hash,
 )
 from evm.utils.headers import (
     compute_gas_limit_bounds,
@@ -222,10 +220,7 @@ class Chain(Configurable):
         """
         Initialize the Chain from a genesis state.
         """
-        if chaindb.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
+        root_hash = get_empty_root_hash(chaindb)
         state_db = chaindb.get_state_db(root_hash, read_only=False)
 
         if genesis_state is None:
