@@ -3,6 +3,7 @@ import itertools
 import rlp
 
 from trie import (
+    BinaryTrie,
     HexaryTrie,
 )
 
@@ -13,6 +14,8 @@ from eth_utils import (
 )
 
 from evm.constants import (
+    BLANK_ROOT_HASH,
+    EMPTY_SHA3,
     GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
@@ -38,7 +41,6 @@ from evm.validation import (
     validate_word,
 )
 from evm.utils.db import (
-    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
     make_transaction_hash_to_block_lookup_key,
@@ -57,6 +59,27 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB:
+    trie_class = None
+    empty_root_hash = None
+
+    #
+    # Trie
+    #
+    def set_trie(self, trie_class):
+        """
+        Sets trie_class and root_hash.
+        """
+        if trie_class is HexaryTrie:
+            empty_root_hash = BLANK_ROOT_HASH
+        elif trie_class is BinaryTrie:
+            empty_root_hash = EMPTY_SHA3
+        else:
+            raise NotImplementedError(
+                "trie_class {} is not supported.".format(trie_class)
+            )
+        self.trie_class = trie_class
+        self.empty_root_hash = empty_root_hash
+
     #
     # Canonical chain API
     #
@@ -185,7 +208,7 @@ class BaseChainDB:
 class ChainDB(BaseChainDB):
     def __init__(self, db, trie_class=HexaryTrie):
         self.db = JournalDB(db)
-        self.trie_class = trie_class
+        self.set_trie(trie_class)
 
     #
     # Canonical chain API
@@ -363,9 +386,7 @@ class ChainDB(BaseChainDB):
         new_canonical_headers = self.persist_header_to_db(block.header)
 
         # Persist the transaction bodies
-        root_hash = get_empty_root_hash(self)
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
+        transaction_db = self.trie_class(self.db, root_hash=self.empty_root_hash)
         for i, transaction in enumerate(block.transactions):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
             transaction_db[index_key] = rlp.encode(transaction)

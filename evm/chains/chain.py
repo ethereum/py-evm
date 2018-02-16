@@ -38,9 +38,6 @@ from evm.utils.chain import (
 from evm.utils.datatypes import (
     Configurable,
 )
-from evm.utils.db import (
-    get_empty_root_hash,
-)
 from evm.utils.headers import (
     compute_gas_limit_bounds,
 )
@@ -220,8 +217,7 @@ class Chain(Configurable):
         """
         Initialize the Chain from a genesis state.
         """
-        root_hash = get_empty_root_hash(chaindb)
-        state_db = chaindb.get_state_db(root_hash, read_only=False)
+        state_db = chaindb.get_state_db(chaindb.empty_root_hash, read_only=False)
 
         if genesis_state is None:
             genesis_state = {}
