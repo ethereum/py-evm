@@ -1,4 +1,4 @@
-# Contract that keeps track of it's nonce
+# Contract that keeps track of its nonce
 nonce_tracking_lll_code = ['seq',
                             ['return',  # noqa: E127
                                 0,
@@ -11,7 +11,7 @@ nonce_tracking_lll_code = ['seq',
                                 0]]]  # noqa: E128
 
 
-# Contract that keeps track of it's nonce
+# Contract that does not keeps track of its nonce
 no_nonce_tracking_lll_code = ['seq',
                                 ['return',  # noqa: E127
                                     0,
