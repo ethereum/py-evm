@@ -31,8 +31,9 @@ from .normalization import (
 from .builder_utils import (
     add_transaction_to_group,
     calc_state_root,
+    get_test_name,
     get_version_from_git,
-    merge_nested,
+    deep_merge,
     wrap_in_list,
 )
 from .formatters import (
@@ -98,8 +99,7 @@ def setup_filler(name, environment=None):
 
 @curry
 def pre_state(pre_state, filler):
-    assert len(filler) == 1
-    test_name = next(iter(filler.keys()))
+    test_name = get_test_name(filler)
 
     old_pre_state = filler[test_name].get("pre_state", {})
     pre_state = normalize_state(pre_state)
@@ -109,14 +109,13 @@ def pre_state(pre_state, filler):
         "code": b"",
         "storage": {},
     } for address in pre_state}
-    new_pre_state = merge_nested(defaults, old_pre_state, pre_state)
+    new_pre_state = deep_merge(defaults, old_pre_state, pre_state)
 
     return assoc_in(filler, [test_name, "pre"], new_pre_state)
 
 
 def _expect(networks, transaction, post_state, filler):
-    assert len(filler) == 1
-    test_name = next(iter(filler.keys()))
+    test_name = get_test_name(filler)
     test = filler[test_name]
 
     networks = normalize_networks(networks)
@@ -130,7 +129,7 @@ def _expect(networks, transaction, post_state, filler):
         "code": b"",
         "storage": {},
     } for address in post_state}
-    result = merge_nested(defaults, pre_state, normalize_state(post_state))
+    result = deep_merge(defaults, pre_state, normalize_state(post_state))
 
     if "transaction" not in test:
         transaction = merge(DEFAULT_TRANSACTION, transaction)
@@ -155,8 +154,7 @@ def _expect(networks, transaction, post_state, filler):
         "network": networks,
         "result": result,
     }]
-
-    return merge_nested(
+    return deep_merge(
         filler,
         {
             test_name: {
@@ -176,8 +174,7 @@ def expect(networks, transaction, post_state):
 #
 
 def fill_test(filler, comment="", apply_formatter=True):
-    assert len(filler) == 1
-    test_name = next(iter(filler.keys()))
+    test_name = get_test_name(filler)
     test = filler[test_name]
 
     environment = normalize_environment(test["env"])
@@ -194,7 +191,7 @@ def fill_test(filler, comment="", apply_formatter=True):
         indexes = expect["indexes"]
         networks = normalize_networks(expect["network"])
         result = normalize_state(expect["result"])
-        post_state = merge_nested(pre_state, result)
+        post_state = deep_merge(pre_state, result)
         for network in networks:
             account_state_db_class = ACCOUNT_STATE_DB_CLASSES[network]
             post_state_root = calc_state_root(post_state, account_state_db_class)

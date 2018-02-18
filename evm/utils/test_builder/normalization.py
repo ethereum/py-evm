@@ -6,6 +6,7 @@ from collections.abc import (
 from cytoolz import (
     assoc_in,
     compose,
+    concat,
     identity,
 )
 from eth_utils import (
@@ -19,23 +20,54 @@ from eth_utils import (
 import cytoolz.curried
 import eth_utils.curried
 
+from .builder_utils import (
+    deep_merge,
+    is_cleanly_mergable,
+)
 
-def state_list_to_dict(state_list):
-    """Convert state definitions in list form to the canonical dict form.
 
-    Example of state list elements:
+def state_definition_to_dict(state_definition):
+    """Convert a state definition to the canonical dict form.
 
-        - `(address, "balance", 1)`
-        - `(address, "nonce", 2)`
-        - `(address, "code", b"3")`
-        - `(address, "storage", 4, 5)`
+    State can either be defined in the canonical form, or as a list of sub states that are then
+    merged to one. Sub states can either be given as dictionaries themselves, or as tuples where
+    the last element is the value and all others the keys for this value in the nested state
+    dictionary. Example:
 
-    For storage, the second to last entry specifies the slot and the last one the value.
+    ```
+        [
+            ("0xaabb", "balance", 3),
+            ("0xaabb", "storage", {
+                4: 5,
+            }),
+            "0xbbcc", {
+                "balance": 6,
+                "nonce": 7
+            }
+        ]
+    ```
     """
-    d = {}
-    for state_item in state_list:
-        d = assoc_in(d, state_item[:-1], state_item[-1])
-    return d
+    if isinstance(state_definition, Mapping):
+        state_dict = state_definition
+    elif isinstance(state_definition, Iterable):
+        state_dicts = [
+            assoc_in(
+                {},
+                state_item[:-1],
+                state_item[-1]
+            ) if not isinstance(state_item, Mapping) else state_item
+            for state_item
+            in state_definition
+        ]
+        assert is_cleanly_mergable(*state_dicts)
+        state_dict = deep_merge(*state_dicts)
+    else:
+        assert False
+
+    second_layer_keys = concat(d.keys() for d in state_dict.values())
+    assert all(key in ["balance", "nonce", "storage", "code"] for key in second_layer_keys)
+
+    return state_dict
 
 
 normalize_int = compose(
@@ -64,7 +96,7 @@ normalize_state = compose(
     })),
     eth_utils.curried.apply_formatter_if(
         lambda s: isinstance(s, Iterable) and not isinstance(s, Mapping),
-        state_list_to_dict
+        state_definition_to_dict
     ),
 )
 
