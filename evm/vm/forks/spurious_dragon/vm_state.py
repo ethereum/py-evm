@@ -3,7 +3,7 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.vm.forks.frontier.vm_state import (
-    _execute_frontier_transaction,
+    FrontierTransactionExecutor,
 )
 from evm.vm.forks.homestead.vm_state import (
     HomesteadVMState,
@@ -14,12 +14,12 @@ from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
-class SpuriousDragonVMState(HomesteadVMState):
+class SpuriousDragonVMState(HomesteadVMState, FrontierTransactionExecutor):
     block_class = SpuriousDragonBlock
     computation_class = SpuriousDragonComputation
 
-    def execute_transaction(self, transaction):
-        computation = _execute_frontier_transaction(self, transaction)
+    def run_post_computation(self, transaction, message, computation):
+        computation = super().run_post_computation(transaction, message, computation)
 
         #
         # EIP161 state clearing
