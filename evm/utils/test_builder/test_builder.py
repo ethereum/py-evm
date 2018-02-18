@@ -8,8 +8,12 @@ from functools import (
 from evm.db.state import (
     MainAccountStateDB,
 )
+from evm.utils.fixture_tests import (
+    hash_log_entries,
+)
 
 from cytoolz import (
+    assoc,
     assoc_in,
     curry,
     merge,
@@ -22,7 +26,12 @@ from eth_utils import (
 )
 
 from .normalization import (
+    normalize_bytes,
+    normalize_call_creates,
     normalize_environment,
+    normalize_execution,
+    normalize_int,
+    normalize_logs,
     normalize_state,
     normalize_transaction,
     normalize_transaction_group,
@@ -31,13 +40,15 @@ from .normalization import (
 from .builder_utils import (
     add_transaction_to_group,
     calc_state_root,
+    compile_vyper_lll,
     get_test_name,
     get_version_from_git,
     deep_merge,
     wrap_in_list,
 )
 from .formatters import (
-    filled_formatter,
+    filled_state_test_formatter,
+    filled_vm_test_formatter,
 )
 
 
@@ -64,6 +75,16 @@ DEFAULT_TRANSACTION = {
     "secretKey": decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"),
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
     "value": 0
+}
+
+DEFAULT_EXECUTION = {
+    "address": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
+    "origin": to_canonical_address("0xcd1722f2947def4cf144679da39c4c32bdc35681"),
+    "caller": to_canonical_address("0xcd1722f2947def4cf144679da39c4c32bdc35681"),
+    "value": 1000000000000000000,
+    "data": b"",
+    "gasPrice": 1,
+    "gas": 100000
 }
 
 ALL_NETWORKS = [
@@ -114,12 +135,10 @@ def pre_state(pre_state, filler):
     return assoc_in(filler, [test_name, "pre"], new_pre_state)
 
 
-def _expect(networks, transaction, post_state, filler):
+def _expect(post_state, networks, transaction, filler):
     test_name = get_test_name(filler)
     test = filler[test_name]
-
-    networks = normalize_networks(networks)
-    transaction = normalize_transaction(transaction)
+    test_update = {test_name: {}}
 
     pre_state = test.get("pre", {})
     post_state = normalize_state(post_state)
@@ -130,61 +149,108 @@ def _expect(networks, transaction, post_state, filler):
         "storage": {},
     } for address in post_state}
     result = deep_merge(defaults, pre_state, normalize_state(post_state))
+    new_expect = {"result": result}
 
-    if "transaction" not in test:
-        transaction = merge(DEFAULT_TRANSACTION, transaction)
-        transaction_group = apply_formatters_to_dict({
-            "data": wrap_in_list,
-            "gasLimit": wrap_in_list,
-            "value": wrap_in_list,
-        }, transaction)
-        indexes = {
-            "data": 0,
-            "gas": 0,
-            "value": 0,
-        }
-    else:
-        transaction_group, indexes = add_transaction_to_group(
-            test["transaction"], transaction
-        )
+    if transaction is not None:
+        transaction = normalize_transaction(transaction)
+        if "transaction" not in test:
+            transaction = merge(DEFAULT_TRANSACTION, transaction)
+            transaction_group = apply_formatters_to_dict({
+                "data": wrap_in_list,
+                "gasLimit": wrap_in_list,
+                "value": wrap_in_list,
+            }, transaction)
+            indexes = {
+                "data": 0,
+                "gas": 0,
+                "value": 0,
+            }
+        else:
+            transaction_group, indexes = add_transaction_to_group(
+                test["transaction"], transaction
+            )
+        new_expect = assoc(new_expect, "indexes", indexes)
+        test_update = assoc_in(test_update, [test_name, "transaction"], transaction_group)
 
-    existing_expect = test.get("expect", [])
-    expect = existing_expect + [{
-        "indexes": indexes,
-        "network": networks,
-        "result": result,
-    }]
+    if networks is not None:
+        networks = normalize_networks(networks)
+        new_expect = assoc(new_expect, "networks", networks)
+
+    existing_expects = test.get("expect", [])
+    expect = existing_expects + [new_expect]
+    test_update = assoc_in(test_update, [test_name, "expect"], expect)
+
+    return deep_merge(filler, test_update)
+
+
+def expect(post_state, networks=None, transaction=None):
+    return partial(_expect, post_state, networks, transaction)
+
+
+@curry
+def execution(execution, filler):
+    execution = normalize_execution(execution or {})
+
+    # user caller as origin if not explicitly given
+    if "caller" in execution and "origin" not in execution:
+        execution = assoc(execution, "origin", execution["caller"])
+
+    if "vyperLLLCode" in execution:
+        code = compile_vyper_lll(execution["vyperLLLCode"])
+        if "code" in execution:
+            if code != execution["code"]:
+                raise ValueError("Compiled Vyper LLL code does not match")
+        execution = assoc(execution, "code", code)
+
+    execution = merge(DEFAULT_EXECUTION, execution)
+
+    test_name = get_test_name(filler)
     return deep_merge(
         filler,
         {
             test_name: {
-                "expect": expect,
-                "transaction": transaction_group
+                "exec": execution,
             }
         }
     )
-
-
-def expect(networks, transaction, post_state):
-    return partial(_expect, networks, transaction, post_state)
 
 
 #
 # Test Filling
 #
 
-def fill_test(filler, comment="", apply_formatter=True):
+def fill_test(filler, info=None, apply_formatter=True, **kwargs):
+    test_name = get_test_name(filler)
+    test = filler[test_name]
+
+    if "transaction" in test:
+        filled = fill_state_test(filler, **kwargs)
+        formatter = filled_state_test_formatter
+    elif "exec" in test:
+        filled = fill_vm_test(filler, **kwargs)
+        formatter = filled_vm_test_formatter
+    else:
+        raise ValueError("Given filler does not appear to be for VM or state test")
+
+    info = merge(
+        {"filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git())},
+        info if info else {}
+    )
+    filled = assoc_in(filled, [test_name, "_info"], info)
+
+    if apply_formatter:
+        return formatter(filled)
+    else:
+        return filled
+
+
+def fill_state_test(filler):
     test_name = get_test_name(filler)
     test = filler[test_name]
 
     environment = normalize_environment(test["env"])
     pre_state = normalize_state(test["pre"])
     transaction_group = normalize_transaction_group(test["transaction"])
-
-    info = {
-        "filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git()),
-        "comment": comment,
-    }
 
     post = defaultdict(list)
     for expect in test["expect"]:
@@ -200,16 +266,56 @@ def fill_test(filler, comment="", apply_formatter=True):
                 "indexes": indexes,
             })
 
-    filled = {
+    return {
         test_name: {
-            "_info": info,
             "env": environment,
             "pre": pre_state,
             "transaction": transaction_group,
             "post": post
         }
     }
-    if apply_formatter:
-        return filled_formatter(filled)
-    else:
-        return filled
+
+
+def fill_vm_test(
+    filler,
+    *,
+    call_creates=None,
+    gas_price=None,
+    gas_remaining=0,
+    logs=None,
+    output=b""
+):
+    test_name = get_test_name(filler)
+    test = filler[test_name]
+
+    environment = normalize_environment(test["env"])
+    pre_state = normalize_state(test["pre"])
+    execution = normalize_execution(test["exec"])
+
+    assert len(test["expect"]) == 1
+    expect = test["expect"][0]
+    assert "network" not in test
+    assert "indexes" not in test
+
+    result = normalize_state(expect["result"])
+    post_state = deep_merge(pre_state, result)
+
+    call_creates = normalize_call_creates(call_creates or [])
+    gas_remaining = normalize_int(gas_remaining)
+    output = normalize_bytes(output)
+
+    logs = normalize_logs(logs or [])
+    log_hash = hash_log_entries(logs)
+
+    return {
+        test_name: {
+            "env": environment,
+            "pre": pre_state,
+            "exec": execution,
+            "post": post_state,
+            "callcreates": call_creates,
+            "gas": gas_remaining,
+            "output": output,
+            "logs": log_hash,
+        }
+    }
