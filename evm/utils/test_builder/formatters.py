@@ -50,6 +50,18 @@ transaction_group_formatter = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
+execution_formatter = eth_utils.curried.apply_formatters_to_dict({
+    "address": to_checksum_address,
+    "origin": to_checksum_address,
+    "caller": to_checksum_address,
+    "code": encode_hex,
+    "value": int_to_hex,
+    "data": encode_hex,
+    "gasPrice": int_to_hex,
+    "gas": int_to_hex,
+})
+
+
 expect_element_formatter = eth_utils.curried.apply_formatters_to_dict({
     "result": state_formatter
 })
@@ -61,20 +73,38 @@ test_formatter = eth_utils.curried.apply_formatters_to_dict({
     "pre": state_formatter,
     "transaction": transaction_group_formatter,
     "expect": expect_formatter,
+    "exec": execution_formatter,
 })
-
-
 filler_formatter = cytoolz.curried.valmap(test_formatter)
 
 
-post_formatter = eth_utils.curried.apply_formatters_to_dict({
+state_post_formatter = eth_utils.curried.apply_formatters_to_dict({
     "hash": encode_hex
 })
 
 
-filled_formatter = cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
+filled_state_test_formatter = cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
     "env": environment_formatter,
     "pre": state_formatter,
     "transaction": transaction_group_formatter,
-    "post": post_formatter,
+    "post": state_post_formatter,
+}))
+
+call_create_item_formatter = eth_utils.curried.apply_formatters_to_dict({
+    "data": encode_hex,
+    "destination": to_checksum_address,
+    "gasLimit": int_to_hex,
+    "value": int_to_hex,
+})
+call_creates_formatter = eth_utils.curried.apply_formatter_to_array(call_create_item_formatter)
+
+filled_vm_test_formatter = cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
+    "env": environment_formatter,
+    "pre": state_formatter,
+    "exec": execution_formatter,
+    "post": state_formatter,
+    "callcreates": call_creates_formatter,
+    "logs": encode_hex,
+    "gas": int_to_hex,
+    "output": encode_hex,
 }))
