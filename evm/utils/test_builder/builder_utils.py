@@ -1,4 +1,5 @@
 import copy
+import itertools
 import random
 import subprocess
 
@@ -8,6 +9,9 @@ from collections.abc import (
 
 from evm.db.backends.memory import MemoryDB
 
+from cytoolz import (
+    merge_with,
+)
 from eth_utils import (
     force_text,
     int_to_big_endian,
@@ -16,17 +20,29 @@ from eth_utils import (
 from eth_keys import keys
 
 
-def merge_nested(*dicts):
-    result = {}
-    for d in dicts:
-        for key, value in d.items():
-            if key not in result:
-                result[key] = value  # keep key-value pair if there's no conflict
-            elif not isinstance(value, Mapping) or not isinstance(result[key], Mapping):
-                result[key] = value  # use value of later dict if are not mergeable
-            else:
-                result[key] = merge_nested(result[key], value)  # merge if both are dicts
-    return result
+def merge_if_dicts(values):
+    if all(isinstance(item, Mapping) for item in values):
+        return merge_with(merge_if_dicts, *values)
+    else:
+        return values[-1]
+
+
+def deep_merge(*dicts):
+    return merge_with(merge_if_dicts, *dicts)
+
+
+def is_cleanly_mergable(*dicts):
+    if len(dicts) <= 1:
+        return True
+    elif len(dicts) == 2:
+        if not all(isinstance(d, Mapping) for d in dicts):
+            return False
+        else:
+            shared_keys = set(dicts[0].keys()) & set(dicts[1].keys())
+            return all(is_cleanly_mergable(dicts[0][key], dicts[1][key]) for key in shared_keys)
+    else:
+        dict_combinations = itertools.combinations(dicts, 2)
+        return all(is_cleanly_mergable(*combination) for combination in dict_combinations)
 
 
 def wrap_in_list(item):
@@ -72,3 +88,8 @@ def generate_random_keypair():
 def generate_random_address():
     _, address = generate_random_keypair()
     return address
+
+
+def get_test_name(filler):
+    assert len(filler) == 1
+    return next(iter(filler.keys()))
