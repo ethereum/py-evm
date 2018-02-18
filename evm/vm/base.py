@@ -17,8 +17,6 @@ from evm.exceptions import (
     BlockNotFound,
     ValidationError,
 )
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -217,59 +215,6 @@ class VM(Configurable):
         snapshot = state.snapshot()
         yield state
         state.revert(snapshot)
-
-    @classmethod
-    def create_block(
-            cls,
-            transaction_packages,
-            prev_hashes,
-            coinbase,
-            parent_header):
-        """
-        Create a block with transaction witness
-        """
-        block = cls.generate_block_from_parent_header_and_coinbase(
-            parent_header,
-            coinbase,
-        )
-
-        recent_trie_nodes = {}
-        receipts = []
-        for (transaction, transaction_witness) in transaction_packages:
-            transaction_witness.update(recent_trie_nodes)
-            witness_db = ChainDB(MemoryDB(transaction_witness))
-
-            execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
-            vm_state = cls.get_state_class()(
-                chaindb=witness_db,
-                execution_context=execution_context,
-                state_root=block.header.state_root,
-                receipts=receipts,
-            )
-            computation, result_block, _ = vm_state.apply_transaction(
-                transaction=transaction,
-                block=block,
-            )
-
-            if not computation.is_error:
-                block = result_block
-                receipts = computation.vm_state.receipts
-                recent_trie_nodes.update(computation.vm_state.access_logs.writes)
-            else:
-                pass
-
-        # Finalize
-        witness_db = ChainDB(MemoryDB(recent_trie_nodes))
-        execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
-        vm_state = cls.get_state_class()(
-            chaindb=witness_db,
-            execution_context=execution_context,
-            state_root=block.header.state_root,
-            receipts=receipts,
-        )
-        block = vm_state.finalize_block(block)
-
-        return block
 
     @classmethod
     def generate_block_from_parent_header_and_coinbase(cls, parent_header, coinbase):

@@ -3,6 +3,7 @@ import itertools
 import rlp
 
 from trie import (
+    BinaryTrie,
     HexaryTrie,
 )
 
@@ -58,6 +59,27 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB:
+    trie_class = None
+    empty_root_hash = None
+
+    #
+    # Trie
+    #
+    def set_trie(self, trie_class):
+        """
+        Sets trie_class and root_hash.
+        """
+        if trie_class is HexaryTrie:
+            empty_root_hash = BLANK_ROOT_HASH
+        elif trie_class is BinaryTrie:
+            empty_root_hash = EMPTY_SHA3
+        else:
+            raise NotImplementedError(
+                "trie_class {} is not supported.".format(trie_class)
+            )
+        self.trie_class = trie_class
+        self.empty_root_hash = empty_root_hash
+
     #
     # Canonical chain API
     #
@@ -114,32 +136,7 @@ class BaseChainDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     def persist_block_to_db(self, block):
-        '''
-        Chain must do follow-up work to persist transactions to db
-        '''
-        new_canonical_headers = self.persist_header_to_db(block.header)
-
-        # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
-        for i, transaction in enumerate(block.transactions):
-            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(transaction)
-        assert transaction_db.root_hash == block.header.transaction_root
-
-        for header in new_canonical_headers:
-            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
-                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
-
-        # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
+        raise NotImplementedError("ChainDB classes must implement this method")
 
     #
     # Transaction and Receipt API
@@ -211,7 +208,7 @@ class BaseChainDB:
 class ChainDB(BaseChainDB):
     def __init__(self, db, trie_class=HexaryTrie):
         self.db = JournalDB(db)
-        self.trie_class = trie_class
+        self.set_trie(trie_class)
 
     #
     # Canonical chain API
@@ -389,12 +386,7 @@ class ChainDB(BaseChainDB):
         new_canonical_headers = self.persist_header_to_db(block.header)
 
         # Persist the transaction bodies
-        if self.trie_class is HexaryTrie:
-            root_hash = BLANK_ROOT_HASH
-        else:
-            root_hash = EMPTY_SHA3
-
-        transaction_db = self.trie_class(self.db, root_hash=root_hash)
+        transaction_db = self.trie_class(self.db, root_hash=self.empty_root_hash)
         for i, transaction in enumerate(block.transactions):
             index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
             transaction_db[index_key] = rlp.encode(transaction)

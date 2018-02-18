@@ -40,10 +40,10 @@ def diff_state_db(expected_state, state_db):
 
 
 # Make the root of a receipt tree
-def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie):
-    chaindb = ChainDB(MemoryDB())
+def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie, chain_db_class=ChainDB):
+    chaindb = chain_db_class(MemoryDB(), trie_class=trie_class)
     db = chaindb.db
-    transaction_db = trie_class(db)
+    transaction_db = trie_class(db, chaindb.empty_root_hash)
 
     for index, transaction in enumerate(transactions):
         index_key = rlp.encode(index, sedes=rlp.sedes.big_endian_int)

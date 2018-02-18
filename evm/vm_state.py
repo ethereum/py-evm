@@ -248,8 +248,14 @@ class BaseVMState(Configurable):
         block.transactions.append(transaction)
 
         # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions, self.trie_class)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(
+            block.transactions,
+            self.trie_class,
+        )
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(
+            self.receipts,
+            self.trie_class,
+        )
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
 
