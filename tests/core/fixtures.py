@@ -135,37 +135,37 @@ SHARD_CHAIN_CONTRACTS_FIXTURES = [
     {
         "contract_code": CREATE2_contracts['simple_transfer_contract']['bytecode'],
         "deployed_address": CREATE2_contracts['simple_transfer_contract']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": CREATE2_contracts['CREATE2_contract']['bytecode'],
         "deployed_address": CREATE2_contracts['CREATE2_contract']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": PAYGAS_contracts['PAYGAS_contract_normal']['bytecode'],
         "deployed_address": PAYGAS_contracts['PAYGAS_contract_normal']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": PAYGAS_contracts['simple_forwarder_contract']['bytecode'],
         "deployed_address": PAYGAS_contracts['simple_forwarder_contract']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['bytecode'],
         "deployed_address": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": nonce_tracking_contracts['nonce_tracking_contract']['bytecode'],
         "deployed_address": nonce_tracking_contracts['nonce_tracking_contract']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
     {
         "contract_code": nonce_tracking_contracts['no_nonce_tracking_contract']['bytecode'],
         "deployed_address": nonce_tracking_contracts['no_nonce_tracking_contract']['address'],
-        "initial_balance": 100000000,
+        "initial_balance": funded_address_initial_balance(),
     },
 ]
 
