@@ -132,4 +132,31 @@ normalize_transaction_group = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
+normalize_execution = eth_utils.curried.apply_formatters_to_dict({
+    "address": to_canonical_address,
+    "origin": to_canonical_address,
+    "caller": to_canonical_address,
+    "value": normalize_int,
+    "data": normalize_bytes,
+    "gasPrice": normalize_int,
+    "gas": normalize_int,
+})
+
+
 normalize_networks = identity  # TODO: allow for ranges
+
+
+normalize_call_create_item = eth_utils.curried.apply_formatters_to_dict({
+    "data": normalize_bytes,
+    "destination": to_canonical_address,
+    "gasLimit": normalize_int,
+    "value": normalize_int,
+})
+normalize_call_creates = eth_utils.curried.apply_formatter_to_array(normalize_call_create_item)
+
+normalize_log_item = eth_utils.curried.apply_formatters_to_dict({
+    "address": to_canonical_address,
+    "topics": eth_utils.curried.apply_formatter_to_array(normalize_int),
+    "data": normalize_bytes,
+})
+normalize_logs = eth_utils.curried.apply_formatter_to_array(normalize_log_item)
