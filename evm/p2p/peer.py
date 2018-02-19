@@ -214,10 +214,11 @@ class BasePeer:
     def _local_chain_info(self) -> 'ChainInfo':
         genesis = self.genesis
         head = self.chaindb.get_canonical_head()
+        total_difficulty = self.chaindb.get_score(head.hash)
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
-            total_difficulty=self.chaindb.get_score(head.hash),
+            total_difficulty=total_difficulty,
             genesis_hash=genesis.hash,
         )
 
