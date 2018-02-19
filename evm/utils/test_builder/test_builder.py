@@ -7,6 +7,7 @@ from functools import (
 
 from evm.db.state import (
     MainAccountStateDB,
+    ShardingAccountStateDB,
 )
 from evm.utils.fixture_tests import (
     hash_log_entries,
@@ -67,7 +68,7 @@ DEFAULT_ENVIRONMENT = {
     ),
 }
 
-DEFAULT_TRANSACTION = {
+DEFAULT_MAIN_TRANSACTION = {
     "data": b"",
     "gasLimit": 100000,
     "gasPrice": 0,
@@ -76,6 +77,25 @@ DEFAULT_TRANSACTION = {
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
     "value": 0
 }
+
+DEFAULT_SHARDING_TRANSACTION = {
+    "chain_id": 0,
+    "shard_id": 0,
+    "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
+    "data": b"",
+    "gasLimit": 100000,
+    "gasPrice": 0,
+    "access_list": [],
+    "code": b"",
+}
+
+
+def get_default_transaction(networks):
+    if "Sharding" not in networks:
+        return DEFAULT_MAIN_TRANSACTION
+    else:
+        return DEFAULT_SHARDING_TRANSACTION
+
 
 DEFAULT_EXECUTION = {
     "address": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
@@ -92,7 +112,8 @@ ALL_NETWORKS = [
     "Homestead",
     "EIP150",
     "EIP158",
-    "Byzantium"
+    "Byzantium",
+    "Sharding",
 ]
 
 ACCOUNT_STATE_DB_CLASSES = {
@@ -101,6 +122,7 @@ ACCOUNT_STATE_DB_CLASSES = {
     "EIP150": MainAccountStateDB,
     "EIP158": MainAccountStateDB,
     "Byzantium": MainAccountStateDB,
+    "Sharding": ShardingAccountStateDB,
 }
 assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
 
@@ -154,7 +176,7 @@ def _expect(post_state, networks, transaction, filler):
     if transaction is not None:
         transaction = normalize_transaction(transaction)
         if "transaction" not in test:
-            transaction = merge(DEFAULT_TRANSACTION, transaction)
+            transaction = merge(get_default_transaction(networks), transaction)
             transaction_group = apply_formatters_to_dict({
                 "data": wrap_in_list,
                 "gasLimit": wrap_in_list,
@@ -255,7 +277,7 @@ def fill_state_test(filler):
     post = defaultdict(list)
     for expect in test["expect"]:
         indexes = expect["indexes"]
-        networks = normalize_networks(expect["network"])
+        networks = normalize_networks(expect["networks"])
         result = normalize_state(expect["result"])
         post_state = deep_merge(pre_state, result)
         for network in networks:

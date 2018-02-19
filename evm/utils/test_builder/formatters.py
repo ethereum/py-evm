@@ -39,14 +39,25 @@ state_item_formatter = combine_argument_formatters(to_checksum_address, account_
 state_formatter = cytoolz.curried.itemmap(state_item_formatter)
 
 
+access_list_formatter = eth_utils.curried.apply_formatter_to_array(encode_hex)
+
 transaction_group_formatter = eth_utils.curried.apply_formatters_to_dict({
+    # all transaction types
+    "to": to_checksum_address,
     "data": eth_utils.curried.apply_formatter_to_array(encode_hex),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(int_to_hex),
     "gasPrice": int_to_hex,
+
+    # only main chain transactions
     "nonce": int_to_hex,
     "secretKey": encode_hex,
-    "to": to_checksum_address,
     "value": eth_utils.curried.apply_formatter_to_array(int_to_hex),
+
+    # only sharding transactions
+    "chain_id": int_to_hex,
+    "shard_id": int_to_hex,
+    "code": encode_hex,
+    "access_list": access_list_formatter,
 })
 
 

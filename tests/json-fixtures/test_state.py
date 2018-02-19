@@ -23,12 +23,14 @@ from evm.vm.forks import (
     HomesteadVM,
     SpuriousDragonVM,
     ByzantiumVM,
+    ShardingVM,
 )
 from evm.vm.forks.tangerine_whistle.vm_state import TangerineWhistleVMState
 from evm.vm.forks.frontier.vm_state import FrontierVMState
 from evm.vm.forks.homestead.vm_state import HomesteadVMState
 from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
 from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
+from evm.vm.forks.sharding.vm_state import ShardingVMState
 
 from evm.rlp.headers import (
     BlockHeader,
@@ -200,6 +202,10 @@ ByzantiumVMStateForTesting = ByzantiumVMState.configure(
     name='ByzantiumVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
+ShardingVMStateForTesting = ShardingVMState.configure(
+    name='ShardingVMStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
@@ -226,6 +232,11 @@ ByzantiumVMForTesting = ByzantiumVM.configure(
     _state_class=ByzantiumVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
+ShardingVMForTesting = ShardingVM.configure(
+    name='ShardingVMForTesting',
+    _state_class=ShardingVMStateForTesting,
+    get_prev_hashes=get_prev_hashes_testing,
+)
 
 
 @pytest.fixture
@@ -241,6 +252,8 @@ def fixture_vm_class(fixture_data):
         return SpuriousDragonVMForTesting
     elif fork_name == 'Byzantium':
         return ByzantiumVMForTesting
+    elif fork_name == 'Sharding':
+        return ShardingVMForTesting
     elif fork_name == 'Constantinople':
         pytest.skip("Constantinople VM has not been implemented")
     elif fork_name == 'Metropolis':
@@ -294,6 +307,18 @@ def test_state_fixtures(fixture, fixture_vm_class):
             v=v,
             r=r,
             s=s,
+        )
+    else:
+        # sharding transaction
+        transaction = vm.create_transaction(
+            chain_id=fixture['transaction']['chain_id'],
+            shard_id=fixture['transaction']['shard_id'],
+            to=fixture['transaction']['to'],
+            data=fixture['transaction']['data'],
+            gas=fixture['transaction']['gasLimit'],
+            gas_price=fixture['transaction']['gasPrice'],
+            access_list=fixture['transaction']['access_list'],
+            code=fixture['transaction']['code'],
         )
 
     try:
