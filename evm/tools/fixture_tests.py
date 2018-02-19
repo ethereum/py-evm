@@ -292,23 +292,31 @@ def normalize_env(env):
 @to_dict
 def normalize_unsigned_transaction(transaction, indexes):
     yield 'data', decode_hex(transaction['data'][indexes['data']])
+    yield 'to', normalize_to_address(transaction['to'])
     yield 'gasLimit', to_int(transaction['gasLimit'][indexes['gas']])
     yield 'gasPrice', to_int(transaction['gasPrice'])
-    yield 'nonce', to_int(transaction['nonce'])
 
     if 'secretKey' in transaction:
         yield 'secretKey', decode_hex(transaction['secretKey'])
+        is_main_transaction = True
     elif 'v' in transaction and 'r' in transaction and 's' in transaction:
         yield 'vrs', (
             to_int(transaction['v']),
             to_int(transaction['r']),
             to_int(transaction['s']),
         )
+        is_main_transaction = True
     else:
-        raise KeyError("transaction missing secret key or vrs values")
+        is_main_transaction = False
 
-    yield 'to', normalize_to_address(transaction['to'])
-    yield 'value', to_int(transaction['value'][indexes['value']])
+    if is_main_transaction:
+        yield 'nonce', to_int(transaction['nonce'])
+        yield 'value', to_int(transaction['value'][indexes['value']])
+    else:
+        yield 'chain_id', to_int(transaction['chain_id'])
+        yield 'shard_id', to_int(transaction['shard_id'])
+        yield 'access_list', [decode_hex(node) for node in transaction['access_list']]
+        yield 'code', to_int(transaction['code'])
 
 
 def normalize_account_state(account_state):
