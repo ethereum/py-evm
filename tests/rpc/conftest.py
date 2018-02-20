@@ -9,17 +9,24 @@ from evm.rpc.ipc import (
 )
 
 
-@pytest.yield_fixture(scope='session')
+@pytest.fixture(scope='session')
 def event_loop():
     loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+    try:
+        yield loop
+    finally:
+        loop.close()
 
 
 @pytest.fixture(scope='session')
 def ipc_pipe_path():
-    tmpdir = tempfile.gettempdir()
-    return os.path.join(tmpdir, 'test-%s.ipc' % uuid.uuid4())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        ipc_path = os.path.join(temp_dir, '{0}.ipc'.format(uuid.uuid4()))
+        try:
+            yield ipc_path
+        finally:
+            if os.path.exists(ipc_path):
+                os.remove(ipc_path)
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -31,8 +38,8 @@ def ipc_server(ipc_pipe_path, event_loop):
     '''
     server = start(ipc_pipe_path, loop=event_loop)
 
-    yield
-
-    server.close()
-    event_loop.run_until_complete(server.wait_closed())
-    os.remove(ipc_pipe_path)
+    try:
+        yield
+    finally:
+        server.close()
+        event_loop.run_until_complete(server.wait_closed())
