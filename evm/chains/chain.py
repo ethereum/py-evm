@@ -51,7 +51,7 @@ from evm.utils.rlp import (
 
 class Chain(Configurable):
     """
-    An Chain is a combination of one or more VM classes.  Each VM is associated
+    A Chain is a combination of one or more VM classes.  Each VM is associated
     with a range of blocks.  The Chain class acts as a wrapper around these other
     VM classes, delegating operations to the appropriate VM depending on the
     current block number.
@@ -145,7 +145,7 @@ class Chain(Configurable):
     #
     def get_vm_class_for_block_number(self, block_number):
         """
-        Return the vm class for the given block number.
+        Returns the VM class for the given block number.
         """
         validate_block_number(block_number)
         for n in reversed(self.vms_by_range.keys()):
@@ -156,7 +156,7 @@ class Chain(Configurable):
 
     def get_vm(self, header=None):
         """
-        Return the vm instance for the given block number.
+        Returns the VM instance for the given block number.
         """
         if header is None:
             header = self.header
@@ -215,7 +215,7 @@ class Chain(Configurable):
                      genesis_params,
                      genesis_state=None):
         """
-        Initialize the Chain from a genesis state.
+        Initializes the Chain from a genesis state.
         """
         state_db = chaindb.get_state_db(chaindb.empty_root_hash, read_only=False)
 
@@ -260,7 +260,7 @@ class Chain(Configurable):
     #
     def apply_transaction(self, transaction):
         """
-        Apply the transaction to the current head block of the Chain.
+        Applies the transaction to the current head block of the Chain.
         """
         vm = self.get_vm()
         computation, block = vm.apply_transaction(transaction)
@@ -278,7 +278,7 @@ class Chain(Configurable):
 
     def import_block(self, block, perform_validation=True):
         """
-        Import a complete block.
+        Imports a complete block.
         """
         if block.number > self.header.block_number:
             raise ValidationError(
