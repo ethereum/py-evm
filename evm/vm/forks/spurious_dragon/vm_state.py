@@ -18,8 +18,8 @@ class SpuriousDragonVMState(HomesteadVMState, FrontierTransactionExecutor):
     block_class = SpuriousDragonBlock
     computation_class = SpuriousDragonComputation
 
-    def run_post_computation(self, transaction, message, computation):
-        computation = super().run_post_computation(transaction, message, computation)
+    def run_post_computation(self, transaction, computation):
+        computation = super().run_post_computation(transaction, computation)
 
         #
         # EIP161 state clearing

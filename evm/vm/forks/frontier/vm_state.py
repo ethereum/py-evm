@@ -133,7 +133,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return computation
 
-    def run_post_computation(self, transaction, message, computation):
+    def run_post_computation(self, transaction, computation):
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -150,11 +150,11 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             self.logger.debug(
                 'TRANSACTION REFUND: %s -> %s',
                 gas_refund_amount,
-                encode_hex(message.sender),
+                encode_hex(computation.msg.sender),
             )
 
             with self.state_db() as state_db:
-                state_db.delta_balance(message.sender, gas_refund_amount)
+                state_db.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
