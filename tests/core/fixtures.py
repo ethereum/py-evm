@@ -106,7 +106,7 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
         }
     }
     klass = Chain.configure(
-        name='TestChain',
+        __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
@@ -272,7 +272,7 @@ def chain_without_block_validation(
         'validate_block': lambda self, block: None,
     }
     klass = Chain.configure(
-        name='TestChainWithoutBlockValidation',
+        __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ),

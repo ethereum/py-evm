@@ -10,7 +10,7 @@ from .vm_state import ByzantiumVMState
 
 
 ByzantiumVM = SpuriousDragonVM.configure(
-    name='ByzantiumVM',
+    __name__='ByzantiumVM',
     # classes
     _block_class=ByzantiumBlock,
     _state_class=ByzantiumVMState,

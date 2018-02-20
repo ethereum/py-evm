@@ -283,13 +283,13 @@ class Chain(BaseChain):
             self.gas_estimator = get_gas_estimator()
 
     @classmethod
-    def configure(cls, name=None, vm_configuration=None, **overrides):
+    def configure(cls, __name__=None, vm_configuration=None, **overrides):
         if 'vms_by_range' in overrides:
             raise ValueError("Cannot override vms_by_range")
 
         if vm_configuration is not None:
             overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
-        return super().configure(name, **overrides)
+        return super().configure(__name__, **overrides)
 
     #
     # Convenience and Helpers

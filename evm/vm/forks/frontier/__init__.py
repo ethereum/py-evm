@@ -12,7 +12,7 @@ from .headers import (
 
 
 FrontierVM = VM.configure(
-    name='FrontierVM',
+    __name__='FrontierVM',
     # classes
     _block_class=FrontierBlock,
     _state_class=FrontierVMState,

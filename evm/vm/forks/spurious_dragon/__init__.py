@@ -4,7 +4,7 @@ from .blocks import SpuriousDragonBlock
 from .vm_state import SpuriousDragonVMState
 
 SpuriousDragonVM = HomesteadVM.configure(
-    name='SpuriousDragonVM',
+    __name__='SpuriousDragonVM',
     # classes
     _block_class=SpuriousDragonBlock,
     _state_class=SpuriousDragonVMState,

@@ -5,7 +5,7 @@ from p2p.lightchain import LightChain
 
 
 RopstenLightChain = LightChain.configure(
-    name='RopstenLightChain',
+    __name__='RopstenLightChain',
     vm_configuration=MAINNET_VM_CONFIGURATION,  # TODO: use real ropsten configuration
     network_id=ROPSTEN_NETWORK_ID,
 )
