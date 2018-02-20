@@ -5,7 +5,6 @@ import pytest
 
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
 from evm.utils.keccak import keccak
 from evm.p2p import auth
 from evm.p2p import constants
@@ -17,6 +16,8 @@ from evm.p2p.les import (
 )
 from evm.p2p.peer import LESPeer
 from evm.p2p.p2p_proto import P2PProtocol
+
+from trinity.db.chain import AsyncChainDB
 
 
 async def _get_directly_linked_peers_without_handshake(
@@ -141,7 +142,7 @@ async def test_directly_linked_peers(request, event_loop):
 
 
 def get_fresh_mainnet_chaindb():
-    chaindb = ChainDB(MemoryDB())
+    chaindb = AsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(MAINNET_GENESIS_HEADER)
     return chaindb
 

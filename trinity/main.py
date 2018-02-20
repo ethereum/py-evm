@@ -1,7 +1,9 @@
 import argparse
 import asyncio
 import atexit
-import logging
+from multiprocessing.managers import (
+    BaseManager,
+)
 import sys
 
 from evm.db.backends.level import LevelDB
@@ -19,22 +21,21 @@ from trinity.chains import (
     initialize_database,
     is_data_dir_initialized,
     is_database_initialized,
+    serve_chaindb,
 )
 from trinity.cli import console
 from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
 )
-from trinity.db.core import (
-    PipeDB,
-)
+from trinity.db.chain import ChainDBProxy
+from trinity.db.base import DBProxy
 from trinity.utils.chains import (
     ChainConfig,
 )
 from trinity.utils.ipc import (
     wait_for_ipc,
-    kill_processes_gracefully,
-    serve_object_over_ipc,
+    kill_process_gracefully,
 )
 from trinity.utils.logging import (
     setup_trinity_logging,
@@ -156,48 +157,57 @@ def main():
     listener.start()
 
     # First initialize the database process.
-    db_server_process = ctx.Process(
-        target=core_db_process,
+    database_server_process = ctx.Process(
+        target=run_database_process,
         args=(
+            chain_config,
             LevelDB,
-            {'db_path': chain_config.database_dir},
-            chain_config.database_ipc_path,
         ),
         kwargs={'log_queue': log_queue}
     )
 
     # For now we just run the light sync against ropsten by default.
-    chain_process = ctx.Process(
-        target=run_chain,
+    networking_process = ctx.Process(
+        target=run_networking_process,
         args=(chain_config, sync_mode),
         kwargs={'log_queue': log_queue}
     )
 
     # start the processes
-    db_server_process.start()
+    database_server_process.start()
     wait_for_ipc(chain_config.database_ipc_path)
-    chain_process.start()
+
+    networking_process.start()
 
     try:
-        chain_process.join()
+        networking_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
-        kill_processes_gracefully(chain_process, db_server_process)
+        kill_process_gracefully(networking_process)
+        logger.info('KILLED networking_process')
+        kill_process_gracefully(database_server_process)
+        logger.info('KILLED database_server_process')
 
 
 @with_queued_logging
-def core_db_process(db_class, db_init_kwargs, ipc_path):
-    db = db_class(**db_init_kwargs)
-    logger = logging.getLogger('trinity.core_db.server')
+def run_database_process(chain_config, db_class):
+    db = db_class(db_path=chain_config.database_dir)
 
-    serve_object_over_ipc(db, ipc_path, logger=logger)
+    serve_chaindb(db, chain_config.database_ipc_path)
 
 
 @with_queued_logging
-def run_chain(chain_config, sync_mode):
-    logger = logging.getLogger('trinity.main.run_chain')
-    core_db = PipeDB(chain_config.database_ipc_path)
-    chaindb = ChainDB(core_db)
+def run_networking_process(chain_config, sync_mode):
+    class DBManager(BaseManager):
+        pass
+
+    DBManager.register('get_db', proxytype=DBProxy)
+    DBManager.register('get_chaindb', proxytype=ChainDBProxy)
+
+    manager = DBManager(address=chain_config.database_ipc_path)
+    manager.connect()
+
+    chaindb = manager.get_chaindb()
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -212,12 +222,14 @@ def run_chain(chain_config, sync_mode):
     peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
 
     async def run():
-        asyncio.ensure_future(peer_pool.run())
-        # chain.run() will run in a loop until our atexit handler is called, at which point it returns
-        # and we cleanly stop the pool and chain.
-        await chain.run()
-        await peer_pool.stop()
-        await chain.stop()
+        try:
+            asyncio.ensure_future(peer_pool.run())
+            # chain.run() will run in a loop until our atexit handler is called, at which point it returns
+            # and we cleanly stop the pool and chain.
+            await chain.run()
+        finally:
+            await peer_pool.stop()
+            await chain.stop()
 
     chain = chain_class(chaindb, peer_pool)
 
@@ -226,7 +238,7 @@ def run_chain(chain_config, sync_mode):
     try:
         loop.run_until_complete(run())
     except KeyboardInterrupt:
-        logger.info('KeyboardInterrupt: Stopping')
+        pass
 
     def cleanup():
         # This is to instruct chain.run() to exit, which will cause the event loop to stop.
@@ -235,13 +247,3 @@ def run_chain(chain_config, sync_mode):
         loop.close()
 
     atexit.register(cleanup)
-
-
-@with_queued_logging
-def run_chaindb(chain_config, ipc_path):
-    logger = logging.getLogger('trinity.chaindb.server')
-
-    core_db = PipeDB(chain_config.database_ipc_path)
-    chaindb = ChainDB(core_db)
-
-    serve_object_over_ipc(chaindb, ipc_path, logger=logger)
