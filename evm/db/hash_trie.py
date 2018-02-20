@@ -1,4 +1,4 @@
-from evm.utils.keccak import (
+from eth_utils import (
     keccak,
 )
 

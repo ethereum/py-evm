@@ -4,15 +4,16 @@ from rlp.sedes import (
     binary,
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.exceptions import (
     ValidationError,
 )
 
 from evm.rlp.sedes import (
     address,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 

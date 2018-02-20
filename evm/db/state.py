@@ -6,6 +6,10 @@ from trie import (
     HexaryTrie
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
@@ -23,9 +27,6 @@ from evm.validation import (
     validate_is_bytes,
     validate_uint256,
     validate_canonical_address,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.utils.numeric import (
     int_to_big_endian,

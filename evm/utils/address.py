@@ -1,8 +1,9 @@
 import rlp
 
-from .keccak import (
+from eth_utils import (
     keccak,
 )
+
 from .padding import (
     pad_left,
 )

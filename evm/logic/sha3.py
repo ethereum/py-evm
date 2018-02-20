@@ -1,10 +1,10 @@
-from evm import constants
+from eth_utils import (
+    keccak,
+)
 
+from evm import constants
 from evm.utils.numeric import (
     ceil32,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 

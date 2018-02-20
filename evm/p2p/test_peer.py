@@ -3,9 +3,12 @@ import os
 
 import pytest
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
-from evm.utils.keccak import keccak
 from evm.p2p import auth
 from evm.p2p import constants
 from evm.p2p import ecies

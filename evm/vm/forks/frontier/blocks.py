@@ -7,6 +7,10 @@ from eth_bloom import (
     BloomFilter,
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.constants import (
     EMPTY_UNCLE_HASH,
 )
@@ -18,10 +22,6 @@ from evm.rlp.blocks import (
 )
 from evm.rlp.headers import (
     BlockHeader,
-)
-
-from evm.utils.keccak import (
-    keccak,
 )
 
 from .transactions import (

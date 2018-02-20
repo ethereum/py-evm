@@ -1,3 +1,7 @@
+from eth_utils import (
+    keccak,
+)
+
 from evm import constants
 from evm import precompiles
 from evm.computation import (
@@ -13,9 +17,6 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 from .opcodes import FRONTIER_OPCODES

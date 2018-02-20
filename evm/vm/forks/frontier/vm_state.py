@@ -4,6 +4,10 @@ from trie import (
     HexaryTrie,
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm import constants
 from evm.constants import (
     BLOCK_REWARD,
@@ -30,9 +34,6 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 from .blocks import FrontierBlock

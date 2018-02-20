@@ -6,13 +6,13 @@ import rlp
 from eth_utils import (
     decode_hex,
     force_bytes,
+    keccak,
 )
 
 from eth_keys import keys
 
 from evm.p2p import discovery
 from evm.p2p import kademlia
-from evm.utils.keccak import keccak
 from evm.utils.numeric import safe_ord
 
 

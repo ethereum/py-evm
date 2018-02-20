@@ -23,6 +23,7 @@ from eth_utils import (
     decode_hex,
     encode_hex,
     force_bytes,
+    keccak,
 )
 
 from eth_keys import (
@@ -30,7 +31,6 @@ from eth_keys import (
     keys,
 )
 
-from evm.utils.keccak import keccak
 from evm.utils.numeric import big_endian_to_int
 
 

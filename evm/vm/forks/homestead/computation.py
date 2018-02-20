@@ -1,12 +1,13 @@
+from eth_utils import (
+    keccak,
+)
+
 from evm import constants
 from evm.exceptions import (
     OutOfGas,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.vm.forks.frontier.computation import (
     FrontierComputation,
