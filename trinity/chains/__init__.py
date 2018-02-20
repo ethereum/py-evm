@@ -1,12 +1,18 @@
+from multiprocessing.managers import (
+    BaseManager,
+)
 import os
 
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.db.chain import ChainDB
 from evm.p2p import ecies
 from evm.exceptions import CanonicalHeadNotFound
 
 from trinity.constants import (
     ROPSTEN,
 )
+from trinity.db.chain import ChainDBProxy
+from trinity.db.base import DBProxy
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
@@ -97,3 +103,18 @@ def get_chain_protocol_class(chain_config, sync_mode):
         raise NotImplementedError("Ropsten is the only chain currently supported.")
 
     return RopstenLightChain
+
+
+def serve_chaindb(db, ipc_path):
+    chaindb = ChainDB(db)
+
+    class DBManager(BaseManager):
+        pass
+
+    DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)
+    DBManager.register('get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)
+
+    manager = DBManager(address=ipc_path)
+    server = manager.get_server()
+
+    server.serve_forever()
