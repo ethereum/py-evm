@@ -215,9 +215,8 @@ class VMC(Contract):
             gas_price=gas_price,
             data=data,
         )
-        build_transaction_instance = self.buildTransaction(build_transaction_detail)
-        func_instance = getattr(build_transaction_instance, func_name)
-        unsigned_transaction = func_instance(*args)
+        func_instance = getattr(self.functions, func_name)
+        unsigned_transaction = func_instance(*args).buildTransaction(transaction=build_transaction_detail)
         signed_transaction_dict = self.web3.eth.account.signTransaction(
             unsigned_transaction,
             privkey.to_hex(),
