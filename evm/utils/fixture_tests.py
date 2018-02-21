@@ -18,6 +18,7 @@ from cytoolz import (
 from eth_utils import (
     decode_hex,
     is_0x_prefixed,
+    is_bytes,
     keccak,
     remove_0x_prefix,
     to_canonical_address,
@@ -205,13 +206,16 @@ def normalize_to_address(value):
 
 def robust_decode_hex(value):
     unprefixed_value = remove_0x_prefix(value)
-    if len(unprefixed_value) % 2:
-        return decode_hex(codecs.decode(
-            unprefixed_value.rjust(len(unprefixed_value) + 1, b'0'),
-            'utf8',
-        ))
+
+    if is_bytes(value):
+        text_value = codecs.decode(unprefixed_value, 'utf8')
     else:
-        return decode_hex(codecs.decode(unprefixed_value, 'utf8'))
+        text_value = unprefixed_value
+
+    if len(text_value) % 2:
+        return decode_hex(unprefixed_value.rjust(len(unprefixed_value) + 1, b'0'))
+    else:
+        return decode_hex(unprefixed_value)
 
 
 #
