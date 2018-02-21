@@ -2,6 +2,7 @@ from collections.abc import (
     Iterable,
     Mapping,
 )
+import functools
 
 from cytoolz import (
     assoc_in,
@@ -10,10 +11,8 @@ from cytoolz import (
     identity,
 )
 from eth_utils import (
-    big_endian_to_int,
     decode_hex,
     is_0x_prefixed,
-    is_bytes,
     is_hex,
     to_canonical_address,
 )
@@ -70,11 +69,19 @@ def state_definition_to_dict(state_definition):
     return state_dict
 
 
-normalize_int = compose(
-    int,
-    eth_utils.curried.apply_formatter_if(is_bytes, big_endian_to_int),
-    eth_utils.curried.apply_formatter_if(lambda v: is_hex(v) and is_0x_prefixed(v), decode_hex),
-)
+@functools.lru_cache(maxsize=1024)
+def normalize_int(value):
+    """
+    Robust to integer conversion, handling hex values, string representations,
+    and special cases like `0x`.
+    """
+    if is_0x_prefixed(value):
+        if len(value) == 2:
+            return 0
+        else:
+            return int(value, 16)
+    else:
+        return int(value)
 
 
 normalize_bytes = eth_utils.curried.apply_formatter_if(is_hex, decode_hex)
@@ -101,12 +108,22 @@ normalize_state = compose(
 )
 
 normalize_environment = eth_utils.curried.apply_formatters_to_dict({
+    # shared
     "currentCoinbase": to_canonical_address,
+    "previousHash": normalize_bytes,
+    "currentNumber": normalize_int,
+
+    # only main environment
     "currentDifficulty": normalize_int,
     "currentGasLimit": normalize_int,
-    "currentNumber": normalize_int,
     "currentTimestamp": normalize_int,
-    "previousHash": normalize_bytes,
+
+    # only sharding environment
+    "shardID": normalize_int,
+    "expectedPeriodNumber": normalize_int,
+    "periodStartHash": normalize_bytes,
+    "currentCoinbase": to_canonical_address,
+    "currentNumber": normalize_int,
 })
 
 

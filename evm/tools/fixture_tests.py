@@ -41,6 +41,10 @@ from evm.utils.state import (
 from evm.utils.rlp import (
     diff_rlp_object,
 )
+from evm.utils.test_builder.normalization import (
+    normalize_environment,
+)
+
 from evm.vm.forks import (
     ByzantiumVM,
     TangerineWhistleVM,
@@ -278,17 +282,6 @@ def generate_fixture_tests(metafunc,
 #
 # Fixture Normalizers
 #
-def normalize_env(env):
-    return {
-        'currentCoinbase': decode_hex(env['currentCoinbase']),
-        'currentDifficulty': to_int(env['currentDifficulty']),
-        'currentNumber': to_int(env['currentNumber']),
-        'currentGasLimit': to_int(env['currentGasLimit']),
-        'currentTimestamp': to_int(env['currentTimestamp']),
-        'previousHash': decode_hex(env.get('previousHash', '00' * 32)),
-    }
-
-
 @to_dict
 def normalize_unsigned_transaction(transaction, indexes):
     yield 'data', decode_hex(transaction['data'][indexes['data']])
@@ -313,9 +306,9 @@ def normalize_unsigned_transaction(transaction, indexes):
         yield 'nonce', to_int(transaction['nonce'])
         yield 'value', to_int(transaction['value'][indexes['value']])
     else:
-        yield 'chain_id', to_int(transaction['chain_id'])
-        yield 'shard_id', to_int(transaction['shard_id'])
-        yield 'access_list', [decode_hex(node) for node in transaction['access_list']]
+        yield 'chainID', to_int(transaction['chainID'])
+        yield 'shardID', to_int(transaction['shardID'])
+        yield 'accessList', [decode_hex(node) for node in transaction['accessList']]
         yield 'code', to_int(transaction['code'])
 
 
@@ -345,7 +338,7 @@ def normalize_statetest_fixture(fixture, fork, post_state_index):
     post_state = fixture['post'][fork][post_state_index]
 
     normalized_fixture = {
-        'env': normalize_env(fixture['env']),
+        'env': normalize_environment(fixture['env']),
         'pre': normalize_account_state(fixture['pre']),
         'post': normalize_post_state(post_state),
         'transaction': normalize_unsigned_transaction(
@@ -386,7 +379,7 @@ def normalize_callcreates(callcreates):
 
 @to_dict
 def normalize_vmtest_fixture(fixture):
-    yield 'env', normalize_env(fixture['env'])
+    yield 'env', normalize_environment(fixture['env'])
     yield 'exec', normalize_exec(fixture['exec'])
     yield 'pre', normalize_account_state(fixture['pre'])
 

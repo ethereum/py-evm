@@ -14,6 +14,10 @@ from eth_utils import (
 )
 
 from evm.db.chain import ChainDB
+from evm.db.state import (
+    MainAccountStateDB,
+    ShardingAccountStateDB,
+)
 from evm.exceptions import (
     ValidationError,
 )
@@ -34,6 +38,7 @@ from evm.vm.forks.sharding.vm_state import ShardingVMState
 
 from evm.rlp.headers import (
     BlockHeader,
+    CollationHeader,
 )
 from evm.tools.fixture_tests import (
     filter_fixtures,
@@ -41,7 +46,6 @@ from evm.tools.fixture_tests import (
     hash_log_entries,
     load_fixture,
     normalize_statetest_fixture,
-    setup_state_db,
     should_run_slow_tests,
 )
 
@@ -263,20 +267,33 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    header = BlockHeader(
-        coinbase=fixture['env']['currentCoinbase'],
-        difficulty=fixture['env']['currentDifficulty'],
-        block_number=fixture['env']['currentNumber'],
-        gas_limit=fixture['env']['currentGasLimit'],
-        timestamp=fixture['env']['currentTimestamp'],
-        parent_hash=fixture['env']['previousHash'],
-    )
-    chaindb = ChainDB(get_db_backend())
+    if fixture_vm_class is not ShardingVMForTesting:
+        account_state_class = MainAccountStateDB
+        header = BlockHeader(
+            coinbase=fixture['env']['currentCoinbase'],
+            difficulty=fixture['env']['currentDifficulty'],
+            block_number=fixture['env']['currentNumber'],
+            gas_limit=fixture['env']['currentGasLimit'],
+            timestamp=fixture['env']['currentTimestamp'],
+            parent_hash=fixture['env']['previousHash'],
+        )
+    else:
+        account_state_class = ShardingAccountStateDB
+        header = CollationHeader(
+            shard_id=fixture['env']['shardID'],
+            expected_period_number=fixture['env']['expectedPeriodNumber'],
+            period_start_prevhash=fixture['env']['periodStartHash'],
+            parent_hash=fixture['env']['previousHash'],
+            coinbase=fixture['env']['currentCoinbase'],
+            number=fixture['env']['currentNumber'],
+        )
+
+    chaindb = ChainDB(get_db_backend(), account_state_class=account_state_class)
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     vm_state = vm.state
     with vm_state.mutable_state_db() as state_db:
-        setup_state_db(fixture['pre'], state_db)
+        state_db.apply_state_dict(fixture['pre'])
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root
 
