@@ -10,6 +10,7 @@ from collections.abc import (
 from evm.db.backends.memory import MemoryDB
 
 from cytoolz import (
+    first,
     merge_with,
 )
 from eth_utils import (
@@ -119,4 +120,4 @@ def compile_vyper_lll(vyper_code):
 
 def get_test_name(filler):
     assert len(filler) == 1
-    return next(iter(filler.keys()))
+    return first(filler)
