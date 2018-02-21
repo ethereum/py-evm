@@ -1,5 +1,4 @@
 import binascii
-import codecs
 import fnmatch
 import functools
 import hashlib
@@ -18,13 +17,15 @@ from cytoolz import (
 from eth_utils import (
     decode_hex,
     is_0x_prefixed,
-    is_bytes,
+    to_bytes,
     keccak,
-    remove_0x_prefix,
     to_canonical_address,
     to_normalized_address,
     to_tuple,
     to_dict,
+)
+from eth_utils.curried import (
+    hexstr_if_str,
 )
 
 from evm import MainnetChain
@@ -204,18 +205,7 @@ def normalize_to_address(value):
         return CREATE_CONTRACT_ADDRESS
 
 
-def robust_decode_hex(value):
-    unprefixed_value = remove_0x_prefix(value)
-
-    if is_bytes(value):
-        text_value = codecs.decode(unprefixed_value, 'utf8')
-    else:
-        text_value = unprefixed_value
-
-    if len(text_value) % 2:
-        return decode_hex(unprefixed_value.rjust(len(unprefixed_value) + 1, b'0'))
-    else:
-        return decode_hex(unprefixed_value)
+robust_decode_hex = hexstr_if_str(to_bytes)
 
 
 #
