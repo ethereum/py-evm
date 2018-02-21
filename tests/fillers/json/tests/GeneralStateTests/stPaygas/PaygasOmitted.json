@@ -1,0 +1,51 @@
+{
+    "PaygasOmitted": {
+        "_info": {
+            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "source": "GeneralStateTestFiller/stPaygas/PaygasOmitted.json",
+            "sourceHash": "0x2bdda1b221bc69d74925e6c04b6f06fddbe3ca514dfe2d7d1a6b57667716391f"
+        },
+        "env": {
+            "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
+            "currentNumber": "0x01",
+            "expectedPeriodNumber": "0x00",
+            "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
+            "previousHash": "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6",
+            "shardID": "0x00"
+        },
+        "post": {
+            "Sharding": [
+                {
+                    "hash": "0x0fb66ab3463e1485418369eff73934977e602f06a409d595e8eb74023747978e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    }
+                }
+            ]
+        },
+        "pre": {
+            "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
+                "balance": "0x00",
+                "code": "0x60016000556001600155",
+                "nonce": "0x00",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "accessList": [],
+            "chainID": "0x00",
+            "code": "0x",
+            "data": [
+                "0x"
+            ],
+            "gasLimit": [
+                "0x0186a0"
+            ],
+            "gasPrice": "0x00",
+            "shardID": "0x00",
+            "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
+        }
+    }
+}
