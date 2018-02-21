@@ -164,9 +164,9 @@ def test_canonical_chain(valid_chain):
 
 def test_mainnet_genesis_hash():
     assert MAINNET_GENESIS_HEADER.hash == decode_hex(
-        b'0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')
+        '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')
 
 
 def test_ropsten_genesis_hash():
     assert ROPSTEN_GENESIS_HEADER.hash == decode_hex(
-        b'0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d')
+        '0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d')
