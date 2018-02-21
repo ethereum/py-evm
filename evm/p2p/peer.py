@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_hash.main import (
-    Digest,
+    PreImage,
 )
 
 from eth_utils import (
@@ -133,8 +133,8 @@ class BasePeer:
                  writer: asyncio.StreamWriter,
                  aes_secret: bytes,
                  mac_secret: bytes,
-                 egress_mac: Digest,
-                 ingress_mac: Digest,
+                 egress_mac: PreImage,
+                 ingress_mac: PreImage,
                  chaindb: ChainDB,
                  network_id: int,
                  ) -> None:

@@ -14,7 +14,7 @@ from eth_keys import (
 )
 
 from eth_hash.main import (
-    Digest,
+    PreImage,
 )
 from eth_hash.auto import (
     keccak as keccak_with_digest,
@@ -44,7 +44,7 @@ from .constants import (
 
 
 async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tuple[
-    bytes, bytes, Digest, Digest, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
+    bytes, bytes, PreImage, PreImage, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
     """
     Perform the auth handshake with given remote.
 
@@ -60,7 +60,7 @@ async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tup
 
 async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamReader,
                      writer: asyncio.StreamWriter
-                     ) -> Tuple[bytes, bytes, Digest, Digest]:
+                     ) -> Tuple[bytes, bytes, PreImage, PreImage]:
     """See the handshake() function above.
 
     This code was factored out into this helper so that we can create Peers with directly
@@ -113,7 +113,7 @@ class HandshakeBase:
                        remote_ephemeral_pubkey: datatypes.PublicKey,
                        auth_init_ciphertext: bytes,
                        auth_ack_ciphertext: bytes
-                       ) -> Tuple[bytes, bytes, Digest, Digest]:
+                       ) -> Tuple[bytes, bytes, PreImage, PreImage]:
         """Derive base secrets from ephemeral key agreement."""
         # ecdhe-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
         ecdhe_shared_secret = ecies.ecdh_agree(
@@ -130,12 +130,12 @@ class HandshakeBase:
         mac_secret = keccak(ecdhe_shared_secret + aes_secret)
 
         # setup keccak instances for the MACs
-        # egress-mac = keccak_with_digest.Digest(mac-secret ^ recipient-nonce || auth-sent-init)
-        mac1 = keccak_with_digest.Digest(
+        # egress-mac = keccak_with_digest.new(mac-secret ^ recipient-nonce || auth-sent-init)
+        mac1 = keccak_with_digest.new(
             sxor(mac_secret, responder_nonce) + auth_init_ciphertext
         )
-        # ingress-mac = keccak_with_digest.Digest(mac-secret ^ initiator-nonce || auth-recvd-ack)
-        mac2 = keccak_with_digest.Digest(
+        # ingress-mac = keccak_with_digest.new(mac-secret ^ initiator-nonce || auth-recvd-ack)
+        mac2 = keccak_with_digest.new(
             sxor(mac_secret, initiator_nonce) + auth_ack_ciphertext
         )
 
