@@ -25,7 +25,7 @@ setup(
         "py-ecc>=1.4.2,<2.0.0",
         "rlp>=0.4.7,<1.0.0",
         "eth-keys>=0.2.0b2,<1.0.0",
-        "trie>=1.0.1,<2.0.0",
+        "trie>=1.3.0,<2.0.0",
     ],
     extra_require={
         'coincurve': [
