@@ -82,13 +82,6 @@ DEFAULT_SHARDING_ENVIRONMENT = {
 }
 
 
-def get_default_environment(networks):
-    if "Sharding" not in networks:
-        return DEFAULT_MAIN_TRANSACTION
-    else:
-        return DEFAULT_SHARDING_TRANSACTION
-
-
 DEFAULT_MAIN_TRANSACTION = {
     "data": b"",
     "gasLimit": 100000,
