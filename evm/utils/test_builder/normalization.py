@@ -111,6 +111,7 @@ normalize_state = compose(
     ),
 )
 
+
 normalize_environment = eth_utils.curried.apply_formatters_to_dict({
     # shared
     "currentCoinbase": to_canonical_address,
