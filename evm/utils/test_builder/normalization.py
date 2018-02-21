@@ -11,8 +11,10 @@ from cytoolz import (
     identity,
 )
 from eth_utils import (
+    big_endian_to_int,
     decode_hex,
     is_0x_prefixed,
+    is_bytes,
     is_hex,
     to_canonical_address,
 )
@@ -75,7 +77,9 @@ def normalize_int(value):
     Robust to integer conversion, handling hex values, string representations,
     and special cases like `0x`.
     """
-    if is_0x_prefixed(value):
+    if is_bytes(value):
+        return big_endian_to_int(value)
+    if is_hex(value) and is_0x_prefixed(value):
         if len(value) == 2:
             return 0
         else:

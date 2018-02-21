@@ -18,7 +18,16 @@ from evm.utils.hexadecimal import (
 )
 
 from tests.fillers.vm_fillers.paygas_fillers import (
-    paygas_omitted_filler,
+    paygas_omitted_test,
+    paygas_normal_test,
+    paygas_zero_gas_price_test,
+    paygas_repeated_test,
+    paygas_repeated_same_gasprice_test,
+    paygas_insufficient_balance_test,
+    paygas_after_call_test,
+    paygas_in_call_test,
+    paygas_fail_before_test,
+    paygas_fail_thereafter_test,
 )
 
 
@@ -29,22 +38,27 @@ TEST_PARENT_DIR = os.path.join(OUTPUT_DIR, "tests")
 
 
 DIR_STRUCTURE = {
-    ("VMTestFillers", "VMTests"): {
-        "VMSystemOperations": [
-            paygas_omitted_filler,
+    ("GeneralStateTestFiller", "GeneralStateTests"): {
+        "stPaygas": [
+            paygas_omitted_test,
+            paygas_normal_test,
+            paygas_zero_gas_price_test,
+            paygas_repeated_test,
+            paygas_repeated_same_gasprice_test,
+            paygas_insufficient_balance_test,
+            paygas_after_call_test,
+            paygas_in_call_test,
+            paygas_fail_before_test,
+            paygas_fail_thereafter_test,
         ]
     }
-}
-
-FILLER_KWARGS = {
-    "PaygasOmitted": {},
 }
 
 
 if __name__ == "__main__":
     for (filler_dir, test_dir), test_groups in DIR_STRUCTURE.items():
-        for test_group, fillers in test_groups.items():
-            for filler in fillers:
+        for test_group, tests in test_groups.items():
+            for filler, filler_kwargs in tests:
                 test_name = get_test_name(filler)
                 filename = test_name + ".json"
 
@@ -66,6 +80,6 @@ if __name__ == "__main__":
                     "sourceHash": encode_hex(filler_hash),
                 }
 
-                test = fill_test(filler, info=info, **FILLER_KWARGS[test_name])
+                test = fill_test(filler, info=info, **filler_kwargs or {})
                 with open(test_path, "w") as test_file:
                     json.dump(test, test_file, indent=4, sort_keys=True)
