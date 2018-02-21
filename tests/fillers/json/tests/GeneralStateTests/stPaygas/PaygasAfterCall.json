@@ -1,0 +1,57 @@
+{
+    "PaygasAfterCall": {
+        "_info": {
+            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "source": "GeneralStateTestFiller/stPaygas/PaygasAfterCall.json",
+            "sourceHash": "0x72eb7370161f49cdc93c514253b6ce6517f0bf03244f0b1c9a3af2ed53223c16"
+        },
+        "env": {
+            "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
+            "currentNumber": "0x01",
+            "expectedPeriodNumber": "0x00",
+            "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
+            "previousHash": "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6",
+            "shardID": "0x00"
+        },
+        "post": {
+            "Sharding": [
+                {
+                    "hash": "0x782df652911d8d087e05df447e0b07ff7106aa09807ff843873633e438faeec4",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    }
+                }
+            ]
+        },
+        "pre": {
+            "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
+                "balance": "0x00",
+                "code": "0x6001600055600060006000600060007360a8dc7ebad7038c9a837d84d813a85292e564bd6103e8f1506000f5506001600155",
+                "nonce": "0x00",
+                "storage": {}
+            },
+            "0x60a8DC7eBAD7038c9a837d84d813a85292e564bD": {
+                "balance": "0x00",
+                "code": "0x",
+                "nonce": "0x00",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "accessList": [],
+            "chainID": "0x00",
+            "code": "0x",
+            "data": [
+                "0x"
+            ],
+            "gasLimit": [
+                "0x0186a0"
+            ],
+            "gasPrice": "0x00",
+            "shardID": "0x00",
+            "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
+        }
+    }
+}
