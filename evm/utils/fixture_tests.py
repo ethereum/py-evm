@@ -1,4 +1,5 @@
 import binascii
+import codecs
 import fnmatch
 import functools
 import hashlib
@@ -18,7 +19,6 @@ from eth_utils import (
     decode_hex,
     is_0x_prefixed,
     keccak,
-    pad_left,
     remove_0x_prefix,
     to_canonical_address,
     to_normalized_address,
@@ -206,9 +206,12 @@ def normalize_to_address(value):
 def robust_decode_hex(value):
     unprefixed_value = remove_0x_prefix(value)
     if len(unprefixed_value) % 2:
-        return decode_hex(pad_left(unprefixed_value, len(unprefixed_value) + 1, b'0'))
+        return decode_hex(codecs.decode(
+            unprefixed_value.rjust(len(unprefixed_value) + 1, b'0'),
+            'utf8',
+        ))
     else:
-        return decode_hex(unprefixed_value)
+        return decode_hex(codecs.decode(unprefixed_value, 'utf8'))
 
 
 #
