@@ -203,7 +203,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         raise TooManyTimeouts()
 
     async def get_sync_start_block(self, peer: LESPeer, head_info: les.HeadInfo) -> int:
-        chain_head = self.chaindb.get_canonical_head()
+        chain_head = await self.chaindb.coro_get_canonical_head()
         last_peer_announcement = self._last_processed_announcements.get(peer)
         if chain_head.block_number == GENESIS_BLOCK_NUMBER:
             start_block = GENESIS_BLOCK_NUMBER
@@ -225,7 +225,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
-                self.chaindb.persist_header_to_db(header)
+                await self.chaindb.coro_persist_header_to_db(header)
             start_block = chain_head.block_number
         else:
             start_block = last_peer_announcement.block_number - head_info.reorg_depth
@@ -234,7 +234,7 @@ class LightChain(Chain, PeerPoolSubscriber):
     # TODO: Distribute requests among our peers, ensuring the selected peer has the info we want
     # and respecting the flow control rules.
     async def process_announcement(self, peer: LESPeer, head_info: les.HeadInfo) -> None:
-        if self.chaindb.header_exists(head_info.block_hash):
+        if await self.chaindb.coro_header_exists(head_info.block_hash):
             self.logger.debug(
                 "Skipping processing of %s from %s as head has already been fetched",
                 head_info, peer)
@@ -252,7 +252,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in batch:
-                self.chaindb.persist_header_to_db(header)
+                await self.chaindb.coro_persist_header_to_db(header)
                 start_block = header.block_number
             self.logger.info("synced headers up to #%s", start_block)
 
@@ -269,7 +269,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         Raises BlockNotFound if it is not found.
         """
         try:
-            block_hash = self.chaindb.lookup_block_hash(block_number)
+            block_hash = await self.chaindb.coro_lookup_block_hash(block_number)
         except KeyError:
             raise BlockNotFound(
                 "No block with number {} found on local chain".format(block_number))
@@ -279,7 +279,7 @@ class LightChain(Chain, PeerPoolSubscriber):
     async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
         peer = await self.get_best_peer()
         try:
-            header = self.chaindb.get_block_header_by_hash(block_hash)
+            header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
         except BlockNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
             header = await peer.get_block_header_by_hash(block_hash)
