@@ -14,12 +14,22 @@ import eth_utils.curried
 int_to_hex = compose(encode_hex, int_to_big_endian)
 
 environment_formatter = eth_utils.curried.apply_formatters_to_dict({
+    # shared
     "currentCoinbase": to_checksum_address,
+    "previousHash": encode_hex,
+    "currentNumber": int_to_hex,
+
+    # only main environment
     "currentDifficulty": int_to_hex,
     "currentGasLimit": int_to_hex,
-    "currentNumber": int_to_hex,
     "currentTimestamp": int_to_hex,
-    "previousHash": encode_hex,
+
+    # only sharding environment
+    "shardID": int_to_hex,
+    "expectedPeriodNumber": int_to_hex,
+    "periodStartHash": encode_hex,
+    "currentCoinbase": to_checksum_address,
+    "currentNumber": int_to_hex,
 })
 
 
@@ -54,8 +64,8 @@ transaction_group_formatter = eth_utils.curried.apply_formatters_to_dict({
     "value": eth_utils.curried.apply_formatter_to_array(int_to_hex),
 
     # only sharding transactions
-    "chain_id": int_to_hex,
-    "shard_id": int_to_hex,
+    "chainID": int_to_hex,
+    "shardID": int_to_hex,
     "code": encode_hex,
     "access_list": access_list_formatter,
 })

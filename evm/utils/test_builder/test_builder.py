@@ -57,7 +57,7 @@ from .formatters import (
 # Defaults
 #
 
-DEFAULT_ENVIRONMENT = {
+DEFAULT_MAIN_ENVIRONMENT = {
     "currentCoinbase": to_canonical_address("0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"),
     "currentDifficulty": 131072,
     "currentGasLimit": 1000000,
@@ -67,6 +67,27 @@ DEFAULT_ENVIRONMENT = {
         "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6"
     ),
 }
+
+DEFAULT_SHARDING_ENVIRONMENT = {
+    "shardID": 0,
+    "expectedPeriodNumber": 0,
+    "periodStartHash": decode_hex(
+        "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a"
+    ),
+    "currentCoinbase": to_canonical_address("0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"),
+    "currentNumber": 1,
+    "previousHash": decode_hex(
+        "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6"
+    ),
+}
+
+
+def get_default_environment(networks):
+    if "Sharding" not in networks:
+        return DEFAULT_MAIN_TRANSACTION
+    else:
+        return DEFAULT_SHARDING_TRANSACTION
+
 
 DEFAULT_MAIN_TRANSACTION = {
     "data": b"",
@@ -79,13 +100,13 @@ DEFAULT_MAIN_TRANSACTION = {
 }
 
 DEFAULT_SHARDING_TRANSACTION = {
-    "chain_id": 0,
-    "shard_id": 0,
+    "chainID": 0,
+    "shardID": 0,
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
     "data": b"",
     "gasLimit": 100000,
     "gasPrice": 0,
-    "access_list": [],
+    "accessList": [],
     "code": b"",
 }
 
@@ -134,10 +155,18 @@ FILLED_WITH_TEMPLATE = "py-evm-{version}"
 #
 
 def setup_filler(name, environment=None):
-    environment = merge(DEFAULT_ENVIRONMENT, normalize_environment(environment or {}))
+    environment = normalize_environment(environment or {})
     return {name: {
         "env": environment,
     }}
+
+
+def setup_main_filler(name, environment=None):
+    return setup_filler(name, merge(DEFAULT_MAIN_ENVIRONMENT, environment or {}))
+
+
+def setup_sharding_filler(name, environment=None):
+    return setup_filler(name, merge(DEFAULT_SHARDING_ENVIRONMENT, environment or {}))
 
 
 @curry
@@ -163,7 +192,7 @@ def _expect(post_state, networks, transaction, filler):
     test_update = {test_name: {}}
 
     pre_state = test.get("pre", {})
-    post_state = normalize_state(post_state)
+    post_state = normalize_state(post_state or {})
     defaults = {address: {
         "balance": 0,
         "nonce": 0,
@@ -205,7 +234,7 @@ def _expect(post_state, networks, transaction, filler):
     return deep_merge(filler, test_update)
 
 
-def expect(post_state, networks=None, transaction=None):
+def expect(post_state=None, networks=None, transaction=None):
     return partial(_expect, post_state, networks, transaction)
 
 
