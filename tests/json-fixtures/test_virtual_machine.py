@@ -17,6 +17,15 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.tools.fixture_tests import (
+    normalize_vmtest_fixture,
+    generate_fixture_tests,
+    load_fixture,
+    filter_fixtures,
+    setup_state_db,
+    verify_state_db,
+    hash_log_entries,
+)
 from evm.transaction_context import (
     BaseTransactionContext,
 )
@@ -29,16 +38,6 @@ from evm.vm.forks.homestead.computation import (
 from evm.vm.forks.homestead.vm_state import HomesteadVMState
 from evm.vm import (
     Message,
-)
-
-from evm.utils.fixture_tests import (
-    normalize_vmtest_fixture,
-    generate_fixture_tests,
-    load_fixture,
-    filter_fixtures,
-    setup_state_db,
-    verify_state_db,
-    hash_log_entries,
 )
 
 

@@ -13,18 +13,18 @@ from eth_utils import (
     is_string,
 )
 
-from evm.rpc import RPCServer
-from evm.rpc.format import (
-    fixture_block_in_rpc_format,
-    fixture_state_in_rpc_format,
-    fixture_transaction_in_rpc_format,
-)
-
-from evm.utils.fixture_tests import (
+from evm.tools.fixture_tests import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,
     should_run_slow_tests,
+)
+
+from trinity.rpc import RPCServer
+from trinity.rpc.format import (
+    fixture_block_in_rpc_format,
+    fixture_state_in_rpc_format,
+    fixture_transaction_in_rpc_format,
 )
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

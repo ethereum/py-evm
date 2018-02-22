@@ -98,7 +98,7 @@ a few of them are supported. To start the JSON-RPC server, simply run:
 
 ::
 
-  $ python -i -m evm.rpc.server -db /tmp/testnet.db
+  $ python -i -m trinity.rpc.server -db /tmp/testnet.db
 
 That will start a server listening on port 8080, with a LightChain syncing block headers on the
 Ropsten network. You can then use curl as described on the wikipage above to interact with it.

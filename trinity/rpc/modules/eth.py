@@ -10,14 +10,14 @@ from eth_utils import (
     is_integer,
 )
 
-from evm.rpc.format import (
+from trinity.rpc.format import (
     block_to_dict,
     header_to_dict,
     format_params,
     to_int_if_hex,
     transaction_to_dict,
 )
-from evm.rpc.modules import (
+from trinity.rpc.modules import (
     RPCModule,
 )
 

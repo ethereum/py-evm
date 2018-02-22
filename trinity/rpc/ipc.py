@@ -5,7 +5,7 @@ import os
 
 from cytoolz import curry
 
-from evm.rpc.main import RPCServer
+from trinity.rpc.main import RPCServer
 
 
 MAXIMUM_REQUEST_BYTES = 10000
@@ -16,7 +16,7 @@ async def connection_handler(execute_rpc, reader, writer):
     '''
     Catch fatal errors, log them, and close the connection
     '''
-    logger = logging.getLogger('evm.rpc.ipc')
+    logger = logging.getLogger('trinity.rpc.ipc')
     try:
         await connection_loop(execute_rpc, reader, writer, logger)
     except (ConnectionResetError, asyncio.IncompleteReadError):
@@ -106,7 +106,7 @@ def start(path, chain=None, loop=None):
 
 
 def run_until_interrupt(server, loop=None):
-    logger = logging.getLogger('evm.rpc.ipc')
+    logger = logging.getLogger('trinity.rpc.ipc')
     if loop is None:
         loop = asyncio.get_event_loop()
     try:
@@ -126,6 +126,6 @@ def run_ipc_server(ipc_path, chain=None, loop=None):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger('evm.rpc.ipc').setLevel(logging.DEBUG)
+    logging.getLogger('trinity.rpc.ipc').setLevel(logging.DEBUG)
 
     run_ipc_server('/tmp/test.ipc')

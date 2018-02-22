@@ -5,7 +5,7 @@ from evm.exceptions import (
     ValidationError,
 )
 
-from evm.rpc.modules import (
+from trinity.rpc.modules import (
     Eth,
     EVM,
 )

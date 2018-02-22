@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import uuid
 
-from evm.rpc.ipc import (
+from trinity.rpc.ipc import (
     start,
 )
 
