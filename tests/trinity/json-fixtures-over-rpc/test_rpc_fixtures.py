@@ -27,7 +27,7 @@ from trinity.rpc.format import (
     fixture_transaction_in_rpc_format,
 )
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
@@ -276,7 +276,7 @@ def chain_fixture(fixture_data):
     return fixture
 
 
-def test_rpc_against_fixtures(chain_fixture, fixture_data):
+def test_rpc_against_fixtures(ipc_server, chain_fixture, fixture_data):
     rpc = RPCServer(None)
 
     setup_result, setup_error = call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
