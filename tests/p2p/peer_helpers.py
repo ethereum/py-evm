@@ -8,13 +8,12 @@ from eth_utils import (
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
 
+from evm.db.chain import AsyncChainDB
 from p2p import auth
 from p2p import constants
 from p2p import ecies
 from p2p import kademlia
 from p2p.peer import LESPeer
-
-from trinity.db.chain import AsyncChainDB
 
 
 def get_fresh_mainnet_chaindb():

@@ -21,7 +21,7 @@ from eth_utils import (
 
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
@@ -54,7 +54,7 @@ class LightChain(Chain, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.lightchain.LightChain")
     max_consecutive_timeouts = 5
 
-    def __init__(self, chaindb: ChainDB, peer_pool: PeerPool) -> None:
+    def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
@@ -329,7 +329,7 @@ def _test():
         network_id=NETWORK_ID,
     )
 
-    chaindb = ChainDB(LevelDB(args.db))
+    chaindb = AsyncChainDB(LevelDB(args.db))
     if args.local_geth:
         peer_pool = LocalGethPeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
     else:

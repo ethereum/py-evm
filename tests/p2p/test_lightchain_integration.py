@@ -11,6 +11,7 @@ from eth_utils import (
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
+from evm.db.chain import AsyncChainDB
 from evm.vm.forks.frontier import FrontierBlock
 
 from p2p import ecies
@@ -18,8 +19,6 @@ from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 
 from integration_test_helpers import LocalGethPeerPool  # TODO: make sure this import works.
-
-from trinity.db.chain import AsyncChainDB
 
 
 IntegrationTestLightChain = LightChain.configure(
