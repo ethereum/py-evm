@@ -39,6 +39,7 @@ from evm.vm.forks.sharding.log_handler import (
 )
 from evm.vm.forks.sharding.vmc_handler import (
     NextLogUnavailable,
+    NoCandidateHead,
     ShardTracker,
     parse_collation_added_log,
 )
@@ -53,7 +54,6 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 PASSPHRASE = '123'
 GENESIS_COLHDR_HASH = b'\x00' * 32
-ZERO_ADDRESS = b'\x00' * 20
 
 test_keys = get_default_account_keys()
 
@@ -125,8 +125,8 @@ def send_deposit_tx(vmc_handler):
     :param privkey: PrivateKey object
     :return: returns the validator's address
     """
-    mine(vmc_handler, 1)
     vmc_handler.deposit()
+    mine(vmc_handler, vmc_handler.config['PERIOD_LENGTH'])
     return vmc_handler.get_default_sender_address()
 
 
@@ -140,8 +140,9 @@ def deploy_initiating_contracts(vmc_handler, privkey):
         vmc_handler.config['GAS_PRICE'],
     )
     for tx in txs:
-        send_raw_transaction(vmc_handler, tx)
+        tx_hash = send_raw_transaction(vmc_handler, tx)
         mine(vmc_handler, 1)
+        print("!@# tx_hash={}".format(w3.eth.getTransactionReceipt(tx_hash)))
     logger.debug(
         'deploy_initiating_contracts: vmc_tx_hash=%s',
         w3.eth.getTransactionReceipt(encode_hex(txs[-1].hash)),
@@ -254,10 +255,44 @@ def test_shard_tracker_fetch_candidate_head(vmc,
         log = shard_tracker.fetch_candidate_head()
         assert log['score'] == expected_score[i]
         assert log['is_new_head'] == expected_is_new_head[i]
-    with pytest.raises(NextLogUnavailable):
+    with pytest.raises(NoCandidateHead):
         log = shard_tracker.fetch_candidate_head()
 
 
+def setup_shard_tracker(vmc_handler, shard_id):
+    log_handler = LogHandler(vmc_handler.web3)
+    shard_tracker = ShardTracker(shard_id, log_handler, vmc_handler.address)
+    vmc_handler.set_shard_tracker(shard_id, shard_tracker)
+
+
+def test_vmc_handler_guess_head(vmc):
+    shard_id = 0
+    validator_index = 0
+    primary_key = test_keys[validator_index]
+    # primary_addr = primary_key.public_key.to_canonical_address()
+
+    import_key(vmc, primary_key)
+    deploy_initiating_contracts(vmc, primary_key)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
+
+    setup_shard_tracker(vmc, shard_id)
+
+    send_deposit_tx(vmc)
+    lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
+    mine(vmc, lookahead_blocks)
+
+    header0_1 = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
+    # tx_hash = vmc.add_header(header0_1)
+    # mine(vmc, vmc.config['PERIOD_LENGTH'])
+    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
+    vmc.add_header(header0_2)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
+    mine(vmc, lookahead_blocks)
+
+    print("!@# guess_head={}".format(vmc.guess_head(shard_id)))
+
+
+# TODO: should separate the tests into pieces, and do some refactors
 def test_vmc_contract_calls(vmc):  # noqa: F811
     shard_id = 0
     validator_index = 0
@@ -265,9 +300,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     primary_addr = primary_key.public_key.to_canonical_address()
     default_gas = vmc.config['DEFAULT_GAS']
 
-    log_handler = LogHandler(vmc.web3)
-    shard_tracker = ShardTracker(shard_id, log_handler, vmc.address)
-    vmc.set_shard_tracker(shard_id, shard_tracker)
+    setup_shard_tracker(vmc, shard_id)
+
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
         nonce=0,
@@ -407,6 +441,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     })
     assert len(logs) == 4
 
+    # test `tx_to_shard` ######################################
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
         shard_id,

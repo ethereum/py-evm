@@ -1,3 +1,4 @@
+import copy
 import logging
 from typing import (  # noqa: F401
     Dict
@@ -17,6 +18,10 @@ from eth_utils import (
     to_checksum_address,
     to_dict,
     to_tuple,
+)
+
+from evm.constants import (
+    ZERO_HASH32,
 )
 
 from evm.rlp.headers import (
@@ -40,8 +45,28 @@ class NextLogUnavailable(Exception):
     pass
 
 
+class NoCandidateHead(Exception):
+    pass
+
+
 class UnknownShard(Exception):
     pass
+
+
+def is_time_to_make_collation():
+    # TODO: currently just for testing.
+    #       should check if it is time to stop verification, and to make collations
+    return False
+
+
+def fetch_and_verify_collation(collation_hash):
+    """Fetch the collation body and verify the collation
+
+    :return: returns the collation's validity
+    """
+    # TODO: currently do nothing, should be implemented or imported when `fetch_collation` and
+    #       `verify_collation` are implemented
+    return True
 
 
 @to_dict
@@ -104,6 +129,17 @@ class ShardTracker:
             raise NextLogUnavailable("No more next logs")
         return self.new_logs.pop()
 
+    @to_dict
+    def take_log_snapshot(self):
+        yield 'current_score', self.current_score
+        yield 'new_logs', copy.deepcopy(self.new_logs)
+        yield 'unchecked_logs', copy.deepcopy(self.unchecked_logs)
+
+    def revert_log_snapshot(self, log_snapshot):
+        self.current_score = log_snapshot['current_score']
+        self.new_logs = copy.deepcopy(log_snapshot['new_logs'])
+        self.unchecked_logs = copy.deepcopy(log_snapshot['unchecked_logs'])
+
     # TODO: this method may return wrong result when new logs arrive before the logs inside
     #       `self.new_logs` are consumed entirely. This issue can be resolved by saving the
     #       status of `new_logs`, `unchecked_logs`, and `current_score`, when it start to run
@@ -121,14 +157,18 @@ class ShardTracker:
         )
         current_score = self.current_score
 
-        for idx, logs_entry in unchecked_logs:
-            if logs_entry['score'] == current_score:
+        for idx, log_entry in unchecked_logs:
+            if log_entry['score'] == current_score:
                 return self.unchecked_logs.pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
         while True:
+            try:
+                log_entry = self.get_next_log()
             # TODO: currently just raise when there is no log anymore
-            log_entry = self.get_next_log()
+            except NextLogUnavailable:
+                # TODO: should returns the genesis collation instead or just leave it?
+                raise NoCandidateHead("No candidate head available")
             if log_entry['is_new_head']:
                 break
             self.unchecked_logs.append(log_entry)
@@ -140,11 +180,13 @@ class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.VMC")
 
-    def __init__(self, *args, default_privkey, **kwargs):
+    def __init__(self, *args, default_privkey, fetch_and_verify_collation=None, **kwargs):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
         self.shard_trackers = {}  # type: Dict[int, ShardTracker]
+
+        self.validity_cache = {}
 
         super().__init__(*args, **kwargs)
 
@@ -168,6 +210,51 @@ class VMC(Contract):
     def fetch_candidate_head(self, shard_id):
         shard_tracker = self.get_shard_tracker(shard_id)
         return shard_tracker.fetch_candidate_head()
+
+    def memoized_fetch_and_verify_collation(self, collation_hash):
+        # Download a single collation and check if it is valid or invalid (memoized)
+        if collation_hash not in self.validity_cache:
+            self.validity_cache[collation_hash] = fetch_and_verify_collation(collation_hash)
+        return self.validity_cache[collation_hash]
+
+    def _verify_chain(self, shard_id, head_collation_hash):
+        """Verify a chain and returns its validity.
+        :return: returns the validity of the chain. if the time is out, returns True
+        """
+        current_collation_hash = head_collation_hash
+        # if current_collation_hash == ZERO_HASH32, it means the whole chain of
+        # the head `head_collation_hash` is valid.
+        self.logger.debug(
+            "Start verifying candidate chain with head {0}".format(head_collation_hash)
+        )
+        while not is_time_to_make_collation():
+            if current_collation_hash == ZERO_HASH32:
+                break
+            if not self.memoized_fetch_and_verify_collation(current_collation_hash):
+                return False
+            current_collation_hash = self.get_parent_hash(shard_id, current_collation_hash)
+        return True
+
+    def guess_head(self, shard_id):
+        """Pick the longest valid chain, check validity as far as possible, and if you find
+           it's invalid then switch to the next-highest-scoring valid chain you know about.
+           Should only stop when the validator runs out of time and it is time to create
+           the collation
+
+        :return: returns the hash of the guessed head collation
+        """
+        head_collation_hash = None
+        while not is_time_to_make_collation():
+            try:
+                head_collation_hash = self.fetch_candidate_head(shard_id)
+            except NoCandidateHead:
+                self.logger.debug("No candidate head available, `guess_head` stops")
+                break
+            # stop when we find a valid chain or run out of time
+            if self._verify_chain(shard_id, head_collation_hash):
+                break
+        self.logger.debug("Guess {0} as head".format(head_collation_hash))
+        return head_collation_hash
 
     @to_dict
     def mk_build_transaction_detail(self,
