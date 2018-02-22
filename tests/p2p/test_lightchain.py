@@ -24,7 +24,8 @@ from p2p.les import (
 from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 from p2p import protocol
-from p2p.test_peer import (
+
+from peer_helpers import (
     get_directly_linked_peers,
     get_fresh_mainnet_chaindb,
 )
@@ -274,7 +275,7 @@ def assert_canonical_chains_are_equal(chaindb1, chaindb2, block_number=None):
 def chaindb_mainnet_100():
     """Return a chaindb with mainnet headers numbered from 0 to 100."""
     here = os.path.dirname(__file__)
-    headers_rlp = open(os.path.join(here, 'testdata', 'sample_1000_headers_rlp'), 'r+b').read()
+    headers_rlp = open(os.path.join(here, 'fixtures', 'sample_1000_headers_rlp'), 'r+b').read()
     headers = rlp.decode(headers_rlp, sedes=sedes.CountableList(BlockHeader))
     chaindb = ChainDB(MemoryDB())
     for i in range(0, 101):

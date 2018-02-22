@@ -35,6 +35,7 @@ setup(
         'trinity': [
             "leveldb>=0.194,<1.0.0",
             "coincurve>=7.0.0,<8.0.0",
+            "eth-hash[pycryptodome]>=0.1.0a4,<1.0.0",
         ],
         'p2p': [
             "aiohttp>=2.3.1,<3.0.0",

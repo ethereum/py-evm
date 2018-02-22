@@ -15,6 +15,7 @@ from cytoolz import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
     decode_hex,
     is_0x_prefixed,
     to_bytes,
@@ -29,30 +30,23 @@ from eth_utils.curried import (
 )
 
 from evm import MainnetChain
-
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-
+from evm.db import get_db_backend
+from evm.db.chain import ChainDB
+from evm.utils.state import (
+    diff_state_db,
+)
+from evm.utils.rlp import (
+    diff_rlp_object,
+)
 from evm.vm.forks import (
     ByzantiumVM,
     TangerineWhistleVM,
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
-)
-
-from evm.db import get_db_backend
-from evm.db.chain import ChainDB
-
-from .numeric import (
-    big_endian_to_int,
-)
-from .state import (
-    diff_state_db,
-)
-from .rlp import (
-    diff_rlp_object,
 )
 
 

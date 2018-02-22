@@ -4,7 +4,8 @@ import random
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.state import AccountStateDB
-from evm.p2p.state import StateSync
+
+from p2p.state import StateSync
 
 
 def make_random_state(n):
