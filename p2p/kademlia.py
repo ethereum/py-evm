@@ -20,6 +20,7 @@ from typing import (  # noqa: F401
 )
 
 from eth_utils import (
+    big_endian_to_int,
     decode_hex,
     encode_hex,
     force_bytes,
@@ -31,13 +32,11 @@ from eth_keys import (
     keys,
 )
 
-from evm.utils.numeric import big_endian_to_int
-
 
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from evm.p2p.discovery import DiscoveryProtocol  # noqa: F401
+    from p2p.discovery import DiscoveryProtocol  # noqa: F401
 
 
 k_b = 8  # 8 bits per hop
@@ -303,7 +302,7 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
 
 
 class KademliaProtocol:
-    logger = logging.getLogger("evm.p2p.discovery.KademliaProtocol")
+    logger = logging.getLogger("p2p.discovery.KademliaProtocol")
 
     def __init__(self, node: Node, wire: 'DiscoveryProtocol') -> None:
         self.this_node = node

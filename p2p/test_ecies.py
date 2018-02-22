@@ -7,7 +7,7 @@ from eth_utils import (
 
 from eth_keys import keys
 
-from evm.p2p import ecies
+from p2p import ecies
 
 
 # (pvikey_hex, pubkey_hex, expected_ecdh) tuples with known-good values, to ensure our

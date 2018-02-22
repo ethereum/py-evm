@@ -11,9 +11,9 @@ from eth_utils import (
 
 from eth_keys import keys
 
-from evm.p2p import discovery
-from evm.p2p import kademlia
-from evm.utils.numeric import safe_ord
+from p2p import discovery
+from p2p import kademlia
+from p2p.utils import safe_ord
 
 
 def test_ping_pong():

@@ -35,11 +35,12 @@ from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.p2p import auth
-from evm.p2p import ecies
-from evm.p2p.kademlia import Address, Node
-from evm.p2p import protocol  # noqa: F401
-from evm.p2p.exceptions import (
+
+from p2p import auth
+from p2p import ecies
+from p2p.kademlia import Address, Node
+from p2p import protocol  # noqa: F401
+from p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
@@ -49,16 +50,16 @@ from evm.p2p.exceptions import (
     UnknownProtocolCommand,
     UnreachablePeer,
 )
-from evm.p2p.cancel_token import CancelToken, wait_with_token
-from evm.p2p.utils import (
+from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.utils import (
     gen_request_id,
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
 )
-from evm.p2p import eth
-from evm.p2p import les
-from evm.p2p.p2p_proto import (
+from p2p import eth
+from p2p import les
+from p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
     Hello,
@@ -116,7 +117,7 @@ async def handshake(remote: Node,
 
 
 class BasePeer:
-    logger = logging.getLogger("evm.p2p.peer.Peer")
+    logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     reply_timeout = REPLY_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
@@ -608,7 +609,7 @@ class PeerPoolSubscriber:
 
 class PeerPool:
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
-    logger = logging.getLogger("evm.p2p.peer.PeerPool")
+    logger = logging.getLogger("p2p.peer.PeerPool")
     min_peers = 2
     _connect_loop_sleep = 2
 

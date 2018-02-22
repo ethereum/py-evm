@@ -8,15 +8,15 @@ from eth_utils import (
 
 from eth_keys import keys
 
-from evm.p2p import ecies
-from evm.p2p import kademlia
-from evm.p2p.p2p_proto import Hello
-from evm.p2p.protocol import Protocol
-from evm.p2p.auth import (
+from p2p import ecies
+from p2p import kademlia
+from p2p.p2p_proto import Hello
+from p2p.protocol import Protocol
+from p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
-from evm.p2p.peer import BasePeer
+from p2p.peer import BasePeer
 
 
 @pytest.mark.asyncio

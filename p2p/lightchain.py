@@ -29,25 +29,29 @@ from evm.rlp.accounts import Account
 from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.p2p.exceptions import (
+
+from p2p.exceptions import (
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
     OperationCancelled,
     TooManyTimeouts,
     UnexpectedMessage,
 )
-from evm.p2p import les
-from evm.p2p.peer import (
+from p2p import les
+from p2p.cancel_token import (
+    CancelToken,
+    wait_with_token,
+)
+from p2p.peer import (
     BasePeer,
     LESPeer,
     PeerPool,
     PeerPoolSubscriber,
 )
-from evm.p2p.cancel_token import CancelToken, wait_with_token
 
 
 class LightChain(Chain, PeerPoolSubscriber):
-    logger = logging.getLogger("evm.p2p.lightchain.LightChain")
+    logger = logging.getLogger("p2p.lightchain.LightChain")
     max_consecutive_timeouts = 5
 
     def __init__(self, chaindb: ChainDB, peer_pool: PeerPool) -> None:
@@ -302,11 +306,11 @@ def _test():
     from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
     from evm.exceptions import CanonicalHeadNotFound
-    from evm.p2p import ecies
-    from evm.p2p.integration_test_helpers import LocalGethPeerPool
+    from p2p import ecies
+    from p2p.integration_test_helpers import LocalGethPeerPool
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger("evm.p2p.lightchain.LightChain").setLevel(logging.DEBUG)
+    logging.getLogger("p2p.lightchain.LightChain").setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)

@@ -11,10 +11,13 @@ import rlp
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPMethodNotAllowed
 
-from eth_utils import decode_hex, encode_hex
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+    int_to_big_endian,
+)
 
-from evm.p2p.lightchain import LightChain
-from evm.utils.numeric import int_to_big_endian
+from p2p.lightchain import LightChain
 
 
 class App(web.Application):
@@ -90,9 +93,9 @@ if __name__ == '__main__':
     from evm.db.backends.level import LevelDB
     from evm.db.chain import ChainDB
     from evm.exceptions import CanonicalHeadNotFound
-    from evm.p2p import ecies
+    from p2p import ecies
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger("evm.p2p.lightchain").setLevel(logging.DEBUG)
+    logging.getLogger("p2p.lightchain").setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)

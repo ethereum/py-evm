@@ -9,16 +9,17 @@ from eth_utils import (
 
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
-from evm.p2p import auth
-from evm.p2p import constants
-from evm.p2p import ecies
-from evm.p2p import kademlia
-from evm.p2p.les import (
+
+from p2p import auth
+from p2p import constants
+from p2p import ecies
+from p2p import kademlia
+from p2p.les import (
     LESProtocol,
     LESProtocolV2,
 )
-from evm.p2p.peer import LESPeer
-from evm.p2p.p2p_proto import P2PProtocol
+from p2p.peer import LESPeer
+from p2p.p2p_proto import P2PProtocol
 
 from trinity.db.chain import AsyncChainDB
 

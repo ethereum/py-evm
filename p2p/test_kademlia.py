@@ -5,8 +5,11 @@ import pytest
 
 from eth_keys import keys
 
-from evm.p2p import kademlia
-from evm.utils.numeric import int_to_big_endian
+from eth_utils import (
+    int_to_big_endian,
+)
+
+from p2p import kademlia
 
 
 # Force our tests to fail quickly if they accidentally make network requests.

@@ -7,11 +7,12 @@ from rlp import sedes
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
-from evm.p2p.protocol import (
+
+from p2p.protocol import (
     Command,
     Protocol,
 )
-from evm.p2p.sedes import HashOrNumber
+from p2p.sedes import HashOrNumber
 
 
 # Max number of items we can ask for in ETH requests. These are the values used in geth and if we
@@ -112,7 +113,7 @@ class ETHProtocol(Protocol):
         GetBlockBodies, BlockBodies, NewBlock, GetNodeData, NodeData,
         GetReceipts, Receipts]
     cmd_length = 17
-    logger = logging.getLogger("evm.p2p.eth.ETHProtocol")
+    logger = logging.getLogger("p2p.eth.ETHProtocol")
 
     def send_handshake(self, head_info):
         resp = {

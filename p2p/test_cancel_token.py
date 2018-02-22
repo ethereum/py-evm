@@ -3,8 +3,8 @@ import functools
 
 import pytest
 
-from evm.p2p.cancel_token import CancelToken, wait_with_token
-from evm.p2p.exceptions import OperationCancelled
+from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.exceptions import OperationCancelled
 
 
 def test_token_single():

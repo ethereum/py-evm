@@ -13,17 +13,18 @@ from evm.chains.mainnet import (
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
 from evm.rlp.headers import BlockHeader
-from evm.p2p.les import (
+
+from p2p.les import (
     LESProtocol,
     Announce,
     BlockHeaders,
     GetBlockHeaders,
     Status,
 )
-from evm.p2p.lightchain import LightChain
-from evm.p2p.peer import LESPeer
-from evm.p2p import protocol
-from evm.p2p.test_peer import (
+from p2p.lightchain import LightChain
+from p2p.peer import LESPeer
+from p2p import protocol
+from p2p.test_peer import (
     get_directly_linked_peers,
     get_fresh_mainnet_chaindb,
 )

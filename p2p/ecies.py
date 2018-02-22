@@ -9,18 +9,19 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 
-from eth_utils import force_bytes
+from eth_utils import (
+    force_bytes,
+    int_to_big_endian,
+)
 
 from eth_keys import keys
 from eth_keys import datatypes
 
-from evm.p2p.exceptions import DecryptionError
-from evm.utils.numeric import (
-    int_to_big_endian,
-)
-from evm.utils.padding import (
+from evm.utils.padding import (  # TODO: cross library utils import
     pad32,
 )
+
+from p2p.exceptions import DecryptionError
 
 from .constants import (
     PUBKEY_LEN,

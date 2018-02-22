@@ -14,10 +14,10 @@ from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
 from evm.vm.forks.frontier import FrontierBlock
 
-from evm.p2p import ecies
-from evm.p2p.integration_test_helpers import LocalGethPeerPool
-from evm.p2p.lightchain import LightChain
-from evm.p2p.peer import LESPeer
+from p2p import ecies
+from p2p.integration_test_helpers import LocalGethPeerPool
+from p2p.lightchain import LightChain
+from p2p.peer import LESPeer
 
 
 IntegrationTestLightChain = LightChain.configure(

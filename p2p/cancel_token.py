@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Awaitable, List  # noqa: F401
 
-from evm.p2p.exceptions import OperationCancelled
+from p2p.exceptions import OperationCancelled
 
 
 class CancelToken:

@@ -10,20 +10,21 @@ import atexit
 import logging
 import threading
 
+from evm.db.backends.level import LevelDB
 from evm.db.chain import ChainDB
-from evm.exceptions import CanonicalHeadNotFound
+from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.chains.ropsten import (
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_NETWORK_ID,
 )
-from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
-from evm.p2p import ecies
-from evm.p2p.lightchain import LightChain
-from evm.p2p.peer import (
+from evm.exceptions import CanonicalHeadNotFound
+
+from p2p import ecies
+from p2p.lightchain import LightChain
+from p2p.peer import (
     LESPeer,
     PeerPool,
 )
-from evm.db.backends.level import LevelDB
 
 
 LOGFILE = '/tmp/lightchain-shell.log'

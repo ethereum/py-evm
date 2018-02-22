@@ -24,9 +24,9 @@ from eth_utils import (
     keccak,
 )
 
-from evm.p2p import ecies
-from evm.p2p import kademlia
-from evm.p2p.utils import (
+from p2p import ecies
+from p2p import kademlia
+from p2p.utils import (
     sxor,
 )
 
@@ -86,7 +86,7 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
 
 
 class HandshakeBase:
-    logger = logging.getLogger("evm.p2p.peer.Handshake")
+    logger = logging.getLogger("p2p.peer.Handshake")
     got_eip8_auth = False
     _is_initiator = False
 

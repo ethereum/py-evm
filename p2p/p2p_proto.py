@@ -4,7 +4,7 @@ from cytoolz import assoc
 
 from rlp import sedes
 
-from evm.p2p.protocol import (
+from p2p.protocol import (
     Command,
     Protocol,
 )

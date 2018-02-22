@@ -11,12 +11,13 @@ from eth_utils import (
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
-from evm.p2p.protocol import (
+
+from p2p.protocol import (
     Command,
     Protocol,
     _DecodedMsgType,
 )
-from evm.p2p.sedes import HashOrNumber
+from p2p.sedes import HashOrNumber
 
 from .constants import LES_ANNOUNCE_SIMPLE
 

@@ -9,7 +9,7 @@ import sys
 from evm.db.backends.level import LevelDB
 from evm.db.chain import ChainDB
 
-from evm.p2p.peer import (
+from p2p.peer import (
     LESPeer,
     PeerPool,
 )

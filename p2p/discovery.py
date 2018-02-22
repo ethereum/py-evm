@@ -28,7 +28,7 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys import datatypes
 
-from evm.p2p import kademlia
+from p2p import kademlia
 from evm.utils.numeric import (
     big_endian_to_int,
     int_to_big_endian,
@@ -73,7 +73,7 @@ CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, C
 # TODO: Use a CancelToken here, to cancel pending operations when we stop()
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
-    logger = logging.getLogger("evm.p2p.discovery.DiscoveryProtocol")
+    logger = logging.getLogger("p2p.discovery.DiscoveryProtocol")
     transport = None  # type: asyncio.DatagramTransport
     _max_neighbours_per_packet_cache = None
 
@@ -305,7 +305,7 @@ def _test():
         b'enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303',   # noqa: E501
     ]
 
-    # logger = logging.getLogger("evm.p2p.discovery")
+    # logger = logging.getLogger("p2p.discovery")
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     loop = asyncio.get_event_loop()

@@ -1,7 +1,8 @@
 from eth_utils import decode_hex
 from eth_keys import keys
-from evm.p2p import kademlia
-from evm.p2p.peer import PeerPool
+
+from p2p import kademlia
+from p2p.peer import PeerPool
 
 
 class LocalGethPeerPool(PeerPool):

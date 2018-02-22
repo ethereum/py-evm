@@ -29,15 +29,16 @@ from evm.constants import (
 from evm.db.backends.base import BaseDB
 from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
-from evm.p2p import eth
-from evm.p2p.cancel_token import CancelToken
-from evm.p2p.exceptions import OperationCancelled
-from evm.p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
-from evm.p2p.eth import MAX_STATE_FETCH
+
+from p2p import eth
+from p2p.cancel_token import CancelToken
+from p2p.exceptions import OperationCancelled
+from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.eth import MAX_STATE_FETCH
 
 
 class StateDownloader(PeerPoolSubscriber):
-    logger = logging.getLogger("evm.p2p.state.StateDownloader")
+    logger = logging.getLogger("p2p.state.StateDownloader")
     _pending_nodes = {}  # type: Dict[Any, float]
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
@@ -191,7 +192,7 @@ class StateSync(HexaryTrieSync):
 def _test():
     import argparse
     import signal
-    from evm.p2p import ecies
+    from p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from evm.db.backends.memory import MemoryDB

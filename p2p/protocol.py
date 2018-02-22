@@ -14,13 +14,14 @@ import rlp
 from rlp import sedes
 
 from evm.constants import NULL_BYTE
-from evm.p2p.utils import get_devp2p_cmd_id
+
+from p2p.utils import get_devp2p_cmd_id
 
 
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from evm.p2p.peer import ChainInfo, BasePeer  # noqa: F401
+    from p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
 
 _DecodedMsgType = Union[Dict[str, Any], List[bytes], bytes]
@@ -94,7 +95,7 @@ class Command:
 
 
 class Protocol:
-    logger = logging.getLogger("evm.p2p.protocol.Protocol")
+    logger = logging.getLogger("p2p.protocol.Protocol")
     name = None  # type: bytes
     version = None  # type: int
     cmd_length = None  # type: int
