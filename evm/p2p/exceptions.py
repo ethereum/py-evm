@@ -38,9 +38,9 @@ class TooManyTimeouts(Exception):
     pass
 
 
-class StopRequested(Exception):
+class PeerFinished(Exception):
     pass
 
 
-class PeerFinished(Exception):
+class OperationCancelled(Exception):
     pass

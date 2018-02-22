@@ -77,7 +77,7 @@ def wait_for_result(coroutine):
 
 
 def cleanup():
-    chain._should_stop.set()
+    chain.cancel_token.trigger()
     # Wait until run() finishes.
     t.join()
 

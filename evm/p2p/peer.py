@@ -43,12 +43,13 @@ from evm.p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
+    OperationCancelled,
     PeerConnectionLost,
-    PeerFinished,
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
 )
+from evm.p2p.cancel_token import CancelToken, wait_with_token
 from evm.p2p.utils import (
     gen_request_id,
     get_devp2p_cmd_id,
@@ -147,6 +148,7 @@ class BasePeer:
         self.chaindb = chaindb
         self.network_id = network_id
         self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
+        self.cancel_token = CancelToken('Peer')
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -193,19 +195,14 @@ class BasePeer:
                 self, msg['reason_name']))
         self.process_p2p_handshake(cmd, msg)
 
-    async def read_sub_proto_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
+    async def read_sub_proto_msg(
+            self, cancel_token: CancelToken) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
         """Read the next sub-protocol message from the queue.
 
-        Raises PeerFinished if this peer has been disconnected.
+        Raises OperationCancelled if the peer has been disconnected.
         """
-        done, pending = await asyncio.wait(  # type: ignore
-            [self.sub_proto_msg_queue.get(), self._finished.wait()],
-            return_when=asyncio.FIRST_COMPLETED)
-        for task in pending:
-            task.cancel()
-        if self._finished.is_set():
-            raise PeerFinished()
-        return done.pop().result()
+        combined_token = self.cancel_token.chain(cancel_token)
+        return await wait_with_token(self.sub_proto_msg_queue.get(), combined_token)
 
     @property
     def genesis(self) -> BlockHeader:
@@ -243,14 +240,16 @@ class BasePeer:
     async def read(self, n: int) -> bytes:
         self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
         try:
-            data = await asyncio.wait_for(self.reader.readexactly(n), self.conn_idle_timeout)
+            return await wait_with_token(
+                self.reader.readexactly(n), self.cancel_token, timeout=self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
             raise PeerConnectionLost("EOF reading from stream")
-        return data
 
     async def run(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
         try:
             await self.read_loop()
+        except OperationCancelled as e:
+            self.logger.debug("Peer finished: %s", e)
         except Exception:
             self.logger.error(
                 "Unexpected error when handling remote msg: %s", traceback.format_exc())
@@ -263,7 +262,11 @@ class BasePeer:
         """Close this peer's reader/writer streams.
 
         This will cause the peer to stop in case it is running.
+
+        If the streams have already been closed, do nothing.
         """
+        if self.reader.at_eof():
+            return
         self.reader.feed_eof()
         self.writer.close()
 
@@ -274,8 +277,10 @@ class BasePeer:
         """
         if self._finished.is_set():
             return
+        self.cancel_token.trigger()
         self.close()
         await self._finished.wait()
+        self.logger.debug("Stopped %s", self)
 
     async def read_loop(self):
         while True:
@@ -481,7 +486,7 @@ class LESPeer(BasePeer):
                 return
         super().handle_sub_proto_msg(cmd, msg)
 
-    async def _wait_for_reply(self, request_id):
+    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken):
         reply = None
         got_reply = asyncio.Event()
 
@@ -491,57 +496,67 @@ class LESPeer(BasePeer):
             got_reply.set()
 
         self._pending_replies[request_id] = callback
-        await asyncio.wait_for(got_reply.wait(), self.reply_timeout)
+        combined_token = self.cancel_token.chain(cancel_token)
+        await wait_with_token(got_reply.wait(), combined_token, timeout=self.reply_timeout)
         return reply
 
-    async def get_block_header_by_hash(self, block_hash: bytes) -> BlockHeader:
+    async def get_block_header_by_hash(
+            self, block_hash: bytes, cancel_token: CancelToken) -> BlockHeader:
         request_id = gen_request_id()
         max_headers = 1
         self.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         if not reply['headers']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
         return reply['headers'][0]
 
-    async def get_block_by_hash(self, block_hash: bytes) -> les.LESBlockBody:
+    async def get_block_by_hash(
+            self, block_hash: bytes, cancel_token: CancelToken) -> les.LESBlockBody:
         request_id = gen_request_id()
         self.sub_proto.send_get_block_bodies([block_hash], request_id)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         if not reply['bodies']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
         return reply['bodies'][0]
 
-    async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
+    async def get_receipts(self, block_hash: bytes, cancel_token: CancelToken) -> List[Receipt]:
         request_id = gen_request_id()
         self.sub_proto.send_get_receipts(block_hash, request_id)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         if not reply['receipts']:
             raise BlockNotFound("No block with hash {} found".format(block_hash))
         return reply['receipts'][0]
 
-    async def get_account(self, block_hash: bytes, address: bytes) -> Account:
+    async def get_account(
+            self, block_hash: bytes, address: bytes, cancel_token: CancelToken) -> Account:
         key = keccak(address)
-        proof = await self._get_proof(block_hash, account_key=b'', key=key)
-        header = await self.get_block_header_by_hash(block_hash)
+        proof = await self._get_proof(cancel_token, block_hash, account_key=b'', key=key)
+        header = await self.get_block_header_by_hash(block_hash, cancel_token)
         rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
         return rlp.decode(rlp_account, sedes=Account)
 
-    async def _get_proof(self, block_hash: bytes, account_key: bytes, key: bytes,
+    async def _get_proof(self,
+                         cancel_token: CancelToken,
+                         block_hash: bytes,
+                         account_key: bytes,
+                         key: bytes,
                          from_level: int = 0) -> List[bytes]:
         request_id = gen_request_id()
         self.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         return reply['proof']
 
-    async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
+    async def get_contract_code(
+            self, block_hash: bytes, key: bytes, cancel_token: CancelToken) -> bytes:
         request_id = gen_request_id()
         self.sub_proto.send_get_contract_code(block_hash, key, request_id)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         if not reply['codes']:
             return b''
         return reply['codes'][0]
 
-    async def fetch_headers_starting_at(self, start_block: int) -> List[BlockHeader]:
+    async def fetch_headers_starting_at(
+            self, start_block: int, cancel_token: CancelToken) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
 
         Returns a list containing those headers in ascending order of block number.
@@ -549,7 +564,7 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
-        reply = await self._wait_for_reply(request_id)
+        reply = await self._wait_for_reply(request_id, cancel_token)
         if not reply['headers']:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
@@ -608,8 +623,7 @@ class PeerPool:
         self.network_id = network_id
         self.privkey = privkey
         self.connected_nodes = {}  # type: Dict[Node, BasePeer]
-        self._should_stop = asyncio.Event()
-        self._finished = asyncio.Event()
+        self.cancel_token = CancelToken('PeerPool')
         self._subscribers = []  # type: List[PeerPoolSubscriber]
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
@@ -669,7 +683,7 @@ class PeerPool:
 
     async def run(self):
         self.logger.info("Running PeerPool...")
-        while not self._should_stop.is_set():
+        while not self.cancel_token.triggered:
             try:
                 await self.maybe_connect_to_more_peers()
             except:  # noqa: E722
@@ -677,8 +691,7 @@ class PeerPool:
                 self.logger.error("Unexpected error (%s), restarting", traceback.format_exc())
                 await self.stop_all_peers()
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-            await asyncio.wait([self._should_stop.wait()], timeout=self._connect_loop_sleep)
-        self._finished.set()
+            await asyncio.wait([self.cancel_token.wait()], timeout=self._connect_loop_sleep)
 
     async def stop_all_peers(self):
         self.logger.info("Stopping all peers ...")
@@ -686,9 +699,8 @@ class PeerPool:
             *[peer.stop() for peer in self.connected_nodes.values()])
 
     async def stop(self):
-        self._should_stop.set()
+        self.cancel_token.trigger()
         await self.stop_all_peers()
-        await self._finished.wait()
 
     async def connect(self, remote: Node) -> BasePeer:
         """
@@ -702,6 +714,8 @@ class PeerPool:
             UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost, HandshakeFailure)
         try:
             self.logger.info("Connecting to %s...", remote)
+            # TODO: Use asyncio.wait() and our cancel_token here to cancel in case the token is
+            # triggered.
             peer = await asyncio.wait_for(
                 handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
                 HANDSHAKE_TIMEOUT)
@@ -765,6 +779,7 @@ def _test():
           -testnet -lightserv 90
     """
     import argparse
+    import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
@@ -788,36 +803,34 @@ def _test():
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
-    try:
-        peer = loop.run_until_complete(
-            asyncio.wait_for(
-                handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id),
-                HANDSHAKE_TIMEOUT))
+    peer = loop.run_until_complete(
+        asyncio.wait_for(
+            handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id),
+            HANDSHAKE_TIMEOUT))
 
-        async def request_stuff():
-            # Request some stuff from ropsten's block 2440319
-            # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
-            nonlocal peer
-            block_hash = decode_hex(
-                '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
-            if peer_class == ETHPeer:
-                peer = cast(ETHPeer, peer)
-                peer.sub_proto.send_get_block_headers(block_hash, 1)
-                peer.sub_proto.send_get_block_bodies([block_hash])
-                peer.sub_proto.send_get_receipts([block_hash])
-            else:
-                peer = cast(LESPeer, peer)
-                request_id = 1
-                peer.sub_proto.send_get_block_headers(block_hash, 1, request_id)
-                peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
-                peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
+    async def request_stuff():
+        # Request some stuff from ropsten's block 2440319
+        # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
+        nonlocal peer
+        block_hash = decode_hex(
+            '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
+        if peer_class == ETHPeer:
+            peer = cast(ETHPeer, peer)
+            peer.sub_proto.send_get_block_headers(block_hash, 1)
+            peer.sub_proto.send_get_block_bodies([block_hash])
+            peer.sub_proto.send_get_receipts([block_hash])
+        else:
+            peer = cast(LESPeer, peer)
+            request_id = 1
+            peer.sub_proto.send_get_block_headers(block_hash, 1, request_id)
+            peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
+            peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
 
-        asyncio.ensure_future(request_stuff())
-        loop.run_until_complete(peer.run())
-    except KeyboardInterrupt:
-        pass
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, peer.cancel_token.trigger)
 
-    loop.run_until_complete(peer.stop())
+    asyncio.ensure_future(request_stuff())
+    loop.run_until_complete(peer.run())
     loop.close()
 
 
