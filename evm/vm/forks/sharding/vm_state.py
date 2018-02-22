@@ -3,6 +3,9 @@ from cytoolz import (
     merge,
 )
 
+from eth_utils import (
+    keccak,
+)
 from trie import (
     BinaryTrie,
 )
@@ -24,9 +27,6 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.utils.state import (
     make_trie_root_and_nodes,

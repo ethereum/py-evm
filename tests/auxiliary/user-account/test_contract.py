@@ -39,16 +39,17 @@ from evm.db import (
     get_db_backend,
 )
 from evm.db.chain import (
-    BaseChainDB,
+    ChainDB,
 )
 from evm.db.state import (
     ShardingAccountStateDB,
 )
 
 from eth_utils import (
+    keccak,
     to_canonical_address,
     int_to_big_endian,
-    big_endian_to_int
+    big_endian_to_int,
 )
 from evm.utils.padding import (
     pad32,
@@ -57,7 +58,6 @@ from evm.utils.padding import (
 from evm.utils.address import (
     generate_CREATE2_contract_address,
 )
-from evm.utils.keccak import keccak
 
 from evm.auxiliary.user_account_contract.transaction import (
     UserAccountTransaction,
@@ -158,7 +158,7 @@ def vm():
         receipt_root=EMPTY_SHA3,
         state_root=EMPTY_SHA3,
     )
-    chaindb = BaseChainDB(
+    chaindb = ChainDB(
         get_db_backend(),
         account_state_class=ShardingAccountStateDB,
         trie_class=BinaryTrie,
