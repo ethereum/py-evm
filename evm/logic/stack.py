@@ -2,10 +2,6 @@ import functools
 
 from evm import constants
 
-from evm.utils.padding import (
-    pad_right,
-)
-
 
 def pop(computation):
     computation.stack.pop(type_hint=constants.ANY)
@@ -17,7 +13,7 @@ def push_XX(computation, size):
     if not raw_value.strip(b'\x00'):
         computation.stack.push(0)
     else:
-        padded_value = pad_right(raw_value, size, b'\x00')
+        padded_value = raw_value.ljust(size, b'\x00')
         computation.stack.push(padded_value)
 
 
