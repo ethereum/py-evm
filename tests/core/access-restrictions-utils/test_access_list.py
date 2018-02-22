@@ -5,6 +5,9 @@ from rlp.exceptions import (
     ListSerializationError,
     ListDeserializationError,
 )
+from eth_utils import (
+    keccak,
+)
 
 from evm.constants import (
     STORAGE_TRIE_PREFIX,
@@ -15,9 +18,6 @@ from evm.validation import (
 
 from evm.rlp.sedes import (
     access_list as access_list_sedes,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.utils.state_access_restriction import (
     is_accessible,

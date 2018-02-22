@@ -211,7 +211,7 @@ class BaseChainDB:
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only, read_list=None, write_list=None):
+    def get_state_db(self, state_root, read_only, access_list=None):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
