@@ -58,10 +58,10 @@ with a vm_configuration, but it also requires a network_id and privkey:
   from evm.chains.mainnet import MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID
   from evm.p2p import ecies
   from evm.p2p.lightchain import LightChain
+  from evm.p2p.peer import LESPeer, PeerPool
 
   DemoLightChain = LightChain.configure(
       name='Demo LightChain',
-      privkey=ecies.generate_privkey(),
       vm_configuration=MAINNET_VM_CONFIGURATION,
       network_id=MAINNET_NETWORK_ID,
   )
@@ -75,9 +75,14 @@ headers, you should tell asyncio to execute its run() method:
   import asyncio
   from evm.db.backends.memory import MemoryDB
   from evm.db.chain import ChainDB
-  from evm.chains.mainnet import MAINNET_GENESIS_HEADER
+  from evm.chains.mainnet import 
 
-  chain = DemoLightChain.from_genesis_header(ChainDB(MemoryDB()), MAINNET_GENESIS_HEADER)
+  # start a fresh in-memory db
+  chaindb = ChainDB(MemoryDB())
+
+  peer_pool = PeerPool(LESPeer, chaindb, MAINNET_NETWORK_ID, ecies.generate_privkey())
+
+  chain = DemoLightChain.from_genesis_header(chaindb, MAINNET_GENESIS_HEADER, peer_pool)
   loop = asyncio.get_event_loop()
   loop.run_until_complete(chain.run())
 
