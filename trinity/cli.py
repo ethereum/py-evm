@@ -87,8 +87,18 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     log_level = logging.DEBUG if debug else LOGLEVEL
     logging.basicConfig(level=log_level, filename=LOGFILE)
 
+    async def run():
+        try:
+            asyncio.ensure_future(chain.peer_pool.run())
+            # chain.run() will run in a loop until our atexit handler is called, at which point it
+            # returns and we cleanly stop the pool and chain.
+            await chain.run()
+        finally:
+            await chain.peer_pool.stop()
+            await chain.stop()
+
     # Start the thread
-    t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),),
+    t = threading.Thread(target=loop.run_until_complete, args=(run(),),
                          daemon=True)
     t.start()
 
@@ -98,13 +108,8 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     shell()
 
     def cleanup():
-        # Instruct chain.run() to exit, which will cause the event loop to stop.
         chain.cancel_token.trigger()
-        # Block until the event loop has stopped.
+        # Wait until run() finishes.
         t.join()
-        # The above was needed because the event loop stops when chain.run() returns and then
-        # chain.stop() would never finish if we just ran it with run_coroutine_threadsafe().
-        loop.run_until_complete(chain.stop())
-        loop.close()
 
     atexit.register(cleanup)

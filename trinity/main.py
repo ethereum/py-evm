@@ -1,13 +1,13 @@
 import argparse
 import asyncio
-import atexit
 from multiprocessing.managers import (
     BaseManager,
 )
+import signal
 import sys
 
 from evm.db.backends.level import LevelDB
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 
 from p2p.peer import (
     LESPeer,
@@ -135,6 +135,12 @@ def main():
         args,
     )
 
+    if not is_data_dir_initialized(chain_config):
+        # TODO: this will only work as is for chains with known genesis
+        # parameters.  Need to flesh out how genesis parameters for custom
+        # chains are defined and passed around.
+        initialize_data_dir(chain_config)
+
     # if console command, run the trinity CLI
     if args.subcommand == 'console':
         use_ipython = not args.vanilla_shell
@@ -143,7 +149,9 @@ def main():
         # TODO: this should use the base `Chain` class rather than the protocol
         # class since it's just a repl with access to the chain.
         chain_class = get_chain_protocol_class(chain_config, sync_mode)
-        chaindb = ChainDB(LevelDB(chain_config.database_dir))
+        chaindb = AsyncChainDB(LevelDB(chain_config.database_dir))
+        if not is_database_initialized(chaindb):
+            initialize_database(chain_config, chaindb)
         peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
 
         chain = chain_class(chaindb, peer_pool)
@@ -209,41 +217,31 @@ def run_networking_process(chain_config, sync_mode):
 
     chaindb = manager.get_chaindb()
 
-    if not is_data_dir_initialized(chain_config):
-        # TODO: this will only work as is for chains with known genesis
-        # parameters.  Need to flesh out how genesis parameters for custom
-        # chains are defined and passed around.
-        initialize_data_dir(chain_config)
-
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
 
     chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
     peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+    chain = chain_class(chaindb, peer_pool)
 
     async def run():
         try:
             asyncio.ensure_future(peer_pool.run())
-            # chain.run() will run in a loop until our atexit handler is called, at which point it returns
-            # and we cleanly stop the pool and chain.
+            # chain.run() will run in a loop until our atexit handler is called, at which point it
+            # returns and we cleanly stop the pool and chain.
             await chain.run()
         finally:
             await peer_pool.stop()
             await chain.stop()
 
-    chain = chain_class(chaindb, peer_pool)
-
     loop = asyncio.get_event_loop()
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, chain.cancel_token.trigger)
 
-    try:
-        loop.run_until_complete(run())
-    except KeyboardInterrupt:
-        pass
+    loop.run_until_complete(run())
+    loop.close()
 
-    def cleanup():
-        # This is to instruct chain.run() to exit, which will cause the event loop to stop.
-        chain.cancel_token.trigger()
 
-        loop.close()
-
-    atexit.register(cleanup)
+if __name__ == "__main__":
+    # XXX: Quick hack so I can run 'python -m trinity.main' from my develop checkout
+    main()
