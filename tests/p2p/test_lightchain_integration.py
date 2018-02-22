@@ -15,9 +15,10 @@ from evm.db.chain import ChainDB
 from evm.vm.forks.frontier import FrontierBlock
 
 from p2p import ecies
-from p2p.integration_test_helpers import LocalGethPeerPool
 from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
+
+from integration_test_helpers import LocalGethPeerPool  # TODO: make sure this import works.
 
 
 IntegrationTestLightChain = LightChain.configure(
