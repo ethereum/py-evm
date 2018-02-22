@@ -27,7 +27,7 @@ setup(
         "eth-keys>=0.2.0b2,<1.0.0",
         "trie>=1.3.0,<2.0.0",
     ],
-    extra_require={
+    extras_require={
         'coincurve': [
             "coincurve>=7.0.0,<8.0.0",
         ],
