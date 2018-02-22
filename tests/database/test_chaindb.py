@@ -7,8 +7,8 @@ from hypothesis import (
 
 import rlp
 
-from evm.utils.fixture_tests import (
-    assert_rlp_equal,
+from eth_utils import (
+    keccak,
 )
 
 from evm.db import (
@@ -21,24 +21,21 @@ from evm.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
-
+from evm.rlp.headers import (
+    BlockHeader,
+)
+from evm.utils.db import (
+    make_block_hash_to_score_lookup_key,
+    make_block_number_to_hash_lookup_key,
+)
+from evm.utils.fixture_tests import (
+    assert_rlp_equal,
+)
 from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
 from evm.vm.forks.homestead.blocks import (
     HomesteadBlock,
-)
-
-from evm.rlp.headers import (
-    BlockHeader,
-)
-
-from evm.utils.db import (
-    make_block_hash_to_score_lookup_key,
-    make_block_number_to_hash_lookup_key,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 

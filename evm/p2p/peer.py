@@ -5,8 +5,6 @@ import struct
 import traceback
 from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
 
-import sha3
-
 import rlp
 from rlp import sedes
 
@@ -14,9 +12,14 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 
+from eth_hash.main import (
+    PreImage,
+)
+
 from eth_utils import (
     decode_hex,
     encode_hex,
+    keccak,
 )
 
 from eth_keys import (
@@ -32,7 +35,6 @@ from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.utils.keccak import keccak
 from evm.p2p import auth
 from evm.p2p import ecies
 from evm.p2p.kademlia import Address, Node
@@ -131,8 +133,8 @@ class BasePeer:
                  writer: asyncio.StreamWriter,
                  aes_secret: bytes,
                  mac_secret: bytes,
-                 egress_mac: sha3.keccak_256,
-                 ingress_mac: sha3.keccak_256,
+                 egress_mac: PreImage,
+                 ingress_mac: PreImage,
                  chaindb: ChainDB,
                  network_id: int,
                  ) -> None:

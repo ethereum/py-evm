@@ -10,6 +10,7 @@ from cytoolz import (
 from eth_utils import (
     is_hex,
     is_integer,
+    is_string,
 )
 
 from evm.rpc import RPCServer
@@ -171,7 +172,7 @@ def validate_rpc_block_vs_fixture_header(block, header_fixture):
 
 
 def is_by_hash(at_block):
-    if is_hex(at_block) and len(at_block) == 66:
+    if is_string(at_block) and is_hex(at_block) and len(at_block) == 66:
         return True
     elif is_integer(at_block) or at_block in ('latest', 'earliest', 'pending'):
         return False

@@ -5,6 +5,7 @@ import logging
 import rlp
 
 from eth_utils import (
+    keccak,
     to_tuple,
 )
 
@@ -29,9 +30,6 @@ from evm.utils.db import (
 )
 from evm.utils.headers import (
     generate_header_from_parent_header,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.validation import (
     validate_length_lte,

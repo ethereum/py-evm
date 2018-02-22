@@ -7,6 +7,10 @@ from rlp.sedes import (
     binary,
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
@@ -17,9 +21,6 @@ from evm.constants import (
 
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 
 from .sedes import (

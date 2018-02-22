@@ -5,13 +5,13 @@ import rlp
 from eth_utils import (
     decode_hex,
     encode_hex,
+    keccak,
 )
 
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
-from evm.utils.keccak import keccak
 from evm.vm.forks.frontier import FrontierBlock
 
 from evm.p2p import ecies

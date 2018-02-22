@@ -21,6 +21,7 @@ import rlp
 from eth_utils import (
     decode_hex,
     force_bytes,
+    keccak,
     to_list,
 )
 
@@ -28,7 +29,6 @@ from eth_keys import keys
 from eth_keys import datatypes
 
 from evm.p2p import kademlia
-from evm.utils.keccak import keccak
 from evm.utils.numeric import (
     big_endian_to_int,
     int_to_big_endian,

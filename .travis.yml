@@ -3,7 +3,7 @@ language: python
 dist: trusty
 env:
   global:
-    - PYTEST_ADDOPTS="-n 2 --durations 50"
+    - PYTEST_ADDOPTS="-n 2 --durations 50 --maxfail 50"
 matrix:
   include:
     #

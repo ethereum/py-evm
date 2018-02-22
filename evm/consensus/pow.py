@@ -6,11 +6,12 @@ from pyethash import (
     mkcache_bytes,
 )
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.exceptions import (
     ValidationError,

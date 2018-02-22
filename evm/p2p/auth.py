@@ -5,17 +5,25 @@ import random
 import struct
 from typing import Tuple
 
-import sha3
-
 import rlp
 from rlp import sedes
 
-from eth_keys import keys
-from eth_keys import datatypes
+from eth_keys import (
+    datatypes,
+    keys,
+)
 
-from evm.utils.keccak import (
+from eth_hash.main import (
+    PreImage,
+)
+from eth_hash.auto import (
+    keccak as keccak_with_digest,
+)
+
+from eth_utils import (
     keccak,
 )
+
 from evm.p2p import ecies
 from evm.p2p import kademlia
 from evm.p2p.utils import (
@@ -36,7 +44,7 @@ from .constants import (
 
 
 async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tuple[
-        bytes, bytes, sha3.keccak_256, sha3.keccak_256, asyncio.StreamReader, asyncio.StreamWriter]:
+    bytes, bytes, PreImage, PreImage, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
     """
     Perform the auth handshake with given remote.
 
@@ -52,7 +60,7 @@ async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tup
 
 async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamReader,
                      writer: asyncio.StreamWriter
-                     ) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256]:
+                     ) -> Tuple[bytes, bytes, PreImage, PreImage]:
     """See the handshake() function above.
 
     This code was factored out into this helper so that we can create Peers with directly
@@ -105,27 +113,31 @@ class HandshakeBase:
                        remote_ephemeral_pubkey: datatypes.PublicKey,
                        auth_init_ciphertext: bytes,
                        auth_ack_ciphertext: bytes
-                       ) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256]:
+                       ) -> Tuple[bytes, bytes, PreImage, PreImage]:
         """Derive base secrets from ephemeral key agreement."""
         # ecdhe-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
         ecdhe_shared_secret = ecies.ecdh_agree(
             self.ephemeral_privkey, remote_ephemeral_pubkey)
 
-        # shared-secret = sha3(ecdhe-shared-secret || sha3(nonce || initiator-nonce))
+        # shared-secret = keccak(ecdhe-shared-secret || keccak(nonce || initiator-nonce))
         shared_secret = keccak(
             ecdhe_shared_secret + keccak(responder_nonce + initiator_nonce))
 
-        # aes-secret = sha3(ecdhe-shared-secret || shared-secret)
+        # aes-secret = keccak(ecdhe-shared-secret || shared-secret)
         aes_secret = keccak(ecdhe_shared_secret + shared_secret)
 
-        # mac-secret = sha3(ecdhe-shared-secret || aes-secret)
+        # mac-secret = keccak(ecdhe-shared-secret || aes-secret)
         mac_secret = keccak(ecdhe_shared_secret + aes_secret)
 
-        # setup sha3 instances for the MACs
-        # egress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-sent-init)
-        mac1 = sha3.keccak_256(sxor(mac_secret, responder_nonce) + auth_init_ciphertext)
-        # ingress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-recvd-ack)
-        mac2 = sha3.keccak_256(sxor(mac_secret, initiator_nonce) + auth_ack_ciphertext)
+        # setup keccak instances for the MACs
+        # egress-mac = keccak_with_digest.new(mac-secret ^ recipient-nonce || auth-sent-init)
+        mac1 = keccak_with_digest.new(
+            sxor(mac_secret, responder_nonce) + auth_init_ciphertext
+        )
+        # ingress-mac = keccak_with_digest.new(mac-secret ^ initiator-nonce || auth-recvd-ack)
+        mac2 = keccak_with_digest.new(
+            sxor(mac_secret, initiator_nonce) + auth_ack_ciphertext
+        )
 
         if self._is_initiator:
             egress_mac, ingress_mac = mac1, mac2

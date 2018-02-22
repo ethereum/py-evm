@@ -16,7 +16,11 @@ from trie.sync import HexaryTrieSync
 from trie.exceptions import SyncRequestAlreadyProcessed
 
 from eth_keys import datatypes  # noqa: F401
-from eth_utils import (decode_hex, encode_hex)
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+    keccak,
+)
 
 from evm.constants import (
     BLANK_ROOT_HASH,
@@ -25,7 +29,6 @@ from evm.constants import (
 from evm.db.backends.base import BaseDB
 from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
-from evm.utils.keccak import keccak
 from evm.p2p import eth
 from evm.p2p.exceptions import PeerFinished
 from evm.p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
