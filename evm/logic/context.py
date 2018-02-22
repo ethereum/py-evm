@@ -9,9 +9,6 @@ from evm.utils.address import (
 from evm.utils.numeric import (
     ceil32,
 )
-from evm.utils.padding import (
-    pad_right,
-)
 
 
 def balance(computation):
@@ -44,7 +41,7 @@ def calldataload(computation):
     start_position = computation.stack.pop(type_hint=constants.UINT256)
 
     value = computation.msg.data[start_position:start_position + 32]
-    padded_value = pad_right(value, 32, b'\x00')
+    padded_value = value.ljust(32, b'\x00')
     normalized_value = padded_value.lstrip(b'\x00')
 
     computation.stack.push(normalized_value)
@@ -70,7 +67,7 @@ def calldatacopy(computation):
     computation.gas_meter.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
     value = computation.msg.data[calldata_start_position: calldata_start_position + size]
-    padded_value = pad_right(value, size, b'\x00')
+    padded_value = value.ljust(size, b'\x00')
 
     computation.memory.write(mem_start_position, size, padded_value)
 
@@ -100,7 +97,7 @@ def codecopy(computation):
     with computation.code.seek(code_start_position):
         code_bytes = computation.code.read(size)
 
-    padded_code_bytes = pad_right(code_bytes, size, b'\x00')
+    padded_code_bytes = code_bytes.ljust(size, b'\x00')
 
     computation.memory.write(mem_start_position, size, padded_code_bytes)
 
@@ -138,7 +135,7 @@ def extcodecopy(computation):
     with computation.vm_state.state_db(read_only=True) as state_db:
         code = state_db.get_code(account)
     code_bytes = code[code_start_position:code_start_position + size]
-    padded_code_bytes = pad_right(code_bytes, size, b'\x00')
+    padded_code_bytes = code_bytes.ljust(size, b'\x00')
 
     computation.memory.write(mem_start_position, size, padded_code_bytes)
 
