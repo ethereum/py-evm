@@ -264,7 +264,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     vm_state = vm.state
-    with vm_state.state_db() as state_db:
+    with vm_state.mutable_state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root

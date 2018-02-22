@@ -43,7 +43,7 @@ def get_header(chain, at_block):
 def state_at_block(chain, at_block, read_only=True):
     at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
-    with vm.state.state_db(read_only=read_only) as state:
+    with vm.state.read_only_state_db() as state:
         yield state
 
 

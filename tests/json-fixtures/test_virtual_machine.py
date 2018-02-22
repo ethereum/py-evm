@@ -185,7 +185,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     )
     vm = vm_class(header=header, chaindb=chaindb)
     vm_state = vm.state
-    with vm_state.state_db() as state_db:
+    with vm_state.mutable_state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
     # Update state_root manually
@@ -243,5 +243,5 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         assert isinstance(computation._error, VMError)
         post_state = fixture['pre']
 
-    with vm.state.state_db(read_only=True) as state_db:
+    with vm.state.read_only_state_db() as state_db:
         verify_state_db(post_state, state_db)
