@@ -119,7 +119,7 @@ class BaseCall(Opcode):
                     child_computation.output[:actual_output_size],
                 )
 
-            if not child_computation.should_burn_gas:
+            if child_computation.should_return_gas:
                 computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
 
 

@@ -120,6 +120,10 @@ class BaseComputation(Configurable):
         return self.is_error and self._error.burns_gas
 
     @property
+    def should_return_gas(self):
+        return not self.should_burn_gas
+
+    @property
     def should_erase_return_data(self):
         return self.is_error and self._error.erases_return_data
 
