@@ -211,6 +211,5 @@ def test_get_witness_nodes(populated_shard_chaindb_and_root_hash):
         get_storage_key(B_ADDRESS, big_endian_to_int(b"")),
     ]
 
-    witness_nodes = chaindb.get_witness_nodes(header, prefixes)
+    witness_nodes = chaindb.get_witness_nodes(header.state_root, prefixes)
     assert len(witness_nodes) == len(set(witness_nodes))  # no duplicates
-    assert sorted(witness_nodes) == sorted(witness_nodes)  # sorted
