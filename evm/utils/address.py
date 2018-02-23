@@ -29,4 +29,4 @@ def generate_CREATE2_contract_address(salt, code):
     validate_is_bytes(salt)
     validate_is_bytes(code)
 
-    return keccak(pad_left(salt, 32, b'\x00') + code)[-20:]
+    return keccak(salt.rjust(32, b'\x00') + code)[-20:]
