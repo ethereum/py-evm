@@ -223,6 +223,7 @@ def run_networking_process(
         chain_config: ChainConfig,
         sync_mode: str,
         pool_class: Type[PeerPool]) -> None:
+
     class DBManager(BaseManager):
         pass
 

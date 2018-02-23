@@ -113,6 +113,7 @@ def console(
 
 
 async def run_lightchain(lightchain: LightChain) -> None:
+
     try:
         asyncio.ensure_future(lightchain.peer_pool.run())
         await lightchain.run()
