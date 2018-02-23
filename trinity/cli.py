@@ -4,6 +4,8 @@ import logging
 import traceback
 import threading
 
+from p2p.lightchain import LightChain
+
 
 LOGFILE = '/tmp/trinity-shell.log'
 LOGLEVEL = logging.INFO
@@ -71,7 +73,12 @@ def python_shell(namespace=None, banner=None, debug=False):
     return partial(shell.interact, **kwargs)
 
 
-def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
+def console(
+        chain: LightChain,
+        use_ipython: bool = True,
+        namespace: dict = None,
+        banner: str = None,
+        debug: bool = False) -> None:
     """
     Method that starts the chain, setups the trinity CLI and register the
     cleanup function.
@@ -105,7 +112,8 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     atexit.register(cleanup)
 
 
-async def run_lightchain(lightchain):
+async def run_lightchain(lightchain: LightChain) -> None:
+
     try:
         asyncio.ensure_future(lightchain.peer_pool.run())
         await lightchain.run()

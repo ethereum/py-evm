@@ -5,6 +5,7 @@ from multiprocessing.managers import (
 )
 import signal
 import sys
+from typing import Type
 
 from evm.db.backends.level import LevelDB
 
@@ -122,10 +123,9 @@ console_parser.add_argument(
     default=False,
     help='start a native Python shell'
 )
-console_parser.set_defaults(func=console)
 
 
-def main():
+def main() -> None:
     args = parser.parse_args()
 
     if args.ropsten:
@@ -169,7 +169,7 @@ def main():
         peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
 
         chain = chain_class(chaindb, peer_pool)
-        args.func(chain, use_ipython=use_ipython, debug=debug)
+        console(chain, use_ipython=use_ipython, debug=debug)
         sys.exit(0)
 
     logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
@@ -212,24 +212,30 @@ def main():
 
 
 @with_queued_logging
-def run_database_process(chain_config, db_class):
+def run_database_process(chain_config: ChainConfig, db_class: Type[LevelDB]) -> None:
     db = db_class(db_path=chain_config.database_dir)
 
     serve_chaindb(db, chain_config.database_ipc_path)
 
 
 @with_queued_logging
-def run_networking_process(chain_config, sync_mode, pool_class):
+def run_networking_process(
+        chain_config: ChainConfig,
+        sync_mode: str,
+        pool_class: Type[PeerPool]) -> None:
+
     class DBManager(BaseManager):
         pass
 
-    DBManager.register('get_db', proxytype=DBProxy)
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)
+    # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
+    # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
+    DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
+    DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
 
-    manager = DBManager(address=chain_config.database_ipc_path)
-    manager.connect()
+    manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
+    manager.connect()  # type: ignore
 
-    chaindb = manager.get_chaindb()
+    chaindb = manager.get_chaindb()  # type: ignore
 
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
