@@ -35,7 +35,7 @@ from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.utils.fixture_tests import (
+from evm.tools.fixture_tests import (
     filter_fixtures,
     generate_fixture_tests,
     hash_log_entries,

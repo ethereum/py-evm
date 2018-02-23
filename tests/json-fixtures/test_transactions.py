@@ -26,8 +26,7 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-
-from evm.utils.fixture_tests import (
+from evm.tools.fixture_tests import (
     generate_fixture_tests,
     load_fixture,
     normalize_transactiontest_fixture,

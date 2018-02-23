@@ -10,7 +10,7 @@ from evm.rlp.headers import (
     BlockHeader,
 )
 
-from evm.utils.fixture_tests import (
+from evm.tools.fixture_tests import (
     apply_fixture_block_to_chain,
     new_chain_from_fixture,
     genesis_params_from_fixture,

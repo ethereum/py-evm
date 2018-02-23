@@ -48,7 +48,7 @@ Then to initialize, you can start it up with an in-memory database:
 Using the LightChain object
 ---------------------------
 
-The :class:`~evm.p2p.lightchain.LightChain` is like a Chain but it will also
+The :class:`~p2p.lightchain.LightChain` is like a Chain but it will also
 connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader` s
 as they are announced on the network. As such, it must first be configured
 with a vm_configuration, but it also requires a network_id and privkey:
@@ -56,9 +56,9 @@ with a vm_configuration, but it also requires a network_id and privkey:
 ::
 
   from evm.chains.mainnet import MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID
-  from evm.p2p import ecies
-  from evm.p2p.lightchain import LightChain
-  from evm.p2p.peer import LESPeer, PeerPool
+  from p2p import ecies
+  from p2p.lightchain import LightChain
+  from p2p.peer import LESPeer, PeerPool
 
   DemoLightChain = LightChain.configure(
       name='Demo LightChain',

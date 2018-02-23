@@ -5,8 +5,9 @@ import os
 
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
 from evm.db.chain import ChainDB
-from evm.p2p import ecies
 from evm.exceptions import CanonicalHeadNotFound
+
+from p2p import ecies
 
 from trinity.constants import (
     ROPSTEN,

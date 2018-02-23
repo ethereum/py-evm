@@ -13,10 +13,8 @@ setup(
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
-    py_modules=['evm', 'trinity'],
+    py_modules=['evm', 'trinity', 'p2p'],
     install_requires=[
-        "aiohttp>=2.3.1,<3.0.0",
-        "async_lru>=0.1.0,<1.0.0",
         "cryptography>=2.0.3,<3.0.0",
         "cytoolz>=0.9.0,<1.0.0",
         "eth-bloom>=1.0.0,<2.0.0",
@@ -37,6 +35,11 @@ setup(
         'trinity': [
             "leveldb>=0.194,<1.0.0",
             "coincurve>=7.0.0,<8.0.0",
+            "eth-hash[pycryptodome]>=0.1.0a4,<1.0.0",
+        ],
+        'p2p': [
+            "aiohttp>=2.3.1,<3.0.0",
+            "async_lru>=0.1.0,<1.0.0",
         ],
     },
     setup_requires=['setuptools-markdown'],
