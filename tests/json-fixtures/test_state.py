@@ -172,7 +172,7 @@ def get_block_hash_for_testing(self, block_number):
     elif block_number < self.block_number - 256:
         return b''
     else:
-        return keccak("{0}".format(block_number))
+        return keccak(text="{0}".format(block_number))
 
 
 def get_prev_hashes_testing(self, last_block_hash, db):

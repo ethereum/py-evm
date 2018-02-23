@@ -49,7 +49,6 @@ def test_trigger_PAYGAS(unvalidated_shard_chain):  # noqa: F811
         amount,
         bytes([gas_price]),
         vrs,
-        b''
     )
 
     with vm.state.state_db(read_only=True) as state_db:
@@ -90,7 +89,7 @@ def test_PAYGAS_not_triggered(unvalidated_shard_chain):  # noqa: F811
     tx_initiator = forwarder_contract_address
     gas_price = bytes([0])
     vrs = 64 * b'\xAA' + b'\x01'
-    trigger_tx = new_sharding_transaction(tx_initiator, recipient, amount, gas_price, vrs, b'')
+    trigger_tx = new_sharding_transaction(tx_initiator, recipient, amount, gas_price, vrs)
 
     with vm.state.state_db(read_only=True) as state_db:
         balance_before_trigger = state_db.get_balance(forwarder_contract_address)
@@ -125,7 +124,7 @@ def test_PAYGAS_zero_gas_price(unvalidated_shard_chain):  # noqa: F811
     tx_initiator = PAYGAS_contract_address
     gas_price = bytes([0])
     vrs = 64 * b'\xAA' + b'\x01'
-    trigger_tx = new_sharding_transaction(tx_initiator, recipient, amount, gas_price, vrs, b'')
+    trigger_tx = new_sharding_transaction(tx_initiator, recipient, amount, gas_price, vrs)
 
     with vm.state.state_db(read_only=True) as state_db:
         balance_before_trigger = state_db.get_balance(PAYGAS_contract_address)
@@ -182,7 +181,6 @@ def test_PAYGAS_not_in_top_level_call(unvalidated_shard_chain):  # noqa: F811
         amount,
         recipient,
         vrs,
-        b'',
         access_list=access_list
     )
 
@@ -231,7 +229,6 @@ def test_PAYGAS_triggered_twice(unvalidated_shard_chain):  # noqa: F811
         amount,
         bytes([gas_price]),
         vrs,
-        b''
     )
 
     last_gas_used = vm.block.header.gas_used
