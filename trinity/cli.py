@@ -87,18 +87,8 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     log_level = logging.DEBUG if debug else LOGLEVEL
     logging.basicConfig(level=log_level, filename=LOGFILE)
 
-    async def run():
-        try:
-            asyncio.ensure_future(chain.peer_pool.run())
-            # chain.run() will run in a loop until our atexit handler is called, at which point it
-            # returns and we cleanly stop the pool and chain.
-            await chain.run()
-        finally:
-            await chain.peer_pool.stop()
-            await chain.stop()
-
     # Start the thread
-    t = threading.Thread(target=loop.run_until_complete, args=(run(),),
+    t = threading.Thread(target=loop.run_until_complete, args=(run_lightchain(chain),),
                          daemon=True)
     t.start()
 
@@ -113,3 +103,12 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
         t.join()
 
     atexit.register(cleanup)
+
+
+async def run_lightchain(lightchain):
+    try:
+        asyncio.ensure_future(lightchain.peer_pool.run())
+        await lightchain.run()
+    finally:
+        await lightchain.peer_pool.stop()
+        await lightchain.stop()

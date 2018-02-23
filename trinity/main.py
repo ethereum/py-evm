@@ -7,7 +7,6 @@ import signal
 import sys
 
 from evm.db.backends.level import LevelDB
-from evm.db.chain import AsyncChainDB
 
 from p2p.peer import (
     LESPeer,
@@ -23,7 +22,10 @@ from trinity.chains import (
     is_database_initialized,
     serve_chaindb,
 )
-from trinity.cli import console
+from trinity.cli import (
+    console,
+    run_lightchain,
+)
 from trinity.constants import (
     ROPSTEN,
     SYNC_LIGHT,
@@ -44,6 +46,8 @@ from trinity.utils.logging import (
 from trinity.utils.mp import (
     ctx,
 )
+
+from tests.p2p.integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
 
 
 DEFAULT_LOG_LEVEL = 'info'
@@ -102,6 +106,12 @@ parser.add_argument(
         "The filesystem path to the file which contains the nodekey"
     )
 )
+parser.add_argument(
+    '--local-geth',
+    action="store_true",
+    default=False,
+    help='Connect only to a local geth instance'
+)
 
 # Add console sub-command to trinity CLI.
 subparser = parser.add_subparsers(dest='subcommand')
@@ -141,6 +151,10 @@ def main():
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
 
+    pool_class = PeerPool
+    if args.local_geth:
+        pool_class = LocalGethPeerPool
+
     # if console command, run the trinity CLI
     if args.subcommand == 'console':
         use_ipython = not args.vanilla_shell
@@ -149,10 +163,10 @@ def main():
         # TODO: this should use the base `Chain` class rather than the protocol
         # class since it's just a repl with access to the chain.
         chain_class = get_chain_protocol_class(chain_config, sync_mode)
-        chaindb = AsyncChainDB(LevelDB(chain_config.database_dir))
+        chaindb = FakeAsyncChainDB(LevelDB(chain_config.database_dir))
         if not is_database_initialized(chaindb):
             initialize_database(chain_config, chaindb)
-        peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+        peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
 
         chain = chain_class(chaindb, peer_pool)
         args.func(chain, use_ipython=use_ipython, debug=debug)
@@ -177,7 +191,7 @@ def main():
     # For now we just run the light sync against ropsten by default.
     networking_process = ctx.Process(
         target=run_networking_process,
-        args=(chain_config, sync_mode),
+        args=(chain_config, sync_mode, pool_class),
         kwargs={'log_queue': log_queue}
     )
 
@@ -205,7 +219,7 @@ def run_database_process(chain_config, db_class):
 
 
 @with_queued_logging
-def run_networking_process(chain_config, sync_mode):
+def run_networking_process(chain_config, sync_mode, pool_class):
     class DBManager(BaseManager):
         pass
 
@@ -221,27 +235,12 @@ def run_networking_process(chain_config, sync_mode):
         initialize_database(chain_config, chaindb)
 
     chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
-    peer_pool = PeerPool(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+    peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
     chain = chain_class(chaindb, peer_pool)
-
-    async def run():
-        try:
-            asyncio.ensure_future(peer_pool.run())
-            # chain.run() will run in a loop until our atexit handler is called, at which point it
-            # returns and we cleanly stop the pool and chain.
-            await chain.run()
-        finally:
-            await peer_pool.stop()
-            await chain.stop()
 
     loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, chain.cancel_token.trigger)
 
-    loop.run_until_complete(run())
+    loop.run_until_complete(run_lightchain(chain))
     loop.close()
-
-
-if __name__ == "__main__":
-    # XXX: Quick hack so I can run 'python -m trinity.main' from my develop checkout
-    main()
