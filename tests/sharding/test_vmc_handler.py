@@ -253,6 +253,7 @@ def test_shard_tracker_fetch_candidate_head(vmc,
         log = shard_tracker.fetch_candidate_head()
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_vmc_contract_calls(vmc):  # noqa: F811
     shard_id = 0
     validator_index = 0
