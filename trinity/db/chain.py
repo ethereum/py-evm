@@ -5,10 +5,6 @@ from multiprocessing.managers import (
     BaseProxy,
 )
 
-from evm.db.chain import (
-    ChainDB,
-)
-
 
 def async_method(method_name):
     async def method(self, *args, **kwargs):
@@ -42,20 +38,3 @@ class ChainDBProxy(BaseProxy):
     header_exists = sync_method('header_exists')
     lookup_block_hash = sync_method('lookup_block_hash')
     persist_header_to_db = sync_method('persist_header_to_db')
-
-
-class AsyncChainDB(ChainDB):
-    async def coro_get_block_header_by_hash(self, *args, **kwargs):
-        return self.get_block_header_by_hash(*args, **kwargs)
-
-    async def coro_get_canonical_head(self, *args, **kwargs):
-        return self.get_canonical_head(*args, **kwargs)
-
-    async def coro_header_exists(self, *args, **kwargs):
-        return self.header_exists(*args, **kwargs)
-
-    async def coro_lookup_block_hash(self, *args, **kwargs):
-        return self.lookup_block_hash(*args, **kwargs)
-
-    async def coro_persist_header_to_db(self, *args, **kwargs):
-        return self.persist_header_to_db(*args, **kwargs)

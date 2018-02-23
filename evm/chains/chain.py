@@ -15,6 +15,7 @@ from evm.consensus.pow import (
 from evm.constants import (
     MAX_UNCLE_DEPTH,
 )
+from evm.db.chain import AsyncChainDB
 from evm.estimators import (
     get_gas_estimator,
 )
@@ -62,13 +63,13 @@ class Chain(Configurable):
     vms_by_range = None
     gas_estimator = None
 
-    def __init__(self, chaindb, header=None):
+    def __init__(self, chaindb: AsyncChainDB, header=None):
         if not self.vms_by_range:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"
             )
 
-        self.chaindb = chaindb
+        self.chaindb = chaindb  # type: AsyncChainDB
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())

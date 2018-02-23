@@ -31,7 +31,7 @@ from trie import HexaryTrie
 
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.exceptions import BlockNotFound
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
@@ -84,7 +84,7 @@ _ReceivedMsgCallbackType = Callable[
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
-                    chaindb: ChainDB,
+                    chaindb: AsyncChainDB,
                     network_id: int,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -137,7 +137,7 @@ class BasePeer:
                  mac_secret: bytes,
                  egress_mac: PreImage,
                  ingress_mac: PreImage,
-                 chaindb: ChainDB,
+                 chaindb: AsyncChainDB,
                  network_id: int,
                  ) -> None:
         self._finished = asyncio.Event()
@@ -161,10 +161,10 @@ class BasePeer:
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
 
-    def send_sub_proto_handshake(self):
+    async def send_sub_proto_handshake(self):
         raise NotImplementedError()
 
-    def process_sub_proto_handshake(
+    async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError()
 
@@ -173,14 +173,14 @@ class BasePeer:
 
         Raises HandshakeFailure if the handshake is not successful.
         """
-        self.send_sub_proto_handshake()
+        await self.send_sub_proto_handshake()
         cmd, msg = await self.read_msg()
         if isinstance(cmd, Disconnect):
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
                 "{} disconnected before completing sub-proto handshake: {}".format(
                     self, msg['reason_name']))
-        self.process_sub_proto_handshake(cmd, msg)
+        await self.process_sub_proto_handshake(cmd, msg)
         self.logger.debug("Finished %s handshake with %s", self.sub_proto, self.remote)
 
     async def do_p2p_handshake(self):
@@ -206,15 +206,15 @@ class BasePeer:
         return await wait_with_token(self.sub_proto_msg_queue.get(), combined_token)
 
     @property
-    def genesis(self) -> BlockHeader:
-        genesis_hash = self.chaindb.lookup_block_hash(GENESIS_BLOCK_NUMBER)
-        return self.chaindb.get_block_header_by_hash(genesis_hash)
+    async def genesis(self) -> BlockHeader:
+        genesis_hash = await self.chaindb.coro_lookup_block_hash(GENESIS_BLOCK_NUMBER)
+        return await self.chaindb.coro_get_block_header_by_hash(genesis_hash)
 
     @property
-    def _local_chain_info(self) -> 'ChainInfo':
-        genesis = self.genesis
-        head = self.chaindb.get_canonical_head()
-        total_difficulty = self.chaindb.get_score(head.hash)
+    async def _local_chain_info(self) -> 'ChainInfo':
+        genesis = await self.genesis
+        head = await self.chaindb.coro_get_canonical_head()
+        total_difficulty = await self.chaindb.coro_get_score(head.hash)
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
@@ -453,10 +453,10 @@ class LESPeer(BasePeer):
         super().__init__(*args, **kwargs)
         self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
 
-    def send_sub_proto_handshake(self):
-        self.sub_proto.send_handshake(self._local_chain_info)
+    async def send_sub_proto_handshake(self):
+        self.sub_proto.send_handshake(await self._local_chain_info)
 
-    def process_sub_proto_handshake(
+    async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, (les.Status, les.StatusV2)):
             self.disconnect(DisconnectReason.other)
@@ -468,11 +468,12 @@ class LESPeer(BasePeer):
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['networkId'], self.network_id))
-        if msg['genesisHash'] != self.genesis.hash:
+        genesis = await self.genesis
+        if msg['genesisHash'] != genesis.hash:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesisHash']), self.genesis.hex_hash))
+                    self, encode_hex(msg['genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
         self.head_info = cmd.as_head_info(msg)
 
@@ -579,10 +580,10 @@ class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto = None  # type: eth.ETHProtocol
 
-    def send_sub_proto_handshake(self):
-        self.sub_proto.send_handshake(self._local_chain_info)
+    async def send_sub_proto_handshake(self):
+        self.sub_proto.send_handshake(await self._local_chain_info)
 
-    def process_sub_proto_handshake(
+    async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, eth.Status):
             self.disconnect(DisconnectReason.other)
@@ -594,11 +595,12 @@ class ETHPeer(BasePeer):
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['network_id'], self.network_id))
-        if msg['genesis_hash'] != self.genesis.hash:
+        genesis = await self.genesis
+        if msg['genesis_hash'] != genesis.hash:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesis_hash']), self.genesis.hex_hash))
+                    self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
 
 
 class PeerPoolSubscriber:
@@ -615,7 +617,7 @@ class PeerPool:
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: ChainDB,
+                 chaindb: AsyncChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  ) -> None:
@@ -783,6 +785,7 @@ def _test():
     import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
@@ -800,7 +803,7 @@ def _test():
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-    chaindb = ChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()

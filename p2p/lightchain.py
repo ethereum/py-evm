@@ -21,7 +21,7 @@ from eth_utils import (
 
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
@@ -54,7 +54,7 @@ class LightChain(Chain, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.lightchain.LightChain")
     max_consecutive_timeouts = 5
 
-    def __init__(self, chaindb: ChainDB, peer_pool: PeerPool) -> None:
+    def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
@@ -296,69 +296,3 @@ class LightChain(Chain, PeerPoolSubscriber):
     async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
         peer = await self.get_best_peer()
         return await peer.get_contract_code(block_hash, key, self.cancel_token)
-
-
-def _test():
-    import argparse
-    import signal
-    from evm.chains.mainnet import (
-        MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
-    from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
-    from evm.db.backends.level import LevelDB
-    from evm.exceptions import CanonicalHeadNotFound
-    from p2p import ecies
-    from p2p.integration_test_helpers import LocalGethPeerPool
-
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger("p2p.lightchain.LightChain").setLevel(logging.DEBUG)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-db', type=str, required=True)
-    parser.add_argument('-mainnet', action="store_true")
-    parser.add_argument('-local-geth', action="store_true")
-    args = parser.parse_args()
-
-    GENESIS_HEADER = ROPSTEN_GENESIS_HEADER
-    NETWORK_ID = ROPSTEN_NETWORK_ID
-    if args.mainnet:
-        GENESIS_HEADER = MAINNET_GENESIS_HEADER
-        NETWORK_ID = MAINNET_NETWORK_ID
-    DemoLightChain = LightChain.configure(
-        'DemoLightChain',
-        vm_configuration=MAINNET_VM_CONFIGURATION,
-        network_id=NETWORK_ID,
-    )
-
-    chaindb = ChainDB(LevelDB(args.db))
-    if args.local_geth:
-        peer_pool = LocalGethPeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
-    else:
-        peer_pool = PeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
-    try:
-        chaindb.get_canonical_head()
-    except CanonicalHeadNotFound:
-        # We're starting with a fresh DB.
-        chain = DemoLightChain.from_genesis_header(chaindb, GENESIS_HEADER, peer_pool)
-    else:
-        # We're reusing an existing db.
-        chain = DemoLightChain(chaindb, peer_pool)
-
-    asyncio.ensure_future(peer_pool.run())
-    loop = asyncio.get_event_loop()
-
-    async def run():
-        # chain.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
-        # token, at which point it returns and we stop the pool and chain.
-        await chain.run()
-        await peer_pool.stop()
-        await chain.stop()
-
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, chain.cancel_token.trigger)
-
-    loop.run_until_complete(run())
-    loop.close()
-
-
-if __name__ == '__main__':
-    _test()

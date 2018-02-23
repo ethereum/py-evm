@@ -11,7 +11,6 @@ from evm.chains.mainnet import (
     MAINNET_VM_CONFIGURATION,
 )
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
 from evm.rlp.headers import BlockHeader
 
 from p2p.les import (
@@ -25,6 +24,7 @@ from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 from p2p import protocol
 
+from integration_test_helpers import FakeAsyncChainDB
 from peer_helpers import (
     get_directly_linked_peers,
     get_fresh_mainnet_chaindb,
@@ -277,7 +277,7 @@ def chaindb_mainnet_100():
     here = os.path.dirname(__file__)
     headers_rlp = open(os.path.join(here, 'fixtures', 'sample_1000_headers_rlp'), 'r+b').read()
     headers = rlp.decode(headers_rlp, sedes=sedes.CountableList(BlockHeader))
-    chaindb = ChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     for i in range(0, 101):
         chaindb.persist_header_to_db(headers[i])
     return chaindb

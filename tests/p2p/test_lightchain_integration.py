@@ -11,14 +11,13 @@ from eth_utils import (
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
 from evm.vm.forks.frontier import FrontierBlock
 
 from p2p import ecies
 from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 
-from integration_test_helpers import LocalGethPeerPool  # TODO: make sure this import works.
+from integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
 
 
 IntegrationTestLightChain = LightChain.configure(
@@ -44,7 +43,7 @@ async def test_lightchain_integration(request, event_loop):
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
-    chaindb = ChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     peer_pool = LocalGethPeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
     chain = IntegrationTestLightChain(chaindb, peer_pool)

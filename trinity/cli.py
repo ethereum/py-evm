@@ -88,7 +88,7 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     logging.basicConfig(level=log_level, filename=LOGFILE)
 
     # Start the thread
-    t = threading.Thread(target=loop.run_until_complete, args=(chain.run(),),
+    t = threading.Thread(target=loop.run_until_complete, args=(run_lightchain(chain),),
                          daemon=True)
     t.start()
 
@@ -98,13 +98,17 @@ def console(chain, use_ipython=True, namespace=None, banner=None, debug=False):
     shell()
 
     def cleanup():
-        # Instruct chain.run() to exit, which will cause the event loop to stop.
         chain.cancel_token.trigger()
-        # Block until the event loop has stopped.
+        # Wait until run() finishes.
         t.join()
-        # The above was needed because the event loop stops when chain.run() returns and then
-        # chain.stop() would never finish if we just ran it with run_coroutine_threadsafe().
-        loop.run_until_complete(chain.stop())
-        loop.close()
 
     atexit.register(cleanup)
+
+
+async def run_lightchain(lightchain):
+    try:
+        asyncio.ensure_future(lightchain.peer_pool.run())
+        await lightchain.run()
+    finally:
+        await lightchain.peer_pool.stop()
+        await lightchain.stop()

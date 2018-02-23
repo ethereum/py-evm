@@ -14,11 +14,11 @@ from p2p import ecies
 from p2p import kademlia
 from p2p.peer import LESPeer
 
-from trinity.db.chain import AsyncChainDB
+from integration_test_helpers import FakeAsyncChainDB
 
 
 def get_fresh_mainnet_chaindb():
-    chaindb = AsyncChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(MAINNET_GENESIS_HEADER)
     return chaindb
 

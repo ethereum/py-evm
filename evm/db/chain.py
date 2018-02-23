@@ -545,3 +545,23 @@ class ChainDB(BaseChainDB):
     #
     def get_state_db(self, state_root, read_only):
         return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)
+
+
+class AsyncChainDB(ChainDB):
+    async def coro_get_score(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_block_header_by_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_canonical_head(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_header_exists(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_lookup_block_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_persist_header_to_db(self, *args, **kwargs):
+        raise NotImplementedError()
