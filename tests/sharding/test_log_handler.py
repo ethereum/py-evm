@@ -87,6 +87,7 @@ def contract():
     return w3.eth.contract(contract_address, abi=abi, bytecode=bytecode)
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_preprocess_block_param(contract):
     w3 = contract.web3
     current_block_number = contract.web3.eth.blockNumber
@@ -99,6 +100,7 @@ def test_preprocess_block_param(contract):
         preprocess_block_param(w3, block_hash)
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_log_handler_mk_filter_params(contract):
     log_handler = LogHandler(contract.web3)
     filter_params = log_handler.mk_filter_params(1, 2)
@@ -111,6 +113,7 @@ def test_log_handler_mk_filter_params(contract):
     assert topics == filter_params_with_address['topics']
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_get_recent_block_hashes(contract):
     w3 = contract.web3
     block0 = w3.eth.getBlock(0)
@@ -128,6 +131,7 @@ def test_get_recent_block_hashes(contract):
     assert block3['hash'] == recent_block_hashes[3]
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_check_chain_head_without_forks(contract):
     w3 = contract.web3
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
@@ -173,6 +177,7 @@ def test_check_chain_head_without_forks(contract):
     assert block5['hash'] == new_block_hashes[2]
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_check_chain_head_with_forks(contract):
     w3 = contract.web3
     counter = itertools.count()
@@ -223,6 +228,7 @@ def test_check_chain_head_with_forks(contract):
     assert block4_prime['hash'] == new_block_hashes[-1]
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_log_handler_get_new_logs_without_forks(contract):
     w3 = contract.web3
     log_handler = LogHandler(w3)
@@ -250,6 +256,7 @@ def test_log_handler_get_new_logs_without_forks(contract):
     assert log_handler.get_new_logs() == tuple()
 
 
+@pytest.mark.xfail(reason="eth-tester package issue")
 def test_log_handler_get_new_logs_with_forks(contract):
     w3 = contract.web3
     log_handler = LogHandler(w3)
