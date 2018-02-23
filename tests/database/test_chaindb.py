@@ -24,12 +24,12 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.tools.fixture_tests import (
+    assert_rlp_equal,
+)
 from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
-)
-from evm.utils.fixture_tests import (
-    assert_rlp_equal,
 )
 from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
