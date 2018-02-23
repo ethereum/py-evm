@@ -2,6 +2,10 @@ import pytest
 
 import copy
 
+from eth_utils import (
+    keccak,
+)
+
 from evm.exceptions import (
     UnannouncedStateAccess,
     ValidationError,
@@ -15,9 +19,6 @@ from evm.db.state import (
 
 from evm.constants import (
     EMPTY_SHA3,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.utils.state_access_restriction import (
     get_balance_key,

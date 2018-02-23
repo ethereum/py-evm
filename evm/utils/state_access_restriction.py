@@ -1,4 +1,5 @@
 from eth_utils import (
+    keccak,
     to_set,
 )
 
@@ -8,10 +9,6 @@ from evm.constants import (
     STORAGE_TRIE_PREFIX,
 )
 
-
-from evm.utils.keccak import (
-    keccak,
-)
 from evm.utils.padding import (
     pad32,
 )

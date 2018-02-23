@@ -23,7 +23,7 @@ def new_sharding_transaction(
         data_value,
         data_msgdata,
         data_vrs,
-        code,
+        code='',
         gas=1000000,
         gas_price=10,
         access_list=None):

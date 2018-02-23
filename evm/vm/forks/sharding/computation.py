@@ -1,3 +1,7 @@
+from eth_utils import (
+    keccak,
+)
+
 from evm.constants import (
     STACK_DEPTH_LIMIT,
 )
@@ -13,9 +17,6 @@ from evm.vm.message import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.keccak import (
-    keccak,
 )
 from evm.validation import (
     validate_uint256,

@@ -53,7 +53,7 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     tx_initiator = decode_hex(simple_transfer_contract['address'])
-    transfer_tx = new_sharding_transaction(tx_initiator, recipient, amount, b'', b'', b'')
+    transfer_tx = new_sharding_transaction(tx_initiator, recipient, amount, b'', b'')
 
     computation, _ = vm.apply_transaction(transfer_tx)
     assert not computation.is_error
@@ -91,7 +91,6 @@ def test_sharding_apply_transaction(unvalidated_shard_chain):  # noqa: F811
         0,
         b'',
         b'',
-        b'',
         access_list=[[tx_initiator, pad32(b'')], [newly_deployed_contract_address]]
     )
 
@@ -116,7 +115,7 @@ def test_CREATE2_deploy_contract_edge_cases(unvalidated_shard_chain):  # noqa: F
 
     # First case: computed contract address not the same as provided in `transaction.to`
     chain = unvalidated_shard_chain
-    code = b"0xf3"
+    code = "0xf3"
     computed_address = generate_CREATE2_contract_address(b"", decode_hex(code))
     first_failed_deploy_tx = new_sharding_transaction(
         tx_initiator=decode_hex(simple_transfer_contract['address']),

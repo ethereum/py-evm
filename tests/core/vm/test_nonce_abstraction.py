@@ -51,7 +51,6 @@ def test_contract_with_nonce_tracking(unvalidated_shard_chain):  # noqa: F811
         nonce,
         bytes([gas_price]),
         vrs,
-        b'',
         access_list=access_list,
     )
 
@@ -112,7 +111,6 @@ def test_contract_with_no_nonce_tracking(unvalidated_shard_chain):  # noqa: F811
         nonce,
         bytes([gas_price]),
         vrs,
-        b'',
         access_list=access_list,
     )
 
