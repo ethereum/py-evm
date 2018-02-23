@@ -50,7 +50,213 @@ from evm.utils.rlp import (
 )
 
 
-class Chain(Configurable):
+class BaseChain(Configurable):
+    """
+    The base class for all Chain objects
+    """
+    #
+    # Chain Initialization API
+    #
+    @classmethod
+    def from_genesis(cls,
+                     chaindb,
+                     genesis_params,
+                     genesis_state=None):
+        """
+        Initializes the Chain from a genesis state.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @classmethod
+    def from_genesis_header(cls, chaindb, genesis_header):
+        """
+        Initializes the chain from the genesis header.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    #
+    # Header API
+    #
+    def get_canonical_head(self):
+        """
+        Returns the block header at the canonical chain head.
+
+        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Raises BlockNotFound if there's no block header with the given hash in the db.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def create_header_from_parent(self, parent_header, **header_params):
+        """
+        Creates a new header descending from the given `parent_header`,
+        initialized with the given `header_params`.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    #
+    # Block API
+    #
+    def get_block(self):
+        """
+        Returns the block at the tip of the chain.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def get_canonical_block_by_number(self, block_number):
+        """
+        Returns the block with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block with the given number in the
+        canonical chain.
+        """
+        validate_uint256(block_number, title="Block Number")
+        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+
+    def get_block_by_hash(self, block_hash):
+        """
+        Returns the requested block as specified by block hash.
+        """
+        validate_word(block_hash, title="Block Hash")
+        block_header = self.get_block_header_by_hash(block_hash)
+        return self.get_block_by_header(block_header)
+
+    def get_block_by_header(self, block_header):
+        vm = self.get_vm(block_header)
+        return vm.get_block_by_header(block_header, self.chaindb)
+
+    @to_tuple
+    def get_ancestors(self, limit):
+        lower_limit = max(self.header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, self.header.block_number)):
+            yield self.get_canonical_block_by_number(n)
+
+    #
+    # Transaction API
+    #
+    def get_canonical_transaction(self, transaction_hash):
+        """
+        Return the transaction for the given hash.  Raises
+        `TransactionNotFound` if the transaction is not found on the canonical
+        chain.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def add_pending_transaction(self, transaction):
+        """
+        Adds a transaction to the set of pending transactions.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def get_pending_transaction(self, transaction_hash):
+        """
+        Retrieves a transaction from the set of pending transactions.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def create_transaction(self, *args, **kwargs):
+        """
+        Creates a transaction object.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def create_unsigned_transaction(self, *args, **kwargs):
+        """
+        Creates an unsigned transaction object.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    #
+    # VM API
+    #
+    def get_vm_class_for_block_number(self, block_number):
+        """
+        Returns the VM class for the given block number.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def get_vm(self, header=None):
+        """
+        Returns the VM instance for the given block number.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    #
+    # Execution API
+    #
+    def apply_transaction(self, transaction):
+        """
+        Applies the transaction to the current head block of the Chain.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def estimate_gas(self, transaction, at_header=None):
+        """
+        Generate a gas estimation for the given transaction using the
+        configured gas estimator for this chain.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def import_block(self, block, perform_validation=True):
+        """
+        Imports a complete block.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def mine_block(self, *args, **kwargs):
+        """
+        Mines the current block. Proxies to the current Virtual Machine.
+        See VM. :meth:`~evm.vm.base.VM.mine_block`
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def get_chain_at_block_parent(self, block):
+        """
+        Returns a `Chain` instance with the given block's parent at the chain head.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    #
+    # Validation API
+    #
+    def validate_block(self, block):
+        """
+        Performs validation on a block that is either being mined or imported.
+
+        Since block validation (specifically the uncle validation must have
+        access to the ancestor blocks, this validation must occur at the Chain
+        level.
+
+        TODO: move the `seal` validation down into the vm.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def validate_uncles(self, block):
+        """
+        Run validation on the block uncles.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def validate_seal(self, header):
+        """
+        Validate the seal on the given header.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+    def validate_gaslimit(self, header):
+        """
+        Validate the gas limit on the given header.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
+
+class Chain(BaseChain):
     """
     A Chain is a combination of one or more VM classes.  Each VM is associated
     with a range of blocks.  The Chain class acts as a wrapper around these other
