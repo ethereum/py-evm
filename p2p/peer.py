@@ -785,6 +785,7 @@ def _test():
     import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
@@ -802,7 +803,7 @@ def _test():
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-    chaindb = AsyncChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
