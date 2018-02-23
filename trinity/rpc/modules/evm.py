@@ -12,7 +12,8 @@ from evm.tools.fixture_tests import (
 from trinity.rpc.format import (
     format_params,
 )
-from trinity.rpc.modules import (
+# Tell mypy to ignore this import as a workaround for https://github.com/python/mypy/issues/4049
+from trinity.rpc.modules import (  # type: ignore
     RPCModule,
 )
 

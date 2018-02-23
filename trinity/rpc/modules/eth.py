@@ -17,7 +17,8 @@ from trinity.rpc.format import (
     to_int_if_hex,
     transaction_to_dict,
 )
-from trinity.rpc.modules import (
+# Tell mypy to ignore this import as a workaround for https://github.com/python/mypy/issues/4049
+from trinity.rpc.modules import (  # type: ignore
     RPCModule,
 )
 

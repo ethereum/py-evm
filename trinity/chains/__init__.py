@@ -2,18 +2,24 @@ from multiprocessing.managers import (
     BaseManager,
 )
 import os
+from typing import Type
 
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.db.backends.base import BaseDB
 from evm.db.chain import ChainDB
 from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
+from p2p.lightchain import LightChain
 
 from trinity.constants import (
     ROPSTEN,
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.utils.chains import (
+    ChainConfig,
+)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
@@ -93,7 +99,7 @@ def initialize_database(chain_config, chaindb):
             raise NotImplementedError("Not implemented for other chains yet")
 
 
-def get_chain_protocol_class(chain_config, sync_mode):
+def get_chain_protocol_class(chain_config: ChainConfig, sync_mode: str) -> Type[LightChain]:
     """
     Retrieve the protocol class for the given chain and sync mode.
     """
@@ -106,16 +112,18 @@ def get_chain_protocol_class(chain_config, sync_mode):
     return RopstenLightChain
 
 
-def serve_chaindb(db, ipc_path):
+def serve_chaindb(db: BaseDB, ipc_path: str) -> None:
     chaindb = ChainDB(db)
 
     class DBManager(BaseManager):
         pass
 
-    DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)
-    DBManager.register('get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)
+    # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
+    # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
+    DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)  # type: ignore
+    DBManager.register('get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)  # type: ignore
 
-    manager = DBManager(address=ipc_path)
-    server = manager.get_server()
+    manager = DBManager(address=ipc_path)  # type: ignore
+    server = manager.get_server()  # type: ignore
 
-    server.serve_forever()
+    server.serve_forever()  # type: ignore
