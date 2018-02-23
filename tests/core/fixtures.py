@@ -25,6 +25,7 @@ from evm.db.state import (
 )
 from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
+from evm.vm.forks.sharding.vm_state import ShardingVMState
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
@@ -36,6 +37,10 @@ valid_block_rlp = decode_hex(
 
 def import_block_without_validation(chain, block):
     return Chain.import_block(chain, block, perform_validation=False)
+
+
+def import_block_without_validation_shard(chain, block):  # noqa: F811
+    return Shard.import_block(chain, block, perform_validation=False)
 
 
 @pytest.fixture
@@ -219,13 +224,22 @@ def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
     contract will be deployed at.
     """
     overrides = {
-        'import_block': import_block_without_validation,
+        'import_block': import_block_without_validation_shard,
         'validate_block': lambda self, block: None,
     }
+    ShardingVMStateForTesting = ShardingVMState.configure(
+        name='ShardingVMStateForTesting',
+        validate_transaction=lambda self, transaction: None
+    )
+    ShardingVMForTesting = ShardingVM.configure(
+        name='ShardingVMForTesting',
+        _state_class=ShardingVMStateForTesting,
+        validate_block=(lambda self, block: None),
+    )
     klass = Shard.configure(
         name='TestShardChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
+            (constants.GENESIS_BLOCK_NUMBER, ShardingVMForTesting),
         ),
         **overrides,
     )

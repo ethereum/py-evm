@@ -4,15 +4,15 @@ from rlp.sedes import (
 from evm.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.forks.homestead.blocks import (
-    HomesteadBlock,
+from evm.vm.forks.byzantium.blocks import (
+    ByzantiumBlock,
 )
 from .transactions import (
     ShardingTransaction,
 )
 
 
-class ShardingBlock(HomesteadBlock):
+class ShardingBlock(ByzantiumBlock):
     transaction_class = ShardingTransaction
     fields = [
         ('header', BlockHeader),
