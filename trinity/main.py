@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 from multiprocessing.managers import (
     BaseManager,
@@ -14,7 +13,6 @@ from p2p.peer import (
     PeerPool,
 )
 
-from trinity.__version__ import __version__
 from trinity.chains import (
     get_chain_protocol_class,
     initialize_data_dir,
@@ -33,6 +31,9 @@ from trinity.constants import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.cli_parser import (
+    parser,
+)
 from trinity.utils.chains import (
     ChainConfig,
 )
@@ -49,80 +50,6 @@ from trinity.utils.mp import (
 )
 
 from tests.p2p.integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
-
-
-DEFAULT_LOG_LEVEL = 'info'
-LOG_LEVEL_CHOICES = (
-    'debug',
-    'info',
-)
-
-
-parser = argparse.ArgumentParser(description='Trinity')
-
-# enable `trinity --version`
-parser.add_argument('--version', action='version', version=__version__)
-
-# set global logging level
-parser.add_argument(
-    '-l',
-    '--log-level',
-    choices=LOG_LEVEL_CHOICES,
-    default=DEFAULT_LOG_LEVEL,
-    help="Sets the logging level",
-)
-
-# options for running chains
-parser.add_argument(
-    '--ropsten',
-    action='store_true',
-    help="Ropsten network: pre configured proof-of-work test network",
-)
-parser.add_argument(
-    '--light',  # TODO: consider --sync-mode like geth.
-    action='store_true',
-)
-parser.add_argument(
-    '--trinity-root-dir',
-    help=(
-        "The filesystem path to the base directory that trinity will store it's "
-        "information.  Default: $XDG_DATA_HOME/.local/share/trinity"
-    ),
-)
-parser.add_argument(
-    '--data-dir',
-    help=(
-        "The directory where chain data is stored"
-    ),
-)
-parser.add_argument(
-    '--nodekey',
-    help=(
-        "Hexadecimal encoded private key to use for the nodekey"
-    )
-)
-parser.add_argument(
-    '--nodekey-path',
-    help=(
-        "The filesystem path to the file which contains the nodekey"
-    )
-)
-parser.add_argument(
-    '--local-geth',
-    action="store_true",
-    default=False,
-    help='Connect only to a local geth instance'
-)
-
-# Add console sub-command to trinity CLI.
-subparser = parser.add_subparsers(dest='subcommand')
-console_parser = subparser.add_parser('console', help='start the trinity REPL')
-console_parser.add_argument(
-    '--vanilla-shell',
-    action='store_true',
-    default=False,
-    help='start a native Python shell'
-)
 
 
 def main() -> None:
