@@ -1,9 +1,9 @@
 {
     "PaygasFailThereafter": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "filledwith": "py-evm-v0.2.0-alpha.6-553-g159d13e",
             "source": "GeneralStateTestFiller/stPaygas/PaygasFailThereafter.json",
-            "sourceHash": "0xc0b433a96fb971c237cf095785f1a12612873117a6414192f0e4fa1cf174d0b8"
+            "sourceHash": "0x3fcd2dcaa246a8f2e4c0de415dc21bd4652eeb07b2610c3b2de7e8c056bf68eb"
         },
         "env": {
             "currentCoinbase": "0x52177de3C0e253105dd7E5093C98232131023d43",
@@ -16,11 +16,10 @@
         "post": {
             "Sharding": [
                 {
-                    "hash": "0xceb23d7c5f329b5b7eaf5992f12682a561993a058cbb45cba9178015986b1c9f",
+                    "hash": "0x2eb7b3169571ce6427000c067b151b243d19c9df70e3bbf4ff6e7dffc7014d9b",
                     "indexes": {
                         "data": 0,
-                        "gas": 0,
-                        "value": 0
+                        "gas": 0
                     }
                 }
             ]
@@ -34,7 +33,12 @@
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [

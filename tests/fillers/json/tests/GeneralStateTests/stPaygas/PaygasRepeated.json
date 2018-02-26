@@ -1,9 +1,9 @@
 {
     "PaygasRepeated": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "filledwith": "py-evm-v0.2.0-alpha.6-553-g159d13e",
             "source": "GeneralStateTestFiller/stPaygas/PaygasRepeated.json",
-            "sourceHash": "0x13aaf58408329a4c0042ae5798e031f9d63a3864402e7c9966ee000b8ba39ad4"
+            "sourceHash": "0x9a7f67c97b141ee63b6861771c6b1861c18a9932a6bb977a784ad0046bf205bd"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
@@ -16,11 +16,10 @@
         "post": {
             "Sharding": [
                 {
-                    "hash": "0xdffae0c370b5625fb0a8c80f3dbf5636480bf7bcc464fd2039b1d385ed34ace1",
+                    "hash": "0xca9fa0d74f50cc5935f9a02ab527fcccd37a85d30486444362d9664e196dc94e",
                     "indexes": {
                         "data": 0,
-                        "gas": 0,
-                        "value": 0
+                        "gas": 0
                     }
                 }
             ]
@@ -28,13 +27,18 @@
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
                 "balance": "0x0186a0",
-                "code": "0x60016000556000f5506001f5506001600155",
+                "code": "0x60016000556001f5506002f5506001600155",
                 "nonce": "0x00",
                 "storage": {}
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [

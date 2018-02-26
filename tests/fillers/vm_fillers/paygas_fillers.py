@@ -36,11 +36,11 @@ broke_caller = (caller, "balance", 0)
 solvent_caller = (caller, "balance", 1000000)
 normal_contract = (normal_contract_address, {
     # "vyperLLLCode": ["seq", ["MSTORE", 0, 1], ["RETURN", 0, 32]],
-    "code": b"",
+    "code": b"`\x01`\x00R` `\x00\xf3",
 })
 paygas_contract = (normal_contract_address, {
     # "vyperLLLCode": ["PAYGAS", 0],
-    "code": b"",
+    "code": b"`\x00\xf5",
 })
 
 
@@ -61,6 +61,9 @@ paygas_omitted_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ]
         },
         post_state=[
             storage_updated,
@@ -70,7 +73,7 @@ paygas_omitted_test = Test(pipe(
 
 
 paygas_normal_test = Test(pipe(
-    setup_sharding_filler("PaygasNormal", environment={"currentCoinbase": coinbase}),
+    setup_sharding_filler("PaygasNormal"),
     pre_state({
         address: {
             "balance": 100000,
@@ -87,18 +90,20 @@ paygas_normal_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
         post_state=[
             storage_updated,
-            (address, "balance", 99999),
-            (coinbase, "balance", 1),
+            (address, "balance", 38980),
         ]
     )
 ))
 
 
 paygas_zero_gas_price_test = Test(pipe(
-    setup_sharding_filler("PaygasNormal"),
+    setup_sharding_filler("PaygasZeroGasprice"),
     pre_state({
         address: {
             "balance": 100000,
@@ -115,6 +120,9 @@ paygas_zero_gas_price_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
         post_state=[
             storage_updated,
@@ -131,19 +139,25 @@ paygas_repeated_test = Test(pipe(
             # "vyperLLLCode": [
             #     "seq",
             #     ["SSTORE", 0, 1],
-            #     ["PAYGAS", 0],
             #     ["PAYGAS", 1],
+            #     ["PAYGAS", 2],
             #     ["SSTORE", 1, 1]
             # ],
-            "code": b"`\x01`\x00U`\x00\xf5P`\x01\xf5P`\x01`\x01U",
+            "code": b"`\x01`\x00U`\x01\xf5P`\x02\xf5P`\x01`\x01U",
         }
     }),
     expect(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
-        post_state=None,
+        post_state=[
+            (address, "balance", 38972),
+            storage_updated,
+        ],
     )
 ))
 
@@ -167,9 +181,14 @@ paygas_repeated_same_gasprice_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
-            "gas_limit": 100000
+            "accessList": [
+                [address, b""],
+            ],
         },
-        post_state=None
+        post_state=[
+            (address, "balance", 38972),
+            storage_updated,
+        ],
     )
 ))
 
@@ -192,6 +211,9 @@ paygas_insufficient_balance_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
         post_state=None,
     )
@@ -221,6 +243,10 @@ paygas_after_call_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+                [normal_contract_address],
+            ],
         },
         post_state=[
             storage_updated,
@@ -251,8 +277,14 @@ paygas_in_call_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+                [paygas_contract_address],
+            ],
         },
-        post_state=None,
+        post_state=[
+            storage_updated,
+        ],
     )
 ))
 
@@ -276,11 +308,11 @@ paygas_fail_before_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
-        post_state=[
-            (address, "balance", 99999),
-            (coinbase, "balance", 1),
-        ],
+        post_state=None,
     )
 ))
 
@@ -304,10 +336,12 @@ paygas_fail_thereafter_test = Test(pipe(
         networks=["Sharding"],
         transaction={
             "to": address,
+            "accessList": [
+                [address, b""],
+            ],
         },
         post_state=[
-            (address, "balance", 99999),
-            (coinbase, "balance", 1),
+            (address, "balance", 0),
         ],
     )
 ))

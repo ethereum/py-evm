@@ -1,9 +1,9 @@
 {
     "PaygasRepeatedSameGasprice": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "filledwith": "py-evm-v0.2.0-alpha.6-553-g159d13e",
             "source": "GeneralStateTestFiller/stPaygas/PaygasRepeatedSameGasprice.json",
-            "sourceHash": "0x3f52a6a30c64ae07f8487f231d1a2eaee14083f7b9e8f11acb3e5e930157ae71"
+            "sourceHash": "0x3553bf68d85014e8f71cc20fcc806b6ccbac0fee544d9c89605603f0c0f4ddc7"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
@@ -16,11 +16,10 @@
         "post": {
             "Sharding": [
                 {
-                    "hash": "0x20e69fbf6113f23c987212eaf72f70e55095eae45563bbb33a68a2ec82e48374",
+                    "hash": "0xc73feeac251ecfbc490bcd30c21b3c74c87e0bd548843213bc77a87bc20d76e8",
                     "indexes": {
                         "data": 0,
-                        "gas": 0,
-                        "value": 0
+                        "gas": 0
                     }
                 }
             ]
@@ -34,7 +33,12 @@
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [
@@ -44,7 +48,6 @@
                 "0x0186a0"
             ],
             "gasPrice": "0x00",
-            "gas_limit": 100000,
             "shardID": "0x00",
             "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
         }
