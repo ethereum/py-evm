@@ -43,6 +43,11 @@ from evm.utils.rlp import (
 )
 from evm.utils.test_builder.normalization import (
     normalize_environment,
+    normalize_transaction_group,
+)
+
+from cytoolz import (
+    merge,
 )
 
 from evm.vm.forks import (
@@ -282,37 +287,17 @@ def generate_fixture_tests(metafunc,
 #
 # Fixture Normalizers
 #
-@to_dict
 def normalize_unsigned_transaction(transaction, indexes):
-    yield 'data', decode_hex(transaction['data'][indexes['data']])
-    yield 'to', normalize_to_address(transaction['to'])
-    yield 'gasLimit', to_int(transaction['gasLimit'][indexes['gas']])
-    yield 'gasPrice', to_int(transaction['gasPrice'])
-
-    if 'secretKey' in transaction:
-        yield 'secretKey', decode_hex(transaction['secretKey'])
-        is_main_transaction = True
-    elif 'v' in transaction and 'r' in transaction and 's' in transaction:
-        yield 'vrs', (
-            to_int(transaction['v']),
-            to_int(transaction['r']),
-            to_int(transaction['s']),
-        )
-        is_main_transaction = True
-    else:
-        is_main_transaction = False
-
-    if is_main_transaction:
-        yield 'nonce', to_int(transaction['nonce'])
-        yield 'value', to_int(transaction['value'][indexes['value']])
-    else:
-        yield 'chainID', to_int(transaction['chainID'])
-        yield 'shardID', to_int(transaction['shardID'])
-        yield 'accessList', [
-            [decode_hex(element) for element in list_]
-            for list_ in transaction['accessList']
+    normalized = normalize_transaction_group(transaction)
+    return merge(normalized, {
+        transaction_key: normalized[transaction_key][indexes[index_key]]
+        for transaction_key, index_key in [
+            ("gasLimit", "gas"),
+            ("value", "value"),
+            ("data", "data"),
         ]
-        yield 'code', decode_hex(transaction['code'])
+        if index_key in indexes
+    })
 
 
 def normalize_account_state(account_state):
