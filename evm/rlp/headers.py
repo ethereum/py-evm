@@ -19,6 +19,7 @@ from evm.constants import (
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
+    SHARD_GAS_LIMIT,
 )
 from evm.exceptions import (
     ValidationError,
@@ -39,6 +40,10 @@ from .sedes import (
     hash32,
     int256,
     trie_root,
+)
+
+from evm.vm.execution_context import (
+    ExecutionContext,
 )
 
 
@@ -160,6 +165,16 @@ class BlockHeader(rlp.Serializable):
             in tuple(zip(*self.fields))[0]
         })
 
+    def derive_execution_context(self, prev_hashes):
+        return ExecutionContext(
+            coinbase=self.coinbase,
+            timestamp=self.timestamp,
+            block_number=self.block_number,
+            difficulty=self.difficulty,
+            gas_limit=self.gas_limit,
+            prev_hashes=prev_hashes,
+        )
+
 
 class CollationHeader(rlp.Serializable):
     fields = [
@@ -273,3 +288,21 @@ class CollationHeader(rlp.Serializable):
         }
         header = cls(**header_kwargs)
         return header
+
+    def clone(self):
+        # Create a new CollationHeader object with the same fields.
+        return self.__class__(**{
+            field_name: getattr(self, field_name)
+            for field_name
+            in tuple(zip(*self.fields))[0]
+        })
+
+    def derive_execution_context(self, prev_hashes):
+        return ExecutionContext(
+            coinbase=self.coinbase,
+            timestamp=None,
+            block_number=self.number,
+            difficulty=None,
+            gas_limit=SHARD_GAS_LIMIT,
+            prev_hashes=prev_hashes,
+        )

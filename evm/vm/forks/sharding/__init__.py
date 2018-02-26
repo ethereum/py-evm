@@ -6,7 +6,7 @@ from evm.vm.forks.byzantium import (
     compute_byzantium_difficulty,
 )
 
-from .blocks import ShardingBlock
+from .collations import Collation
 from .headers import (
     create_sharding_header_from_parent,
 )
@@ -15,7 +15,7 @@ from .vm_state import ShardingVMState
 ShardingVM = ShardVM.configure(
     name='ShardingVM',
     # classes
-    _block_class=ShardingBlock,
+    _block_class=Collation,
     _state_class=ShardingVMState,
     # TODO: Replace them after we apply Collation structure
     create_header_from_parent=staticmethod(create_sharding_header_from_parent),

@@ -26,6 +26,8 @@ class Collation(BaseCollation):
         if witness_nodes is None:
             witness_nodes = []
 
+        self.transaction_fee_sum = 0
+
         super(Collation, self).__init__(
             header=header,
             transactions=transactions,
