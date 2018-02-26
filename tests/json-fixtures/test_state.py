@@ -4,6 +4,11 @@ import pytest
 
 from eth_keys import keys
 
+from trie import (
+    BinaryTrie,
+    HexaryTrie,
+)
+
 from evm.db import (
     get_db_backend,
 )
@@ -269,6 +274,7 @@ def fixture_vm_class(fixture_data):
 def test_state_fixtures(fixture, fixture_vm_class):
     if fixture_vm_class is not ShardingVMForTesting:
         account_state_class = MainAccountStateDB
+        trie_class = HexaryTrie
         header = BlockHeader(
             coinbase=fixture['env']['currentCoinbase'],
             difficulty=fixture['env']['currentDifficulty'],
@@ -279,6 +285,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         )
     else:
         account_state_class = ShardingAccountStateDB
+        trie_class = BinaryTrie
         header = CollationHeader(
             shard_id=fixture['env']['shardID'],
             expected_period_number=fixture['env']['expectedPeriodNumber'],
@@ -288,7 +295,11 @@ def test_state_fixtures(fixture, fixture_vm_class):
             number=fixture['env']['currentNumber'],
         )
 
-    chaindb = ChainDB(get_db_backend(), account_state_class=account_state_class)
+    chaindb = ChainDB(
+        get_db_backend(),
+        account_state_class=account_state_class,
+        trie_class=trie_class
+    )
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     vm_state = vm.state
@@ -296,7 +307,6 @@ def test_state_fixtures(fixture, fixture_vm_class):
         state_db.apply_state_dict(fixture['pre'])
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root
-
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(
             nonce=fixture['transaction']['nonce'],
@@ -328,13 +338,13 @@ def test_state_fixtures(fixture, fixture_vm_class):
     else:
         # sharding transaction
         transaction = vm.create_transaction(
-            chain_id=fixture['transaction']['chain_id'],
-            shard_id=fixture['transaction']['shard_id'],
+            chain_id=fixture['transaction']['chainID'],
+            shard_id=fixture['transaction']['shardID'],
             to=fixture['transaction']['to'],
             data=fixture['transaction']['data'],
             gas=fixture['transaction']['gasLimit'],
             gas_price=fixture['transaction']['gasPrice'],
-            access_list=fixture['transaction']['access_list'],
+            access_list=fixture['transaction']['accessList'],
             code=fixture['transaction']['code'],
         )
 
