@@ -39,8 +39,8 @@ normal_contract = (normal_contract_address, {
     "code": b"`\x01`\x00R` `\x00\xf3",
 })
 paygas_contract = (normal_contract_address, {
-    # "vyperLLLCode": ["PAYGAS", 0],
-    "code": b"`\x00\xf5",
+    # "vyperLLLCode": ["PAYGAS", 1],
+    "code": b"`\x01\xf5",
 })
 
 
@@ -224,17 +224,17 @@ paygas_after_call_test = Test(pipe(
     setup_sharding_filler("PaygasAfterCall"),
     pre_state([
         (address, {
-            "balance": 0,
+            "balance": 100000,
             # "vyperLLLCode": [
             #     "seq",
             #     ["SSTORE", 0, 1],
             #     ["CALL", 1000, normal_contract_address, 0, 0, 0, 0, 0],
-            #     ["PAYGAS", 0],
+            #     ["PAYGAS", 1],
             #     ["SSTORE", 1, 1],
             # ],
             "code": (
                 b"`\x01`\x00U`\x00`\x00`\x00`\x00`\x00s`\xa8\xdc~\xba\xd7\x03\x8c\x9a\x83}\x84"
-                b"\xd8\x13\xa8R\x92\xe5d\xbda\x03\xe8\xf1P`\x00\xf5P`\x01`\x01U"
+                b"\xd8\x13\xa8R\x92\xe5d\xbda\x03\xe8\xf1P`\x01\xf5P`\x01`\x01U"
             )
         }),
         normal_contract,
@@ -249,6 +249,7 @@ paygas_after_call_test = Test(pipe(
             ],
         },
         post_state=[
+            (address, "balance", 38239),
             storage_updated,
         ]
     )
@@ -259,7 +260,7 @@ paygas_in_call_test = Test(pipe(
     setup_sharding_filler("PaygasInCall"),
     pre_state([
         (address, {
-            "balance": 0,
+            "balance": 100000,
             # "vyperLLLCode": [
             #     "seq",
             #     ["SSTORE", 0, 1],
@@ -283,6 +284,7 @@ paygas_in_call_test = Test(pipe(
             ],
         },
         post_state=[
+            (address, "balance", 100000),
             storage_updated,
         ],
     )
@@ -290,10 +292,10 @@ paygas_in_call_test = Test(pipe(
 
 
 paygas_fail_before_test = Test(pipe(
-    setup_sharding_filler("PaygasFailBefore", environment={"currentCoinbase": coinbase}),
+    setup_sharding_filler("PaygasFailBefore"),
     pre_state({
         address: {
-            "balance": 0,
+            "balance": 100000,
             # "vyperLLLCode": [
             #     "seq",
             #     ["SSTORE", 0, 1],
@@ -318,10 +320,10 @@ paygas_fail_before_test = Test(pipe(
 
 
 paygas_fail_thereafter_test = Test(pipe(
-    setup_sharding_filler("PaygasFailThereafter", environment={"currentCoinbase": coinbase}),
+    setup_sharding_filler("PaygasFailThereafter"),
     pre_state({
         address: {
-            "balance": 0,
+            "balance": 100000,
             # "vyperLLLCode": [
             #     "seq",
             #     ["SSTORE", 0, 1],
@@ -341,7 +343,7 @@ paygas_fail_thereafter_test = Test(pipe(
             ],
         },
         post_state=[
-            (address, "balance", 0),
+            (address, "balance", 38958),
         ],
     )
 ))

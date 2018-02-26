@@ -11,7 +11,9 @@ from evm.utils.test_builder.builder_utils import (
     get_test_name,
 )
 
-from evm.utils.keccak import keccak
+from eth_utils import (
+    keccak,
+)
 
 from evm.utils.hexadecimal import (
     encode_hex,
