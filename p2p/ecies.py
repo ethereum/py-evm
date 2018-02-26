@@ -85,7 +85,7 @@ def encrypt(data: bytes, pubkey: datatypes.PublicKey, shared_mac_data: bytes = b
     return msg + tag
 
 
-def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes = b''):
+def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes = b'') -> bytes:
     """Decrypt data with ECIES method using the given private key
 
     1) generate shared-secret = kdf( ecdhAgree(myPrivKey, msg[1:65]) )

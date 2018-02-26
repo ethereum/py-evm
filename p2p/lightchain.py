@@ -126,7 +126,7 @@ class LightChain(Chain, PeerPoolSubscriber):
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
 
-        def peer_block_height(peer: LESPeer):
+        def peer_block_height(peer: LESPeer) -> int:
             last_announced = self._last_processed_announcements.get(peer)
             if last_announced is None:
                 return -1

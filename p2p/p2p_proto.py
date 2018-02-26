@@ -1,4 +1,5 @@
 import enum
+from typing import cast, Dict
 
 from cytoolz import assoc
 
@@ -7,6 +8,7 @@ from rlp import sedes
 from p2p.protocol import (
     Command,
     Protocol,
+    _DecodedMsgType,
 )
 
 from .constants import (
@@ -48,14 +50,14 @@ class Disconnect(Command):
     _cmd_id = 1
     structure = [('reason', sedes.big_endian_int)]
 
-    def get_reason_name(self, reason_id):
+    def get_reason_name(self, reason_id: int) -> str:
         try:
             return DisconnectReason(reason_id).name
         except ValueError:
             return "unknown reason"
 
-    def decode(self, data):
-        raw_decoded = super(Disconnect, self).decode(data)
+    def decode(self, data: bytes) -> _DecodedMsgType:
+        raw_decoded = cast(Dict[str, int], super(Disconnect, self).decode(data))
         return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
 
 

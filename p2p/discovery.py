@@ -89,7 +89,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(self, cmd) -> Callable[[kademlia.Node, List[Any], AnyStr], None]:
+    def _get_handler(self, cmd: Command) -> Callable[[kademlia.Node, List[Any], AnyStr], None]:
         if cmd == CMD_PING:
             return self.recv_ping
         elif cmd == CMD_PONG:
@@ -172,7 +172,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         nodes, _ = payload
         self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(nodes))
 
-    def recv_ping(self, node: kademlia.Node, _, message_hash: AnyStr) -> None:
+    def recv_ping(self, node: kademlia.Node, _: Any, message_hash: AnyStr) -> None:
         self.kademlia.recv_ping(node, message_hash)
 
     def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:

@@ -3,6 +3,7 @@ import atexit
 import logging
 import traceback
 import threading
+from typing import Dict  # noqa: F401
 
 from p2p.lightchain import LightChain
 
@@ -42,7 +43,7 @@ def ipython_shell(namespace=None, banner=None, debug=False):
         from IPython.terminal.embed import InteractiveShellEmbed
         kwargs = dict(user_ns=namespace)
     else:
-        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        from IPython.frontend.terminal.embed import InteractiveShellEmbed  # type: ignore
         kwargs = dict(user_ns=namespace)
     if banner:
         kwargs = dict(banner1=banner)
@@ -66,7 +67,7 @@ def python_shell(namespace=None, banner=None, debug=False):
     if namespace:
         default_ns.update(namespace)
     # Configure kwargs to pass banner
-    kwargs = dict()
+    kwargs = dict()  # type: Dict[str, str]
     if banner:
         kwargs = dict(banner=banner)
     shell = code.InteractiveConsole(default_ns)

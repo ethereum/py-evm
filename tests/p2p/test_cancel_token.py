@@ -63,6 +63,16 @@ def test_token_chain_trigger_last():
 
 
 @pytest.mark.asyncio
+async def test_token_wait(event_loop):
+    token = CancelToken('token')
+    event_loop.call_soon(token.trigger)
+    done, pending = await asyncio.wait([token.wait()], timeout=0.1)
+    assert len(done) == 1
+    assert len(pending) == 0
+    assert token.triggered
+
+
+@pytest.mark.asyncio
 async def test_wait_cancel_pending_tasks_on_completion(event_loop):
     token = CancelToken('token')
     token2 = CancelToken('token2')

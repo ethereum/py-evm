@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Awaitable, List  # noqa: F401
+from typing import Any, Awaitable, cast, List  # noqa: F401
 
 from p2p.exceptions import OperationCancelled
 
@@ -66,7 +66,7 @@ class CancelToken:
 
 async def _wait_for_first(futures):
     for future in asyncio.as_completed(futures):
-        await future
+        await cast(asyncio.Future, future)
         return
 
 

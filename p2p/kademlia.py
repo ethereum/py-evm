@@ -6,11 +6,13 @@ import operator
 import random
 import struct
 import time
-import urllib
+from urllib import parse as urlparse
 from functools import total_ordering
 from typing import (  # noqa: F401
+    Any,
     AnyStr,
     Callable,
+    cast,
     Dict,
     List,
     Set,
@@ -85,7 +87,7 @@ class Address:
         return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
 
     @classmethod
-    def from_endpoint(cls, ip: str, udp_port: str, tcp_port: str = '\x00\x00'):
+    def from_endpoint(cls, ip: str, udp_port: str, tcp_port: str = '\x00\x00') -> 'Address':
         return cls(ip, big_endian_to_int(udp_port), big_endian_to_int(tcp_port))
 
 
@@ -146,10 +148,10 @@ class KBucket(Sized):
     def midpoint(self) -> int:
         return self.start + (self.end - self.start) // 2
 
-    def distance_to(self, id) -> int:
+    def distance_to(self, id: int) -> int:
         return self.midpoint ^ id
 
-    def nodes_by_distance_to(self, id) -> List[Node]:
+    def nodes_by_distance_to(self, id: int) -> List[Node]:
         return sorted(self.nodes, key=operator.methodcaller('distance_to', id))
 
     def split(self) -> Tuple['KBucket', 'KBucket']:
@@ -593,6 +595,6 @@ def sort_by_distance(nodes: List[Node], target_id: int) -> List[Node]:
     return sorted(nodes, key=operator.methodcaller('distance_to', target_id))
 
 
-def host_port_pubkey_from_uri(uri):
-    uri = urllib.parse.urlparse(uri)
-    return uri.hostname, uri.port, decode_hex(uri.username)
+def host_port_pubkey_from_uri(uri: bytes) -> Tuple[bytes, int, bytes]:
+    parsed = urlparse.urlparse(uri)
+    return cast(bytes, parsed.hostname), parsed.port, cast(bytes, decode_hex(parsed.username))

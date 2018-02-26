@@ -1,4 +1,4 @@
-from typing import Any, cast, Dict, List, Union
+from typing import Any, cast, Dict, Generator, List, Tuple, Union
 
 import rlp
 from rlp import sedes
@@ -71,8 +71,8 @@ class Status(Command):
     }
 
     @to_dict
-    def decode_payload(self, rlp_data):
-        data = super(Status, self).decode_payload(rlp_data)
+    def decode_payload(self, rlp_data: bytes) -> Generator[Tuple[str, Any], None, None]:
+        data = cast(List[Tuple[bytes, bytes]], super(Status, self).decode_payload(rlp_data))
         # The LES/Status msg contains an arbitrary list of (key, value) pairs, where values can
         # have different types and unknown keys should be ignored for forward compatibility
         # reasons, so here we need an extra pass to deserialize each of the key/value pairs we
@@ -81,14 +81,14 @@ class Status(Command):
             # The sedes.binary we use in .structure above will give us a bytes value here, but
             # using bytes as dictionary keys makes it impossible to use the dict() constructor
             # with keyword arguments, so we convert them to strings here.
-            key = key.decode('ascii')
-            if key not in self.items_sedes:
+            str_key = key.decode('ascii')
+            if str_key not in self.items_sedes:
                 continue
-            item_sedes = self.items_sedes[key]
+            item_sedes = self.items_sedes[str_key]
             if item_sedes is not None:
-                yield key, item_sedes.deserialize(value)
+                yield str_key, item_sedes.deserialize(value)
             else:
-                yield key, value
+                yield str_key, value
 
     def encode_payload(self, data):
         response = [

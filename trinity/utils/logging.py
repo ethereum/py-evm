@@ -24,7 +24,7 @@ def setup_trinity_logging(level):
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
-    listener = handlers.QueueListener(log_queue, logger)
+    listener = handlers.QueueListener(log_queue, handler)
 
     return logger, log_queue, listener
 
