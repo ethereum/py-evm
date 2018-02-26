@@ -27,7 +27,6 @@ from evm.constants import (
     EMPTY_SHA3,
 )
 from evm.db.backends.base import BaseDB
-from evm.db.chain import ChainDB
 from evm.rlp.accounts import Account
 
 from p2p import eth
@@ -124,7 +123,7 @@ class StateDownloader(PeerPoolSubscriber):
         self.logger.debug("Requesting %d trie nodes", len(requests))
         await self.request_nodes([request.node_key for request in requests])
 
-    async def request_nodes(self, node_keys: List[bytes]):
+    async def request_nodes(self, node_keys: List[bytes]) -> None:
         peer = await self.get_random_peer()
         now = time.time()
         for node_key in node_keys:
@@ -196,6 +195,7 @@ def _test():
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from evm.db.backends.memory import MemoryDB
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
@@ -203,7 +203,7 @@ def _test():
     parser.add_argument('-root-hash', type=str, required=True, help='Hex encoded root hash')
     args = parser.parse_args()
 
-    chaindb = ChainDB(MemoryDB())
+    chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
     peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
     asyncio.ensure_future(peer_pool.run())

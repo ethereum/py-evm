@@ -308,7 +308,7 @@ class BasePeer:
         self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
         return cmd, decoded_msg
 
-    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
@@ -324,7 +324,7 @@ class BasePeer:
         else:
             raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
 
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         self.sub_proto_msg_queue.put_nowait((cmd, msg))
 
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
@@ -477,7 +477,7 @@ class LESPeer(BasePeer):
         # TODO: Disconnect if the remote doesn't serve headers.
         self.head_info = cmd.as_head_info(msg)
 
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType):
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if isinstance(msg, dict):
             request_id = msg.get('request_id')
             if request_id is not None and request_id in self._pending_replies:
@@ -488,7 +488,7 @@ class LESPeer(BasePeer):
                 return
         super().handle_sub_proto_msg(cmd, msg)
 
-    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken):
+    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken) -> Dict[str, Any]:
         reply = None
         got_reply = asyncio.Event()
 

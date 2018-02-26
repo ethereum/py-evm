@@ -1,13 +1,15 @@
 import json
 import logging
+from typing import Dict  # noqa: F401
 
 from evm.exceptions import (
     ValidationError,
 )
 
-from trinity.rpc.modules import (
+from trinity.rpc.modules import (  # noqa: F401
     Eth,
     EVM,
+    RPCModule,
 )
 
 REQUIRED_REQUEST_KEYS = {
@@ -56,7 +58,7 @@ class RPCServer:
     )
 
     def __init__(self, chain):
-        self.modules = {}
+        self.modules = {}  # type: Dict[str, RPCModule]
         self.chain = chain
         for M in self.module_classes:
             self.modules[M.__name__.lower()] = M(chain)

@@ -24,7 +24,12 @@ if TYPE_CHECKING:
     from p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
 
-_DecodedMsgType = Union[Dict[str, Any], List[bytes], bytes]
+_DecodedMsgType = Union[
+    Dict[str, Any],
+    List[bytes],
+    List[Tuple[bytes, bytes]],
+    bytes,
+]
 
 
 class Command:
