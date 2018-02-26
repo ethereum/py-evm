@@ -12,16 +12,15 @@
             {
                 "indexes": {
                     "data": 0,
-                    "gas": 0,
-                    "value": 0
+                    "gas": 0
                 },
                 "networks": [
                     "Sharding"
                 ],
                 "result": {
                     "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                        "balance": "0x0186a0",
-                        "code": "0x60016000556000f5506001600155",
+                        "balance": "0x9844",
+                        "code": "0x60016000556001f5506001600155",
                         "nonce": "0x00",
                         "storage": {
                             "0x00": "0x01",
@@ -34,13 +33,18 @@
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
                 "balance": "0x0186a0",
-                "code": "0x60016000556000f5506001600155",
+                "code": "0x60016000556001f5506001600155",
                 "nonce": "0x00",
                 "storage": {}
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [

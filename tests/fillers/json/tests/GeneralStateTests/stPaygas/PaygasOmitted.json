@@ -1,9 +1,9 @@
 {
     "PaygasOmitted": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "filledwith": "py-evm-v0.2.0-alpha.6-553-g159d13e",
             "source": "GeneralStateTestFiller/stPaygas/PaygasOmitted.json",
-            "sourceHash": "0x2bdda1b221bc69d74925e6c04b6f06fddbe3ca514dfe2d7d1a6b57667716391f"
+            "sourceHash": "0xab50633097737ea0cf22af2270732bb74ec61a7a39680de32c1e9a7a75958f65"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
@@ -19,8 +19,7 @@
                     "hash": "0x0fb66ab3463e1485418369eff73934977e602f06a409d595e8eb74023747978e",
                     "indexes": {
                         "data": 0,
-                        "gas": 0,
-                        "value": 0
+                        "gas": 0
                     }
                 }
             ]
@@ -34,7 +33,12 @@
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [

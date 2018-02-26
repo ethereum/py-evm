@@ -1,7 +1,7 @@
 {
-    "PaygasFailBefore": {
+    "PaygasZeroGasprice": {
         "env": {
-            "currentCoinbase": "0x52177de3C0e253105dd7E5093C98232131023d43",
+            "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
             "currentNumber": "0x01",
             "expectedPeriodNumber": "0x00",
             "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
@@ -19,18 +19,21 @@
                 ],
                 "result": {
                     "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                        "balance": "0x00",
-                        "code": "0x6001600055600061000f57600080fd5b6001f5506001600155",
+                        "balance": "0x0186a0",
+                        "code": "0x60016000556000f5506001600155",
                         "nonce": "0x00",
-                        "storage": {}
+                        "storage": {
+                            "0x00": "0x01",
+                            "0x01": "0x01"
+                        }
                     }
                 }
             }
         ],
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                "balance": "0x00",
-                "code": "0x6001600055600061000f57600080fd5b6001f5506001600155",
+                "balance": "0x0186a0",
+                "code": "0x60016000556000f5506001600155",
                 "nonce": "0x00",
                 "storage": {}
             }
