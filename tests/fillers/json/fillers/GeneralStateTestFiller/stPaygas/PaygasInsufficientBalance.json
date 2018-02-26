@@ -12,8 +12,7 @@
             {
                 "indexes": {
                     "data": 0,
-                    "gas": 0,
-                    "value": 0
+                    "gas": 0
                 },
                 "networks": [
                     "Sharding"
@@ -37,7 +36,12 @@
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [

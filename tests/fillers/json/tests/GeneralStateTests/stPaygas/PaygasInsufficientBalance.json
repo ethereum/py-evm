@@ -1,9 +1,9 @@
 {
     "PaygasInsufficientBalance": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-549-g97ab652",
+            "filledwith": "py-evm-v0.2.0-alpha.6-553-g159d13e",
             "source": "GeneralStateTestFiller/stPaygas/PaygasInsufficientBalance.json",
-            "sourceHash": "0x63c5ff9f486a84427fe7bbc309ebf86bb367d5b1d5c4812afd5c37baf293c000"
+            "sourceHash": "0x01798a2a9febccaf7cf52e86f75699403f1f9b244cd0c9f6eaec2e62aa90a26b"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
@@ -19,8 +19,7 @@
                     "hash": "0xe178d54d1323b81b9d21189a5c26affcbc1b3184eec95b0a151d04dc22b0b139",
                     "indexes": {
                         "data": 0,
-                        "gas": 0,
-                        "value": 0
+                        "gas": 0
                     }
                 }
             ]
@@ -34,7 +33,12 @@
             }
         },
         "transaction": {
-            "accessList": [],
+            "accessList": [
+                [
+                    "0x60dcef1a9f4193236df7d29218ed494e963ad013",
+                    "0x"
+                ]
+            ],
             "chainID": "0x00",
             "code": "0x",
             "data": [
