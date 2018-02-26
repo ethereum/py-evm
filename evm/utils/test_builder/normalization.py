@@ -11,6 +11,7 @@ from cytoolz import (
     identity,
 )
 from eth_utils import (
+    apply_formatters_to_dict,
     big_endian_to_int,
     decode_hex,
     is_0x_prefixed,
@@ -88,7 +89,52 @@ def normalize_int(value):
         return int(value)
 
 
-normalize_bytes = eth_utils.curried.apply_formatter_if(is_hex, decode_hex)
+def normalize_bytes(value):
+    if is_hex(value) or len(value) == 0:
+        return decode_hex(value)
+    elif is_bytes(value):
+        return value
+    else:
+        raise TypeError("Value must be either a string or bytes object")
+
+
+def dict_normalizer(formatters, required=None):
+    all_keys = set(formatters.keys())
+    if required is None:
+        required = all_keys
+    else:
+        required = set(required)
+
+    def normalizer(d):
+        keys = set(d.keys())
+        missing_keys = required - keys
+        superfluous_keys = keys - all_keys
+        if missing_keys:
+            raise KeyError("Missing required keys: {}".format(", ".join(missing_keys)))
+        if superfluous_keys:
+            raise KeyError("Superfluous keys: {}".format(", ".join(superfluous_keys)))
+
+        return apply_formatters_to_dict(formatters, d)
+
+    return normalizer
+
+
+def dict_options_normalizer(normalizers):
+
+    def normalize(d):
+        first_exception = None
+        for normalizer in normalizers:
+            try:
+                normalized = normalizer(d)
+            except KeyError as e:
+                if not first_exception:
+                    first_exception = e
+            else:
+                return normalized
+        assert first_exception is not None
+        raise first_exception
+
+    return normalize
 
 
 normalize_storage = compose(
@@ -99,12 +145,12 @@ normalize_storage = compose(
 
 normalize_state = compose(
     cytoolz.curried.keymap(to_canonical_address),
-    cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
+    cytoolz.curried.valmap(dict_normalizer({
         "balance": normalize_int,
         "code": normalize_bytes,
         "nonce": normalize_int,
         "storage": normalize_storage
-    })),
+    }, required=[])),
     eth_utils.curried.apply_formatter_if(
         lambda s: isinstance(s, Iterable) and not isinstance(s, Mapping),
         state_definition_to_dict
@@ -112,18 +158,20 @@ normalize_state = compose(
 )
 
 
-normalize_environment = eth_utils.curried.apply_formatters_to_dict({
-    # shared
+normalize_main_environment = dict_normalizer({
     "currentCoinbase": to_canonical_address,
     "previousHash": normalize_bytes,
     "currentNumber": normalize_int,
-
-    # only main environment
     "currentDifficulty": normalize_int,
     "currentGasLimit": normalize_int,
     "currentTimestamp": normalize_int,
+})
 
-    # only sharding environment
+
+normalize_sharding_environment = dict_normalizer({
+    "currentCoinbase": to_canonical_address,
+    "previousHash": normalize_bytes,
+    "currentNumber": normalize_int,
     "shardID": normalize_int,
     "expectedPeriodNumber": normalize_int,
     "periodStartHash": normalize_bytes,
@@ -132,7 +180,13 @@ normalize_environment = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-normalize_transaction = eth_utils.curried.apply_formatters_to_dict({
+normalize_environment = dict_options_normalizer([
+    normalize_main_environment,
+    normalize_sharding_environment,
+])
+
+
+normalize_main_transaction = dict_normalizer({
     "data": normalize_bytes,
     "gasLimit": normalize_int,
     "gasPrice": normalize_int,
@@ -143,7 +197,29 @@ normalize_transaction = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-normalize_transaction_group = eth_utils.curried.apply_formatters_to_dict({
+normalize_access_list = eth_utils.curried.apply_formatter_to_array(
+    eth_utils.curried.apply_formatter_to_array(normalize_bytes)
+)
+
+normalize_sharding_transaction = dict_normalizer({
+    "chainID": normalize_int,
+    "shardID": normalize_int,
+    "data": normalize_bytes,
+    "gasLimit": normalize_int,
+    "gasPrice": normalize_int,
+    "to": to_canonical_address,
+    "code": normalize_bytes,
+    "accessList": normalize_access_list,
+})
+
+
+normalize_transaction = dict_options_normalizer([
+    normalize_main_transaction,
+    normalize_sharding_transaction,
+])
+
+
+normalize_main_transaction_group = dict_normalizer({
     "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
@@ -154,7 +230,25 @@ normalize_transaction_group = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-normalize_execution = eth_utils.curried.apply_formatters_to_dict({
+normalize_sharding_transaction_group = dict_normalizer({
+    "chainID": normalize_int,
+    "shardID": normalize_int,
+    "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
+    "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
+    "gasPrice": normalize_int,
+    "to": to_canonical_address,
+    "code": normalize_bytes,
+    "accessList": normalize_access_list,
+})
+
+
+normalize_transaction_group = dict_options_normalizer([
+    normalize_main_transaction_group,
+    normalize_sharding_transaction_group,
+])
+
+
+normalize_execution = dict_normalizer({
     "address": to_canonical_address,
     "origin": to_canonical_address,
     "caller": to_canonical_address,
@@ -165,10 +259,10 @@ normalize_execution = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-normalize_networks = identity  # TODO: allow for ranges
+normalize_networks = identity
 
 
-normalize_call_create_item = eth_utils.curried.apply_formatters_to_dict({
+normalize_call_create_item = dict_normalizer({
     "data": normalize_bytes,
     "destination": to_canonical_address,
     "gasLimit": normalize_int,
@@ -176,7 +270,7 @@ normalize_call_create_item = eth_utils.curried.apply_formatters_to_dict({
 })
 normalize_call_creates = eth_utils.curried.apply_formatter_to_array(normalize_call_create_item)
 
-normalize_log_item = eth_utils.curried.apply_formatters_to_dict({
+normalize_log_item = dict_normalizer({
     "address": to_canonical_address,
     "topics": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "data": normalize_bytes,
