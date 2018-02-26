@@ -1,12 +1,15 @@
 import functools
 import logging
-from logging import handlers
+from logging import handlers, Logger
+from multiprocessing import Queue
 import sys
 
 from cytoolz import dissoc
 
+from typing import Tuple, Callable
 
-def setup_trinity_logging(level):
+
+def setup_trinity_logging(level: int) -> Tuple[Logger, Queue, handlers.QueueListener]:
     from .mp import ctx
 
     log_queue = ctx.Queue()
@@ -29,7 +32,7 @@ def setup_trinity_logging(level):
     return logger, log_queue, listener
 
 
-def setup_queue_logging(log_queue, level):
+def setup_queue_logging(log_queue: Queue, level: int) -> None:
     queue_handler = handlers.QueueHandler(log_queue)
     logging.basicConfig(
         level=level,
@@ -40,7 +43,7 @@ def setup_queue_logging(log_queue, level):
     logger.debug('Logging initialized')
 
 
-def with_queued_logging(fn):
+def with_queued_logging(fn: Callable) -> Callable:
     @functools.wraps(fn)
     def inner(*args, **kwargs):
         print(args, kwargs)
