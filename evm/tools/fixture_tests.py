@@ -308,8 +308,11 @@ def normalize_unsigned_transaction(transaction, indexes):
     else:
         yield 'chainID', to_int(transaction['chainID'])
         yield 'shardID', to_int(transaction['shardID'])
-        yield 'accessList', [decode_hex(node) for node in transaction['accessList']]
-        yield 'code', to_int(transaction['code'])
+        yield 'accessList', [
+            [decode_hex(element) for element in list_]
+            for list_ in transaction['accessList']
+        ]
+        yield 'code', decode_hex(transaction['code'])
 
 
 def normalize_account_state(account_state):

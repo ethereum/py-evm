@@ -151,6 +151,7 @@ def setup_filler(name, environment=None):
     environment = normalize_environment(environment or {})
     return {name: {
         "env": environment,
+        "pre": {},
     }}
 
 
