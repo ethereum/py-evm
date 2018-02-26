@@ -75,15 +75,18 @@ def add_transaction_to_group(group, transaction):
     new_group = copy.deepcopy(group)
     indexes = {}
     for key, index_key in [("data", "data"), ("gasLimit", "gas"), ("value", "value")]:
-        if key not in transaction:
-            if len(new_group[key]) != 1:
-                raise ValueError("Can't add transaction as {} is ambiguous".format(key))
-            index = 0
+        if key in group:
+            if key not in transaction:
+                if len(new_group[key]) != 1:
+                    raise ValueError("Can't add transaction as {} is ambiguous".format(key))
+                index = 0
+            else:
+                if transaction[key] not in new_group[key]:
+                    new_group[key].append(transaction[key])
+                index = new_group[key].index(transaction[key])
+            indexes[index_key] = index
         else:
-            if transaction[key] not in new_group[key]:
-                new_group[key].append(transaction[key])
-            index = new_group[key].index(transaction[key])
-        indexes[index_key] = index
+            assert key not in transaction
     return new_group, indexes
 
 

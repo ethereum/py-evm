@@ -197,18 +197,23 @@ def _expect(post_state, networks, transaction, filler):
     new_expect = {"result": result}
 
     if transaction is not None:
-        transaction = normalize_transaction(transaction)
+        transaction = normalize_transaction(
+            merge(get_default_transaction(networks), transaction)
+        )
         if "transaction" not in test:
-            transaction = merge(get_default_transaction(networks), transaction)
             transaction_group = apply_formatters_to_dict({
                 "data": wrap_in_list,
                 "gasLimit": wrap_in_list,
                 "value": wrap_in_list,
             }, transaction)
             indexes = {
-                "data": 0,
-                "gas": 0,
-                "value": 0,
+                index_key: 0
+                for transaction_key, index_key in [
+                    ("gasLimit", "gas"),
+                    ("value", "value"),
+                    ("data", "data"),
+                ]
+                if transaction_key in transaction_group
             }
         else:
             transaction_group, indexes = add_transaction_to_group(
