@@ -39,10 +39,6 @@ from evm.vm.message import (
     Message,
 )
 
-from .execution_context import (
-    ExecutionContext,
-)
-
 
 class BaseVM(Configurable):
     """
@@ -449,7 +445,7 @@ class BaseVM(Configurable):
                 db=chaindb,
             )
 
-        execution_context = ExecutionContext.from_block_header(block_header, prev_hashes)
+        execution_context = block_header.derive_execution_context(prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,

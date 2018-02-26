@@ -19,9 +19,9 @@ from eth_utils import (
 )
 
 from evm.constants import (
+    GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
-    GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -403,10 +403,11 @@ class ChainDB(BaseChainDB):
                 self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
         # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
+        if hasattr(block, "uncles"):
+            self.db.set(
+                block.header.uncles_hash,
+                rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
+            )
 
     def get_block_uncles(self, uncles_hash):
         validate_word(uncles_hash, title="Uncles Hash")
