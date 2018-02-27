@@ -50,6 +50,20 @@ def deep_merge(*dicts):
 
 
 def is_cleanly_mergable(*dicts):
+    """Check that nothing will be overwritten when dictionaries are merged using `deep_merge`.
+
+    Examples:
+
+        >>> is_cleanly_mergable({"a": 1}, {"b": 2}, {"c": 3})
+        True
+        >>> is_cleanly_mergable({"a": 1}, {"b": 2}, {"a": 0, c": 3})
+        False
+        >>> is_cleanly_mergable({"a": 1, "b": {"ba": 2}}, {"c": 3, {"b": {"bb": 4}})
+        True
+        >>> is_cleanly_mergable({"a": 1, "b": {"ba": 2}}, {"b": {"ba": 4}})
+        False
+
+    """
     if len(dicts) <= 1:
         return True
     elif len(dicts) == 2:
