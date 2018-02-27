@@ -203,7 +203,7 @@ class BasePeer:
         Raises OperationCancelled if the peer has been disconnected.
         """
         combined_token = self.cancel_token.chain(cancel_token)
-        return await wait_with_token(self.sub_proto_msg_queue.get(), combined_token)
+        return await wait_with_token(self.sub_proto_msg_queue.get(), token=combined_token)
 
     @property
     async def genesis(self) -> BlockHeader:
@@ -242,7 +242,7 @@ class BasePeer:
         self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
         try:
             return await wait_with_token(
-                self.reader.readexactly(n), self.cancel_token, timeout=self.conn_idle_timeout)
+                self.reader.readexactly(n), token=self.cancel_token, timeout=self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError):
             raise PeerConnectionLost("EOF reading from stream")
 
@@ -499,7 +499,7 @@ class LESPeer(BasePeer):
 
         self._pending_replies[request_id] = callback
         combined_token = self.cancel_token.chain(cancel_token)
-        await wait_with_token(got_reply.wait(), combined_token, timeout=self.reply_timeout)
+        await wait_with_token(got_reply.wait(), token=combined_token, timeout=self.reply_timeout)
         return reply
 
     async def get_block_header_by_hash(

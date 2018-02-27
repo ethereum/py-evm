@@ -102,7 +102,7 @@ async def test_wait_cancel_pending_tasks_on_cancellation(event_loop):
 async def test_wait_with_token(event_loop):
     fut = asyncio.Future()
     event_loop.call_soon(functools.partial(fut.set_result, 'result'))
-    result = await wait_with_token(fut, CancelToken('token'), timeout=1)
+    result = await wait_with_token(fut, token=CancelToken('token'), timeout=1)
     assert result == 'result'
     await assert_only_current_task_not_done()
 
@@ -112,14 +112,14 @@ async def test_wait_with_token_future_exception(event_loop):
     fut = asyncio.Future()
     event_loop.call_soon(functools.partial(fut.set_exception, Exception()))
     with pytest.raises(Exception):
-        await wait_with_token(fut, CancelToken('token'), timeout=1)
+        await wait_with_token(fut, token=CancelToken('token'), timeout=1)
     await assert_only_current_task_not_done()
 
 
 @pytest.mark.asyncio
 async def test_wait_with_token_timeout():
     with pytest.raises(TimeoutError):
-        await wait_with_token(asyncio.sleep(0.02), CancelToken('token'), timeout=0.01)
+        await wait_with_token(asyncio.sleep(0.02), token=CancelToken('token'), timeout=0.01)
     await assert_only_current_task_not_done()
 
 
@@ -128,7 +128,7 @@ async def test_wait_with_token_operation_cancelled(event_loop):
     token = CancelToken('token')
     token.trigger()
     with pytest.raises(OperationCancelled):
-        await wait_with_token(asyncio.sleep(0.02), token)
+        await wait_with_token(asyncio.sleep(0.02), token=token)
     await assert_only_current_task_not_done()
 
 
