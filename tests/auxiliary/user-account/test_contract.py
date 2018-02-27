@@ -32,7 +32,7 @@ from evm.vm.forks.sharding.transactions import (
 )
 
 from evm.rlp.headers import (
-    BlockHeader,
+    CollationHeader,
 )
 
 from evm.db import (
@@ -50,6 +50,7 @@ from eth_utils import (
     to_canonical_address,
     int_to_big_endian,
     big_endian_to_int,
+    decode_hex,
 )
 from evm.utils.padding import (
     pad32,
@@ -147,16 +148,18 @@ DEFAULT_S = SIGNED_DEFAULT_TRANSACTION.s
 
 @pytest.fixture
 def vm():
-    header = BlockHeader(
-        coinbase=to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
-        difficulty=131072,
-        block_number=10,
-        gas_limit=3141592,
-        timestamp=1422494849,
+    header = CollationHeader(
+        shard_id=0,
+        expected_period_number=2,
+        period_start_prevhash=decode_hex(
+            "3c4cc7b99c7eb9281e9a8d15cd4b2f98c5df085e929f15388c699b41cdde78d7"
+        ),
         parent_hash=ZERO_HASH32,
         transaction_root=EMPTY_SHA3,
-        receipt_root=EMPTY_SHA3,
+        coinbase=to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
         state_root=EMPTY_SHA3,
+        receipt_root=EMPTY_SHA3,
+        number=10,
     )
     chaindb = ChainDB(
         get_db_backend(),
