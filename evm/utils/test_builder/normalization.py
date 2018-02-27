@@ -27,6 +27,10 @@ from .builder_utils import (
     is_cleanly_mergable,
 )
 
+from evm.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
+
 
 def state_definition_to_dict(state_definition):
     """Convert a state definition to the canonical dict form.
@@ -105,12 +109,25 @@ def normalize_bytes(value):
         raise TypeError("Value must be either a string or bytes object")
 
 
-def dict_normalizer(formatters, required=None):
-    all_keys = set(formatters.keys())
-    if required is None:
-        required = all_keys
+@functools.lru_cache(maxsize=128)
+def normalize_to_address(value):
+    if value:
+        return to_canonical_address(value)
     else:
+        return CREATE_CONTRACT_ADDRESS
+
+
+def dict_normalizer(formatters, required=None, optional=None):
+    all_keys = set(formatters.keys())
+
+    if required is None and optional is None:
+        required = all_keys
+    elif required is not None:
         required = set(required)
+    elif optional is not None:
+        required = all_keys - set(optional)
+    else:
+        raise ValueError("Both required and optional keys specified")
 
     def normalizer(d):
         keys = set(d.keys())
@@ -172,7 +189,7 @@ normalize_main_environment = dict_normalizer({
     "currentDifficulty": normalize_int,
     "currentGasLimit": normalize_int,
     "currentTimestamp": normalize_int,
-})
+}, optional=["previousHash"])
 
 
 normalize_sharding_environment = dict_normalizer({
@@ -199,7 +216,7 @@ normalize_main_transaction = dict_normalizer({
     "gasPrice": normalize_int,
     "nonce": normalize_int,
     "secretKey": normalize_bytes,
-    "to": to_canonical_address,
+    "to": normalize_to_address,
     "value": normalize_int,
 })
 
@@ -214,7 +231,7 @@ normalize_sharding_transaction = dict_normalizer({
     "data": normalize_bytes,
     "gasLimit": normalize_int,
     "gasPrice": normalize_int,
-    "to": to_canonical_address,
+    "to": normalize_to_address,
     "code": normalize_bytes,
     "accessList": normalize_access_list,
 })
@@ -232,7 +249,7 @@ normalize_main_transaction_group = dict_normalizer({
     "gasPrice": normalize_int,
     "nonce": normalize_int,
     "secretKey": normalize_bytes,
-    "to": to_canonical_address,
+    "to": normalize_to_address,
     "value": eth_utils.curried.apply_formatter_to_array(normalize_int),
 })
 
@@ -243,7 +260,7 @@ normalize_sharding_transaction_group = dict_normalizer({
     "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
-    "to": to_canonical_address,
+    "to": normalize_to_address,
     "code": normalize_bytes,
     "accessList": normalize_access_list,
 })
