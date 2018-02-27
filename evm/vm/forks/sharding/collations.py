@@ -46,6 +46,10 @@ class Collation(BaseCollation):
         return self.header.expected_period_number
 
     @property
+    def number(self):
+        return self.header.number
+
+    @property
     def hash(self):
         return self.header.hash
 

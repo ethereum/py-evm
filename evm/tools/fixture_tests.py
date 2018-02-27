@@ -200,14 +200,6 @@ def to_int(value):
         return int(value)
 
 
-@functools.lru_cache(maxsize=128)
-def normalize_to_address(value):
-    if value:
-        return to_canonical_address(value)
-    else:
-        return CREATE_CONTRACT_ADDRESS
-
-
 robust_decode_hex = hexstr_if_str(to_bytes)
 
 
