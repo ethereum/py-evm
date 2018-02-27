@@ -57,7 +57,8 @@ Note that `setup_filler` returns a dictionary, whereas all of the following func
 This function kicks off the filler generation process by creating the general filler scaffold with
 a test name and general information about the testing environment.
 
-For tests for the main chain, the `environment` parameter is expected to be a dictionary with some or all of the following keys:
+For tests for the main chain, the `environment` parameter is expected to be a dictionary with some
+or all of the following keys:
 
   key                  | description
   ---------------------|------------------------------------------------------------------------
@@ -80,7 +81,9 @@ for sharding tests differs accordingly:
   `"expectedPeriodNumber"` | the period number in which the collation is supposed to be included
   `"periodStartHash"`      | the hash of the block starting the current period.
 
-Use `setup_main_filler` or `setup_sharding_filler` with the same signature, but correct
+For convenience, `setup_main_filler` or `setup_sharding_filler` are provided which are equivalent
+to `setup_filler` for the most part, but use appropriate default environments.
+
 
 ### `pre_state(state_definitions)`
 
@@ -154,7 +157,8 @@ the following identifiers (also available in `ALL_FORKS`):
   - `"Byzantium"`
   - `"Sharding"`
 
-As sharding tests require different environment and transaction definitions, one shouldn't mix `"Sharding"` with other networks.
+As sharding tests require different environment and transaction definitions, one shouldn't mix
+`"Sharding"` with other networks.
 
 `transaction` is a dictionary coming in two variants. For the main shard:
 

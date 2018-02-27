@@ -61,13 +61,20 @@ def state_definition_to_dict(state_definition):
             for state_item
             in state_definition
         ]
-        assert is_cleanly_mergable(*state_dicts)
+        if not is_cleanly_mergable(*state_dicts):
+            raise ValueError("Some state item is defined multiple times")
         state_dict = deep_merge(*state_dicts)
     else:
-        assert False
+        assert TypeError("State definition must either be a mapping or a sequence")
 
-    second_layer_keys = concat(d.keys() for d in state_dict.values())
-    assert all(key in ["balance", "nonce", "storage", "code"] for key in second_layer_keys)
+    seen_keys = set(concat(d.keys() for d in state_dict.values()))
+    bad_keys = seen_keys - set(["balance", "nonce", "storage", "code"])
+    if bad_keys:
+        raise ValueError(
+            "State definition contains the following invalid account fields: {}".format(
+                ", ".join(bad_keys)
+            )
+        )
 
     return state_dict
 
