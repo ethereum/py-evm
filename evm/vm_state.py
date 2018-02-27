@@ -85,19 +85,9 @@ class BaseVMState(Configurable):
     #
     # read only state_db
     #
-    @contextmanager
+    @property
     def read_only_state_db(self):
-        state = self._chaindb.get_state_db(self.state_root, read_only=True)
-        yield state
-
-        assert state.root_hash == self.state_root
-        self.access_logs.reads.update(state.db.access_logs.reads)
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.db = None
-        state._trie = None
+        return self._chaindb.get_state_db(self.state_root, read_only=True)
 
     #
     # mutable state_db
