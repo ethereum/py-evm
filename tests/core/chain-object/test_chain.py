@@ -39,8 +39,7 @@ def test_apply_transaction(chain, tx):
     # Check if the state is updated.
     vm = chain.get_vm()
     assert vm.state.state_root == computation.vm_state.state_root
-    with vm.state.read_only_state_db() as state_db:
-        assert state_db.get_balance(tx.to) == tx.value
+    assert vm.state.read_only_state_db.get_balance(tx.to) == tx.value
 
 
 def test_import_block_validation(valid_chain, funded_address, funded_address_initial_balance):
@@ -50,12 +49,12 @@ def test_import_block_validation(valid_chain, funded_address, funded_address_ini
     tx = imported_block.transactions[0]
     assert tx.value == 10
     vm = valid_chain.get_vm()
-    with vm.state.read_only_state_db() as state_db:
-        assert state_db.get_balance(
-            decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
-        tx_gas = tx.gas_price * constants.GAS_TX
-        assert state_db.get_balance(funded_address) == (
-            funded_address_initial_balance - tx.value - tx_gas)
+    state_db = vm.state.read_only_state_db
+    assert state_db.get_balance(
+        decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
+    tx_gas = tx.gas_price * constants.GAS_TX
+    assert state_db.get_balance(funded_address) == (
+        funded_address_initial_balance - tx.value - tx_gas)
 
 
 def test_import_block(chain, tx):

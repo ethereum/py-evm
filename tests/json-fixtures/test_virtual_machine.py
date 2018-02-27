@@ -243,5 +243,4 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         assert isinstance(computation._error, VMError)
         post_state = fixture['pre']
 
-    with vm.state.read_only_state_db() as state_db:
-        verify_state_db(post_state, state_db)
+    verify_state_db(post_state, vm.state.read_only_state_db)

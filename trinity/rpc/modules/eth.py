@@ -43,8 +43,11 @@ def get_header(chain, at_block):
 def state_at_block(chain, at_block, read_only=True):
     at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
-    with vm.state.read_only_state_db() as state:
-        yield state
+    if read_only:
+        yield vm.state.read_only_state_db
+    else:
+        with vm.state.mutable_state_db() as state:
+            yield state
 
 
 def get_block_at_number(chain, at_block):

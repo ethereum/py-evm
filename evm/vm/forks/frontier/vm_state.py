@@ -112,8 +112,7 @@ def _execute_frontier_transaction(vm_state, transaction):
     # 2) Apply the message to the VM.
     #
     if message.is_create:
-        with vm_state.read_only_state_db() as state_db:
-            is_collision = state_db.account_has_code_or_nonce(contract_address)
+        is_collision = vm_state.read_only_state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
             # The address of the newly created contract has *somehow* collided
