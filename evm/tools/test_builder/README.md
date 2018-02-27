@@ -1,8 +1,8 @@
 # JSON test builder
 
 
-The JSON test builder found in `evm.utils.test_builder.test_builder` is a library that
-facilitates creating standard JSON consensus tests as found in the
+The JSON test builder found in `evm.tools.test_builder.test_builder` is a library that facilitates
+creating standard JSON consensus tests as found in the
 [ethereum/tests repository](https://github.com/ethereum/tests). Only VM and state tests are
 supported right now.
 

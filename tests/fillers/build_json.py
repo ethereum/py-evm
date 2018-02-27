@@ -1,13 +1,13 @@
 import os
 import json
 
-from evm.utils.test_builder.test_builder import (
+from evm.tools.test_builder.test_builder import (
     fill_test,
 )
-from evm.utils.test_builder.formatters import (
+from evm.tools.test_builder.formatters import (
     filler_formatter,
 )
-from evm.utils.test_builder.builder_utils import (
+from evm.tools.test_builder.builder_utils import (
     get_test_name,
 )
 
