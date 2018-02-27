@@ -36,14 +36,14 @@ from evm.vm.forks.frontier.constants import (
     REFUND_SELFDESTRUCT,
 )
 
-from .blocks import ShardingBlock
+from .collations import Collation
 from .computation import ShardingComputation
 from .transaction_context import ShardingTransactionContext
 from .validation import validate_sharding_transaction
 
 
 class ShardingVMState(ByzantiumVMState):
-    block_class = ShardingBlock
+    block_class = Collation
     computation_class = ShardingComputation
     transaction_context_class = ShardingTransactionContext
     trie_class = BinaryTrie
@@ -236,11 +236,8 @@ class ShardingVMState(ByzantiumVMState):
 
         trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
 
-        block.bloom_filter |= receipt.bloom
-
         block.header.transaction_root = tx_root_hash
         block.header.receipt_root = receipt_root_hash
-        block.header.bloom = int(block.bloom_filter)
         block.header.gas_used = receipt.gas_used
 
         return block, trie_data
@@ -268,13 +265,5 @@ class ShardingVMState(ByzantiumVMState):
                 block.header.coinbase,
             )
 
-            for uncle in block.uncles:
-                uncle_reward = self.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
         block.header.state_root = self.state_root
         return block

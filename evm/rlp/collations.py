@@ -40,6 +40,10 @@ class BaseCollation(rlp.Serializable, Configurable):
     def expected_period_number(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @property
+    def number(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
     def __repr__(self):
         return '<{class_name}(#{b})>'.format(
             class_name=self.__class__.__name__,
