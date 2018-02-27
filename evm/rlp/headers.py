@@ -168,7 +168,7 @@ class BlockHeader(rlp.Serializable):
             in first(zip(*self.fields))
         })
 
-    def derive_execution_context(self, prev_hashes):
+    def create_execution_context(self, prev_hashes):
         return ExecutionContext(
             coinbase=self.coinbase,
             timestamp=self.timestamp,
@@ -300,7 +300,7 @@ class CollationHeader(rlp.Serializable):
             in first(zip(*self.fields))
         })
 
-    def derive_execution_context(self, prev_hashes):
+    def create_execution_context(self, prev_hashes):
         return ExecutionContext(
             coinbase=self.coinbase,
             timestamp=None,
