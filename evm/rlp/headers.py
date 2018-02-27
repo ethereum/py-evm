@@ -7,6 +7,9 @@ from rlp.sedes import (
     binary,
 )
 
+from cytoolz import (
+    first,
+)
 from eth_utils import (
     keccak,
     to_dict,
@@ -162,7 +165,7 @@ class BlockHeader(rlp.Serializable):
         return self.__class__(**{
             field_name: getattr(self, field_name)
             for field_name
-            in tuple(zip(*self.fields))[0]
+            in first(zip(*self.fields))
         })
 
     def derive_execution_context(self, prev_hashes):
@@ -294,7 +297,7 @@ class CollationHeader(rlp.Serializable):
         return self.__class__(**{
             field_name: getattr(self, field_name)
             for field_name
-            in tuple(zip(*self.fields))[0]
+            in first(zip(*self.fields))
         })
 
     def derive_execution_context(self, prev_hashes):
