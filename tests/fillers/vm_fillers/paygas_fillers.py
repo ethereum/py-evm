@@ -4,13 +4,13 @@ from cytoolz import (
     pipe,
 )
 
-from evm.utils.test_builder.test_builder import (
+from evm.tools.test_builder.test_builder import (
     setup_sharding_filler,
     pre_state,
     expect,
 )
 
-from evm.utils.test_builder.builder_utils import (
+from evm.tools.test_builder.builder_utils import (
     generate_random_address,
 )
 

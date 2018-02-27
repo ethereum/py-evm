@@ -12,6 +12,7 @@ import pytest
 from cytoolz import (
     curry,
     identity,
+    merge,
 )
 
 from eth_utils import (
@@ -41,15 +42,10 @@ from evm.utils.state import (
 from evm.utils.rlp import (
     diff_rlp_object,
 )
-from evm.utils.test_builder.normalization import (
+from evm.tools.test_builder.normalization import (
     normalize_environment,
     normalize_transaction_group,
 )
-
-from cytoolz import (
-    merge,
-)
-
 from evm.vm.forks import (
     ByzantiumVM,
     TangerineWhistleVM,
