@@ -445,7 +445,7 @@ class BaseVM(Configurable):
                 db=chaindb,
             )
 
-        execution_context = block_header.derive_execution_context(prev_hashes)
+        execution_context = block_header.create_execution_context(prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,
