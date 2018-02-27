@@ -54,7 +54,7 @@ from .state import (
 from .rlp import (
     diff_rlp_object,
 )
-from .test_builder.normalization import (
+from evm.tools.test_builder.normalization import (
     normalize_environment,
     normalize_transaction_group,
 )
