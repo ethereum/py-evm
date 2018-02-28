@@ -20,8 +20,8 @@ from typing import (
 import rlp
 from eth_utils import (
     decode_hex,
-    force_bytes,
     keccak,
+    to_bytes,
     to_list,
 )
 
@@ -250,7 +250,7 @@ def _pack(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> byt
     See https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery for information on
     how UDP packets are structured.
     """
-    cmd_id = force_bytes(chr(cmd_id))
+    cmd_id = to_bytes(cmd_id)
     expiration = rlp.sedes.big_endian_int.serialize(int(time.time() + EXPIRATION))
     encoded_data = cmd_id + rlp.encode(payload + [expiration])
     signature = privkey.sign_msg(encoded_data)

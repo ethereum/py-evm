@@ -10,7 +10,6 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
-    force_bytes,
     int_to_big_endian,
 )
 
@@ -81,7 +80,7 @@ def encrypt(data: bytes, pubkey: datatypes.PublicKey, shared_mac_data: bytes = b
     msg = b'\x04' + ephem_pubkey.to_bytes() + iv + ciphertext
 
     # the MAC of a message (called the tag) as per SEC 1, 3.5.
-    tag = hmac_sha256(key_mac, msg[1 + PUBKEY_LEN:] + force_bytes(shared_mac_data))
+    tag = hmac_sha256(key_mac, msg[1 + PUBKEY_LEN:] + shared_mac_data)
     return msg + tag
 
 
