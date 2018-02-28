@@ -147,7 +147,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         Raises OperationCancelled when LightChain.stop() has been called.
         """
         # Wait for either a new announcement or our cancel_token to be triggered.
-        return await wait_with_token(self._announcement_queue.get(), self.cancel_token)
+        return await wait_with_token(self._announcement_queue.get(), token=self.cancel_token)
 
     async def run(self) -> None:
         """Run the LightChain, ensuring headers are in sync with connected peers.

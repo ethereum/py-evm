@@ -70,28 +70,30 @@ async def _wait_for_first(futures):
         return
 
 
-async def wait_with_token(future: Awaitable,
-                          cancel_token: CancelToken,
+async def wait_with_token(*futures: Awaitable,
+                          token: CancelToken,
                           timeout: float = None) -> Any:
-    """Wait for future to complete, unless we timeout or the cancel token is triggered.
+    """Wait for the first future to complete, unless we timeout or the cancel token is triggered.
 
-    Returns the future's result in case it completes.
+    Returns the result of the first future to complete.
 
     Raises TimeoutError if we timeout or OperationCancelled if the cancel token is triggered.
+
+    All pending futures are cancelled before returning.
     """
     done, pending = await asyncio.wait(
-        [future, cancel_token.wait()],
+        futures + (token.wait(),),
         timeout=timeout,
         return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
     if not done:
         raise TimeoutError()
-    if cancel_token.triggered_token is not None:
+    if token.triggered_token is not None:
         # We've been asked to cancel so we don't care about our future, but we must
         # consume its exception or else asyncio will emit warnings.
         for task in done:
             task.exception()
         raise OperationCancelled(
-            "Cancellation requested by {} token".format(cancel_token.triggered_token))
+            "Cancellation requested by {} token".format(token.triggered_token))
     return done.pop().result()
