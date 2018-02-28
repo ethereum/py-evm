@@ -77,10 +77,6 @@ from .constants import (
 )
 
 
-_ReceivedMsgCallbackType = Callable[
-    ['BasePeer', protocol.Command, protocol._DecodedMsgType], None]
-
-
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
@@ -258,6 +254,12 @@ class BasePeer:
             self._finished.set()
             if finished_callback is not None:
                 finished_callback(self)
+
+    def is_finished(self) -> bool:
+        return self._finished.is_set()
+
+    async def wait_until_finished(self) -> bool:
+        return await self._finished.wait()
 
     def close(self):
         """Close this peer's reader/writer streams.
