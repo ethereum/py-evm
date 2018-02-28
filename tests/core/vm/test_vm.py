@@ -26,10 +26,10 @@ def test_apply_transaction(
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
-    with vm.state.state_db(read_only=True) as state_db:
-        assert state_db.get_balance(from_) == (
-            funded_address_initial_balance - amount - tx_gas)
-        assert state_db.get_balance(recipient) == amount
+    state_db = vm.state.read_only_state_db
+    assert state_db.get_balance(from_) == (
+        funded_address_initial_balance - amount - tx_gas)
+    assert state_db.get_balance(recipient) == amount
     block = vm.block
     assert block.transactions[tx_idx] == tx
     assert block.header.gas_used == constants.GAS_TX
@@ -41,8 +41,7 @@ def test_apply_transaction(
 def test_mine_block(chain):
     vm = chain.get_vm()
     block = vm.mine_block()
-    with vm.state.state_db(read_only=True) as state_db:
-        assert state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
+    assert vm.state.read_only_state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
 
 
 def test_import_block(chain, funded_address, funded_address_private_key):

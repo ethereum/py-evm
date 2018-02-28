@@ -56,7 +56,7 @@ def _execute_frontier_transaction(vm_state, transaction):
     vm_state.validate_transaction(transaction)
 
     gas_fee = transaction.gas * transaction.gas_price
-    with vm_state.state_db() as state_db:
+    with vm_state.mutable_state_db() as state_db:
         # Buy Gas
         state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
@@ -112,8 +112,7 @@ def _execute_frontier_transaction(vm_state, transaction):
     # 2) Apply the message to the VM.
     #
     if message.is_create:
-        with vm_state.state_db(read_only=True) as state_db:
-            is_collision = state_db.account_has_code_or_nonce(contract_address)
+        is_collision = vm_state.read_only_state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
             # The address of the newly created contract has *somehow* collided
@@ -158,7 +157,7 @@ def _execute_frontier_transaction(vm_state, transaction):
             encode_hex(message.sender),
         )
 
-        with vm_state.state_db() as state_db:
+        with vm_state.mutable_state_db() as state_db:
             state_db.delta_balance(message.sender, gas_refund_amount)
 
     # Miner Fees
@@ -168,11 +167,11 @@ def _execute_frontier_transaction(vm_state, transaction):
         transaction_fee,
         encode_hex(vm_state.coinbase),
     )
-    with vm_state.state_db() as state_db:
+    with vm_state.mutable_state_db() as state_db:
         state_db.delta_balance(vm_state.coinbase, transaction_fee)
 
     # Process Self Destructs
-    with vm_state.state_db() as state_db:
+    with vm_state.mutable_state_db() as state_db:
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.

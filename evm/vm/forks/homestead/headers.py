@@ -79,7 +79,7 @@ def configure_homestead_header(vm, **header_params):
     # header.state_root after we're done.
     if vm.support_dao_fork and vm.block.header.block_number == vm.dao_fork_block_number:
         vm_state = vm.state
-        with vm_state.state_db() as state_db:
+        with vm_state.mutable_state_db() as state_db:
             for account in dao_drain_list:
                 account = decode_hex(account)
                 balance = state_db.get_balance(account)

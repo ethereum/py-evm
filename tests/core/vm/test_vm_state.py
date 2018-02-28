@@ -42,23 +42,21 @@ def test_state_db(state):  # noqa: F811
     initial_state_root = state.state_root
 
     # test cannot write to state_db after context exits
-    with state.state_db() as state_db:
+    with state.mutable_state_db() as state_db:
         pass
 
     with pytest.raises(TypeError):
         state_db.increment_nonce(address)
 
-    with state.state_db(read_only=True) as state_db:
-        state_db.get_balance(address)
+    state.read_only_state_db.get_balance(address)
     assert state.state_root == initial_state_root
 
-    with state.state_db() as state_db:
+    with state.mutable_state_db() as state_db:
         state_db.set_balance(address, 10)
     assert state.state_root != initial_state_root
 
-    with state.state_db(read_only=True) as state_db:
-        with pytest.raises(TypeError):
-            state_db.set_balance(address, 0)
+    with pytest.raises(TypeError):
+        state.read_only_state_db.set_balance(address, 0)
 
 
 def test_apply_transaction(  # noqa: F811

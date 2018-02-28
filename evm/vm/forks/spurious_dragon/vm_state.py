@@ -26,7 +26,7 @@ class SpuriousDragonVMState(HomesteadVMState):
         #
         touched_accounts = collect_touched_accounts(computation)
 
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             for account in touched_accounts:
                 if state_db.account_exists(account) and state_db.account_is_empty(account):
                     self.logger.debug(

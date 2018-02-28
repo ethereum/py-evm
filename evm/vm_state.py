@@ -83,18 +83,21 @@ class BaseVMState(Configurable):
             return 0
 
     #
-    # state_db
+    # read only state_db
+    #
+    @property
+    def read_only_state_db(self):
+        return self._chaindb.get_state_db(self.state_root, read_only=True)
+
+    #
+    # mutable state_db
     #
     @contextmanager
-    def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(self.state_root, read_only)
+    def mutable_state_db(self):
+        state = self._chaindb.get_state_db(self.state_root, read_only=False)
         yield state
 
-        if read_only:
-            # This acts as a secondary check that no mutation took place for
-            # read_only databases.
-            assert state.root_hash == self.state_root
-        elif self.state_root != state.root_hash:
+        if self.state_root != state.root_hash:
             self.set_state_root(state.root_hash)
 
         self.access_logs.reads.update(state.db.access_logs.reads)
@@ -127,7 +130,7 @@ class BaseVMState(Configurable):
         """
         state_root, checkpoint_id = snapshot
 
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             # first revert the database state root.
             state_db.root_hash = state_root
 
@@ -294,7 +297,7 @@ class BaseVMState(Configurable):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             state_db.delta_balance(block.header.coinbase, block_reward)
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",

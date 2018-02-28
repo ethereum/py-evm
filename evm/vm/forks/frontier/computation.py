@@ -41,7 +41,7 @@ class FrontierComputation(BaseComputation):
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with self.vm_state.state_db() as state_db:
+            with self.vm_state.mutable_state_db() as state_db:
                 sender_balance = state_db.get_balance(self.msg.sender)
 
                 if sender_balance < self.msg.value:
@@ -59,7 +59,7 @@ class FrontierComputation(BaseComputation):
                 encode_hex(self.msg.storage_address),
             )
 
-        with self.vm_state.state_db() as state_db:
+        with self.vm_state.mutable_state_db() as state_db:
             state_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
@@ -99,6 +99,6 @@ class FrontierComputation(BaseComputation):
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    with self.vm_state.state_db() as state_db:
+                    with self.vm_state.mutable_state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
             return computation

@@ -48,32 +48,31 @@ def selfdestruct(computation):
 
 def selfdestruct_eip150(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
-    with computation.vm_state.state_db(read_only=True) as state_db:
-        if not state_db.account_exists(beneficiary):
-            computation.gas_meter.consume_gas(
-                constants.GAS_SELFDESTRUCT_NEWACCOUNT,
-                reason=mnemonics.SELFDESTRUCT,
-            )
+    if not computation.vm_state.read_only_state_db.account_exists(beneficiary):
+        computation.gas_meter.consume_gas(
+            constants.GAS_SELFDESTRUCT_NEWACCOUNT,
+            reason=mnemonics.SELFDESTRUCT,
+        )
     _selfdestruct(computation, beneficiary)
 
 
 def selfdestruct_eip161(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
-    with computation.vm_state.state_db(read_only=True) as state_db:
-        is_dead = (
-            not state_db.account_exists(beneficiary) or
-            state_db.account_is_empty(beneficiary)
+    state_db = computation.vm_state.read_only_state_db
+    is_dead = (
+        not state_db.account_exists(beneficiary) or
+        state_db.account_is_empty(beneficiary)
+    )
+    if is_dead and state_db.get_balance(computation.msg.storage_address):
+        computation.gas_meter.consume_gas(
+            constants.GAS_SELFDESTRUCT_NEWACCOUNT,
+            reason=mnemonics.SELFDESTRUCT,
         )
-        if is_dead and state_db.get_balance(computation.msg.storage_address):
-            computation.gas_meter.consume_gas(
-                constants.GAS_SELFDESTRUCT_NEWACCOUNT,
-                reason=mnemonics.SELFDESTRUCT,
-            )
     _selfdestruct(computation, beneficiary)
 
 
 def _selfdestruct(computation, beneficiary):
-    with computation.vm_state.state_db() as state_db:
+    with computation.vm_state.mutable_state_db() as state_db:
         local_balance = state_db.get_balance(computation.msg.storage_address)
         beneficiary_balance = state_db.get_balance(beneficiary)
 
@@ -110,9 +109,8 @@ class Create(Opcode):
 
         computation.extend_memory(start_position, size)
 
-        with computation.vm_state.state_db(read_only=True) as state_db:
-            insufficient_funds = state_db.get_balance(
-                computation.msg.storage_address) < value
+        insufficient_funds = computation.vm_state.read_only_state_db.get_balance(
+            computation.msg.storage_address) < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
@@ -126,7 +124,7 @@ class Create(Opcode):
         )
         computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
 
-        with computation.vm_state.state_db() as state_db:
+        with computation.vm_state.mutable_state_db() as state_db:
             creation_nonce = state_db.get_nonce(computation.msg.storage_address)
             state_db.increment_nonce(computation.msg.storage_address)
 

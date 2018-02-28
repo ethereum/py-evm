@@ -110,5 +110,4 @@ def test_blockchain_fixtures(fixture_data, fixture):
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     assert latest_block_hash == fixture['lastblockhash']
 
-    with chain.get_vm().state.state_db(read_only=True) as state_db:
-        verify_state_db(fixture['postState'], state_db)
+    verify_state_db(fixture['postState'], chain.get_vm().state.read_only_state_db)
