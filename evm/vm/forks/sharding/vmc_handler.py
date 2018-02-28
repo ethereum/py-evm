@@ -129,6 +129,7 @@ class ShardTracker:
             raise NextLogUnavailable("No more next logs")
         return self.new_logs.pop()
 
+    # TODO: should decide to use snapshot or just reset?
     @to_dict
     def take_log_snapshot(self):
         yield 'current_score', self.current_score
@@ -175,6 +176,12 @@ class ShardTracker:
         self.current_score = log_entry['score']
         return log_entry
 
+    def reset(self):
+        self.log_handler.reset()
+        self.current_score = None
+        self.new_logs = []
+        self.unchecked_logs = []
+
 
 class VMC(Contract):
 
@@ -211,6 +218,9 @@ class VMC(Contract):
         shard_tracker = self.get_shard_tracker(shard_id)
         return shard_tracker.fetch_candidate_head()
 
+    def reset_shard_tracker(self, shard_id):
+        self.shard_trackers[shard_id].reset()
+
     def memoized_fetch_and_verify_collation(self, collation_hash):
         # Download a single collation and check if it is valid or invalid (memoized)
         if collation_hash not in self.validity_cache:
@@ -243,10 +253,14 @@ class VMC(Contract):
 
         :return: returns the hash of the guessed head collation
         """
+        # TODO: this should be change due to the performance issue
+        self.reset_shard_tracker(shard_id)
+
         head_collation_hash = None
         while not is_time_to_make_collation():
             try:
-                head_collation_hash = self.fetch_candidate_head(shard_id)
+                head_collation_dict = self.fetch_candidate_head(shard_id)
+                head_collation_hash = head_collation_dict['header'].hash
             except NoCandidateHead:
                 self.logger.debug("No candidate head available, `guess_head` stops")
                 break

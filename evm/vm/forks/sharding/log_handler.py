@@ -6,6 +6,9 @@ from eth_utils import (
 
 
 def get_recent_block_hashes(w3, history_size):
+    """
+    Get the recent {history_size} block hashes
+    """
     block = w3.eth.getBlock('latest')
     recent_hashes = [block['hash']]
     # initialize the list of recent hashes
@@ -20,6 +23,9 @@ def get_recent_block_hashes(w3, history_size):
 
 
 def check_chain_head(w3, recent_block_hashes, history_size):
+    """
+    Find the recently added and stale(to-be-revoked) block_hashes
+    """
     block = w3.eth.getBlock('latest')
 
     new_block_hashes = []
@@ -117,3 +123,7 @@ class LogHandler:
             topics,
         )
         return self.w3.eth.getLogs(filter_params)
+
+    def reset(self):
+        genesis_block_hash = self.w3.eth.getBlock('earliest')['hash']
+        self.recent_block_hashes = (genesis_block_hash,)

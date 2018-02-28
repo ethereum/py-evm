@@ -142,7 +142,7 @@ def deploy_initiating_contracts(vmc_handler, privkey):
     for tx in txs:
         tx_hash = send_raw_transaction(vmc_handler, tx)
         mine(vmc_handler, 1)
-        print("!@# tx_hash={}".format(w3.eth.getTransactionReceipt(tx_hash)))
+        assert w3.eth.getTransactionReceipt(tx_hash) != None
     logger.debug(
         'deploy_initiating_contracts: vmc_tx_hash=%s',
         w3.eth.getTransactionReceipt(encode_hex(txs[-1].hash)),
@@ -265,7 +265,8 @@ def setup_shard_tracker(vmc_handler, shard_id):
     vmc_handler.set_shard_tracker(shard_id, shard_tracker)
 
 
-def test_vmc_handler_guess_head(vmc):
+# TODO: add tests for memoized_fetch_and_verify_collation respectively
+def test_vmc_guess_head(vmc):  # noqa: F811
     shard_id = 0
     validator_index = 0
     primary_key = test_keys[validator_index]
@@ -277,19 +278,40 @@ def test_vmc_handler_guess_head(vmc):
 
     setup_shard_tracker(vmc, shard_id)
 
-    send_deposit_tx(vmc)
+    validator_addr = send_deposit_tx(vmc)
     lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
     mine(vmc, lookahead_blocks)
+    assert vmc.get_eligible_proposer(shard_id) == validator_addr
 
+    # without fork
     header0_1 = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
-    # tx_hash = vmc.add_header(header0_1)
-    # mine(vmc, vmc.config['PERIOD_LENGTH'])
+    vmc.add_header(header0_1)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
+    vmc.shard_trackers[shard_id].log_handler.reset()
+    assert vmc.guess_head(shard_id) == header0_1.hash
     header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
     vmc.add_header(header0_2)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
-    mine(vmc, lookahead_blocks)
+    assert vmc.guess_head(shard_id) == header0_2.hash
+    assert vmc.guess_head(shard_id) == header0_2.hash
+    assert vmc.guess_head(shard_id) == header0_2.hash
 
-    print("!@# guess_head={}".format(vmc.guess_head(shard_id)))
+    # with fork
+    header0_2_prime = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
+    assert add_header_constant_call(vmc, header0_2_prime)
+    vmc.add_header(header0_2_prime)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
+    # the head should still be header0_2
+    assert vmc.guess_head(shard_id) == header0_2.hash
+    header0_3_prime = mk_testing_colhdr(vmc, shard_id, header0_2_prime.hash, 3)
+    vmc.add_header(header0_3_prime)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
+    # head changes
+    assert vmc.guess_head(shard_id) == header0_3_prime.hash
+    # if not due to the time up, the result should not change when guess_head is called multiple
+    # times if no new blocks arrive
+    assert vmc.guess_head(shard_id) == header0_3_prime.hash
+    assert vmc.guess_head(shard_id) == header0_3_prime.hash
 
 
 # TODO: should separate the tests into pieces, and do some refactors
