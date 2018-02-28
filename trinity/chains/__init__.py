@@ -121,7 +121,8 @@ def serve_chaindb(db: BaseDB, ipc_path: str) -> None:
     # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
     DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)  # type: ignore
-    DBManager.register('get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)  # type: ignore
+    DBManager.register(  # type: ignore
+        'get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)
 
     manager = DBManager(address=ipc_path)  # type: ignore
     server = manager.get_server()  # type: ignore
