@@ -563,7 +563,6 @@ class ChainDB(BaseChainDB):
     #
     @to_set
     @flatten_return
-    def get_witness_nodes(self, collation_header, prefixes):
-        root_hash = collation_header.state_root
+    def get_witness_nodes(self, state_root, prefixes):
         for prefix in prefixes:
-            yield get_witness_for_key_prefix(self.db, root_hash, prefix)
+            yield get_witness_for_key_prefix(self.db, state_root, prefix)

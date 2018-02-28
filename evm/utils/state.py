@@ -1,8 +1,14 @@
+from cytoolz import (
+    merge,
+)
+
 from eth_utils import (
+    keccak,
     to_tuple,
 )
 import rlp
 from trie import (
+    BinaryTrie,
     HexaryTrie,
 )
 
@@ -50,3 +56,18 @@ def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie, chain_db_class
         transaction_db[index_key] = rlp.encode(transaction)
 
     return transaction_db.root_hash, transaction_db.db.wrapped_db.kv_store
+
+
+def update_witness_db(witness, recent_trie_nodes_db, account_state_class, trie_class=BinaryTrie):
+    witness_kv = dict([(keccak(value), value) for value in witness])
+    witness_union = merge(witness_kv, recent_trie_nodes_db)
+    witness_db = ChainDB(
+        MemoryDB(witness_union),
+        account_state_class=account_state_class,
+        trie_class=trie_class,
+    )
+    return witness_db
+
+
+def update_recent_trie_nodes_db(recent_trie_nodes_db, writes_log):
+    return merge(recent_trie_nodes_db, writes_log)
