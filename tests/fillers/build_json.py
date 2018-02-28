@@ -30,6 +30,7 @@ from tests.fillers.vm_fillers.paygas_fillers import (
     paygas_in_call_test,
     paygas_fail_before_test,
     paygas_fail_thereafter_test,
+    paygas_survives_revert_test,
 )
 
 
@@ -52,6 +53,7 @@ DIR_STRUCTURE = {
             paygas_in_call_test,
             paygas_fail_before_test,
             paygas_fail_thereafter_test,
+            paygas_survives_revert_test,
         ]
     }
 }
