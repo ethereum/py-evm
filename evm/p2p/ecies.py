@@ -9,15 +9,14 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 
-from eth_utils import force_bytes
+from eth_utils import (
+    int_to_big_endian,
+)
 
 from eth_keys import keys
 from eth_keys import datatypes
 
 from evm.p2p.exceptions import DecryptionError
-from evm.utils.numeric import (
-    int_to_big_endian,
-)
 from evm.utils.padding import (
     pad32,
 )
@@ -80,7 +79,7 @@ def encrypt(data: bytes, pubkey: datatypes.PublicKey, shared_mac_data: bytes = b
     msg = b'\x04' + ephem_pubkey.to_bytes() + iv + ciphertext
 
     # the MAC of a message (called the tag) as per SEC 1, 3.5.
-    tag = hmac_sha256(key_mac, msg[1 + PUBKEY_LEN:] + force_bytes(shared_mac_data))
+    tag = hmac_sha256(key_mac, msg[1 + PUBKEY_LEN:] + shared_mac_data)
     return msg + tag
 
 
