@@ -14,6 +14,8 @@ from evm.constants import (
     ENTRY_POINT,
 )
 
+from evm.db.trie import make_trie_root_and_nodes
+
 from evm.exceptions import (
     ContractCreationCollision,
     IncorrectContractCreationAddress,
@@ -27,9 +29,6 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
-)
-from evm.utils.state import (
-    make_trie_root_and_nodes,
 )
 from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
 from evm.vm.forks.frontier.constants import (
