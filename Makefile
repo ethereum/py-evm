@@ -23,8 +23,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	flake8 evm
-	flake8 tests --exclude=""
+	tox -eflake8
 
 test:
 	py.test --tb native tests
