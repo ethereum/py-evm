@@ -317,7 +317,9 @@ class VMC(Contract):
             data=data,
         )
         func_instance = getattr(self.functions, func_name)
-        unsigned_transaction = func_instance(*args).buildTransaction(transaction=build_transaction_detail)
+        unsigned_transaction = func_instance(*args).buildTransaction(
+            transaction=build_transaction_detail,
+        )
         signed_transaction_dict = self.web3.eth.account.signTransaction(
             unsigned_transaction,
             privkey.to_hex(),

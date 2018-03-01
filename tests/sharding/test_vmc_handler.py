@@ -142,7 +142,7 @@ def deploy_initiating_contracts(vmc_handler, privkey):
     for tx in txs:
         tx_hash = send_raw_transaction(vmc_handler, tx)
         mine(vmc_handler, 1)
-        assert w3.eth.getTransactionReceipt(tx_hash) != None
+        assert w3.eth.getTransactionReceipt(tx_hash) is not None
     logger.debug(
         'deploy_initiating_contracts: vmc_tx_hash=%s',
         w3.eth.getTransactionReceipt(encode_hex(txs[-1].hash)),
@@ -292,6 +292,8 @@ def test_vmc_guess_head(vmc):  # noqa: F811
     header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
     vmc.add_header(header0_2)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
+    # if not due to the time up, the result should not change when guess_head is called multiple
+    # times if no new blocks arrive
     assert vmc.guess_head(shard_id) == header0_2.hash
     assert vmc.guess_head(shard_id) == header0_2.hash
     assert vmc.guess_head(shard_id) == header0_2.hash
@@ -307,10 +309,6 @@ def test_vmc_guess_head(vmc):  # noqa: F811
     vmc.add_header(header0_3_prime)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # head changes
-    assert vmc.guess_head(shard_id) == header0_3_prime.hash
-    # if not due to the time up, the result should not change when guess_head is called multiple
-    # times if no new blocks arrive
-    assert vmc.guess_head(shard_id) == header0_3_prime.hash
     assert vmc.guess_head(shard_id) == header0_3_prime.hash
 
 
