@@ -14,7 +14,7 @@ from cytoolz import (
     merge_with,
 )
 from eth_utils import (
-    force_text,
+    to_text,
     int_to_big_endian,
 )
 from evm.utils.padding import (
@@ -106,7 +106,7 @@ def add_transaction_to_group(group, transaction):
 
 def get_version_from_git():
     version = subprocess.check_output(["git", "describe"]).strip()
-    return force_text(version)
+    return to_text(version)
 
 
 def calc_state_root(state, account_state_db_class):
