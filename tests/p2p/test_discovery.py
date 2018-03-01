@@ -5,8 +5,8 @@ import rlp
 
 from eth_utils import (
     decode_hex,
-    force_bytes,
     keccak,
+    to_bytes,
 )
 
 from eth_keys import keys
@@ -196,6 +196,6 @@ def random_address():
 
 
 def random_node():
-    seed = force_bytes("".join(random.sample(string.ascii_lowercase, 10)))
+    seed = to_bytes(text="".join(random.sample(string.ascii_lowercase, 10)))
     priv_key = keys.PrivateKey(keccak(seed))
     return kademlia.Node(priv_key.public_key, random_address())
