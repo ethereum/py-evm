@@ -23,11 +23,13 @@ from .xdg import (
     get_xdg_trinity_root,
 )
 
+from typing import Union
+
 
 #
 # Filesystem path utils
 #
-def get_default_data_dir(chain_identifier):
+def get_default_data_dir(chain_identifier: str) -> str:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
@@ -40,7 +42,7 @@ def get_default_data_dir(chain_identifier):
 DATABASE_DIR_NAME = 'chain'
 
 
-def get_database_dir(chain_identifier, data_dir=None):
+def get_database_dir(chain_identifier: str, data_dir: str=None) -> str:
     """
     Returns the directory path where chain data will be stored.
     """
@@ -52,7 +54,7 @@ def get_database_dir(chain_identifier, data_dir=None):
 NODEKEY_FILENAME = 'nodekey'
 
 
-def get_nodekey_path(chain_identifier, data_dir=None):
+def get_nodekey_path(chain_identifier: str, data_dir: str=None) -> str:
     """
     Returns the path to the private key used for devp2p connections.
     """
@@ -67,7 +69,7 @@ def get_nodekey_path(chain_identifier, data_dir=None):
 DATABASE_SOCKET_FILENAME = 'db.ipc'
 
 
-def get_database_socket_path(chain_identifier, data_dir=None):
+def get_database_socket_path(chain_identifier: str, data_dir: str=None) -> str:
     """
     Returns the path to the private key used for devp2p connections.
     """
@@ -82,7 +84,7 @@ def get_database_socket_path(chain_identifier, data_dir=None):
 #
 # Nodekey loading
 #
-def load_nodekey(nodekey_path):
+def load_nodekey(nodekey_path: str) -> PrivateKey:
     with open(nodekey_path, 'rb') as nodekey_file:
         nodekey_raw = nodekey_file.read()
     nodekey = keys.PrivateKey(nodekey_raw)
@@ -106,11 +108,11 @@ class ChainConfig:
     _network_id = None
 
     def __init__(self,
-                 chain_identifier,
-                 data_dir=None,
-                 nodekey_path=None,
-                 nodekey=None,
-                 network_id=None):
+                 chain_identifier: str,
+                 data_dir: str=None,
+                 nodekey_path: str=None,
+                 nodekey: PrivateKey=None,
+                 network_id: int=None) -> None:
         # validation
         if nodekey is not None and nodekey_path is not None:
             raise ValueError("It is invalid to provide both a `nodekey` and a `nodekey_path`")
@@ -127,7 +129,7 @@ class ChainConfig:
             self.nodekey = nodekey
 
     @property
-    def data_dir(self):
+    def data_dir(self) -> str:
         """
         The data_dir is the base directory that all chain specific information
         for a given chain is stored.  All other chain directories are by
@@ -139,19 +141,19 @@ class ChainConfig:
             return self._data_dir
 
     @data_dir.setter
-    def data_dir(self, value):
+    def data_dir(self, value: str) -> None:
         self._data_dir = os.path.abspath(value)
 
     @property
-    def database_dir(self):
+    def database_dir(self) -> str:
         return get_database_dir(self.chain_identifier, self.data_dir)
 
     @property
-    def database_ipc_path(self):
+    def database_ipc_path(self) -> str:
         return get_database_socket_path(self.chain_identifier, self.data_dir)
 
     @property
-    def nodekey_path(self):
+    def nodekey_path(self) -> str:
         if self._nodekey_path is None:
             if self._nodekey is not None:
                 return None
@@ -161,11 +163,11 @@ class ChainConfig:
             return self._nodekey_path
 
     @nodekey_path.setter
-    def nodekey_path(self, value):
+    def nodekey_path(self, value: str) -> None:
         self._nodekey_path = os.path.abspath(value)
 
     @property
-    def nodekey(self):
+    def nodekey(self) -> PrivateKey:
         if self._nodekey is None:
             try:
                 return load_nodekey(self.nodekey_path)
@@ -180,7 +182,7 @@ class ChainConfig:
             return self._nodekey
 
     @nodekey.setter
-    def nodekey(self, value):
+    def nodekey(self, value: Union[bytes, PrivateKey]) -> None:
         if isinstance(value, bytes):
             self._nodekey = keys.PrivateKey(value)
         elif isinstance(value, PrivateKey):
@@ -192,7 +194,7 @@ class ChainConfig:
             )
 
     @property
-    def network_id(self):
+    def network_id(self) -> int:
         if self._network_id is not None:
             return self._network_id
 
