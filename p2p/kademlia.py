@@ -27,6 +27,7 @@ from eth_utils import (
     encode_hex,
     keccak,
     to_bytes,
+    text_if_str,
 )
 
 from eth_keys import (
@@ -559,7 +560,7 @@ class KademliaProtocol:
             asyncio.ensure_future(self.lookup(rid))
 
     def _mkpingid(self, token: AnyStr, node: Node) -> bytes:
-        pid = to_bytes(text=token) + node.pubkey.to_bytes()
+        pid = text_if_str(to_bytes, token) + node.pubkey.to_bytes()
         return pid
 
     async def populate_not_full_buckets(self):

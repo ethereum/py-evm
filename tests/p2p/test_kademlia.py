@@ -41,10 +41,10 @@ async def test_protocol_bootstrap():
 
 
 @pytest.mark.asyncio
-async def test_wait_ping():
+@pytest.mark.parametrize('echo', ['echo', b'echo'])
+async def test_wait_ping(echo):
     proto = get_wired_protocol()
     node = random_node()
-    echo = "echo"
 
     # Schedule a call to proto.recv_ping() simulating a ping from the node we expect.
     recv_ping_coroutine = asyncio.coroutine(lambda: proto.recv_ping(node, echo))
@@ -69,10 +69,10 @@ async def test_wait_ping():
 
 
 @pytest.mark.asyncio
-async def test_wait_pong():
+@pytest.mark.parametrize('echoed', ['echoed', b'echoed'])
+async def test_wait_pong(echoed):
     proto = get_wired_protocol()
     node = random_node()
-    echoed = "echoed"
     pingid = proto._mkpingid(echoed, node)
 
     # Schedule a call to proto.recv_pong() simulating a pong from the node we expect.
