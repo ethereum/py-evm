@@ -22,10 +22,10 @@ from evm.validation import (
     validate_uint256,
 )
 
-from ..spurious_dragon.computation import (
-    SpuriousDragonComputation,
+from evm.vm.forks.byzantium.computation import (
+    ByzantiumComputation,
 )
-from ..spurious_dragon.constants import (
+from evm.vm.forks.spurious_dragon.constants import (
     EIP170_CODE_SIZE_LIMIT,
     GAS_CODEDEPOSIT,
 )
@@ -33,7 +33,7 @@ from ..spurious_dragon.constants import (
 from .opcodes import SHARDING_OPCODES
 
 
-class ShardingComputation(SpuriousDragonComputation):
+class ShardingComputation(ByzantiumComputation):
     _paygas_gasprice = None
 
     # Override
