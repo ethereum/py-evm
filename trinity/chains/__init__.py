@@ -92,7 +92,7 @@ def initialize_database(chain_config, chaindb):
         if chain_config.chain_identifier == ROPSTEN:
             # We're starting with a fresh DB.
             # TODO: log that we initialized the chain
-            chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+            chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.

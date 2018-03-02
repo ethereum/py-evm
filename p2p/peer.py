@@ -808,7 +808,7 @@ def _test():
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
     chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     peer = loop.run_until_complete(

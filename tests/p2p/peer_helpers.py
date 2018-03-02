@@ -19,7 +19,7 @@ from integration_test_helpers import FakeAsyncChainDB
 
 def get_fresh_mainnet_chaindb():
     chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header_to_db(MAINNET_GENESIS_HEADER)
+    chaindb.persist_header(MAINNET_GENESIS_HEADER)
     return chaindb
 
 

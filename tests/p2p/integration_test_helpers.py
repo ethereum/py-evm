@@ -37,5 +37,11 @@ class FakeAsyncChainDB(AsyncChainDB):
     async def coro_lookup_block_hash(self, *args, **kwargs):
         return self.lookup_block_hash(*args, **kwargs)
 
-    async def coro_persist_header_to_db(self, *args, **kwargs):
-        return self.persist_header_to_db(*args, **kwargs)
+    async def coro_persist_header(self, *args, **kwargs):
+        return self.persist_header(*args, **kwargs)
+
+    async def coro_persist_uncles(self, *args, **kwargs):
+        return self.persist_uncles(*args, **kwargs)
+
+    async def coro_persist_trie_data_dict(self, *args, **kwargs):
+        return self.persist_trie_data_dict(*args, **kwargs)

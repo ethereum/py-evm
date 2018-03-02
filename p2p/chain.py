@@ -139,7 +139,7 @@ class ChainSyncer(PeerPoolSubscriber):
             # TODO: Process headers for consistency.
             # TODO: Queue body/receipt downloads.
             for header in headers:
-                await self.chaindb.coro_persist_header_to_db(header)
+                await self.chaindb.coro_persist_header(header)
                 start_at = header.block_number
 
             self.logger.debug("Asking %s for header batch starting at %d", peer, start_at)
@@ -214,7 +214,7 @@ def _test() -> None:
     args = parser.parse_args()
 
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     if args.local_geth:
         peer_pool = LocalGethPeerPool(
             ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())

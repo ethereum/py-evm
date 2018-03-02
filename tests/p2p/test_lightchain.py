@@ -84,7 +84,7 @@ async def test_full_header_sync_and_reorg(request, event_loop, chaindb_mainnet_1
     new_head = BlockHeader.from_parent(
         head_parent, head_parent.gas_limit, difficulty=difficulty,
         timestamp=head.timestamp, coinbase=head.coinbase)
-    server.chaindb.persist_header_to_db(new_head)
+    server.chaindb.persist_header(new_head)
     assert server.chaindb.get_canonical_head() == new_head
     server.send_announce(head_number=head.block_number, reorg_depth=1)
 
@@ -112,7 +112,7 @@ async def test_header_sync_with_multi_peers(request, event_loop, chaindb_mainnet
     new_head = BlockHeader.from_parent(
         head_parent, head_parent.gas_limit, difficulty=difficulty,
         timestamp=head.timestamp, coinbase=head.coinbase)
-    server2_chaindb.persist_header_to_db(new_head)
+    server2_chaindb.persist_header(new_head)
     assert server2_chaindb.get_canonical_head() == new_head
     client2, server2 = await get_client_and_server_peer_pair(
         request,
@@ -279,7 +279,7 @@ def chaindb_mainnet_100():
     headers = rlp.decode(headers_rlp, sedes=sedes.CountableList(BlockHeader))
     chaindb = FakeAsyncChainDB(MemoryDB())
     for i in range(0, 101):
-        chaindb.persist_header_to_db(headers[i])
+        chaindb.persist_header(headers[i])
     return chaindb
 
 

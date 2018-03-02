@@ -153,7 +153,7 @@ def test_canonical_chain(valid_chain):
     assert valid_chain.get_canonical_head() == genesis_header
 
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
-    valid_chain.chaindb.persist_header_to_db(block.header)
+    valid_chain.chaindb.persist_header(block.header)
 
     assert valid_chain.get_canonical_head() == block.header
     canonical_block_1 = valid_chain.chaindb.get_canonical_block_header_by_number(

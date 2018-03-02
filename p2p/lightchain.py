@@ -65,7 +65,7 @@ class LightChain(Chain, PeerPoolSubscriber):
 
     @classmethod
     def from_genesis_header(cls, chaindb, genesis_header, peer_pool):
-        chaindb.persist_header_to_db(genesis_header)
+        chaindb.persist_header(genesis_header)
         return cls(chaindb, peer_pool)
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -211,7 +211,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
-                await self.chaindb.coro_persist_header_to_db(header)
+                await self.chaindb.coro_persist_header(header)
             start_block = chain_head.block_number
         else:
             start_block = last_peer_announcement.block_number - head_info.reorg_depth
@@ -236,7 +236,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in batch:
-                await self.chaindb.coro_persist_header_to_db(header)
+                await self.chaindb.coro_persist_header(header)
                 start_block = header.block_number
             self.logger.info("synced headers up to #%s", start_block)
 

@@ -32,5 +32,5 @@ def test_database_dir_not_initialized_without_canonical_head_block(chaindb):
 
 def test_fully_initialized_database_dir(chaindb):
     assert not is_database_initialized(chaindb)
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     assert is_database_initialized(chaindb)
