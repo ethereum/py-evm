@@ -1,7 +1,7 @@
 from .base import (
-    BaseChain,
+    Chain,
 )
 
 
-class Shard(BaseChain):
+class Shard(Chain):
     pass
