@@ -1,5 +1,8 @@
 from eth_utils import decode_hex
 
+from evm.exceptions import (
+    ValidationError,
+)
 from evm.utils.padding import pad32
 from evm.vm.forks.sharding.transactions import ShardingTransaction
 
@@ -62,3 +65,20 @@ def new_sharding_transaction(
         code=decode_hex(code),
         salt=salt,
     )
+
+
+def fill_block(chain, from_, key, gas, data):
+    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    amount = 100
+
+    assert chain.get_vm().state.gas_used == 0
+
+    while True:
+        vm = chain.get_vm()
+        tx = new_transaction(vm, from_, recipient, amount, key, gas=gas, data=data)
+        try:
+            chain.apply_transaction(tx)
+        except ValidationError:
+            break
+
+    assert chain.get_vm().state.gas_used > 0
