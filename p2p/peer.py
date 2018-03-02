@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import operator
+import random
 import struct
 import traceback
 from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
@@ -765,6 +766,12 @@ class PeerPool:
     @property
     def peers(self) -> List[BasePeer]:
         return list(self.connected_nodes.values())
+
+    async def get_random_peer(self) -> BasePeer:
+        while not self.peers:
+            self.logger.debug("No connected peers, sleeping a bit")
+            await asyncio.sleep(0.5)
+        return random.choice(self.peers)
 
 
 class ChainInfo:

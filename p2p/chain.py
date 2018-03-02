@@ -1,9 +1,8 @@
 import asyncio
 import logging
 import operator
-import random
 import time
-from typing import Any, cast, Dict, List, Set, Tuple  # noqa: F401
+from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple  # noqa: F401
 
 from cytoolz import partition_all
 
@@ -35,10 +34,15 @@ class ChainSyncer(PeerPoolSubscriber):
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
         self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
         self._body_requests = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
+        self._receipt_requests = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
         # A mapping from (transaction_root, uncles_hash) to (block_header, request time) so that
         # we can keep track of pending block bodies and retry them when necessary.
         self._pending_bodies = {}  # type: Dict[Tuple[bytes, bytes], Tuple[BlockHeader, float]]
+        # A mapping from receipt_root to (block_header, request time) so that we can keep track of
+        # pending block receipts and retry them when necessary.
+        self._pending_receipts = {}  # type: Dict[bytes, Tuple[BlockHeader, float]]
         asyncio.ensure_future(self.body_downloader())
+        asyncio.ensure_future(self.receipt_downloader())
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -152,8 +156,8 @@ class ChainSyncer(PeerPoolSubscriber):
                 await self.chaindb.coro_persist_header(header)
                 start_at = header.block_number
 
-            # TODO: Queue receipt downloads.
             self._body_requests.put_nowait(headers)
+            self._receipt_requests.put_nowait(headers)
 
             self.logger.debug("Asking %s for header batch starting at %d", peer, start_at)
             # TODO: Instead of requesting sequential batches from a single peer, request a header
@@ -161,52 +165,82 @@ class ChainSyncer(PeerPoolSubscriber):
             # skeleton.
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
 
-    async def body_downloader(self) -> None:
+    async def _downloader(self,
+                          queue: 'asyncio.Queue[List[BlockHeader]]',
+                          should_skip: Callable[[BlockHeader], bool],
+                          request_func: Callable[[List[BlockHeader]], Awaitable[None]],
+                          pending: Dict[Any, Tuple[BlockHeader, float]]) -> None:
         while True:
             try:
                 headers = await wait_with_token(
-                    self._body_requests.get(),
+                    queue.get(),
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
-                # We use a timeout above just to make sure we periodically retry timedout body
-                # requests even when there's no new bodies coming through.
-                headers = []
+                # We use a timeout above to make sure we periodically retry timedout items
+                # even when there's no new items coming through.
+                pass
             except OperationCancelled:
                 return
+            else:
+                await request_func(
+                    [header for header in headers if not should_skip(header)])
 
-            if headers:
-                headers_with_non_empty_bodies = [
-                    header for header in headers
-                    if (header.transaction_root != self.chaindb.empty_root_hash or
-                        header.uncles_hash != EMPTY_UNCLE_HASH)
-                ]
-                self.request_bodies(headers_with_non_empty_bodies)
+            await self._retry_timedout(request_func, pending)
 
-            self.retry_timedout_bodies()
+    async def _retry_timedout(self,
+                              request_func: Callable[[List[BlockHeader]], Awaitable[None]],
+                              pending: Dict[Any, Tuple[BlockHeader, float]]) -> None:
+        now = time.time()
+        timed_out = [
+            header
+            for header, req_time
+            in pending.values()
+            if now - req_time > self._reply_timeout
+        ]
+        if timed_out:
+            self.logger.debug("Re-requesting %d timed out block parts...", len(timed_out))
+            await request_func(timed_out)
 
-    def request_bodies(self, headers: List[BlockHeader]) -> None:
+    async def body_downloader(self) -> None:
+        await self._downloader(
+            self._body_requests,
+            self._should_skip_body_download,
+            self.request_bodies,
+            self._pending_bodies)
+
+    async def receipt_downloader(self) -> None:
+        await self._downloader(
+            self._receipt_requests,
+            self._should_skip_receipts_download,
+            self.request_receipts,
+            self._pending_receipts)
+
+    def _should_skip_body_download(self, header: BlockHeader) -> bool:
+        return (header.transaction_root == self.chaindb.empty_root_hash and
+                header.uncles_hash == EMPTY_UNCLE_HASH)
+
+    async def request_bodies(self, headers: List[BlockHeader]) -> None:
         for batch in partition_all(eth.MAX_BODIES_FETCH, headers):
-            peer = cast(ETHPeer, random.choice(self.peer_pool.peers))
-            peer.sub_proto.send_get_block_bodies([header.hash for header in batch])
+            peer = await self.peer_pool.get_random_peer()
+            cast(ETHPeer, peer).sub_proto.send_get_block_bodies([header.hash for header in batch])
             self.logger.debug("Requesting %d block bodies to %s", len(batch), peer)
             now = time.time()
             for header in batch:
                 key = (header.transaction_root, header.uncles_hash)
                 self._pending_bodies[key] = (header, now)
 
-    def retry_timedout_bodies(self) -> None:
-        now = time.time()
-        timed_out = [
-            header
-            for header, req_time
-            in self._pending_bodies.values()
-            if now - req_time > self._reply_timeout
-        ]
-        if not timed_out:
-            return
-        self.logger.debug("Re-requesting %d timed out block bodies...", len(timed_out))
-        self.request_bodies(timed_out)
+    def _should_skip_receipts_download(self, header: BlockHeader) -> bool:
+        return header.receipt_root == self.chaindb.empty_root_hash
+
+    async def request_receipts(self, headers: List[BlockHeader]) -> None:
+        for batch in partition_all(eth.MAX_RECEIPTS_FETCH, headers):
+            peer = await self.peer_pool.get_random_peer()
+            cast(ETHPeer, peer).sub_proto.send_get_receipts([header.hash for header in batch])
+            self.logger.debug("Requesting %d block receipts to %s", len(batch), peer)
+            now = time.time()
+            for header in batch:
+                self._pending_receipts[header.receipt_root] = (header, now)
 
     async def wait_until_finished(self) -> None:
         start_at = time.time()
@@ -242,8 +276,12 @@ class ChainSyncer(PeerPoolSubscriber):
                 uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
                 self._pending_bodies.pop((tx_root, uncles_hash), None)
         elif isinstance(cmd, eth.Receipts):
-            # TODO: Queue msg for processing by receipt downloader.
-            pass
+            msg = cast(List[List[eth.Receipt]], msg)
+            self.logger.debug("Got Receipts for %d blocks", len(msg))
+            for block_receipts in msg:
+                receipt_root, trie_dict_data = make_trie_root_and_nodes(block_receipts)
+                await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
+                self._pending_receipts.pop(receipt_root, None)
         elif isinstance(cmd, eth.NewBlock):
             msg = cast(Dict[str, Any], msg)
             header = msg['block'][0]

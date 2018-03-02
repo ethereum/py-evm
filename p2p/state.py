@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import random
 import time
 from typing import (  # noqa: F401
     Any,
@@ -96,14 +95,6 @@ class StateDownloader(PeerPoolSubscriber):
                 # "Bad Form" and disconnect from us.
                 self.logger.debug("Ignoring %s(%s) while doing a StateSync", cmd, msg)
 
-    # FIXME: Need a better criteria to select peers here.
-    async def get_random_peer(self) -> ETHPeer:
-        while not self.peer_pool.peers:
-            self.logger.debug("No connected peers, sleeping a bit")
-            await asyncio.sleep(0.5)
-        peer = random.choice(self.peer_pool.peers)
-        return cast(ETHPeer, peer)
-
     async def stop(self):
         self.cancel_token.trigger()
         self.peer_pool.unsubscribe(self)
@@ -124,11 +115,12 @@ class StateDownloader(PeerPoolSubscriber):
         await self.request_nodes([request.node_key for request in requests])
 
     async def request_nodes(self, node_keys: List[bytes]) -> None:
-        peer = await self.get_random_peer()
+        # FIXME: Need a better criteria to select peers here.
+        peer = await self.peer_pool.get_random_peer()
         now = time.time()
         for node_key in node_keys:
             self._pending_nodes[node_key] = now
-        peer.sub_proto.send_get_node_data(node_keys)
+        cast(ETHPeer, peer).sub_proto.send_get_node_data(node_keys)
 
     async def retry_timedout(self):
         timed_out = []
