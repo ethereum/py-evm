@@ -33,6 +33,7 @@ def sync_method(method_name: str) -> Callable[..., Any]:
 class ChainDBProxy(BaseProxy):
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
     coro_get_canonical_head = async_method('get_canonical_head')
+    coro_get_score = async_method('get_score')
     coro_header_exists = async_method('header_exists')
     coro_lookup_block_hash = async_method('lookup_block_hash')
     coro_persist_header = async_method('persist_header')
