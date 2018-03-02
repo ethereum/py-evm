@@ -208,6 +208,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
         state = self.get_state(block_header=temp_block.header, prev_hashes=prev_hashes)
+        if state.gas_used > 0:
+            raise Exception("There must not be any gas used in a fresh temporary block")
+
         snapshot = state.snapshot()
         yield state
         state.revert(snapshot)
