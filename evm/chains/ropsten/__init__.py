@@ -7,7 +7,7 @@ from .constants import (
 )
 from evm import constants
 
-from evm.chains.chain import Chain
+from evm.chains.base import Chain
 from evm.rlp.headers import BlockHeader
 from evm.vm.forks import (
     ByzantiumVM,

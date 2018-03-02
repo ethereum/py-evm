@@ -6,7 +6,7 @@ from eth_utils import (
     reversed_return,
 )
 
-from evm.chains.chain import Chain
+from evm.chains.base import Chain
 
 from evm.vm.forks import (
     FrontierVM as BaseFrontierVM,
