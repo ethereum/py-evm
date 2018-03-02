@@ -16,7 +16,10 @@ from tests.core.fixtures import (  # noqa: F401
     valid_block_rlp,
     chaindb,
 )
-from tests.core.helpers import new_transaction
+from tests.core.helpers import (
+    fill_block,
+    new_transaction,
+)
 
 
 ADDRESS_2 = b'\0' * 19 + b'\x02'
@@ -142,6 +145,41 @@ def test_estimate_gas(
         assert chain.estimate_gas(tx) == expected
         # these are long, so now that we know the exact numbers let's skip the repeat test
         # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
+
+
+def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_address):
+
+    def estimation_txn(chain, from_, from_key, data):
+        to = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+        gas = chain.header.gas_limit
+        amount = 200
+        vm = chain.get_vm()
+        return new_transaction(vm, from_, to, amount, from_key, gas=gas, data=data)
+
+    from_ = funded_address
+    from_key = funded_address_private_key
+    garbage_data = b"""
+        fill up the block much faster because this transaction contains a bunch of extra
+        garbage_data, which doesn't add to execution time, just the gas costs
+    """ * 30
+    gas = 375000
+
+    # fill the canonical head
+    fill_block(chain, from_, from_key, gas, garbage_data)
+    chain.import_block(chain.get_vm().block)
+
+    # build a transaction to estimate gas for
+    next_canonical_tx = estimation_txn(chain, from_, from_key, data=garbage_data * 2)
+
+    assert chain.estimate_gas(next_canonical_tx) == 722760
+
+    # fill the pending block
+    fill_block(chain, from_, from_key, gas, garbage_data)
+
+    # build a transaction to estimate gas for
+    next_pending_tx = estimation_txn(chain, from_, from_key, data=garbage_data * 2)
+
+    assert chain.estimate_gas(next_pending_tx, chain.header) == 722760
 
 
 def test_canonical_chain(valid_chain):
