@@ -1,5 +1,6 @@
 import itertools
 import logging
+from contextlib import contextmanager
 
 from evm.constants import (
     GAS_MEMORY,
@@ -302,6 +303,11 @@ class BaseComputation(Configurable):
             return 0
         else:
             return self.gas_meter.gas_remaining
+
+    @contextmanager
+    def state_db(self, read_only=False):
+        with self.vm_state.state_db(read_only, self.msg.access_list) as state_db:
+            yield state_db
 
     #
     # Context Manager API

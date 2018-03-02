@@ -39,12 +39,8 @@ from evm.vm.message import (
     Message,
 )
 
-from .execution_context import (
-    ExecutionContext,
-)
 
-
-class VM(Configurable):
+class BaseVM(Configurable):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Define a Chain which specifies
@@ -449,7 +445,7 @@ class VM(Configurable):
                 db=chaindb,
             )
 
-        execution_context = ExecutionContext.from_block_header(block_header, prev_hashes)
+        execution_context = block_header.create_execution_context(prev_hashes)
         receipts = self.block.get_receipts(self.chaindb)
         return self.get_state_class()(
             chaindb,

@@ -14,6 +14,10 @@ from evm.exceptions import (
 
 from evm.rlp.sedes import (
     address,
+    access_list as access_list_sedes,
+)
+from evm.utils.state_access_restriction import (
+    to_prefix_list_form,
 )
 
 
@@ -153,5 +157,60 @@ class BaseUnsignedTransaction(rlp.Serializable):
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+
+class BaseShardingTransaction(rlp.Serializable):
+    fields = [
+        ('chain_id', big_endian_int),
+        ('shard_id', big_endian_int),
+        ('to', address),
+        ('data', binary),
+        ('gas', big_endian_int),
+        ('gas_price', big_endian_int),
+        ('access_list', access_list_sedes),
+        ('code', binary),
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.prefix_list = to_prefix_list_form(self.access_list)
+
+    @property
+    def hash(self):
+        return keccak(rlp.encode(self))
+
+    @property
+    def sig_hash(self):
+        sedes = self.__class__.exclude('data')
+        return keccak(rlp.encode(self, sedes))
+
+    #
+    # Validation
+    #
+    def validate(self):
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
+        if self.intrinsic_gas > self.gas:
+            raise ValidationError("Insufficient gas")
+
+    @property
+    def intrinsic_gas(self):
+        """
+        Convenience property for the return value of `get_intrinsic_gas`
+        """
+        return self.get_intrinsic_gas()
+
+    #
+    # Base gas costs
+    #
+    def get_intrinsic_gas(self):
+        """
+        Compute the baseline gas cost for this transaction.  This is the amount
+        of gas needed to send this transaction (but that is not actually used
+        for computation).
         """
         raise NotImplementedError("Must be implemented by subclasses")

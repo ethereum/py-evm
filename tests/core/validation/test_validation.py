@@ -9,6 +9,7 @@ from evm.constants import (
     SECPK1_N,
 )
 from evm.validation import (
+    validate_access_list,
     validate_block_number,
     validate_canonical_address,
     validate_gt,
@@ -24,6 +25,7 @@ from evm.validation import (
     validate_lt_secpk1n2,
     validate_multiple_of,
     validate_stack_item,
+    validate_transaction_access_list,
     validate_uint256,
     validate_unique,
     validate_vm_block_numbers,
@@ -396,3 +398,44 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        ([], True),
+        ([[]], False),
+        ([[b'10010010010010010010']], True),
+        ([[b'10010010010010010010', b'']], True),
+        ([[b'10010010010010010010', b'\x00']], True),
+        ([[b'10010010010010010010', b'\x00', b'\x12\x34']], True),
+        ([['10010010010010010010', b'']], False),
+        ([[b'10010010010010010010', '']], False),
+        ([[b'10010010010010010010', b''], []], False),
+        ([[b'10010010010010010010', b''], [b'10010010010010010011']], True),
+        ([[b'10010010010010010010', b''], [b'10010010010010010011', b'']], True),
+    ),
+)
+def test_validate_transaction_access_list(value, is_valid):
+    if is_valid:
+        validate_transaction_access_list(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_transaction_access_list(value)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        ([], True),
+        ([b'asdf', b'fdsa'], True),
+        (['asdf'], False),
+        ([0], False),
+    )
+)
+def test_access_list(value, is_valid):
+    if is_valid:
+        validate_access_list(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_access_list(value)

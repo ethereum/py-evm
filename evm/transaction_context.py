@@ -4,7 +4,7 @@ from evm.validation import (
 )
 
 
-class BaseTransactionContext(object):
+class BaseTransactionContext:
     """
     This immutable object houses information that remains constant for the entire context of the VM
     execution.

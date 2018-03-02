@@ -15,6 +15,8 @@ setup(
     include_package_data=True,
     py_modules=['evm', 'trinity', 'p2p'],
     install_requires=[
+        "aiohttp>=2.3.1,<3.0.0",
+        "async_lru>=0.1.0,<1.0.0",
         "cryptography>=2.0.3,<3.0.0",
         "cytoolz>=0.9.0,<1.0.0",
         "eth-bloom>=1.0.0,<2.0.0",
@@ -24,6 +26,8 @@ setup(
         "rlp>=0.4.7,<1.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
         "trie>=1.3.0,<2.0.0",
+        "eth-tester==0.1.0b21",
+        "web3>=4.0.0b6,<5.0.0",
     ],
     extras_require={
         'coincurve': [

@@ -39,6 +39,46 @@ TRANSACTION_FIXTURES = [
 ]
 
 
+SHARDING_TRANSACTION_FIXTURES = [
+    {
+        "chain_id": 1,
+        "shard_id": 1,
+        "to": "0x2863c51de9fcb96542a07186fe3aeda6bb8a116d",
+        # rlp-encoded of [destination, value, msg_data, vrs]
+        # below example is
+        # rlp.encode([
+        #     b'82df0950f5a951637e0307cdcb4c672f298b8bc6',
+        #     1000000,
+        #     b'',
+        #     b'\x01\x02\x03'
+        # ])
+        # in hex
+        "data": "0xf2a838326466303935306635613935313633376530333037636463623463363732663239386238626336830f42408083010203",  # noqa: E501
+        "gas": 2000000,
+        "gas_price": 1000000000000,
+        "access_list": "",
+        "code": "",
+        "intrinsic_gas": 24468,
+    },
+    {
+        "chain_id": 1,
+        "shard_id": 3,
+        "to": "0x2863c51de9fcb96542a07186fe3aeda6bb8a116d",
+        "data": "0xf3a83434346662353861383037656634633936303362373834383637336637653361363865623134613580836000f38400000001",  # noqa: E501
+        "gas": 2000000,
+        "gas_price": 1000000000000,
+        "access_list": "",
+        "code": "0x6060604052341561000f57600080fd5b5b60ca8061001e6000396000f30060606040526000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063500d6847146047578063cd580ff314606d575b600080fd5b3415605157600080fd5b6057608d565b6040518082815260200191505060405180910390f35b3415607757600080fd5b608b60048080359060200190919050506093565b005b60005481565b806000819055505b505600a165627a7a7230582080a774dd085c3fe22daee6e793ecd8ed1d4edebd37b2a82fbab37f5f1aacf2a80029",  # noqa: E501
+        "intrinsic_gas": 69304,
+    },
+]
+
+
 @pytest.fixture(params=range(len(TRANSACTION_FIXTURES)))
 def txn_fixture(request):
     return TRANSACTION_FIXTURES[request.param]
+
+
+@pytest.fixture(params=range(len(SHARDING_TRANSACTION_FIXTURES)))
+def sharding_txn_fixture(request):
+    return SHARDING_TRANSACTION_FIXTURES[request.param]

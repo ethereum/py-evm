@@ -2,9 +2,12 @@ import os
 
 import pytest
 
-import traceback
-
 from eth_keys import keys
+
+from trie import (
+    BinaryTrie,
+    HexaryTrie,
+)
 
 from evm.db import (
     get_db_backend,
@@ -16,6 +19,10 @@ from eth_utils import (
 )
 
 from evm.db.chain import ChainDB
+from evm.db.state import (
+    MainAccountStateDB,
+    ShardingAccountStateDB,
+)
 from evm.exceptions import (
     ValidationError,
 )
@@ -25,15 +32,18 @@ from evm.vm.forks import (
     HomesteadVM,
     SpuriousDragonVM,
     ByzantiumVM,
+    ShardingVM,
 )
 from evm.vm.forks.tangerine_whistle.vm_state import TangerineWhistleVMState
 from evm.vm.forks.frontier.vm_state import FrontierVMState
 from evm.vm.forks.homestead.vm_state import HomesteadVMState
 from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
 from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
+from evm.vm.forks.sharding.vm_state import ShardingVMState
 
 from evm.rlp.headers import (
     BlockHeader,
+    CollationHeader,
 )
 from evm.tools.fixture_tests import (
     filter_fixtures,
@@ -41,7 +51,6 @@ from evm.tools.fixture_tests import (
     hash_log_entries,
     load_fixture,
     normalize_statetest_fixture,
-    setup_state_db,
     should_run_slow_tests,
 )
 
@@ -202,6 +211,10 @@ ByzantiumVMStateForTesting = ByzantiumVMState.configure(
     name='ByzantiumVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
+ShardingVMStateForTesting = ShardingVMState.configure(
+    name='ShardingVMStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 FrontierVMForTesting = FrontierVM.configure(
     name='FrontierVMForTesting',
@@ -228,6 +241,11 @@ ByzantiumVMForTesting = ByzantiumVM.configure(
     _state_class=ByzantiumVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
+ShardingVMForTesting = ShardingVM.configure(
+    name='ShardingVMForTesting',
+    _state_class=ShardingVMStateForTesting,
+    get_prev_hashes=get_prev_hashes_testing,
+)
 
 
 @pytest.fixture
@@ -243,6 +261,8 @@ def fixture_vm_class(fixture_data):
         return SpuriousDragonVMForTesting
     elif fork_name == 'Byzantium':
         return ByzantiumVMForTesting
+    elif fork_name == 'Sharding':
+        return ShardingVMForTesting
     elif fork_name == 'Constantinople':
         pytest.skip("Constantinople VM has not been implemented")
     elif fork_name == 'Metropolis':
@@ -252,23 +272,41 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    header = BlockHeader(
-        coinbase=fixture['env']['currentCoinbase'],
-        difficulty=fixture['env']['currentDifficulty'],
-        block_number=fixture['env']['currentNumber'],
-        gas_limit=fixture['env']['currentGasLimit'],
-        timestamp=fixture['env']['currentTimestamp'],
-        parent_hash=fixture['env']['previousHash'],
+    if fixture_vm_class is not ShardingVMForTesting:
+        account_state_class = MainAccountStateDB
+        trie_class = HexaryTrie
+        header = BlockHeader(
+            coinbase=fixture['env']['currentCoinbase'],
+            difficulty=fixture['env']['currentDifficulty'],
+            block_number=fixture['env']['currentNumber'],
+            gas_limit=fixture['env']['currentGasLimit'],
+            timestamp=fixture['env']['currentTimestamp'],
+            parent_hash=fixture['env']['previousHash'],
+        )
+    else:
+        account_state_class = ShardingAccountStateDB
+        trie_class = BinaryTrie
+        header = CollationHeader(
+            shard_id=fixture['env']['shardID'],
+            expected_period_number=fixture['env']['expectedPeriodNumber'],
+            period_start_prevhash=fixture['env']['periodStartHash'],
+            parent_hash=fixture['env']['previousHash'],
+            coinbase=fixture['env']['currentCoinbase'],
+            number=fixture['env']['currentNumber'],
+        )
+
+    chaindb = ChainDB(
+        get_db_backend(),
+        account_state_class=account_state_class,
+        trie_class=trie_class
     )
-    chaindb = ChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     vm_state = vm.state
     with vm_state.mutable_state_db() as state_db:
-        setup_state_db(fixture['pre'], state_db)
+        state_db.apply_state_dict(fixture['pre'])
     # Update state_root manually
     vm.block.header.state_root = vm_state.state_root
-
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(
             nonce=fixture['transaction']['nonce'],
@@ -297,13 +335,24 @@ def test_state_fixtures(fixture, fixture_vm_class):
             r=r,
             s=s,
         )
+    else:
+        # sharding transaction
+        transaction = vm.create_transaction(
+            chain_id=fixture['transaction']['chainID'],
+            shard_id=fixture['transaction']['shardID'],
+            to=fixture['transaction']['to'],
+            data=fixture['transaction']['data'],
+            gas=fixture['transaction']['gasLimit'],
+            gas_price=fixture['transaction']['gasPrice'],
+            access_list=fixture['transaction']['accessList'],
+            code=fixture['transaction']['code'],
+        )
 
     try:
         computation, _ = vm.apply_transaction(transaction)
     except ValidationError as err:
         transaction_error = err
-        LOGGER.warn("Got transaction error:")
-        LOGGER.warn(traceback.format_exc())
+        LOGGER.warn("Got transaction error", exc_info=True)
     else:
         transaction_error = False
 

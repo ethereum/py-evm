@@ -119,6 +119,14 @@ class ContractCreationCollision(VMError):
     pass
 
 
+class IncorrectContractCreationAddress(VMError):
+    """
+    Error signaling that the address provided by transaction does not
+    match thecalculated contract creation address.
+    """
+    pass
+
+
 class Revert(VMError):
     """
     Error used by the REVERT opcode
@@ -139,5 +147,27 @@ class OutOfBoundsRead(VMError):
     """
     Error raised to indicate an attempt was made to read data beyond the
     boundaries of the buffer (such as with RETURNDATACOPY)
+    """
+    pass
+
+
+class UnannouncedStateAccess(VMError):
+    """
+    Error raised if a storage slot or account field is accessed that has not
+    been specified in the transaction's read or write list, respectively.
+    """
+    pass
+
+
+class GasPriceAlreadySet(Exception):
+    """
+    Error raised if trying to reset the already set gas price.
+    """
+    pass
+
+
+class NotTopLevelCall(Exception):
+    """
+    Error raised if it's not executing in the top level call(i.e, msg.depth == 0)
     """
     pass

@@ -6,17 +6,22 @@ from trie import (
     BinaryTrie,
     HexaryTrie,
 )
+from trie.branches import (
+    get_witness_for_key_prefix,
+)
 
 from eth_utils import (
     keccak,
     to_list,
     to_tuple,
+    to_set,
+    flatten_return,
 )
 
 from evm.constants import (
+    GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
-    GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -28,7 +33,7 @@ from evm.db.journal import (
     JournalDB,
 )
 from evm.db.state import (
-    AccountStateDB,
+    MainAccountStateDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -79,6 +84,11 @@ class BaseChainDB:
             )
         self.trie_class = trie_class
         self.empty_root_hash = empty_root_hash
+
+    def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
+        self.db = JournalDB(db)
+        self.account_state_class = account_state_class
+        self.set_trie(trie_class)
 
     #
     # Canonical chain API
@@ -201,15 +211,11 @@ class BaseChainDB:
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only):
+    def get_state_db(self, state_root, read_only, access_list=None):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
 class ChainDB(BaseChainDB):
-    def __init__(self, db, trie_class=HexaryTrie):
-        self.db = JournalDB(db)
-        self.set_trie(trie_class)
-
     #
     # Canonical chain API
     #
@@ -397,10 +403,11 @@ class ChainDB(BaseChainDB):
                 self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
         # Persist the uncles list
-        self.db.set(
-            block.header.uncles_hash,
-            rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-        )
+        if hasattr(block, "uncles"):
+            self.db.set(
+                block.header.uncles_hash,
+                rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
+            )
 
     def get_block_uncles(self, uncles_hash):
         validate_word(uncles_hash, title="Uncles Hash")
@@ -543,8 +550,26 @@ class ChainDB(BaseChainDB):
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only):
-        return AccountStateDB(db=self.db, root_hash=state_root, read_only=read_only)
+    def get_state_db(self, state_root, read_only, access_list=None):
+        extra_kwargs = {}
+        if access_list is not None:
+            extra_kwargs["access_list"] = access_list
+        return self.account_state_class(
+            db=self.db,
+            root_hash=state_root,
+            read_only=read_only,
+            **extra_kwargs
+        )
+
+    #
+    # Witness API
+    #
+    @to_set
+    @flatten_return
+    def get_witness_nodes(self, collation_header, prefixes):
+        root_hash = collation_header.state_root
+        for prefix in prefixes:
+            yield get_witness_for_key_prefix(self.db, root_hash, prefix)
 
 
 class AsyncChainDB(ChainDB):

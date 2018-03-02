@@ -12,6 +12,7 @@ import pytest
 from cytoolz import (
     curry,
     identity,
+    merge,
 )
 
 from eth_utils import (
@@ -40,6 +41,10 @@ from evm.utils.state import (
 )
 from evm.utils.rlp import (
     diff_rlp_object,
+)
+from evm.tools.test_builder.normalization import (
+    normalize_environment,
+    normalize_transaction_group,
 )
 from evm.vm.forks import (
     ByzantiumVM,
@@ -191,14 +196,6 @@ def to_int(value):
         return int(value)
 
 
-@functools.lru_cache(maxsize=128)
-def normalize_to_address(value):
-    if value:
-        return to_canonical_address(value)
-    else:
-        return CREATE_CONTRACT_ADDRESS
-
-
 robust_decode_hex = hexstr_if_str(to_bytes)
 
 
@@ -278,37 +275,17 @@ def generate_fixture_tests(metafunc,
 #
 # Fixture Normalizers
 #
-def normalize_env(env):
-    return {
-        'currentCoinbase': decode_hex(env['currentCoinbase']),
-        'currentDifficulty': to_int(env['currentDifficulty']),
-        'currentNumber': to_int(env['currentNumber']),
-        'currentGasLimit': to_int(env['currentGasLimit']),
-        'currentTimestamp': to_int(env['currentTimestamp']),
-        'previousHash': decode_hex(env.get('previousHash', '00' * 32)),
-    }
-
-
-@to_dict
 def normalize_unsigned_transaction(transaction, indexes):
-    yield 'data', decode_hex(transaction['data'][indexes['data']])
-    yield 'gasLimit', to_int(transaction['gasLimit'][indexes['gas']])
-    yield 'gasPrice', to_int(transaction['gasPrice'])
-    yield 'nonce', to_int(transaction['nonce'])
-
-    if 'secretKey' in transaction:
-        yield 'secretKey', decode_hex(transaction['secretKey'])
-    elif 'v' in transaction and 'r' in transaction and 's' in transaction:
-        yield 'vrs', (
-            to_int(transaction['v']),
-            to_int(transaction['r']),
-            to_int(transaction['s']),
-        )
-    else:
-        raise KeyError("transaction missing secret key or vrs values")
-
-    yield 'to', normalize_to_address(transaction['to'])
-    yield 'value', to_int(transaction['value'][indexes['value']])
+    normalized = normalize_transaction_group(transaction)
+    return merge(normalized, {
+        transaction_key: normalized[transaction_key][indexes[index_key]]
+        for transaction_key, index_key in [
+            ("gasLimit", "gas"),
+            ("value", "value"),
+            ("data", "data"),
+        ]
+        if index_key in indexes
+    })
 
 
 def normalize_account_state(account_state):
@@ -337,7 +314,7 @@ def normalize_statetest_fixture(fixture, fork, post_state_index):
     post_state = fixture['post'][fork][post_state_index]
 
     normalized_fixture = {
-        'env': normalize_env(fixture['env']),
+        'env': normalize_environment(fixture['env']),
         'pre': normalize_account_state(fixture['pre']),
         'post': normalize_post_state(post_state),
         'transaction': normalize_unsigned_transaction(
@@ -378,7 +355,7 @@ def normalize_callcreates(callcreates):
 
 @to_dict
 def normalize_vmtest_fixture(fixture):
-    yield 'env', normalize_env(fixture['env'])
+    yield 'env', normalize_environment(fixture['env'])
     yield 'exec', normalize_exec(fixture['exec'])
     yield 'pre', normalize_account_state(fixture['pre'])
 

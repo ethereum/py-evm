@@ -246,3 +246,32 @@ def validate_header_params_for_configuration(header_params):
                 ", ".join(tuple(sorted(extra_fields))),
             )
         )
+
+
+def validate_transaction_access_list(access_list, title="Access List"):
+    for item in access_list:
+        if len(item) == 0:
+            raise ValidationError(
+                "{0} entry must at least specify an account address.".format(title)
+            )
+        address, *prefixes = item
+        validate_canonical_address(address, title="Address in {0}".format(title))
+        for prefix in prefixes:
+            validate_is_bytes(prefix, title="Storage prefix in {0}".format(title))
+            if len(prefix) > 32:
+                raise ValidationError(
+                    "Storage prefix in {0} must be 32 bytes or shorter. Got: {1}".format(
+                        title,
+                        prefix,
+                    )
+                )
+
+
+def validate_access_list(access_list):
+    for entry in access_list:
+        validate_is_bytes(entry, "Access prefix")
+
+
+def validate_sig_hash(sig_hash, title="Sig Hash"):
+    validate_is_bytes(sig_hash, title)
+    validate_length(sig_hash, 32, title)

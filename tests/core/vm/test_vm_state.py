@@ -11,9 +11,6 @@ from eth_utils import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
-from evm.vm.execution_context import (
-    ExecutionContext,
-)
 from evm.vm.forks.frontier.vm_state import FrontierVMState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
@@ -108,7 +105,7 @@ def test_apply_transaction(  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block1.header, prev_hashes)
+    execution_context = block1.header.create_execution_context(prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
@@ -127,7 +124,7 @@ def test_apply_transaction(  # noqa: F811
     assert parent_hash == prev_hashes[0]
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
-    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
+    execution_context = block.header.create_execution_context(prev_hashes)
     vm_state1 = FrontierVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
@@ -167,7 +164,7 @@ def test_apply_transaction(  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block2.header, prev_hashes)
+    execution_context = block2.header.create_execution_context(prev_hashes)
     # Apply the first transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
@@ -183,7 +180,7 @@ def test_apply_transaction(  # noqa: F811
     # Update witness_db
     recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
     witness_db = ChainDB(MemoryDB(recent_trie_nodes))
-    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
+    execution_context = block.header.create_execution_context(prev_hashes)
     # Apply the second transaction
     vm_state2 = FrontierVMState(
         chaindb=witness_db,
@@ -207,7 +204,7 @@ def test_apply_transaction(  # noqa: F811
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
-    execution_context = ExecutionContext.from_block_header(block.header, prev_hashes)
+    execution_context = block.header.create_execution_context(prev_hashes)
     vm_state3 = FrontierVMState(
         chaindb=witness_db,
         execution_context=execution_context,
