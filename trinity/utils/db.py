@@ -2,7 +2,7 @@ from typing import Dict
 
 
 class MemoryDB:
-    kv_store = None  # type: Dict[bytes, bytes]
+    kv_store: Dict[bytes, bytes] = None
 
     def __init__(self, kv_store: Dict[bytes, bytes]=None) -> None:
         if kv_store is None:
