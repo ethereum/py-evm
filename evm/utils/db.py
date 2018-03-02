@@ -44,8 +44,6 @@ def get_block_header_by_hash(block_hash, db):
 
 
 def get_empty_root_hash(db):
-    # TODO: Backport and refactor evm.chains.base.BaseChain and
-    # evm.db.chain.BaseChainDB in master branch
     root_hash = None
     if db.trie_class is HexaryTrie:
         root_hash = BLANK_ROOT_HASH
