@@ -1,10 +1,15 @@
 import asyncio
 import logging
 import operator
+import random
 import time
 from typing import Any, cast, Dict, List, Set, Tuple  # noqa: F401
 
+from cytoolz import partition_all
+
+from evm.constants import EMPTY_UNCLE_HASH
 from evm.db.chain import AsyncChainDB
+from evm.db.trie import make_trie_root_and_nodes
 from evm.rlp.headers import BlockHeader
 from p2p import protocol
 from p2p import eth
@@ -17,6 +22,7 @@ class ChainSyncer(PeerPoolSubscriber):
     logger = logging.getLogger("p2p.chain.ChainSyncer")
     # We'll only sync if we are connected to at least min_peers_to_sync.
     min_peers_to_sync = 2
+    _reply_timeout = 5
 
     def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         self.chaindb = chaindb
@@ -28,6 +34,11 @@ class ChainSyncer(PeerPoolSubscriber):
         self._syncing = False
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
         self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
+        self._body_requests = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
+        # A mapping from (transaction_root, uncles_hash) to (block_header, request time) so that
+        # we can keep track of pending block bodies and retry them when necessary.
+        self._pending_bodies = {}  # type: Dict[Tuple[bytes, bytes], Tuple[BlockHeader, float]]
+        asyncio.ensure_future(self.body_downloader())
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -54,7 +65,7 @@ class ChainSyncer(PeerPoolSubscriber):
                 break
 
             try:
-                self.handle_msg(peer, cmd, msg)
+                await self.handle_msg(peer, cmd, msg)
             except Exception as e:
                 self.logger.error("Unexpected error when processing msg from %s: %s", peer, repr(e))
                 break
@@ -70,9 +81,9 @@ class ChainSyncer(PeerPoolSubscriber):
 
             asyncio.ensure_future(self.sync(peer))
 
-            # TODO: If we're in light mode and we've synced up to head - 1024, trigger cancel
-            # token to stop and raise an exception to tell our caller it should perform a state
-            # sync.
+            # TODO: If we're in light mode and we've synced up to head - 1024, wait until there's
+            # no more pending bodies/receipts, trigger cancel token to stop and raise an exception
+            # to tell our caller it should perform a state sync.
 
     async def sync(self, peer: ETHPeer) -> None:
         if self._syncing:
@@ -137,16 +148,65 @@ class ChainSyncer(PeerPoolSubscriber):
                 continue
 
             # TODO: Process headers for consistency.
-            # TODO: Queue body/receipt downloads.
             for header in headers:
                 await self.chaindb.coro_persist_header(header)
                 start_at = header.block_number
+
+            # TODO: Queue receipt downloads.
+            self._body_requests.put_nowait(headers)
 
             self.logger.debug("Asking %s for header batch starting at %d", peer, start_at)
             # TODO: Instead of requesting sequential batches from a single peer, request a header
             # skeleton and make concurrent requests, using as many peers as possible, to fill the
             # skeleton.
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
+
+    async def body_downloader(self) -> None:
+        while True:
+            try:
+                headers = await wait_with_token(
+                    self._body_requests.get(),
+                    token=self.cancel_token,
+                    timeout=self._reply_timeout)
+            except TimeoutError:
+                # We use a timeout above just to make sure we periodically retry timedout body
+                # requests even when there's no new bodies coming through.
+                headers = []
+            except OperationCancelled:
+                return
+
+            if headers:
+                headers_with_non_empty_bodies = [
+                    header for header in headers
+                    if (header.transaction_root != self.chaindb.empty_root_hash or
+                        header.uncles_hash != EMPTY_UNCLE_HASH)
+                ]
+                self.request_bodies(headers_with_non_empty_bodies)
+
+            self.retry_timedout_bodies()
+
+    def request_bodies(self, headers: List[BlockHeader]) -> None:
+        for batch in partition_all(eth.MAX_BODIES_FETCH, headers):
+            peer = cast(ETHPeer, random.choice(self.peer_pool.peers))
+            peer.sub_proto.send_get_block_bodies([header.hash for header in batch])
+            self.logger.debug("Requesting %d block bodies to %s", len(batch), peer)
+            now = time.time()
+            for header in batch:
+                key = (header.transaction_root, header.uncles_hash)
+                self._pending_bodies[key] = (header, now)
+
+    def retry_timedout_bodies(self) -> None:
+        now = time.time()
+        timed_out = [
+            header
+            for header, req_time
+            in self._pending_bodies.values()
+            if now - req_time > self._reply_timeout
+        ]
+        if not timed_out:
+            return
+        self.logger.debug("Re-requesting %d timed out block bodies...", len(timed_out))
+        self.request_bodies(timed_out)
 
     async def wait_until_finished(self) -> None:
         start_at = time.time()
@@ -164,16 +224,23 @@ class ChainSyncer(PeerPoolSubscriber):
         self.peer_pool.unsubscribe(self)
         await self.wait_until_finished()
 
-    def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
-                   msg: protocol._DecodedMsgType) -> None:
+    async def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
+                         msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, eth.BlockHeaders):
             msg = cast(List[BlockHeader], msg)
             self.logger.debug(
                 "Got BlockHeaders from %d to %d", msg[0].block_number, msg[-1].block_number)
             self._new_headers.put_nowait(msg)
         elif isinstance(cmd, eth.BlockBodies):
-            # TODO: Queue msg for processing by body downloader.
-            pass
+            msg = cast(List[eth.BlockBody], msg)
+            self.logger.debug("Got %d BlockBodies", len(msg))
+            for body in msg:
+                tx_root, trie_dict_data = make_trie_root_and_nodes(body.transactions)
+                await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
+                # TODO: Add transactions to canonical chain; blocked by
+                # https://github.com/ethereum/py-evm/issues/337
+                uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
+                self._pending_bodies.pop((tx_root, uncles_hash), None)
         elif isinstance(cmd, eth.Receipts):
             # TODO: Queue msg for processing by receipt downloader.
             pass

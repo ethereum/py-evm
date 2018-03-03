@@ -11,11 +11,11 @@ from evm.constants import (
 from evm.db.tracked import (
     AccessLogs,
 )
+from evm.db.trie import (
+    make_trie_root_and_nodes,
+)
 from evm.utils.datatypes import (
     Configurable,
-)
-from evm.utils.state import (
-    make_trie_root_and_nodes,
 )
 
 
