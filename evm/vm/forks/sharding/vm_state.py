@@ -67,7 +67,7 @@ class ShardingVMState(ByzantiumVMState):
 
             if transaction.code:
                 contract_address = generate_CREATE2_contract_address(
-                    b'',
+                    transaction.salt,
                     transaction.code,
                 )
                 data = b''
@@ -82,13 +82,13 @@ class ShardingVMState(ByzantiumVMState):
         self.logger.info(
             (
                 "TRANSACTION: to: %s | gas: %s | "
-                "gas-price: %s | data-hash: %s | code-hash: %s"
+                "data-hash: %s | code-hash: %s | salt: %s"
             ),
             encode_hex(transaction.to),
             transaction.gas,
-            transaction.gas_price,
             encode_hex(keccak(transaction.data)),
             encode_hex(keccak(transaction.code)),
+            encode_hex(transaction.salt),
         )
 
         message = ShardingMessage(
@@ -102,7 +102,6 @@ class ShardingVMState(ByzantiumVMState):
             access_list=transaction.prefix_list,
         )
         transaction_context = self.get_transaction_context_class()(
-            gas_price=transaction.gas_price,
             origin=ENTRY_POINT,
             sig_hash=transaction.sig_hash,
             transaction_gas_limit=transaction.gas,

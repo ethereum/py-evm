@@ -19,7 +19,7 @@ def assemble_data_field(user_account_transaction, include_signature=True):
     return b''.join([
         signature,
         pad32(int_to_big_endian(user_account_transaction.nonce)),
-        pad32(int_to_big_endian(user_account_transaction.int_gas_price)),
+        pad32(int_to_big_endian(user_account_transaction.gas_price)),
         pad32(int_to_big_endian(user_account_transaction.value)),
         pad32(int_to_big_endian(user_account_transaction.min_block)),
         pad32(int_to_big_endian(user_account_transaction.max_block)),
