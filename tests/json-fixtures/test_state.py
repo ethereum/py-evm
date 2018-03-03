@@ -212,7 +212,7 @@ ByzantiumVMStateForTesting = ByzantiumVMState.configure(
     get_ancestor_hash=get_block_hash_for_testing,
 )
 ShardingVMStateForTesting = ShardingVMState.configure(
-    name='ShardingVMStateForTesting',
+    __name__='ShardingVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 
@@ -242,7 +242,7 @@ ByzantiumVMForTesting = ByzantiumVM.configure(
     get_prev_hashes=get_prev_hashes_testing,
 )
 ShardingVMForTesting = ShardingVM.configure(
-    name='ShardingVMForTesting',
+    __name__='ShardingVMForTesting',
     _state_class=ShardingVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )

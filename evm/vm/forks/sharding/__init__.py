@@ -13,7 +13,7 @@ from .headers import (
 from .vm_state import ShardingVMState
 
 ShardingVM = ShardVM.configure(
-    name='ShardingVM',
+    __name__='ShardingVM',
     # classes
     _block_class=Collation,
     _state_class=ShardingVMState,
