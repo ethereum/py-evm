@@ -78,7 +78,7 @@ class BaseVM(Configurable):
         self.block = block
 
         # Persist changed transaction and receipt key-values to self.chaindb.
-        self.chaindb.persist_trie_data_dict_to_db(trie_data_dict)
+        self.chaindb.persist_trie_data_dict(trie_data_dict)
 
         self.clear_journal()
 

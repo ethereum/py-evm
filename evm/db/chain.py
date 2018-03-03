@@ -125,7 +125,7 @@ class BaseChainDB:
         """
         raise NotImplementedError("ChainDB classes must implement this method")
 
-    def persist_header_to_db(self, header):
+    def persist_header(self, header):
         """
         :returns: iterable of headers newly on the canonical chain
         """
@@ -145,7 +145,7 @@ class BaseChainDB:
     def get_score(self, block_hash):
         raise NotImplementedError("ChainDB classes must implement this method")
 
-    def persist_block_to_db(self, block):
+    def persist_block(self, block):
         """
         Chain must do follow-up work to persist transactions to db
         """
@@ -187,7 +187,7 @@ class BaseChainDB:
     def exists(self, key):
         raise NotImplementedError("ChainDB classes must implement this method")
 
-    def persist_trie_data_dict_to_db(self, trie_data_dict):
+    def persist_trie_data_dict(self, trie_data_dict):
         """
         Store raw trie data to db from a dict
         """
@@ -257,7 +257,7 @@ class ChainDB(BaseChainDB):
 
     # TODO: This method sould take a chain of headers as that's the most common use case
     # and it'd be much faster than inserting each header individually.
-    def persist_header_to_db(self, header):
+    def persist_header(self, header):
         """
         :returns: iterable of headers newly on the canonical chain
         """
@@ -385,11 +385,11 @@ class ChainDB(BaseChainDB):
             sedes=rlp.sedes.binary,
         )
 
-    def persist_block_to_db(self, block):
+    def persist_block(self, block):
         '''
         Chain must do follow-up work to persist transactions to db
         '''
-        new_canonical_headers = self.persist_header_to_db(block.header)
+        new_canonical_headers = self.persist_header(block.header)
 
         # Persist the transaction bodies
         transaction_db = self.trie_class(self.db, root_hash=self.empty_root_hash)
@@ -402,12 +402,16 @@ class ChainDB(BaseChainDB):
             for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
                 self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
-        # Persist the uncles list
         if hasattr(block, "uncles"):
-            self.db.set(
-                block.header.uncles_hash,
-                rlp.encode(block.uncles, sedes=rlp.sedes.CountableList(type(block.header))),
-            )
+            uncles_hash = self.persist_uncles(block.uncles)
+            assert uncles_hash == block.header.uncles_hash
+
+    def persist_uncles(self, uncles):
+        uncles_hash = keccak(rlp.encode(uncles))
+        self.db.set(
+            uncles_hash,
+            rlp.encode(uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
+        return uncles_hash
 
     def get_block_uncles(self, uncles_hash):
         validate_word(uncles_hash, title="Uncles Hash")
@@ -525,7 +529,7 @@ class ChainDB(BaseChainDB):
     def exists(self, key):
         return self.db.exists(key)
 
-    def persist_trie_data_dict_to_db(self, trie_data_dict):
+    def persist_trie_data_dict(self, trie_data_dict):
         """
         Store raw trie data to db from a dict
         """
@@ -588,5 +592,11 @@ class AsyncChainDB(ChainDB):
     async def coro_lookup_block_hash(self, *args, **kwargs):
         raise NotImplementedError()
 
-    async def coro_persist_header_to_db(self, *args, **kwargs):
+    async def coro_persist_header(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_persist_uncles(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_persist_trie_data_dict(self, *args, **kwargs):
         raise NotImplementedError()

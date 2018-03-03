@@ -448,12 +448,12 @@ class Chain(BaseChain):
 
         genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(chaindb, genesis_header)
-        chaindb.persist_block_to_db(genesis_chain.get_block())
+        chaindb.persist_block(genesis_chain.get_block())
         return cls.from_genesis_header(chaindb, genesis_header)
 
     @classmethod
     def from_genesis_header(cls, chaindb, genesis_header):
-        chaindb.persist_header_to_db(genesis_header)
+        chaindb.persist_header(genesis_header)
         return cls(chaindb)
 
     #
@@ -498,7 +498,7 @@ class Chain(BaseChain):
             ensure_imported_block_unchanged(imported_block, block)
             self.validate_block(imported_block)
 
-        self.chaindb.persist_block_to_db(imported_block)
+        self.chaindb.persist_block(imported_block)
         self.header = self.create_header_from_parent(self.get_canonical_head())
         self.logger.debug(
             'IMPORTED_BLOCK: number %s | hash %s',
@@ -516,7 +516,7 @@ class Chain(BaseChain):
 
         self.validate_block(mined_block)
 
-        self.chaindb.persist_block_to_db(mined_block)
+        self.chaindb.persist_block(mined_block)
         self.header = self.create_header_from_parent(self.get_canonical_head())
         return mined_block
 

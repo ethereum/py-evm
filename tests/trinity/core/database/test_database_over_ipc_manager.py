@@ -33,7 +33,7 @@ def database_server_ipc_path():
 
     chaindb = ChainDB(core_db)
     # TODO: use a custom chain class only for testing.
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         ipc_path = os.path.join(temp_dir, 'chaindb.ipc')

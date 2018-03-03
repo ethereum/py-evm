@@ -204,7 +204,7 @@ def _test():
     args = parser.parse_args()
 
     chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     peer_pool = PeerPool(ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
     asyncio.ensure_future(peer_pool.run())
 

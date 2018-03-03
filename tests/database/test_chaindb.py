@@ -130,36 +130,36 @@ def test_add_block_number_to_hash_lookup(chaindb, block):
     assert chaindb.exists(block_number_to_hash_key)
 
 
-def test_persist_header_to_db(chaindb, header):
+def test_persist_header(chaindb, header):
     with pytest.raises(BlockNotFound):
         chaindb.get_block_header_by_hash(header.hash)
     number_to_hash_key = make_block_hash_to_score_lookup_key(header.hash)
     assert not chaindb.exists(number_to_hash_key)
 
-    chaindb.persist_header_to_db(header)
+    chaindb.persist_header(header)
 
     assert chaindb.get_block_header_by_hash(header.hash) == header
     assert chaindb.exists(number_to_hash_key)
 
 
 @given(seed=st.binary(min_size=32, max_size=32))
-def test_persist_header_to_db_unknown_parent(chaindb, header, seed):
+def test_persist_header_unknown_parent(chaindb, header, seed):
     header.parent_hash = keccak(seed)
     with pytest.raises(ParentNotFound):
-        chaindb.persist_header_to_db(header)
+        chaindb.persist_header(header)
 
 
-def test_persist_block_to_db(chaindb, block):
+def test_persist_block(chaindb, block):
     set_empty_root(chaindb, block.header)
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
-    chaindb.persist_block_to_db(block)
+    chaindb.persist_block(block)
     assert chaindb.exists(block_to_hash_key)
 
 
 def test_get_score(chaindb):
     genesis = BlockHeader(difficulty=1, block_number=0, gas_limit=0)
-    chaindb.persist_header_to_db(genesis)
+    chaindb.persist_header(genesis)
 
     genesis_score_key = make_block_hash_to_score_lookup_key(genesis.hash)
     genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
@@ -167,7 +167,7 @@ def test_get_score(chaindb):
     assert chaindb.get_score(genesis.hash) == 1
 
     block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
-    chaindb.persist_header_to_db(block1)
+    chaindb.persist_header(block1)
 
     block1_score_key = make_block_hash_to_score_lookup_key(block1.hash)
     block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
@@ -178,7 +178,7 @@ def test_get_score(chaindb):
 def test_get_block_header_by_hash(chaindb, block, header):
     set_empty_root(chaindb, block.header)
     set_empty_root(chaindb, header)
-    chaindb.persist_block_to_db(block)
+    chaindb.persist_block(block)
     block_header = chaindb.get_block_header_by_hash(block.hash)
     assert_rlp_equal(block_header, header)
 

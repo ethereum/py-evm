@@ -44,7 +44,7 @@ async def test_lightchain_integration(request, event_loop):
         pytest.skip("Not asked to run integration tests")
 
     chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header_to_db(ROPSTEN_GENESIS_HEADER)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     peer_pool = LocalGethPeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
     chain = IntegrationTestLightChain(chaindb, peer_pool)
     asyncio.ensure_future(peer_pool.run())
