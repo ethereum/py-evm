@@ -106,6 +106,10 @@ def gasprice(computation):
     computation.stack.push(computation.transaction_context.gas_price)
 
 
+def PAYGAS_gasprice(computation):
+    computation.stack.push(computation.get_PAYGAS_gas_price())
+
+
 def extcodesize(computation):
     account = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
     with computation.state_db(read_only=True) as state_db:
