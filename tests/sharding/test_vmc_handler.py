@@ -56,6 +56,10 @@ PASSPHRASE = '123'
 GENESIS_COLHDR_HASH = b'\x00' * 32
 
 test_keys = get_default_account_keys()
+default_shard_id = 0
+default_validator_index = 0
+primary_key = test_keys[default_validator_index]
+primary_addr = primary_key.public_key.to_canonical_address()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
@@ -220,6 +224,22 @@ def add_header_constant_call(vmc_handler, collation_header):
     return result
 
 
+def mk_colhdr_chain(vmc_handler, shard_id, num_collations):
+    """
+    Make a collation header chain from genesis collation
+    :return: the collation hash of the tip of the chain
+    """
+    top_collation_hash = GENESIS_COLHDR_HASH
+    for collation_number in range(num_collations):
+        header = mk_testing_colhdr(vmc_handler, shard_id, top_collation_hash, collation_number + 1)
+        assert add_header_constant_call(vmc_handler, header)
+        tx_hash = vmc_handler.add_header(header)
+        mine(vmc_handler, vmc_handler.config['PERIOD_LENGTH'])
+        assert vmc_handler.web3.eth.getTransactionReceipt(tx_hash) is not None
+        top_collation_hash = header.hash
+    return top_collation_hash
+
+
 @pytest.mark.parametrize(  # noqa: F811
     'mock_score,mock_is_new_head,expected_score,expected_is_new_head',
     (
@@ -269,63 +289,7 @@ def setup_shard_tracker(vmc_handler, shard_id):
     vmc_handler.set_shard_tracker(shard_id, shard_tracker)
 
 
-# TODO: add tests for memoized_fetch_and_verify_collation respectively
-def test_vmc_guess_head(vmc):  # noqa: F811
-    shard_id = 0
-    validator_index = 0
-    primary_key = test_keys[validator_index]
-    # primary_addr = primary_key.public_key.to_canonical_address()
-
-    import_key(vmc, primary_key)
-    deploy_initiating_contracts(vmc, primary_key)
-    mine(vmc, vmc.config['PERIOD_LENGTH'])
-
-    setup_shard_tracker(vmc, shard_id)
-
-    validator_addr = send_deposit_tx(vmc)
-    lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
-    mine(vmc, lookahead_blocks)
-    assert vmc.get_eligible_proposer(shard_id) == validator_addr
-
-    # without fork
-    header0_1 = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
-    vmc.add_header(header0_1)
-    mine(vmc, vmc.config['PERIOD_LENGTH'])
-    vmc.shard_trackers[shard_id].log_handler.reset()
-    assert vmc.guess_head(shard_id) == header0_1.hash
-    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
-    vmc.add_header(header0_2)
-    mine(vmc, vmc.config['PERIOD_LENGTH'])
-    # if not due to the time up, the result should not change when guess_head is called multiple
-    # times if no new blocks arrive
-    assert vmc.guess_head(shard_id) == header0_2.hash
-    assert vmc.guess_head(shard_id) == header0_2.hash
-    assert vmc.guess_head(shard_id) == header0_2.hash
-
-    # with fork
-    header0_2_prime = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
-    assert add_header_constant_call(vmc, header0_2_prime)
-    vmc.add_header(header0_2_prime)
-    mine(vmc, vmc.config['PERIOD_LENGTH'])
-    # the head should still be header0_2
-    assert vmc.guess_head(shard_id) == header0_2.hash
-    header0_3_prime = mk_testing_colhdr(vmc, shard_id, header0_2_prime.hash, 3)
-    vmc.add_header(header0_3_prime)
-    mine(vmc, vmc.config['PERIOD_LENGTH'])
-    # head changes
-    assert vmc.guess_head(shard_id) == header0_3_prime.hash
-
-
-# TODO: should separate the tests into pieces, and do some refactors
-def test_vmc_contract_calls(vmc):  # noqa: F811
-    shard_id = 0
-    validator_index = 0
-    primary_key = test_keys[validator_index]
-    primary_addr = primary_key.public_key.to_canonical_address()
-    default_gas = vmc.config['DEFAULT_GAS']
-
-    setup_shard_tracker(vmc, shard_id)
-
+def test_vmc_mk_build_transaction_detail(vmc):  # noqa: F811
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
         nonce=0,
@@ -345,6 +309,8 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             gas=None,
         )
 
+
+def test_vmc_mk_contract_tx_detail(vmc):  # noqa: F811
     # test `mk_contract_tx_detail` ######################################
     tx_detail = vmc.mk_contract_tx_detail(
         sender_address=ZERO_ADDRESS,
@@ -363,18 +329,24 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             gas=vmc.config['DEFAULT_GAS'],
         )
 
+
+def deploy_vmc(vmc_handler):
     # test the deployment of vmc ######################################
     # deploy vmc if it is not deployed yet.
-    if not is_vmc_deployed(vmc):
-        logger.debug('is_vmc_deployed(vmc) == True')
+    if not is_vmc_deployed(vmc_handler):
+        logger.debug('is_vmc_deployed(vmc) == False')
         # import test_key
-        import_key(vmc, primary_key)
-        deploy_initiating_contracts(vmc, primary_key)
-        mine(vmc, 1)
+        import_key(vmc_handler, primary_key)
+        deploy_initiating_contracts(vmc_handler, primary_key)
+        mine(vmc_handler, 1)
 
-    assert is_vmc_deployed(vmc)
+    assert is_vmc_deployed(vmc_handler)
 
-    lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
+
+def add_validator(vmc_handler):
+    assert is_vmc_deployed(vmc_handler)
+
+    lookahead_blocks = vmc_handler.config['LOOKAHEAD_PERIODS'] * vmc_handler.config['PERIOD_LENGTH']
     # test `deposit` and `get_eligible_proposer` ######################################
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
@@ -382,36 +354,78 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     num_validators = vmc.functions.num_validators().call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     )
-    if num_validators == 0:
-        # deposit as the first validator
-        validator_addr = send_deposit_tx(vmc)
-        # TODO: error occurs when we don't mine so many blocks
-        mine(vmc, lookahead_blocks)
-        assert vmc.get_eligible_proposer(shard_id) == validator_addr
+
+    validator_addr = send_deposit_tx(vmc_handler)
+    # TODO: error occurs when we don't mine so many blocks
+    mine(vmc_handler, lookahead_blocks)
+    assert vmc_handler.get_eligible_proposer(default_shard_id) == validator_addr
 
     # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
     # to ensure that `get_eligible_proposer` works
-    current_block_number = vmc.web3.eth.blockNumber
+    current_block_number = vmc_handler.web3.eth.blockNumber
     if current_block_number < lookahead_blocks:
-        mine(vmc, lookahead_blocks - current_block_number)
-    assert vmc.web3.eth.blockNumber >= lookahead_blocks
+        mine(vmc_handler, lookahead_blocks - current_block_number)
+    assert vmc_handler.web3.eth.blockNumber >= lookahead_blocks
 
     num_validators = vmc.functions.num_validators().call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
     )
     assert num_validators == 1
-    assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDR
+    assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDRESS
     logger.debug("vmc_handler.num_validators()=%s", num_validators)
+
+
+def deploy_vmc_and_add_one_validator(vmc_handler):
+    deploy_vmc(vmc_handler)
+    num_validators = vmc_handler.functions.get_num_validators().call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=primary_addr,
+            gas=vmc_handler.config['DEFAULT_GAS'],
+        )
+    )
+    if num_validators == 0:
+        add_validator(vmc_handler)
+
+
+# TODO: add tests for memoized_fetch_and_verify_collation respectively
+def test_vmc_guess_head(vmc):  # noqa: F811
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+
+    # without fork
+    header0_2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    # if not due to the time up, the result should not change when guess_head is called multiple
+    # times if no new blocks arrive
+    assert vmc.guess_head(default_shard_id) == header0_2_hash
+    assert vmc.guess_head(default_shard_id) == header0_2_hash
+    assert vmc.guess_head(default_shard_id) == header0_2_hash
+
+    # with fork
+    header0_3_prime_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
+    # head changes
+    assert vmc.guess_head(default_shard_id) == header0_3_prime_hash
+
+
+def test_vmc_guess_head_invalid_first_candidate(vmc):  # noqa: F811
+    pass
+
+
+# TODO: should separate the tests into pieces, and do some refactors
+def test_vmc_contract_calls(vmc):  # noqa: F811
+    default_gas = vmc.config['DEFAULT_GAS']
+
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
-    header0_1 = mk_testing_colhdr(vmc, shard_id, GENESIS_COLHDR_HASH, 1)
+    header0_1 = mk_testing_colhdr(vmc, default_shard_id, GENESIS_COLHDR_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
         header_parent_not_added = mk_testing_colhdr(
             vmc,
-            shard_id,
+            default_shard_id,
             header0_1.hash,
             1,
         )
@@ -423,7 +437,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     with pytest.raises(TransactionFailed):
         add_header_constant_call(vmc, header0_1)
     # when a valid header is added, the `add_header` call should succeed
-    header0_2 = mk_testing_colhdr(vmc, shard_id, header0_1.hash, 2)
+    header0_2 = mk_testing_colhdr(vmc, default_shard_id, header0_1.hash, 2)
     vmc.add_header(header0_2)
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
@@ -443,20 +457,20 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     )
     assert colhdr0_2_score == 2
     # assert parent_hashes
-    assert vmc.get_parent_hash(shard_id, header0_1.hash) == ZERO_HASH32
-    assert vmc.get_parent_hash(shard_id, header0_2.hash) == header0_1.hash
+    assert vmc.get_parent_hash(default_shard_id, header0_1.hash) == ZERO_HASH32
+    assert vmc.get_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
-    assert vmc.get_next_log(shard_id)['score'] == 2
-    assert vmc.get_next_log(shard_id)['score'] == 1
+    assert vmc.get_next_log(default_shard_id)['score'] == 2
+    assert vmc.get_next_log(default_shard_id)['score'] == 1
     with pytest.raises(NextLogUnavailable):
-        vmc.get_next_log(shard_id)
+        vmc.get_next_log(default_shard_id)
 
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
     header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
     vmc.add_header(header1_1)
     mine(vmc, 1)
-    header0_3 = mk_testing_colhdr(vmc, shard_id, header0_2.hash, 3)
+    header0_3 = mk_testing_colhdr(vmc, default_shard_id, header0_2.hash, 3)
     vmc.add_header(header0_3)
     mine(vmc, 1)
     assert vmc.get_next_log(0)['score'] == 3
@@ -474,7 +488,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # test `tx_to_shard` ######################################
     vmc.tx_to_shard(
         test_keys[1].public_key.to_canonical_address(),
-        shard_id,
+        default_shard_id,
         100000,
         1,
         b'',
@@ -488,7 +502,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert receipt_value == 1234567
 
     # test `withdraw` ######################################
-    send_withdraw_tx(vmc, validator_index)
+    send_withdraw_tx(vmc, default_validator_index)
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `get_num_validators` must be 0.
