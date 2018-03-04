@@ -19,6 +19,11 @@ from eth_utils import (
 
 from p2p.lightchain import LightChain
 
+from p2p.peer import (
+    LESPeer,
+    PeerPool,
+)
+
 
 class App(web.Application):
     allowed_methods = ['eth_getBlockByNumber', 'eth_getBlockByHash']
@@ -91,7 +96,7 @@ if __name__ == '__main__':
         MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID)
     from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
     from evm.db.backends.level import LevelDB
-    from evm.db.chain import ChainDB
+    from evm.db.chain import AsyncChainDB
     from evm.exceptions import CanonicalHeadNotFound
     from p2p import ecies
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -111,18 +116,20 @@ if __name__ == '__main__':
         'RPCDemoLightChain',
         vm_configuration=MAINNET_VM_CONFIGURATION,
         network_id=NETWORK_ID,
-        privkey=ecies.generate_privkey(),
     )
 
-    chaindb = ChainDB(LevelDB(args.db))
+    chaindb = AsyncChainDB(LevelDB(args.db))
+
+    peer_pool = PeerPool(LESPeer, chaindb, NETWORK_ID, ecies.generate_privkey())
+
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         # We're starting with a fresh DB.
-        chain = DemoLightChain.from_genesis_header(chaindb, GENESIS_HEADER)
+        chain = DemoLightChain.from_genesis_header(chaindb, GENESIS_HEADER, peer_pool)
     else:
         # We're reusing an existing db.
-        chain = DemoLightChain(chaindb)
+        chain = DemoLightChain(chaindb, peer_pool)
 
     app = App(chain)
     web.run_app(app, port=8080)
