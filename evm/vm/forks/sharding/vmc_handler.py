@@ -358,14 +358,14 @@ class VMC(Contract):
         if period is None:
             period = self.web3.eth.blockNumber // self.config['PERIOD_LENGTH']
         tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
-        address_in_hex = self.call(tx_detail).get_eligible_proposer(shard_id, period)
+        address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(tx_detail)
         return decode_hex(address_in_hex)
 
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
         if gas is None:
             gas = self.config['DEFAULT_GAS']
         tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
-        return self.call(tx_detail).get_collation_headers__parent_hash(shard_id, collation_hash)
+        return self.functions.get_collation_headers__parent_hash(shard_id, collation_hash).call(tx_detail)
 
     def deposit(self, gas=None, gas_price=None):
         """Do deposit to become a validator

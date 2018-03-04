@@ -208,11 +208,15 @@ def add_header_constant_call(vmc_handler, collation_header):
     )
     # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
     # is the same as the one of parameters of `VMC.add_header`
-    result = vmc_handler.call(vmc_handler.mk_contract_tx_detail(
-        sender_address=vmc_handler.get_default_sender_address(),
-        gas=vmc_handler.config['DEFAULT_GAS'],
-        gas_price=1,
-    )).add_header(*args_with_checksum_address)
+    result = vmc_handler.functions.add_header(
+        *args_with_checksum_address
+    ).call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=vmc_handler.get_default_sender_address(),
+            gas=vmc_handler.config['DEFAULT_GAS'],
+            gas_price=1,
+        )
+    )
     return result
 
 
@@ -375,9 +379,9 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
     # else, there should only be one validator, for easier testing.
-    num_validators = vmc.call(
+    num_validators = vmc.functions.num_validators().call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     if num_validators == 0:
         # deposit as the first validator
         validator_addr = send_deposit_tx(vmc)
@@ -392,9 +396,9 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         mine(vmc, lookahead_blocks - current_block_number)
     assert vmc.web3.eth.blockNumber >= lookahead_blocks
 
-    num_validators = vmc.call(
+    num_validators = vmc.functions.num_validators().call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     assert num_validators == 1
     assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDR
     logger.debug("vmc_handler.num_validators()=%s", num_validators)
@@ -424,13 +428,19 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
-    colhdr0_1_score = vmc.call(
+    colhdr0_1_score = vmc.functions.get_collation_headers_score(
+        shard_id,
+        header0_1.hash,
+    ).call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_header_score(shard_id, header0_1.hash)
+    )
     assert colhdr0_1_score == 1
-    colhdr0_2_score = vmc.call(
+    colhdr0_2_score = vmc.functions.get_collation_headers_score(
+        shard_id,
+        header0_2.hash,
+    ).call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_header_score(shard_id, header0_2.hash)
+    )
     assert colhdr0_2_score == 2
     # assert parent_hashes
     assert vmc.get_parent_hash(shard_id, header0_1.hash) == ZERO_HASH32
@@ -471,9 +481,9 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
         value=1234567,
     )
     mine(vmc, 1)
-    receipt_value = vmc.call(
+    receipt_value = vmc.functions.get_receipts__value(0).call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).receipts__value(0)
+    )
     # the receipt value should be equaled to the transaction value
     assert receipt_value == 1234567
 
@@ -481,10 +491,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     send_withdraw_tx(vmc, validator_index)
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
-    # `num_validators` must be 0.
-    num_validators = vmc.call(
+    # `get_num_validators` must be 0.
+    num_validators = vmc.functions.num_validators().call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     assert num_validators == 0
 
 
