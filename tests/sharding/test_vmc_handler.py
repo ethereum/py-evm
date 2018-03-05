@@ -400,10 +400,6 @@ def test_vmc_guess_head(vmc):  # noqa: F811
 
     # without fork
     header0_2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
-    # if not due to the time up, the result should not change when guess_head is called multiple
-    # times if no new blocks arrive
-    assert vmc.guess_head(default_shard_id) == header0_2_hash
-    assert vmc.guess_head(default_shard_id) == header0_2_hash
     assert vmc.guess_head(default_shard_id) == header0_2_hash
 
     # with fork

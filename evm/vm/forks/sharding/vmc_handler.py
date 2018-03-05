@@ -93,7 +93,7 @@ class ShardTracker:
     COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
         "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
     )
-    # older <---------------> newer
+
     current_score = None
     new_logs = None
     unchecked_logs = None
@@ -105,7 +105,6 @@ class ShardTracker:
         self.log_handler = log_handler
         self.vmc_address = vmc_address
         self.current_score = None
-        # older <---------------> newer
         self.new_logs = []
         self.unchecked_logs = []
 
@@ -128,18 +127,6 @@ class ShardTracker:
         if len(self.new_logs) == 0:
             raise NextLogUnavailable("No more next logs")
         return self.new_logs.pop()
-
-    # TODO: should decide to use snapshot or just reset?
-    @to_dict
-    def take_log_snapshot(self):
-        yield 'current_score', self.current_score
-        yield 'new_logs', copy.deepcopy(self.new_logs)
-        yield 'unchecked_logs', copy.deepcopy(self.unchecked_logs)
-
-    def revert_log_snapshot(self, log_snapshot):
-        self.current_score = log_snapshot['current_score']
-        self.new_logs = copy.deepcopy(log_snapshot['new_logs'])
-        self.unchecked_logs = copy.deepcopy(log_snapshot['unchecked_logs'])
 
     # TODO: this method may return wrong result when new logs arrive before the logs inside
     #       `self.new_logs` are consumed entirely. This issue can be resolved by saving the
@@ -193,7 +180,7 @@ class VMC(Contract):
         self.config = get_sharding_config()
         self.shard_trackers = {}  # type: Dict[int, ShardTracker]
 
-        self.validity_cache = {}
+        self.collation_validity_cache = {}
 
         super().__init__(*args, **kwargs)
 
@@ -223,9 +210,9 @@ class VMC(Contract):
 
     def memoized_fetch_and_verify_collation(self, collation_hash):
         # Download a single collation and check if it is valid or invalid (memoized)
-        if collation_hash not in self.validity_cache:
-            self.validity_cache[collation_hash] = fetch_and_verify_collation(collation_hash)
-        return self.validity_cache[collation_hash]
+        if collation_hash not in self.collation_validity_cache:
+            self.collation_validity_cache[collation_hash] = fetch_and_verify_collation(collation_hash)
+        return self.collation_validity_cache[collation_hash]
 
     def _verify_chain(self, shard_id, head_collation_hash):
         """Verify a chain and returns its validity.
@@ -253,9 +240,6 @@ class VMC(Contract):
 
         :return: returns the hash of the guessed head collation
         """
-        # TODO: this should be change due to the performance issue
-        self.reset_shard_tracker(shard_id)
-
         head_collation_hash = None
         while not is_time_to_make_collation():
             try:
