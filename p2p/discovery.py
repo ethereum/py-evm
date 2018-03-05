@@ -7,6 +7,7 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 """
 import asyncio
 import logging
+import random
 import time
 from typing import (
     Any,
@@ -28,6 +29,7 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys import datatypes
 
+from p2p.cancel_token import CancelToken
 from p2p import kademlia
 from evm.utils.numeric import (
     big_endian_to_int,
@@ -70,7 +72,6 @@ CMD_NEIGHBOURS = Command("neighbours", 4, 2)
 CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, CMD_NEIGHBOURS])
 
 
-# TODO: Use a CancelToken here, to cancel pending operations when we stop()
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("p2p.discovery.DiscoveryProtocol")
@@ -84,6 +85,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.bootstrap_nodes = [kademlia.Node.from_uri(node) for node in bootstrap_nodes]
         self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
+        self.cancel_token = CancelToken('DiscoveryProtocol')
+
+    async def lookup_random(self, cancel_token: CancelToken) -> List[kademlia.Node]:
+        node_id = random.randint(0, kademlia.k_max_node_id)
+        token_chain = self.cancel_token.chain(cancel_token)
+        return await self.kademlia.lookup(node_id, token_chain)
 
     @property
     def pubkey(self) -> datatypes.PublicKey:
@@ -121,7 +128,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # .transport we should instead only call it after we know it's been set.
             await asyncio.sleep(1)
         self.logger.debug("boostrapping with %s", self.bootstrap_nodes)
-        await self.kademlia.bootstrap(self.bootstrap_nodes)
+        await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
 
     # FIXME: Enable type checking here once we have a mypy version that
     # includes the fix for https://github.com/python/typeshed/pull/1740
@@ -137,6 +144,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def stop(self):
         self.logger.info('stopping discovery')
+        self.cancel_token.trigger()
         self.transport.close()
 
     def receive(self, address: kademlia.Address, message: AnyStr) -> None:
@@ -279,8 +287,10 @@ def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnySt
 
 
 def _test():
+    import signal
     from p2p import constants
     from p2p import ecies
+    from p2p.exceptions import OperationCancelled
 
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
@@ -299,15 +309,19 @@ def _test():
     # discovery = DiscoveryProtocol(privkey, addr, local_bootnodes)
     loop.run_until_complete(discovery.listen(loop))
 
-    # There's no need to wait for bootstrap because we run_forever().
-    asyncio.ensure_future(discovery.bootstrap())
+    async def run():
+        try:
+            await discovery.bootstrap()
+            while True:
+                await discovery.lookup_random(CancelToken("Unused"))
+        except OperationCancelled:
+            # Give all tasks started by DiscoveryProtocol a chance to stop.
+            await asyncio.sleep(2)
 
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, discovery.stop)
 
-    discovery.stop()
+    loop.run_until_complete(run())
     loop.close()
 
 
