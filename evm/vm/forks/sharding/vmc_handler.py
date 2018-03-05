@@ -1,4 +1,3 @@
-import copy
 import logging
 from typing import (  # noqa: F401
     Dict
@@ -163,18 +162,12 @@ class ShardTracker:
         self.current_score = log_entry['score']
         return log_entry
 
-    def reset(self):
-        self.log_handler.reset()
-        self.current_score = None
-        self.new_logs = []
-        self.unchecked_logs = []
-
 
 class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.VMC")
 
-    def __init__(self, *args, default_privkey, fetch_and_verify_collation=None, **kwargs):
+    def __init__(self, *args, default_privkey, **kwargs):
         self.default_privkey = default_privkey
         self.default_sender_address = default_privkey.public_key.to_canonical_address()
         self.config = get_sharding_config()
@@ -205,13 +198,12 @@ class VMC(Contract):
         shard_tracker = self.get_shard_tracker(shard_id)
         return shard_tracker.fetch_candidate_head()
 
-    def reset_shard_tracker(self, shard_id):
-        self.shard_trackers[shard_id].reset()
-
     def memoized_fetch_and_verify_collation(self, collation_hash):
         # Download a single collation and check if it is valid or invalid (memoized)
         if collation_hash not in self.collation_validity_cache:
-            self.collation_validity_cache[collation_hash] = fetch_and_verify_collation(collation_hash)
+            self.collation_validity_cache[collation_hash] = fetch_and_verify_collation(
+                collation_hash,
+            )
         return self.collation_validity_cache[collation_hash]
 
     def _verify_chain(self, shard_id, head_collation_hash):
