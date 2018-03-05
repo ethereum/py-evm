@@ -84,6 +84,26 @@ def send_raw_transaction(vmc_handler, raw_transaction):
     return transaction_hash
 
 
+def setup_shard_tracker(vmc_handler, shard_id):
+    log_handler = LogHandler(vmc_handler.web3)
+    shard_tracker = ShardTracker(shard_id, log_handler, vmc_handler.address)
+    vmc_handler.set_shard_tracker(shard_id, shard_tracker)
+
+
+def import_key(vmc_handler, privkey):
+    """
+    :param vmc_handler: VMCHandler
+    :param privkey: PrivateKey object from eth_keys
+    """
+    try:
+        vmc_handler.web3.personal.importRawKey(privkey.to_hex(), PASSPHRASE)
+    # Exceptions happen when the key is already imported.
+    #   - ValueError: `web3.py`
+    #   - ValidationError: `eth_tester`
+    except (ValueError, ValidationError):
+        pass
+
+
 def is_vmc_deployed(vmc_handler):
     return (
         get_code(vmc_handler, vmc_handler.address) != b'' and
@@ -116,24 +136,6 @@ def mk_initiating_transactions(sender_privkey,
     return funding_tx_for_tx_sender, vmc_tx
 
 
-def send_withdraw_tx(vmc_handler, validator_index):
-    assert validator_index < len(test_keys)
-    vmc_handler.withdraw(validator_index)
-    mine(vmc_handler, 1)
-
-
-def send_deposit_tx(vmc_handler):
-    """
-    Do deposit in VMC to be a validator
-
-    :param privkey: PrivateKey object
-    :return: returns the validator's address
-    """
-    vmc_handler.deposit()
-    mine(vmc_handler, vmc_handler.config['PERIOD_LENGTH'])
-    return vmc_handler.get_default_sender_address()
-
-
 def deploy_initiating_contracts(vmc_handler, privkey):
     w3 = vmc_handler.web3
     nonce = get_nonce(vmc_handler, privkey.public_key.to_canonical_address())
@@ -153,18 +155,109 @@ def deploy_initiating_contracts(vmc_handler, privkey):
     )
 
 
-def import_key(vmc_handler, privkey):
+def deploy_vmc(vmc_handler):
+    # test the deployment of vmc ######################################
+    # deploy vmc if it is not deployed yet.
+    if not is_vmc_deployed(vmc_handler):
+        logger.debug('is_vmc_deployed(vmc) == False')
+        # import test_key
+        import_key(vmc_handler, primary_key)
+        deploy_initiating_contracts(vmc_handler, primary_key)
+        mine(vmc_handler, 1)
+
+    assert is_vmc_deployed(vmc_handler)
+
+
+def add_validator(vmc_handler):
+    assert is_vmc_deployed(vmc_handler)
+
+    lookahead_blocks = vmc_handler.config['LOOKAHEAD_PERIODS'] * vmc_handler.config['PERIOD_LENGTH']
+    # test `deposit` and `get_eligible_proposer` ######################################
+    # now we require 1 validator.
+    # if there is currently no validator, we deposit one.
+    # else, there should only be one validator, for easier testing.
+    num_validators = vmc_handler.functions.get_num_validators().call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=primary_addr,
+            gas=vmc_handler.config['DEFAULT_GAS'],
+        )
+    )
+
+    validator_addr = send_deposit_tx(vmc_handler)
+    # TODO: error occurs when we don't mine so many blocks
+    mine(vmc_handler, lookahead_blocks)
+    assert vmc_handler.get_eligible_proposer(default_shard_id) == validator_addr
+
+    # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
+    # to ensure that `get_eligible_proposer` works
+    current_block_number = vmc_handler.web3.eth.blockNumber
+    if current_block_number < lookahead_blocks:
+        mine(vmc_handler, lookahead_blocks - current_block_number)
+    assert vmc_handler.web3.eth.blockNumber >= lookahead_blocks
+
+    current_num_validators = vmc_handler.functions.get_num_validators().call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=primary_addr,
+            gas=vmc_handler.config['DEFAULT_GAS'],
+        )
+    )
+    assert current_num_validators == num_validators + 1
+    assert vmc_handler.get_eligible_proposer(default_shard_id) != ZERO_ADDRESS
+    logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
+
+
+def deploy_vmc_and_add_one_validator(vmc_handler):
+    deploy_vmc(vmc_handler)
+    num_validators = vmc_handler.functions.get_num_validators().call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=primary_addr,
+            gas=vmc_handler.config['DEFAULT_GAS'],
+        )
+    )
+    if num_validators == 0:
+        add_validator(vmc_handler)
+
+
+def send_deposit_tx(vmc_handler):
     """
-    :param vmc_handler: VMCHandler
-    :param privkey: PrivateKey object from eth_keys
+    Do deposit in VMC to be a validator
+
+    :param privkey: PrivateKey object
+    :return: returns the validator's address
     """
-    try:
-        vmc_handler.web3.personal.importRawKey(privkey.to_hex(), PASSPHRASE)
-    # Exceptions happen when the key is already imported.
-    #   - ValueError: `web3.py`
-    #   - ValidationError: `eth_tester`
-    except (ValueError, ValidationError):
-        pass
+    vmc_handler.deposit()
+    mine(vmc_handler, vmc_handler.config['PERIOD_LENGTH'])
+    return vmc_handler.get_default_sender_address()
+
+
+def send_withdraw_tx(vmc_handler, validator_index):
+    assert validator_index < len(test_keys)
+    vmc_handler.withdraw(validator_index)
+    mine(vmc_handler, 1)
+
+
+def add_header_constant_call(vmc_handler, collation_header):
+    args = (
+        getattr(collation_header, field[0])
+        for field in collation_header.fields
+    )
+    # transform address from canonical to checksum_address, to comply with web3.py
+    args_with_checksum_address = (
+        to_checksum_address(item) if is_address(item) else item
+        for item in args
+    )
+    # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
+    # is the same as the one of parameters of `VMC.add_header`
+    result = vmc_handler.functions.add_header(
+        *args_with_checksum_address
+    ).call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=vmc_handler.get_default_sender_address(),
+            gas=vmc_handler.config['DEFAULT_GAS'],
+            gas_price=1,
+        )
+    )
+    return result
 
 
 def mk_testing_colhdr(vmc_handler,
@@ -198,30 +291,6 @@ def mk_testing_colhdr(vmc_handler,
         number=number,
     )
     return collation_header
-
-
-def add_header_constant_call(vmc_handler, collation_header):
-    args = (
-        getattr(collation_header, field[0])
-        for field in collation_header.fields
-    )
-    # transform address from canonical to checksum_address, to comply with web3.py
-    args_with_checksum_address = (
-        to_checksum_address(item) if is_address(item) else item
-        for item in args
-    )
-    # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
-    # is the same as the one of parameters of `VMC.add_header`
-    result = vmc_handler.functions.add_header(
-        *args_with_checksum_address
-    ).call(
-        vmc_handler.mk_contract_tx_detail(
-            sender_address=vmc_handler.get_default_sender_address(),
-            gas=vmc_handler.config['DEFAULT_GAS'],
-            gas_price=1,
-        )
-    )
-    return result
 
 
 def mk_colhdr_chain(vmc_handler, shard_id, num_collations):
@@ -283,12 +352,6 @@ def test_shard_tracker_fetch_candidate_head(vmc,
         log = shard_tracker.fetch_candidate_head()
 
 
-def setup_shard_tracker(vmc_handler, shard_id):
-    log_handler = LogHandler(vmc_handler.web3)
-    shard_tracker = ShardTracker(shard_id, log_handler, vmc_handler.address)
-    vmc_handler.set_shard_tracker(shard_id, shard_tracker)
-
-
 def test_vmc_mk_build_transaction_detail(vmc):  # noqa: F811
     # test `mk_build_transaction_detail` ######################################
     build_transaction_detail = vmc.mk_build_transaction_detail(
@@ -328,63 +391,6 @@ def test_vmc_mk_contract_tx_detail(vmc):  # noqa: F811
             sender_address=None,
             gas=vmc.config['DEFAULT_GAS'],
         )
-
-
-def deploy_vmc(vmc_handler):
-    # test the deployment of vmc ######################################
-    # deploy vmc if it is not deployed yet.
-    if not is_vmc_deployed(vmc_handler):
-        logger.debug('is_vmc_deployed(vmc) == False')
-        # import test_key
-        import_key(vmc_handler, primary_key)
-        deploy_initiating_contracts(vmc_handler, primary_key)
-        mine(vmc_handler, 1)
-
-    assert is_vmc_deployed(vmc_handler)
-
-
-def add_validator(vmc_handler):
-    assert is_vmc_deployed(vmc_handler)
-
-    lookahead_blocks = vmc_handler.config['LOOKAHEAD_PERIODS'] * vmc_handler.config['PERIOD_LENGTH']
-    # test `deposit` and `get_eligible_proposer` ######################################
-    # now we require 1 validator.
-    # if there is currently no validator, we deposit one.
-    # else, there should only be one validator, for easier testing.
-    num_validators = vmc.functions.num_validators().call(
-        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    )
-
-    validator_addr = send_deposit_tx(vmc_handler)
-    # TODO: error occurs when we don't mine so many blocks
-    mine(vmc_handler, lookahead_blocks)
-    assert vmc_handler.get_eligible_proposer(default_shard_id) == validator_addr
-
-    # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
-    # to ensure that `get_eligible_proposer` works
-    current_block_number = vmc_handler.web3.eth.blockNumber
-    if current_block_number < lookahead_blocks:
-        mine(vmc_handler, lookahead_blocks - current_block_number)
-    assert vmc_handler.web3.eth.blockNumber >= lookahead_blocks
-
-    num_validators = vmc.functions.num_validators().call(
-        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    )
-    assert num_validators == 1
-    assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDRESS
-    logger.debug("vmc_handler.num_validators()=%s", num_validators)
-
-
-def deploy_vmc_and_add_one_validator(vmc_handler):
-    deploy_vmc(vmc_handler)
-    num_validators = vmc_handler.functions.get_num_validators().call(
-        vmc_handler.mk_contract_tx_detail(
-            sender_address=primary_addr,
-            gas=vmc_handler.config['DEFAULT_GAS'],
-        )
-    )
-    if num_validators == 0:
-        add_validator(vmc_handler)
 
 
 # TODO: add tests for memoized_fetch_and_verify_collation respectively
