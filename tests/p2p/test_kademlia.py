@@ -69,29 +69,29 @@ async def test_wait_ping(echo):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('echoed', ['echoed', b'echoed'])
-async def test_wait_pong(echoed):
+async def test_wait_pong():
     proto = get_wired_protocol()
     node = random_node()
-    pingid = proto._mkpingid(echoed, node)
 
+    token = b'token'
     # Schedule a call to proto.recv_pong() simulating a pong from the node we expect.
-    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, echoed))
+    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, token))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = await proto.wait_pong(pingid)
+    got_pong = await proto.wait_pong(node, token)
 
     assert got_pong
     # Ensure wait_pong() cleaned up after itself.
+    pingid = proto._mkpingid(token, node)
     assert pingid not in proto.pong_callbacks
 
     # If the remote node echoed something different than what we expected, wait_pong() would
     # timeout.
-    wrong_echo = "foo"
-    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, wrong_echo))
+    wrong_token = b"foo"
+    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, wrong_token))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = await proto.wait_pong(pingid)
+    got_pong = await proto.wait_pong(node, token)
 
     assert not got_pong
     assert pingid not in proto.pong_callbacks
@@ -126,12 +126,12 @@ async def test_bond():
     proto = get_wired_protocol()
     node = random_node()
 
+    token = b'token'
     # Do not send pings, instead simply return the pingid we'd expect back together with the pong.
-    proto.ping = lambda remote: proto._mkpingid("echoed", remote)
+    proto.ping = lambda remote: token
 
     # Pretend we get a pong from the node we are bonding with.
-    expected_pingid = proto._mkpingid("echoed", node)
-    proto.wait_pong = asyncio.coroutine(lambda pingid: pingid == expected_pingid)
+    proto.wait_pong = asyncio.coroutine(lambda n, t: t == token and n == node)
 
     bonded = await proto.bond(node)
 
@@ -142,6 +142,17 @@ async def test_bond():
     bonded = await proto.bond(node2)
 
     assert not bonded
+
+
+def test_node_from_uri():
+    pubkey = 'a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c'  # noqa: E501
+    ip = '52.16.188.185'
+    port = 30303
+    uri = 'enode://%s@%s:%d' % (pubkey, ip, port)
+    node = kademlia.Node.from_uri(uri)
+    assert node.address.ip == ip
+    assert node.address.udp_port == node.address.tcp_port == port
+    assert node.pubkey.to_hex() == '0x' + pubkey
 
 
 def test_update_routing_table():
