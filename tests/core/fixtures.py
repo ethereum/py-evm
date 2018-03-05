@@ -106,7 +106,7 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
         }
     }
     klass = Chain.configure(
-        name='TestChain',
+        __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ))
@@ -197,7 +197,7 @@ def shard_chain(shard_chaindb, funded_address, funded_address_initial_balance): 
         }
     }
     klass = Shard.configure(
-        name='TestChain',
+        __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
         ))
@@ -223,7 +223,7 @@ def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
         'validate_block': lambda self, block: None,
     }
     klass = Shard.configure(
-        name='TestShardChainWithoutBlockValidation',
+        __name__='TestShardChainWithoutBlockValidation',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
         ),
@@ -272,7 +272,7 @@ def chain_without_block_validation(
         'validate_block': lambda self, block: None,
     }
     klass = Chain.configure(
-        name='TestChainWithoutBlockValidation',
+        __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
         ),

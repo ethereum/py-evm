@@ -106,17 +106,17 @@ def get_block_hash_for_testing(self, block_number):
 
 
 HomesteadComputationForTesting = HomesteadComputation.configure(
-    name='HomesteadComputationForTesting',
+    __name__='HomesteadComputationForTesting',
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
 )
 HomesteadVMStateForTesting = HomesteadVMState.configure(
-    name='HomesteadVMStateForTesting',
+    __name__='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
     computation_class=HomesteadComputationForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
-    name='HomesteadVMForTesting',
+    __name__='HomesteadVMForTesting',
     _state_class=HomesteadVMStateForTesting,
 )
 

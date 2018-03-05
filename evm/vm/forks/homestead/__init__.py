@@ -18,7 +18,7 @@ class MetaHomesteadVM(FrontierVM):
 
 
 HomesteadVM = MetaHomesteadVM.configure(
-    name='HomesteadVM',
+    __name__='HomesteadVM',
     # classes
     _block_class=HomesteadBlock,
     _state_class=HomesteadVMState,

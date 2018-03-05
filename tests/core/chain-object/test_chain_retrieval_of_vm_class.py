@@ -24,7 +24,7 @@ from evm.vm.forks.homestead import HomesteadVM
 
 def test_get_vm_class_for_block_number():
     chain_class = Chain.configure(
-        name='TestChain',
+        __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
             (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),

@@ -23,7 +23,7 @@ class:
   import evm.chains.mainnet as mainnet
 
   chain_class = Chain.configure(
-      name='Test Chain',
+      __name__='Test Chain',
       vm_configuration=(
           (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
           (mainnet.constants.HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
@@ -61,7 +61,7 @@ with a vm_configuration, but it also requires a network_id and privkey:
   from p2p.peer import LESPeer, PeerPool
 
   DemoLightChain = LightChain.configure(
-      name='Demo LightChain',
+      __name__='Demo LightChain',
       vm_configuration=MAINNET_VM_CONFIGURATION,
       network_id=MAINNET_NETWORK_ID,
   )

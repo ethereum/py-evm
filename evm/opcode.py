@@ -1,8 +1,10 @@
 import functools
 import logging
 
+from evm.utils.datatypes import Configurable
 
-class Opcode(object):
+
+class Opcode(Configurable):
     mnemonic = None
     gas_cost = None
 
@@ -21,22 +23,6 @@ class Opcode(object):
     @property
     def logger(self):
         return logging.getLogger('evm.vm.logic.call.{0}'.format(self.mnemonic))
-
-    @classmethod
-    def configure(cls,
-                  name,
-                  **overrides):
-        """
-        Class factory method for simple inline subclassing.
-        """
-        for key in overrides:
-            if not hasattr(cls, key):
-                raise TypeError(
-                    "The Opcode.configure cannot set attributes that are not "
-                    "already present on the base class.  The attribute `{0}` was "
-                    "not found on the base class `{1}`".format(key, cls)
-                )
-        return type(name, (cls,), overrides)
 
     @classmethod
     def as_opcode(cls, logic_fn, mnemonic, gas_cost):

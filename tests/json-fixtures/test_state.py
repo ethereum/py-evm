@@ -192,57 +192,57 @@ def get_prev_hashes_testing(self, last_block_hash, db):
 
 
 FrontierVMStateForTesting = FrontierVMState.configure(
-    name='FrontierVMStateForTesting',
+    __name__='FrontierVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 HomesteadVMStateForTesting = HomesteadVMState.configure(
-    name='HomesteadVMStateForTesting',
+    __name__='HomesteadVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 TangerineWhistleVMStateForTesting = TangerineWhistleVMState.configure(
-    name='TangerineWhistleVMStateForTesting',
+    __name__='TangerineWhistleVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 SpuriousDragonVMStateForTesting = SpuriousDragonVMState.configure(
-    name='SpuriousDragonVMStateForTesting',
+    __name__='SpuriousDragonVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 ByzantiumVMStateForTesting = ByzantiumVMState.configure(
-    name='ByzantiumVMStateForTesting',
+    __name__='ByzantiumVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 ShardingVMStateForTesting = ShardingVMState.configure(
-    name='ShardingVMStateForTesting',
+    __name__='ShardingVMStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 
 FrontierVMForTesting = FrontierVM.configure(
-    name='FrontierVMForTesting',
+    __name__='FrontierVMForTesting',
     _state_class=FrontierVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
-    name='HomesteadVMForTesting',
+    __name__='HomesteadVMForTesting',
     _state_class=HomesteadVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
-    name='TangerineWhistleVMForTesting',
+    __name__='TangerineWhistleVMForTesting',
     _state_class=TangerineWhistleVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
-    name='SpuriousDragonVMForTesting',
+    __name__='SpuriousDragonVMForTesting',
     _state_class=SpuriousDragonVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
-    name='ByzantiumVMForTesting',
+    __name__='ByzantiumVMForTesting',
     _state_class=ByzantiumVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 ShardingVMForTesting = ShardingVM.configure(
-    name='ShardingVMForTesting',
+    __name__='ShardingVMForTesting',
     _state_class=ShardingVMStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )

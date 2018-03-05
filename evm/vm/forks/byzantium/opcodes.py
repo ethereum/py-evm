@@ -60,12 +60,12 @@ UPDATED_OPCODES = {
     # Call
     #
     opcode_values.STATICCALL: call.StaticCall.configure(
-        name='opcode:STATICCALL',
+        __name__='opcode:STATICCALL',
         mnemonic=mnemonics.STATICCALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
     opcode_values.CALL: call.CallByzantium.configure(
-        name='opcode:CALL',
+        __name__='opcode:CALL',
         mnemonic=mnemonics.CALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
@@ -101,7 +101,7 @@ UPDATED_OPCODES = {
     # Create
     #
     opcode_values.CREATE: system.CreateByzantium.configure(
-        name='opcode:CREATE',
+        __name__='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     )(),

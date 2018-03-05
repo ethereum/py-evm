@@ -46,22 +46,22 @@ UPDATED_OPCODES = {
         gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
     ),
     opcode_values.CREATE: system.CreateEIP150.configure(
-        name='opcode:CREATE',
+        __name__='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
         gas_cost=GAS_CREATE,
     )(),
     opcode_values.CALL: call.CallEIP150.configure(
-        name='opcode:CALL',
+        __name__='opcode:CALL',
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),
     opcode_values.CALLCODE: call.CallCodeEIP150.configure(
-        name='opcode:CALLCODE',
+        __name__='opcode:CALLCODE',
         mnemonic=mnemonics.CALLCODE,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),
     opcode_values.DELEGATECALL: call.DelegateCallEIP150.configure(
-        name='opcode:DELEGATECALL',
+        __name__='opcode:DELEGATECALL',
         mnemonic=mnemonics.DELEGATECALL,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),

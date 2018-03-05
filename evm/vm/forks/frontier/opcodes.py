@@ -676,17 +676,17 @@ FRONTIER_OPCODES = {
     # System
     #
     opcode_values.CREATE: system.Create.configure(
-        name='opcode:CREATE',
+        __name__='opcode:CREATE',
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     )(),
     opcode_values.CALL: call.Call.configure(
-        name='opcode:CALL',
+        __name__='opcode:CALL',
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_CALL,
     )(),
     opcode_values.CALLCODE: call.CallCode.configure(
-        name='opcode:CALLCODE',
+        __name__='opcode:CALLCODE',
         mnemonic=mnemonics.CALLCODE,
         gas_cost=constants.GAS_CALL,
     )(),

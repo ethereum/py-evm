@@ -21,7 +21,7 @@ from integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
 
 
 IntegrationTestLightChain = LightChain.configure(
-    name='IntegrationTest LightChain',
+    __name__='IntegrationTest LightChain',
     vm_configuration=MAINNET_VM_CONFIGURATION,
     network_id=ROPSTEN_NETWORK_ID,
     max_consecutive_timeouts=1,

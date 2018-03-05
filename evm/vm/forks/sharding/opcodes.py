@@ -28,7 +28,7 @@ NEW_OPCODES = {
         gas_cost=constants.GAS_BASE,
     ),
     opcode_values.CREATE2: system.Create2.configure(
-        name='opcode:CREATE2',
+        __name__='opcode:CREATE2',
         mnemonic=mnemonics.CREATE2,
         gas_cost=constants.GAS_CREATE2,
     )(),
@@ -46,7 +46,7 @@ REMOVED_OPCODES = [
 
 REPLACED_OPCODES = {
     opcode_values.CALL: call.CallSharding.configure(
-        name='opcode:CALL',
+        __name__='opcode:CALL',
         mnemonic=mnemonics.CALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
