@@ -260,6 +260,19 @@ def add_header_constant_call(vmc_handler, collation_header):
     return result
 
 
+def get_collation_score_call(vmc_handler, shard_id, collation_hash):
+    collation_score = vmc_handler.functions.get_collation_headers__score(
+        default_shard_id,
+        collation_hash,
+    ).call(
+        vmc_handler.mk_contract_tx_detail(
+            sender_address=primary_addr,
+            gas=vmc_handler.config["DEFAULT_GAS"],
+        )
+    )
+    return collation_score
+
+
 def mk_testing_colhdr(vmc_handler,
                       shard_id,
                       parent_hash,
@@ -293,14 +306,19 @@ def mk_testing_colhdr(vmc_handler,
     return collation_header
 
 
-def mk_colhdr_chain(vmc_handler, shard_id, num_collations):
+def mk_colhdr_chain(vmc_handler, shard_id, num_collations, top_collation_hash=GENESIS_COLHDR_HASH):
     """
     Make a collation header chain from genesis collation
     :return: the collation hash of the tip of the chain
     """
-    top_collation_hash = GENESIS_COLHDR_HASH
-    for collation_number in range(num_collations):
-        header = mk_testing_colhdr(vmc_handler, shard_id, top_collation_hash, collation_number + 1)
+    for _ in range(num_collations):
+        top_collation_number = get_collation_score_call(vmc_handler, shard_id, top_collation_hash)
+        header = mk_testing_colhdr(
+            vmc_handler,
+            shard_id,
+            top_collation_hash,
+            top_collation_number + 1,
+        )
         assert add_header_constant_call(vmc_handler, header)
         tx_hash = vmc_handler.add_header(header)
         mine(vmc_handler, vmc_handler.config['PERIOD_LENGTH'])
