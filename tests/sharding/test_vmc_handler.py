@@ -41,6 +41,7 @@ from evm.vm.forks.sharding.vmc_handler import (
     NextLogUnavailable,
     NoCandidateHead,
     ShardTracker,
+    fetch_and_verify_collation,
     parse_collation_added_log,
 )
 from evm.vm.forks.sharding.vmc_utils import (
@@ -426,8 +427,31 @@ def test_vmc_guess_head(vmc):  # noqa: F811
     assert vmc.guess_head(default_shard_id) == header0_3_prime_hash
 
 
-def test_vmc_guess_head_invalid_first_candidate(vmc):  # noqa: F811
-    pass
+def test_guess_head_invalid_first_candidate(monkeypatch, vmc):  # noqa: F811
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+
+    # setup two collation header chains, both having length=3.
+    # originally, guess_head should return the hash of canonical chain head `header0_3_hash`
+    header3_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
+    header3_prime_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
+
+    def mock_fetch_and_verify_collation(collation_hash):
+        if collation_hash == header3_hash:
+            return False
+        return True
+    # mock `fetch_and_verify_collation`, make it consider collation `header0_3_hash` is invalid
+    fetch_and_verify_collation_import_path = "{0}.{1}".format(
+        fetch_and_verify_collation.__module__,
+        fetch_and_verify_collation.__name__,
+    )
+    monkeypatch.setattr(
+        fetch_and_verify_collation_import_path,
+        mock_fetch_and_verify_collation,
+    )
+    # the candidates is  [`header3`, `header3_prime`, `header2`, ...]
+    # since the 1st candidate is invalid, `guess_head` should returns `header3_prime` instead
+    assert vmc.guess_head(default_shard_id) == header3_prime_hash
 
 
 # TODO: should separate the tests into pieces, and do some refactors
