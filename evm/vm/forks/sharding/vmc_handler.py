@@ -56,7 +56,7 @@ class UnknownShard(Exception):
 
 
 def is_time_to_make_collation():
-    # TODO: currently just for testing.
+    # TODO: need to be imeplemented further
     #       should check if it is time to stop verification, and to make collations
     return False
 
