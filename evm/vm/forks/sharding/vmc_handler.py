@@ -255,7 +255,7 @@ class VMC(Contract):
         # clear new_logs and unchecked_logs in shard_tracker
         # TODO: currently do this in case that these logs are misused by the next `guess_head`
         #       should see if this behavior is correct or not.
-        shard_tracker = self.shard_trackers[shard_id]
+        shard_tracker = self.get_shard_tracker(shard_id)
         shard_tracker.new_logs = []
         shard_tracker.unchecked_logs = []
 
