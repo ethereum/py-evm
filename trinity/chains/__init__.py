@@ -29,7 +29,7 @@ from .ropsten import (
 )
 
 
-def is_data_dir_initialized(chain_config):
+def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
     """
     - base dir exists
     - chain data-dir exists
@@ -54,7 +54,7 @@ def is_data_dir_initialized(chain_config):
     return True
 
 
-def is_database_initialized(chaindb):
+def is_database_initialized(chaindb: ChainDB) -> bool:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -64,7 +64,7 @@ def is_database_initialized(chaindb):
         return True
 
 
-def initialize_data_dir(chain_config):
+def initialize_data_dir(chain_config: ChainConfig) -> None:
     if is_under_xdg_trinity_root(chain_config.data_dir):
         os.makedirs(chain_config.data_dir, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
@@ -85,7 +85,7 @@ def initialize_data_dir(chain_config):
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config, chaindb):
+def initialize_database(chain_config: ChainConfig, chaindb: ChainDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
