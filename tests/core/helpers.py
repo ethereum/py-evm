@@ -23,8 +23,8 @@ def new_sharding_transaction(
         data_msgdata,
         data_vrs,
         code='',
+        salt=b'\x00' * 32,
         gas=1000000,
-        gas_price=10,
         access_list=None):
     """
     Create and return a sharding transaction. Data will be encoded in the following order
@@ -50,7 +50,7 @@ def new_sharding_transaction(
         to=tx_initiator,
         data=tx_data,
         gas=gas,
-        gas_price=gas_price,
         access_list=access_list,
         code=decode_hex(code),
+        salt=salt,
     )

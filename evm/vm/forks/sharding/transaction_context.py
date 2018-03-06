@@ -4,12 +4,14 @@ from evm.transaction_context import (
 from evm.validation import (
     validate_sig_hash,
     validate_uint256,
+    validate_canonical_address,
 )
 
 
 class ShardingTransactionContext(BaseTransactionContext):
-    def __init__(self, gas_price, origin, sig_hash, transaction_gas_limit):
-        super().__init__(gas_price, origin)
+    def __init__(self, origin, sig_hash, transaction_gas_limit):
+        validate_canonical_address(origin, title="TransactionContext.origin")
+        self._origin = origin
         validate_sig_hash(sig_hash, title="ShardingTransactionContext.sig_hash")
         self._sig_hash = sig_hash
         validate_uint256(

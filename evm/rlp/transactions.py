@@ -15,6 +15,7 @@ from evm.exceptions import (
 from evm.rlp.sedes import (
     address,
     access_list as access_list_sedes,
+    hash32,
 )
 from evm.utils.state_access_restriction import (
     to_prefix_list_form,
@@ -168,9 +169,9 @@ class BaseShardingTransaction(rlp.Serializable):
         ('to', address),
         ('data', binary),
         ('gas', big_endian_int),
-        ('gas_price', big_endian_int),
         ('access_list', access_list_sedes),
         ('code', binary),
+        ('salt', hash32),
     ]
 
     def __init__(self, *args, **kwargs):

@@ -115,16 +115,16 @@ DEFAULT_BASE_TX_PARAMS = {
     "shard_id": 1,
     "to": ACCOUNT_ADDRESS,
     "gas": 500000,
-    "gas_price": 0,
     "access_list": [
         [ACCOUNT_ADDRESS, b"\x00" * 32],
         [ECRECOVER_ADDRESS],
     ],
     "code": b"",
+    "salt": b"\x00" * 32,
 }
 
 DEFAULT_TX_PARAMS = merge(
-    dissoc(DEFAULT_BASE_TX_PARAMS, "code"),
+    dissoc(DEFAULT_BASE_TX_PARAMS, "code", "salt"),
     {
         "destination": DESTINATION_ADDRESS,
         "value": 0,
@@ -135,6 +135,7 @@ DEFAULT_TX_PARAMS = merge(
         "access_list": DEFAULT_BASE_TX_PARAMS["access_list"] + [
             [DESTINATION_ADDRESS],
         ],
+        "gas_price": 0,
     }
 )
 
@@ -316,7 +317,6 @@ def test_call_checks_signature(vm, v, r, s):
     }
     message = ShardingMessage(**assoc(message_params, "data", transaction.data))
     transaction_context = ShardingTransactionContext(
-        gas_price=transaction.gas_price,
         origin=ENTRY_POINT,
         sig_hash=transaction.sig_hash,
         transaction_gas_limit=transaction.gas,

@@ -50,6 +50,11 @@ REPLACED_OPCODES = {
         mnemonic=mnemonics.CALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
+    opcode_values.GASPRICE: as_opcode(
+        logic_fn=context.PAYGAS_gasprice,
+        mnemonic=mnemonics.GASPRICE,
+        gas_cost=constants.GAS_BASE,
+    ),
 }
 
 

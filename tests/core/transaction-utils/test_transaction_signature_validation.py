@@ -118,9 +118,9 @@ def test_sharding_transaction_intrinsic_gas(sharding_txn_fixture):
         to=to_canonical_address(sharding_txn_fixture["to"]),
         data=decode_hex(sharding_txn_fixture["data"]),
         gas=sharding_txn_fixture["gas"],
-        gas_price=sharding_txn_fixture["gas_price"],
         access_list=sharding_txn_fixture["access_list"],
         code=decode_hex(sharding_txn_fixture["code"]),
+        salt=sharding_txn_fixture["salt"],
     )
 
     assert txn.intrinsic_gas == sharding_txn_fixture["intrinsic_gas"]

@@ -22,7 +22,7 @@ def generate_contract_address(address, nonce):
 
 def generate_CREATE2_contract_address(salt, code):
     """
-    If contract is created by transaction, `salt` should be empty.
+    If contract is created by transaction, `salt` is specified by `transaction.salt`.
     If contract is created by contract, `salt` is set by the creator contract.
     """
     validate_length_lte(salt, 32, title="Salt")

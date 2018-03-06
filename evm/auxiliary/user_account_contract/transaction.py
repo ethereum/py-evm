@@ -48,7 +48,7 @@ class UserAccountTransaction(ShardingTransaction):
         self.min_block = min_block
         self.max_block = max_block
         self.nonce = nonce
-        self.int_gas_price = gas_price
+        self.gas_price = gas_price
         self.msg_data = msg_data
 
         self.v = v
@@ -63,9 +63,9 @@ class UserAccountTransaction(ShardingTransaction):
             to=to,
             data=data,
             gas=gas,
-            gas_price=gas_price,
             access_list=access_list,
             code=b'',
+            salt=b'\x00' * 32,
         )
 
     @classmethod
@@ -79,7 +79,8 @@ class UserAccountTransaction(ShardingTransaction):
         return public_key.to_canonical_address()
 
     def validate(self):
-        super().validate()  # includes validation of `(int_)gas_price`
+        super().validate()
+        validate_uint256(self.gas_price, "Transaction.gas_price")
 
         validate_canonical_address(self.destination, "Transaction.destination")
         validate_uint256(self.value, "Transaction.value")
@@ -123,7 +124,7 @@ class UnsignedUserAccountTransaction(ShardingTransaction):
         self.min_block = min_block
         self.max_block = max_block
         self.nonce = nonce
-        self.int_gas_price = gas_price
+        self.gas_price = gas_price
         self.msg_data = msg_data
 
         # will be used for signing
@@ -135,13 +136,14 @@ class UnsignedUserAccountTransaction(ShardingTransaction):
             to=to,
             data=data,
             gas=gas,
-            gas_price=gas_price,
             access_list=access_list,
             code=b"",
+            salt=b'\x00' * 32,
         )
 
     def validate(self):
-        super().validate()  # includes validation of `(int_)gas_price`
+        super().validate()
+        validate_uint256(self.gas_price, "Transaction.gas_price")
 
         validate_canonical_address(self.destination, "Transaction.destination")
         validate_uint256(self.value, "Transaction.value")
