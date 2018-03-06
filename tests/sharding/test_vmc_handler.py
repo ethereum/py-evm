@@ -38,6 +38,7 @@ from evm.vm.forks.sharding.log_handler import (
     LogHandler,
 )
 from evm.vm.forks.sharding.vmc_handler import (
+    GENESIS_COLLATION_HASH,
     NextLogUnavailable,
     NoCandidateHead,
     ShardTracker,
@@ -54,7 +55,6 @@ from tests.sharding.fixtures import (  # noqa: F401
 
 
 PASSPHRASE = '123'
-GENESIS_COLHDR_HASH = b'\x00' * 32
 
 test_keys = get_default_account_keys()
 default_shard_id = 0
@@ -307,7 +307,10 @@ def mk_testing_colhdr(vmc_handler,
     return collation_header
 
 
-def mk_colhdr_chain(vmc_handler, shard_id, num_collations, top_collation_hash=GENESIS_COLHDR_HASH):
+def mk_colhdr_chain(vmc_handler,
+                    shard_id,
+                    num_collations,
+                    top_collation_hash=GENESIS_COLLATION_HASH):
     """
     Make a collation header chain from genesis collation
     :return: the collation hash of the tip of the chain
@@ -413,21 +416,37 @@ def test_vmc_mk_contract_tx_detail(vmc):  # noqa: F811
 
 
 # TODO: add tests for memoized_fetch_and_verify_collation respectively
-def test_vmc_guess_head(vmc):  # noqa: F811
+def test_guess_head_without_fork(vmc):  # noqa: F811
     deploy_vmc_and_add_one_validator(vmc)
     setup_shard_tracker(vmc, default_shard_id)
 
     # without fork
-    header0_2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
-    assert vmc.guess_head(default_shard_id) == header0_2_hash
+    header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    assert vmc.guess_head(default_shard_id) == header2_hash
+    header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
+    assert vmc.guess_head(default_shard_id) == header3_hash
 
-    # with fork
+
+def test_guess_head_with_fork(vmc):  # noqa: F811
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+
+    # without fork
+    mk_colhdr_chain(vmc, default_shard_id, 2)
     header0_3_prime_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
     # head changes
     assert vmc.guess_head(default_shard_id) == header0_3_prime_hash
 
 
-def test_guess_head_invalid_first_candidate(monkeypatch, vmc):  # noqa: F811
+def test_guess_head_works_only_with_new_logs(vmc):
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+
+    header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    assert vmc.guess_head(default_shard_id) == header2_hash
+    assert vmc.guess_head(default_shard_id) == GENESIS_COLLATION_HASH
+
+def test_guess_head_invalid_collation(monkeypatch, vmc):  # noqa: F811
     deploy_vmc_and_add_one_validator(vmc)
     setup_shard_tracker(vmc, default_shard_id)
 
@@ -463,7 +482,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
-    header0_1 = mk_testing_colhdr(vmc, default_shard_id, GENESIS_COLHDR_HASH, 1)
+    header0_1 = mk_testing_colhdr(vmc, default_shard_id, GENESIS_COLLATION_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
@@ -511,7 +530,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     # filter logs in multiple shards
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
-    header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLHDR_HASH, 1)
+    header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLLATION_HASH, 1)
     vmc.add_header(header1_1)
     mine(vmc, 1)
     header0_3 = mk_testing_colhdr(vmc, default_shard_id, header0_2.hash, 3)

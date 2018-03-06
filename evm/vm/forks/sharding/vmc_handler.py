@@ -40,6 +40,9 @@ from evm.vm.forks.sharding.config import (
 )
 
 
+GENESIS_COLLATION_HASH = b'\x00' * 32
+
+
 class NextLogUnavailable(Exception):
     pass
 
@@ -207,7 +210,9 @@ class VMC(Contract):
         return self.collation_validity_cache[collation_hash]
 
     def _verify_chain(self, shard_id, head_collation_hash):
-        """Verify a chain and returns its validity.
+        """
+        Verify a chain and returns its validity.
+
         :return: returns the validity of the chain. if the time is out, returns True
         """
         current_collation_hash = head_collation_hash
@@ -225,10 +230,11 @@ class VMC(Contract):
         return True
 
     def guess_head(self, shard_id):
-        """Pick the longest valid chain, check validity as far as possible, and if you find
-           it's invalid then switch to the next-highest-scoring valid chain you know about.
-           Should only stop when the validator runs out of time and it is time to create
-           the collation
+        """
+        Pick the longest valid chain, check validity as far as possible, and if you find
+        it's invalid then switch to the next-highest-scoring valid chain you know about.
+        Should only stop when the validator runs out of time and it is time to create
+        the collation
 
         :return: returns the hash of the guessed head collation
         """
@@ -243,6 +249,16 @@ class VMC(Contract):
             # stop when we find a valid chain or run out of time
             if self._verify_chain(shard_id, head_collation_hash):
                 break
+        if head_collation_hash is None:
+            head_collation_hash = GENESIS_COLLATION_HASH
+
+        # clear new_logs and unchecked_logs in shard_tracker
+        # TODO: currently do this in case that these logs are misused by the next `guess_head`
+        #       should see if this behavior is correct or not.
+        shard_tracker = self.shard_trackers[shard_id]
+        shard_tracker.new_logs = []
+        shard_tracker.unchecked_logs = []
+
         self.logger.debug("Guess {0} as head".format(head_collation_hash))
         return head_collation_hash
 
