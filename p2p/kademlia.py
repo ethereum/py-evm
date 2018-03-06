@@ -33,6 +33,7 @@ from eth_keys import (
     keys,
 )
 
+from p2p.cancel_token import CancelToken, wait_with_token
 
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
@@ -379,9 +380,9 @@ class KademliaProtocol:
             # with the least recently seen node on that bucket. If the bonding fails the node will
             # be removed from the bucket and a new one will be picked from the bucket's
             # replacement cache.
-            asyncio.ensure_future(self.bond(eviction_candidate))
+            asyncio.ensure_future(self.bond(eviction_candidate, self.wire.cancel_token))
 
-    async def wait_ping(self, remote: Node) -> bool:
+    async def wait_ping(self, remote: Node, cancel_token: CancelToken) -> bool:
         """Wait for a ping from the given remote.
 
         This coroutine adds a callback to ping_callbacks and yields control until that callback is
@@ -396,15 +397,16 @@ class KademliaProtocol:
         self.ping_callbacks[remote] = event.set
         got_ping = False
         try:
-            got_ping = await asyncio.wait_for(event.wait(), k_request_timeout)
+            got_ping = await wait_with_token(
+                event.wait(), token=cancel_token, timeout=k_request_timeout)
             self.logger.debug('got expected ping from %s', remote)
-        except asyncio.futures.TimeoutError:
+        except TimeoutError:
             self.logger.debug('timed out waiting for ping from %s', remote)
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.ping_callbacks[remote]
         return got_ping
 
-    async def wait_pong(self, remote: Node, token: bytes) -> bool:
+    async def wait_pong(self, remote: Node, token: bytes, cancel_token: CancelToken) -> bool:
         """Wait for a pong from the given remote containing the given token.
 
         This coroutine adds a callback to pong_callbacks and yields control until that callback is
@@ -420,16 +422,17 @@ class KademliaProtocol:
         self.pong_callbacks[pingid] = event.set
         got_pong = False
         try:
-            got_pong = await asyncio.wait_for(event.wait(), k_request_timeout)
+            got_pong = await wait_with_token(
+                event.wait(), token=cancel_token, timeout=k_request_timeout)
             self.logger.debug('got expected pong with token %s', encode_hex(token))
-        except asyncio.futures.TimeoutError:
+        except TimeoutError:
             self.logger.debug(
                 'timed out waiting for pong from %s (token == %s)', remote, encode_hex(token))
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
         del self.pong_callbacks[pingid]
         return got_pong
 
-    async def wait_neighbours(self, remote: Node) -> List[Node]:
+    async def wait_neighbours(self, remote: Node, cancel_token: CancelToken) -> List[Node]:
         """Wait for a neihgbours packet from the given node.
 
         Returns the list of neighbours received.
@@ -451,9 +454,10 @@ class KademliaProtocol:
 
         self.neighbours_callbacks[remote] = process
         try:
-            await asyncio.wait_for(event.wait(), k_request_timeout)
+            await wait_with_token(
+                event.wait(), token=cancel_token, timeout=k_request_timeout)
             self.logger.debug('got expected neighbours response from %s', remote)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.debug('timed out waiting for neighbours response from %s', remote)
 
         # TODO: Use a contextmanager to ensure we always delete the callback from the list.
@@ -465,7 +469,7 @@ class KademliaProtocol:
             raise ValueError("Cannot ping self")
         return self.wire.send_ping(node)
 
-    async def bond(self, node: Node) -> bool:
+    async def bond(self, node: Node, cancel_token: CancelToken) -> bool:
         """Bond with the given node.
 
         Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
@@ -476,7 +480,7 @@ class KademliaProtocol:
 
         token = self.ping(node)
 
-        got_pong = await self.wait_pong(node, token)
+        got_pong = await self.wait_pong(node, token, cancel_token)
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from %s", node)
             # Drop the failing node and schedule a populate_not_full_buckets() call to try and
@@ -488,20 +492,20 @@ class KademliaProtocol:
         # Give the remote node a chance to ping us before we move on and start sending find_node
         # requests. It is ok for wait_ping() to timeout and return false here as that just means
         # the remote remembers us.
-        await self.wait_ping(node)
+        await self.wait_ping(node, cancel_token)
 
         self.logger.debug("bonding completed successfully with %s", node)
         self.update_routing_table(node)
         return True
 
-    async def bootstrap(self, bootstrap_nodes: List[Node]) -> None:
-        bonded = await asyncio.gather(*[self.bond(n) for n in bootstrap_nodes])
+    async def bootstrap(self, bootstrap_nodes: List[Node], cancel_token: CancelToken) -> None:
+        bonded = await asyncio.gather(*[self.bond(n, cancel_token) for n in bootstrap_nodes])
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
             return
-        await self.lookup(self.this_node.id)
+        await self.lookup(self.this_node.id, cancel_token)
 
-    async def lookup(self, node_id: int) -> List[Node]:
+    async def lookup(self, node_id: int, cancel_token: CancelToken) -> List[Node]:
         """Lookup performs a network search for nodes close to the given target.
 
         It approaches the target by querying nodes that are closer to it on each iteration.  The
@@ -512,7 +516,7 @@ class KademliaProtocol:
 
         async def _find_node(node_id, remote):
             self.wire.send_find_node(remote, node_id)
-            candidates = await self.wait_neighbours(remote)
+            candidates = await self.wait_neighbours(remote, cancel_token)
             if not candidates:
                 self.logger.debug("got no candidates from %s, returning", remote)
                 return candidates
@@ -521,7 +525,7 @@ class KademliaProtocol:
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
-            bonded = await asyncio.gather(*[self.bond(c) for c in candidates])
+            bonded = await asyncio.gather(*[self.bond(c, cancel_token) for c in candidates])
             self.logger.debug("bonded with %s candidates", bonded.count(True))
             return [c for c in candidates if bonded[candidates.index(c)]]
 
@@ -547,17 +551,17 @@ class KademliaProtocol:
 
     # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
     # time when the least recently touched bucket will be considered idle.
-    def refresh_idle_buckets(self):
+    def refresh_idle_buckets(self) -> None:
         # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
         # range and perform discovery for that value.
         for bucket in self.routing.idle_buckets:
             rid = random.randint(bucket.start, bucket.end)
-            asyncio.ensure_future(self.lookup(rid))
+            asyncio.ensure_future(self.lookup(rid, self.wire.cancel_token))
 
     def _mkpingid(self, token: bytes, node: Node) -> bytes:
         return token + node.pubkey.to_bytes()
 
-    async def populate_not_full_buckets(self):
+    async def populate_not_full_buckets(self) -> None:
         """Go through all buckets that are not full and try to fill them.
 
         For every node in the replacement cache of every non-full bucket, try to bond.
@@ -565,7 +569,7 @@ class KademliaProtocol:
         """
         for bucket in self.routing.not_full_buckets:
             for node in bucket.replacement_cache:
-                asyncio.ensure_future(self.bond(node))
+                asyncio.ensure_future(self.bond(node, self.wire.cancel_token))
 
 
 def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
