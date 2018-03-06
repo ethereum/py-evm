@@ -438,13 +438,14 @@ def test_guess_head_with_fork(vmc):  # noqa: F811
     assert vmc.guess_head(default_shard_id) == header0_3_prime_hash
 
 
-def test_guess_head_works_only_with_new_logs(vmc):
+def test_guess_head_works_only_with_new_logs(vmc):  # noqa: F811
     deploy_vmc_and_add_one_validator(vmc)
     setup_shard_tracker(vmc, default_shard_id)
 
     header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
     assert vmc.guess_head(default_shard_id) == header2_hash
     assert vmc.guess_head(default_shard_id) == GENESIS_COLLATION_HASH
+
 
 def test_guess_head_invalid_collation(monkeypatch, vmc):  # noqa: F811
     deploy_vmc_and_add_one_validator(vmc)
