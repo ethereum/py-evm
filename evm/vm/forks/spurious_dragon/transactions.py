@@ -18,9 +18,8 @@ from evm.utils.transactions import (
 class SpuriousDragonTransaction(HomesteadTransaction):
     def get_message_for_signing(self):
         if is_eip_155_signed_transaction(self):
-            chain_id = extract_chain_id(self.v)
             txn_parts = rlp.decode(rlp.encode(self))
-            txn_parts_for_signing = txn_parts[:-3] + [int_to_big_endian(chain_id), b'', b'']
+            txn_parts_for_signing = txn_parts[:-3] + [int_to_big_endian(self.chain_id), b'', b'']
             return rlp.encode(txn_parts_for_signing)
         else:
             return rlp.encode(SpuriousDragonUnsignedTransaction(
@@ -32,13 +31,6 @@ class SpuriousDragonTransaction(HomesteadTransaction):
                 data=self.data,
             ))
 
-    def validate(self):
-        if is_eip_155_signed_transaction(self):
-            chain_id = extract_chain_id(self.v)
-            self.v_min = 35 + (2 * chain_id)
-            self.v_max = 36 + (2 * chain_id)
-        super(SpuriousDragonTransaction, self).validate()
-
     @classmethod
     def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)
@@ -49,6 +41,21 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             return extract_chain_id(self.v)
         else:
             return None
+
+    @property
+    def v_min(self):
+        if is_eip_155_signed_transaction(self):
+            return 35 + (2 * self.chain_id)
+        else:
+            return 27
+
+    @property
+    def v_max(self):
+        if is_eip_155_signed_transaction(self):
+            return 36 + (2 * self.chain_id)
+        else:
+            return 28
+
 
 
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
