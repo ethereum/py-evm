@@ -6,8 +6,10 @@ from evm.exceptions import (
     ValidationError,
 )
 
+from typing import Tuple
 
-def validate_point(x, y):
+
+def validate_point(x: int, y: int) -> Tuple[bn128.FQ, bn128.FQ, bn128.FQ]:
     FQ = bn128.FQ
 
     if x >= bn128.field_modulus:

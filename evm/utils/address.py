@@ -10,17 +10,17 @@ from evm.validation import (
 )
 
 
-def force_bytes_to_address(value):
+def force_bytes_to_address(value: bytes) -> bytes:
     trimmed_value = value[-20:]
     padded_value = trimmed_value.rjust(20, b'\x00')
     return padded_value
 
 
-def generate_contract_address(address, nonce):
+def generate_contract_address(address: bytes, nonce: bytes) -> bytes:
     return keccak(rlp.encode([address, nonce]))[-20:]
 
 
-def generate_CREATE2_contract_address(salt, code):
+def generate_CREATE2_contract_address(salt: bytes, code: bytes) -> bytes:
     """
     If contract is created by transaction, `salt` is specified by `transaction.salt`.
     If contract is created by contract, `salt` is set by the creator contract.

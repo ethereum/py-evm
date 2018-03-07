@@ -9,36 +9,40 @@ from eth_utils import (
 )
 
 
-def _is_local_prop(prop):
+from typing import Any, Dict, Tuple, Iterator, List
+
+
+def _is_local_prop(prop: str) -> bool:
     return len(prop.split('.')) == 1
 
 
-def _extract_top_level_key(prop):
+def _extract_top_level_key(prop: str) -> str:
     left, _, _ = prop.partition('.')
     return left
 
 
-def _extract_tail_key(prop):
+def _extract_tail_key(prop: str) -> str:
     _, _, right = prop.partition('.')
     return right
 
 
 @to_dict
-def _get_local_overrides(overrides):
+def _get_local_overrides(overrides: Dict[str, Any]) -> Iterator[Tuple[str, Any]]:
     for prop, value in overrides.items():
         if _is_local_prop(prop):
             yield prop, value
 
 
 @to_dict
-def _get_sub_overrides(overrides):
+def _get_sub_overrides(overrides: Dict[str, Any]) -> Iterator[Tuple[str, Any]]:
     for prop, value in overrides.items():
         if not _is_local_prop(prop):
             yield prop, value
 
 
 @to_dict
-def _get_sub_overrides_by_prop(overrides):
+def _get_sub_overrides_by_prop(
+        overrides: Dict[str, Any]) -> Iterator[Tuple[str, Dict[str, List[str]]]]:
     # we only want the overrides that are not top level.
     sub_overrides = _get_sub_overrides(overrides)
     key_groups = groupby(_extract_top_level_key, sub_overrides.keys())
@@ -47,7 +51,7 @@ def _get_sub_overrides_by_prop(overrides):
 
 
 @to_set
-def _get_top_level_keys(overrides):
+def _get_top_level_keys(overrides: Dict[str, Any]) -> Iterator[str]:
     for prop in overrides:
         yield _extract_top_level_key(prop)
 
@@ -83,6 +87,7 @@ class Configurable(object):
         sub_overrides_by_prop = _get_sub_overrides_by_prop(overrides)
 
         for key, sub_overrides in sub_overrides_by_prop.items():
+            sub_cls = None  # type: Configurable
             if key in local_overrides:
                 sub_cls = local_overrides[key]
             elif hasattr(cls, key):
