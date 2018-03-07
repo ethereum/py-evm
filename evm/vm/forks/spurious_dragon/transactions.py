@@ -57,7 +57,6 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             return 28
 
 
-
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
     def as_signed_transaction(self, private_key, chain_id=None):
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
