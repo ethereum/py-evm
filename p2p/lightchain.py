@@ -3,7 +3,6 @@ import logging
 import time
 from typing import (  # noqa: F401
     Any,
-    Callable,
     cast,
     Dict,
     List,
