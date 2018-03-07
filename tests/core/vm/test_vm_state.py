@@ -11,7 +11,7 @@ from eth_utils import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
-from evm.vm.forks.frontier.vm_state import FrontierVMState
+from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
@@ -98,7 +98,7 @@ def test_apply_transaction(  # noqa: F811
     assert len(result_block.transactions) == 2
 
     # (2) Test VMState.apply_transaction(...)
-    # Use FrontierVMState to apply transaction
+    # Use SpuriousDragonVMState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
     prev_hashes = vm.get_prev_hashes(
@@ -106,7 +106,7 @@ def test_apply_transaction(  # noqa: F811
         db=vm.chaindb,
     )
     execution_context = block1.header.create_execution_context(prev_hashes)
-    vm_state1 = FrontierVMState(
+    vm_state1 = SpuriousDragonVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block1.header.state_root,
@@ -125,7 +125,7 @@ def test_apply_transaction(  # noqa: F811
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
     execution_context = block.header.create_execution_context(prev_hashes)
-    vm_state1 = FrontierVMState(
+    vm_state1 = SpuriousDragonVMState(
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block.header.state_root,
@@ -166,7 +166,7 @@ def test_apply_transaction(  # noqa: F811
     )
     execution_context = block2.header.create_execution_context(prev_hashes)
     # Apply the first transaction
-    vm_state2 = FrontierVMState(
+    vm_state2 = SpuriousDragonVMState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block2.header.state_root,
@@ -182,7 +182,7 @@ def test_apply_transaction(  # noqa: F811
     witness_db = ChainDB(MemoryDB(recent_trie_nodes))
     execution_context = block.header.create_execution_context(prev_hashes)
     # Apply the second transaction
-    vm_state2 = FrontierVMState(
+    vm_state2 = SpuriousDragonVMState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block.header.state_root,
@@ -205,7 +205,7 @@ def test_apply_transaction(  # noqa: F811
         db=vm.chaindb,
     )
     execution_context = block.header.create_execution_context(prev_hashes)
-    vm_state3 = FrontierVMState(
+    vm_state3 = SpuriousDragonVMState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block.header.state_root,

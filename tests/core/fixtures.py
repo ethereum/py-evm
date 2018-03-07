@@ -23,8 +23,8 @@ from evm.db.chain import ChainDB
 from evm.db.state import (
     ShardingAccountStateDB
 )
-from evm.vm.forks.frontier import FrontierVM
 from evm.vm.forks.sharding import ShardingVM
+from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 
 
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
@@ -108,7 +108,7 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
     klass = Chain.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
+            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
         ))
     chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     return chain
@@ -274,7 +274,7 @@ def chain_without_block_validation(
     klass = Chain.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
+            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
         ),
         **overrides,
     )
