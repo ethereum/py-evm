@@ -1,5 +1,6 @@
 from collections import (
     defaultdict,
+    namedtuple,
 )
 from functools import (
     partial,
@@ -9,7 +10,7 @@ from evm.db.state import (
     MainAccountStateDB,
     ShardingAccountStateDB,
 )
-from evm.utils.fixture_tests import (
+from evm.tools.fixture_tests import (
     hash_log_entries,
 )
 
@@ -141,6 +142,10 @@ ACCOUNT_STATE_DB_CLASSES = {
 assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
 
 FILLED_WITH_TEMPLATE = "py-evm-{version}"
+
+
+Test = namedtuple("Test", ["filler", "fill_kwargs"])
+Test.__new__.__defaults__ = (None,)  # make `None` default for fill_kwargs
 
 
 #

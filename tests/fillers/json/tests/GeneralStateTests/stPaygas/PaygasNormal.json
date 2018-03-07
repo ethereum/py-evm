@@ -1,22 +1,22 @@
 {
     "PaygasNormal": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-584-gaa7343e",
+            "filledwith": "py-evm-v0.2.0-alpha.6-616-g843bff5",
             "source": "GeneralStateTestFiller/stPaygas/PaygasNormal.json",
-            "sourceHash": "0x2302c4a847a1518f8f58ae47705e61f194ea4ebe65ccc6736b573ad5580c0716"
+            "sourceHash": "0x970e7074198dab2dfe980ff090c0774327f45c5018c6bcb80533f0bb135dcc42"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
-            "currentNumber": "0x01",
-            "expectedPeriodNumber": "0x00",
+            "currentNumber": "0x1",
+            "expectedPeriodNumber": "0x0",
             "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
             "previousHash": "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6",
-            "shardID": "0x00"
+            "shardID": "0x0"
         },
         "post": {
             "Sharding": [
                 {
-                    "hash": "0x0cc2702fd6093eeede26293bfadc8ecbb6fdcaf21e086716306e49cf5cd599f2",
+                    "hash": "0xbebedc79fd205a716250a4d9237c39ec7d06af1cd8e24612844e6e0722359989",
                     "indexes": {
                         "data": 0,
                         "gas": 0
@@ -26,9 +26,9 @@
         },
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                "balance": "0x0186a0",
-                "code": "0x60016000556001f5506001600155",
-                "nonce": "0x00",
+                "balance": "0x186a0",
+                "code": "0x60016000556001f56001016002556001600155",
+                "nonce": "0x0",
                 "storage": {}
             }
         },
@@ -39,16 +39,16 @@
                     "0x"
                 ]
             ],
-            "chainID": "0x00",
+            "chainID": "0x0",
             "code": "0x",
             "data": [
                 "0x"
             ],
             "gasLimit": [
-                "0x0186a0"
+                "0x186a0"
             ],
-            "gasPrice": "0x00",
-            "shardID": "0x00",
+            "gasPrice": "0x0",
+            "shardID": "0x0",
             "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
         }
     }

@@ -1,22 +1,22 @@
 {
     "PaygasInCall": {
         "_info": {
-            "filledwith": "py-evm-v0.2.0-alpha.6-584-gaa7343e",
+            "filledwith": "py-evm-v0.2.0-alpha.6-616-g843bff5",
             "source": "GeneralStateTestFiller/stPaygas/PaygasInCall.json",
-            "sourceHash": "0xa8cf6169615275f88bd1ad3b431a459b7f72780cc090f4c6c46a2134a2c82211"
+            "sourceHash": "0xb9e90294d52c42c34134bfc828c619359024cbdf9d2d745aebb9db771a0efd02"
         },
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
-            "currentNumber": "0x01",
-            "expectedPeriodNumber": "0x00",
+            "currentNumber": "0x1",
+            "expectedPeriodNumber": "0x0",
             "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
             "previousHash": "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6",
-            "shardID": "0x00"
+            "shardID": "0x0"
         },
         "post": {
             "Sharding": [
                 {
-                    "hash": "0x2e6331827daeef0cf26dd9419e4e67ed190e536e8d2abf7330b02de3ed729b2a",
+                    "hash": "0x6a7838bbfc1ee71cf0bbbe0f78429429fbbca760e0c76d4e0dab17f4d071268a",
                     "indexes": {
                         "data": 0,
                         "gas": 0
@@ -26,15 +26,15 @@
         },
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                "balance": "0x0186a0",
-                "code": "0x600160005560006000600060006000735b70b77388b465f7524077d265fa1c7b6a9a63796103e8f1506001600155",
-                "nonce": "0x00",
+                "balance": "0x30d40",
+                "code": "0x600160005560206000600060006000735b70b77388b465f7524077d265fa1c7b6a9a63796103e8f1600255600160015560206000f3",
+                "nonce": "0x0",
                 "storage": {}
             },
             "0x60a8DC7eBAD7038c9a837d84d813a85292e564bD": {
-                "balance": "0x00",
-                "code": "0x6001f5",
-                "nonce": "0x00",
+                "balance": "0xf4240",
+                "code": "0x6001f560010160005260206000f3",
+                "nonce": "0x0",
                 "storage": {}
             }
         },
@@ -48,16 +48,16 @@
                     "0x5b70b77388b465f7524077d265fa1c7b6a9a6379"
                 ]
             ],
-            "chainID": "0x00",
+            "chainID": "0x0",
             "code": "0x",
             "data": [
                 "0x"
             ],
             "gasLimit": [
-                "0x0186a0"
+                "0x30d40"
             ],
-            "gasPrice": "0x00",
-            "shardID": "0x00",
+            "gasPrice": "0x0",
+            "shardID": "0x0",
             "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
         }
     }

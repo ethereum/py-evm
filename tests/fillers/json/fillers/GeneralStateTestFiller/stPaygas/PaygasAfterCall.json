@@ -2,11 +2,11 @@
     "PaygasAfterCall": {
         "env": {
             "currentCoinbase": "0x2ADC25665018Aa1FE0E6BC666DaC8Fc2697fF9bA",
-            "currentNumber": "0x01",
-            "expectedPeriodNumber": "0x00",
+            "currentNumber": "0x1",
+            "expectedPeriodNumber": "0x0",
             "periodStartHash": "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a",
             "previousHash": "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6",
-            "shardID": "0x00"
+            "shardID": "0x0"
         },
         "expect": [
             {
@@ -19,18 +19,19 @@
                 ],
                 "result": {
                     "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                        "balance": "0x955f",
-                        "code": "0x6001600055600060006000600060007360a8dc7ebad7038c9a837d84d813a85292e564bd6103e8f1506001f5506001600155",
-                        "nonce": "0x00",
+                        "balance": "0x472f",
+                        "code": "0x6001600055600060006000600060007360a8dc7ebad7038c9a837d84d813a85292e564bd6103e8f1506001f5600101600255600160015560206000f3",
+                        "nonce": "0x0",
                         "storage": {
-                            "0x00": "0x01",
-                            "0x01": "0x01"
+                            "0x0": "0x1",
+                            "0x1": "0x1",
+                            "0x2": "0x2"
                         }
                     },
                     "0x60a8DC7eBAD7038c9a837d84d813a85292e564bD": {
-                        "balance": "0x00",
+                        "balance": "0x0",
                         "code": "0x600160005260206000f3",
-                        "nonce": "0x00",
+                        "nonce": "0x0",
                         "storage": {}
                     }
                 }
@@ -38,15 +39,15 @@
         ],
         "pre": {
             "0x60DCef1a9F4193236DF7d29218ed494E963AD013": {
-                "balance": "0x0186a0",
-                "code": "0x6001600055600060006000600060007360a8dc7ebad7038c9a837d84d813a85292e564bd6103e8f1506001f5506001600155",
-                "nonce": "0x00",
+                "balance": "0x186a0",
+                "code": "0x6001600055600060006000600060007360a8dc7ebad7038c9a837d84d813a85292e564bd6103e8f1506001f5600101600255600160015560206000f3",
+                "nonce": "0x0",
                 "storage": {}
             },
             "0x60a8DC7eBAD7038c9a837d84d813a85292e564bD": {
-                "balance": "0x00",
+                "balance": "0x0",
                 "code": "0x600160005260206000f3",
-                "nonce": "0x00",
+                "nonce": "0x0",
                 "storage": {}
             }
         },
@@ -60,16 +61,16 @@
                     "0x60a8dc7ebad7038c9a837d84d813a85292e564bd"
                 ]
             ],
-            "chainID": "0x00",
+            "chainID": "0x0",
             "code": "0x",
             "data": [
                 "0x"
             ],
             "gasLimit": [
-                "0x0186a0"
+                "0x186a0"
             ],
-            "gasPrice": "0x00",
-            "shardID": "0x00",
+            "gasPrice": "0x0",
+            "shardID": "0x0",
             "to": "0x60DCef1a9F4193236DF7d29218ed494E963AD013"
         }
     }
