@@ -32,6 +32,13 @@ class SpuriousDragonTransaction(HomesteadTransaction):
                 data=self.data,
             ))
 
+    def validate(self):
+        if is_eip_155_signed_transaction(self):
+            chain_id = extract_chain_id(self.v)
+            self.v_min = 35 + (2 * chain_id)
+            self.v_max = 36 + (2 * chain_id)
+        super(SpuriousDragonTransaction, self).validate()
+
     @classmethod
     def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)

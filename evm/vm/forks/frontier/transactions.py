@@ -30,6 +30,9 @@ from evm.utils.transactions import (
 
 class FrontierTransaction(BaseTransaction):
 
+    v_max = 28
+    v_min = 27
+
     def validate(self):
         validate_uint256(self.nonce, title="Transaction.nonce")
         validate_uint256(self.gas_price, title="Transaction.gas_price")
@@ -48,8 +51,8 @@ class FrontierTransaction(BaseTransaction):
         validate_lt_secpk1n(self.s, title="Transaction.s")
         validate_gte(self.s, minimum=1, title="Transaction.s")
 
-        validate_gte(self.v, minimum=27, title="Transaction.v")
-        validate_lte(self.v, maximum=28, title="Transaction.v")
+        validate_gte(self.v, minimum=self.v_min, title="Transaction.v")
+        validate_lte(self.v, maximum=self.v_max, title="Transaction.v")
 
         super(FrontierTransaction, self).validate()
 
