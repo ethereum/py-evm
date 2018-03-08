@@ -4,7 +4,15 @@ from evm.utils.padding import pad32
 from evm.vm.forks.sharding.transactions import ShardingTransaction
 
 
-def new_transaction(vm, from_, to, amount, private_key, gas_price=10, gas=100000, data=b''):
+def new_transaction(
+        vm,
+        from_,
+        to,
+        amount,
+        private_key,
+        gas_price=10,
+        gas=100000,
+        data=b''):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -13,7 +21,7 @@ def new_transaction(vm, from_, to, amount, private_key, gas_price=10, gas=100000
     nonce = vm.state.read_only_state_db.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
         nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=amount, data=data)
-    return tx.as_signed_transaction(private_key)
+    return tx.as_signed_transaction(private_key, chain_id=1)
 
 
 def new_sharding_transaction(
