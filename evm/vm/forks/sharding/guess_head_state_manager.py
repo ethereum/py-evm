@@ -20,10 +20,13 @@ def threaded_execute(function, *args, **kwargs):
     function(*args, **kwargs)
 
 
-def create_collation(data):
+def create_collation(parent_hash, data):
     # return collation with data with head = candidate_head
     # ablalalala
-    print("!@# collation={} created".format(data))
+    print("!@# create_collation: parent_hash={}, data={}".format(
+        parent_hash,
+        data,
+    ))
     return True
 
 
@@ -47,6 +50,8 @@ class GuessHeadStateManager:
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
         # TODO: need to check if it is thread-safe
+        # TODO: no need to use dict, just a class member with threading.lock()
+        #       should be okay?
         self.head_validity = defaultdict(lambda: True)
         # list of chain head, to indicate priority
         # order: older -------> newer
@@ -70,7 +75,7 @@ class GuessHeadStateManager:
         See if we are going to be collator in the future periods
         """
         result = False
-        for future_periods in self.vmc.config['LOOKAHEAD_PERIODS']:
+        for future_periods in range(self.vmc.config['LOOKAHEAD_PERIODS']):
             lookahead_period = self.get_current_period() + future_periods
             result |= self.is_collator_in_period(lookahead_period)
         return result
@@ -118,7 +123,7 @@ class GuessHeadStateManager:
         self.last_period_fetching_candidate_head = self.get_current_period()
         return head_collation_hash
 
-    def main(self):
+    def guess_head_main(self):
         # At any time, there should be only one `head_collation`
         # The timing where `head_collation_hash` change are:
         #    1. `head_collation` is invalid, change to the new head
@@ -157,11 +162,18 @@ class GuessHeadStateManager:
 
             # Check if it is time to collate  #################################
             if self.is_time_to_collate():
-                # create collation
-                create_collation("123")
+                # create collation and leave?
+                create_collation(head_collation_hash, data="123")
+                return head_collation_hash
+
+            # TODO: currently it is not correct,
+            #       still need to check if all of the thread has finished,
+            #       and the validity of head_collation is True
+            if ((head_collation_hash is not None) and
+                    (current_collation_hash == GENESIS_COLLATION_HASH)):
+                create_collation(head_collation_hash, data="123")
+                return head_collation_hash
+
             # Stop collating anyway, if we are still in periods where we should collate,
             # `self.is_verifying_collations` will be set to True again
             self.is_verifying_collations = False
-
-            # TODO: when to stop ?
-            # TODO: what to do when current_collation_hash == genesis?

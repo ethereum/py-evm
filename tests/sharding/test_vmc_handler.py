@@ -34,6 +34,10 @@ from evm.vm.forks.byzantium.transactions import (
 from evm.rlp.headers import (
     CollationHeader,
 )
+
+from evm.vm.forks.sharding.guess_head_state_manager import (
+    GuessHeadStateManager,
+)
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
 )
@@ -524,6 +528,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert vmc.get_parent_hash(default_shard_id, header0_1.hash) == ZERO_HASH32
     assert vmc.get_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
+    # print("!@# peek_new_logs={}".format(vmc.shard_trackers[default_shard_id].peek_new_logs()))
     assert vmc.get_next_log(default_shard_id)['score'] == 2
     assert vmc.get_next_log(default_shard_id)['score'] == 1
     with pytest.raises(NextLogUnavailable):
@@ -601,3 +606,41 @@ def test_parse_collation_added_log(log,
     assert parsed_data['header'] == CollationHeader(**expected_header_dict)
     assert parsed_data['is_new_head'] == expected_is_new_head
     assert parsed_data['score'] == expected_score
+
+
+def test_guess_head_state_manager_without_sync_fork(vmc):  # noqa: F811
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+    ghs_manager = GuessHeadStateManager(
+        vmc,
+        default_shard_id,
+        vmc.get_default_sender_address(),
+    )
+
+    # without fork
+    header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    # assert vmc.guess_head(default_shard_id) == header2_hash
+    assert ghs_manager.guess_head_main() == header2_hash
+    header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
+    ghs_manager = GuessHeadStateManager(
+        vmc,
+        default_shard_id,
+        vmc.get_default_sender_address(),
+    )
+    assert ghs_manager.guess_head_main() == header3_hash
+
+
+def test_guess_head_state_manager_sync_with_fork(vmc):  # noqa: F811
+    deploy_vmc_and_add_one_validator(vmc)
+    setup_shard_tracker(vmc, default_shard_id)
+    ghs_manager = GuessHeadStateManager(
+        vmc,
+        default_shard_id,
+        vmc.get_default_sender_address(),
+    )
+
+    # without fork
+    mk_colhdr_chain(vmc, default_shard_id, 2)
+    header0_3_prime_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
+    # head changes
+    assert ghs_manager.guess_head_main() == header0_3_prime_hash

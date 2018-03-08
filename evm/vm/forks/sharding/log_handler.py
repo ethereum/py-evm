@@ -124,6 +124,31 @@ class LogHandler:
         )
         return self.w3.eth.getLogs(filter_params)
 
+    def peek_new_logs(self, address=None, topics=None):
+        # TODO: should see if we need to do something with revoked_hashes
+        #       it seems reasonable to revoke logs in the blocks with hashes in `revoked_hashes`
+        _, new_block_hashes = check_chain_head(
+            self.w3,
+            self.recent_block_hashes,
+            self.history_size,
+        )
+
+        if len(new_block_hashes) == 0:
+            return tuple()
+
+        from_block_hash = new_block_hashes[0]
+        to_block_hash = new_block_hashes[-1]
+        from_block_number = self.w3.eth.getBlock(from_block_hash)['number']
+        to_block_number = self.w3.eth.getBlock(to_block_hash)['number']
+
+        filter_params = self.mk_filter_params(
+            from_block_number,
+            to_block_number,
+            address,
+            topics,
+        )
+        return self.w3.eth.getLogs(filter_params)
+
     def reset(self):
         genesis_block_hash = self.w3.eth.getBlock('earliest')['hash']
         self.recent_block_hashes = (genesis_block_hash,)

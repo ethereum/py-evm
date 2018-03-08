@@ -229,7 +229,9 @@ def test_log_handler_get_new_logs_without_forks(contract):
     counter = itertools.count()
     contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
+    logs_peek = log_handler.peek_new_logs(address=contract.address)
     logs_block2 = log_handler.get_new_logs(address=contract.address)
+    assert len(logs_peek) == len(logs_block2)
     assert len(logs_block2) == 1
     assert int(logs_block2[0]['data'], 16) == 0
     assert log_handler.get_new_logs() == tuple()
@@ -243,7 +245,9 @@ def test_log_handler_get_new_logs_without_forks(contract):
     mine(w3, 1)
     contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
+    logs_block4_5_peek = log_handler.peek_new_logs(address=contract.address)
     logs_block4_5 = log_handler.get_new_logs(address=contract.address)
+    assert logs_block4_5_peek == logs_block4_5
     assert len(logs_block4_5) == 2
     assert int(logs_block4_5[0]['data'], 16) == 2
     assert int(logs_block4_5[1]['data'], 16) == 3
