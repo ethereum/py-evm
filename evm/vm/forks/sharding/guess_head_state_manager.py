@@ -27,7 +27,13 @@ class GuessHeadStateManager:
             )
         return self.collation_validity_cache[collation_hash]
 
-    def process_collation(self):
+    def process_current_collation(self):
+        """
+        Verfiy collation and return the result.
+        If the verification fails(`self.verify_collation` returns False),
+        indicate the current chain which we are verifying is invalid,
+        should jump to another candidate chain
+        """
         result = self.verify_collation(self.checking_collation_hash)
         if result:
             self.checking_collation_hash = self.vmc.self.get_parent_hash(
@@ -50,31 +56,36 @@ class GuessHeadStateManager:
             self.candidate_head_hash = candidate_head_hash
             self.checking_collation_hash = candidate_head_hash
         # there is candidate head, process the current collation
-        return self.process_collation()
+        return self.process_current_collation()
 
     def create_collation(self, data):
         # return collation with data with head = candidate_head
         collation = True # ablalalala
         return collation
 
+    def get_current_period(self):
+        return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
+
+    def is_collator_in_period(self, period):
+        collator_address = self.vmc.get_eligible_proposer(
+            self.shard_id,
+            period,
+        )
+        return collator_address == self.my_address
+
+    def is_collator_in_lookahead_period(self):
+        lookahead_period = self.get_current_period() + self.vmc.config['LOOKAHEAD_PERIODS']
+        return self.is_collator_in_period(lookahead_period)
+
+    def is_collator_in_current_period(self):
+        current_period = self.get_current_period()
+        return self.is_collator_in_period(current_period)
+
     def main(self):
         while True:
-            current_period = self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
-            current_collator_address = self.vmc.get_eligible_proposer(
-                self.shard_id,
-                current_period,
-            )
-            lookahead_period = current_period + self.vmc.config['LOOKAHEAD_PERIODS']
-            lookahead_collator_address = self.vmc.get_eligible_proposer(
-                self.shard_id,
-                lookahead_period,
-            )
-            # case1: try vmc.get_eligible_proposer(period+4)
-            if lookahead_collator_address == self.my_address:
-                # setup candidate head hash
-                self.candidate_head_hash = None
-            # case2: try vmc.get_eligible_proposer(period)
-            elif current_collator_address == self.my_address:
+            if self.is_collator_in_lookahead_period():
+                # run verify chain for current candidate_head
+            if self.is_collator_in_current_period():
                 # peek if there are new logs
                 shard_tracker = self.vmc.get_shard_tracker[self.shard_id]
                 new_logs = shard_tracker.peek_new_logs()
@@ -82,6 +93,10 @@ class GuessHeadStateManager:
                 if len(new_logs) != 0:
                     # resetup candidate head hash
                     self.candidate_head_hash = None
+
+                # setup candidate head hash
+                self.candidate_head_hash = None
+
             # case3: need to stop guess_head and go create collations
             else:
                 tx_data = []
