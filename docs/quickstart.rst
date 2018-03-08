@@ -31,7 +31,7 @@ and let you use the python interpreter to interact with it:
 That will immediately give you a python shell, with a chain variable that you
 can use even before it has finished syncing:
 
-.. code:: sh
+.. code:: python
 
   >>> chain.get_canonical_head()
   <BlockHeader #2200794 e3f9c6bb>
@@ -41,7 +41,7 @@ from block bodies) are coroutines that need to be executed by asyncio's event
 loop, so for those we provide a helper that will schedule their execution and
 wait for the result:
 
-.. code:: sh
+.. code:: python
 
   >>> wait_for_result(chain.get_canonical_block_by_number(42))
   <FrontierBlock(#Block #42)>
@@ -55,7 +55,7 @@ contained in every blockchain. It requires that you define the VM ranges.
 Some pre-built chains are available for your convenience.
 To access the Mainnet chain you can use:
 
-::
+.. code:: python
 
   from evm import MainnetChain
   from evm.chains.mainnet import MAINNET_GENESIS_HEADER
@@ -72,7 +72,7 @@ To access the Mainnet chain you can use:
 Then you can read data about the chain that you already downloaded.
 For example:
 
-::
+.. code:: python
 
   highest_block_num = chain.get_canonical_head().block_number
 
@@ -87,18 +87,3 @@ The methods available on the block are variable. They depend on what fork you're
 The mainnet follows "Frontier" rules at the beginning, then Homestead, and so on.
 To see block features for Frontier, see the API for
 :class:`~evm.vm.forks.frontier.blocks.FrontierBlock`.
-
-
-The JSON-RPC API
-----------------
-
-Like all ethereum clients, Py-EVM will eventually provide a JSON-RPC API with all the
-methods defined in https://github.com/ethereum/wiki/wiki/JSON-RPC, but for now only
-a few of them are supported. To start the JSON-RPC server, simply run:
-
-::
-
-  $ python -i -m trinity.rpc.server -db /tmp/testnet.db
-
-That will start a server listening on port 8080, with a LightChain syncing block headers on the
-Ropsten network. You can then use curl as described on the wikipage above to interact with it.

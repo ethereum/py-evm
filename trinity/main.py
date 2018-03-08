@@ -21,9 +21,8 @@ from trinity.chains import (
     is_database_initialized,
     serve_chaindb,
 )
-from trinity.cli import (
+from trinity.console import (
     console,
-    run_lightchain,
 )
 from trinity.constants import (
     ROPSTEN,
@@ -33,6 +32,12 @@ from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.cli_parser import (
     parser,
+)
+from trinity.rpc.main import (
+    RPCServer,
+)
+from trinity.rpc.ipc import (
+    IPCServer,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -48,8 +53,6 @@ from trinity.utils.logging import (
 from trinity.utils.mp import (
     ctx,
 )
-
-from tests.p2p.integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
 
 
 def main() -> None:
@@ -78,25 +81,12 @@ def main() -> None:
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
 
+    # TODO: needs to be made generic once we have non-light modes.
     pool_class = HardCodedNodesPeerPool
-    if args.local_geth:
-        pool_class = LocalGethPeerPool
 
     # if console command, run the trinity CLI
-    if args.subcommand == 'console':
-        use_ipython = not args.vanilla_shell
-        debug = args.log_level.upper() == 'DEBUG'
-
-        # TODO: this should use the base `Chain` class rather than the protocol
-        # class since it's just a repl with access to the chain.
-        chain_class = get_chain_protocol_class(chain_config, sync_mode)
-        chaindb = FakeAsyncChainDB(LevelDB(chain_config.database_dir))
-        if not is_database_initialized(chaindb):
-            initialize_database(chain_config, chaindb)
-        peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
-
-        chain = chain_class(chaindb, peer_pool)
-        console(chain, use_ipython=use_ipython, debug=debug)
+    if args.subcommand == 'attach':
+        console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
         sys.exit(0)
 
     logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
@@ -129,7 +119,10 @@ def main() -> None:
     networking_process.start()
 
     try:
-        networking_process.join()
+        if args.subcommand == 'console':
+            console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
+        else:
+            networking_process.join()
     except KeyboardInterrupt:
         logger.info('Keyboard Interrupt: Stopping')
         kill_process_gracefully(networking_process)
@@ -175,5 +168,18 @@ def run_networking_process(
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, chain.cancel_token.trigger)
 
-    loop.run_until_complete(run_lightchain(chain))
+    rpc = RPCServer(chain)
+    ipc_server = IPCServer(rpc, chain_config.jsonrpc_ipc_path)
+
+    async def run_chain(chain):
+        try:
+            asyncio.ensure_future(chain.peer_pool.run())
+            asyncio.ensure_future(ipc_server.run())
+            await chain.run()
+        finally:
+            await ipc_server.stop()
+            await chain.peer_pool.stop()
+            await chain.stop()
+
+    loop.run_until_complete(run_chain(chain))
     loop.close()

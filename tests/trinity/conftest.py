@@ -4,8 +4,11 @@ import pytest
 import tempfile
 import uuid
 
+from trinity.rpc.main import (
+    RPCServer,
+)
 from trinity.rpc.ipc import (
-    start,
+    IPCServer,
 )
 from trinity.utils.xdg import (
     XDG_DATA_HOME,
@@ -56,10 +59,12 @@ def ipc_server(jsonrpc_ipc_pipe_path, event_loop):
     the course of all tests. It never needs to be actually
     used as a fixture, so it doesn't return (yield) a value.
     '''
-    server = start(jsonrpc_ipc_pipe_path, loop=event_loop)
+    rpc = RPCServer(None)
+    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path)
+
+    asyncio.ensure_future(ipc_server.run(loop=event_loop), loop=event_loop)
 
     try:
         yield
     finally:
-        server.close()
-        event_loop.run_until_complete(server.wait_closed())
+        event_loop.run_until_complete(ipc_server.stop())

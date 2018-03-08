@@ -1,26 +1,37 @@
 import asyncio
 import json
 import logging
-import os
 
 from cytoolz import curry
 
-from trinity.rpc.main import RPCServer
+from p2p.cancel_token import (
+    CancelToken,
+    wait_with_token,
+)
+from p2p.exceptions import (
+    OperationCancelled,
+)
 
 
 MAXIMUM_REQUEST_BYTES = 10000
 
 
 @curry
-async def connection_handler(execute_rpc, reader, writer):
+async def connection_handler(execute_rpc, cancel_token, reader, writer):
     '''
     Catch fatal errors, log them, and close the connection
     '''
     logger = logging.getLogger('trinity.rpc.ipc')
+
     try:
-        await connection_loop(execute_rpc, reader, writer, logger)
+        await wait_with_token(
+            connection_loop(execute_rpc, reader, writer, logger),
+            token=cancel_token,
+        )
     except (ConnectionResetError, asyncio.IncompleteReadError):
         logger.debug("Client closed connection")
+    except OperationCancelled:
+        logger.debug("CancelToken triggered")
     except Exception:
         logger.exception("Unrecognized exception while handling requests")
     finally:
@@ -28,6 +39,8 @@ async def connection_handler(execute_rpc, reader, writer):
 
 
 async def connection_loop(execute_rpc, reader, writer, logger):
+    # TODO: we should look into using an io.StrinIO here for more efficient
+    # writing to the end of the string.
     raw_request = ''
     while True:
         request_bytes = b''
@@ -61,6 +74,7 @@ async def connection_loop(execute_rpc, reader, writer, logger):
 
         if not request:
             logger.debug("Client sent empty request")
+            await write_error(writer, 'Invalid Request: empty')
             continue
 
         try:
@@ -88,44 +102,27 @@ async def write_error(writer, message):
     await writer.drain()
 
 
-def start(path, chain=None, loop=None):
-    '''
-    :returns: initialized server
-    :rtype: asyncio.Server
-    '''
-    if loop is None:
-        loop = asyncio.get_event_loop()
-    rpc = RPCServer(chain)
-    server = loop.run_until_complete(asyncio.start_unix_server(
-        connection_handler(rpc.execute),
-        path,
-        loop=loop,
-        limit=MAXIMUM_REQUEST_BYTES,
-    ))
-    return server
+class IPCServer:
+    cancel_token = None
+    ipc_path = None
+    rpc = None
+    server = None
 
+    def __init__(self, rpc, ipc_path):
+        self.rpc = rpc
+        self.ipc_path = ipc_path
+        self.cancel_token = CancelToken('IPCServer')
 
-def run_until_interrupt(server, loop=None):
-    logger = logging.getLogger('trinity.rpc.ipc')
-    if loop is None:
-        loop = asyncio.get_event_loop()
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        logger.debug('Server closed with Keyboard Interrupt')
-    finally:
-        loop.close()
+    async def run(self, loop=None):
+        self.server = await asyncio.start_unix_server(
+            connection_handler(self.rpc.execute, self.cancel_token),
+            self.ipc_path,
+            loop=loop,
+            limit=MAXIMUM_REQUEST_BYTES,
+        )
+        await self.cancel_token.wait()
 
-
-def run_ipc_server(ipc_path, chain=None, loop=None):
-    server = start(ipc_path, chain, loop)
-    run_until_interrupt(server, loop)
-    if os.path.exists(ipc_path):
-        os.remove(ipc_path)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.getLogger('trinity.rpc.ipc').setLevel(logging.DEBUG)
-
-    run_ipc_server('/tmp/test.ipc')
+    async def stop(self):
+        self.cancel_token.trigger()
+        self.server.close()
+        await self.server.wait_closed()

@@ -51,7 +51,7 @@ class RPCServer:
     then proxies to the appropriate method. For example, see
     :meth:`RPCServer.eth_getBlockByHash`.
     '''
-
+    chain = None
     module_classes = (
         Eth,
         EVM,

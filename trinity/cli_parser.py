@@ -1,7 +1,6 @@
 import argparse
 
 from trinity.__version__ import __version__
-from trinity.cli import console
 
 
 DEFAULT_LOG_LEVEL = 'info'
@@ -66,22 +65,34 @@ parser.add_argument(
         "The filesystem path to the file which contains the nodekey"
     )
 )
-parser.add_argument(
-    '--local-geth',
-    action="store_true",
-    default=False,
-    help='Connect only to a local geth instance'
-)
+
+# setup the subparser for sub commands
+subparser = parser.add_subparsers(dest='subcommand')
+
 
 #
-# Add console sub-command to trinity CLI.
+# Add `console` sub-command to trinity CLI.
 #
-subparser = parser.add_subparsers(dest='subcommand')
-console_parser = subparser.add_parser('console', help='start the trinity REPL')
+console_parser = subparser.add_parser(
+    'console', help='run the chain and start the trinity REPL')
 console_parser.add_argument(
     '--vanilla-shell',
     action='store_true',
     default=False,
     help='start a native Python shell'
 )
-console_parser.set_defaults(func=console)
+
+
+#
+# Add `attach` sub-command to trinity CLI.
+#
+attach_parser = subparser.add_parser(
+    'attach',
+    help='open an REPL attached to a currently running chain',
+)
+attach_parser.add_argument(
+    '--vanilla-shell',
+    action='store_true',
+    default=False,
+    help='start a native Python shell'
+)

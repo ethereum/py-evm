@@ -81,6 +81,21 @@ def get_database_socket_path(chain_identifier: str, data_dir: str=None) -> str:
     )
 
 
+JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
+
+
+def get_jsonrpc_socket_path(chain_identifier, data_dir=None):
+    """
+    Returns the path to the ipc socket for the JSON-RPC server.
+    """
+    if data_dir is None:
+        data_dir = get_default_data_dir(chain_identifier)
+    return os.environ.get(
+        'TRINITY_JSONRPC_IPC',
+        os.path.join(data_dir, JSONRPC_SOCKET_FILENAME),
+    )
+
+
 #
 # Nodekey loading
 #
@@ -151,6 +166,10 @@ class ChainConfig:
     @property
     def database_ipc_path(self) -> str:
         return get_database_socket_path(self.chain_identifier, self.data_dir)
+
+    @property
+    def jsonrpc_ipc_path(self) -> str:
+        return get_jsonrpc_socket_path(self.chain_identifier, self.data_dir)
 
     @property
     def nodekey_path(self) -> str:

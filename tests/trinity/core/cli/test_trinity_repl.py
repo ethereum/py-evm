@@ -1,29 +1,15 @@
 import pytest
 
-from trinity.cli import console
+from trinity.console import console
 
 
-@pytest.fixture
-def chain():
-    # Attach a dummy run method to chain fixture as console method needs it.
-    from tests.core.fixtures import chain
-
-    async def run():
-        pass
-    # Setup
-    chain.run = run
-    yield chain
-    # Teardown
-    del chain.run
-
-
-def test_console(chain):
+def test_console(jsonrpc_ipc_pipe_path):
     # Test running the console, actually start it.
     with pytest.raises(OSError, match='^reading .* stdin .* captured$'):
-        console(chain)
+        console(jsonrpc_ipc_pipe_path)
 
 
-def test_python_console(chain):
+def test_python_console(jsonrpc_ipc_pipe_path):
     # Test running the default python REPL, actually start it.
     with pytest.raises(OSError, match='^reading .* stdin .* captured$'):
-        console(chain, use_ipython=False)
+        console(jsonrpc_ipc_pipe_path, use_ipython=False)
