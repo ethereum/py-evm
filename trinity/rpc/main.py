@@ -131,4 +131,4 @@ class RPCServer:
     def chain(self, new_chain):
         self.__chain = new_chain
         for module in self.modules.values():
-            module.chain = new_chain
+            module.set_chain(new_chain)
