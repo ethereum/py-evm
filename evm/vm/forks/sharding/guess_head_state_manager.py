@@ -170,7 +170,8 @@ class GuessHeadStateManager:
             #       still need to check if all of the thread has finished,
             #       and the validity of head_collation is True
             if ((head_collation_hash is not None) and
-                    (current_collation_hash == GENESIS_COLLATION_HASH)):
+                    (current_collation_hash == GENESIS_COLLATION_HASH) and
+                    self.head_validity[head_collation_hash]):
                 create_collation(head_collation_hash, data="123")
                 return head_collation_hash
 
