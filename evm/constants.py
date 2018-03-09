@@ -183,3 +183,11 @@ STORAGE_TRIE_PREFIX = b"\x02"
 # Account Abstraction
 #
 ENTRY_POINT = 20 * b'\xff'
+
+
+#
+# Blobs and Chunks
+#
+CHUNK_SIZE = 32
+COLLATION_SIZE = 2**20
+assert COLLATION_SIZE % CHUNK_SIZE == 0
