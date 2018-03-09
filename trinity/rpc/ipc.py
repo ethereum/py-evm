@@ -24,10 +24,7 @@ async def connection_handler(execute_rpc, cancel_token, reader, writer):
     logger = logging.getLogger('trinity.rpc.ipc')
 
     try:
-        await wait_with_token(
-            connection_loop(execute_rpc, reader, writer, logger),
-            token=cancel_token,
-        )
+        await connection_loop(execute_rpc, reader, writer, logger, cancel_token),
     except (ConnectionResetError, asyncio.IncompleteReadError):
         logger.debug("Client closed connection")
     except OperationCancelled:
@@ -38,21 +35,24 @@ async def connection_handler(execute_rpc, cancel_token, reader, writer):
         writer.close()
 
 
-async def connection_loop(execute_rpc, reader, writer, logger):
+async def connection_loop(execute_rpc, reader, writer, logger, cancel_token):
     # TODO: we should look into using an io.StrinIO here for more efficient
     # writing to the end of the string.
     raw_request = ''
     while True:
         request_bytes = b''
         try:
-            request_bytes = await reader.readuntil(b'}')
+            request_bytes = await wait_with_token(reader.readuntil(b'}'), token=cancel_token)
         except asyncio.LimitOverrunError as e:
             logger.info("Client request was too long. Erasing buffer and restarting...")
-            request_bytes = await reader.read(e.consumed)
-            await write_error(writer, "reached limit: %d bytes, starting with '%s'" % (
-                e.consumed,
-                request_bytes[:20],
-            ))
+            request_bytes = await wait_with_token(reader.read(e.consumed), token=cancel_token)
+            await wait_with_token(write_error(
+                writer,
+                "reached limit: %d bytes, starting with '%s'" % (
+                    e.consumed,
+                    request_bytes[:20],
+                ),
+            ), token=cancel_token)
             continue
 
         raw_request += request_bytes.decode()
@@ -60,7 +60,10 @@ async def connection_loop(execute_rpc, reader, writer, logger):
         bad_prefix, raw_request = strip_non_json_prefix(raw_request)
         if bad_prefix:
             logger.info("Client started request with non json data: %r", bad_prefix)
-            await write_error(writer, 'Cannot parse json: ' + bad_prefix)
+            await wait_with_token(
+                write_error(writer, 'Cannot parse json: ' + bad_prefix),
+                token=cancel_token,
+            )
 
         try:
             request = json.loads(raw_request)
@@ -74,18 +77,24 @@ async def connection_loop(execute_rpc, reader, writer, logger):
 
         if not request:
             logger.debug("Client sent empty request")
-            await write_error(writer, 'Invalid Request: empty')
+            await wait_with_token(
+                write_error(writer, 'Invalid Request: empty'),
+                token=cancel_token,
+            )
             continue
 
         try:
             result = execute_rpc(request)
         except Exception as e:
             logger.exception("Unrecognized exception while executing RPC")
-            await write_error(writer, "unknown failure: " + str(e))
+            await wait_with_token(
+                write_error(writer, "unknown failure: " + str(e)),
+                token=cancel_token,
+            )
         else:
             writer.write(result.encode())
 
-        await writer.drain()
+        await wait_with_token(writer.drain(), token=cancel_token)
 
 
 def strip_non_json_prefix(raw_request):
