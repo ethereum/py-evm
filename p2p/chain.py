@@ -6,6 +6,10 @@ from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple  # noq
 
 from cytoolz import partition_all
 
+from eth_utils import (
+    encode_hex,
+)
+
 from evm.constants import EMPTY_UNCLE_HASH
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
@@ -280,8 +284,14 @@ class ChainSyncer(PeerPoolSubscriber):
             self.logger.debug("Got Receipts for %d blocks", len(msg))
             for block_receipts in msg:
                 receipt_root, trie_dict_data = make_trie_root_and_nodes(block_receipts)
+                if receipt_root not in self._pending_receipts:
+                    self.logger.warning(
+                        "Got unexpected receipt root: %s",
+                        encode_hex(receipt_root),
+                    )
+                    continue
                 await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-                self._pending_receipts.pop(receipt_root, None)
+                self._pending_receipts.pop(receipt_root)
         elif isinstance(cmd, eth.NewBlock):
             msg = cast(Dict[str, Any], msg)
             header = msg['block'][0]
