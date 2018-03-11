@@ -4,11 +4,12 @@ from evm.db.backends.base import BaseDB
 
 class BatchDB(BaseDB):
     """
-    A wrapper of basic DB objects with uncommitted DB changes stored in local cache, which represents as a dictionary
-    of database keys and values.
+    A wrapper of basic DB objects with uncommitted DB changes stored in local cache,
+    which represents as a dictionary of database keys and values.
     This class should be usable as a context manager, the changes either all fail or all succeed.
-    Upon exiting the context, it writes all of the key value pairs from the cache into the underlying database. If any
-    error occurred before committing phase, we would not apply commits at all
+    Upon exiting the context, it writes all of the key value pairs from the cache into
+    the underlying database. If anyerror occurred before committing phase,
+    we would not apply commits at all.
     """
     logger = logging.getLogger("evm.db.BatchDB")
 
