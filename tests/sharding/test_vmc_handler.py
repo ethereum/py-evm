@@ -274,7 +274,7 @@ def get_collation_score_call(vmc_handler, shard_id, collation_hash):
         vmc_handler.mk_contract_tx_detail(
             sender_address=primary_addr,
             gas=vmc_handler.config["DEFAULT_GAS"],
-        )
+        ),
     )
     return collation_score
 
@@ -286,7 +286,7 @@ def mk_testing_colhdr(vmc_handler,
                       coinbase=test_keys[0].public_key.to_canonical_address()):
     period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
-    expected_period_number = (current_block_number + 1) // period_length
+    expected_period_number = current_block_number // period_length
     logger.debug("mk_testing_colhdr: expected_period_number=%s", expected_period_number)
 
     period_start_prevblock_number = expected_period_number * period_length - 1
@@ -508,7 +508,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # when a valid header is added, the `add_header` call should succeed
     header0_2 = mk_testing_colhdr(vmc, default_shard_id, header0_1.hash, 2)
     vmc.add_header(header0_2)
-
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.functions.get_collation_headers_score(
@@ -529,7 +528,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert vmc.get_parent_hash(default_shard_id, header0_1.hash) == ZERO_HASH32
     assert vmc.get_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
-    # print("!@# peek_new_logs={}".format(vmc.shard_trackers[default_shard_id].peek_new_logs()))
     assert vmc.get_next_log(default_shard_id)['score'] == 2
     assert vmc.get_next_log(default_shard_id)['score'] == 1
     with pytest.raises(NextLogUnavailable):
@@ -539,10 +537,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
     header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLLATION_HASH, 1)
     vmc.add_header(header1_1)
-    mine(vmc, 1)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
     header0_3 = mk_testing_colhdr(vmc, default_shard_id, header0_2.hash, 3)
     vmc.add_header(header0_3)
-    mine(vmc, 1)
+    mine(vmc, vmc.config['PERIOD_LENGTH'])
     assert vmc.get_next_log(0)['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
     assert vmc.get_next_log(1)['score'] == 1
@@ -662,7 +660,6 @@ def test_guess_head_state_manager_sync_invalid_collation(monkeypatch, vmc):  # n
     header3_prime_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
 
     def mock_fetch_and_verify_collation(collation_hash):
-        print("!@# mock")
         if collation_hash == header3_hash:
             return False
         return True

@@ -175,15 +175,15 @@ class GuessHeadStateManager:
 
     def try_create_collation(self):
         # Check if it is time to collate  #################################
-        if self.head_collation_hash is None:
+        if (self.head_collation_hash is None or
+                self.head_validity[self.head_collation_hash] == False):
             return None
         # TODO: currently it is not correct,
         #       still need to check if all of the thread has finished,
         #       and the validity of head_collation is True
-        is_to_create_collation = self.is_late_collator_period()
-        is_to_create_collation |= (
-            (self.current_collation_hash == GENESIS_COLLATION_HASH) and
-            self.head_validity[self.head_collation_hash]
+        is_to_create_collation = (
+            self.is_late_collator_period() or
+            self.current_collation_hash == GENESIS_COLLATION_HASH
         )
         if is_to_create_collation:
             head_collation_hash = self.head_collation_hash
@@ -211,4 +211,4 @@ class GuessHeadStateManager:
             if stop_after_create_collation and parent_hash is not None:
                 return parent_hash
             # time.sleep(0.5)
-            input()
+            # input()
