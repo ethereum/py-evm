@@ -1,8 +1,10 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import logging
 import operator
 import time
-from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple  # noqa: F401
+import traceback
+from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple, Union  # noqa: F401
 
 from cytoolz import partition_all
 
@@ -46,6 +48,7 @@ class ChainSyncer(PeerPoolSubscriber):
         self._pending_receipts = {}  # type: Dict[bytes, Tuple[BlockHeader, float]]
         asyncio.ensure_future(self.body_downloader())
         asyncio.ensure_future(self.receipt_downloader())
+        self.executor = ProcessPoolExecutor()
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -73,8 +76,9 @@ class ChainSyncer(PeerPoolSubscriber):
 
             try:
                 await self.handle_msg(peer, cmd, msg)
-            except Exception as e:
-                self.logger.error("Unexpected error when processing msg from %s: %s", peer, repr(e))
+            except Exception:
+                self.logger.error("Unexpected error when processing msg from %s: %s",
+                                  peer, traceback.format_exc())
                 break
 
     async def run(self) -> None:
@@ -263,6 +267,7 @@ class ChainSyncer(PeerPoolSubscriber):
 
     async def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
+        loop = asyncio.get_event_loop()
         if isinstance(cmd, eth.BlockHeaders):
             msg = cast(List[BlockHeader], msg)
             self.logger.debug(
@@ -271,8 +276,12 @@ class ChainSyncer(PeerPoolSubscriber):
         elif isinstance(cmd, eth.BlockBodies):
             msg = cast(List[eth.BlockBody], msg)
             self.logger.debug("Got %d BlockBodies", len(msg))
-            for body in msg:
-                tx_root, trie_dict_data = make_trie_root_and_nodes(body.transactions)
+            iterator = map(make_trie_root_and_nodes, [body.transactions for body in msg])
+            transactions_tries = await loop.run_in_executor(
+                self.executor, list, iterator)  # type: List[Tuple[bytes, Any]]
+            for i in range(len(msg)):
+                body = msg[i]
+                tx_root, trie_dict_data = transactions_tries[i]
                 await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
                 # TODO: Add transactions to canonical chain; blocked by
                 # https://github.com/ethereum/py-evm/issues/337
@@ -281,8 +290,10 @@ class ChainSyncer(PeerPoolSubscriber):
         elif isinstance(cmd, eth.Receipts):
             msg = cast(List[List[eth.Receipt]], msg)
             self.logger.debug("Got Receipts for %d blocks", len(msg))
-            for block_receipts in msg:
-                receipt_root, trie_dict_data = make_trie_root_and_nodes(block_receipts)
+            iterator = map(make_trie_root_and_nodes, msg)
+            receipts_tries = await loop.run_in_executor(
+                self.executor, list, iterator)  # type: List[Tuple[bytes, Any]]
+            for receipt_root, trie_dict_data in receipts_tries:
                 if receipt_root not in self._pending_receipts:
                     self.logger.warning(
                         "Got unexpected receipt root: %s",
