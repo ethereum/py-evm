@@ -38,9 +38,9 @@ from evm.utils.numeric import (
 from evm.vm.forks.sharding.config import (
     get_sharding_config,
 )
-
-
-GENESIS_COLLATION_HASH = b'\x00' * 32
+from evm.vm.forks.sharding.constants import (
+    GENESIS_COLLATION_HASH,
+)
 
 
 class NextLogUnavailable(Exception):
@@ -84,6 +84,49 @@ def parse_collation_added_log(log):
     yield 'header', collation_header
     yield 'is_new_head', is_new_head
     yield 'score', score
+
+
+@to_dict
+def mk_contract_tx_detail(sender_address,
+                          gas,
+                          value=None,
+                          gas_price=None,
+                          data=None):
+    # Both 'from' and 'gas' are required in eth_tester
+    if not is_canonical_address(sender_address):
+        raise ValueError('sender_address should be provided in the canonical format')
+    if not (isinstance(gas, int) and gas > 0):
+        raise ValueError('gas should be provided as positive integer')
+    yield 'from', to_checksum_address(sender_address)
+    yield 'gas', gas
+    if value is not None:
+        yield 'value', value
+    if gas_price is not None:
+        yield 'gas_price', gas_price
+    if data is not None:
+        yield 'data', data
+
+
+@to_dict
+def mk_build_transaction_detail(nonce,
+                                gas,
+                                chain_id=None,
+                                value=None,
+                                gas_price=None,
+                                data=None):
+    if not (isinstance(nonce, int) and nonce >= 0):
+        raise ValueError('nonce should be provided as non-negative integer')
+    if not (isinstance(gas, int) and gas > 0):
+        raise ValueError('gas should be provided as positive integer')
+    yield 'nonce', nonce
+    yield 'gas', gas
+    yield 'chainId', chain_id
+    if value is not None:
+        yield 'value', value
+    if gas_price is not None:
+        yield 'gasPrice', gas_price
+    if data is not None:
+        yield 'data', data
 
 
 class ShardTracker:
@@ -182,6 +225,7 @@ class ShardTracker:
         self.new_logs = []
         self.unchecked_logs = []
 
+
 class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.VMC")
@@ -278,27 +322,24 @@ class VMC(Contract):
         self.logger.debug("Guess {0} as head".format(head_collation_hash))
         return head_collation_hash
 
-    @to_dict
-    def mk_build_transaction_detail(self,
-                                    nonce,
-                                    gas,
-                                    chain_id=None,
-                                    value=None,
-                                    gas_price=None,
-                                    data=None):
-        if not (isinstance(nonce, int) and nonce >= 0):
-            raise ValueError('nonce should be provided as non-negative integer')
-        if not (isinstance(gas, int) and gas > 0):
-            raise ValueError('gas should be provided as positive integer')
-        yield 'nonce', nonce
-        yield 'gas', gas
-        yield 'chainId', chain_id
-        if value is not None:
-            yield 'value', value
-        if gas_price is not None:
-            yield 'gasPrice', gas_price
-        if data is not None:
-            yield 'data', data
+    def mk_default_contract_tx_detail(self,
+                                      sender_address=None,
+                                      gas=None,
+                                      value=None,
+                                      gas_price=None,
+                                      data=None):
+        if sender_address is None:
+            sender_address = self.default_sender_address
+        if gas is None:
+            gas = self.config['DEFAULT_GAS']
+        default_contract_tx_detail = mk_contract_tx_detail(
+            sender_address,
+            gas,
+            value,
+            gas_price,
+            data,
+        )
+        return default_contract_tx_detail
 
     def send_transaction(self,
                          func_name,
@@ -316,7 +357,7 @@ class VMC(Contract):
         privkey = self.default_privkey
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
-        build_transaction_detail = self.mk_build_transaction_detail(
+        build_transaction_detail = mk_build_transaction_detail(
             nonce=nonce,
             gas=gas,
             chain_id=chain_id,
@@ -335,44 +376,21 @@ class VMC(Contract):
         tx_hash = self.web3.eth.sendRawTransaction(signed_transaction_dict['rawTransaction'])
         return tx_hash
 
-    @to_dict
-    def mk_contract_tx_detail(self,
-                              sender_address,
-                              gas,
-                              value=None,
-                              gas_price=None,
-                              data=None):
-        # Both 'from' and 'gas' are required in eth_tester
-        if not is_canonical_address(sender_address):
-            raise ValueError('sender_address should be provided in the canonical format')
-        if not (isinstance(gas, int) and gas > 0):
-            raise ValueError('gas should be provided as positive integer')
-        yield 'from', to_checksum_address(sender_address)
-        yield 'gas', gas
-        if value is not None:
-            yield 'value', value
-        if gas_price is not None:
-            yield 'gas_price', gas_price
-        if data is not None:
-            yield 'data', data
-
     # contract calls ##############################################
 
     def get_eligible_proposer(self, shard_id, period=None, gas=None):
         """Get the eligible proposer in the specified period
         """
-        if gas is None:
-            gas = self.config['DEFAULT_GAS']
         if period is None:
             period = self.web3.eth.blockNumber // self.config['PERIOD_LENGTH']
-        tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
+        tx_detail = self.mk_default_contract_tx_detail(gas=gas)
         address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(tx_detail)
         return decode_hex(address_in_hex)
 
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
         if gas is None:
             gas = self.config['DEFAULT_GAS']
-        tx_detail = self.mk_contract_tx_detail(sender_address=self.default_sender_address, gas=gas)
+        tx_detail = self.mk_default_contract_tx_detail(gas=gas)
         return self.functions.get_collation_headers__parent_hash(
             shard_id,
             collation_hash,

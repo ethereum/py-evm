@@ -1,11 +1,4 @@
-import time
-
-from threading import (
-    Lock,
-)
-
 from collections import (
-    OrderedDict,
     defaultdict,
 )
 
@@ -102,7 +95,7 @@ class GuessHeadStateManager:
 
     def is_late_collator_period(self):
         current_period = self.get_current_period()
-        current_block_num  = self.vmc.web3.eth.blockNumber
+        current_block_num = self.vmc.web3.eth.blockNumber
         last_block_num_in_current_period = current_period * self.vmc.config['PERIOD_LENGTH']
         return (
             self.is_collator_in_period(current_period) and
@@ -176,7 +169,7 @@ class GuessHeadStateManager:
     def try_create_collation(self):
         # Check if it is time to collate  #################################
         if (self.head_collation_hash is None or
-                self.head_validity[self.head_collation_hash] == False):
+                (not self.head_validity[self.head_collation_hash])):
             return None
         # TODO: currently it is not correct,
         #       still need to check if all of the thread has finished,
