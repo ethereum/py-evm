@@ -1,20 +1,20 @@
 # Events
 CollationAdded: __log__({
-    shard_id: indexed(num),
-    expected_period_number: num,
+    shard_id: indexed(int128),
+    expected_period_number: int128,
     period_start_prevhash: bytes32,
     parent_hash: bytes32,
     transaction_root: bytes32,
     collation_coinbase: address,
     state_root: bytes32,
     receipt_root: bytes32,
-    collation_number: num,
+    collation_number: int128,
     is_new_head: bool,
-    score: num,
+    score: int128,
 })
 # TODO: determine the signature of the log `Deposit` and `Withdraw`
-Deposit: __log__({validator_index: num, validator_addr: address, deposit: wei_value})
-Withdraw: __log__({validator_index: num, validator_addr: address, deposit: wei_value})
+Deposit: __log__({validator_index: int128, validator_addr: address, deposit: wei_value})
+Withdraw: __log__({validator_index: int128, validator_addr: address, deposit: wei_value})
 
 
 # Information about validators
@@ -23,45 +23,45 @@ validators: public({
     deposit: wei_value,
     # Address of the validator
     addr: address,
-}[num])
+}[int128])
 
 # Number of validators
-num_validators: public(num)
+num_validators: public(int128)
 
 # Collation headers
 collation_headers: public({
     parent_hash: bytes32,
-    score: num,
-}[bytes32][num])
+    score: int128,
+}[bytes32][int128])
 
 # Receipt data
 receipts: public({
-    shard_id: num,
-    tx_startgas: num,
-    tx_gasprice: num,
+    shard_id: int128,
+    tx_startgas: int128,
+    tx_gasprice: int128,
     value: wei_value,
     sender: address,
     to: address,
     data: bytes <= 4096,
-}[num])
+}[int128])
 
 # Current head of each shard
-shard_head: public(bytes32[num])
+shard_head: public(bytes32[int128])
 
 # Number of receipts
-num_receipts: num
+num_receipts: int128
 
 # Indexs of empty slots caused by the function `withdraw`
-empty_slots_stack: num[num]
+empty_slots_stack: int128[int128]
 
 # The top index of the stack in empty_slots_stack
-empty_slots_stack_top: num
+empty_slots_stack_top: int128
 
 # Has the validator deposited before?
 is_validator_deposited: public(bool[address])
 
 # Log the latest period number of the shard
-period_head: public(num[num])
+period_head: public(int128[int128])
 
 
 # Configuration Parameter
@@ -70,14 +70,14 @@ period_head: public(num[num])
 deposit_size: wei_value
 
 # Number of blocks in one period
-period_length: num
+period_length: int128
 
 # Number of shards
-shard_count: num
+shard_count: int128
 
 # Number of periods ahead of current period, which the contract
 # is able to return the collator of that period
-lookahead_periods: num
+lookahead_periods: int128
 
 
 @public
@@ -92,21 +92,21 @@ def __init__():
 
 
 # Checks if empty_slots_stack_top is empty
-@internal
+@private
 def is_stack_empty() -> bool:
     return (self.empty_slots_stack_top == 0)
 
 
-# Pushes one num to empty_slots_stack
-@internal
-def stack_push(index: num):
+# Pushes one int128 to empty_slots_stack
+@private
+def stack_push(index: int128):
     self.empty_slots_stack[self.empty_slots_stack_top] = index
     self.empty_slots_stack_top += 1
 
 
-# Pops one num out of empty_slots_stack
-@internal
-def stack_pop() -> num:
+# Pops one int128 out of empty_slots_stack
+@private
+def stack_pop() -> int128:
     if self.is_stack_empty():
         return -1
     self.empty_slots_stack_top -= 1
@@ -114,17 +114,17 @@ def stack_pop() -> num:
 
 
 # Returns the current maximum index for validators mapping
-@internal
-def get_validators_max_index() -> num:
-    zero_addr = 0x0000000000000000000000000000000000000000
-    activate_validator_num = 0
-    all_validator_slots_num = self.num_validators + self.empty_slots_stack_top
+@private
+@constant
+def get_validators_max_index() -> int128:
+    activate_validator_num: int128 = 0
+    all_validator_slots_num: int128 = self.num_validators + self.empty_slots_stack_top
 
     # TODO: any better way to iterate the mapping?
     for i in range(1024):
         if i >= all_validator_slots_num:
             break
-        if self.validators[i].addr != zero_addr:
+        if not not self.validators[i].addr:
             activate_validator_num += 1
     return activate_validator_num + self.empty_slots_stack_top
 
@@ -133,15 +133,14 @@ def get_validators_max_index() -> num:
 # (ie. amount of ETH deposited) in the function call. Returns the validator index.
 @public
 @payable
-def deposit() -> num:
-    validator_addr = msg.sender
+def deposit() -> int128:
+    validator_addr: address = msg.sender
     assert not self.is_validator_deposited[validator_addr]
     assert msg.value == self.deposit_size
     # find the empty slot index in validators set
+    index: int128 = self.num_validators
     if not self.is_stack_empty():
-        index = self.stack_pop()
-    else:
-        index = self.num_validators
+        index = self.stack_pop()        
     self.validators[index] = {
         deposit: msg.value,
         addr: validator_addr,
@@ -158,9 +157,9 @@ def deposit() -> num:
 # from the validator set and refunds the deposited ETH.
 @public
 @payable
-def withdraw(validator_index: num) -> bool:
-    validator_addr = self.validators[validator_index].addr
-    validator_deposit = self.validators[validator_index].deposit
+def withdraw(validator_index: int128) -> bool:
+    validator_addr: address = self.validators[validator_index].addr
+    validator_deposit: wei_value = self.validators[validator_index].deposit
     assert msg.sender == validator_addr
     self.is_validator_deposited[validator_addr] = False
     self.validators[validator_index] = {
@@ -182,25 +181,27 @@ def withdraw(validator_index: num) -> bool:
 # Should be able to return a value for the current period or any future period up to.
 @public
 @constant
-def get_eligible_proposer(shard_id: num, period: num) -> address:
+def get_eligible_proposer(shard_id: int128, period: int128) -> address:
     assert period >= self.lookahead_periods
     assert (period - self.lookahead_periods) * self.period_length < block.number
     assert self.num_validators > 0
     return self.validators[
-        as_num128(
-            num256_mod(
-                as_num256(
-                    sha3(
-                        concat(
-                            # TODO: should check further if this can be further optimized or not
-                            #       e.g. be able to get the proposer of one period earlier
-                            blockhash((period - self.lookahead_periods) * self.period_length),
-                            as_bytes32(shard_id),
-                        )
-                    )
+        convert(
+            uint256_mod(
+                convert(
+                        sha3(
+                            concat(
+                                # TODO: should check further if this can be further optimized or not
+                                #       e.g. be able to get the proposer of one period earlier
+                                blockhash((period - self.lookahead_periods) * self.period_length),
+                                convert(shard_id, 'bytes32'),
+                            )
+                        ),
+                        'uint256'
                 ),
-                as_num256(self.get_validators_max_index()),
-            )
+                convert(self.get_validators_max_index(), 'uint256')
+            ),
+            'int128'
         )
     ].addr
 
@@ -208,52 +209,51 @@ def get_eligible_proposer(shard_id: num, period: num) -> address:
 # Attempts to process a collation header, returns True on success, reverts on failure.
 @public
 def add_header(
-        shard_id: num,
-        expected_period_number: num,
+        shard_id: int128,
+        expected_period_number: int128,
         period_start_prevhash: bytes32,
         parent_hash: bytes32,
         transaction_root: bytes32,
         collation_coinbase: address,  # TODO: cannot be named `coinbase` since it is reserved
         state_root: bytes32,
         receipt_root: bytes32,
-        collation_number: num) -> bool:  # TODO: cannot be named `number` since it is reserved
-    zero_addr = 0x0000000000000000000000000000000000000000
+        collation_number: int128) -> bool:  # TODO: cannot be named `number` since it is reserved
 
     # Check if the header is valid
     assert (shard_id >= 0) and (shard_id < self.shard_count)
     assert block.number >= self.period_length
-    assert expected_period_number == floor(decimal(block.number / self.period_length))
+    assert expected_period_number == floor(block.number / self.period_length)
     assert period_start_prevhash == blockhash(expected_period_number * self.period_length - 1)
 
     # Check if this header already exists
-    header_bytes = concat(
-        as_bytes32(shard_id),
-        as_bytes32(expected_period_number),
+    header_bytes: bytes <= 288 = concat(
+        convert(shard_id, 'bytes32'),
+        convert(expected_period_number, 'bytes32'),
         period_start_prevhash,
         parent_hash,
         transaction_root,
-        as_bytes32(collation_coinbase),
+        convert(collation_coinbase, 'bytes32'),
         state_root,
         receipt_root,
-        as_bytes32(collation_number),
+        convert(collation_number, 'bytes32'),
     )
-    entire_header_hash = sha3(header_bytes)
+    entire_header_hash: bytes32 = sha3(header_bytes)
     assert self.collation_headers[shard_id][entire_header_hash].score == 0
     # Check whether the parent exists.
     # if (parent_hash == 0), i.e., is the genesis,
     # then there is no need to check.
-    if parent_hash != as_bytes32(0):
+    if parent_hash != convert(0, 'bytes32'):
         assert self.collation_headers[shard_id][parent_hash].score > 0
     # Check if only one collation in one period perd shard
     assert self.period_head[shard_id] < expected_period_number
 
     # Check the signature with validation_code_addr
-    validator_addr = self.get_eligible_proposer(shard_id, block.number / self.period_length)
-    assert validator_addr != zero_addr
+    validator_addr: address = self.get_eligible_proposer(shard_id, floor(block.number / self.period_length))
+    assert not not validator_addr
     assert msg.sender == validator_addr
 
     # Check score == collation_number
-    _score = self.collation_headers[shard_id][parent_hash].score + 1
+    _score: int128 = self.collation_headers[shard_id][parent_hash].score + 1
     assert collation_number == _score
 
     # Add the header
@@ -266,7 +266,7 @@ def add_header(
     self.period_head[shard_id] = expected_period_number
 
     # Determine the head
-    is_new_head = False
+    is_new_head: bool = False
     if _score > self.collation_headers[shard_id][self.shard_head[shard_id]].score:
         self.shard_head[shard_id] = entire_header_hash
         is_new_head = True
@@ -293,7 +293,7 @@ def add_header(
 # this function always answer 10 million).
 @public
 @constant
-def get_collation_gas_limit() -> num:
+def get_collation_gas_limit() -> int128:
     return 10000000
 
 
@@ -305,10 +305,10 @@ def get_collation_gas_limit() -> num:
 @payable
 def tx_to_shard(
         to: address,
-        shard_id: num,
-        tx_startgas: num,
-        tx_gasprice: num,
-        data: bytes <= 4096) -> num:
+        shard_id: int128,
+        tx_startgas: int128,
+        tx_gasprice: int128,
+        data: bytes <= 4096) -> int128:
     self.receipts[self.num_receipts] = {
         shard_id: shard_id,
         tx_startgas: tx_startgas,
@@ -318,17 +318,17 @@ def tx_to_shard(
         to: to,
         data: data,
     }
-    receipt_id = self.num_receipts
+    receipt_id: int128 = self.num_receipts
     self.num_receipts += 1
 
     # TODO: determine the signature of the log TxToShard
     raw_log(
         [
-            sha3("tx_to_shard(address,num,num,num,bytes4096)"),
-            as_bytes32(to),
-            as_bytes32(shard_id),
+            sha3("tx_to_shard(address,int128,int128,int128,bytes4096)"),
+            convert(to, 'bytes32'),
+            convert(shard_id, 'bytes32'),
         ],
-        concat('', as_bytes32(receipt_id)),
+        concat('', convert(receipt_id, 'bytes32')),
     )
 
     return receipt_id
@@ -337,7 +337,7 @@ def tx_to_shard(
 # Updates the tx_gasprice in receipt receipt_id, and returns True on success.
 @public
 @payable
-def update_gasprice(receipt_id: num, tx_gasprice: num) -> bool:
+def update_gasprice(receipt_id: int128, tx_gasprice: int128) -> bool:
     assert self.receipts[receipt_id].sender == msg.sender
     self.receipts[receipt_id].tx_gasprice = tx_gasprice
     return True
