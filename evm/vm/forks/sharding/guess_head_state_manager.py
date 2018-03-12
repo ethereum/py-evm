@@ -48,10 +48,11 @@ class GuessHeadStateManager:
     last_period_fetching_candidate_head = None
     is_verifying_collations = None
 
-    def __init__(self, vmc, shard_id, my_address):
+    def __init__(self, vmc, shard_id, shard_tracker, my_address):
         # a well-setup vmc handler with a shard_tracker in shard `shard_id`
         self.vmc = vmc
         self.shard_id = shard_id
+        self.shard_tracker = shard_tracker
         self.my_address = my_address
 
         # map[collation] -> validity
@@ -125,7 +126,7 @@ class GuessHeadStateManager:
     def fetch_candidate_head_hash(self):
         head_collation_hash = None
         try:
-            head_collation_dict = self.vmc.fetch_candidate_head(self.shard_id)
+            head_collation_dict = self.shard_tracker.fetch_candidate_head()
             head_collation_hash = head_collation_dict['header'].hash
         except NoCandidateHead:
             self.logger.debug("No candidate head available, `guess_head` stops")
@@ -143,8 +144,7 @@ class GuessHeadStateManager:
             if current_period > self.last_period_fetching_candidate_head:
                 # TODO: should check if it is correct
                 # flush old candidate heads first, since all those candidates are stale
-                shard_tracker = self.vmc.get_shard_tracker(self.shard_id)
-                shard_tracker.clean_logs()
+                self.shard_tracker.clean_logs()
             # perform head changing
             self.head_collation_hash = self.fetch_candidate_head_hash()
             if self.head_collation_hash is not None:

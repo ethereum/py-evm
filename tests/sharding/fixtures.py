@@ -103,12 +103,6 @@ def send_deposit_tx(vmc_handler):
     return vmc_handler.get_default_sender_address()
 
 
-def setup_shard_tracker(vmc_handler, shard_id):
-    log_handler = LogHandler(vmc_handler.web3)
-    shard_tracker = ShardTracker(shard_id, log_handler, vmc_handler.address)
-    vmc_handler.set_shard_tracker(shard_id, shard_tracker)
-
-
 def send_withdraw_tx(vmc_handler, validator_index):
     assert validator_index < len(get_default_account_keys())
     vmc_handler.withdraw(validator_index)
@@ -337,11 +331,17 @@ def vmc(vmc_handler):
 
 
 @pytest.fixture
+def shard_tracker(vmc_instance, shard_id):
+    log_handler = LogHandler(vmc_instance.web3)
+    return ShardTracker(shard_id, log_handler, vmc_instance.address)
+
+
+@pytest.fixture
 def ghs_manager(vmc):
-    setup_shard_tracker(vmc, default_shard_id)
     ghs_manager = GuessHeadStateManager(
         vmc,
         default_shard_id,
+        shard_tracker(vmc, default_shard_id),
         vmc.get_default_sender_address(),
     )
     return ghs_manager

@@ -236,91 +236,28 @@ class VMC(Contract):
         self.config = get_sharding_config()
         self.shard_trackers = {}  # type: Dict[int, ShardTracker]
 
-        self.collation_validity_cache = {}
-
         super().__init__(*args, **kwargs)
 
     def get_default_sender_address(self):
         return self.default_sender_address
 
-    def set_shard_tracker(self, shard_id, shard_tracker):
-        self.shard_trackers[shard_id] = shard_tracker
+    # def set_shard_tracker(self, shard_id, shard_tracker):
+    #     self.shard_trackers[shard_id] = shard_tracker
 
-    def get_shard_tracker(self, shard_id):
-        if shard_id not in self.shard_trackers:
-            raise UnknownShard('Shard {} is not tracked'.format(shard_id))
-        return self.shard_trackers[shard_id]
+    # def get_shard_tracker(self, shard_id):
+    #     if shard_id not in self.shard_trackers:
+    #         raise UnknownShard('Shard {} is not tracked'.format(shard_id))
+    #     return self.shard_trackers[shard_id]
 
-    # TODO: currently just calls `shard_tracker.get_next_log`
-    def get_next_log(self, shard_id):
-        shard_tracker = self.get_shard_tracker(shard_id)
-        return shard_tracker.get_next_log()
+    # # TODO: currently just calls `shard_tracker.get_next_log`
+    # def get_next_log(self, shard_id):
+    #     shard_tracker = self.get_shard_tracker(shard_id)
+    #     return shard_tracker.get_next_log()
 
-    # TODO: currently just calls `shard_tracker.fetch_candidate_head`
-    def fetch_candidate_head(self, shard_id):
-        shard_tracker = self.get_shard_tracker(shard_id)
-        return shard_tracker.fetch_candidate_head()
-
-    def memoized_fetch_and_verify_collation(self, collation_hash):
-        # Download a single collation and check if it is valid or invalid (memoized)
-        if collation_hash not in self.collation_validity_cache:
-            self.collation_validity_cache[collation_hash] = fetch_and_verify_collation(
-                collation_hash,
-            )
-        return self.collation_validity_cache[collation_hash]
-
-    def _verify_chain(self, shard_id, head_collation_hash):
-        """
-        Verify a chain and returns its validity.
-
-        :return: returns the validity of the chain. if the time is out, returns True
-        """
-        current_collation_hash = head_collation_hash
-        # if current_collation_hash == ZERO_HASH32, it means the whole chain of
-        # the head `head_collation_hash` is valid.
-        self.logger.debug(
-            "Start verifying candidate chain with head {0}".format(head_collation_hash)
-        )
-        while not is_time_to_make_collation():
-            if current_collation_hash == ZERO_HASH32:
-                break
-            if not self.memoized_fetch_and_verify_collation(current_collation_hash):
-                return False
-            current_collation_hash = self.get_parent_hash(shard_id, current_collation_hash)
-        return True
-
-    def guess_head(self, shard_id):
-        """
-        Pick the longest valid chain, check validity as far as possible, and if you find
-        it's invalid then switch to the next-highest-scoring valid chain you know about.
-        Should only stop when the validator runs out of time and it is time to create
-        the collation
-
-        :return: returns the hash of the guessed head collation
-        """
-        head_collation_hash = None
-        while not is_time_to_make_collation():
-            try:
-                head_collation_dict = self.fetch_candidate_head(shard_id)
-                head_collation_hash = head_collation_dict['header'].hash
-            except NoCandidateHead:
-                self.logger.debug("No candidate head available, `guess_head` stops")
-                break
-            # stop when we find a valid chain or run out of time
-            if self._verify_chain(shard_id, head_collation_hash):
-                break
-        if head_collation_hash is None:
-            head_collation_hash = GENESIS_COLLATION_HASH
-
-        # clear new_logs and unchecked_logs in shard_tracker
-        # TODO: currently do this in case that these logs are misused by the next `guess_head`
-        #       should see if this behavior is correct or not.
-        shard_tracker = self.get_shard_tracker(shard_id)
-        shard_tracker.new_logs = []
-        shard_tracker.unchecked_logs = []
-
-        self.logger.debug("Guess {0} as head".format(head_collation_hash))
-        return head_collation_hash
+    # # TODO: currently just calls `shard_tracker.fetch_candidate_head`
+    # def fetch_candidate_head(self, shard_id):
+    #     shard_tracker = self.get_shard_tracker(shard_id)
+    #     return shard_tracker.fetch_candidate_head()
 
     def mk_default_contract_tx_detail(self,
                                       sender_address=None,

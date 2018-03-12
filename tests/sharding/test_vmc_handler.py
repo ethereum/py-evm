@@ -19,9 +19,6 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 
-from evm.vm.forks.sharding.log_handler import (
-    LogHandler,
-)
 from evm.vm.forks.sharding.vmc_handler import (
     GENESIS_COLLATION_HASH,
     NextLogUnavailable,
@@ -41,7 +38,7 @@ from tests.sharding.fixtures import (  # noqa: F401
     mk_colhdr_chain,
     mk_testing_colhdr,
     send_withdraw_tx,
-    setup_shard_tracker,
+    shard_tracker,
     vmc,
     vmc_handler,
 )
@@ -70,9 +67,7 @@ def test_shard_tracker_fetch_candidate_head(vmc,
                                             mock_is_new_head,
                                             expected_score,
                                             expected_is_new_head):
-    shard_id = 0
-    log_handler = LogHandler(vmc.web3)
-    shard_tracker = ShardTracker(shard_id, log_handler, vmc.address)
+    shard_tracker0 = shard_tracker(vmc, default_shard_id)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -81,13 +76,13 @@ def test_shard_tracker_fetch_candidate_head(vmc,
         } for i in range(len(mock_score))
     ]
     # mock collation_added_logs
-    shard_tracker.new_logs = mock_collation_added_logs
+    shard_tracker0.new_logs = mock_collation_added_logs
     for i in range(len(mock_score)):
-        log = shard_tracker.fetch_candidate_head()
+        log = shard_tracker0.fetch_candidate_head()
         assert log['score'] == expected_score[i]
         assert log['is_new_head'] == expected_is_new_head[i]
     with pytest.raises(NoCandidateHead):
-        log = shard_tracker.fetch_candidate_head()
+        log = shard_tracker0.fetch_candidate_head()
 
 
 def test_mk_build_transaction_detail():  # noqa: F811
@@ -158,11 +153,16 @@ def test_parse_collation_added_log(log,
     assert parsed_data['score'] == expected_score
 
 
+# TODO: isolate shard_tracker tests from vmc
+def test_shard_tracker_get_next_log(vmc):  # noqa: F811
+    shard_tracker(vmc, default_shard_id)
+
+
 # TODO: should separate the tests into pieces, and do some refactors
-def test_vmc_contract_calls(vmc):  # noqa: F811
-    setup_shard_tracker(vmc, default_shard_id)
+def test_vmc_and_shard_tracker_contract_calls(vmc):  # noqa: F811
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
+    shard_tracker0 = shard_tracker(vmc, default_shard_id)
     header0_1 = mk_testing_colhdr(vmc, default_shard_id, GENESIS_COLLATION_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
@@ -203,22 +203,22 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     assert vmc.get_parent_hash(default_shard_id, header0_1.hash) == GENESIS_COLLATION_HASH
     assert vmc.get_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
-    assert vmc.get_next_log(default_shard_id)['score'] == 2
-    assert vmc.get_next_log(default_shard_id)['score'] == 1
+    assert shard_tracker0.get_next_log()['score'] == 2
+    assert shard_tracker0.get_next_log()['score'] == 1
     with pytest.raises(NextLogUnavailable):
-        vmc.get_next_log(default_shard_id)
+        shard_tracker0.get_next_log()
 
     # filter logs in multiple shards
-    vmc.set_shard_tracker(1, ShardTracker(1, LogHandler(vmc.web3), vmc.address))
+    shard_tracker1 = shard_tracker(vmc, 1)
     header1_1 = mk_testing_colhdr(vmc, 1, GENESIS_COLLATION_HASH, 1)
     vmc.add_header(header1_1)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     header0_3 = mk_testing_colhdr(vmc, default_shard_id, header0_2.hash, 3)
     vmc.add_header(header0_3)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
-    assert vmc.get_next_log(0)['score'] == 3
+    assert shard_tracker0.get_next_log()['score'] == 3
     # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
-    assert vmc.get_next_log(1)['score'] == 1
+    assert shard_tracker1.get_next_log()['score'] == 1
     logs = vmc.web3.eth.getLogs({
         "fromBlock": 0,
         "toBlock": vmc.web3.eth.blockNumber,
