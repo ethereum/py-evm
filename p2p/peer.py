@@ -3,8 +3,9 @@ import logging
 import operator
 import random
 import struct
+import time
 import traceback
-from typing import (Any, cast, Callable, Dict, List, Optional, Tuple, Type)  # noqa: F401
+from typing import (Any, cast, Callable, Dict, Generator, List, Optional, Tuple, Type)  # noqa: F401
 
 import rlp
 from rlp import sedes
@@ -39,12 +40,14 @@ from evm.rlp.receipts import Receipt
 
 from p2p import auth
 from p2p import ecies
+from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address, Node
-from p2p import protocol  # noqa: F401
+from p2p import protocol
 from p2p.exceptions import (
     AuthenticationError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
+    NoMatchingPeerCapabilities,
     OperationCancelled,
     PeerConnectionLost,
     UnexpectedMessage,
@@ -290,7 +293,7 @@ class BasePeer:
         while True:
             try:
                 cmd, msg = await self.read_msg()
-            except (PeerConnectionLost, asyncio.TimeoutError) as e:
+            except (PeerConnectionLost, TimeoutError) as e:
                 self.logger.info(
                     "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
@@ -342,8 +345,9 @@ class BasePeer:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
         remote_capabilities = msg['capabilities']
-        self.sub_proto = self.select_sub_protocol(remote_capabilities)
-        if self.sub_proto is None:
+        try:
+            self.sub_proto = self.select_sub_protocol(remote_capabilities)
+        except NoMatchingPeerCapabilities:
             self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "No matching capabilities between us ({}) and {} ({}), disconnecting".format(
@@ -433,14 +437,19 @@ class BasePeer:
         Find the highest version of our supported sub-protocols that is also supported by the
         remote and stores an instance of it (with the appropriate cmd_id offset) in
         self.sub_proto.
+
+        Raises NoMatchingPeerCapabilities if none of our supported protocols match one of the
+        remote's protocols.
         """
         matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
+        if not matching_capabilities:
+            raise NoMatchingPeerCapabilities()
         _, highest_matching_version = max(matching_capabilities, key=operator.itemgetter(1))
         offset = self.base_protocol.cmd_length
         for proto_class in self._supported_sub_protocols:
             if proto_class.version == highest_matching_version:
                 return proto_class(self, offset)
-        return None
+        raise NoMatchingPeerCapabilities()
 
     def __str__(self):
         return "{} {}".format(self.__class__.__name__, self.remote)
@@ -617,22 +626,29 @@ class PeerPoolSubscriber:
 class PeerPool:
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
-    min_peers = 2
+    min_peers = 10
     _connect_loop_sleep = 2
+    _last_lookup = 0  # type: float
+    _lookup_interval = 5  # type: int
 
     def __init__(self,
                  peer_class: Type[BasePeer],
                  chaindb: AsyncChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
+                 discovery: DiscoveryProtocol,
                  ) -> None:
         self.peer_class = peer_class
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
+        self.discovery = discovery
         self.connected_nodes = {}  # type: Dict[Node, BasePeer]
         self.cancel_token = CancelToken('PeerPool')
         self._subscribers = []  # type: List[PeerPoolSubscriber]
+
+    def get_nodes_to_connect(self) -> Generator[Node, None, None]:
+        return self.discovery.get_random_nodes(self.min_peers)
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
         self._subscribers.append(subscriber)
@@ -643,57 +659,14 @@ class PeerPool:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
-    async def get_nodes_to_connect(self) -> List[Node]:
-        # TODO: This should use the Discovery service to lookup nodes to connect to, but our
-        # current implementation only supports v4 and with that it takes an insane amount of time
-        # to find any LES nodes with the same network ID as us, so for now we hard-code some nodes
-        # that seem to have a good uptime.
-        from evm.chains.ropsten import RopstenChain
-        from evm.chains.mainnet import MainnetChain
-        if self.network_id == MainnetChain.network_id:
-            return [
-                Node(
-                    keys.PublicKey(decode_hex("1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082")),  # noqa: E501
-                    Address("52.74.57.123", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d")),  # noqa: E501
-                    Address("191.235.84.50", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("ddd81193df80128880232fc1deb45f72746019839589eeb642d3d44efbb8b2dda2c1a46a348349964a6066f8afb016eb2a8c0f3c66f32fadf4370a236a4b5286")),  # noqa: E501
-                    Address("52.231.202.145", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99")),  # noqa: E501
-                    Address("13.93.211.84", 30303, 30303)),
-            ]
-        elif self.network_id == RopstenChain.network_id:
-            return [
-                Node(
-                    keys.PublicKey(decode_hex("88c2b24429a6f7683fbfd06874ae3f1e7c8b4a5ffb846e77c705ba02e2543789d66fc032b6606a8d8888eb6239a2abe5897ce83f78dcdcfcb027d6ea69aa6fe9")),  # noqa: E501
-                    Address("163.172.157.61", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("a1ef9ba5550d5fac27f7cbd4e8d20a643ad75596f307c91cd6e7f85b548b8a6bf215cca436d6ee436d6135f9fe51398f8dd4c0bd6c6a0c332ccb41880f33ec12")),  # noqa: E501
-                    Address("51.15.218.125", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("e80276aabb7682a4a659f4341c1199de79d91a2e500a6ee9bed16ed4ce927ba8d32ba5dea357739ffdf2c5bcc848d3064bb6f149f0b4249c1f7e53f8bf02bfc8")),  # noqa: E501
-                    Address("51.15.39.57", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("584c0db89b00719e9e7b1b5c32a4a8942f379f4d5d66bb69f9c7fa97fa42f64974e7b057b35eb5a63fd7973af063f9a1d32d8c60dbb4854c64cb8ab385470258")),  # noqa: E501
-                    Address("51.15.35.2", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("d40871fc3e11b2649700978e06acd68a24af54e603d4333faecb70926ca7df93baa0b7bf4e927fcad9a7c1c07f9b325b22f6d1730e728314d0e4e6523e5cebc2")),  # noqa: E501
-                    Address("51.15.132.235", 30303, 30303)),
-                Node(
-                    keys.PublicKey(decode_hex("482484b9198530ee2e00db89791823244ca41dcd372242e2e1297dd06f6d8dd357603960c5ad9cc8dc15fcdf0e4edd06b7ad7db590e67a0b54f798c26581ebd7")),  # noqa: E501
-                    Address("51.15.75.138", 30303, 30303)),
-            ]
-        else:
-            raise ValueError("Unknown network_id: {}".format(self.network_id))
-
-    async def run(self):
+    async def run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
             try:
                 await self.maybe_connect_to_more_peers()
+            except OperationCancelled as e:
+                self.logger.debug("PeerPool finished: %s", e)
+                break
             except:  # noqa: E722
                 # Most unexpected errors should be transient, so we log and restart from scratch.
                 self.logger.error("Unexpected error (%s), restarting", traceback.format_exc())
@@ -701,12 +674,12 @@ class PeerPool:
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
             await asyncio.wait([self.cancel_token.wait()], timeout=self._connect_loop_sleep)
 
-    async def stop_all_peers(self):
+    async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
         await asyncio.gather(
             *[peer.stop() for peer in self.connected_nodes.values()])
 
-    async def stop(self):
+    async def stop(self) -> None:
         self.cancel_token.trigger()
         await self.stop_all_peers()
 
@@ -719,23 +692,34 @@ class PeerPool:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
         expected_exceptions = (
-            UnreachablePeer, asyncio.TimeoutError, PeerConnectionLost, HandshakeFailure)
+            UnreachablePeer, TimeoutError, PeerConnectionLost, HandshakeFailure)
         try:
-            self.logger.info("Connecting to %s...", remote)
-            # TODO: Use asyncio.wait() and our cancel_token here to cancel in case the token is
-            # triggered.
-            peer = await asyncio.wait_for(
+            self.logger.debug("Connecting to %s...", remote)
+            peer = await wait_with_token(
                 handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
-                HANDSHAKE_TIMEOUT)
+                token=self.cancel_token,
+                timeout=HANDSHAKE_TIMEOUT)
             return peer
+        except OperationCancelled:
+            # Pass it on to instruct our main loop to stop.
+            raise
         except expected_exceptions as e:
-            self.logger.info("Could not complete handshake with %s: %s", remote, repr(e))
+            self.logger.debug("Could not complete handshake with %s: %s", remote, repr(e))
         except Exception:
             self.logger.warning("Unexpected error during auth/p2p handshake with %s: %s",
                                 remote, traceback.format_exc())
         return None
 
-    async def maybe_connect_to_more_peers(self):
+    async def lookup_random_node(self) -> None:
+        # This method runs in the background, so we must catch OperationCancelled here otherwise
+        # asyncio will warn that its exception was never retrieved.
+        try:
+            await self.discovery.lookup_random(self.cancel_token)
+        except OperationCancelled:
+            pass
+        self._last_lookup = time.time()
+
+    async def maybe_connect_to_more_peers(self) -> None:
         """Connect to more peers if we're not yet connected to at least self.min_peers."""
         if len(self.connected_nodes) >= self.min_peers:
             self.logger.debug(
@@ -744,10 +728,24 @@ class PeerPool:
                 [remote for remote in self.connected_nodes])
             return
 
-        for node in await self.get_nodes_to_connect():
+        if self._last_lookup + self._lookup_interval < time.time():
+            asyncio.ensure_future(self.lookup_random_node())
+
+        await self._connect_to_nodes(self.get_nodes_to_connect())
+
+        # In some cases (e.g ROPSTEN or private testnets), the discovery table might be full of
+        # bad peers so if we can't connect to any peers we try a random bootstrap node as well.
+        if not self.peers:
+            await self._connect_to_nodes(self._get_random_bootnode())
+
+    def _get_random_bootnode(self) -> Generator[Node, None, None]:
+        yield random.choice(self.discovery.bootstrap_nodes)
+
+    async def _connect_to_nodes(self, nodes: Generator[Node, None, None]) -> None:
+        for node in nodes:
             # TODO: Consider changing connect() to raise an exception instead of returning None,
             # as discussed in
-            # https://github.com/pipermerriam/py-evm/pull/139#discussion_r152067425
+            # https://github.com/ethereum/py-evm/pull/139#discussion_r152067425
             peer = await self.connect(node)
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
@@ -755,6 +753,8 @@ class PeerPool:
                 self.connected_nodes[peer.remote] = peer
                 for subscriber in self._subscribers:
                     subscriber.register_peer(peer)
+                if len(self.connected_nodes) >= self.min_peers:
+                    return
 
     def _peer_finished(self, peer: BasePeer) -> None:
         """Remove the given peer from our list of connected nodes.
@@ -772,6 +772,60 @@ class PeerPool:
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
         return random.choice(self.peers)
+
+
+class HardCodedNodesPeerPool(PeerPool):
+    """A PeerPool that uses a hard-coded list of remote nodes to connect to.
+
+    The node discovery v4 protocol is terrible at finding LES nodes, so for now we hard-code some
+    nodes that seem to have a good uptime.
+    """
+    min_peers = 2
+
+    def __init__(self,
+                 peer_class: Type[BasePeer],
+                 chaindb: AsyncChainDB,
+                 network_id: int,
+                 privkey: datatypes.PrivateKey,
+                 ) -> None:
+        super().__init__(peer_class, chaindb, network_id, privkey, None)
+
+    def _get_random_bootnode(self) -> Generator[Node, None, None]:
+        # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
+        # hardcoded nodes.
+        yield random.choice(list(self.get_nodes_to_connect()))
+
+    async def lookup_random_node(self) -> None:
+        # Do nothing as we don't have a DiscoveryProtocol
+        pass
+
+    def get_nodes_to_connect(self) -> Generator[Node, None, None]:
+        from evm.chains.ropsten import RopstenChain
+        from evm.chains.mainnet import MainnetChain
+        if self.network_id == MainnetChain.network_id:
+            yield Node(keys.PublicKey(decode_hex("1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082")),  # noqa: E501
+                       Address("52.74.57.123", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d")),  # noqa: E501
+                       Address("191.235.84.50", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("ddd81193df80128880232fc1deb45f72746019839589eeb642d3d44efbb8b2dda2c1a46a348349964a6066f8afb016eb2a8c0f3c66f32fadf4370a236a4b5286")),  # noqa: E501
+                       Address("52.231.202.145", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99")),  # noqa: E501
+                       Address("13.93.211.84", 30303, 30303))
+        elif self.network_id == RopstenChain.network_id:
+            yield Node(keys.PublicKey(decode_hex("88c2b24429a6f7683fbfd06874ae3f1e7c8b4a5ffb846e77c705ba02e2543789d66fc032b6606a8d8888eb6239a2abe5897ce83f78dcdcfcb027d6ea69aa6fe9")),  # noqa: E501
+                       Address("163.172.157.61", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("a1ef9ba5550d5fac27f7cbd4e8d20a643ad75596f307c91cd6e7f85b548b8a6bf215cca436d6ee436d6135f9fe51398f8dd4c0bd6c6a0c332ccb41880f33ec12")),  # noqa: E501
+                       Address("51.15.218.125", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("e80276aabb7682a4a659f4341c1199de79d91a2e500a6ee9bed16ed4ce927ba8d32ba5dea357739ffdf2c5bcc848d3064bb6f149f0b4249c1f7e53f8bf02bfc8")),  # noqa: E501
+                       Address("51.15.39.57", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("584c0db89b00719e9e7b1b5c32a4a8942f379f4d5d66bb69f9c7fa97fa42f64974e7b057b35eb5a63fd7973af063f9a1d32d8c60dbb4854c64cb8ab385470258")),  # noqa: E501
+                       Address("51.15.35.2", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("d40871fc3e11b2649700978e06acd68a24af54e603d4333faecb70926ca7df93baa0b7bf4e927fcad9a7c1c07f9b325b22f6d1730e728314d0e4e6523e5cebc2")),  # noqa: E501
+                       Address("51.15.132.235", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("482484b9198530ee2e00db89791823244ca41dcd372242e2e1297dd06f6d8dd357603960c5ad9cc8dc15fcdf0e4edd06b7ad7db590e67a0b54f798c26581ebd7")),  # noqa: E501
+                       Address("51.15.75.138", 30303, 30303))
+        else:
+            raise ValueError("Unknown network_id: {}".format(self.network_id))
 
 
 class ChainInfo:

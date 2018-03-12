@@ -44,3 +44,7 @@ class PeerFinished(Exception):
 
 class OperationCancelled(Exception):
     pass
+
+
+class NoMatchingPeerCapabilities(Exception):
+    pass

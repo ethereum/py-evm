@@ -7,7 +7,6 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 """
 import asyncio
 import logging
-import random
 import time
 from typing import (
     Any,
@@ -22,6 +21,7 @@ import rlp
 from eth_utils import (
     encode_hex,
     keccak,
+    text_if_str,
     to_bytes,
     to_list,
 )
@@ -88,9 +88,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.cancel_token = CancelToken('DiscoveryProtocol')
 
     async def lookup_random(self, cancel_token: CancelToken) -> List[kademlia.Node]:
-        node_id = random.randint(0, kademlia.k_max_node_id)
-        token_chain = self.cancel_token.chain(cancel_token)
-        return await self.kademlia.lookup(node_id, token_chain)
+        return await self.kademlia.lookup_random(self.cancel_token.chain(cancel_token))
+
+    def get_random_nodes(self, count: int) -> Generator[kademlia.Node, None, None]:
+        return self.kademlia.routing.get_random_nodes(count)
 
     @property
     def pubkey(self) -> datatypes.PublicKey:
@@ -114,9 +115,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self._max_neighbours_per_packet_cache = _get_max_neighbours_per_packet()
         return self._max_neighbours_per_packet_cache
 
-    async def listen(self, loop: asyncio.AbstractEventLoop) -> Tuple[
-            asyncio.BaseTransport, asyncio.BaseProtocol]:
-        return await loop.create_datagram_endpoint(
+    async def create_endpoint(self) -> None:
+        """Create a datagram connection bound to the ip/port defined in self.address.
+
+        This method will try to establish the connection in the background and return when
+        successful.
+        """
+        loop = asyncio.get_event_loop()
+        await loop.create_datagram_endpoint(
             lambda: self, local_addr=(self.address.ip, self.address.udp_port))
 
     def connection_made(self, transport):
@@ -134,6 +140,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     # includes the fix for https://github.com/python/typeshed/pull/1740
     def datagram_received(self, data: AnyStr, addr: Tuple[str, int]) -> None:  # type: ignore
         ip_address, udp_port = addr
+        # XXX: For now we simply discard all v5 messages. The prefix below is what geth uses to
+        # identify them:
+        # https://github.com/ethereum/go-ethereum/blob/c4712bf96bc1bae4a5ad4600e9719e4a74bde7d5/p2p/discv5/udp.go#L149  # noqa: E501
+        if text_if_str(to_bytes, data).startswith(b"temporary discovery v5"):
+            self.logger.debug("Got discovery v5 msg, discarding")
+            return
+
         self.receive(kademlia.Address(ip_address, udp_port), data)  # type: ignore
 
     def error_received(self, exc: Exception) -> None:
@@ -292,7 +305,7 @@ def _test():
     from p2p import ecies
     from p2p.exceptions import OperationCancelled
 
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
@@ -300,20 +313,23 @@ def _test():
     listen_host = '0.0.0.0'
     # Listen on a port other than 30303 in case we want to test against a local geth instance
     # running on that port.
-    listen_port = 30301
+    listen_port = 30303
     privkey = ecies.generate_privkey()
     addr = kademlia.Address(listen_host, listen_port, listen_port)
-    discovery = DiscoveryProtocol(privkey, addr, constants.MAINNET_BOOTNODES)
+    discovery = DiscoveryProtocol(privkey, addr, constants.ROPSTEN_BOOTNODES)
     # local_bootnodes = [
     #     'enode://0x3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30303']  # noqa: E501
     # discovery = DiscoveryProtocol(privkey, addr, local_bootnodes)
-    loop.run_until_complete(discovery.listen(loop))
+    loop.run_until_complete(discovery.create_endpoint())
 
     async def run():
         try:
             await discovery.bootstrap()
             while True:
                 await discovery.lookup_random(CancelToken("Unused"))
+                print("====================================================")
+                print("Random nodes: ", list(discovery.get_random_nodes(10)))
+                print("====================================================")
         except OperationCancelled:
             # Give all tasks started by DiscoveryProtocol a chance to stop.
             await asyncio.sleep(2)

@@ -179,7 +179,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         for i in range(self.max_consecutive_timeouts):
             try:
                 return await peer.fetch_headers_starting_at(start_block, self.cancel_token)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self.logger.info(
                     "Timeout when fetching headers from %s (attempt %d of %d)",
                     peer, i + 1, self.max_consecutive_timeouts)
