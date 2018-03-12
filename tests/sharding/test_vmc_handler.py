@@ -318,7 +318,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # else, there should only be one validator, for easier testing.
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_num_validators()
+    ).num_validators()
     if num_validators == 0:
         # deposit as the first validator
         validator_addr = send_deposit_tx(vmc)
@@ -335,10 +335,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
 
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_num_validators()
+    ).num_validators()
     assert num_validators == 1
     assert vmc.get_eligible_proposer(shard_id) != ZERO_ADDR
-    logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
+    logger.debug("vmc_handler.num_validators()=%s", num_validators)
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
@@ -367,11 +367,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header0_1.hash)
+    ).collation_headers__score(shard_id, header0_1.hash)
     assert colhdr0_1_score == 1
     colhdr0_2_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_headers__score(shard_id, header0_2.hash)
+    ).collation_headers__score(shard_id, header0_2.hash)
     assert colhdr0_2_score == 2
     # confirm the logs are correct
     assert vmc.get_next_log(shard_id)['score'] == 2
@@ -410,7 +410,7 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     mine(vmc, 1)
     receipt_value = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_receipts__value(0)
+    ).receipts__value(0)
     # the receipt value should be equaled to the transaction value
     assert receipt_value == 1234567
 
@@ -418,10 +418,10 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     send_withdraw_tx(vmc, validator_index)
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
-    # `get_num_validators` must be 0.
+    # `num_validators` must be 0.
     num_validators = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).get_num_validators()
+    ).num_validators()
     assert num_validators == 0
 
 
