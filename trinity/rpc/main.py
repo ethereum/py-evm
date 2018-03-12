@@ -51,7 +51,7 @@ class RPCServer:
     then proxies to the appropriate method. For example, see
     :meth:`RPCServer.eth_getBlockByHash`.
     '''
-
+    chain = None
     module_classes = (
         Eth,
         EVM,
@@ -131,4 +131,4 @@ class RPCServer:
     def chain(self, new_chain):
         self.__chain = new_chain
         for module in self.modules.values():
-            module.chain = new_chain
+            module.set_chain(new_chain)

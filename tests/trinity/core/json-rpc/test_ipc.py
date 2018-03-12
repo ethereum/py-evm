@@ -27,7 +27,10 @@ def build_request(method, params=[]):
 @pytest.mark.parametrize(
     'request_msg, expected',
     (
-        (b'{}', None),
+        (
+            b'{}',
+            {'error': "Invalid Request: empty"},
+        ),
         (
             build_request('notamethod'),
             {'error': "Invalid RPC method: 'notamethod'", 'id': 3, 'jsonrpc': '2.0'},
@@ -39,15 +42,19 @@ def build_request(method, params=[]):
     ),
     ids=['empty', 'notamethod', 'eth_mining'],
 )
-async def test_ipc_requests(jsonrpc_ipc_pipe_path, request_msg, expected, event_loop, ipc_server):
+async def test_ipc_requests(jsonrpc_ipc_pipe_path,
+                            request_msg,
+                            expected,
+                            event_loop,
+                            ipc_server):
     assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
+
     reader, writer = await asyncio.open_unix_connection(jsonrpc_ipc_pipe_path, loop=event_loop)
+
     writer.write(request_msg)
     await writer.drain()
-    try:
-        result_bytes = await asyncio.tasks.wait_for(reader.readuntil(b'}'), 0.25, loop=event_loop)
-        result = json.loads(result_bytes.decode())
-    except asyncio.TimeoutError:
-        result = None
+    result_bytes = await asyncio.tasks.wait_for(reader.readuntil(b'}'), 0.25, loop=event_loop)
+
+    result = json.loads(result_bytes.decode())
     assert result == expected
     writer.close()
