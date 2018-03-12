@@ -7,12 +7,12 @@ ZERO_BYTE = b'\x00'
 
 
 @curry
-def zpad_right(value, to_size):
+def zpad_right(value: bytes, to_size: int) -> bytes:
     return value.ljust(to_size, ZERO_BYTE)
 
 
 @curry
-def zpad_left(value, to_size):
+def zpad_left(value: bytes, to_size: int) -> bytes:
     return value.rjust(to_size, ZERO_BYTE)
 
 

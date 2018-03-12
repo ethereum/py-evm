@@ -17,12 +17,12 @@ from evm.utils.padding import (
 )
 
 
-def int_to_big_endian(value):
+def int_to_big_endian(value: int) -> bytes:
     byte_length = math.ceil(value.bit_length() / 8)
     return (value).to_bytes(byte_length, byteorder='big')
 
 
-def big_endian_to_int(value):
+def big_endian_to_int(value: bytes) -> int:
     return int.from_bytes(value, byteorder='big')
 
 
@@ -60,7 +60,7 @@ def int_to_bytes32(value):
 byte_to_int = ord
 
 
-def ceilXX(value, ceiling):
+def ceilXX(value: int, ceiling: int) -> int:
     remainder = value % ceiling
     if remainder == 0:
         return value
@@ -93,11 +93,11 @@ def safe_ord(value):
         return ord(value)
 
 
-def is_even(value):
+def is_even(value: int) -> bool:
     return value % 2 == 0
 
 
-def is_odd(value):
+def is_odd(value: int) -> bool:
     return value % 2 == 1
 
 

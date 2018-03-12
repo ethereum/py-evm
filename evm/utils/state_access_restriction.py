@@ -16,6 +16,8 @@ from evm.utils.numeric import (
     int_to_big_endian,
 )
 
+from typing import Dict, Any  # noqa
+
 
 def is_accessible(key, access_prefix_list):
     """Check if a key is specified in an access prefix list."""
@@ -32,7 +34,7 @@ def remove_redundant_prefixes(prefix_list):
     this function will return just `["eth"]` as it's sufficient to match all
     strings that are covered by both `eth` and `ethereum`.
     """
-    root = {}
+    root = {}  # type: Dict[str, Any]
 
     if b'' in prefix_list:
         yield b''

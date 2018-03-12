@@ -213,10 +213,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         return token
 
     def send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
-        target_node_id = int_to_big_endian(
+        node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         self.logger.debug('>>> find_node to %s', node)
-        message = _pack(CMD_FIND_NODE.id, [target_node_id], self.privkey)
+        message = _pack(CMD_FIND_NODE.id, [node_id], self.privkey)
         self.send(node, message)
 
     def send_pong(self, node: kademlia.Node, token: AnyStr) -> None:

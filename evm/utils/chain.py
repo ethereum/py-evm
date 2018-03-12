@@ -5,8 +5,13 @@ from evm.validation import (
     validate_vm_block_numbers,
 )
 
+from evm.vm import VM
 
-def generate_vms_by_range(vm_configuration):
+from collections import OrderedDict
+from typing import Tuple, Type
+
+
+def generate_vms_by_range(vm_configuration: Tuple[Tuple[int, Type[VM]]]) -> OrderedDict:
     validate_vm_block_numbers(tuple(
         block_number
         for block_number, _

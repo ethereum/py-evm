@@ -15,25 +15,28 @@ from evm.utils.numeric import (
 )
 
 
+from evm.rlp.transactions import BaseTransaction
+
+
 EIP155_CHAIN_ID_OFFSET = 35
 V_OFFSET = 27
 
 
-def is_eip_155_signed_transaction(transaction):
+def is_eip_155_signed_transaction(transaction: BaseTransaction) -> bool:
     if transaction.v >= EIP155_CHAIN_ID_OFFSET:
         return True
     else:
         return False
 
 
-def extract_chain_id(v):
+def extract_chain_id(v: int) -> int:
     if is_even(v):
         return (v - EIP155_CHAIN_ID_OFFSET - 1) // 2
     else:
         return (v - EIP155_CHAIN_ID_OFFSET) // 2
 
 
-def extract_signature_v(v):
+def extract_signature_v(v: int) -> int:
     if is_even(v):
         return V_OFFSET + 1
     else:
@@ -63,7 +66,7 @@ def create_transaction_signature(unsigned_txn, private_key, chain_id=None):
     return v, r, s
 
 
-def validate_transaction_signature(transaction):
+def validate_transaction_signature(transaction: BaseTransaction) -> None:
     if is_eip_155_signed_transaction(transaction):
         v = extract_signature_v(transaction.v)
     else:
@@ -82,7 +85,7 @@ def validate_transaction_signature(transaction):
         raise ValidationError("Invalid Signature")
 
 
-def extract_transaction_sender(transaction):
+def extract_transaction_sender(transaction: BaseTransaction) -> bytes:
     if is_eip_155_signed_transaction(transaction):
         if is_even(transaction.v):
             v = 28
