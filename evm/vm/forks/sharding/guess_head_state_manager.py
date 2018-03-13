@@ -4,7 +4,7 @@ from collections import (
 
 import logging
 
-from evm.vm.forks.sharding.vmc_handler import (
+from evm.vm.forks.sharding.shard_tracker import (
     NoCandidateHead,
 )
 

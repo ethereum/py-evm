@@ -65,8 +65,10 @@ from evm.vm.forks.sharding.guess_head_state_manager import (
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
 )
-from evm.vm.forks.sharding.vmc_handler import (
+from evm.vm.forks.sharding.shard_tracker import (
     ShardTracker,
+)
+from evm.vm.forks.sharding.vmc_handler import (
     VMC,
 )
 from evm.vm.forks.sharding.vmc_utils import (

@@ -3,87 +3,23 @@ from typing import (  # noqa: F401
     Dict
 )
 
-from cytoolz import (
-    pipe,
-)
-
 from web3.contract import (
     Contract,
 )
 
 from eth_utils import (
-    event_signature_to_log_topic,
     is_canonical_address,
     to_checksum_address,
     to_dict,
-    to_tuple,
-)
-
-from evm.constants import (
-    ZERO_HASH32,
-)
-
-from evm.rlp.headers import (
-    CollationHeader,
 )
 
 from evm.utils.hexadecimal import (
-    encode_hex,
     decode_hex,
-)
-from evm.utils.numeric import (
-    big_endian_to_int,
 )
 
 from evm.vm.forks.sharding.config import (
     get_sharding_config,
 )
-from evm.vm.forks.sharding.constants import (
-    GENESIS_COLLATION_HASH,
-)
-
-
-class NextLogUnavailable(Exception):
-    pass
-
-
-class NoCandidateHead(Exception):
-    pass
-
-
-class UnknownShard(Exception):
-    pass
-
-
-def is_time_to_make_collation():
-    # TODO: need to be imeplemented further
-    #       should check if it is time to stop verification, and to make collations
-    return False
-
-
-def fetch_and_verify_collation(collation_hash):
-    """Fetch the collation body and verify the collation
-
-    :return: returns the collation's validity
-    """
-    # TODO: currently do nothing, should be implemented or imported when `fetch_collation` and
-    #       `verify_collation` are implemented
-    return True
-
-
-@to_dict
-def parse_collation_added_log(log):
-    # here assume `shard_id` is the first indexed , which is the second element in topics
-    shard_id_bytes32 = log['topics'][1]
-    data_hex = log['data']
-    data_bytes = decode_hex(data_hex)
-    score = big_endian_to_int(data_bytes[-32:])
-    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
-    header_bytes = shard_id_bytes32 + data_bytes[:-64]
-    collation_header = CollationHeader.from_bytes(header_bytes)
-    yield 'header', collation_header
-    yield 'is_new_head', is_new_head
-    yield 'score', score
 
 
 @to_dict
@@ -129,103 +65,6 @@ def mk_build_transaction_detail(nonce,
         yield 'data', data
 
 
-class ShardTracker:
-    '''Track logs `CollationAdded` in mainchain
-    '''
-    # For handling logs filtering
-    # Event:
-    #   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
-    COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
-        "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
-    )
-
-    current_score = None
-    new_logs = None
-    unchecked_logs = None
-
-    def __init__(self, shard_id, log_handler, vmc_address):
-        # TODO: currently set one log_handler for each shard. Should see if there is a better way
-        #       to make one log_handler shared over all shards.
-        self.shard_id = shard_id
-        self.log_handler = log_handler
-        self.vmc_address = vmc_address
-        self.current_score = None
-        self.new_logs = []
-        self.unchecked_logs = []
-
-    @to_tuple
-    def peek_new_logs(self):
-        shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
-        new_logs = self.log_handler.peek_new_logs(
-            address=self.vmc_address,
-            topics=[
-                encode_hex(self.COLLATION_ADDED_TOPIC),
-                shard_id_topic_hex,
-            ],
-        )
-        for log in new_logs:
-            yield parse_collation_added_log(log)
-
-    @to_tuple
-    def _get_new_logs(self):
-        shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
-        new_logs = self.log_handler.get_new_logs(
-            address=self.vmc_address,
-            topics=[
-                encode_hex(self.COLLATION_ADDED_TOPIC),
-                shard_id_topic_hex,
-            ],
-        )
-        for log in new_logs:
-            yield parse_collation_added_log(log)
-
-    def get_next_log(self):
-        new_logs = self._get_new_logs()
-        self.new_logs.extend(new_logs)
-        if len(self.new_logs) == 0:
-            raise NextLogUnavailable("No more next logs")
-        return self.new_logs.pop()
-
-    # TODO: this method may return wrong result when new logs arrive before the logs inside
-    #       `self.new_logs` are consumed entirely. This issue can be resolved by saving the
-    #       status of `new_logs`, `unchecked_logs`, and `current_score`, when it start to run
-    #       `GUESS_HEAD`. If there is a new block arriving, just restore them to the saved status,
-    #       append new logs to `new_logs`, and re-run `GUESS_HEAD`
-    def fetch_candidate_head(self):
-        # Try to return a log that has the score that we are checking for,
-        # checking in order of oldest to most recent.
-        unchecked_logs = pipe(
-            self.unchecked_logs,
-            enumerate,
-            tuple,
-            reversed,
-            tuple,
-        )
-        current_score = self.current_score
-
-        for idx, log_entry in unchecked_logs:
-            if log_entry['score'] == current_score:
-                return self.unchecked_logs.pop(idx)
-        # If no further recorded but unchecked logs exist, go to the next
-        # is_new_head = true log
-        while True:
-            try:
-                log_entry = self.get_next_log()
-            # TODO: currently just raise when there is no log anymore
-            except NextLogUnavailable:
-                # TODO: should returns the genesis collation instead or just leave it?
-                raise NoCandidateHead("No candidate head available")
-            if log_entry['is_new_head']:
-                break
-            self.unchecked_logs.append(log_entry)
-        self.current_score = log_entry['score']
-        return log_entry
-
-    def clean_logs(self):
-        self.new_logs = []
-        self.unchecked_logs = []
-
-
 class VMC(Contract):
 
     logger = logging.getLogger("evm.chain.sharding.VMC")
@@ -240,24 +79,6 @@ class VMC(Contract):
 
     def get_default_sender_address(self):
         return self.default_sender_address
-
-    # def set_shard_tracker(self, shard_id, shard_tracker):
-    #     self.shard_trackers[shard_id] = shard_tracker
-
-    # def get_shard_tracker(self, shard_id):
-    #     if shard_id not in self.shard_trackers:
-    #         raise UnknownShard('Shard {} is not tracked'.format(shard_id))
-    #     return self.shard_trackers[shard_id]
-
-    # # TODO: currently just calls `shard_tracker.get_next_log`
-    # def get_next_log(self, shard_id):
-    #     shard_tracker = self.get_shard_tracker(shard_id)
-    #     return shard_tracker.get_next_log()
-
-    # # TODO: currently just calls `shard_tracker.fetch_candidate_head`
-    # def fetch_candidate_head(self, shard_id):
-    #     shard_tracker = self.get_shard_tracker(shard_id)
-    #     return shard_tracker.fetch_candidate_head()
 
     def mk_default_contract_tx_detail(self,
                                       sender_address=None,
