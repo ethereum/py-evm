@@ -1,6 +1,5 @@
-from itertools import (
-    chain,
-)
+import itertools
+import math
 
 from eth_utils import (
     keccak,
@@ -11,8 +10,14 @@ from evm.constants import (
     COLLATION_SIZE,
 )
 
+from cytoolz import (
+    partition,
+    pipe,
+)
+
 
 def chunk_iterator(blob):
+    # TODO: proper blob serialization when specification is out
     if len(blob) % CHUNK_SIZE != 0:
         raise ValueError("Blob size is {} which is not a multiple of chunk size ({})".format(
             len(blob),
@@ -23,41 +28,27 @@ def chunk_iterator(blob):
 
 
 def calc_merkle_root(leaves):
-    current_layer = (keccak(leaf) for leaf in leaves)
-    next_layer = []
-
-    # check that leaves is not empty
-    try:
-        first_element = next(current_layer)
-    except StopIteration:
+    leaves = list(leaves)  # convert potential iterator to list
+    if len(leaves) == 0:
         raise ValueError("No leaves given")
-    else:
-        current_layer = chain([first_element], current_layer)
 
-    while True:
-        try:
-            left = next(current_layer)
-        except StopIteration:
-            # if all nodes in the current layer are processed, go to the next one
-            assert len(next_layer) >= 1
-            current_layer = iter(next_layer)
-            next_layer = []
-            continue
+    n_layers = math.log2(len(leaves))
+    if not n_layers.is_integer():
+        raise ValueError("Leave number is not a power of two")
+    n_layers = int(n_layers)
 
-        try:
-            right = next(current_layer)
-        except StopIteration:
-            if len(next_layer) == 0:
-                # current_layer consists of a single element only, so we have reached the root
-                return left
-            else:
-                raise ValueError("Number of leaves must be a power of two")
+    first_layer = (keccak(leaf) for leaf in leaves)
 
-        next_layer.append(keccak(left + right))
+    def hash_layer(layer):
+        for left, right in partition(2, layer):
+            yield keccak(left + right)
+
+    root, *extras = pipe(first_layer, *itertools.repeat(hash_layer, n_layers))
+    assert not extras, "Invariant: should only be a single value"
+    return root
 
 
 def calc_chunks_root(blob):
-    # remove empty chunks at the right
     if len(blob) != COLLATION_SIZE:
         raise ValueError("Blob is {} instead of {} bytes in size".format(
             len(blob),
