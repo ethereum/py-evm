@@ -146,10 +146,15 @@ class VMC(Contract):
         return decode_hex(address_in_hex)
 
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
-        if gas is None:
-            gas = self.config['DEFAULT_GAS']
         tx_detail = self.mk_default_contract_tx_detail(gas=gas)
         return self.functions.get_collation_headers__parent_hash(
+            shard_id,
+            collation_hash,
+        ).call(tx_detail)
+
+    def get_collation_score(self, shard_id, collation_hash, gas=None):
+        tx_detail = self.mk_default_contract_tx_detail(gas=gas)
+        return self.functions.get_collation_headers__score(
             shard_id,
             collation_hash,
         ).call(tx_detail)

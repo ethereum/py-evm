@@ -22,6 +22,12 @@ def fetch_and_verify_collation(collation_hash):
     """
     # TODO: currently do nothing, should be implemented or imported when `fetch_collation` and
     #       `verify_collation` are implemented
+    # data = get_from_p2p_network(collation_hash.data_root)
+    # chunks = DATA_SIZE // 32
+    # mtree = [0] * chunks + [data[chunks*32: chunks*32+32] for i in range(chunks)]
+    # for i in range(chunks-1, 0, -1):
+    #     mtree[i] = sha3(mtree[i*2] + mtree[i*2+1])
+    # assert mtree[i] == collation_hash.data_root
     return True
 
 
@@ -47,8 +53,8 @@ class GuessHeadStateManager:
     collation_validity_cache = None
     head_validity = None
     head_collation_hash = None
+    current_collation_hash = None
     last_period_fetching_candidate_head = None
-    is_verifying_collations = None
 
     def __init__(self, vmc, shard_id, shard_tracker, my_address):
         # a well-setup vmc handler with a shard_tracker in shard `shard_id`
@@ -69,8 +75,7 @@ class GuessHeadStateManager:
         # order: older -------> newer
         self.last_period_fetching_candidate_head = 0
         # map[collation] -> thread
-        self.thread = []
-        self.is_verifying_collations = False
+        self.threads = defaultdict(list)
 
     def get_current_period(self):
         return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
@@ -153,6 +158,7 @@ class GuessHeadStateManager:
                 # TODO: should check if it is correct
                 # flush old candidate heads first, since all those candidates are stale
                 self.shard_tracker.clean_logs()
+                pass
             # perform head changing
             self.head_collation_hash = self.fetch_candidate_head_hash()
             if self.head_collation_hash is not None:
@@ -160,8 +166,7 @@ class GuessHeadStateManager:
 
     def process_current_collation(self):
         # only process collations when the node is collating
-        if (self.is_verifying_collations and
-                (self.head_collation_hash is not None) and
+        if ((self.head_collation_hash is not None) and
                 (self.current_collation_hash != GENESIS_COLLATION_HASH)):
             # process current collation
             self.process_collation(self.head_collation_hash, self.current_collation_hash)
@@ -170,24 +175,24 @@ class GuessHeadStateManager:
                 self.current_collation_hash,
             )
 
-    def try_create_collation(self):
-        # Check if it is time to collate  #################################
-        if (self.head_collation_hash is None or
-                (not self.head_validity[self.head_collation_hash])):
-            return None
-        # TODO: currently it is not correct,
-        #       still need to check if all of the thread has finished,
-        #       and the validity of head_collation is True
-        is_to_create_collation = (
+    def is_to_create_collation(self):
+        return (
             self.is_late_collator_period() or
             self.current_collation_hash == GENESIS_COLLATION_HASH
         )
-        if is_to_create_collation:
-            head_collation_hash = self.head_collation_hash
-            create_collation(head_collation_hash, data="123")
-            self.head_collation_hash = None
-            return head_collation_hash
-        return None
+
+    def try_create_collation(self):
+        # Check if it is time to collate  #################################
+        # TODO: currently it is not correct,
+        #       still need to check if all of the thread has finished,
+        #       and the validity of head_collation is True
+        if (self.head_collation_hash is None or
+                (not self.head_validity[self.head_collation_hash])):
+            return None
+        head_collation_hash = self.head_collation_hash
+        create_collation(head_collation_hash, data="123")
+        self.head_collation_hash = None
+        return head_collation_hash
 
     def guess_head_daemon(self, stop_after_create_collation=False):
         # At any time, there should be only one `head_collation`
@@ -196,16 +201,18 @@ class GuessHeadStateManager:
         #    2. There are new logs, and `fetch_candidate_head` is called
         # When to stop processing collation?
         self.head_collation_hash = self.current_collation_hash = None
-        self.is_verifying_collations = False
+        is_verifying_collations = False
         while True:
-            self.is_verifying_collations = (
+            is_verifying_collations = (
                 self.is_collator_in_lookahead_periods() or
                 self.head_collation_hash is None
             )
             self.try_change_head()
-            self.process_current_collation()
-            parent_hash = self.try_create_collation()
-            if stop_after_create_collation and parent_hash is not None:
-                return parent_hash
-            # time.sleep(0.5)
-            # input()
+
+            if is_verifying_collations:
+                self.process_current_collation()
+
+            if self.is_to_create_collation():
+                parent_hash = self.try_create_collation()
+                if stop_after_create_collation and parent_hash is not None:
+                    return parent_hash
