@@ -4,12 +4,14 @@ from collections import (
 
 import logging
 
+from evm.vm.forks.sharding.constants import (
+    GENESIS_COLLATION_HASH,
+)
+
 from evm.vm.forks.sharding.shard_tracker import (
     NoCandidateHead,
 )
 
-
-GENESIS_COLLATION_HASH = b'\x00' * 32
 NUM_RESERVED_BLOCKS = 5
 
 
@@ -25,7 +27,7 @@ def fetch_and_verify_collation(collation_hash):
 
 def threaded_execute(function, *args, **kwargs):
     # TODO: fake thread, should be replaced by Threading or async
-    function(*args, **kwargs)
+    return function(*args, **kwargs)
 
 
 def create_collation(parent_hash, data):
@@ -67,7 +69,7 @@ class GuessHeadStateManager:
         # order: older -------> newer
         self.last_period_fetching_candidate_head = 0
         # map[collation] -> thread
-        self.collation_thread = []
+        self.thread = []
         self.is_verifying_collations = False
 
     def get_current_period(self):
@@ -103,14 +105,17 @@ class GuessHeadStateManager:
             (current_block_num + NUM_RESERVED_BLOCKS >= last_block_num_in_current_period)
         )
 
-    def verify_collation(self, collation_hash):
-        # TODO: thread-safe, not sure if GIL is countable
-        if collation_hash not in self.collation_validity_cache:
-            self.collation_validity_cache[collation_hash] = fetch_and_verify_collation(
-                collation_hash,
-            )
-        return self.collation_validity_cache[collation_hash]
+    def verify_collation(self, head_collation_hash, collation_hash):
+        collation_validity = fetch_and_verify_collation(
+            collation_hash,
+        )
+        self.collation_validity_cache[collation_hash] = collation_validity
+        if not collation_validity:
+            # TODO: make sure if it is thread-safe
+            self.head_validity[head_collation_hash] = False
 
+    # TODO:
+    # use `self.head_collation_hash` and `self.collation_hash` over passing them as parameters?
     def process_collation(self, head_collation_hash, checking_collation_hash):
         """
         Verfiy collation and return the result.
@@ -118,10 +123,13 @@ class GuessHeadStateManager:
         indicate the current chain which we are verifying is invalid,
         should jump to another candidate chain
         """
-        result = self.verify_collation(checking_collation_hash)
-        if not result:
-            # TODO: thread-safe right?
-            self.head_validity[head_collation_hash] = False
+        # Verify the collation only when it is not verified before
+        if checking_collation_hash not in self.collation_validity_cache:
+            threaded_execute(
+                self.verify_collation,
+                head_collation_hash,
+                checking_collation_hash,
+            )
 
     def fetch_candidate_head_hash(self):
         head_collation_hash = None
@@ -156,11 +164,7 @@ class GuessHeadStateManager:
                 (self.head_collation_hash is not None) and
                 (self.current_collation_hash != GENESIS_COLLATION_HASH)):
             # process current collation
-            threaded_execute(
-                self.process_collation,
-                self.head_collation_hash,
-                self.current_collation_hash,
-            )
+            self.process_collation(self.head_collation_hash, self.current_collation_hash)
             self.current_collation_hash = self.vmc.get_parent_hash(
                 self.shard_id,
                 self.current_collation_hash,
