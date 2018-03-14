@@ -27,20 +27,20 @@ def test_chunk_iteration():
     test_chunks = [zpad_left(int_to_big_endian(i), CHUNK_SIZE) for i in range(chunk_number)]
 
     chunks = test_chunks
-    blob = b"".join(chunks)
-    for recovered, original in zip_longest(chunk_iterator(blob), chunks, fillvalue=None):
+    body = b"".join(chunks)
+    for recovered, original in zip_longest(chunk_iterator(body), chunks, fillvalue=None):
         assert recovered is not None and original is not None
         assert recovered == original
 
     chunks = test_chunks[:-2]
-    blob = b"".join(chunks)
-    for recovered, original in zip_longest(chunk_iterator(blob), chunks, fillvalue=None):
+    body = b"".join(chunks)
+    for recovered, original in zip_longest(chunk_iterator(body), chunks, fillvalue=None):
         assert recovered is not None and original is not None
         assert recovered == original
 
-    blob = b"".join(test_chunks)[:-2]
+    body = b"".join(test_chunks)[:-2]
     with pytest.raises(ValueError):
-        next(chunk_iterator(blob))
+        next(chunk_iterator(body))
 
 
 @pytest.mark.parametrize("leaves,root", [
@@ -79,6 +79,6 @@ def test_chunks_root_calculation():
 
     chunk_number = COLLATION_SIZE // CHUNK_SIZE
     chunks = [b"\x00" * CHUNK_SIZE] * chunk_number
-    blob = b"".join(chunks)
+    body = b"".join(chunks)
 
-    assert calc_chunks_root(blob) == calc_merkle_root(chunks)
+    assert calc_chunks_root(body) == calc_merkle_root(chunks)

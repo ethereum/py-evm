@@ -16,15 +16,14 @@ from cytoolz import (
 )
 
 
-def chunk_iterator(blob):
-    # TODO: proper blob serialization when specification is out
-    if len(blob) % CHUNK_SIZE != 0:
+def chunk_iterator(collation_body):
+    if len(collation_body) % CHUNK_SIZE != 0:
         raise ValueError("Blob size is {} which is not a multiple of chunk size ({})".format(
-            len(blob),
+            len(collation_body),
             CHUNK_SIZE,
         ))
-    for chunk_start in range(0, len(blob), CHUNK_SIZE):
-        yield blob[chunk_start:chunk_start + CHUNK_SIZE]
+    for chunk_start in range(0, len(collation_body), CHUNK_SIZE):
+        yield collation_body[chunk_start:chunk_start + CHUNK_SIZE]
 
 
 def hash_layer(layer):
@@ -49,12 +48,12 @@ def calc_merkle_root(leaves):
     return root
 
 
-def calc_chunks_root(blob):
-    if len(blob) != COLLATION_SIZE:
+def calc_chunks_root(collation_body):
+    if len(collation_body) != COLLATION_SIZE:
         raise ValueError("Blob is {} instead of {} bytes in size".format(
-            len(blob),
+            len(collation_body),
             COLLATION_SIZE
         ))
 
-    chunks = chunk_iterator(blob)
+    chunks = chunk_iterator(collation_body)
     return calc_merkle_root(chunks)
