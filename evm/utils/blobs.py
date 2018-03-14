@@ -27,6 +27,11 @@ def chunk_iterator(blob):
         yield blob[chunk_start:chunk_start + CHUNK_SIZE]
 
 
+def hash_layer(layer):
+        for left, right in partition(2, layer):
+            yield keccak(left + right)
+
+
 def calc_merkle_root(leaves):
     leaves = list(leaves)  # convert potential iterator to list
     if len(leaves) == 0:
@@ -38,10 +43,6 @@ def calc_merkle_root(leaves):
     n_layers = int(n_layers)
 
     first_layer = (keccak(leaf) for leaf in leaves)
-
-    def hash_layer(layer):
-        for left, right in partition(2, layer):
-            yield keccak(left + right)
 
     root, *extras = pipe(first_layer, *itertools.repeat(hash_layer, n_layers))
     assert not extras, "Invariant: should only be a single value"
