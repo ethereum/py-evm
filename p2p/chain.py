@@ -6,10 +6,6 @@ import time
 import traceback
 from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple, Union  # noqa: F401
 
-from eth_utils import (
-    encode_hex,
-)
-
 from evm.constants import EMPTY_UNCLE_HASH
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
@@ -298,14 +294,8 @@ class ChainSyncer(PeerPoolSubscriber):
             receipts_tries = await loop.run_in_executor(
                 self.executor, list, iterator)  # type: List[Tuple[bytes, Any]]
             for receipt_root, trie_dict_data in receipts_tries:
-                if receipt_root not in self._pending_receipts:
-                    self.logger.warning(
-                        "Got unexpected receipt root: %s",
-                        encode_hex(receipt_root),
-                    )
-                    continue
                 await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-                self._pending_receipts.pop(receipt_root)
+                self._pending_receipts.pop(receipt_root, None)
         elif isinstance(cmd, eth.NewBlock):
             msg = cast(Dict[str, Any], msg)
             header = msg['block'][0]
