@@ -243,8 +243,8 @@ class BasePeer:
         try:
             return await wait_with_token(
                 self.reader.readexactly(n), token=self.cancel_token, timeout=self.conn_idle_timeout)
-        except (asyncio.IncompleteReadError, ConnectionResetError):
-            raise PeerConnectionLost("EOF reading from stream")
+        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
+            raise PeerConnectionLost(repr(e))
 
     async def run(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
         try:
