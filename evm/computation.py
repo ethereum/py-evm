@@ -2,6 +2,11 @@ import itertools
 import logging
 from contextlib import contextmanager
 
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 from evm.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -53,7 +58,7 @@ def memory_gas_cost(size_in_bytes):
     return total_cost
 
 
-class BaseComputation(Configurable):
+class BaseComputation(Configurable, metaclass=ABCMeta):
     """
     The execution computation
     """
@@ -373,12 +378,14 @@ class BaseComputation(Configurable):
     #
     # State Transition
     #
+    @abstractmethod
     def apply_message(self):
         """
         Execution of an VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def apply_create_message(self):
         """
         Execution of an VM message to create a new contract.

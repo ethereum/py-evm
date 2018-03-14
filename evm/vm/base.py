@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
 
 import contextlib
 import logging
@@ -40,7 +44,7 @@ from evm.vm.message import (
 )
 
 
-class BaseVM(Configurable):
+class BaseVM(Configurable, metaclass=ABCMeta):
     """
     The VM class represents the Chain rules for a specific protocol definition
     such as the Frontier or Homestead network.  Define a Chain which specifies
@@ -389,6 +393,7 @@ class BaseVM(Configurable):
     # Headers
     #
     @classmethod
+    @abstractmethod
     def create_header_from_parent(cls, parent_header, **header_params):
         """
         Creates and initializes a new block header from the provided
@@ -396,6 +401,7 @@ class BaseVM(Configurable):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def configure_header(self, **header_params):
         """
         Setup the current header with the provided parameters.  This can be
@@ -405,6 +411,7 @@ class BaseVM(Configurable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
+    @abstractmethod
     def compute_difficulty(cls, parent_header, timestamp):
         raise NotImplementedError("Must be implemented by subclasses")
 
