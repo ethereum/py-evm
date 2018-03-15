@@ -1,6 +1,11 @@
 import itertools
 import math
 
+from typing import (
+    Iterable,
+    Iterator,
+)
+
 from eth_utils import (
     keccak,
 )
@@ -16,7 +21,7 @@ from cytoolz import (
 )
 
 
-def chunk_iterator(collation_body):
+def chunk_iterator(collation_body: bytes) -> Iterator[bytes]:
     if len(collation_body) % CHUNK_SIZE != 0:
         raise ValueError("Blob size is {} which is not a multiple of chunk size ({})".format(
             len(collation_body),
@@ -26,12 +31,12 @@ def chunk_iterator(collation_body):
         yield collation_body[chunk_start:chunk_start + CHUNK_SIZE]
 
 
-def hash_layer(layer):
-        for left, right in partition(2, layer):
-            yield keccak(left + right)
+def hash_layer(layer: Iterable[bytes]) -> Iterator[bytes]:
+    for left, right in partition(2, layer):
+        yield keccak(left + right)
 
 
-def calc_merkle_root(leaves):
+def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
     leaves = list(leaves)  # convert potential iterator to list
     if len(leaves) == 0:
         raise ValueError("No leaves given")
@@ -48,7 +53,7 @@ def calc_merkle_root(leaves):
     return root
 
 
-def calc_chunks_root(collation_body):
+def calc_chunks_root(collation_body: bytes) -> bytes:
     if len(collation_body) != COLLATION_SIZE:
         raise ValueError("Blob is {} instead of {} bytes in size".format(
             len(collation_body),
