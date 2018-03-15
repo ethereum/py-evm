@@ -9,6 +9,7 @@ from rlp.sedes import (
 
 from cytoolz import (
     first,
+    sliding_window,
 )
 from eth_utils import (
     keccak,
@@ -249,6 +250,63 @@ class CollationHeader(rlp.Serializable):
         # It's padded to 32 bytes because `bytes32` is easier to handle in Vyper
         return pad32(header_hash[6:])
 
+    def to_signed_collation(self) -> "CollationHeader":
+        raise NotImplementedError("TODO")
+
+
+class CollationHeader(rlp.Serializable):
+    """The header of a collation signed by the proposer."""
+
+    fields = [
+        ("shard_id", int32),
+        ("parent_hash", hash32),
+        ("chunks_root", hash32),
+        ("period", int32),
+        ("height", int32),
+        ("proposer_address", address),
+        ("proposer_bid", int32),
+        ("proposer_signature", Binary.fixed_length(96)),
+    ]
+
+    smc_field_sizes = [
+        ("shard_id", 32),
+        ("parent_hash", 32),
+        ("chunks_root", 32),
+        ("period", 32),
+        ("height", 32),
+        ("proposer_address", 32),
+        ("proposer_bid", 32),
+        ("proposer_signature", 96),
+    ]
+    smc_encoded_size = sum(size for _, size in smc_field_sizes)
+    if [name for name, _ in smc_field_sizes] != [name for name, _ in fields]:
+        raise ValueError("SMC fields differ from RLP fields")
+
+    def __repr__(self):
+        return "<CollationHeader #{0} {1} (shard #{2})>".format(
+            self.height,
+            encode_hex(self.hash)[2:10],
+            self.shard_id,
+        )
+
+    def to_bytes(self):
+        encoded = b''.join([
+            int_to_bytes32(self.shard_id),
+            self.parent_hash,
+            self.chunks_root,
+            int_to_bytes32(self.period),
+            int_to_bytes32(self.height),
+            pad32(self.proposer_address),
+            int_to_bytes32(self.proposer_bid),
+            self.proposer_signature,
+        ])
+        assert len(encoded) == self.smc_encoded_size
+        return encoded
+
+    @property
+    def hash(self):
+        return keccak(self.to_bytes())
+
     @classmethod
     @to_dict
     def _deserialize_header_bytes_to_dict(cls, header_bytes: bytes) -> Iterator[Tuple[str, Any]]:
@@ -262,10 +320,11 @@ class CollationHeader(rlp.Serializable):
                     encode_hex(header_bytes),
                 )
             )
-        for idx, field in enumerate(cls.fields):
-            field_name, field_type = field
-            start_index = idx * obj_size
-            field_bytes = header_bytes[start_index:(start_index + obj_size)]
+
+        start_indices = accumulate(lambda i, field: i + field[1], cls.smc_field_sizes, 0)
+        field_bounds = sliding_window(2, start_indices)
+        for (start_index, end_index), (field_name, field_type) in zip(field_bounds, cls.fields):
+            field_bytes = header_bytes[start_index:end_index]
             if field_type == rlp.sedes.big_endian_int:
                 # remove the leading zeros, to avoid `not minimal length` error in deserialization
                 formatted_field_bytes = field_bytes.lstrip(b'\x00')
