@@ -28,6 +28,14 @@ CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 
 
+class DummyComputation(BaseComputation):
+    def apply_message(self):
+        pass
+
+    def apply_create_message(self):
+        pass
+
+
 @pytest.fixture
 def transaction_context():
     tx_context = BaseTransactionContext(
@@ -52,7 +60,7 @@ def message():
 
 @pytest.fixture
 def computation(message, transaction_context):
-    computation = BaseComputation(
+    computation = DummyComputation(
         vm_state=None,
         message=message,
         transaction_context=transaction_context,
@@ -83,7 +91,7 @@ def test_is_origin_computation(computation, transaction_context):
         code=b'',
         gas=100,
     )
-    computation2 = BaseComputation(
+    computation2 = DummyComputation(
         vm_state=None,
         message=message2,
         transaction_context=transaction_context,
