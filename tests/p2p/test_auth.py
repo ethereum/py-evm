@@ -19,6 +19,14 @@ from p2p.auth import (
 from p2p.peer import BasePeer
 
 
+class DummyPeer(BasePeer):
+    def process_sub_proto_handshake(self):
+        pass
+
+    def send_sub_proto_handshake(self):
+        pass
+
+
 @pytest.mark.asyncio
 async def test_handshake():
     # This data comes from https://gist.github.com/fjl/3a78780d17c755d22df2
@@ -125,13 +133,13 @@ async def test_handshake():
         (object,),
         {"write": responder_reader.feed_data}
     )
-    initiator_peer = BasePeer(
+    initiator_peer = DummyPeer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
         egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, chaindb=None,
         network_id=1)
     initiator_peer.base_protocol.send_handshake()
-    responder_peer = BasePeer(
+    responder_peer = DummyPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=None, network_id=1)
