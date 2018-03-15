@@ -1,6 +1,8 @@
+import asyncio
 from collections import (
     defaultdict,
 )
+import time
 
 import logging
 
@@ -15,25 +17,42 @@ from evm.vm.forks.sharding.shard_tracker import (
 NUM_RESERVED_BLOCKS = 5
 
 
-def fetch_and_verify_collation(collation_hash):
+logger = logging.getLogger("evm.chain.sharding.guess_head_state_manager")
+
+
+async def download_collation(collation_hash):
+    # TODO: need to implemented after p2p part is done
+    print("!@# Start downloading collation {}".format(collation_hash))
+    await asyncio.sleep(2)
+    print("!@# Finished downloading collation {}".format(collation_hash))
+    collation = collation_hash
+    return collation
+
+
+async def verify_collation(collation, collation_hash):
+    # TODO: need to implemented after p2p part is done
+    print("!@# Verifying collation {}".format(collation_hash))
+    await asyncio.sleep(0.01)
+    # data = get_from_p2p_network(collation_hash.data_root)
+    # chunks = DATA_SIZE // 32
+    # mtree = [0] * chunks + [data[chunks*32: chunks*32+32] for i in range(chunks)]
+    # for i in range(chunks-1, 0, -1):
+    #     mtree[i] = sha3(mtree[i*2] + mtree[i*2+1])
+    # assert mtree[i] == collation.data_root
+    return True
+
+
+async def fetch_and_verify_collation(collation_hash):
     """Fetch the collation body and verify the collation
 
     :return: returns the collation's validity
     """
     # TODO: currently do nothing, should be implemented or imported when `fetch_collation` and
     #       `verify_collation` are implemented
-    # data = get_from_p2p_network(collation_hash.data_root)
-    # chunks = DATA_SIZE // 32
-    # mtree = [0] * chunks + [data[chunks*32: chunks*32+32] for i in range(chunks)]
-    # for i in range(chunks-1, 0, -1):
-    #     mtree[i] = sha3(mtree[i*2] + mtree[i*2+1])
-    # assert mtree[i] == collation_hash.data_root
-    return True
 
-
-def threaded_execute(function, *args, **kwargs):
-    # TODO: fake thread, should be replaced by Threading or async
-    return function(*args, **kwargs)
+    print("!@# fetch_and_verify_collation: {}".format(collation_hash))
+    collation = await download_collation(collation_hash)
+    return await verify_collation(collation, collation_hash)
 
 
 def create_collation(parent_hash, data):
@@ -46,9 +65,15 @@ def create_collation(parent_hash, data):
     return True
 
 
+def clean_done_task(tasks):
+    return [task for task in tasks if not task.done()]
+
+
 class GuessHeadStateManager:
 
     logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
+
+    TIME_ONE_STEP = 0.1
 
     collation_validity_cache = None
     head_validity = None
@@ -110,10 +135,18 @@ class GuessHeadStateManager:
             (current_block_num + NUM_RESERVED_BLOCKS >= last_block_num_in_current_period)
         )
 
-    def verify_collation(self, head_collation_hash, collation_hash):
-        collation_validity = fetch_and_verify_collation(
+    async def verify_collation(self, head_collation_hash, collation_hash):
+        print(
+            "!@# verify_collation: hash={}, score={}".format(
+                collation_hash,
+                self.vmc.get_collation_score(self.shard_id, collation_hash),
+            )
+        )
+        coroutine = fetch_and_verify_collation(
             collation_hash,
         )
+        task = asyncio.ensure_future(coroutine)
+        collation_validity = await asyncio.wait_for(task, None)
         self.collation_validity_cache[collation_hash] = collation_validity
         if not collation_validity:
             # TODO: make sure if it is thread-safe
@@ -121,7 +154,7 @@ class GuessHeadStateManager:
 
     # TODO:
     # use `self.head_collation_hash` and `self.collation_hash` over passing them as parameters?
-    def process_collation(self, head_collation_hash, checking_collation_hash):
+    async def process_collation(self, head_collation_hash, checking_collation_hash):
         """
         Verfiy collation and return the result.
         If the verification fails(`self.verify_collation` returns False),
@@ -129,12 +162,22 @@ class GuessHeadStateManager:
         should jump to another candidate chain
         """
         # Verify the collation only when it is not verified before
-        if checking_collation_hash not in self.collation_validity_cache:
-            threaded_execute(
-                self.verify_collation,
+        if checking_collation_hash in self.collation_validity_cache:
+            return
+        print(
+            "!@# process_collation: head_hash={}, hash={}, score={}".format(
                 head_collation_hash,
                 checking_collation_hash,
+                self.vmc.get_collation_score(self.shard_id, checking_collation_hash),
             )
+        )
+        coroutine = self.verify_collation(head_collation_hash, checking_collation_hash)
+        task = asyncio.ensure_future(coroutine)
+        await asyncio.wait(task)
+        # self.tasks.append(task)
+        # await asyncio.wait(self.tasks, timeout=0.001)
+        # not_finished_tasks = clean_done_task(self.tasks)
+        # self.tasks = not_finished_tasks
 
     def fetch_candidate_head_hash(self):
         head_collation_hash = None
@@ -166,18 +209,29 @@ class GuessHeadStateManager:
 
     def process_current_collation(self):
         # only process collations when the node is collating
-        if ((self.head_collation_hash is not None) and
-                (self.current_collation_hash != GENESIS_COLLATION_HASH)):
-            # process current collation
-            self.process_collation(self.head_collation_hash, self.current_collation_hash)
-            self.current_collation_hash = self.vmc.get_parent_hash(
-                self.shard_id,
-                self.current_collation_hash,
-            )
+        if self.current_collation_hash in self.collation_validity_cache:
+            return
+        if self.head_collation_hash is None:
+            return
+        if self.current_collation_hash is None:
+            return
+        # process current collation
+        coro = self.verify_collation(
+            self.head_collation_hash,
+            self.current_collation_hash,
+        )
+        task = asyncio.ensure_future(coro)
+        asyncio.wait(task)
+        self.tasks.append(task)
+        self.current_collation_hash = self.vmc.get_parent_hash(
+            self.shard_id,
+            self.current_collation_hash,
+        )
 
     def is_to_create_collation(self):
         return (
-            self.is_late_collator_period() or
+            # FIXME: temparary commented out for now, ignoring the collator period issue
+            # self.is_late_collator_period() or
             self.current_collation_hash == GENESIS_COLLATION_HASH
         )
 
@@ -193,6 +247,42 @@ class GuessHeadStateManager:
         create_collation(head_collation_hash, data="123")
         self.head_collation_hash = None
         return head_collation_hash
+
+    async def async_loop_main(self, stop_after_create_collation=False):
+        # At any time, there should be only one `head_collation`
+        # The timing where `head_collation_hash` change are:
+        #    1. `head_collation` is invalid, change to the new head
+        #    2. There are new logs, and `fetch_candidate_head` is called
+        # When to stop processing collation?
+        self.head_collation_hash = self.current_collation_hash = None
+        is_verifying_collations = False
+        self.tasks = []
+        while True:
+            is_verifying_collations = (
+                self.is_collator_in_lookahead_periods() or
+                self.head_collation_hash is None
+            )
+            self.try_change_head()
+
+            if is_verifying_collations:
+                # need coroutines
+                self.process_current_collation()
+
+            if self.is_to_create_collation():
+                parent_hash = self.try_create_collation()
+                if stop_after_create_collation and parent_hash is not None:
+                    print("!@# num_tasks={}, tasks={}".format(len(self.tasks), self.tasks))
+                    await asyncio.wait(self.tasks)
+                    return parent_hash
+
+            await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
+            not_finished_tasks = clean_done_task(self.tasks)
+            self.tasks = not_finished_tasks
+
+    def async_daemon(self, stop_after_create_collation=False):
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(self.async_loop_main(stop_after_create_collation))
+        return result
 
     def guess_head_daemon(self, stop_after_create_collation=False):
         # At any time, there should be only one `head_collation`

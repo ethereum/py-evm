@@ -11,6 +11,12 @@ from tests.sharding.fixtures import (  # noqa: F401
 )
 
 
+def test_guess_head_state_manager_daemon_async(ghs_manager, vmc):  # noqa: F811
+    # without fork
+    header_hash = mk_colhdr_chain(vmc, default_shard_id, 6)
+    assert ghs_manager.async_daemon(stop_after_create_collation=True) == header_hash
+
+
 def test_guess_head_state_manager_daemon_without_fork(ghs_manager, vmc):  # noqa: F811
     # without fork
     header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
