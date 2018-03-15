@@ -1,3 +1,8 @@
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 import rlp
 
 from trie import (
@@ -50,37 +55,46 @@ from evm.utils.state_access_restriction import (
 from .hash_trie import HashTrie
 
 
-class BaseAccountStateDB:
+class BaseAccountStateDB(metaclass=ABCMeta):
 
+    @abstractmethod
     def apply_state_dict(self, state_dict):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def decommission(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
-    @property
+    # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
+    @property  # type: ignore
+    @abstractmethod
     def root_hash(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
-    @root_hash.setter
+    @root_hash.setter  # type: ignore
+    @abstractmethod
     def root_hash(self, value):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Storage
     #
+    @abstractmethod
     def get_storage(self, address, slot):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def set_storage(self, address, slot, value):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Balance
     #
+    @abstractmethod
     def get_balance(self, address):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def set_balance(self, address, balance):
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -90,21 +104,26 @@ class BaseAccountStateDB:
     #
     # Code
     #
+    @abstractmethod
     def set_code(self, address, code):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def get_code(self, address):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def get_code_hash(self, address):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def delete_code(self, address):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Account Methods
     #
+    @abstractmethod
     def account_is_empty(self, address):
         raise NotImplementedError("Must be implemented by subclass")
 

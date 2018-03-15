@@ -1,3 +1,8 @@
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -22,7 +27,7 @@ from evm.utils.state_access_restriction import (
 )
 
 
-class BaseTransaction(rlp.Serializable):
+class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -85,6 +90,7 @@ class BaseTransaction(rlp.Serializable):
         else:
             return True
 
+    @abstractmethod
     def check_signature_validity(self):
         """
         Checks signature validity, raising a ValidationError if the signature
@@ -92,6 +98,7 @@ class BaseTransaction(rlp.Serializable):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def get_sender(self):
         """
         Get the 20-byte address which sent this transaction.
@@ -101,6 +108,7 @@ class BaseTransaction(rlp.Serializable):
     #
     # Get gas costs
     #
+    @abstractmethod
     def get_intrinsic_gas(self):
         """
         Compute the baseline gas cost for this transaction.  This is the amount
@@ -120,6 +128,7 @@ class BaseTransaction(rlp.Serializable):
     #
     # Conversion to and creation of unsigned transactions.
     #
+    @abstractmethod
     def get_message_for_signing(self):
         """
         Return the bytestring that should be signed in order to create a signed transactions
@@ -127,6 +136,7 @@ class BaseTransaction(rlp.Serializable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
+    @abstractmethod
     def create_unsigned_transaction(self, *args, **kwargs):
         """
         Create an unsigned transaction.
@@ -134,7 +144,7 @@ class BaseTransaction(rlp.Serializable):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BaseUnsignedTransaction(rlp.Serializable):
+class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -154,6 +164,7 @@ class BaseUnsignedTransaction(rlp.Serializable):
         """
         pass
 
+    @abstractmethod
     def as_signed_transaction(self, private_key):
         """
         Return a version of this transaction which has been signed using the
@@ -208,6 +219,7 @@ class BaseShardingTransaction(rlp.Serializable):
     #
     # Base gas costs
     #
+    @abstractmethod
     def get_intrinsic_gas(self):
         """
         Compute the baseline gas cost for this transaction.  This is the amount

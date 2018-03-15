@@ -5,6 +5,11 @@ import random
 import struct
 import time
 import traceback
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 from typing import (Any, cast, Callable, Dict, Generator, List, Optional, Tuple, Type)  # noqa: F401
 
 import rlp
@@ -116,7 +121,7 @@ async def handshake(remote: Node,
     return peer
 
 
-class BasePeer:
+class BasePeer(metaclass=ABCMeta):
     logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     reply_timeout = REPLY_TIMEOUT
@@ -161,12 +166,14 @@ class BasePeer:
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
 
+    @abstractmethod
     async def send_sub_proto_handshake(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError("Must be implemented by subclasses")
 
     async def do_sub_proto_handshake(self):
         """Perform the handshake for the sub-protocol agreed with the remote peer.
@@ -617,10 +624,11 @@ class ETHPeer(BasePeer):
         self.head_hash = msg['best_hash']
 
 
-class PeerPoolSubscriber:
+class PeerPoolSubscriber(metaclass=ABCMeta):
 
+    @abstractmethod
     def register_peer(self, peer: BasePeer) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError("Must be implemented by subclasses")
 
 
 class PeerPool:

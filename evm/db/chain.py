@@ -1,5 +1,11 @@
 import itertools
 
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
+
 import rlp
 
 from trie import (
@@ -63,7 +69,7 @@ class TransactionKey(rlp.Serializable):
     ]
 
 
-class BaseChainDB:
+class BaseChainDB(metaclass=ABCMeta):
     trie_class = None
     empty_root_hash = None
 
@@ -93,12 +99,14 @@ class BaseChainDB:
     #
     # Canonical chain API
     #
+    @abstractmethod
     def get_canonical_head(self):
         """
         Returns the current block header at the head of the chain.
         """
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_canonical_block_header_by_number(self, block_number):
         """
         Returns the block header with the given number in the canonical chain.
@@ -111,6 +119,7 @@ class BaseChainDB:
     #
     # Block Header API
     #
+    @abstractmethod
     def get_block_header_by_hash(self, block_hash):
         """
         Returns the requested block header as specified by block hash.
@@ -119,12 +128,14 @@ class BaseChainDB:
         """
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def header_exists(self, block_hash):
         """
         Returns True if the header with the given block hash is in our DB.
         """
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def persist_header(self, header):
         """
         :returns: iterable of headers newly on the canonical chain
@@ -133,18 +144,22 @@ class BaseChainDB:
 
     #
     # Block API
+    @abstractmethod
     def lookup_block_hash(self, block_number):
         """
         Return the block hash for the given block number.
         """
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_block_uncles(self, uncles_hash):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_score(self, block_hash):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def persist_block(self, block):
         """
         Chain must do follow-up work to persist transactions to db
@@ -154,39 +169,50 @@ class BaseChainDB:
     #
     # Transaction and Receipt API
     #
+    @abstractmethod
     def get_receipts(self, header, receipt_class):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_block_transaction_hashes(self, block_header):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_block_transactions(self, block_header, transaction_class):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_transaction_by_index(self, block_number, transaction_index, transaction_class):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_pending_transaction(self, transaction_hash, transaction_class):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def get_transaction_index(self, transaction_hash):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def add_pending_transaction(self, transaction):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def add_transaction(self, block_header, index_key, transaction):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def add_receipt(self, block_header, index_key, receipt):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
     # Raw Database API
     #
+    @abstractmethod
     def exists(self, key):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def persist_trie_data_dict(self, trie_data_dict):
         """
         Store raw trie data to db from a dict
@@ -196,21 +222,26 @@ class BaseChainDB:
     #
     # Snapshot and revert API
     #
+    @abstractmethod
     def snapshot(self):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def revert(self, checkpoint):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def commit(self, checkpoint):
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
     def clear(self):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
     # State Database API
     #
+    @abstractmethod
     def get_state_db(self, state_root, read_only, access_list=None):
         raise NotImplementedError("ChainDB classes must implement this method")
 

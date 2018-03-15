@@ -1,4 +1,10 @@
 from __future__ import absolute_import
+
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 import logging
 
 from cytoolz import (
@@ -50,7 +56,7 @@ from evm.utils.rlp import (
 )
 
 
-class BaseChain(Configurable):
+class BaseChain(Configurable, metaclass=ABCMeta):
     """
     The base class for all Chain objects
     """
@@ -58,6 +64,7 @@ class BaseChain(Configurable):
     # Chain Initialization API
     #
     @classmethod
+    @abstractmethod
     def from_genesis(cls,
                      chaindb,
                      genesis_params,
@@ -68,6 +75,7 @@ class BaseChain(Configurable):
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
+    @abstractmethod
     def from_genesis_header(cls, chaindb, genesis_header):
         """
         Initializes the chain from the genesis header.
@@ -77,6 +85,7 @@ class BaseChain(Configurable):
     #
     # Header API
     #
+    @abstractmethod
     def get_canonical_head(self):
         """
         Returns the block header at the canonical chain head.
@@ -85,6 +94,7 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_block_header_by_hash(self, block_hash):
         """
         Returns the requested block header as specified by block hash.
@@ -93,6 +103,7 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def create_header_from_parent(self, parent_header, **header_params):
         """
         Creates a new header descending from the given `parent_header`,
@@ -103,6 +114,7 @@ class BaseChain(Configurable):
     #
     # Block API
     #
+    @abstractmethod
     def get_block(self):
         """
         Returns the block at the tip of the chain.
@@ -140,6 +152,7 @@ class BaseChain(Configurable):
     #
     # Transaction API
     #
+    @abstractmethod
     def get_canonical_transaction(self, transaction_hash):
         """
         Return the transaction for the given hash.  Raises
@@ -148,24 +161,28 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def add_pending_transaction(self, transaction):
         """
         Adds a transaction to the set of pending transactions.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_pending_transaction(self, transaction_hash):
         """
         Retrieves a transaction from the set of pending transactions.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def create_transaction(self, *args, **kwargs):
         """
         Creates a transaction object.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def create_unsigned_transaction(self, *args, **kwargs):
         """
         Creates an unsigned transaction object.
@@ -175,12 +192,14 @@ class BaseChain(Configurable):
     #
     # VM API
     #
+    @abstractmethod
     def get_vm_class_for_block_number(self, block_number):
         """
         Returns the VM class for the given block number.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_vm(self, header=None):
         """
         Returns the VM instance for the given block number.
@@ -190,12 +209,14 @@ class BaseChain(Configurable):
     #
     # Execution API
     #
+    @abstractmethod
     def apply_transaction(self, transaction):
         """
         Applies the transaction to the current head block of the Chain.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def estimate_gas(self, transaction, at_header=None):
         """
         Generate a gas estimation for the given transaction using the
@@ -203,12 +224,14 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def import_block(self, block, perform_validation=True):
         """
         Imports a complete block.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def mine_block(self, *args, **kwargs):
         """
         Mines the current block. Proxies to the current Virtual Machine.
@@ -216,6 +239,7 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_chain_at_block_parent(self, block):
         """
         Returns a `Chain` instance with the given block's parent at the chain head.
@@ -225,6 +249,7 @@ class BaseChain(Configurable):
     #
     # Validation API
     #
+    @abstractmethod
     def validate_block(self, block):
         """
         Performs validation on a block that is either being mined or imported.
@@ -237,18 +262,21 @@ class BaseChain(Configurable):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def validate_uncles(self, block):
         """
         Run validation on the block uncles.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def validate_seal(self, header):
         """
         Validate the seal on the given header.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def validate_gaslimit(self, header):
         """
         Validate the gas limit on the given header.

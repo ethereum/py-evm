@@ -1,3 +1,8 @@
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 import rlp
 
 from evm.utils.datatypes import (
@@ -5,7 +10,7 @@ from evm.utils.datatypes import (
 )
 
 
-class BaseCollation(rlp.Serializable, Configurable):
+class BaseCollation(rlp.Serializable, Configurable, metaclass=ABCMeta):
 
     # TODO: Remove this once https://github.com/ethereum/pyrlp/issues/45 is
     # fixed.
@@ -22,6 +27,7 @@ class BaseCollation(rlp.Serializable, Configurable):
         return cls.transaction_class
 
     @classmethod
+    @abstractmethod
     def from_header(cls, header, chaindb):
         """
         Returns the collation denoted by the given collation header.
@@ -29,18 +35,22 @@ class BaseCollation(rlp.Serializable, Configurable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
+    @abstractmethod
     def hash(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
+    @abstractmethod
     def shard_id(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
+    @abstractmethod
     def expected_period_number(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
+    @abstractmethod
     def number(self):
         raise NotImplementedError("Must be implemented by subclasses")
 

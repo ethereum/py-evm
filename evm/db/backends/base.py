@@ -1,19 +1,30 @@
-class BaseDB:
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
+
+class BaseDB(metaclass=ABCMeta):
+
+    @abstractmethod
     def get(self, key):
         raise NotImplementedError(
             "The `get` method must be implemented by subclasses of BaseDB"
         )
 
+    @abstractmethod
     def set(self, key, value):
         raise NotImplementedError(
             "The `set` method must be implemented by subclasses of BaseDB"
         )
 
+    @abstractmethod
     def exists(self, key):
         raise NotImplementedError(
             "The `exists` method must be implemented by subclasses of BaseDB"
         )
 
+    @abstractmethod
     def delete(self, key):
         raise NotImplementedError(
             "The `delete` method must be implemented by subclasses of BaseDB"

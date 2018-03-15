@@ -1,6 +1,11 @@
 from contextlib import contextmanager
 import logging
 
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 from cytoolz import (
     merge,
 )
@@ -19,7 +24,7 @@ from evm.utils.datatypes import (
 )
 
 
-class BaseVMState(Configurable):
+class BaseVMState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
@@ -297,12 +302,14 @@ class BaseVMState(Configurable):
     def add_receipt(self, receipt):
         self.receipts.append(receipt)
 
+    @abstractmethod
     def execute_transaction(self, transaction):
         """
         Execute the transaction in the vm.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @abstractmethod
     def make_receipt(self, transaction, computation):
         """
         Make receipt.
@@ -340,13 +347,16 @@ class BaseVMState(Configurable):
         return block
 
     @staticmethod
+    @abstractmethod
     def get_block_reward():
         raise NotImplementedError("Must be implemented by subclasses")
 
     @staticmethod
+    @abstractmethod
     def get_uncle_reward(block_number, uncle):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
+    @abstractmethod
     def get_nephew_reward(cls):
         raise NotImplementedError("Must be implemented by subclasses")

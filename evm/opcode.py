@@ -1,10 +1,15 @@
 import functools
 import logging
 
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
+
 from evm.utils.datatypes import Configurable
 
 
-class Opcode(Configurable):
+class Opcode(Configurable, metaclass=ABCMeta):
     mnemonic = None
     gas_cost = None
 
@@ -14,6 +19,7 @@ class Opcode(Configurable):
         if self.gas_cost is None:
             raise TypeError("Opcode class {0} missing opcode gas_cost".format(type(self)))
 
+    @abstractmethod
     def __call__(self, computation):
         """
         Hook for performing the actual VM execution.
