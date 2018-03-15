@@ -159,7 +159,7 @@ class ChainSyncer(PeerPoolSubscriber):
             # TODO: Process headers for consistency.
             for header in headers:
                 await self.chaindb.coro_persist_header(header)
-                start_at = header.block_number
+                start_at = header.block_number + 1
 
             self._body_requests.put_nowait(headers)
             self._receipt_requests.put_nowait(headers)
