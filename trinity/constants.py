@@ -1,3 +1,2 @@
-ROPSTEN = 'ropsten'
-
+SYNC_FULL = 'full'
 SYNC_LIGHT = 'light'
