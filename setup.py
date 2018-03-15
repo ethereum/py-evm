@@ -39,12 +39,12 @@ setup(
         'trinity': [
             "leveldb>=0.194,<1.0.0",
             "coincurve>=7.0.0,<8.0.0",
-            "eth-hash[pycryptodome]>=0.1.0a4,<1.0.0",
             "web3>=4.0.0b11,<5.0.0",
         ],
         'p2p': [
             "aiohttp>=2.3.1,<3.0.0",
             "async_lru>=0.1.0,<1.0.0",
+            "pysha3>=1.0.0,<2.0.0",
         ],
     },
     setup_requires=['setuptools-markdown'],
