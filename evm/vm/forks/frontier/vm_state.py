@@ -108,7 +108,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         )
         if message.is_create:
             with self.state_db(read_only=True) as state_db:
-                is_collision = state_db.account_has_code_or_nonce(contract_address)
+                is_collision = state_db.account_has_code_or_nonce(
+                    message.storage_address
+                )
 
             if is_collision:
                 # The address of the newly created contract has *somehow* collided
@@ -116,12 +118,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 computation = self.get_computation(message, transaction_context)
                 computation._error = ContractCreationCollision(
                     "Address collision while creating contract: {0}".format(
-                        encode_hex(contract_address),
+                        encode_hex(message.storage_address),
                     )
                 )
                 self.logger.debug(
                     "Address collision while creating contract: %s",
-                    encode_hex(contract_address),
+                    encode_hex(message.storage_address),
                 )
             else:
                 computation = self.get_computation(
