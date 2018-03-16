@@ -10,13 +10,13 @@ from eth_utils import (
 
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction
 
 from p2p.protocol import (
     Command,
     Protocol,
     _DecodedMsgType,
 )
+from p2p.rlp import BlockBody
 from p2p.sedes import HashOrNumber
 
 from .constants import LES_ANNOUNCE_SIMPLE
@@ -164,19 +164,12 @@ class GetBlockBodies(Command):
     ]
 
 
-class LESBlockBody(rlp.Serializable):
-    fields = [
-        ('transactions', rlp.sedes.CountableList(BaseTransaction)),
-        ('uncles', rlp.sedes.CountableList(BlockHeader))
-    ]
-
-
 class BlockBodies(Command):
     _cmd_id = 5
     structure = [
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
-        ('bodies', sedes.CountableList(LESBlockBody)),
+        ('bodies', sedes.CountableList(BlockBody)),
     ]
 
 

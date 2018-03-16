@@ -58,6 +58,7 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.rlp import BlockBody
 from p2p.utils import (
     gen_request_id,
     get_devp2p_cmd_id,
@@ -530,7 +531,7 @@ class LESPeer(BasePeer):
         return reply['headers'][0]
 
     async def get_block_by_hash(
-            self, block_hash: bytes, cancel_token: CancelToken) -> les.LESBlockBody:
+            self, block_hash: bytes, cancel_token: CancelToken) -> BlockBody:
         request_id = gen_request_id()
         self.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
