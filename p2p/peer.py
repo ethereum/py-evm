@@ -316,7 +316,10 @@ class BasePeer(metaclass=ABCMeta):
         frame_data = await self.read(read_size + MAC_LEN)
         msg = self.decrypt_body(frame_data, frame_size)
         cmd = self.get_protocol_command_for(msg)
-        decoded_msg = cmd.decode(msg)
+        loop = asyncio.get_event_loop()
+        decoded_msg = await wait_with_token(
+            loop.run_in_executor(None, cmd.decode, msg),
+            token=self.cancel_token)
         self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
         return cmd, decoded_msg
 
@@ -340,7 +343,7 @@ class BasePeer(metaclass=ABCMeta):
         self.sub_proto_msg_queue.put_nowait((cmd, msg))
 
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(cmd.proto, P2PProtocol):
+        if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
         else:
             self.handle_sub_proto_msg(cmd, msg)

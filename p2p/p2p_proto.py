@@ -85,13 +85,13 @@ class P2PProtocol(Protocol):
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        header, body = Hello(self).encode(data)
+        header, body = Hello(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_disconnect(self, reason):
-        header, body = Disconnect(self).encode(dict(reason=reason))
+        header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
         self.send(header, body)
 
     def send_pong(self):
-        header, body = Pong(self).encode({})
+        header, body = Pong(self.cmd_id_offset).encode({})
         self.send(header, body)

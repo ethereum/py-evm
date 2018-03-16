@@ -35,15 +35,16 @@ class Command:
     decode_strict = True
     structure = []  # type: List[Tuple[str, Any]]
 
-    def __init__(self, proto: 'Protocol') -> None:
-        self.proto = proto
+    def __init__(self, cmd_id_offset: int) -> None:
+        self.cmd_id_offset = cmd_id_offset
+        self.cmd_id = cmd_id_offset + self._cmd_id
+
+    @property
+    def is_base_protocol(self) -> bool:
+        return self.cmd_id_offset == 0
 
     def __str__(self):
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
-
-    @property
-    def cmd_id(self) -> int:
-        return self.proto.cmd_id_offset + self._cmd_id
 
     def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):  # convert dict to ordered list
@@ -108,7 +109,7 @@ class Protocol:
     def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
-        self.commands = [cmd_class(self) for cmd_class in self._commands]
+        self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
 
     def send(self, header: bytes, body: bytes) -> None:

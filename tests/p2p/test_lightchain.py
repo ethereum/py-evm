@@ -136,7 +136,7 @@ class LESProtocolServer(LESProtocol):
             'reorg_depth': reorg_depth,
             'params': [],
         }
-        header, body = Announce(self).encode(data)
+        header, body = Announce(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_block_headers(self, headers, buffer_value, request_id):
@@ -145,7 +145,7 @@ class LESProtocolServer(LESProtocol):
             'headers': headers,
             'buffer_value': buffer_value,
         }
-        header, body = BlockHeaders(self).encode(data)
+        header, body = BlockHeaders(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
 
