@@ -52,7 +52,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.validate_transaction(transaction)
 
         gas_fee = transaction.gas * transaction.gas_price
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             # Buy Gas
             state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
@@ -107,10 +107,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             origin=transaction.sender,
         )
         if message.is_create:
-            with self.state_db(read_only=True) as state_db:
-                is_collision = state_db.account_has_code_or_nonce(
-                    message.storage_address
-                )
+            is_collision = self.read_only_state_db.account_has_code_or_nonce(
+                message.storage_address
+            )
 
             if is_collision:
                 # The address of the newly created contract has *somehow* collided
@@ -155,7 +154,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 encode_hex(computation.msg.sender),
             )
 
-            with self.state_db() as state_db:
+            with self.mutable_state_db() as state_db:
                 state_db.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
@@ -165,11 +164,11 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             transaction_fee,
             encode_hex(self.coinbase),
         )
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             state_db.delta_balance(self.coinbase, transaction_fee)
 
         # Process Self Destructs
-        with self.state_db() as state_db:
+        with self.mutable_state_db() as state_db:
             for account, beneficiary in computation.get_accounts_for_deletion():
                 # TODO: need to figure out how we prevent multiple selfdestructs from
                 # the same account and if this is the right place to put this.
