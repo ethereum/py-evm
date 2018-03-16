@@ -133,10 +133,6 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     def should_erase_return_data(self):
         return self.is_error and self._error.erases_return_data
 
-    @property
-    def memory_bytes(self):
-        return self._memory.bytes
-
     #
     # Execution
     #
