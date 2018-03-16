@@ -303,13 +303,6 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
         self.receipts.append(receipt)
 
     @abstractmethod
-    def execute_transaction(self, transaction):
-        """
-        Execute the transaction in the vm.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
     def make_receipt(self, transaction, computation):
         """
         Make receipt.
@@ -360,3 +353,25 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
     @abstractmethod
     def get_nephew_reward(cls):
         raise NotImplementedError("Must be implemented by subclasses")
+
+
+class BaseTransactionExecutor(metaclass=ABCMeta):
+    def execute_transaction(self, transaction):
+        """
+        Execute the transaction in the vm.
+        """
+        message = self.run_pre_computation(transaction)
+        computation = self.run_computation(transaction, message)
+        return self.run_post_computation(transaction, computation)
+
+    @abstractmethod
+    def run_pre_computation(self, transaction):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def run_computation(self, transaction, message):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def run_post_computation(self, transaction, computation):
+        raise NotImplementedError()

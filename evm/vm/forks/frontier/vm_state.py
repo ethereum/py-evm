@@ -27,6 +27,7 @@ from evm.vm.message import (
 )
 from evm.vm_state import (
     BaseVMState,
+    BaseTransactionExecutor,
 )
 
 from evm.utils.address import (
@@ -43,146 +44,142 @@ from .transaction_context import FrontierTransactionContext
 from .validation import validate_frontier_transaction
 
 
-def _execute_frontier_transaction(vm_state, transaction):
-    # Reusable for other forks
+class FrontierTransactionExecutor(BaseTransactionExecutor):
+    def run_pre_computation(self, transaction):
+        # Validate the transaction
+        transaction.validate()
 
-    #
-    # 1) Pre Computation
-    #
+        self.validate_transaction(transaction)
 
-    # Validate the transaction
-    transaction.validate()
+        gas_fee = transaction.gas * transaction.gas_price
+        with self.mutable_state_db() as state_db:
+            # Buy Gas
+            state_db.delta_balance(transaction.sender, -1 * gas_fee)
 
-    vm_state.validate_transaction(transaction)
+            # Increment Nonce
+            state_db.increment_nonce(transaction.sender)
 
-    gas_fee = transaction.gas * transaction.gas_price
-    with vm_state.mutable_state_db() as state_db:
-        # Buy Gas
-        state_db.delta_balance(transaction.sender, -1 * gas_fee)
+            # Setup VM Message
+            message_gas = transaction.gas - transaction.intrinsic_gas
 
-        # Increment Nonce
-        state_db.increment_nonce(transaction.sender)
-
-        # Setup VM Message
-        message_gas = transaction.gas - transaction.intrinsic_gas
-
-        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
-            contract_address = generate_contract_address(
-                transaction.sender,
-                state_db.get_nonce(transaction.sender) - 1,
-            )
-            data = b''
-            code = transaction.data
-        else:
-            contract_address = None
-            data = transaction.data
-            code = state_db.get_code(transaction.to)
-
-    vm_state.logger.info(
-        (
-            "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-            "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
-        ),
-        encode_hex(transaction.sender),
-        encode_hex(transaction.to),
-        transaction.value,
-        transaction.gas,
-        transaction.gas_price,
-        transaction.s,
-        transaction.r,
-        transaction.v,
-        encode_hex(keccak(transaction.data)),
-    )
-
-    message = Message(
-        gas=message_gas,
-        to=transaction.to,
-        sender=transaction.sender,
-        value=transaction.value,
-        data=data,
-        code=code,
-        create_address=contract_address,
-    )
-    transaction_context = vm_state.get_transaction_context_class()(
-        gas_price=transaction.gas_price,
-        origin=transaction.sender,
-    )
-
-    #
-    # 2) Apply the message to the VM.
-    #
-    if message.is_create:
-        is_collision = vm_state.read_only_state_db.account_has_code_or_nonce(contract_address)
-
-        if is_collision:
-            # The address of the newly created contract has *somehow* collided
-            # with an existing contract address.
-            computation = vm_state.get_computation(message, transaction_context)
-            computation._error = ContractCreationCollision(
-                "Address collision while creating contract: {0}".format(
-                    encode_hex(contract_address),
+            if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
+                contract_address = generate_contract_address(
+                    transaction.sender,
+                    state_db.get_nonce(transaction.sender) - 1,
                 )
-            )
-            vm_state.logger.debug(
-                "Address collision while creating contract: %s",
-                encode_hex(contract_address),
-            )
-        else:
-            computation = vm_state.get_computation(
-                message,
-                transaction_context,
-            ).apply_create_message()
-    else:
-        computation = vm_state.get_computation(message, transaction_context).apply_message()
+                data = b''
+                code = transaction.data
+            else:
+                contract_address = None
+                data = transaction.data
+                code = state_db.get_code(transaction.to)
 
-    #
-    # 2) Post Computation
-    #
-    # Self Destruct Refunds
-    num_deletions = len(computation.get_accounts_for_deletion())
-    if num_deletions:
-        computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
-
-    # Gas Refunds
-    gas_remaining = computation.get_gas_remaining()
-    gas_refunded = computation.get_gas_refund()
-    gas_used = transaction.gas - gas_remaining
-    gas_refund = min(gas_refunded, gas_used // 2)
-    gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
-
-    if gas_refund_amount:
-        vm_state.logger.debug(
-            'TRANSACTION REFUND: %s -> %s',
-            gas_refund_amount,
-            encode_hex(message.sender),
+        self.logger.info(
+            (
+                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
+                "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
+            ),
+            encode_hex(transaction.sender),
+            encode_hex(transaction.to),
+            transaction.value,
+            transaction.gas,
+            transaction.gas_price,
+            transaction.s,
+            transaction.r,
+            transaction.v,
+            encode_hex(keccak(transaction.data)),
         )
 
-        with vm_state.mutable_state_db() as state_db:
-            state_db.delta_balance(message.sender, gas_refund_amount)
+        return Message(
+            gas=message_gas,
+            to=transaction.to,
+            sender=transaction.sender,
+            value=transaction.value,
+            data=data,
+            code=code,
+            create_address=contract_address,
+        )
 
-    # Miner Fees
-    transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
-    vm_state.logger.debug(
-        'TRANSACTION FEE: %s -> %s',
-        transaction_fee,
-        encode_hex(vm_state.coinbase),
-    )
-    with vm_state.mutable_state_db() as state_db:
-        state_db.delta_balance(vm_state.coinbase, transaction_fee)
+    def run_computation(self, transaction, message):
+        """Apply the message to the VM."""
+        transaction_context = self.get_transaction_context_class()(
+            gas_price=transaction.gas_price,
+            origin=transaction.sender,
+        )
+        if message.is_create:
+            is_collision = self.read_only_state_db.account_has_code_or_nonce(
+                message.storage_address
+            )
 
-    # Process Self Destructs
-    with vm_state.mutable_state_db() as state_db:
-        for account, beneficiary in computation.get_accounts_for_deletion():
-            # TODO: need to figure out how we prevent multiple selfdestructs from
-            # the same account and if this is the right place to put this.
-            vm_state.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+            if is_collision:
+                # The address of the newly created contract has *somehow* collided
+                # with an existing contract address.
+                computation = self.get_computation(message, transaction_context)
+                computation._error = ContractCreationCollision(
+                    "Address collision while creating contract: {0}".format(
+                        encode_hex(message.storage_address),
+                    )
+                )
+                self.logger.debug(
+                    "Address collision while creating contract: %s",
+                    encode_hex(message.storage_address),
+                )
+            else:
+                computation = self.get_computation(
+                    message,
+                    transaction_context,
+                ).apply_create_message()
+        else:
+            computation = self.get_computation(message, transaction_context).apply_message()
 
-            # TODO: this balance setting is likely superflous and can be
-            # removed since `delete_account` does this.
-            state_db.set_balance(account, 0)
-            state_db.delete_account(account)
+        return computation
 
-    return computation
+    def run_post_computation(self, transaction, computation):
+        # Self Destruct Refunds
+        num_deletions = len(computation.get_accounts_for_deletion())
+        if num_deletions:
+            computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
+
+        # Gas Refunds
+        gas_remaining = computation.get_gas_remaining()
+        gas_refunded = computation.get_gas_refund()
+        gas_used = transaction.gas - gas_remaining
+        gas_refund = min(gas_refunded, gas_used // 2)
+        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
+
+        if gas_refund_amount:
+            self.logger.debug(
+                'TRANSACTION REFUND: %s -> %s',
+                gas_refund_amount,
+                encode_hex(computation.msg.sender),
+            )
+
+            with self.mutable_state_db() as state_db:
+                state_db.delta_balance(computation.msg.sender, gas_refund_amount)
+
+        # Miner Fees
+        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        self.logger.debug(
+            'TRANSACTION FEE: %s -> %s',
+            transaction_fee,
+            encode_hex(self.coinbase),
+        )
+        with self.mutable_state_db() as state_db:
+            state_db.delta_balance(self.coinbase, transaction_fee)
+
+        # Process Self Destructs
+        with self.mutable_state_db() as state_db:
+            for account, beneficiary in computation.get_accounts_for_deletion():
+                # TODO: need to figure out how we prevent multiple selfdestructs from
+                # the same account and if this is the right place to put this.
+                self.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+
+                # TODO: this balance setting is likely superflous and can be
+                # removed since `delete_account` does this.
+                state_db.set_balance(account, 0)
+                state_db.delete_account(account)
+
+        return computation
 
 
 def _make_frontier_receipt(vm_state, transaction, computation):
@@ -213,15 +210,11 @@ def _make_frontier_receipt(vm_state, transaction, computation):
     return receipt
 
 
-class FrontierVMState(BaseVMState):
+class FrontierVMState(BaseVMState, FrontierTransactionExecutor):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     trie_class = HexaryTrie
     transaction_context_class = FrontierTransactionContext
-
-    def execute_transaction(self, transaction):
-        computation = _execute_frontier_transaction(self, transaction)
-        return computation
 
     def make_receipt(self, transaction, computation):
         receipt = _make_frontier_receipt(self, transaction, computation)
