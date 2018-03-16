@@ -183,7 +183,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
 
-
 def _make_frontier_receipt(vm_state, transaction, computation):
     # Reusable for other forks
 
