@@ -29,7 +29,7 @@ def return_op(computation):
 
     computation.extend_memory(start_position, size)
 
-    output = computation.memory.read(start_position, size)
+    output = computation.memory_read(start_position, size)
     computation.output = bytes(output)
     raise Halt('RETURN')
 
@@ -39,7 +39,7 @@ def revert(computation):
 
     computation.extend_memory(start_position, size)
 
-    output = computation.memory.read(start_position, size)
+    output = computation.memory_read(start_position, size)
     computation.output = bytes(output)
     raise Revert(computation.output)
 
@@ -122,7 +122,7 @@ class Create(Opcode):
             computation.stack.push(0)
             return
 
-        call_data = computation.memory.read(start_position, size)
+        call_data = computation.memory_read(start_position, size)
 
         create_msg_gas = self.max_child_gas_modifier(
             computation.gas_meter.gas_remaining
@@ -202,7 +202,7 @@ class Create2(CreateEIP150):
             computation.stack.push(0)
             return
 
-        call_data = computation.memory.read(start_position, size)
+        call_data = computation.memory_read(start_position, size)
 
         create_msg_gas = self.max_child_gas_modifier(
             computation.gas_meter.gas_remaining

@@ -56,7 +56,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
         computation.extend_memory(memory_input_start_position, memory_input_size)
         computation.extend_memory(memory_output_start_position, memory_output_size)
 
-        call_data = computation.memory.read(memory_input_start_position, memory_input_size)
+        call_data = computation.memory_read(memory_input_start_position, memory_input_size)
 
         #
         # Message gas allocation and fees
@@ -121,7 +121,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
 
             if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
-                computation.memory.write(
+                computation.memory_write(
                     memory_output_start_position,
                     actual_output_size,
                     child_computation.output[:actual_output_size],
@@ -373,7 +373,7 @@ class CallSharding(CallByzantium):
         computation.extend_memory(memory_input_start_position, memory_input_size)
         computation.extend_memory(memory_output_start_position, memory_output_size)
 
-        call_data = computation.memory.read(memory_input_start_position, memory_input_size)
+        call_data = computation.memory_read(memory_input_start_position, memory_input_size)
 
         #
         # Message gas allocation and fees
@@ -438,7 +438,7 @@ class CallSharding(CallByzantium):
 
             if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
-                computation.memory.write(
+                computation.memory_write(
                     memory_output_start_position,
                     actual_output_size,
                     child_computation.output[:actual_output_size],
