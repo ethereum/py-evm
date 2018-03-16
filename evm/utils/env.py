@@ -5,7 +5,17 @@ extracting environment variables.
 
 import os
 
-from typing import Any, Type, Iterable, List, Union, TypeVar
+from typing import (  # noqa: F401
+    Any,
+    Type,
+    Iterable,
+    List,
+    Union,
+    TypeVar,
+    Dict,
+    Callable
+)
+
 
 # No set literals because we support Python 2.6.
 TRUE_VALUES = set((
@@ -193,7 +203,7 @@ T = TypeVar('T')
 def get(name: str,
         required: bool=False,
         default: Union[Type[empty], T]=empty,
-        type: Type[T]=None) -> Any:
+        type: Type[T]=None) -> T:
     """Generic getter for environment variables. Handles defaults,
     required-ness, and what type to expect.
 
@@ -212,7 +222,7 @@ def get(name: str,
     :param type: The type of variable expected.
     :param type: str or type
     """
-    fn = {
+    fns = {
         'int': env_int,
         int: env_int,
 
@@ -227,12 +237,7 @@ def get(name: str,
 
         'list': env_list,
         list: env_list,
-    }.get(type, env_string)
+    }  # type: Dict[Union[str, Type], Callable[..., Any]]
 
-    # Ideally, using mypy_extensions, we'd be able to type `fn` as something like
-    # Callable[
-    #   [str, DefaultNamedArg(Union[Type[empty], T], 'default'), DefaultNamedArg(bool, 'required')],
-    #   T
-    # ]
-    # That doesn't work though, hence we ignore the next line to make it work for now
-    return fn(name, default=default, required=required)  # type: ignore
+    fn = fns.get(type, env_string)
+    return fn(name, default=default, required=required)

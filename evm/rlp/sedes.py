@@ -8,13 +8,15 @@ from rlp.exceptions import (
     ListDeserializationError,
 )
 
+from typing import List
+
 
 class AccessListElement(CountableList):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(Binary(max_length=32))
 
-    def serialize(self, obj):
+    def serialize(self, obj: List[bytes]) -> List[bytes]:
         result = super().serialize(obj)
         if not obj:
             raise ListSerializationError(
@@ -28,7 +30,7 @@ class AccessListElement(CountableList):
             )
         return result
 
-    def deserialize(self, serial):
+    def deserialize(self, serial: List[bytes]) -> List[bytes]:
         result = super().deserialize(serial)
         if not result:
             raise ListDeserializationError(
