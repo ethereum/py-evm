@@ -47,8 +47,8 @@ linux-docs: build-docs
 	xdg-open docs/_build/html/index.html
 
 release: clean
-	python3 setup.py sdist bdist_wheel upload
+	python setup.py sdist bdist_wheel upload
 
 sdist: clean
-	python3 setup.py sdist bdist_wheel
+	python setup.py sdist bdist_wheel
 	ls -l dist

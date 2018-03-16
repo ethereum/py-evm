@@ -35,4 +35,4 @@ def mload(computation):
 
 
 def msize(computation):
-    computation.stack.push(len(computation.memory))
+    computation.stack.push(len(computation._memory))
