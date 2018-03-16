@@ -303,13 +303,6 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
         self.receipts.append(receipt)
 
     @abstractmethod
-    def execute_transaction(self, transaction):
-        """
-        Execute the transaction in the vm.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
     def make_receipt(self, transaction, computation):
         """
         Make receipt.
