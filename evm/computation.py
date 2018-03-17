@@ -191,12 +191,12 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 )
 
             self._memory.extend(start_position, size)
-    
+
     def memory_write(self, start_position, size, value):
         return self._memory.write(start_position, size, value)
 
     def memory_read(self, start_position, size):
-        return self._memory.read(start_position, size)        
+        return self._memory.read(start_position, size)
 
     #
     # Computed properties.
