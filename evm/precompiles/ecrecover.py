@@ -23,7 +23,7 @@ from evm.utils.padding import (
 
 
 def ecrecover(computation):
-    computation.gas_meter.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
+    computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
     raw_message_hash = computation.msg.data[:32]
     message_hash = pad32r(raw_message_hash)
 

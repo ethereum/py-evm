@@ -42,7 +42,7 @@ class Opcode(Configurable, metaclass=ABCMeta):
                 Wrapper functionf or the logic function which consumes the base
                 opcode gas cost prior to execution.
                 """
-                computation.gas_meter.consume_gas(
+                computation.consume_gas(
                     gas_cost,
                     reason=mnemonic,
                 )

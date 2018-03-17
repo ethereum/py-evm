@@ -64,7 +64,7 @@ def calldatacopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = word_count * constants.GAS_COPY
 
-    computation.gas_meter.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
+    computation.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
     value = computation.msg.data[calldata_start_position: calldata_start_position + size]
     padded_value = value.ljust(size, b'\x00')
@@ -89,7 +89,7 @@ def codecopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.gas_meter.consume_gas(
+    computation.consume_gas(
         copy_gas_cost,
         reason="CODECOPY: word gas cost",
     )
@@ -131,7 +131,7 @@ def extcodecopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.gas_meter.consume_gas(
+    computation.consume_gas(
         copy_gas_cost,
         reason='EXTCODECOPY: word gas cost',
     )
@@ -173,7 +173,7 @@ def returndatacopy(computation):
     word_count = ceil32(size) // 32
     copy_gas_cost = word_count * constants.GAS_COPY
 
-    computation.gas_meter.consume_gas(copy_gas_cost, reason="RETURNDATACOPY fee")
+    computation.consume_gas(copy_gas_cost, reason="RETURNDATACOPY fee")
 
     value = computation.return_data[returndata_start_position: returndata_start_position + size]
 

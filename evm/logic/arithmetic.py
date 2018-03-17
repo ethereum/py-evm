@@ -152,7 +152,7 @@ def exp(computation, gas_per_byte):
     else:
         result = pow(base, exponent, constants.UINT_256_CEILING)
 
-    computation.gas_meter.consume_gas(
+    computation.consume_gas(
         gas_per_byte * byte_size,
         reason="EXP: exponent bytes",
     )

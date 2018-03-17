@@ -198,6 +198,9 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     def memory_read(self, start_position, size):
         return self._memory.read(start_position, size)
 
+    def consume_gas(self, amount, reason):
+        return self.gas_meter.consume_gas(amount, reason)
+
     #
     # Computed properties.
     #
@@ -356,7 +359,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             )
             self._error = exc_value
             if self.should_burn_gas:
-                self.gas_meter.consume_gas(
+                self.consume_gas(
                     self.gas_meter.gas_remaining,
                     reason=" ".join((
                         "Zeroing gas due to VM Exception:",
