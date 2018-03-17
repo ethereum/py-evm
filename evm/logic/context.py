@@ -69,7 +69,7 @@ def calldatacopy(computation):
     value = computation.msg.data[calldata_start_position: calldata_start_position + size]
     padded_value = value.ljust(size, b'\x00')
 
-    computation.memory.write(mem_start_position, size, padded_value)
+    computation.memory_write(mem_start_position, size, padded_value)
 
 
 def codesize(computation):
@@ -99,7 +99,7 @@ def codecopy(computation):
 
     padded_code_bytes = code_bytes.ljust(size, b'\x00')
 
-    computation.memory.write(mem_start_position, size, padded_code_bytes)
+    computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
 def gasprice(computation):
@@ -142,7 +142,7 @@ def extcodecopy(computation):
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = code_bytes.ljust(size, b'\x00')
 
-    computation.memory.write(mem_start_position, size, padded_code_bytes)
+    computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
 def returndatasize(computation):
@@ -177,7 +177,7 @@ def returndatacopy(computation):
 
     value = computation.return_data[returndata_start_position: returndata_start_position + size]
 
-    computation.memory.write(mem_start_position, size, value)
+    computation.memory_write(mem_start_position, size, value)
 
 
 def sighash(computation):

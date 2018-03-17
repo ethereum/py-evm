@@ -120,15 +120,15 @@ def test_extend_memory_size_must_be_uint256(computation):
 
 
 def test_extend_memory_stays_the_same_if_size_is_0(computation):
-    assert len(computation.memory.bytes) == 0
+    assert len(computation._memory.bytes) == 0
     computation.extend_memory(1, 0)
-    assert len(computation.memory.bytes) == 0
+    assert len(computation._memory.bytes) == 0
 
 
 def test_extend_memory_increases_memory_by_32(computation):
     assert computation.gas_meter.gas_remaining == 100
     computation.extend_memory(0, 1)
-    assert len(computation.memory.bytes) == 32
+    assert len(computation._memory.bytes) == 32
     # 32 bytes of memory cost 3 gas
     assert computation.gas_meter.gas_remaining == 97
 
@@ -136,9 +136,9 @@ def test_extend_memory_increases_memory_by_32(computation):
 def test_extend_memory_doesnt_increase_until_32_bytes_are_used(computation):
     computation.extend_memory(0, 1)
     computation.extend_memory(1, 1)
-    assert len(computation.memory.bytes) == 32
+    assert len(computation._memory.bytes) == 32
     computation.extend_memory(2, 32)
-    assert len(computation.memory.bytes) == 64
+    assert len(computation._memory.bytes) == 64
     assert computation.gas_meter.gas_remaining == 94
 
 

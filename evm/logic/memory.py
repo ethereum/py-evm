@@ -10,7 +10,7 @@ def mstore(computation):
 
     computation.extend_memory(start_position, 32)
 
-    computation.memory.write(start_position, 32, normalized_value)
+    computation.memory_write(start_position, 32, normalized_value)
 
 
 def mstore8(computation):
@@ -22,7 +22,7 @@ def mstore8(computation):
 
     computation.extend_memory(start_position, 1)
 
-    computation.memory.write(start_position, 1, normalized_value)
+    computation.memory_write(start_position, 1, normalized_value)
 
 
 def mload(computation):
@@ -30,9 +30,9 @@ def mload(computation):
 
     computation.extend_memory(start_position, 32)
 
-    value = computation.memory.read(start_position, 32)
+    value = computation.memory_read(start_position, 32)
     computation.stack.push(value)
 
 
 def msize(computation):
-    computation.stack.push(len(computation.memory))
+    computation.stack.push(len(computation._memory))

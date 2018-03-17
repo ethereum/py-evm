@@ -66,7 +66,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     msg = None
     transaction_context = None
 
-    memory = None
+    _memory = None
     stack = None
     gas_meter = None
 
@@ -92,7 +92,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         self.msg = message
         self.transaction_context = transaction_context
 
-        self.memory = Memory()
+        self._memory = Memory()
         self.stack = Stack()
         self.gas_meter = GasMeter(message.gas)
 
@@ -163,7 +163,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         validate_uint256(start_position, title="Memory start position")
         validate_uint256(size, title="Memory size")
 
-        before_size = ceil32(len(self.memory))
+        before_size = ceil32(len(self._memory))
         after_size = ceil32(start_position + size)
 
         before_cost = memory_gas_cost(before_size)
@@ -190,7 +190,13 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                     ))
                 )
 
-            self.memory.extend(start_position, size)
+            self._memory.extend(start_position, size)
+
+    def memory_write(self, start_position, size, value):
+        return self._memory.write(start_position, size, value)
+
+    def memory_read(self, start_position, size):
+        return self._memory.read(start_position, size)
 
     #
     # Computed properties.
