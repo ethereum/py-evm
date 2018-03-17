@@ -6,12 +6,12 @@ from rlp import sedes
 
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction
 
 from p2p.protocol import (
     Command,
     Protocol,
 )
+from p2p.rlp import BlockBody, P2PTransaction
 from p2p.sedes import HashOrNumber
 
 
@@ -41,7 +41,7 @@ class NewBlockHashes(Command):
 
 class Transactions(Command):
     _cmd_id = 2
-    structure = sedes.CountableList(BaseTransaction)
+    structure = sedes.CountableList(P2PTransaction)
 
 
 class GetBlockHeaders(Command):
@@ -64,13 +64,6 @@ class GetBlockBodies(Command):
     structure = sedes.CountableList(sedes.binary)
 
 
-class BlockBody(rlp.Serializable):
-    fields = [
-        ('transactions', sedes.CountableList(BaseTransaction)),
-        ('uncles', sedes.CountableList(BlockHeader))
-    ]
-
-
 class BlockBodies(Command):
     _cmd_id = 6
     structure = sedes.CountableList(BlockBody)
@@ -80,7 +73,7 @@ class NewBlock(Command):
     _cmd_id = 7
     structure = [
         ('block', sedes.List([BlockHeader,
-                              sedes.CountableList(BaseTransaction),
+                              sedes.CountableList(P2PTransaction),
                               sedes.CountableList(BlockHeader)])),
         ('total_difficulty', sedes.big_endian_int)]
 
