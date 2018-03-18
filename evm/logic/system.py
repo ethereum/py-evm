@@ -163,7 +163,7 @@ class Create(Opcode):
             computation.stack.push(0)
         else:
             computation.stack.push(contract_address)
-        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+        computation.return_gas(child_computation.gas_meter.gas_remaining)
 
 
 class CreateEIP150(Create):
@@ -240,7 +240,7 @@ class Create2(CreateEIP150):
             computation.stack.push(0)
         else:
             computation.stack.push(contract_address)
-        computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+        computation.return_gas(child_computation.gas_meter.gas_remaining)
 
 
 def paygas(computation):
