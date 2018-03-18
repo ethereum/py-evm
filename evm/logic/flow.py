@@ -53,6 +53,6 @@ def pc(computation):
 
 
 def gas(computation):
-    gas_remaining = computation._gas_meter.gas_remaining
+    gas_remaining = computation.get_gas_remaining()
 
     computation.stack.push(gas_remaining)
