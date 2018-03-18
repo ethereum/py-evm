@@ -34,7 +34,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
         return child_msg_gas, total_fee
 
     def __call__(self, computation):
-        computation.gas_meter.consume_gas(
+        computation.consume_gas(
             self.gas_cost,
             reason=self.mnemonic,
         )
@@ -62,7 +62,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
         # Message gas allocation and fees
         #
         child_msg_gas, child_msg_gas_fee = self.compute_msg_gas(computation, gas, to, value)
-        computation.gas_meter.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
+        computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
         with computation.state_db(read_only=True) as state_db:
@@ -351,7 +351,7 @@ class CallSharding(CallByzantium):
         return transfer_gas_fee + create_gas_fee
 
     def __call__(self, computation):
-        computation.gas_meter.consume_gas(
+        computation.consume_gas(
             self.gas_cost,
             reason=self.mnemonic,
         )
@@ -379,7 +379,7 @@ class CallSharding(CallByzantium):
         # Message gas allocation and fees
         #
         child_msg_gas, child_msg_gas_fee = self.compute_msg_gas(computation, gas, to, value)
-        computation.gas_meter.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
+        computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
         with computation.state_db(read_only=True) as state_db:

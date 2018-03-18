@@ -34,7 +34,7 @@ def ecpairing(computation):
     num_points = len(computation.msg.data) // 192
     gas_fee = constants.GAS_ECPAIRING_BASE + num_points * constants.GAS_ECPAIRING_PER_POINT
 
-    computation.gas_meter.consume_gas(gas_fee, reason='ECPAIRING Precompile')
+    computation.consume_gas(gas_fee, reason='ECPAIRING Precompile')
 
     try:
         result = _ecpairing(computation.msg.data)
