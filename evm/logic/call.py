@@ -445,8 +445,4 @@ class CallSharding(CallByzantium):
                 )
 
             if not child_computation.should_burn_gas:
-<<<<<<< HEAD
                 computation.return_gas(child_computation._gas_meter.gas_remaining)
-=======
-                computation.return_gas(child_computation.gas_meter.gas_remaining)
->>>>>>> upstream/master
