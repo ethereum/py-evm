@@ -115,7 +115,7 @@ def modexp(computation):
     https://github.com/ethereum/EIPs/pull/198
     """
     gas_fee = _compute_modexp_gas_fee(computation.msg.data)
-    computation.gas_meter.consume_gas(gas_fee, reason='MODEXP Precompile')
+    computation.consume_gas(gas_fee, reason='MODEXP Precompile')
 
     result = _modexp(computation.msg.data)
 

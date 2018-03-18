@@ -54,7 +54,7 @@ def selfdestruct_eip150(computation):
     beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
     with computation.state_db(read_only=True) as state_db:
         if not state_db.account_exists(beneficiary):
-            computation.gas_meter.consume_gas(
+            computation.consume_gas(
                 constants.GAS_SELFDESTRUCT_NEWACCOUNT,
                 reason=mnemonics.SELFDESTRUCT,
             )
@@ -69,7 +69,7 @@ def selfdestruct_eip161(computation):
             state_db.account_is_empty(beneficiary)
         )
         if is_dead and state_db.get_balance(computation.msg.storage_address):
-            computation.gas_meter.consume_gas(
+            computation.consume_gas(
                 constants.GAS_SELFDESTRUCT_NEWACCOUNT,
                 reason=mnemonics.SELFDESTRUCT,
             )
@@ -105,7 +105,7 @@ class Create(Opcode):
         return gas
 
     def __call__(self, computation):
-        computation.gas_meter.consume_gas(self.gas_cost, reason=self.mnemonic)
+        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
         value, start_position, size = computation.stack.pop(
             num_items=3,
@@ -127,7 +127,7 @@ class Create(Opcode):
         create_msg_gas = self.max_child_gas_modifier(
             computation.gas_meter.gas_remaining
         )
-        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE")
+        computation.consume_gas(create_msg_gas, reason="CREATE")
 
         with computation.state_db() as state_db:
             creation_nonce = state_db.get_nonce(computation.msg.storage_address)
@@ -183,7 +183,7 @@ class Create2(CreateEIP150):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
 
-        computation.gas_meter.consume_gas(self.gas_cost, reason=self.mnemonic)
+        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
         value = computation.stack.pop(type_hint=constants.UINT256,)
         salt = computation.stack.pop(type_hint=constants.BYTES,)
@@ -207,7 +207,7 @@ class Create2(CreateEIP150):
         create_msg_gas = self.max_child_gas_modifier(
             computation.gas_meter.gas_remaining
         )
-        computation.gas_meter.consume_gas(create_msg_gas, reason="CREATE2")
+        computation.consume_gas(create_msg_gas, reason="CREATE2")
 
         contract_address = generate_CREATE2_contract_address(
             salt,

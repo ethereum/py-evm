@@ -21,7 +21,7 @@ from evm.utils.padding import (
 
 
 def ecmul(computation):
-    computation.gas_meter.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
+    computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
 
     try:
         result = _ecmull(computation.msg.data)

@@ -48,7 +48,7 @@ class SpuriousDragonComputation(HomesteadComputation):
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
-                    computation.gas_meter.consume_gas(
+                    computation.consume_gas(
                         contract_code_gas_cost,
                         reason="Write contract code for CREATE",
                     )

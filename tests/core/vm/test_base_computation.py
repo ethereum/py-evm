@@ -308,15 +308,15 @@ def test_get_gas_remaining_with_revert(computation):
 
 def test_get_gas_used(computation):
     # User 3 gas to extend memory
-    computation.gas_meter.consume_gas(3, reason='testing')
-    computation.gas_meter.consume_gas(2, reason='testing')
+    computation.consume_gas(3, reason='testing')
+    computation.consume_gas(2, reason='testing')
     assert computation.get_gas_used() == 5
 
 
 def test_get_gas_used_with_vmerror(computation):
     # Trigger an out of gas error causing get gas used to be 150
-    computation.gas_meter.consume_gas(3, reason='testing')
-    computation.gas_meter.consume_gas(2, reason='testing')
+    computation.consume_gas(3, reason='testing')
+    computation.consume_gas(2, reason='testing')
     with computation:
         raise VMError('Triggered VMError for tests')
     assert computation.is_error
@@ -325,8 +325,8 @@ def test_get_gas_used_with_vmerror(computation):
 
 def test_get_gas_used_with_revert(computation):
     # Trigger an out of gas error causing get gas used to be 150
-    computation.gas_meter.consume_gas(3, reason='testing')
-    computation.gas_meter.consume_gas(2, reason='testing')
+    computation.consume_gas(3, reason='testing')
+    computation.consume_gas(2, reason='testing')
     with computation:
         raise Revert('Triggered VMError for tests')
     assert computation.is_error

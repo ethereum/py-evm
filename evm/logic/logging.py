@@ -22,7 +22,7 @@ def log_XX(computation, topic_count):
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count
     total_gas_cost = data_gas_cost + topic_gas_cost
 
-    computation.gas_meter.consume_gas(
+    computation.consume_gas(
         total_gas_cost,
         reason="Log topic and data gas cost",
     )

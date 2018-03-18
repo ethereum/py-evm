@@ -21,7 +21,7 @@ from evm.utils.padding import (
 
 
 def ecadd(computation):
-    computation.gas_meter.consume_gas(constants.GAS_ECADD, reason='ECADD Precompile')
+    computation.consume_gas(constants.GAS_ECADD, reason='ECADD Precompile')
 
     try:
         result = _ecadd(computation.msg.data)
