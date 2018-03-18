@@ -12,16 +12,14 @@ from abc import (
 
 from typing import (Any, cast, Callable, Dict, Generator, List, Optional, Tuple, Type)  # noqa: F401
 
+import sha3
+
 import rlp
 from rlp import sedes
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
-
-from eth_hash.main import (
-    PreImage,
-)
 
 from eth_utils import (
     decode_hex,
@@ -60,6 +58,7 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.rlp import BlockBody
 from p2p.utils import (
     gen_request_id,
     get_devp2p_cmd_id,
@@ -140,8 +139,8 @@ class BasePeer(metaclass=ABCMeta):
                  writer: asyncio.StreamWriter,
                  aes_secret: bytes,
                  mac_secret: bytes,
-                 egress_mac: PreImage,
-                 ingress_mac: PreImage,
+                 egress_mac: sha3.keccak_256,
+                 ingress_mac: sha3.keccak_256,
                  chaindb: AsyncChainDB,
                  network_id: int,
                  ) -> None:
@@ -532,7 +531,7 @@ class LESPeer(BasePeer):
         return reply['headers'][0]
 
     async def get_block_by_hash(
-            self, block_hash: bytes, cancel_token: CancelToken) -> les.LESBlockBody:
+            self, block_hash: bytes, cancel_token: CancelToken) -> BlockBody:
         request_id = gen_request_id()
         self.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)

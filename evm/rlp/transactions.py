@@ -26,6 +26,14 @@ from evm.utils.state_access_restriction import (
     to_prefix_list_form,
 )
 
+from evm.computation import (
+    BaseComputation
+)
+
+from typing import (
+    Any
+)
+
 
 class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     fields = [
@@ -41,22 +49,22 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     ]
 
     @classmethod
-    def from_base_transaction(cls, transaction):
+    def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
         return rlp.decode(rlp.encode(transaction), sedes=cls)
 
     @property
-    def hash(self):
+    def hash(self) -> bytes:
         return keccak(rlp.encode(self))
 
     @property
-    def sender(self):
+    def sender(self) -> bytes:
         """
         Convenience property for the return value of `get_sender`
         """
         return self.get_sender()
 
     @property
-    def intrinsic_gas(self):
+    def intrinsic_gas(self) -> int:
         """
         Convenience property for the return value of `get_intrinsic_gas`
         """
@@ -69,7 +77,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     #
     # Validation
     #
-    def validate(self):
+    def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
@@ -82,7 +90,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     # Signature and Sender
     #
     @property
-    def is_signature_valid(self):
+    def is_signature_valid(self) -> bool:
         try:
             self.check_signature_validity()
         except ValidationError:
@@ -91,7 +99,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
             return True
 
     @abstractmethod
-    def check_signature_validity(self):
+    def check_signature_validity(self) -> None:
         """
         Checks signature validity, raising a ValidationError if the signature
         is invalid.
@@ -99,7 +107,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_sender(self):
+    def get_sender(self) -> bytes:
         """
         Get the 20-byte address which sent this transaction.
         """
@@ -109,7 +117,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     # Get gas costs
     #
     @abstractmethod
-    def get_intrinsic_gas(self):
+    def get_intrinsic_gas(self) -> int:
         """
         Compute the baseline gas cost for this transaction.  This is the amount
         of gas needed to send this transaction (but that is not actually used
@@ -117,7 +125,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def gas_used_by(self, computation):
+    def gas_used_by(self, computation: BaseComputation) -> int:
         """
         Return the gas used by the given computation. In Frontier,
         for example, this is sum of the intrinsic cost and the gas used
@@ -129,7 +137,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
     # Conversion to and creation of unsigned transactions.
     #
     @abstractmethod
-    def get_message_for_signing(self):
+    def get_message_for_signing(self) -> bytes:
         """
         Return the bytestring that should be signed in order to create a signed transactions
         """
@@ -137,7 +145,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def create_unsigned_transaction(self, *args, **kwargs):
+    def create_unsigned_transaction(self, *args: Any, **kwargs: Any) -> 'BaseTransaction':
         """
         Create an unsigned transaction.
         """
@@ -157,7 +165,7 @@ class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
     #
     # API that must be implemented by all Transaction subclasses.
     #
-    def validate(self):
+    def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
@@ -165,7 +173,7 @@ class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def as_signed_transaction(self, private_key):
+    def as_signed_transaction(self, private_key: bytes) -> 'BaseTransaction':
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`
@@ -185,12 +193,12 @@ class BaseShardingTransaction(rlp.Serializable):
         ('salt', hash32),
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.prefix_list = to_prefix_list_form(self.access_list)
 
     @property
-    def hash(self):
+    def hash(self) -> bytes:
         return keccak(rlp.encode(self))
 
     @property
@@ -201,7 +209,7 @@ class BaseShardingTransaction(rlp.Serializable):
     #
     # Validation
     #
-    def validate(self):
+    def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
@@ -210,7 +218,7 @@ class BaseShardingTransaction(rlp.Serializable):
             raise ValidationError("Insufficient gas")
 
     @property
-    def intrinsic_gas(self):
+    def intrinsic_gas(self) -> int:
         """
         Convenience property for the return value of `get_intrinsic_gas`
         """
@@ -220,7 +228,7 @@ class BaseShardingTransaction(rlp.Serializable):
     # Base gas costs
     #
     @abstractmethod
-    def get_intrinsic_gas(self):
+    def get_intrinsic_gas(self) -> int:
         """
         Compute the baseline gas cost for this transaction.  This is the amount
         of gas needed to send this transaction (but that is not actually used

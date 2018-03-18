@@ -197,7 +197,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     def memory_read(self, start_position, size):
         return self._memory.read(start_position, size)
-
+      
     def consume_gas(self, amount, reason):
         return self.gas_meter.consume_gas(amount, reason)
 

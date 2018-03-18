@@ -18,6 +18,8 @@ from .sedes import (
 
 from .logs import Log
 
+from typing import Iterable
+
 
 class Receipt(rlp.Serializable):
 
@@ -28,7 +30,12 @@ class Receipt(rlp.Serializable):
         ('logs', CountableList(Log))
     ]
 
-    def __init__(self, state_root, gas_used, logs, bloom=None):
+    def __init__(self,
+                 state_root: bytes,
+                 gas_used: int,
+                 logs: Iterable[Log],
+                 bloom: int=None) -> None:
+
         if bloom is None:
             bloomables = itertools.chain.from_iterable(log.bloomables for log in logs)
             bloom = int(BloomFilter.from_iterable(bloomables))
@@ -55,9 +62,9 @@ class Receipt(rlp.Serializable):
                     )
 
     @property
-    def bloom_filter(self):
+    def bloom_filter(self) -> BloomFilter:
         return BloomFilter(self.bloom)
 
     @bloom_filter.setter
-    def bloom_filter(self, value):
+    def bloom_filter(self, value: BloomFilter) -> None:
         self.bloom = int(value)
