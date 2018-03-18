@@ -229,7 +229,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         expected_output = fixture['out']
         assert computation.output == expected_output
 
-        gas_meter = computation.gas_meter
+        gas_meter = computation._gas_meter
 
         expected_gas_remaining = fixture['gas']
         actual_gas_remaining = gas_meter.gas_remaining
