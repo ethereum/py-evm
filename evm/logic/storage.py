@@ -41,7 +41,7 @@ def sstore(computation):
     ))
 
     if gas_refund:
-        computation.gas_meter.refund_gas(gas_refund)
+        computation.refund_gas(gas_refund)
 
     with computation.state_db() as state_db:
         state_db.set_storage(

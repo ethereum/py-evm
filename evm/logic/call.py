@@ -88,7 +88,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
                 self.mnemonic,
                 err_message,
             )
-            computation.gas_meter.return_gas(child_msg_gas)
+            computation.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:
             with computation.state_db(read_only=True) as state_db:
@@ -128,7 +128,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
                 )
 
             if child_computation.should_return_gas:
-                computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+                computation.return_gas(child_computation.gas_meter.gas_remaining)
 
 
 class Call(BaseCall):
@@ -405,7 +405,7 @@ class CallSharding(CallByzantium):
                 self.mnemonic,
                 err_message,
             )
-            computation.gas_meter.return_gas(child_msg_gas)
+            computation.return_gas(child_msg_gas)
             computation.stack.push(0)
         else:
             with computation.state_db(read_only=True) as state_db:
@@ -445,4 +445,4 @@ class CallSharding(CallByzantium):
                 )
 
             if not child_computation.should_burn_gas:
-                computation.gas_meter.return_gas(child_computation.gas_meter.gas_remaining)
+                computation.return_gas(child_computation.gas_meter.gas_remaining)
