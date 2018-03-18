@@ -207,6 +207,12 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     def refund_gas(self, amount):
         return self._gas_meter.refund_gas(amount)
 
+    def return_gas(self, amount):
+        return self.gas_meter.return_gas(amount)
+
+    def refund_gas(self, amount):
+        return self.gas_meter.refund_gas(amount)
+
     #
     # Computed properties.
     #
