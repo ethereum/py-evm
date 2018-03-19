@@ -154,7 +154,7 @@ class ShardingVMState(ByzantiumVMState):
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
-            computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
+            computation.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
         # Gas Refunds
         transaction_fee, gas_refund_amount = computation.compute_transaction_fee_and_refund()

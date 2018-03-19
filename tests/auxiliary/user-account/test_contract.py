@@ -385,7 +385,7 @@ def test_no_call_if_not_enough_gas(vm):
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_error
     # a little remains, but not enough to make the call
-    assert computation.gas_meter.gas_remaining > 0
+    assert computation.get_gas_remaining() > 0
 
 
 def test_call_passes_return_code(vm):

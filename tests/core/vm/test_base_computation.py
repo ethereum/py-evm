@@ -126,11 +126,11 @@ def test_extend_memory_stays_the_same_if_size_is_0(computation):
 
 
 def test_extend_memory_increases_memory_by_32(computation):
-    assert computation.gas_meter.gas_remaining == 100
+    assert computation._gas_meter.gas_remaining == 100
     computation.extend_memory(0, 1)
     assert len(computation._memory.bytes) == 32
     # 32 bytes of memory cost 3 gas
-    assert computation.gas_meter.gas_remaining == 97
+    assert computation._gas_meter.gas_remaining == 97
 
 
 def test_extend_memory_doesnt_increase_until_32_bytes_are_used(computation):
@@ -139,7 +139,7 @@ def test_extend_memory_doesnt_increase_until_32_bytes_are_used(computation):
     assert len(computation._memory.bytes) == 32
     computation.extend_memory(2, 32)
     assert len(computation._memory.bytes) == 64
-    assert computation.gas_meter.gas_remaining == 94
+    assert computation._gas_meter.gas_remaining == 94
 
 
 def test_register_accounts_for_deletion_raises_if_address_isnt_canonical(computation):
@@ -239,13 +239,13 @@ def test_get_log_entries_with_revert(computation):
 
 
 def test_get_gas_refund(computation):
-    computation.gas_meter.refund_gas(100)
+    computation._gas_meter.refund_gas(100)
     assert computation.get_gas_refund() == 100
 
 
 def test_get_gas_refund_with_vmerror(computation):
     # Trigger an out of gas error causing get gas refund to be 0
-    computation.gas_meter.refund_gas(100)
+    computation._gas_meter.refund_gas(100)
     with computation:
         raise VMError('Triggered VMError for tests')
     assert computation.is_error
@@ -254,7 +254,7 @@ def test_get_gas_refund_with_vmerror(computation):
 
 def test_get_gas_refund_with_revert(computation):
     # Trigger an out of gas error causing get gas refund to be 0
-    computation.gas_meter.refund_gas(100)
+    computation._gas_meter.refund_gas(100)
     with computation:
         raise Revert('Triggered VMError for tests')
     assert computation.is_error

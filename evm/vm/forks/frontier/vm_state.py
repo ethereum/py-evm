@@ -138,7 +138,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
-            computation.gas_meter.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
+            computation.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
         # Gas Refunds
         gas_remaining = computation.get_gas_remaining()

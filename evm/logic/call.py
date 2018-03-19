@@ -128,7 +128,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
                 )
 
             if child_computation.should_return_gas:
-                computation.return_gas(child_computation.gas_meter.gas_remaining)
+                computation.return_gas(child_computation.get_gas_remaining())
 
 
 class Call(BaseCall):
@@ -270,17 +270,17 @@ def max_child_gas_eip150(gas):
 
 
 def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callstipend):
-    if computation.gas_meter.gas_remaining < extra_gas:
+    if computation.get_gas_remaining() < extra_gas:
         # It feels wrong to raise an OutOfGas exception outside of GasMeter,
         # but I don't see an easy way around it.
         raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
             extra_gas,
-            computation.gas_meter.gas_remaining,
+            computation.get_gas_remaining(),
             mnemonic,
         ))
     gas = min(
         gas,
-        max_child_gas_eip150(computation.gas_meter.gas_remaining - extra_gas))
+        max_child_gas_eip150(computation.get_gas_remaining() - extra_gas))
     total_fee = gas + extra_gas
     child_msg_gas = gas + (callstipend if value else 0)
     return child_msg_gas, total_fee
@@ -445,4 +445,4 @@ class CallSharding(CallByzantium):
                 )
 
             if not child_computation.should_burn_gas:
-                computation.return_gas(child_computation.gas_meter.gas_remaining)
+                computation.return_gas(child_computation.get_gas_remaining())

@@ -125,7 +125,7 @@ class Create(Opcode):
         call_data = computation.memory_read(start_position, size)
 
         create_msg_gas = self.max_child_gas_modifier(
-            computation.gas_meter.gas_remaining
+            computation.get_gas_remaining()
         )
         computation.consume_gas(create_msg_gas, reason="CREATE")
 
@@ -163,7 +163,7 @@ class Create(Opcode):
             computation.stack.push(0)
         else:
             computation.stack.push(contract_address)
-        computation.return_gas(child_computation.gas_meter.gas_remaining)
+        computation.return_gas(child_computation.get_gas_remaining())
 
 
 class CreateEIP150(Create):
@@ -205,7 +205,7 @@ class Create2(CreateEIP150):
         call_data = computation.memory_read(start_position, size)
 
         create_msg_gas = self.max_child_gas_modifier(
-            computation.gas_meter.gas_remaining
+            computation.get_gas_remaining()
         )
         computation.consume_gas(create_msg_gas, reason="CREATE2")
 
@@ -240,7 +240,7 @@ class Create2(CreateEIP150):
             computation.stack.push(0)
         else:
             computation.stack.push(contract_address)
-        computation.return_gas(child_computation.gas_meter.gas_remaining)
+        computation.return_gas(child_computation.get_gas_remaining())
 
 
 def paygas(computation):

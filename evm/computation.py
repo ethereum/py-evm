@@ -68,7 +68,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     _memory = None
     stack = None
-    gas_meter = None
+    _gas_meter = None
 
     code = None
 
@@ -94,7 +94,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
         self._memory = Memory()
         self.stack = Stack()
-        self.gas_meter = GasMeter(message.gas)
+        self._gas_meter = GasMeter(message.gas)
 
         self.children = []
         self.accounts_to_delete = {}
@@ -180,7 +180,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         if size:
             if before_cost < after_cost:
                 gas_fee = after_cost - before_cost
-                self.gas_meter.consume_gas(
+                self._gas_meter.consume_gas(
                     gas_fee,
                     reason=" ".join((
                         "Expanding memory",
@@ -199,13 +199,13 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         return self._memory.read(start_position, size)
 
     def consume_gas(self, amount, reason):
-        return self.gas_meter.consume_gas(amount, reason)
+        return self._gas_meter.consume_gas(amount, reason)
 
     def return_gas(self, amount):
-        return self.gas_meter.return_gas(amount)
+        return self._gas_meter.return_gas(amount)
 
     def refund_gas(self, amount):
-        return self.gas_meter.refund_gas(amount)
+        return self._gas_meter.refund_gas(amount)
 
     #
     # Computed properties.
@@ -307,7 +307,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         if self.is_error:
             return 0
         else:
-            return self.gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
+            return self._gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
     def get_gas_used(self):
         if self.should_burn_gas:
@@ -315,14 +315,14 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         else:
             return max(
                 0,
-                self.msg.gas - self.gas_meter.gas_remaining,
+                self.msg.gas - self._gas_meter.gas_remaining,
             )
 
     def get_gas_remaining(self):
         if self.should_burn_gas:
             return 0
         else:
-            return self.gas_meter.gas_remaining
+            return self._gas_meter.gas_remaining
 
     @contextmanager
     def state_db(self, read_only=False):
@@ -366,7 +366,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             self._error = exc_value
             if self.should_burn_gas:
                 self.consume_gas(
-                    self.gas_meter.gas_remaining,
+                    self._gas_meter.gas_remaining,
                     reason=" ".join((
                         "Zeroing gas due to VM Exception:",
                         str(exc_value),
@@ -386,8 +386,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 self.msg.value,
                 self.msg.depth,
                 "y" if self.msg.is_static else "n",
-                self.msg.gas - self.gas_meter.gas_remaining,
-                self.gas_meter.gas_remaining,
+                self.msg.gas - self._gas_meter.gas_remaining,
+                self._gas_meter.gas_remaining,
             )
 
     #
