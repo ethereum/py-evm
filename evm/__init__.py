@@ -21,8 +21,9 @@ from evm.chains import (  # noqa: F401
 #  Setup TRACE level logging.
 #
 logging.addLevelName(TRACE_LEVEL_NUM, 'TRACE')
-logging.TRACE = TRACE_LEVEL_NUM
-logging.Logger.trace = trace
+# Need to ignore the following two lines since dynamically adding properties isn't allowed by mypy
+logging.TRACE = TRACE_LEVEL_NUM  # type: ignore
+logging.Logger.trace = trace  # type: ignore
 
 
 #

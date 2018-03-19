@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from typing import Type  # noqa: F401
 
 from trie import (
     HexaryTrie,
@@ -40,7 +41,10 @@ from evm.utils.hexadecimal import (
 from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
-from .transaction_context import FrontierTransactionContext
+from .transaction_context import (  # noqa: F401
+    BaseTransactionContext,
+    FrontierTransactionContext
+)
 from .validation import validate_frontier_transaction
 
 
@@ -214,7 +218,7 @@ class FrontierVMState(BaseVMState, FrontierTransactionExecutor):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     trie_class = HexaryTrie
-    transaction_context_class = FrontierTransactionContext
+    transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
 
     def make_receipt(self, transaction, computation):
         receipt = _make_frontier_receipt(self, transaction, computation)

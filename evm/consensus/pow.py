@@ -26,11 +26,11 @@ from evm.validation import (
 
 
 cache_seeds = ['\x00' * 32]
-cache_by_seed = OrderedDict()
-cache_by_seed.max_items = 10
+cache_by_seed = OrderedDict()  # type: OrderedDict[str, bytearray]
+CACHE_MAX_ITEMS = 10
 
 
-def get_cache(block_number):
+def get_cache(block_number: int) -> bytes:
     while len(cache_seeds) <= block_number // EPOCH_LENGTH:
         cache_seeds.append(keccak(cache_seeds[-1]))
     seed = cache_seeds[block_number // EPOCH_LENGTH]
@@ -40,12 +40,16 @@ def get_cache(block_number):
         return c
     c = mkcache_bytes(block_number)
     cache_by_seed[seed] = c
-    if len(cache_by_seed) > cache_by_seed.max_items:
+    if len(cache_by_seed) > CACHE_MAX_ITEMS:
         cache_by_seed.popitem(last=False)  # remove last recently accessed
     return c
 
 
-def check_pow(block_number, mining_hash, mix_hash, nonce, difficulty):
+def check_pow(block_number: int,
+              mining_hash: bytes,
+              mix_hash: bytes,
+              nonce: bytes,
+              difficulty: int) -> None:
     validate_length(mix_hash, 32, title="Mix Hash")
     validate_length(mining_hash, 32, title="Mining Hash")
     validate_length(nonce, 8, title="POW Nonce")

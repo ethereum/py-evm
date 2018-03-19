@@ -12,7 +12,7 @@ from .headers import (
 from .vm_state import HomesteadVMState
 
 
-class MetaHomesteadVM(FrontierVM):
+class MetaHomesteadVM(FrontierVM):  # type: ignore
     support_dao_fork = True
     dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
 

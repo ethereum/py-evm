@@ -1,10 +1,16 @@
-import itertools
-import logging
-from contextlib import contextmanager
-
 from abc import (
     ABCMeta,
     abstractmethod
+)
+from contextlib import contextmanager
+import itertools
+import logging
+from typing import (  # noqa: F401
+    Any,
+    Callable,
+    Dict,
+    List,
+    Tuple,
 )
 
 from evm.constants import (
@@ -48,6 +54,10 @@ from evm.vm.stack import (
     Stack,
 )
 
+from evm.opcode import (  # noqa: F401
+    Opcode
+)
+
 
 def memory_gas_cost(size_in_bytes):
     size_in_words = ceil32(size_in_bytes) // 32
@@ -82,8 +92,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     accounts_to_delete = None
 
     # VM configuration
-    opcodes = None
-    _precompiles = None
+    opcodes = None  # type: Dict[int, Opcode]
+    _precompiles = None  # type: Dict[bytes, Callable[[Any], Any]]
 
     logger = logging.getLogger('evm.vm.computation.Computation')
 
@@ -98,7 +108,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
         self.children = []
         self.accounts_to_delete = {}
-        self.log_entries = []
+        self.log_entries = []  # type: Tuple[bytes, List[int], bytes]
 
         code = message.code
         self.code = CodeStream(code)

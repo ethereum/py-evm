@@ -1,7 +1,7 @@
 from evm.vm.shard_vm import (
     ShardVM,
 )
-from evm.vm.forks.byzantium import (
+from evm.vm.forks.byzantium.headers import (
     configure_byzantium_header,
     compute_byzantium_difficulty,
 )

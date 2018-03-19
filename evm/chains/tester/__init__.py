@@ -1,3 +1,7 @@
+from typing import (
+    Any
+)
+
 from cytoolz import (
     assoc,
 )
@@ -19,33 +23,42 @@ from evm.utils.chain import (
     generate_vms_by_range,
 )
 
+from evm.rlp.headers import (
+    BlockHeader
+)
+
 
 class MaintainGasLimitMixin(object):
     @classmethod
-    def create_header_from_parent(cls, parent_header, **header_params):
+    def create_header_from_parent(cls,
+                                  parent_header: BlockHeader,
+                                  **header_params: Any) -> 'MaintainGasLimitMixin':
         """
         Call the parent class method maintaining the same gas_limit as the
         previous block.
         """
-        return super(MaintainGasLimitMixin, cls).create_header_from_parent(
+        return super(MaintainGasLimitMixin, cls).create_header_from_parent(  # type: ignore
             parent_header,
             **assoc(header_params, 'gas_limit', parent_header.gas_limit)
         )
 
+# Suppressing invalid base class error for several classes.
+# Check evm.datatypes.Configurable for a longer explanation
 
-class FrontierTesterVM(MaintainGasLimitMixin, BaseFrontierVM):
+
+class FrontierTesterVM(MaintainGasLimitMixin, BaseFrontierVM):  # type: ignore
     pass
 
 
-class BaseHomesteadTesterVM(MaintainGasLimitMixin, BaseHomesteadVM):
+class BaseHomesteadTesterVM(MaintainGasLimitMixin, BaseHomesteadVM):  # type: ignore
     pass
 
 
-class TangerineWhistleTesterVM(MaintainGasLimitMixin, BaseTangerineWhistleVM):
+class TangerineWhistleTesterVM(MaintainGasLimitMixin, BaseTangerineWhistleVM):  # type: ignore
     pass
 
 
-class SpuriousDragonTesterVM(MaintainGasLimitMixin, BaseSpuriousDragonVM):
+class SpuriousDragonTesterVM(MaintainGasLimitMixin, BaseSpuriousDragonVM):  # type: ignore
     pass
 
 
@@ -122,7 +135,7 @@ BaseMainnetTesterChain = Chain.configure(
 )
 
 
-class MainnetTesterChain(BaseMainnetTesterChain):
+class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
     def validate_seal(self, block):
         """
         We don't validate the proof of work seal on the tester chain.
