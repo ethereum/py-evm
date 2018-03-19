@@ -7,6 +7,12 @@ import sys
 from typing import Type
 
 from evm.db.backends.level import LevelDB
+from evm.chains.mainnet import (
+    MAINNET_NETWORK_ID,
+)
+from evm.chains.ropsten import (
+    ROPSTEN_NETWORK_ID,
+)
 
 from p2p.peer import (
     LESPeer,
@@ -54,12 +60,15 @@ from trinity.utils.mp import (
 )
 
 
+PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
+
+
 def main() -> None:
     args = parser.parse_args()
 
     logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
 
-    if args.network_id not in {1, 3}:
+    if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
             "Unsupported network id: {0}.  Only the ropsten and mainnet "
             "networks are supported.".format(args.network_id)
