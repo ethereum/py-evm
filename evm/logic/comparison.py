@@ -10,28 +10,28 @@ def lt(computation):
     """
     Lesser Comparison
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if left < right:
         result = 1
     else:
         result = 0
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def gt(computation):
     """
     Greater Comparison
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if left > right:
         result = 1
     else:
         result = 0
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def slt(computation):
@@ -40,7 +40,7 @@ def slt(computation):
     """
     left, right = map(
         unsigned_to_signed,
-        computation.stack.pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
     )
 
     if left < right:
@@ -48,7 +48,7 @@ def slt(computation):
     else:
         result = 0
 
-    computation.stack.push(signed_to_unsigned(result))
+    computation.stack_push(signed_to_unsigned(result))
 
 
 def sgt(computation):
@@ -57,7 +57,7 @@ def sgt(computation):
     """
     left, right = map(
         unsigned_to_signed,
-        computation.stack.pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
     )
 
     if left > right:
@@ -65,90 +65,90 @@ def sgt(computation):
     else:
         result = 0
 
-    computation.stack.push(signed_to_unsigned(result))
+    computation.stack_push(signed_to_unsigned(result))
 
 
 def eq(computation):
     """
     Equality
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if left == right:
         result = 1
     else:
         result = 0
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def iszero(computation):
     """
     Not
     """
-    value = computation.stack.pop(type_hint=constants.UINT256)
+    value = computation.stack_pop(type_hint=constants.UINT256)
 
     if value == 0:
         result = 1
     else:
         result = 0
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def and_op(computation):
     """
     Bitwise And
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     result = left & right
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def or_op(computation):
     """
     Bitwise Or
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     result = left | right
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def xor(computation):
     """
     Bitwise XOr
     """
-    left, right = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     result = left ^ right
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def not_op(computation):
     """
     Not
     """
-    value = computation.stack.pop(type_hint=constants.UINT256)
+    value = computation.stack_pop(type_hint=constants.UINT256)
 
     result = constants.UINT_256_MAX - value
 
-    computation.stack.push(result)
+    computation.stack_push(result)
 
 
 def byte_op(computation):
     """
     Bitwise And
     """
-    position, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    position, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if position >= 32:
         result = 0
     else:
         result = (value // pow(256, 31 - position)) % 256
 
-    computation.stack.push(result)
+    computation.stack_push(result)

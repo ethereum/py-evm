@@ -6,7 +6,7 @@ from evm.utils.hexadecimal import (
 
 
 def sstore(computation):
-    slot, value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    slot, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     with computation.state_db(read_only=True) as state_db:
         current_value = state_db.get_storage(
@@ -52,11 +52,11 @@ def sstore(computation):
 
 
 def sload(computation):
-    slot = computation.stack.pop(type_hint=constants.UINT256)
+    slot = computation.stack_pop(type_hint=constants.UINT256)
 
     with computation.state_db(read_only=True) as state_db:
         value = state_db.get_storage(
             address=computation.msg.storage_address,
             slot=slot,
         )
-    computation.stack.push(value)
+    computation.stack_push(value)

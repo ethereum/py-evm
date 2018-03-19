@@ -89,7 +89,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
                 err_message,
             )
             computation.return_gas(child_msg_gas)
-            computation.stack.push(0)
+            computation.stack_push(0)
         else:
             with computation.state_db(read_only=True) as state_db:
                 if code_address:
@@ -115,9 +115,9 @@ class BaseCall(Opcode, metaclass=ABCMeta):
             child_computation = computation.apply_child_computation(child_msg)
 
             if child_computation.is_error:
-                computation.stack.push(0)
+                computation.stack_push(0)
             else:
-                computation.stack.push(1)
+                computation.stack_push(1)
 
             if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
@@ -141,8 +141,8 @@ class Call(BaseCall):
         return transfer_gas_fee + create_gas_fee
 
     def get_call_params(self, computation):
-        gas = computation.stack.pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop(type_hint=constants.UINT256)
+        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
 
         (
             value,
@@ -150,7 +150,7 @@ class Call(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack.pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
 
         return (
             gas,
@@ -172,8 +172,8 @@ class CallCode(BaseCall):
         return constants.GAS_CALLVALUE if value else 0
 
     def get_call_params(self, computation):
-        gas = computation.stack.pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop(type_hint=constants.UINT256)
+        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
 
         (
             value,
@@ -181,7 +181,7 @@ class CallCode(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack.pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
 
         to = computation.msg.storage_address
         sender = computation.msg.storage_address
@@ -209,15 +209,15 @@ class DelegateCall(BaseCall):
         return 0
 
     def get_call_params(self, computation):
-        gas = computation.stack.pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop(type_hint=constants.UINT256)
+        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack.pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
 
         to = computation.msg.storage_address
         sender = computation.msg.sender
@@ -307,15 +307,15 @@ class CallEIP161(CallEIP150):
 #
 class StaticCall(CallEIP161):
     def get_call_params(self, computation):
-        gas = computation.stack.pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop(type_hint=constants.UINT256)
+        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack.pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
 
         return (
             gas,
@@ -406,7 +406,7 @@ class CallSharding(CallByzantium):
                 err_message,
             )
             computation.return_gas(child_msg_gas)
-            computation.stack.push(0)
+            computation.stack_push(0)
         else:
             with computation.state_db(read_only=True) as state_db:
                 if code_address:
@@ -432,9 +432,9 @@ class CallSharding(CallByzantium):
             child_computation = computation.apply_child_computation(child_msg)
 
             if child_computation.is_error:
-                computation.stack.push(0)
+                computation.stack_push(0)
             else:
-                computation.stack.push(1)
+                computation.stack_push(1)
 
             if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
