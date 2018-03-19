@@ -5,7 +5,7 @@ def swap_XX(computation, position):
     """
     Stack item swapping
     """
-    computation.stack.swap(position)
+    computation.stack_swap(position)
 
 
 swap1 = functools.partial(swap_XX, position=1)
