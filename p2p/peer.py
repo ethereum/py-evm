@@ -4,7 +4,6 @@ import operator
 import random
 import struct
 import time
-import traceback
 from abc import (
     ABCMeta,
     abstractmethod
@@ -258,8 +257,7 @@ class BasePeer(metaclass=ABCMeta):
         except OperationCancelled as e:
             self.logger.debug("Peer finished: %s", e)
         except Exception:
-            self.logger.error(
-                "Unexpected error when handling remote msg: %s", traceback.format_exc())
+            self.logger.exception("Unexpected error when handling remote msg")
         finally:
             self._finished.set()
             if finished_callback is not None:
@@ -680,7 +678,7 @@ class PeerPool:
                 break
             except:  # noqa: E722
                 # Most unexpected errors should be transient, so we log and restart from scratch.
-                self.logger.error("Unexpected error (%s), restarting", traceback.format_exc())
+                self.logger.exception("Unexpected error, restarting")
                 await self.stop_all_peers()
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
             await asyncio.wait([self.cancel_token.wait()], timeout=self._connect_loop_sleep)
@@ -717,8 +715,7 @@ class PeerPool:
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %s: %s", remote, repr(e))
         except Exception:
-            self.logger.warning("Unexpected error during auth/p2p handshake with %s: %s",
-                                remote, traceback.format_exc())
+            self.logger.exception("Unexpected error during auth/p2p handshake with %s", remote)
         return None
 
     async def lookup_random_node(self) -> None:
