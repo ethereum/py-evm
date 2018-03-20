@@ -197,7 +197,7 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
         return computation
 
 
-class ShardingVMState(ByzantiumVMState, ShardingTransactionExecutor):
+class ShardingVMState(ShardingTransactionExecutor, ByzantiumVMState):
     block_class = Collation
     computation_class = ShardingComputation
     transaction_context_class = ShardingTransactionContext
