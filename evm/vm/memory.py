@@ -17,13 +17,13 @@ class Memory(object):
     """
     VM Memory
     """
-    bytes = None
+    _bytes = None  # type: bytearray
     logger = logging.getLogger('evm.vm.memory.Memory')
 
     def __init__(self):
-        self.bytes = bytearray()
+        self._bytes = bytearray()
 
-    def extend(self, start_position, size):
+    def extend(self, start_position: int, size: int) -> None:
         if size == 0:
             return
 
@@ -32,12 +32,12 @@ class Memory(object):
             return
 
         size_to_extend = new_size - len(self)
-        self.bytes.extend(itertools.repeat(0, size_to_extend))
+        self._bytes.extend(itertools.repeat(0, size_to_extend))
 
-    def __len__(self):
-        return len(self.bytes)
+    def __len__(self) -> int:
+        return len(self._bytes)
 
-    def write(self, start_position, size, value):
+    def write(self, start_position: int, size: int, value: bytes) -> None:
         """
         Write `value` into memory.
         """
@@ -48,17 +48,17 @@ class Memory(object):
             validate_length(value, length=size)
             validate_lte(start_position + size, maximum=len(self))
 
-            if len(self.bytes) < start_position + size:
-                self.bytes.extend(itertools.repeat(
+            if len(self._bytes) < start_position + size:
+                self._bytes.extend(itertools.repeat(
                     0,
-                    len(self.bytes) - (start_position + size),
+                    len(self._bytes) - (start_position + size),
                 ))
 
             for idx, v in enumerate(value):
-                self.bytes[start_position + idx] = v
+                self._bytes[start_position + idx] = v
 
-    def read(self, start_position, size):
+    def read(self, start_position: int, size: int) -> bytes:
         """
         Read a value from memory.
         """
-        return bytes(self.bytes[start_position:start_position + size])
+        return bytes(self._bytes[start_position:start_position + size])

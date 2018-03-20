@@ -1,11 +1,15 @@
-import logging
 import pkg_resources
 import sys
 
 from evm.utils.logging import (
-    trace,
-    TRACE_LEVEL_NUM,
+    setup_trace_logging
 )
+
+#
+#  Setup TRACE level logging.
+#
+# This needs to be done before the other imports
+setup_trace_logging()
 
 from evm.vm import (  # noqa: F401
     VM,
@@ -16,15 +20,6 @@ from evm.chains import (  # noqa: F401
     MainnetTesterChain,
     RopstenChain,
 )
-
-#
-#  Setup TRACE level logging.
-#
-logging.addLevelName(TRACE_LEVEL_NUM, 'TRACE')
-# Need to ignore the following two lines since dynamically adding properties isn't allowed by mypy
-logging.TRACE = TRACE_LEVEL_NUM  # type: ignore
-logging.Logger.trace = trace  # type: ignore
-
 
 #
 #  Ensure we can reach 1024 frames of recursion

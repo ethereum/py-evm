@@ -8,7 +8,9 @@ import logging
 from typing import (  # noqa: F401
     Any,
     Callable,
+    cast,
     Dict,
+    Iterator,
     List,
     Tuple,
 )
@@ -33,6 +35,9 @@ from evm.utils.hexadecimal import (
 from evm.utils.numeric import (
     ceil32,
 )
+from evm.utils.logging import (
+    TraceLogger
+)
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -53,13 +58,21 @@ from evm.vm.message import (
 from evm.vm.stack import (
     Stack,
 )
-
+from evm.vm_state import (
+    BaseVMState,
+)
 from evm.opcode import (  # noqa: F401
     Opcode
 )
+from evm.db.state import (
+    BaseAccountStateDB
+)
+from evm.transaction_context import (
+    BaseTransactionContext
+)
 
 
-def memory_gas_cost(size_in_bytes):
+def memory_gas_cost(size_in_bytes: int) -> int:
     size_in_words = ceil32(size_in_bytes) // 32
     linear_cost = size_in_words * GAS_MEMORY
     quadratic_cost = size_in_words ** 2 // GAS_MEMORY_QUADRATIC_DENOMINATOR
@@ -82,22 +95,26 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     code = None
 
-    children = None
+    children = None  # type: List[BaseComputation]
 
     _output = b''
     return_data = b''
-    _error = None
+    _error = None  # type: VMError
 
-    logs = None
-    accounts_to_delete = None
+    log_entries = None  # type: List[Tuple[bytes, List[int], bytes]]
+    accounts_to_delete = None  # type: Dict[bytes, bytes]
 
     # VM configuration
     opcodes = None  # type: Dict[int, Opcode]
-    _precompiles = None  # type: Dict[bytes, Callable[[Any], Any]]
+    _precompiles = None  # type: Dict[bytes, Callable[['BaseComputation'], Any]]
 
-    logger = logging.getLogger('evm.vm.computation.Computation')
+    logger = cast(TraceLogger, logging.getLogger('evm.vm.computation.Computation'))
 
-    def __init__(self, vm_state, message, transaction_context):
+    def __init__(self,
+                 vm_state: BaseVMState,
+                 message: Message,
+                 transaction_context: BaseTransactionContext) -> None:
+
         self.vm_state = vm_state
         self.msg = message
         self.transaction_context = transaction_context
@@ -108,7 +125,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
         self.children = []
         self.accounts_to_delete = {}
-        self.log_entries = []  # type: Tuple[bytes, List[int], bytes]
+        self.log_entries = []
 
         code = message.code
         self.code = CodeStream(code)
@@ -117,42 +134,42 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # Convenience
     #
     @property
-    def is_origin_computation(self):
+    def is_origin_computation(self) -> bool:
         """
         Is this computation the computation initiated by a transaction.
         """
         return self.msg.sender == self.transaction_context.origin
 
     @property
-    def is_success(self):
+    def is_success(self) -> bool:
         return self._error is None
 
     @property
-    def is_error(self):
+    def is_error(self) -> bool:
         return not self.is_success
 
     @property
-    def should_burn_gas(self):
+    def should_burn_gas(self) -> bool:
         return self.is_error and self._error.burns_gas
 
     @property
-    def should_return_gas(self):
+    def should_return_gas(self) -> bool:
         return not self.should_burn_gas
 
     @property
-    def should_erase_return_data(self):
+    def should_erase_return_data(self) -> bool:
         return self.is_error and self._error.erases_return_data
 
     #
     # Execution
     #
     def prepare_child_message(self,
-                              gas,
-                              to,
-                              value,
-                              data,
-                              code,
-                              **kwargs):
+                              gas: int,
+                              to: bytes,
+                              value: int,
+                              data: bytes,
+                              code: bytes,
+                              **kwargs: Any) -> Message:
         kwargs.setdefault('sender', self.msg.storage_address)
 
         child_message = Message(
@@ -169,7 +186,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     # Memory Management
     #
-    def extend_memory(self, start_position, size):
+    def extend_memory(self, start_position: int, size: int) -> None:
         validate_uint256(start_position, title="Memory start position")
         validate_uint256(size, title="Memory size")
 
@@ -202,19 +219,19 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
             self._memory.extend(start_position, size)
 
-    def memory_write(self, start_position, size, value):
+    def memory_write(self, start_position: int, size: int, value: bytes) -> None:
         return self._memory.write(start_position, size, value)
 
-    def memory_read(self, start_position, size):
+    def memory_read(self, start_position: int, size: int) -> bytes:
         return self._memory.read(start_position, size)
 
-    def consume_gas(self, amount, reason):
+    def consume_gas(self, amount: int, reason: str) -> None:
         return self._gas_meter.consume_gas(amount, reason)
 
-    def return_gas(self, amount):
+    def return_gas(self, amount: int) -> None:
         return self._gas_meter.return_gas(amount)
 
-    def refund_gas(self, amount):
+    def refund_gas(self, amount: int) -> None:
         return self._gas_meter.refund_gas(amount)
 
     def stack_pop(self, num_items=1, type_hint=None):
@@ -233,21 +250,21 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # Computed properties.
     #
     @property
-    def output(self):
+    def output(self) -> bytes:
         if self.should_erase_return_data:
             return b''
         else:
             return self._output
 
     @output.setter
-    def output(self, value):
+    def output(self, value: bytes) -> None:
         validate_is_bytes(value)
         self._output = value
 
     #
     # Runtime operations
     #
-    def apply_child_computation(self, child_msg):
+    def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
         child_computation = self.generate_child_computation(
             self.vm_state,
             child_msg,
@@ -257,7 +274,12 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         return child_computation
 
     @classmethod
-    def generate_child_computation(cls, vm_state, child_msg, transaction_context):
+    def generate_child_computation(
+            cls,
+            vm_state: BaseVMState,
+            child_msg: Message,
+            transaction_context: BaseTransactionContext) -> 'BaseComputation':
+
         if child_msg.is_create:
             child_computation = cls(
                 vm_state,
@@ -272,7 +294,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             ).apply_message()
         return child_computation
 
-    def add_child_computation(self, child_computation):
+    def add_child_computation(self, child_computation: 'BaseComputation') -> None:
         if child_computation.is_error:
             if child_computation.msg.is_create:
                 self.return_data = child_computation.output
@@ -287,7 +309,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 self.return_data = child_computation.output
         self.children.append(child_computation)
 
-    def register_account_for_deletion(self, beneficiary):
+    def register_account_for_deletion(self, beneficiary: bytes) -> None:
         validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
         if self.msg.storage_address in self.accounts_to_delete:
@@ -297,7 +319,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             )
         self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
-    def add_log_entry(self, account, topics, data):
+    def add_log_entry(self, account: bytes, topics: List[int], data: bytes) -> None:
         validate_canonical_address(account, title="Log entry address")
         for topic in topics:
             validate_uint256(topic, title="Log entry topic")
@@ -307,7 +329,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     # Getters
     #
-    def get_accounts_for_deletion(self):
+    def get_accounts_for_deletion(self) -> Tuple[Tuple[bytes, bytes], ...]:
         if self.is_error:
             return tuple()
         else:
@@ -316,7 +338,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 *(child.get_accounts_for_deletion() for child in self.children)
             )).items())
 
-    def get_log_entries(self):
+    def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
         if self.is_error:
             return tuple()
         else:
@@ -325,13 +347,13 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 *(child.get_log_entries() for child in self.children)
             ))
 
-    def get_gas_refund(self):
+    def get_gas_refund(self) -> int:
         if self.is_error:
             return 0
         else:
             return self._gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
 
-    def get_gas_used(self):
+    def get_gas_used(self) -> int:
         if self.should_burn_gas:
             return self.msg.gas
         else:
@@ -340,21 +362,21 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 self.msg.gas - self._gas_meter.gas_remaining,
             )
 
-    def get_gas_remaining(self):
+    def get_gas_remaining(self) -> int:
         if self.should_burn_gas:
             return 0
         else:
             return self._gas_meter.gas_remaining
 
     @contextmanager
-    def state_db(self, read_only=False):
+    def state_db(self, read_only: bool = False) -> Iterator[BaseAccountStateDB]:
         with self.vm_state.state_db(read_only, self.msg.access_list) as state_db:
             yield state_db
 
     #
     # Context Manager API
     #
-    def __enter__(self):
+    def __enter__(self) -> 'BaseComputation':
         self.logger.debug(
             (
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
@@ -370,7 +392,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
         if exc_value and isinstance(exc_value, VMError):
             self.logger.debug(
                 (
@@ -416,21 +438,24 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # State Transition
     #
     @abstractmethod
-    def apply_message(self):
+    def apply_message(self) -> 'BaseComputation':
         """
         Execution of an VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def apply_create_message(self):
+    def apply_create_message(self) -> 'BaseComputation':
         """
         Execution of an VM message to create a new contract.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
-    def apply_computation(cls, vm_state, message, transaction_context):
+    def apply_computation(cls,
+                          vm_state: BaseVMState,
+                          message: Message,
+                          transaction_context: BaseTransactionContext) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """
@@ -460,7 +485,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # Opcode API
     #
     @property
-    def precompiles(self):
+    def precompiles(self) -> Dict[bytes, Callable[['BaseComputation'], Any]]:
         if self._precompiles is None:
             return dict()
         else:

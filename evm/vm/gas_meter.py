@@ -1,4 +1,7 @@
 import logging
+from typing import (
+    cast
+)
 
 from evm.exceptions import (
     ValidationError,
@@ -7,17 +10,20 @@ from evm.exceptions import (
 from evm.validation import (
     validate_uint256,
 )
+from evm.utils.logging import (
+    TraceLogger
+)
 
 
 class GasMeter(object):
-    start_gas = None
+    start_gas = None  # type: int
 
-    gas_refunded = None
-    gas_remaining = None
+    gas_refunded = None  # type: int
+    gas_remaining = None  # type: int
 
-    logger = logging.getLogger('evm.gas.GasMeter')
+    logger = cast(TraceLogger, logging.getLogger('evm.gas.GasMeter'))
 
-    def __init__(self, start_gas):
+    def __init__(self, start_gas: int) -> None:
         validate_uint256(start_gas, title="Start Gas")
 
         self.start_gas = start_gas
@@ -28,7 +34,7 @@ class GasMeter(object):
     #
     # Write API
     #
-    def consume_gas(self, amount, reason):
+    def consume_gas(self, amount: int, reason: str) -> None:
         if amount < 0:
             raise ValidationError("Gas consumption amount must be positive")
 
@@ -49,7 +55,7 @@ class GasMeter(object):
             reason,
         )
 
-    def return_gas(self, amount):
+    def return_gas(self, amount: int) -> None:
         if amount < 0:
             raise ValidationError("Gas return amount must be positive")
 
@@ -62,7 +68,7 @@ class GasMeter(object):
             self.gas_remaining,
         )
 
-    def refund_gas(self, amount):
+    def refund_gas(self, amount: int) -> None:
         if amount < 0:
             raise ValidationError("Gas refund amount must be positive")
 

@@ -1,6 +1,8 @@
 import logging
 import sys
 
+# from evm.utils.logging import TRACE_LEVEL_NUM
+
 import pytest
 
 
@@ -10,7 +12,7 @@ def vm_logger():
 
     handler = logging.StreamHandler(sys.stdout)
 
-    # level = logging.TRACE
+    # level = TRACE_LEVEL_NUM
     # level = logging.DEBUG
     level = logging.INFO
 
@@ -32,7 +34,7 @@ def vm_file_logger(request):
 
     logger = logging.getLogger('evm')
 
-    level = logging.TRACE
+    level = TRACE_LEVEL_NUM
     #level = logging.DEBUG
     #level = logging.INFO
 

@@ -23,7 +23,7 @@ def memory32():
 def test_write(memory32):
     # Test that write creates 32byte string == value padded with zeros
     memory32.write(start_position=0, size=4, value=b'1010')
-    assert memory32.bytes == b'1010' + bytearray(28)
+    assert memory32._bytes == b'1010' + bytearray(28)
 
 
 @pytest.mark.parametrize("start_position", (-1, 2**256, 'a', b'1010'))
@@ -57,13 +57,13 @@ def test_write_rejects_values_beyond_memory_size(memory32):
 def test_extend_appropriately_extends_memory(memory):
     # Test extends to 32 byte array: 0 < (start_position + size) <= 32
     memory.extend(start_position=0, size=10)
-    assert memory.bytes == bytearray(32)
+    assert memory._bytes == bytearray(32)
     # Test will extend past length if params require: 32 < (start_position + size) <= 64
     memory.extend(start_position=30, size=32)
-    assert memory.bytes == bytearray(64)
+    assert memory._bytes == bytearray(64)
     # Test won't extend past length unless params require: 32 < (start_position + size) <= 64
     memory.extend(start_position=48, size=10)
-    assert memory.bytes == bytearray(64)
+    assert memory._bytes == bytearray(64)
 
 
 def test_read_returns_correct_bytes_from_memory(memory32):
