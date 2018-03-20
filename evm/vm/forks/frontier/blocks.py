@@ -1,3 +1,7 @@
+from typing import (  # noqa: F401
+    List
+)
+
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -87,7 +91,7 @@ class FrontierBlock(BaseBlock):
         Returns the block denoted by the given block header.
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
-            uncles = []
+            uncles = []  # type: List[bytes]
         else:
             uncles = chaindb.get_block_uncles(header.uncles_hash)
 

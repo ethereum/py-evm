@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import Type
 
 import rlp
 
@@ -23,10 +24,10 @@ class BaseCollation(rlp.Serializable, Configurable, metaclass=ABCMeta):
     def get_sedes(cls):
         return rlp.sedes.List(sedes for _, sedes in cls.fields)
 
-    transaction_class = None
+    transaction_class = None  # type: Type[BaseShardingTransaction]
 
     @classmethod
-    def get_transaction_class(cls) -> BaseShardingTransaction:
+    def get_transaction_class(cls) -> Type[BaseShardingTransaction]:
         if cls.transaction_class is None:
             raise AttributeError("Collation subclasses must declare a transaction_class")
         return cls.transaction_class

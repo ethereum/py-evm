@@ -10,8 +10,8 @@ from evm.utils.datatypes import Configurable
 
 
 class Opcode(Configurable, metaclass=ABCMeta):
-    mnemonic = None
-    gas_cost = None
+    mnemonic = None  # type: str
+    gas_cost = None  # type: int
 
     def __init__(self):
         if self.mnemonic is None:

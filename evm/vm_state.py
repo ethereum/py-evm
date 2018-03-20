@@ -1,9 +1,11 @@
-from contextlib import contextmanager
-import logging
-
 from abc import (
     ABCMeta,
     abstractmethod
+)
+from contextlib import contextmanager
+import logging
+from typing import (  # noqa: F401
+    Type
 )
 
 from cytoolz import (
@@ -22,6 +24,15 @@ from evm.db.trie import (
 from evm.utils.datatypes import (
     Configurable,
 )
+from evm.rlp.blocks import (  # noqa: F401
+    BaseBlock,
+)
+from evm.computation import (  # noqa: F401
+    BaseComputation,
+)
+from evm.transaction_context import (  # noqa: F401
+    BaseTransactionContext,
+)
 
 
 class BaseVMState(Configurable, metaclass=ABCMeta):
@@ -33,10 +44,10 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
     state_root = None
     receipts = None
 
-    block_class = None
-    computation_class = None
+    block_class = None  # type: Type[BaseBlock]
+    computation_class = None  # type: Type[BaseComputation]
     trie_class = None
-    transaction_context_class = None
+    transaction_context_class = None  # type: Type[BaseTransactionContext]
     access_logs = None
 
     def __init__(self, chaindb, execution_context, state_root, receipts=[]):

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-
 import functools
+from typing import List  # noqa: F401
 
 from evm import constants
 
@@ -12,7 +12,7 @@ def log_XX(computation, topic_count):
     mem_start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
 
     if not topic_count:
-        topics = []
+        topics = []  # type: List[int]
     elif topic_count > 1:
         topics = computation.stack.pop(num_items=topic_count, type_hint=constants.UINT256)
     else:

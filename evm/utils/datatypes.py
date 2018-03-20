@@ -55,6 +55,11 @@ def _get_top_level_keys(overrides: Dict[str, Any]) -> Iterator[str]:
     for prop in overrides:
         yield _extract_top_level_key(prop)
 
+# Dynamic subclassing is not supported by mypy
+# https://github.com/python/mypy/wiki/Unsupported-Python-Features
+# Most of the cases where we silence mypy boil down to cases where
+# dynamic subclasses where generated through this method
+
 
 class Configurable(object):
     """

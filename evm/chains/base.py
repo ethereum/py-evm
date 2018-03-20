@@ -297,7 +297,7 @@ class Chain(BaseChain):
     vms_by_range = None
     gas_estimator = None
 
-    def __init__(self, chaindb: AsyncChainDB, header=None):
+    def __init__(self, chaindb: AsyncChainDB, header: BlockHeader=None) -> None:
         if not self.vms_by_range:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vms_by_range`"

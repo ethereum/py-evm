@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from evm import VM
+from evm.vm import VM
 
 from .blocks import FrontierBlock
 from .vm_state import FrontierVMState

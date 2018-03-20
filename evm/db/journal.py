@@ -1,3 +1,4 @@
+from typing import Dict  # noqa: F401
 import uuid
 
 from cytoolz import (
@@ -24,7 +25,7 @@ class Journal(object):
         # contains a mapping from all of the `uuid4` in the `checkpoints` array
         # to a dictionary of key:value pairs wher the `value` is the original
         # value for the given key at the moment this checkpoint was created.
-        self.journal_data = {}
+        self.journal_data = {}  # type: Dict[uuid.UUID, Dict[bytes, bytes]]
 
     @property
     def latest_id(self):

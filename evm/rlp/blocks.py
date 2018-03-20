@@ -2,6 +2,9 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import (  # noqa: F401
+    Type
+)
 
 import rlp
 
@@ -23,10 +26,10 @@ class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
     def get_sedes(cls):
         return rlp.sedes.List(sedes for _, sedes in cls.fields)
 
-    transaction_class = None
+    transaction_class = None  # type: Type[BaseTransaction]
 
     @classmethod
-    def get_transaction_class(cls) -> BaseTransaction:
+    def get_transaction_class(cls) -> Type[BaseTransaction]:
         if cls.transaction_class is None:
             raise AttributeError("Block subclasses must declare a transaction_class")
         return cls.transaction_class

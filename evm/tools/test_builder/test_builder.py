@@ -5,6 +5,11 @@ from collections import (
 from functools import (
     partial,
 )
+from typing import (  # noqa: F401
+    Any,
+    Dict,
+    List,
+)
 
 from evm.db.state import (
     MainAccountStateDB,
@@ -145,7 +150,8 @@ FILLED_WITH_TEMPLATE = "py-evm-{version}"
 
 
 Test = namedtuple("Test", ["filler", "fill_kwargs"])
-Test.__new__.__defaults__ = (None,)  # make `None` default for fill_kwargs
+# make `None` default for fill_kwargs
+Test.__new__.__defaults__ = (None,)  # type: ignore
 
 
 #
@@ -188,7 +194,7 @@ def pre_state(pre_state, filler):
 def _expect(post_state, networks, transaction, filler):
     test_name = get_test_name(filler)
     test = filler[test_name]
-    test_update = {test_name: {}}
+    test_update = {test_name: {}}  # type: Dict[str, Dict[Any, Any]]
 
     pre_state = test.get("pre", {})
     post_state = normalize_state(post_state or {})
@@ -279,7 +285,7 @@ def fill_test(filler, info=None, apply_formatter=True, **kwargs):
     test = filler[test_name]
 
     if "transaction" in test:
-        filled = fill_state_test(filler, **kwargs)
+        filled = fill_state_test(filler)
         formatter = filled_state_test_formatter
     elif "exec" in test:
         filled = fill_vm_test(filler, **kwargs)
@@ -307,7 +313,7 @@ def fill_state_test(filler):
     pre_state = normalize_state(test["pre"])
     transaction_group = normalize_transaction_group(test["transaction"])
 
-    post = defaultdict(list)
+    post = defaultdict(list)  # type: Dict[int, List[Dict[str, str]]]
     for expect in test["expect"]:
         indexes = expect["indexes"]
         networks = normalize_networks(expect["networks"])
