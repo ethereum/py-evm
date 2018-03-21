@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import operator
+import secrets
 import time
 import traceback
 from typing import Any, Awaitable, Callable, cast, Dict, Generator, List, Set, Tuple  # noqa: F401
@@ -37,6 +38,7 @@ class ChainSyncer(PeerPoolSubscriber):
         self.peer_pool.subscribe(self)
         self.cancel_token = CancelToken('ChainSyncer')
         self._running_peers = set()  # type: Set[ETHPeer]
+        self._peers_with_pending_requests = set()  # type: Set[ETHPeer]
         self._syncing = False
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
         self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
@@ -246,8 +248,9 @@ class ChainSyncer(PeerPoolSubscriber):
                 yield header
 
     async def request_bodies(self, headers: List[BlockHeader]) -> None:
-        peer = await self.peer_pool.get_random_peer()
-        cast(ETHPeer, peer).sub_proto.send_get_block_bodies([header.hash for header in headers])
+        peer = await self.get_idle_peer()
+        peer.sub_proto.send_get_block_bodies([header.hash for header in headers])
+        self._peers_with_pending_requests.add(peer)
         self.logger.debug("Requesting %d block bodies to %s", len(headers), peer)
         now = time.time()
         for header in headers:
@@ -267,12 +270,27 @@ class ChainSyncer(PeerPoolSubscriber):
                 yield header
 
     async def request_receipts(self, headers: List[BlockHeader]) -> None:
-        peer = await self.peer_pool.get_random_peer()
-        cast(ETHPeer, peer).sub_proto.send_get_receipts([header.hash for header in headers])
+        peer = await self.get_idle_peer()
+        peer.sub_proto.send_get_receipts([header.hash for header in headers])
+        self._peers_with_pending_requests.add(peer)
         self.logger.debug("Requesting %d block receipts to %s", len(headers), peer)
         now = time.time()
         for header in headers:
             self._pending_receipts[header.receipt_root] = (header, now)
+
+    async def get_idle_peer(self) -> ETHPeer:
+        """Return a random peer which we're not already expecting a response from."""
+        while True:
+            idle_peers = [
+                peer
+                for peer in self.peer_pool.peers
+                if peer not in self._peers_with_pending_requests
+            ]
+            if idle_peers:
+                return cast(ETHPeer, secrets.choice(idle_peers))
+            else:
+                self.logger.debug("No idle peers availabe, sleeping a bit")
+                await asyncio.sleep(0.2)
 
     async def wait_until_finished(self) -> None:
         start_at = time.time()
@@ -299,6 +317,7 @@ class ChainSyncer(PeerPoolSubscriber):
                 "Got BlockHeaders from %d to %d", msg[0].block_number, msg[-1].block_number)
             self._new_headers.put_nowait(msg)
         elif isinstance(cmd, eth.BlockBodies):
+            self._peers_with_pending_requests.remove(peer)
             msg = cast(List[eth.BlockBody], msg)
             self.logger.debug("Got %d BlockBodies from %s", len(msg), peer)
             iterator = map(make_trie_root_and_nodes, [body.transactions for body in msg])
@@ -314,6 +333,7 @@ class ChainSyncer(PeerPoolSubscriber):
                 uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
                 self._pending_bodies.pop((tx_root, uncles_hash), None)
         elif isinstance(cmd, eth.Receipts):
+            self._peers_with_pending_requests.remove(peer)
             msg = cast(List[List[eth.Receipt]], msg)
             self.logger.debug("Got Receipts for %d blocks from %s", len(msg), peer)
             iterator = map(make_trie_root_and_nodes, msg)
