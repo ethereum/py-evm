@@ -62,14 +62,9 @@ async def get_directly_linked_peers_without_handshake(
     handshake_finished = asyncio.Event()
 
     async def do_handshake():
-        nonlocal peer1, peer2
+        nonlocal peer1
         aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
             initiator, peer1_reader, peer1_writer)
-
-        # Need to copy those before we pass them on to the Peer constructor because they're
-        # mutable. Also, the 2nd peer's ingress/egress MACs are reversed from the first peer's.
-        peer2_ingress = egress_mac.copy()
-        peer2_egress = ingress_mac.copy()
 
         peer1 = peer1_class(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
@@ -77,29 +72,31 @@ async def get_directly_linked_peers_without_handshake(
             egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=peer1_chaindb,
             network_id=1)
 
-        peer2 = peer2_class(
-            remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
-            writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=peer2_egress, ingress_mac=peer2_ingress, chaindb=peer2_chaindb,
-            network_id=1)
-
         handshake_finished.set()
 
     asyncio.ensure_future(do_handshake())
 
     responder = auth.HandshakeResponder(peer2_remote, peer2_private_key)
-    auth_msg = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
+    auth_cipher = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
 
-    # Can't assert return values, but checking that the decoder doesn't raise
-    # any exceptions at least.
-    _, _ = responder.decode_authentication(auth_msg)
-
-    peer2_nonce = keccak(os.urandom(constants.HASH_LEN))
-    auth_ack_msg = responder.create_auth_ack_message(peer2_nonce)
+    initiator_ephemeral_pubkey, initiator_nonce = responder.decode_authentication(auth_cipher)
+    responder_nonce = keccak(os.urandom(constants.HASH_LEN))
+    auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
     auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
     peer2_writer.write(auth_ack_ciphertext)
 
     await handshake_finished.wait()
+
+    aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
+        initiator_nonce, responder_nonce, initiator_ephemeral_pubkey,
+        auth_cipher, auth_ack_ciphertext)
+    assert egress_mac.digest() == peer1.ingress_mac.digest()
+    assert ingress_mac.digest() == peer1.egress_mac.digest()
+    peer2 = peer2_class(
+        remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
+        writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
+        egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=peer2_chaindb,
+        network_id=1)
 
     return peer1, peer2
 
