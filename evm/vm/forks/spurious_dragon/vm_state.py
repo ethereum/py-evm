@@ -2,9 +2,6 @@
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.vm.forks.frontier.vm_state import (
-    FrontierTransactionExecutor,
-)
 from evm.vm.forks.homestead.vm_state import (
     HomesteadVMState,
 )
@@ -14,7 +11,7 @@ from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
-class SpuriousDragonVMState(HomesteadVMState, FrontierTransactionExecutor):
+class SpuriousDragonVMState(HomesteadVMState):
     block_class = SpuriousDragonBlock
     computation_class = SpuriousDragonComputation
 

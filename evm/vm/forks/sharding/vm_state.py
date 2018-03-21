@@ -30,6 +30,9 @@ from evm.utils.address import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
+from evm.vm_state import (
+    BaseTransactionExecutor,
+)
 from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
 from evm.vm.forks.frontier.constants import (
     REFUND_SELFDESTRUCT,
@@ -41,19 +44,11 @@ from .transaction_context import ShardingTransactionContext
 from .validation import validate_sharding_transaction
 
 
-class ShardingVMState(ByzantiumVMState):
-    block_class = Collation
-    computation_class = ShardingComputation
-    transaction_context_class = ShardingTransactionContext
-    trie_class = BinaryTrie
-
-    def execute_transaction(self, transaction):
-        # state_db ontext manager that restricts access as specified in the transacion
-        state_db_cm = functools.partial(self.state_db, access_list=transaction.prefix_list)
-
-        #
-        # 1) Pre Computation
-        #
+class ShardingTransactionExecutor(BaseTransactionExecutor):
+    def run_pre_computation(self, transaction):
+        state_db_cm = functools.partial(
+            self.state_db, access_list=transaction.prefix_list
+        )
 
         # Validate the transaction
         transaction.validate()
@@ -65,15 +60,10 @@ class ShardingVMState(ByzantiumVMState):
             message_gas = transaction.gas - transaction.intrinsic_gas
 
             if transaction.code:
-                contract_address = generate_CREATE2_contract_address(
-                    transaction.salt,
-                    transaction.code,
-                )
                 data = b''
                 code = transaction.code
                 is_create = True
             else:
-                contract_address = None
                 data = transaction.data
                 code = state_db.get_code(transaction.to)
                 is_create = False
@@ -90,7 +80,7 @@ class ShardingVMState(ByzantiumVMState):
             encode_hex(transaction.salt),
         )
 
-        message = ShardingMessage(
+        return ShardingMessage(
             gas=message_gas,
             to=transaction.to,
             sender=ENTRY_POINT,
@@ -100,15 +90,28 @@ class ShardingVMState(ByzantiumVMState):
             is_create=is_create,
             access_list=transaction.prefix_list,
         )
+
+    def run_computation(self, transaction, message):
+        """Apply the message to the VM."""
+
+        state_db_cm = functools.partial(
+            self.state_db, access_list=transaction.prefix_list
+        )
+
+        if transaction.code:
+            contract_address = generate_CREATE2_contract_address(
+                transaction.salt,
+                transaction.code,
+            )
+        else:
+            contract_address = None
+
         transaction_context = self.get_transaction_context_class()(
             origin=transaction.to,
             sig_hash=transaction.sig_hash,
             transaction_gas_limit=transaction.gas,
         )
 
-        #
-        # 2) Apply the message to the VM.
-        #
         if message.is_create:
             with state_db_cm(read_only=True) as state_db:
                 is_collision = state_db.account_has_code(contract_address)
@@ -148,9 +151,13 @@ class ShardingVMState(ByzantiumVMState):
         else:
             computation = self.get_computation(message, transaction_context).apply_message()
 
-        #
-        # 2) Post Computation
-        #
+        return computation
+
+    def run_post_computation(self, transaction, computation):
+        state_db_cm = functools.partial(
+            self.state_db, access_list=transaction.prefix_list
+        )
+
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -163,11 +170,11 @@ class ShardingVMState(ByzantiumVMState):
             self.logger.debug(
                 'TRANSACTION REFUND: %s -> %s',
                 gas_refund_amount,
-                encode_hex(message.to),
+                encode_hex(computation.msg.to),
             )
 
             with state_db_cm() as state_db:
-                state_db.delta_balance(message.to, gas_refund_amount)
+                state_db.delta_balance(computation.msg.to, gas_refund_amount)
 
         # Miner Fees
         self.logger.debug(
@@ -188,6 +195,13 @@ class ShardingVMState(ByzantiumVMState):
                 state_db.delete_account(account)
 
         return computation
+
+
+class ShardingVMState(ShardingTransactionExecutor, ByzantiumVMState):
+    block_class = Collation
+    computation_class = ShardingComputation
+    transaction_context_class = ShardingTransactionContext
+    trie_class = BinaryTrie
 
     def validate_transaction(self, transaction):
         validate_sharding_transaction(self, transaction)
