@@ -70,4 +70,5 @@ monkeytype.sqlite3
 test_env.ipynb
 test_env.py
 test_env2.ipynb
+test_env3.ipynb
 .ipynb_checkpoints/**
