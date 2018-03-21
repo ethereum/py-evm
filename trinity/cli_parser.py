@@ -1,6 +1,17 @@
 import argparse
 
+from evm.chains.mainnet import (
+    MAINNET_NETWORK_ID,
+)
+from evm.chains.ropsten import (
+    ROPSTEN_NETWORK_ID,
+)
+
 from trinity.__version__ import __version__
+from trinity.constants import (
+    SYNC_FULL,
+    SYNC_LIGHT,
+)
 
 
 DEFAULT_LOG_LEVEL = 'info'
@@ -31,15 +42,39 @@ parser.add_argument(
 #
 # Main parser for running trinity as a node.
 #
-parser.add_argument(
+networkid_parser = parser.add_mutually_exclusive_group()
+networkid_parser.add_argument(
+    '--network-id',
+    type=int,
+    help="Network identifier (1=Mainnet, 3=Ropsten)",
+    default=MAINNET_NETWORK_ID,
+)
+networkid_parser.add_argument(
     '--ropsten',
-    action='store_true',
-    help="Ropsten network: pre configured proof-of-work test network",
+    action='store_const',
+    const=ROPSTEN_NETWORK_ID,
+    dest='network_id',
+    help=(
+        "Ropsten network: pre configured proof-of-work test network.  Shortcut "
+        "for `--networkid=3`"
+    ),
 )
-parser.add_argument(
+
+
+syncmode_parser = parser.add_mutually_exclusive_group()
+syncmode_parser.add_argument(
+    '--sync-mode',
+    choices={SYNC_LIGHT, SYNC_FULL},
+    default=SYNC_LIGHT,
+)
+syncmode_parser.add_argument(
     '--light',  # TODO: consider --sync-mode like geth.
-    action='store_true',
+    action='store_const',
+    const=SYNC_LIGHT,
+    dest='sync_mode',
+    help="Shortcut for `--sync-mode=light`",
 )
+
 parser.add_argument(
     '--trinity-root-dir',
     help=(

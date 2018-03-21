@@ -13,7 +13,7 @@ from trinity.utils.chains import (
 
 @pytest.fixture
 def chain_config():
-    return ChainConfig('test_chain')
+    return ChainConfig(network_id=1)
 
 
 @pytest.fixture

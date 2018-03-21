@@ -4,7 +4,14 @@ from multiprocessing.managers import (
 import os
 from typing import Type
 
-from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.chains.mainnet import (
+    MAINNET_GENESIS_HEADER,
+    MAINNET_NETWORK_ID,
+)
+from evm.chains.ropsten import (
+    ROPSTEN_GENESIS_HEADER,
+    ROPSTEN_NETWORK_ID,
+)
 from evm.db.backends.base import BaseDB
 from evm.db.chain import ChainDB
 from evm.exceptions import CanonicalHeadNotFound
@@ -12,9 +19,7 @@ from evm.exceptions import CanonicalHeadNotFound
 from p2p import ecies
 from p2p.lightchain import LightChain
 
-from trinity.constants import (
-    ROPSTEN,
-)
+from trinity.constants import SYNC_LIGHT
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.utils.chains import (
@@ -24,6 +29,9 @@ from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
 
+from .mainnet import (
+    MainnetLightChain,
+)
 from .ropsten import (
     RopstenLightChain,
 )
@@ -89,27 +97,34 @@ def initialize_database(chain_config: ChainConfig, chaindb: ChainDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
-        if chain_config.chain_identifier == ROPSTEN:
+        if chain_config.network_id == ROPSTEN_NETWORK_ID:
             # We're starting with a fresh DB.
-            # TODO: log that we initialized the chain
             chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+        elif chain_config.network_id == MAINNET_NETWORK_ID:
+            chaindb.persist_header(MAINNET_GENESIS_HEADER)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
-            raise NotImplementedError("Not implemented for other chains yet")
+            raise NotImplementedError(
+                "Only the mainnet and ropsten chains are currently supported"
+            )
 
 
 def get_chain_protocol_class(chain_config: ChainConfig, sync_mode: str) -> Type[LightChain]:
     """
     Retrieve the protocol class for the given chain and sync mode.
     """
-    if sync_mode != 'light':
+    if sync_mode != SYNC_LIGHT:
         raise NotImplementedError("Currently, `sync_mode` must be set to 'light'")
 
-    if chain_config.chain_identifier != 'ropsten':
-        raise NotImplementedError("Ropsten is the only chain currently supported.")
-
-    return RopstenLightChain
+    if chain_config.network_id == MAINNET_NETWORK_ID:
+        return MainnetLightChain
+    elif chain_config.network_id == ROPSTEN_NETWORK_ID:
+        return RopstenLightChain
+    else:
+        raise NotImplementedError(
+            "Only the mainnet and ropsten chains are currently supported"
+        )
 
 
 def serve_chaindb(db: BaseDB, ipc_path: str) -> None:

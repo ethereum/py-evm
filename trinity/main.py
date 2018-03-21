@@ -7,6 +7,12 @@ import sys
 from typing import Type
 
 from evm.db.backends.level import LevelDB
+from evm.chains.mainnet import (
+    MAINNET_NETWORK_ID,
+)
+from evm.chains.ropsten import (
+    ROPSTEN_NETWORK_ID,
+)
 
 from p2p.peer import (
     LESPeer,
@@ -25,7 +31,6 @@ from trinity.console import (
     console,
 )
 from trinity.constants import (
-    ROPSTEN,
     SYNC_LIGHT,
 )
 from trinity.db.chain import ChainDBProxy
@@ -55,25 +60,26 @@ from trinity.utils.mp import (
 )
 
 
+PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
+
+
 def main() -> None:
     args = parser.parse_args()
 
-    if args.ropsten:
-        chain_identifier = ROPSTEN
-    else:
-        # TODO: mainnet
-        chain_identifier = ROPSTEN
+    logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
 
-    if args.light:
-        sync_mode = SYNC_LIGHT
-    else:
-        # TODO: actually use args.sync_mode (--sync-mode)
-        sync_mode = SYNC_LIGHT
+    if args.network_id not in PRECONFIGURED_NETWORKS:
+        raise NotImplementedError(
+            "Unsupported network id: {0}.  Only the ropsten and mainnet "
+            "networks are supported.".format(args.network_id)
+        )
 
-    chain_config = ChainConfig.from_parser_args(
-        chain_identifier,
-        args,
-    )
+    if args.sync_mode != SYNC_LIGHT:
+        raise NotImplementedError(
+            "Only light sync is supported.  Run with `--sync-mode=light` or `--light`"
+        )
+
+    chain_config = ChainConfig.from_parser_args(args)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -88,8 +94,6 @@ def main() -> None:
     if args.subcommand == 'attach':
         console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
         sys.exit(0)
-
-    logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
 
     # start the listener thread to handle logs produced by other processes in
     # the local logger.
@@ -108,7 +112,7 @@ def main() -> None:
     # For now we just run the light sync against ropsten by default.
     networking_process = ctx.Process(
         target=run_networking_process,
-        args=(chain_config, sync_mode, pool_class),
+        args=(chain_config, args.sync_mode, pool_class),
         kwargs={'log_queue': log_queue}
     )
 
