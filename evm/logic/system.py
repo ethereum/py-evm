@@ -25,7 +25,7 @@ from .call import max_child_gas_eip150
 
 
 def return_op(computation):
-    start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
 
@@ -35,7 +35,7 @@ def return_op(computation):
 
 
 def revert(computation):
-    start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
 
@@ -45,13 +45,13 @@ def revert(computation):
 
 
 def selfdestruct(computation):
-    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     _selfdestruct(computation, beneficiary)
     raise Halt('SELFDESTRUCT')
 
 
 def selfdestruct_eip150(computation):
-    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     with computation.state_db(read_only=True) as state_db:
         if not state_db.account_exists(beneficiary):
             computation.consume_gas(
@@ -62,7 +62,7 @@ def selfdestruct_eip150(computation):
 
 
 def selfdestruct_eip161(computation):
-    beneficiary = force_bytes_to_address(computation.stack.pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     with computation.state_db(read_only=True) as state_db:
         is_dead = (
             not state_db.account_exists(beneficiary) or
@@ -107,7 +107,7 @@ class Create(Opcode):
     def __call__(self, computation):
         computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
-        value, start_position, size = computation.stack.pop(
+        value, start_position, size = computation.stack_pop(
             num_items=3,
             type_hint=constants.UINT256,
         )
@@ -119,7 +119,7 @@ class Create(Opcode):
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
-            computation.stack.push(0)
+            computation.stack_push(0)
             return
 
         call_data = computation.memory_read(start_position, size)
@@ -145,7 +145,7 @@ class Create(Opcode):
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )
-            computation.stack.push(0)
+            computation.stack_push(0)
             return
 
         child_msg = computation.prepare_child_message(
@@ -160,9 +160,9 @@ class Create(Opcode):
         child_computation = computation.apply_child_computation(child_msg)
 
         if child_computation.is_error:
-            computation.stack.push(0)
+            computation.stack_push(0)
         else:
-            computation.stack.push(contract_address)
+            computation.stack_push(contract_address)
         computation.return_gas(child_computation.get_gas_remaining())
 
 
@@ -185,9 +185,9 @@ class Create2(CreateEIP150):
 
         computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
-        value = computation.stack.pop(type_hint=constants.UINT256,)
-        salt = computation.stack.pop(type_hint=constants.BYTES,)
-        start_position, size = computation.stack.pop(
+        value = computation.stack_pop(type_hint=constants.UINT256,)
+        salt = computation.stack_pop(type_hint=constants.BYTES,)
+        start_position, size = computation.stack_pop(
             num_items=2,
             type_hint=constants.UINT256,
         )
@@ -199,7 +199,7 @@ class Create2(CreateEIP150):
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
-            computation.stack.push(0)
+            computation.stack_push(0)
             return
 
         call_data = computation.memory_read(start_position, size)
@@ -222,7 +222,7 @@ class Create2(CreateEIP150):
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )
-            computation.stack.push(0)
+            computation.stack_push(0)
             return
 
         child_msg = computation.prepare_child_message(
@@ -237,21 +237,21 @@ class Create2(CreateEIP150):
         child_computation = computation.apply_child_computation(child_msg)
 
         if child_computation.is_error:
-            computation.stack.push(0)
+            computation.stack_push(0)
         else:
-            computation.stack.push(contract_address)
+            computation.stack_push(contract_address)
         computation.return_gas(child_computation.get_gas_remaining())
 
 
 def paygas(computation):
-    gas_price = computation.stack.pop(type_hint=constants.UINT256)
+    gas_price = computation.stack_pop(type_hint=constants.UINT256)
 
     # Only valid if (1) triggered in a top level call and
     # (2) not been set already during this transaction execution
     try:
         computation.set_PAYGAS_gasprice(gas_price)
     except (GasPriceAlreadySet, NotTopLevelCall):
-        computation.stack.push(0)
+        computation.stack_push(0)
     else:
         with computation.state_db(read_only=False) as state_db:
             tx_initiator = computation.msg.to
@@ -273,4 +273,4 @@ def paygas(computation):
                 )
 
             state_db.delta_balance(tx_initiator, -1 * fee_to_be_charged)
-        computation.stack.push(1)
+        computation.stack_push(1)

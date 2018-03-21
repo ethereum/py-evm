@@ -77,7 +77,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     transaction_context = None
 
     _memory = None
-    stack = None
+    _stack = None
     _gas_meter = None
 
     code = None
@@ -103,7 +103,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         self.transaction_context = transaction_context
 
         self._memory = Memory()
-        self.stack = Stack()
+        self._stack = Stack()
         self._gas_meter = GasMeter(message.gas)
 
         self.children = []
@@ -216,6 +216,18 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     def refund_gas(self, amount):
         return self._gas_meter.refund_gas(amount)
+
+    def stack_pop(self, num_items=1, type_hint=None):
+        return self._stack.pop(num_items, type_hint)
+
+    def stack_push(self, value):
+        return self._stack.push(value)
+
+    def stack_swap(self, position):
+        return self._stack.swap(position)
+
+    def stack_dup(self, position):
+        return self._stack.dup(position)
 
     #
     # Computed properties.

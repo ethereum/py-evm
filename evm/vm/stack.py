@@ -39,7 +39,7 @@ class Stack(object):
 
         self.values.append(value)
 
-    def pop(self, num_items=1, type_hint=None):
+    def pop(self, num_items, type_hint):
         """
         Pop an item off thes stack.
 

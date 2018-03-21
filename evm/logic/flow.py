@@ -14,7 +14,7 @@ def stop(computation):
 
 
 def jump(computation):
-    jump_dest = computation.stack.pop(type_hint=constants.UINT256)
+    jump_dest = computation.stack_pop(type_hint=constants.UINT256)
 
     computation.code.pc = jump_dest
 
@@ -28,7 +28,7 @@ def jump(computation):
 
 
 def jumpi(computation):
-    jump_dest, check_value = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    jump_dest, check_value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if check_value:
         computation.code.pc = jump_dest
@@ -49,10 +49,10 @@ def jumpdest(computation):
 def pc(computation):
     pc = max(computation.code.pc - 1, 0)
 
-    computation.stack.push(pc)
+    computation.stack_push(pc)
 
 
 def gas(computation):
     gas_remaining = computation.get_gas_remaining()
 
-    computation.stack.push(gas_remaining)
+    computation.stack_push(gas_remaining)

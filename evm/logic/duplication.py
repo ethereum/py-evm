@@ -5,7 +5,7 @@ def dup_XX(computation, position):
     """
     Stack item duplication.
     """
-    computation.stack.dup(position)
+    computation.stack_dup(position)
 
 
 dup1 = functools.partial(dup_XX, position=1)

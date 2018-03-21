@@ -4,17 +4,17 @@ from evm import constants
 
 
 def pop(computation):
-    computation.stack.pop(type_hint=constants.ANY)
+    computation.stack_pop(type_hint=constants.ANY)
 
 
 def push_XX(computation, size):
     raw_value = computation.code.read(size)
 
     if not raw_value.strip(b'\x00'):
-        computation.stack.push(0)
+        computation.stack_push(0)
     else:
         padded_value = raw_value.ljust(size, b'\x00')
-        computation.stack.push(padded_value)
+        computation.stack_push(padded_value)
 
 
 push1 = functools.partial(push_XX, size=1)

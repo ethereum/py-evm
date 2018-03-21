@@ -9,14 +9,14 @@ def log_XX(computation, topic_count):
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 
-    mem_start_position, size = computation.stack.pop(num_items=2, type_hint=constants.UINT256)
+    mem_start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     if not topic_count:
         topics = []  # type: List[int]
     elif topic_count > 1:
-        topics = computation.stack.pop(num_items=topic_count, type_hint=constants.UINT256)
+        topics = computation.stack_pop(num_items=topic_count, type_hint=constants.UINT256)
     else:
-        topics = [computation.stack.pop(num_items=topic_count, type_hint=constants.UINT256)]
+        topics = [computation.stack_pop(num_items=topic_count, type_hint=constants.UINT256)]
 
     data_gas_cost = constants.GAS_LOGDATA * size
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count
