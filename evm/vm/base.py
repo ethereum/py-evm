@@ -209,7 +209,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
-        state = self.get_state(block_header=temp_block.header, prev_hashes=prev_hashes)
+        state = self.get_state(self.chaindb, temp_block, prev_hashes)
         if state.gas_used > 0:
             raise Exception("There must not be any gas used in a fresh temporary block")
 
@@ -442,27 +442,23 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         return cls._state_class
 
-    def get_state(self, chaindb=None, block_header=None, prev_hashes=None):
-        """Return state object
+    @classmethod
+    def get_state(cls, chaindb, block, prev_hashes):
         """
-        if chaindb is None:
-            chaindb = self.chaindb
-        if block_header is None:
-            block_header = self.block.header
-        if prev_hashes is None:
-            prev_hashes = self.get_prev_hashes(
-                last_block_hash=block_header.parent_hash,
-                db=chaindb,
-            )
+        Return state object
 
-        execution_context = block_header.create_execution_context(prev_hashes)
-        block = self.get_block_by_header(block_header, chaindb)
+        :param ChainDB chaindb: chaindb which cointains the state data
+        :param Block block: block defining the state root and receipts
+        :param tuple prev_hashes: previous block headers
+        :return: state with root defined in block
+        """
+        execution_context = block.header.create_execution_context(prev_hashes)
         receipts = block.get_receipts(chaindb)
 
-        return self.get_state_class()(
+        return cls.get_state_class()(
             chaindb,
             execution_context=execution_context,
-            state_root=block_header.state_root,
+            state_root=block.header.state_root,
             receipts=receipts,
         )
 
@@ -472,5 +468,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         return self.get_state(
             chaindb=self.chaindb,
-            block_header=self.block.header,
+            block=self.block,
+            prev_hashes=self.previous_hashes
         )
