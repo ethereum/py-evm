@@ -17,7 +17,4 @@ class SpoofAttributes:
 
 class SpoofTransaction(SpoofAttributes):
     def __init__(self, transaction: BaseTransaction, **overrides: Any) -> None:
-        if 'get_sender' not in overrides:
-            current_sender = transaction.get_sender()
-            overrides['get_sender'] = lambda: current_sender
         super().__init__(transaction, **overrides)

@@ -13,8 +13,13 @@ from cytoolz import (
     merge,
 )
 
+from eth_utils import (
+    to_bytes
+)
+
 from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
+    UINT_256_MAX,
 )
 from evm.db.tracked import (
     AccessLogs,
@@ -251,6 +256,33 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
+
+    def do_call(self, transaction):
+
+        _transaction = transaction
+
+        _transaction.v = 37
+        _transaction.s = 1
+        _transaction.r = 1
+
+        snapshot = self.snapshot()
+
+        with self.mutable_state_db() as state_db:
+
+            if not hasattr(_transaction, "get_sender"):
+                # max out eth in random hardcoded address. what could go wrong?
+                _transaction.get_sender = \
+                    lambda: to_bytes(hexstr='0x7760c6D8c0eA7A764F13fb5b034A574f59c1fdd4')
+                _transaction.sender = to_bytes(hexstr='0x7760c6D8c0eA7A764F13fb5b034A574f59c1fdd4')
+
+            state_db.set_balance(transaction.sender, UINT_256_MAX, validate=False)
+
+        computation = self.execute_transaction(_transaction)
+
+        self.revert(snapshot)
+
+        return computation
+
     def apply_transaction(
             self,
             transaction,

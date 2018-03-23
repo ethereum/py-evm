@@ -180,6 +180,30 @@ class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
+    @property
+    def intrinsic_gas(self) -> int:
+        """
+        Convenience property for the return value of `get_intrinsic_gas`
+        """
+        return self.get_intrinsic_gas()
+
+    @abstractmethod
+    def get_intrinsic_gas(self) -> int:
+        """
+        Compute the baseline gas cost for this transaction.  This is the amount
+        of gas needed to send this transaction (but that is not actually used
+        for computation).
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def gas_used_by(self, computation: BaseComputation) -> int:
+        """
+        Return the gas used by the given computation. In Frontier,
+        for example, this is sum of the intrinsic cost and the gas used
+        during computation.
+        """
+        return self.get_intrinsic_gas() + computation.get_gas_used()
+
 
 class BaseShardingTransaction(rlp.Serializable):
     fields = [

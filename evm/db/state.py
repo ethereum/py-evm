@@ -205,15 +205,17 @@ class MainAccountStateDB(BaseAccountStateDB):
     #
     # Balance
     #
-    def get_balance(self, address):
-        validate_canonical_address(address, title="Storage Address")
+    def get_balance(self, address, validate=True):
+        if validate:
+            validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.balance
 
-    def set_balance(self, address, balance):
-        validate_canonical_address(address, title="Storage Address")
-        validate_uint256(balance, title="Account Balance")
+    def set_balance(self, address, balance, validate=True):
+        if validate:
+            validate_canonical_address(address, title="Storage Address")
+            validate_uint256(balance, title="Account Balance")
 
         account = self._get_account(address)
         account.balance = balance
