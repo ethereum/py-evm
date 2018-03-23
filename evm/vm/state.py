@@ -46,12 +46,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
     execution_context = None
     state_root = None
     receipts = None
+    access_logs = None
 
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     trie_class = None
     transaction_context_class = None  # type: Type[BaseTransactionContext]
-    access_logs = None
 
     def __init__(self, chaindb, execution_context, state_root, receipts=[]):
         self._chaindb = chaindb
@@ -216,7 +216,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     def get_computation(self, message, transaction_context):
         """
-        Return state object
+        Return a computation instance for the given `message` and `transaction_context`
         """
         if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this State")

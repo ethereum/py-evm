@@ -466,7 +466,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 return computation
 
             for opcode in computation.code:
-                opcode_fn = computation.get_opcode_fn(computation.opcodes, opcode)
+                opcode_fn = computation.get_opcode_fn(opcode)
 
                 computation.logger.trace(
                     "OPCODE: 0x%x (%s) | pc: %s",
@@ -491,8 +491,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         else:
             return self._precompiles
 
-    def get_opcode_fn(self, opcodes, opcode):
+    def get_opcode_fn(self, opcode):
         try:
-            return opcodes[opcode]
+            return self.opcodes[opcode]
         except KeyError:
             return InvalidOpcode(opcode)
