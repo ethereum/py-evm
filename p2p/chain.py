@@ -3,10 +3,13 @@ import logging
 import operator
 import time
 import traceback
-from typing import Any, Awaitable, Callable, cast, Dict, List, Set, Tuple, Union  # noqa: F401
+from typing import Any, Awaitable, Callable, cast, Dict, Generator, List, Set, Tuple  # noqa: F401
+
+from cytoolz.itertoolz import unique
 
 from eth_utils import (
     encode_hex,
+    to_list,
 )
 
 from evm.constants import EMPTY_UNCLE_HASH
@@ -170,7 +173,7 @@ class ChainSyncer(PeerPoolSubscriber):
 
     async def _downloader(self,
                           queue: 'asyncio.Queue[List[BlockHeader]]',
-                          should_skip: Callable[[BlockHeader], bool],
+                          filter_func: Callable[[List[BlockHeader]], List[BlockHeader]],
                           request_func: Callable[[List[BlockHeader]], Awaitable[None]],
                           pending: Dict[Any, Tuple[BlockHeader, float]],
                           batch_size: int) -> None:
@@ -181,6 +184,7 @@ class ChainSyncer(PeerPoolSubscriber):
                     queue.get(),
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
+                batch.extend(headers)
             except TimeoutError:
                 # We use a timeout above to make sure we periodically retry timedout items
                 # even when there's no new items coming through.
@@ -188,7 +192,9 @@ class ChainSyncer(PeerPoolSubscriber):
             except OperationCancelled:
                 return
             else:
-                batch += [header for header in headers if not should_skip(header)]
+                # Re-apply the filter function on all items because one of the things it may do is
+                # drop items that have the same receipt_root.
+                batch = filter_func(batch)
                 if len(batch) >= batch_size:
                     await request_func(batch[:batch_size])
                     batch = batch[batch_size:]
@@ -214,7 +220,7 @@ class ChainSyncer(PeerPoolSubscriber):
     async def body_downloader(self) -> None:
         await self._downloader(
             self._body_requests,
-            self._should_skip_body_download,
+            self._skip_empty_bodies,
             self.request_bodies,
             self._pending_bodies,
             eth.MAX_BODIES_FETCH)
@@ -222,14 +228,17 @@ class ChainSyncer(PeerPoolSubscriber):
     async def receipt_downloader(self) -> None:
         await self._downloader(
             self._receipt_requests,
-            self._should_skip_receipts_download,
+            self._skip_empty_and_duplicated_receipts,
             self.request_receipts,
             self._pending_receipts,
             eth.MAX_RECEIPTS_FETCH)
 
-    def _should_skip_body_download(self, header: BlockHeader) -> bool:
-        return (header.transaction_root == self.chaindb.empty_root_hash and
-                header.uncles_hash == EMPTY_UNCLE_HASH)
+    @to_list
+    def _skip_empty_bodies(self, headers: List[BlockHeader]) -> Generator[BlockHeader, None, None]:
+        for header in headers:
+            if (header.transaction_root != self.chaindb.empty_root_hash or
+                    header.uncles_hash != EMPTY_UNCLE_HASH):
+                yield header
 
     async def request_bodies(self, headers: List[BlockHeader]) -> None:
         peer = await self.peer_pool.get_random_peer()
@@ -240,8 +249,17 @@ class ChainSyncer(PeerPoolSubscriber):
             key = (header.transaction_root, header.uncles_hash)
             self._pending_bodies[key] = (header, now)
 
-    def _should_skip_receipts_download(self, header: BlockHeader) -> bool:
-        return header.receipt_root == self.chaindb.empty_root_hash
+    @to_list
+    def _skip_empty_and_duplicated_receipts(
+            self, headers: List[BlockHeader]) -> Generator[BlockHeader, None, None]:
+        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
+        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284), so
+        # we have an extra check here to avoid requesting those receipts multiple times.
+        headers = list(unique(headers, key=operator.attrgetter('receipt_root')))
+        for header in headers:
+            if (header.receipt_root != self.chaindb.empty_root_hash and
+                    header.receipt_root not in self._pending_receipts):
+                yield header
 
     async def request_receipts(self, headers: List[BlockHeader]) -> None:
         peer = await self.peer_pool.get_random_peer()
