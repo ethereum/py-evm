@@ -636,7 +636,6 @@ class PeerPoolSubscriber(metaclass=ABCMeta):
 class PeerPool:
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
-    min_peers = 10
     _connect_loop_sleep = 2
     _last_lookup = 0  # type: float
     _lookup_interval = 5  # type: int
@@ -647,12 +646,14 @@ class PeerPool:
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
+                 min_peers: int = 10,
                  ) -> None:
         self.peer_class = peer_class
         self.chaindb = chaindb
         self.network_id = network_id
         self.privkey = privkey
         self.discovery = discovery
+        self.min_peers = min_peers
         self.connected_nodes = {}  # type: Dict[Node, BasePeer]
         self.cancel_token = CancelToken('PeerPool')
         self._subscribers = []  # type: List[PeerPoolSubscriber]
@@ -790,15 +791,16 @@ class HardCodedNodesPeerPool(PeerPool):
     The node discovery v4 protocol is terrible at finding LES nodes, so for now we hard-code some
     nodes that seem to have a good uptime.
     """
-    min_peers = 2
 
     def __init__(self,
                  peer_class: Type[BasePeer],
                  chaindb: AsyncChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
+                 min_peers: int = 2,
                  ) -> None:
-        super().__init__(peer_class, chaindb, network_id, privkey, None)
+        discovery = None
+        super().__init__(peer_class, chaindb, network_id, privkey, discovery, min_peers)
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
         # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
