@@ -267,7 +267,7 @@ class LESProtocol(Protocol):
             'headNum': head_info.block_number,
             'genesisHash': head_info.genesis_hash,
         }
-        cmd = Status(self)
+        cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
@@ -280,7 +280,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': block_hashes,
         }
-        header, body = GetBlockBodies(self).encode(data)
+        header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
@@ -296,7 +296,7 @@ class LESProtocol(Protocol):
             raise ValueError(
                 "Cannot ask for more than {} block headers in a single request".format(
                     MAX_HEADERS_FETCH))
-        cmd = GetBlockHeaders(self)
+        cmd = GetBlockHeaders(self.cmd_id_offset)
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
@@ -311,7 +311,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': [block_hash],
         }
-        header, body = GetReceipts(self).encode(data)
+        header, body = GetReceipts(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
@@ -320,7 +320,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofs(self).encode(data)
+        header, body = GetProofs(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int) -> None:
@@ -328,15 +328,15 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'code_requests': [ContractCodeRequest(block_hash, key)],
         }
-        header, body = GetContractCodes(self).encode(data)
+        header, body = GetContractCodes(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
 
 class StatusV2(Status):
     _cmd_id = 0
 
-    def __init__(self, proto: 'Protocol') -> None:
-        super().__init__(proto)
+    def __init__(self, cmd_id_offset: int) -> None:
+        super().__init__(cmd_id_offset)
         self.items_sedes['announceType'] = sedes.big_endian_int
 
 
@@ -368,7 +368,7 @@ class LESProtocolV2(LESProtocol):
             'headNum': head_info.block_number,
             'genesisHash': head_info.genesis_hash,
         }
-        cmd = StatusV2(self)
+        cmd = StatusV2(self.cmd_id_offset)
         self.logger.debug("Sending LES/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
@@ -382,5 +382,5 @@ class LESProtocolV2(LESProtocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofsV2(self).encode(data)
+        header, body = GetProofsV2(self.cmd_id_offset).encode(data)
         self.send(header, body)

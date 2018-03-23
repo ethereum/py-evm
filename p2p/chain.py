@@ -1,5 +1,4 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import logging
 import operator
 import time
@@ -46,7 +45,6 @@ class ChainSyncer(PeerPoolSubscriber):
         self._pending_receipts = {}  # type: Dict[bytes, Tuple[BlockHeader, float]]
         asyncio.ensure_future(self.body_downloader())
         asyncio.ensure_future(self.receipt_downloader())
-        self.executor = ProcessPoolExecutor()
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -281,8 +279,9 @@ class ChainSyncer(PeerPoolSubscriber):
             msg = cast(List[eth.BlockBody], msg)
             self.logger.debug("Got %d BlockBodies from %s", len(msg), peer)
             iterator = map(make_trie_root_and_nodes, [body.transactions for body in msg])
-            transactions_tries = await loop.run_in_executor(
-                self.executor, list, iterator)  # type: List[Tuple[bytes, Any]]
+            transactions_tries = await wait_with_token(
+                loop.run_in_executor(None, list, iterator),
+                token=self.cancel_token)
             for i in range(len(msg)):
                 body = msg[i]
                 tx_root, trie_dict_data = transactions_tries[i]
@@ -295,8 +294,9 @@ class ChainSyncer(PeerPoolSubscriber):
             msg = cast(List[List[eth.Receipt]], msg)
             self.logger.debug("Got Receipts for %d blocks from %s", len(msg), peer)
             iterator = map(make_trie_root_and_nodes, msg)
-            receipts_tries = await loop.run_in_executor(
-                self.executor, list, iterator)  # type: List[Tuple[bytes, Any]]
+            receipts_tries = await wait_with_token(
+                loop.run_in_executor(None, list, iterator),
+                token=self.cancel_token)
             for receipt_root, trie_dict_data in receipts_tries:
                 if receipt_root not in self._pending_receipts:
                     self.logger.warning(
@@ -329,6 +329,7 @@ class ChainSyncer(PeerPoolSubscriber):
 
 def _test() -> None:
     import argparse
+    from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
     from p2p import kademlia
@@ -346,6 +347,9 @@ def _test() -> None:
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
+    # Use a ProcessPoolExecutor as the default because the tasks we want to offload from the main
+    # thread are cpu intensive.
+    loop.set_default_executor(ProcessPoolExecutor())
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     privkey = ecies.generate_privkey()

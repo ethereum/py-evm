@@ -116,12 +116,12 @@ class ETHProtocol(Protocol):
             'best_hash': head_info.block_hash,
             'genesis_hash': head_info.genesis_hash,
         }
-        cmd = Status(self)
+        cmd = Status(self.cmd_id_offset)
         self.logger.debug("Sending ETH/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
     def send_get_node_data(self, node_hashes: List[bytes]) -> None:
-        cmd = GetNodeData(self)
+        cmd = GetNodeData(self.cmd_id_offset)
         header, body = cmd.encode(node_hashes)
         self.send(header, body)
 
@@ -138,7 +138,7 @@ class ETHProtocol(Protocol):
             raise ValueError(
                 "Cannot ask for more than {} block headers in a single request".format(
                     MAX_HEADERS_FETCH))
-        cmd = GetBlockHeaders(self)
+        cmd = GetBlockHeaders(self.cmd_id_offset)
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
@@ -150,21 +150,21 @@ class ETHProtocol(Protocol):
         self.send(header, body)
 
     def send_block_headers(self, headers: List[BlockHeader]) -> None:
-        cmd = BlockHeaders(self)
+        cmd = BlockHeaders(self.cmd_id_offset)
         header, body = cmd.encode([rlp.encode(header) for header in headers])
         self.send(header, body)
 
     def send_get_block_bodies(self, block_hashes: List[bytes]) -> None:
-        cmd = GetBlockBodies(self)
+        cmd = GetBlockBodies(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
 
     def send_block_bodies(self, blocks: List[BlockBody]) -> None:
-        cmd = BlockBodies(self)
+        cmd = BlockBodies(self.cmd_id_offset)
         header, body = cmd.encode([rlp.encode(block) for block in blocks])
         self.send(header, body)
 
     def send_get_receipts(self, block_hashes: List[bytes]) -> None:
-        cmd = GetReceipts(self)
+        cmd = GetReceipts(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
