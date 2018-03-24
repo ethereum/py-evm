@@ -2,7 +2,7 @@ bumpversion==0.5.3
 flake8==3.5.0
 hypothesis==3.44.26
 ipython>=6.2.1,<7.0.0
-mypy>=0.560
+mypy>=0.580
 pytest-asyncio==0.8.0
 pytest-cov==2.5.1
 pytest-logging>=2015.11.4
