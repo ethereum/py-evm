@@ -11,7 +11,7 @@ from p2p.protocol import (
     Command,
     Protocol,
 )
-from p2p.rlp import BlockBody, P2PTransaction
+from p2p.rlp import BlockBody, ImmutableBlockHeader, P2PTransaction
 from p2p.sedes import HashOrNumber
 
 
@@ -56,7 +56,7 @@ class GetBlockHeaders(Command):
 
 class BlockHeaders(Command):
     _cmd_id = 4
-    structure = sedes.CountableList(BlockHeader)
+    structure = sedes.CountableList(ImmutableBlockHeader)
 
 
 class GetBlockBodies(Command):
@@ -72,9 +72,9 @@ class BlockBodies(Command):
 class NewBlock(Command):
     _cmd_id = 7
     structure = [
-        ('block', sedes.List([BlockHeader,
+        ('block', sedes.List([ImmutableBlockHeader,
                               sedes.CountableList(P2PTransaction),
-                              sedes.CountableList(BlockHeader)])),
+                              sedes.CountableList(ImmutableBlockHeader)])),
         ('total_difficulty', sedes.big_endian_int)]
 
 
