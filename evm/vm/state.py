@@ -18,6 +18,10 @@ from eth_utils import (
 )
 
 from evm.constants import (
+    DEFAULT_DO_CALL_R,
+    DEFAULT_DO_CALL_S,
+    DEFAULT_DO_CALL_SENDER,
+    DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
 )
@@ -261,25 +265,26 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         _transaction = transaction
 
-        _transaction.v = 37
-        _transaction.s = 1
-        _transaction.r = 1
+        _transaction.v = DEFAULT_DO_CALL_V
+        _transaction.s = DEFAULT_DO_CALL_S
+        _transaction.r = DEFAULT_DO_CALL_R
 
         snapshot = self.snapshot()
+        try:
+            with self.mutable_state_db() as state_db:
 
-        with self.mutable_state_db() as state_db:
+                if not hasattr(_transaction, "get_sender"):
+                    # max out eth in random hardcoded address. what could go wrong?
+                    _transaction.get_sender = \
+                        lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
+                    _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
 
-            if not hasattr(_transaction, "get_sender"):
-                # max out eth in random hardcoded address. what could go wrong?
-                _transaction.get_sender = \
-                    lambda: to_bytes(hexstr='0x7760c6D8c0eA7A764F13fb5b034A574f59c1fdd4')
-                _transaction.sender = to_bytes(hexstr='0x7760c6D8c0eA7A764F13fb5b034A574f59c1fdd4')
+                state_db.set_balance(transaction.sender, UINT_256_MAX)
 
-            state_db.set_balance(transaction.sender, UINT_256_MAX, validate=False)
+            computation = self.execute_transaction(_transaction)
 
-        computation = self.execute_transaction(_transaction)
-
-        self.revert(snapshot)
+        finally:
+            self.revert(snapshot)
 
         return computation
 

@@ -15,11 +15,10 @@ def new_transaction(
         from_,
         to,
         amount,
-        private_key,
+        private_key=None,
         gas_price=10,
         gas=100000,
-        data=b'',
-        signed=True):
+        data=b''):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -28,7 +27,7 @@ def new_transaction(
     nonce = vm.state.read_only_state_db.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
         nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=amount, data=data)
-    if signed:
+    if private_key:
         return tx.as_signed_transaction(private_key, chain_id=1)
     else:
         return tx

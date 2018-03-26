@@ -93,6 +93,43 @@ def test_empty_transaction_lookups(chain):
         chain.get_pending_transaction(b'\0' * 32)
 
 
+@pytest.fixture(
+    params=[True, False])
+def unsigned_or_signed_tx(request):
+    def tx(
+            vm,
+            from_,
+            to,
+            amount,
+            private_key=None,
+            gas_price=10,
+            gas=100000,
+            data=b''):
+
+        if request.param:
+            return new_transaction(
+                vm,
+                from_,
+                to,
+                amount,
+                private_key,
+                gas_price,
+                gas,
+                data)
+
+        else:
+            return new_transaction(
+               vm,
+               from_,
+               to,
+               amount,
+               private_key=None,
+               gas_price=gas_price,
+               gas=gas,
+               data=data)
+    return tx
+
+
 @pytest.mark.parametrize(
     'data, gas_estimator, to, on_pending, expected',
     (
@@ -127,7 +164,7 @@ def test_estimate_gas(
         expected,
         funded_address,
         funded_address_private_key,
-        create_transaction):
+        unsigned_or_signed_tx):
     if gas_estimator:
         chain.gas_estimator = gas_estimator
     vm = chain.get_vm()
@@ -137,7 +174,7 @@ def test_estimate_gas(
         recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = funded_address
-    tx = create_transaction(vm, from_, recipient, amount, funded_address_private_key, data=data)
+    tx = unsigned_or_signed_tx(vm, from_, recipient, amount, funded_address_private_key, data=data)
     if on_pending:
         # estimate on *pending* block
         assert chain.estimate_gas(tx, chain.header) == expected
@@ -146,12 +183,6 @@ def test_estimate_gas(
         assert chain.estimate_gas(tx) == expected
         # these are long, so now that we know the exact numbers let's skip the repeat test
         # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
-
-
-@pytest.fixture(
-    params=[True, False])
-def create_transaction(request):
-    return new_transaction(signed=request.param)
 
 
 def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_address):
