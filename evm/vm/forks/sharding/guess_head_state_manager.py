@@ -80,6 +80,7 @@ class GuessHeadStateManager:
     head_collation_hash = None
     current_collation_hash = None
     last_period_fetching_candidate_head = None
+    tasks = None
 
     def __init__(self, vmc, shard_id, shard_tracker, my_address):
         # a well-setup vmc handler with a shard_tracker in shard `shard_id`
@@ -99,8 +100,8 @@ class GuessHeadStateManager:
         # list of chain head, to indicate priority
         # order: older -------> newer
         self.last_period_fetching_candidate_head = 0
-        # map[collation] -> thread
-        self.threads = defaultdict(list)
+        # current tasks
+        self.tasks = []
 
     def get_current_period(self):
         return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
@@ -152,7 +153,6 @@ class GuessHeadStateManager:
             # TODO: make sure if it is thread-safe
             self.head_validity[head_collation_hash] = False
 
-    # TODO:
     # use `self.head_collation_hash` and `self.collation_hash` over passing them as parameters?
     async def process_collation(self, head_collation_hash, checking_collation_hash):
         """

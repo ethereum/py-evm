@@ -1,3 +1,5 @@
+import asyncio
+
 from evm.vm.forks.sharding.guess_head_state_manager import (
     fetch_and_verify_collation,
 )
@@ -57,6 +59,15 @@ def test_guess_head_state_manager_daemon_invalid_chain(ghs_manager, vmc, monkeyp
     assert ghs_manager.guess_head_daemon(stop_after_create_collation=True) == header3_prime_hash
 
 
+def complete_ghs_tasks(ghs_manager):
+    '''
+    Used to complete the unfinished verification works
+    '''
+    event_loop = asyncio.get_event_loop()
+    for task in ghs_manager.tasks:
+        event_loop.run_until_complete(task)
+
+
 def test_guess_head_state_manager_step_by_step(ghs_manager, vmc):  # noqa: F811
     # assume collations "A B C D E F" are added
     head_collation_hash = mk_colhdr_chain(
@@ -75,6 +86,7 @@ def test_guess_head_state_manager_step_by_step(ghs_manager, vmc):  # noqa: F811
     assert ghs_manager.current_collation_hash == current_collation_hash
     # process one collation of the current chain
     ghs_manager.process_current_collation()
+    complete_ghs_tasks(ghs_manager)
     assert (
         (current_collation_hash in ghs_manager.collation_validity_cache) and
         ghs_manager.collation_validity_cache[current_collation_hash]
@@ -88,6 +100,7 @@ def test_guess_head_state_manager_step_by_step(ghs_manager, vmc):  # noqa: F811
     assert ghs_manager.head_collation_hash != ghs_manager.current_collation_hash
     # if current_collation is verified
     ghs_manager.process_current_collation()
+    complete_ghs_tasks(ghs_manager)
     assert (
         (current_collation_hash in ghs_manager.collation_validity_cache) and
         ghs_manager.collation_validity_cache[current_collation_hash]
@@ -106,9 +119,11 @@ def test_guess_head_state_manager_step_by_step(ghs_manager, vmc):  # noqa: F811
     # and because head collation changed, we start verifying the chain from the head
     assert ghs_manager.current_collation_hash == new_head_hash
     ghs_manager.process_current_collation()
+    complete_ghs_tasks(ghs_manager)
 
     # although we don't have enough time to verify all collation in this chain, we still guess that
     # the chain head is `head_collation`
     ghs_manager.try_change_head()
     ghs_manager.process_current_collation()
+    complete_ghs_tasks(ghs_manager)
     assert ghs_manager.try_create_collation() == new_head_hash
