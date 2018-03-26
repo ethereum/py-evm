@@ -68,12 +68,6 @@ def main() -> None:
 
     logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
 
-    if args.network_id not in PRECONFIGURED_NETWORKS:
-        raise NotImplementedError(
-            "Unsupported network id: {0}.  Only the ropsten and mainnet "
-            "networks are supported.".format(args.network_id)
-        )
-
     if args.sync_mode != SYNC_LIGHT:
         raise NotImplementedError(
             "Only light sync is supported.  Run with `--sync-mode=light` or `--light`"
@@ -162,6 +156,13 @@ def run_networking_process(
     chaindb = manager.get_chaindb()  # type: ignore
 
     if not is_database_initialized(chaindb):
+        if not chain_config.is_preconfigured_network and not chain_config.has_genesis_params:
+            raise ValueError(
+                "The network id '{0}' is not in the list of supported "
+                "preconfigured networks and no genesis params were provided. "
+                "Please supply genesis parameters using `--genesis` command line "
+                "flag.".format(chain_config.network_id)
+            )
         initialize_database(chain_config, chaindb)
 
     chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)

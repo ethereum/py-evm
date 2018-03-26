@@ -5,11 +5,9 @@ import os
 from typing import Type
 
 from evm.chains.mainnet import (
-    MAINNET_GENESIS_HEADER,
     MAINNET_NETWORK_ID,
 )
 from evm.chains.ropsten import (
-    ROPSTEN_GENESIS_HEADER,
     ROPSTEN_NETWORK_ID,
 )
 from evm.db.backends.base import BaseDB
@@ -34,6 +32,9 @@ from .mainnet import (
 )
 from .ropsten import (
     RopstenLightChain,
+)
+from .dev import (
+    DevLightChain,
 )
 
 
@@ -97,11 +98,8 @@ def initialize_database(chain_config: ChainConfig, chaindb: ChainDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
-        if chain_config.network_id == ROPSTEN_NETWORK_ID:
-            # We're starting with a fresh DB.
-            chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-        elif chain_config.network_id == MAINNET_NETWORK_ID:
-            chaindb.persist_header(MAINNET_GENESIS_HEADER)
+        if chain_config.genesis_params:
+            chaindb.persist_header(chain_config.genesis_header)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
@@ -121,9 +119,14 @@ def get_chain_protocol_class(chain_config: ChainConfig, sync_mode: str) -> Type[
         return MainnetLightChain
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
         return RopstenLightChain
+    elif not chain_config.is_preconfigured_network:
+        # TODO: configure fork blocks from `genesis_params['config']`
+        return DevLightChain.configure(
+            network_id=chain_config.network_id,
+        )
     else:
         raise NotImplementedError(
-            "Only the mainnet and ropsten chains are currently supported"
+            "Unsupported network id: {0}".format(chain_config.network_id)
         )
 
 

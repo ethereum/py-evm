@@ -4,6 +4,8 @@ import pytest
 import tempfile
 import uuid
 
+from evm import constants as evm_constants
+
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -68,3 +70,23 @@ def ipc_server(jsonrpc_ipc_pipe_path, event_loop):
         yield
     finally:
         event_loop.run_until_complete(ipc_server.stop())
+
+
+@pytest.fixture
+def custom_network_genesis_params():
+    return dict(
+        difficulty=12345,
+        extra_data=b"\xde\xad\xbe\xef" * 8,
+        gas_limit=1234567,
+        gas_used=0,
+        bloom=0,
+        mix_hash=evm_constants.ZERO_HASH32,
+        nonce=evm_constants.GENESIS_NONCE,
+        block_number=0,
+        parent_hash=evm_constants.ZERO_HASH32,
+        receipt_root=evm_constants.BLANK_ROOT_HASH,
+        uncles_hash=evm_constants.EMPTY_UNCLE_HASH,
+        state_root=evm_constants.BLANK_ROOT_HASH,
+        timestamp=0,
+        transaction_root=evm_constants.BLANK_ROOT_HASH,
+    )

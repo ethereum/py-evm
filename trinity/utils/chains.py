@@ -1,4 +1,9 @@
+import json
 import os
+
+from cytoolz import (
+    dissoc,
+)
 
 from eth_utils import (
     decode_hex,
@@ -9,12 +14,18 @@ from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
 from evm.chains.mainnet import (
+    MAINNET_GENESIS_PARAMS,
     MAINNET_NETWORK_ID,
 )
 from evm.chains.ropsten import (
+    ROPSTEN_GENESIS_PARAMS,
     ROPSTEN_NETWORK_ID,
 )
+from evm.rlp.headers import BlockHeader
 
+from .genesis import (
+    normalize_genesis_params,
+)
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -25,6 +36,10 @@ from typing import Union
 DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
     MAINNET_NETWORK_ID: 'mainnet',
+}
+PRECONFIGURED_NETWORKS = {
+    MAINNET_NETWORK_ID: MAINNET_GENESIS_PARAMS,
+    ROPSTEN_NETWORK_ID: ROPSTEN_GENESIS_PARAMS,
 }
 
 
@@ -111,18 +126,22 @@ def load_nodekey(nodekey_path: str) -> PrivateKey:
     return nodekey
 
 
+#
+# ChainConfig class
+#
 class ChainConfig:
     _data_dir = None
     _nodekey_path = None
     _nodekey = None
     _network_id = None
+    _genesis_params = None
 
     def __init__(self,
                  network_id: int,
                  data_dir: str=None,
                  nodekey_path: str = None,
                  nodekey: PrivateKey = None,
-                 genesis: dict = None) -> None:
+                 genesis_params: dict = None) -> None:
         self.network_id = network_id
 
         # validation
@@ -132,13 +151,57 @@ class ChainConfig:
         # set values
         if data_dir is not None:
             self.data_dir = data_dir
-        else:
+        elif self.network_id in PRECONFIGURED_NETWORKS:
             self.data_dir = get_data_dir_for_network_id(self.network_id)
+        else:
+            raise ValueError(
+                "Unable to determine data_dir.  Please provide an explicit path "
+                "with --data-dir"
+            )
 
         if nodekey_path is not None:
             self.nodekey_path = nodekey_path
         elif nodekey is not None:
             self.nodekey = nodekey
+
+        if genesis_params is not None:
+            self._genesis_params = genesis_params
+
+    @property
+    def is_preconfigured_network(self):
+        return self.network_id in PRECONFIGURED_NETWORKS
+
+    @property
+    def has_genesis_params(self):
+        return self._genesis_params is not None or self.is_preconfigured_network
+
+    @property
+    def genesis_params(self):
+        if self._genesis_params is not None:
+            return self._genesis_params
+        elif self.is_preconfigured_network:
+            return PRECONFIGURED_NETWORKS[self.network_id]
+        else:
+            raise AttributeError(
+                "No genesis parameters were provided and network_id is not for "
+                "a preconfigured network"
+            )
+
+    @property
+    def genesis_header(self):
+        params = dissoc(self.genesis_params, 'alloc', 'config')
+        # TODO: handle custom alloc AND mainnet alloc
+        # TODO: handle custom config
+        return BlockHeader(**params)
+
+    @property
+    def genesis_state(self):
+        if 'alloc' in self.genesis_params:
+            return self.genesis_params['alloc']
+        else:
+            raise NotImplementedError(
+                "TODO: not yet implemented, need to reference mainnet genesis alloc here"
+            )
 
     @property
     def data_dir(self) -> str:
@@ -228,3 +291,23 @@ def construct_chain_config_params(args):
         yield 'nodekey_path', args.nodekey_path
     elif args.nodekey is not None:
         yield 'nodekey', decode_hex(args.nodekey)
+    elif args.genesis is not None:
+        if os.path.exists(args.genesis):
+            with open(args.genesis) as genesis_file:
+                raw_genesis_params = json.load(genesis_file)
+                genesis_params = normalize_genesis_params(raw_genesis_params)
+            yield 'genesis_params', genesis_params
+        elif isinstance(args.genesis, str):
+            try:
+                raw_genesis_params = json.loads(args.genesis)
+                genesis_params = normalize_genesis_params(raw_genesis_params)
+                yield 'genesis_params', genesis_params
+            except json.JSONDecodeError:
+                raise ValueError(
+                    "Unable to parse provided genesis json: {0}".format(args.genesis)
+                )
+        else:
+            raise TypeError(
+                "Genesis data must be either a filesystem path or a JSON "
+                "string.  Got {0}".format(type(args.genesis))
+            )
