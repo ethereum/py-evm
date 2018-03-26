@@ -24,14 +24,37 @@ LOG_LEVEL_CHOICES = (
 parser = argparse.ArgumentParser(description='Trinity')
 
 #
-# Version: `trinity --version`
+# subparser for sub commands
 #
-parser.add_argument('--version', action='version', version=__version__)
+subparser = parser.add_subparsers(dest='subcommand')
+
+#
+# Argument Groups
+#
+trinity_parser = parser.add_argument_group('sync mode')
+logging_parser = parser.add_argument_group('logging')
+network_parser = parser.add_argument_group('network')
+syncing_parser = parser.add_argument_group('sync mode')
+chain_parser = parser.add_argument_group('chain')
+
+
+#
+# Trinity Globals
+#
+trinity_parser.add_argument('--version', action='version', version=__version__)
+trinity_parser.add_argument(
+    '--trinity-root-dir',
+    help=(
+        "The filesystem path to the base directory that trinity will store it's "
+        "information.  Default: $XDG_DATA_HOME/.local/share/trinity"
+    ),
+)
+
 
 #
 # Logging configuration
 #
-parser.add_argument(
+logging_parser.add_argument(
     '-l',
     '--log-level',
     choices=LOG_LEVEL_CHOICES,
@@ -42,7 +65,7 @@ parser.add_argument(
 #
 # Main parser for running trinity as a node.
 #
-networkid_parser = parser.add_mutually_exclusive_group()
+networkid_parser = network_parser.add_mutually_exclusive_group()
 networkid_parser.add_argument(
     '--network-id',
     type=int,
@@ -61,13 +84,16 @@ networkid_parser.add_argument(
 )
 
 
-syncmode_parser = parser.add_mutually_exclusive_group()
-syncmode_parser.add_argument(
+#
+# Sync Mode
+#
+mode_parser = syncing_parser.add_mutually_exclusive_group()
+mode_parser.add_argument(
     '--sync-mode',
     choices={SYNC_LIGHT, SYNC_FULL},
     default=SYNC_LIGHT,
 )
-syncmode_parser.add_argument(
+mode_parser.add_argument(
     '--light',  # TODO: consider --sync-mode like geth.
     action='store_const',
     const=SYNC_LIGHT,
@@ -75,34 +101,28 @@ syncmode_parser.add_argument(
     help="Shortcut for `--sync-mode=light`",
 )
 
-parser.add_argument(
-    '--trinity-root-dir',
-    help=(
-        "The filesystem path to the base directory that trinity will store it's "
-        "information.  Default: $XDG_DATA_HOME/.local/share/trinity"
-    ),
-)
-parser.add_argument(
+
+#
+# Chain configuration
+#
+chain_parser.add_argument(
     '--data-dir',
     help=(
         "The directory where chain data is stored"
     ),
 )
-parser.add_argument(
+chain_parser.add_argument(
     '--nodekey',
     help=(
         "Hexadecimal encoded private key to use for the nodekey"
     )
 )
-parser.add_argument(
+chain_parser.add_argument(
     '--nodekey-path',
     help=(
         "The filesystem path to the file which contains the nodekey"
     )
 )
-
-# setup the subparser for sub commands
-subparser = parser.add_subparsers(dest='subcommand')
 
 
 #
