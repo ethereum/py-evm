@@ -113,11 +113,15 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
         )
         yield state
 
-        if self.state_root != state.root_hash:
+        if read_only:
+            # This acts as a secondary check that no mutation took place for
+            # read_only databases.
+            assert state.root_hash == self.state_root
+        elif self.state_root != state.root_hash:
             self.set_state_root(state.root_hash)
 
-            self.access_logs.reads.update(state.db.access_logs.reads)
-            self.access_logs.writes.update(state.db.access_logs.writes)
+        self.access_logs.writes.update(state.db.access_logs.writes)
+        self.access_logs.reads.update(state.db.access_logs.reads)
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
