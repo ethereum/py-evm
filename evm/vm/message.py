@@ -22,7 +22,7 @@ class Message(object):
     sender = None
     value = None
     data = None
-    gas = None
+    gas = None  # type: int
     access_list = None
     depth = None
 

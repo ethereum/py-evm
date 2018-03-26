@@ -5,7 +5,8 @@ from abc import (
 from contextlib import contextmanager
 import logging
 from typing import (  # noqa: F401
-    Type
+    Type,
+    TYPE_CHECKING
 )
 
 from cytoolz import (
@@ -24,15 +25,17 @@ from evm.db.trie import (
 from evm.utils.datatypes import (
     Configurable,
 )
-from evm.rlp.blocks import (  # noqa: F401
-    BaseBlock,
-)
-from evm.computation import (  # noqa: F401
-    BaseComputation,
-)
-from evm.transaction_context import (  # noqa: F401
-    BaseTransactionContext,
-)
+
+if TYPE_CHECKING:
+    from evm.rlp.blocks import (  # noqa: F401
+        BaseBlock,
+    )
+    from evm.computation import (  # noqa: F401
+        BaseComputation,
+    )
+    from evm.transaction_context import (  # noqa: F401
+        BaseTransactionContext,
+    )
 
 
 class BaseVMState(Configurable, metaclass=ABCMeta):
