@@ -1,4 +1,3 @@
-import functools
 from cytoolz import (
     merge,
 )
@@ -46,16 +45,12 @@ from .validation import validate_sharding_transaction
 
 class ShardingTransactionExecutor(BaseTransactionExecutor):
     def run_pre_computation(self, transaction):
-        state_db_cm = functools.partial(
-            self.state_db, access_list=transaction.prefix_list
-        )
-
         # Validate the transaction
         transaction.validate()
 
         self.validate_transaction(transaction)
 
-        with state_db_cm() as state_db:
+        with self.state_db() as state_db:
             # Setup VM Message
             message_gas = transaction.gas - transaction.intrinsic_gas
 
@@ -93,11 +88,6 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
 
     def run_computation(self, transaction, message):
         """Apply the message to the VM."""
-
-        state_db_cm = functools.partial(
-            self.state_db, access_list=transaction.prefix_list
-        )
-
         if transaction.code:
             contract_address = generate_CREATE2_contract_address(
                 transaction.salt,
@@ -113,7 +103,7 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
         )
 
         if message.is_create:
-            with state_db_cm(read_only=True) as state_db:
+            with self.state_db(read_only=True) as state_db:
                 is_collision = state_db.account_has_code(contract_address)
 
             # Check if contract address provided by transaction is correct
@@ -154,10 +144,6 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
         return computation
 
     def run_post_computation(self, transaction, computation):
-        state_db_cm = functools.partial(
-            self.state_db, access_list=transaction.prefix_list
-        )
-
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -173,7 +159,7 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
                 encode_hex(computation.msg.to),
             )
 
-            with state_db_cm() as state_db:
+            with self.state_db() as state_db:
                 state_db.delta_balance(computation.msg.to, gas_refund_amount)
 
         # Miner Fees
@@ -183,7 +169,7 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
         )
 
         # Process Self Destructs
-        with state_db_cm() as state_db:
+        with self.state_db() as state_db:
             for account, beneficiary in computation.get_accounts_for_deletion():
                 # TODO: need to figure out how we prevent multiple selfdestructs from
                 # the same account and if this is the right place to put this.
