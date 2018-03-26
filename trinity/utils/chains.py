@@ -120,8 +120,9 @@ class ChainConfig:
     def __init__(self,
                  network_id: int,
                  data_dir: str=None,
-                 nodekey_path: str=None,
-                 nodekey: PrivateKey=None) -> None:
+                 nodekey_path: str = None,
+                 nodekey: PrivateKey = None,
+                 genesis: dict = None) -> None:
         self.network_id = network_id
 
         # validation
