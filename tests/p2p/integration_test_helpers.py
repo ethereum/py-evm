@@ -3,7 +3,7 @@ from typing import Type
 from eth_utils import decode_hex
 from eth_keys import datatypes, keys
 
-from evm.db.chain import AsyncChainDB
+from evm.db.chain import AsyncChainDB, NonJournaledAsyncChainDB
 
 from p2p import kademlia
 from p2p.peer import BasePeer, HardCodedNodesPeerPool
@@ -28,7 +28,7 @@ class LocalGethPeerPool(HardCodedNodesPeerPool):
                             kademlia.Address('127.0.0.1', 30303, 30303))
 
 
-class FakeAsyncChainDB(AsyncChainDB):
+class FakeAsyncChainDB(NonJournaledAsyncChainDB):
     async def coro_get_score(self, *args, **kwargs):
         return self.get_score(*args, **kwargs)
 
