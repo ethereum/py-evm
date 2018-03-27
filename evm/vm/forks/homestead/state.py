@@ -1,11 +1,11 @@
-from evm.vm.forks.frontier.vm_state import FrontierVMState
+from evm.vm.forks.frontier.state import FrontierState
 
 from .blocks import HomesteadBlock
 from .computation import HomesteadComputation
 from .validation import validate_homestead_transaction
 
 
-class HomesteadVMState(FrontierVMState):
+class HomesteadState(FrontierState):
     block_class = HomesteadBlock
     computation_class = HomesteadComputation
 

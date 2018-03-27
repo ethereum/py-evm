@@ -6,10 +6,10 @@ from typing import (  # noqa: F401
     Set
 )
 
-from evm import opcode_values
 from evm.validation import (
     validate_is_bytes,
 )
+from evm.vm import opcode_values
 
 
 class CodeStream(object):

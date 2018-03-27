@@ -6,14 +6,14 @@ from .headers import (
     compute_byzantium_difficulty,
 )
 from .blocks import ByzantiumBlock
-from .vm_state import ByzantiumVMState
+from .state import ByzantiumState
 
 
 ByzantiumVM = SpuriousDragonVM.configure(
     __name__='ByzantiumVM',
     # classes
     _block_class=ByzantiumBlock,
-    _state_class=ByzantiumVMState,
+    _state_class=ByzantiumState,
     # Methods
     create_header_from_parent=staticmethod(create_byzantium_header_from_parent),
     compute_difficulty=staticmethod(compute_byzantium_difficulty),

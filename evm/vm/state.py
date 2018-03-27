@@ -33,12 +33,12 @@ if TYPE_CHECKING:
     from evm.computation import (  # noqa: F401
         BaseComputation,
     )
-    from evm.transaction_context import (  # noqa: F401
+    from evm.vm.transaction_context import (  # noqa: F401
         BaseTransactionContext,
     )
 
 
-class BaseVMState(Configurable, metaclass=ABCMeta):
+class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
@@ -65,7 +65,7 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
     #
     @property
     def logger(self):
-        return logging.getLogger('evm.vm_state.{0}'.format(self.__class__.__name__))
+        return logging.getLogger('evm.vm.state.{0}'.format(self.__class__.__name__))
 
     #
     # Block Object Properties (in opcodes)
@@ -219,7 +219,7 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
         Return state object
         """
         if self.computation_class is None:
-            raise AttributeError("No `computation_class` has been set for this VMState")
+            raise AttributeError("No `computation_class` has been set for this State")
         else:
             computation = self.computation_class(self, message, transaction_context)
         return computation
@@ -233,7 +233,7 @@ class BaseVMState(Configurable, metaclass=ABCMeta):
 
         """
         if cls.transaction_context_class is None:
-            raise AttributeError("No `transaction_context_class` has been set for this VMState")
+            raise AttributeError("No `transaction_context_class` has been set for this State")
         return cls.transaction_context_class
 
     #

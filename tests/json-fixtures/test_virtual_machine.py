@@ -27,18 +27,18 @@ from evm.tools.fixture_tests import (
     verify_state_db,
     hash_log_entries,
 )
-from evm.transaction_context import (
-    BaseTransactionContext,
-)
 from evm.vm.forks import (
     HomesteadVM,
 )
 from evm.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
-from evm.vm.forks.homestead.vm_state import HomesteadVMState
-from evm.vm import (
+from evm.vm.forks.homestead.state import HomesteadState
+from evm.vm.message import (
     Message,
+)
+from evm.vm.transaction_context import (
+    BaseTransactionContext,
 )
 
 
@@ -110,14 +110,14 @@ HomesteadComputationForTesting = HomesteadComputation.configure(
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
 )
-HomesteadVMStateForTesting = HomesteadVMState.configure(
-    __name__='HomesteadVMStateForTesting',
+HomesteadStateForTesting = HomesteadState.configure(
+    __name__='HomesteadStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
     computation_class=HomesteadComputationForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     __name__='HomesteadVMForTesting',
-    _state_class=HomesteadVMStateForTesting,
+    _state_class=HomesteadStateForTesting,
 )
 
 
@@ -185,12 +185,12 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         timestamp=fixture['env']['currentTimestamp'],
     )
     vm = vm_class(header=header, chaindb=chaindb)
-    vm_state = vm.state
-    with vm_state.mutable_state_db() as state_db:
+    state = vm.state
+    with state.mutable_state_db() as state_db:
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
     # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
+    vm.block.header.state_root = state.state_root
 
     message = Message(
         to=fixture['exec']['address'],
@@ -210,7 +210,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         transaction_context,
     )
     # Update state_root manually
-    vm.block.header.state_root = computation.vm_state.state_root
+    vm.block.header.state_root = computation.state.state_root
 
     if 'post' in fixture:
         #

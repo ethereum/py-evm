@@ -1,17 +1,17 @@
 import pytest
 
-from evm.transaction_context import (
-    BaseTransactionContext,
-)
 from evm.exceptions import (
     VMError,
     Revert,
 )
-from evm.computation import (
+from evm.vm.message import (
+    Message,
+)
+from evm.vm.computation import (
     BaseComputation,
 )
-from evm.vm import (
-    Message,
+from evm.vm.transaction_context import (
+    BaseTransactionContext,
 )
 
 from eth_utils import (
@@ -61,7 +61,7 @@ def message():
 @pytest.fixture
 def computation(message, transaction_context):
     computation = DummyComputation(
-        vm_state=None,
+        state=None,
         message=message,
         transaction_context=transaction_context,
     )
@@ -92,7 +92,7 @@ def test_is_origin_computation(computation, transaction_context):
         gas=100,
     )
     computation2 = DummyComputation(
-        vm_state=None,
+        state=None,
         message=message2,
         transaction_context=transaction_context,
     )

@@ -38,7 +38,7 @@ def test_apply_transaction(chain, tx):
 
     # Check if the state is updated.
     vm = chain.get_vm()
-    assert vm.state.state_root == computation.vm_state.state_root
+    assert vm.state.state_root == computation.state.state_root
     assert vm.state.read_only_state_db.get_balance(tx.to) == tx.value
 
 

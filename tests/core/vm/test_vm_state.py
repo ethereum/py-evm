@@ -11,7 +11,7 @@ from eth_utils import (
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.chain import ChainDB
-from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
+from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
@@ -97,8 +97,8 @@ def test_apply_transaction(  # noqa: F811
     computation, result_block = vm_example.apply_transaction(tx2)
     assert len(result_block.transactions) == 2
 
-    # (2) Test VMState.apply_transaction(...)
-    # Use SpuriousDragonVMState to apply transaction
+    # (2) Test State.apply_transaction(...)
+    # Use SpuriousDragonState to apply transaction
     chaindb1 = copy.deepcopy(chaindb)
     block1 = copy.deepcopy(block0)
     prev_hashes = vm.get_prev_hashes(
@@ -106,7 +106,7 @@ def test_apply_transaction(  # noqa: F811
         db=vm.chaindb,
     )
     execution_context = block1.header.create_execution_context(prev_hashes)
-    vm_state1 = SpuriousDragonVMState(
+    state1 = SpuriousDragonState(
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block1.header.state_root,
@@ -114,29 +114,29 @@ def test_apply_transaction(  # noqa: F811
     )
     parent_hash = copy.deepcopy(prev_hashes[0])
 
-    computation, block, _ = vm_state1.apply_transaction(
+    computation, block, _ = state1.apply_transaction(
         tx1,
         block1,
     )
-    access_logs1 = computation.vm_state.access_logs
+    access_logs1 = computation.state.access_logs
 
     # Check if prev_hashes hasn't been changed
     assert parent_hash == prev_hashes[0]
     # Make sure that block1 hasn't been changed
     assert block1.header.state_root == initial_state_root
     execution_context = block.header.create_execution_context(prev_hashes)
-    vm_state1 = SpuriousDragonVMState(
+    state1 = SpuriousDragonState(
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block.header.state_root,
-        receipts=computation.vm_state.receipts,
+        receipts=computation.state.receipts,
     )
-    computation, block, _ = vm_state1.apply_transaction(
+    computation, block, _ = state1.apply_transaction(
         tx2,
         block,
     )
-    access_logs2 = computation.vm_state.access_logs
-    post_vm_state = computation.vm_state
+    access_logs2 = computation.state.access_logs
+    post_state = computation.state
 
     # Check AccessLogs
     witness_db = ChainDB(MemoryDB(access_logs2.writes))
@@ -152,8 +152,8 @@ def test_apply_transaction(  # noqa: F811
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root
 
-    # Make sure that vm_state1 hasn't been changed
-    assert post_vm_state.state_root == result_block.header.state_root
+    # Make sure that state1 hasn't been changed
+    assert post_state.state_root == result_block.header.state_root
 
     # (3) Testing using witness as db data
     # Witness_db
@@ -166,13 +166,13 @@ def test_apply_transaction(  # noqa: F811
     )
     execution_context = block2.header.create_execution_context(prev_hashes)
     # Apply the first transaction
-    vm_state2 = SpuriousDragonVMState(
+    state2 = SpuriousDragonState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block2.header.state_root,
         receipts=[],
     )
-    computation, block, _ = vm_state2.apply_transaction(
+    computation, block, _ = state2.apply_transaction(
         tx1,
         block2,
     )
@@ -182,33 +182,33 @@ def test_apply_transaction(  # noqa: F811
     witness_db = ChainDB(MemoryDB(recent_trie_nodes))
     execution_context = block.header.create_execution_context(prev_hashes)
     # Apply the second transaction
-    vm_state2 = SpuriousDragonVMState(
+    state2 = SpuriousDragonState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block.header.state_root,
-        receipts=computation.vm_state.receipts,
+        receipts=computation.state.receipts,
     )
-    computation, block, _ = vm_state2.apply_transaction(
+    computation, block, _ = state2.apply_transaction(
         tx2,
         block,
     )
 
     # After applying
-    assert block.header.state_root == computation.vm_state.state_root
+    assert block.header.state_root == computation.state.state_root
     assert block.header.transaction_root == result_block.header.transaction_root
     assert block.header.receipt_root == result_block.header.receipt_root
     assert block.hash == result_block.hash
 
-    # (3) Testing using witness_db and block_header to reconstruct vm_state
+    # (3) Testing using witness_db and block_header to reconstruct state
     prev_hashes = vm.get_prev_hashes(
         last_block_hash=prev_block_hash,
         db=vm.chaindb,
     )
     execution_context = block.header.create_execution_context(prev_hashes)
-    vm_state3 = SpuriousDragonVMState(
+    state3 = SpuriousDragonState(
         chaindb=witness_db,
         execution_context=execution_context,
         state_root=block.header.state_root,
     )
-    assert vm_state3.state_root == post_vm_state.state_root
-    assert vm_state3.state_root == result_block.header.state_root
+    assert state3.state_root == post_state.state_root
+    assert state3.state_root == result_block.header.state_root

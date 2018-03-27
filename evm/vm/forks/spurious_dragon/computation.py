@@ -22,16 +22,16 @@ class SpuriousDragonComputation(HomesteadComputation):
     opcodes = SPURIOUS_DRAGON_OPCODES
 
     def apply_create_message(self):
-        snapshot = self.vm_state.snapshot()
+        snapshot = self.state.snapshot()
 
         # EIP161 nonce incrementation
-        with self.vm_state.mutable_state_db() as state_db:
+        with self.state.mutable_state_db() as state_db:
             state_db.increment_nonce(self.msg.storage_address)
 
         computation = self.apply_message()
 
         if computation.is_error:
-            self.vm_state.revert(snapshot)
+            self.state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -44,7 +44,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                         len(contract_code),
                     )
                 )
-                self.vm_state.revert(snapshot)
+                self.state.revert(snapshot)
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
@@ -56,7 +56,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation._error = err
-                    self.vm_state.revert(snapshot)
+                    self.state.revert(snapshot)
                 else:
                     if self.logger:
                         self.logger.debug(
@@ -66,9 +66,9 @@ class SpuriousDragonComputation(HomesteadComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.vm_state.mutable_state_db() as state_db:
+                    with self.state.mutable_state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
-                    self.vm_state.commit(snapshot)
+                    self.state.commit(snapshot)
             else:
-                self.vm_state.commit(snapshot)
+                self.state.commit(snapshot)
             return computation

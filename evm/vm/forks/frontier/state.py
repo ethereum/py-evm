@@ -26,8 +26,8 @@ from evm.rlp.receipts import (
 from evm.vm.message import (
     Message,
 )
-from evm.vm_state import (
-    BaseVMState,
+from evm.vm.state import (
+    BaseState,
     BaseTransactionExecutor,
 )
 
@@ -186,7 +186,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
 
-def _make_frontier_receipt(vm_state, transaction, computation):
+def _make_frontier_receipt(state, transaction, computation):
     # Reusable for other forks
 
     logs = [
@@ -203,10 +203,10 @@ def _make_frontier_receipt(vm_state, transaction, computation):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-    gas_used = vm_state.gas_used + tx_gas_used
+    gas_used = state.gas_used + tx_gas_used
 
     receipt = Receipt(
-        state_root=vm_state.state_root,
+        state_root=state.state_root,
         gas_used=gas_used,
         logs=logs,
     )
@@ -214,7 +214,7 @@ def _make_frontier_receipt(vm_state, transaction, computation):
     return receipt
 
 
-class FrontierVMState(BaseVMState, FrontierTransactionExecutor):
+class FrontierState(BaseState, FrontierTransactionExecutor):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     trie_class = HexaryTrie

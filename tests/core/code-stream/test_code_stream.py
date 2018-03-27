@@ -1,6 +1,6 @@
 import pytest
 
-from evm import opcode_values
+from evm.vm import opcode_values
 from evm.vm.code_stream import (
     CodeStream,
 )

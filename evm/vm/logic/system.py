@@ -1,5 +1,4 @@
 from evm import constants
-from evm import mnemonics
 from evm.exceptions import (
     Halt,
     Revert,
@@ -9,9 +8,6 @@ from evm.exceptions import (
     NotTopLevelCall
 )
 
-from evm.opcode import (
-    Opcode,
-)
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
@@ -19,6 +15,10 @@ from evm.utils.address import (
 )
 from evm.utils.hexadecimal import (
     encode_hex,
+)
+from evm.vm import mnemonics
+from evm.vm.opcode import (
+    Opcode,
 )
 
 from .call import max_child_gas_eip150
@@ -88,7 +88,7 @@ def _selfdestruct(computation, beneficiary):
         # beneficiary.
         state_db.set_balance(computation.msg.storage_address, 0)
 
-    computation.vm_state.logger.debug(
+    computation.logger.debug(
         "SELFDESTRUCT: %s (%s) -> %s",
         encode_hex(computation.msg.storage_address),
         local_balance,
@@ -141,7 +141,7 @@ class Create(Opcode):
             is_collision = state_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
-            computation.vm_state.logger.debug(
+            self.logger.debug(
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )
@@ -218,7 +218,7 @@ class Create2(CreateEIP150):
             is_collision = state_db.account_has_code(contract_address)
 
         if is_collision:
-            computation.vm.logger.debug(
+            self.logger.debug(
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )

@@ -15,6 +15,9 @@ from typing import (  # noqa: F401
     Tuple,
 )
 
+from evm.db.state import (
+    BaseAccountStateDB
+)
 from evm.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -22,9 +25,6 @@ from evm.constants import (
 from evm.exceptions import (
     Halt,
     VMError,
-)
-from evm.logic.invalid import (
-    InvalidOpcode,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -49,25 +49,25 @@ from evm.vm.code_stream import (
 from evm.vm.gas_meter import (
     GasMeter,
 )
+from evm.vm.logic.invalid import (
+    InvalidOpcode,
+)
 from evm.vm.memory import (
     Memory,
 )
 from evm.vm.message import (
     Message,
 )
+from evm.vm.opcode import (  # noqa: F401
+    Opcode
+)
 from evm.vm.stack import (
     Stack,
 )
-from evm.vm_state import (
-    BaseVMState,
+from evm.vm.state import (
+    BaseState,
 )
-from evm.opcode import (  # noqa: F401
-    Opcode
-)
-from evm.db.state import (
-    BaseAccountStateDB
-)
-from evm.transaction_context import (
+from evm.vm.transaction_context import (
     BaseTransactionContext
 )
 
@@ -85,7 +85,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     """
     The execution computation
     """
-    vm_state = None
+    state = None
     msg = None
     transaction_context = None
 
@@ -111,11 +111,11 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     logger = cast(TraceLogger, logging.getLogger('evm.vm.computation.Computation'))
 
     def __init__(self,
-                 vm_state: BaseVMState,
+                 state: BaseState,
                  message: Message,
                  transaction_context: BaseTransactionContext) -> None:
 
-        self.vm_state = vm_state
+        self.state = state
         self.msg = message
         self.transaction_context = transaction_context
 
@@ -266,7 +266,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
         child_computation = self.generate_child_computation(
-            self.vm_state,
+            self.state,
             child_msg,
             self.transaction_context,
         )
@@ -276,19 +276,19 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     @classmethod
     def generate_child_computation(
             cls,
-            vm_state: BaseVMState,
+            state: BaseState,
             child_msg: Message,
             transaction_context: BaseTransactionContext) -> 'BaseComputation':
 
         if child_msg.is_create:
             child_computation = cls(
-                vm_state,
+                state,
                 child_msg,
                 transaction_context,
             ).apply_create_message()
         else:
             child_computation = cls(
-                vm_state,
+                state,
                 child_msg,
                 transaction_context,
             ).apply_message()
@@ -370,7 +370,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     @contextmanager
     def state_db(self, read_only: bool = False) -> Iterator[BaseAccountStateDB]:
-        with self.vm_state.state_db(read_only, self.msg.access_list) as state_db:
+        with self.state.state_db(read_only, self.msg.access_list) as state_db:
             yield state_db
 
     #
@@ -453,13 +453,13 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     @classmethod
     def apply_computation(cls,
-                          vm_state: BaseVMState,
+                          state: BaseState,
                           message: Message,
                           transaction_context: BaseTransactionContext) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """
-        with cls(vm_state, message, transaction_context) as computation:
+        with cls(state, message, transaction_context) as computation:
             # Early exit on pre-compiles
             if message.code_address in computation.precompiles:
                 computation.precompiles[message.code_address](computation)

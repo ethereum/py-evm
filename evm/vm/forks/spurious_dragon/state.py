@@ -2,8 +2,8 @@
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.vm.forks.homestead.vm_state import (
-    HomesteadVMState,
+from evm.vm.forks.homestead.state import (
+    HomesteadState,
 )
 
 from .blocks import SpuriousDragonBlock
@@ -11,7 +11,7 @@ from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
-class SpuriousDragonVMState(HomesteadVMState):
+class SpuriousDragonState(HomesteadState):
     block_class = SpuriousDragonBlock
     computation_class = SpuriousDragonComputation
 

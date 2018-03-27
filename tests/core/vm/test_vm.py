@@ -22,7 +22,7 @@ def test_apply_transaction(
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
     computation, _ = vm.apply_transaction(tx)
-    access_logs = computation.vm_state.access_logs
+    access_logs = computation.state.access_logs
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
