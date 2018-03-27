@@ -319,45 +319,15 @@ class ChainSyncer(PeerPoolSubscriber):
 
     async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
-        loop = asyncio.get_event_loop()
         if isinstance(cmd, eth.BlockHeaders):
             msg = cast(List[BlockHeader], msg)
             self.logger.debug(
                 "Got BlockHeaders from %d to %d", msg[0].block_number, msg[-1].block_number)
             self._new_headers.put_nowait(msg)
         elif isinstance(cmd, eth.BlockBodies):
-            self._peers_with_pending_requests.remove(peer)
-            msg = cast(List[eth.BlockBody], msg)
-            self.logger.debug("Got %d BlockBodies from %s", len(msg), peer)
-            iterator = map(make_trie_root_and_nodes, [body.transactions for body in msg])
-            transactions_tries = await wait_with_token(
-                loop.run_in_executor(None, list, iterator),
-                token=self.cancel_token)
-            for i in range(len(msg)):
-                body = msg[i]
-                tx_root, trie_dict_data = transactions_tries[i]
-                await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-                # TODO: Add transactions to canonical chain; blocked by
-                # https://github.com/ethereum/py-evm/issues/337
-                uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
-                self._pending_bodies.pop((tx_root, uncles_hash), None)
+            await self._handle_block_bodies(peer, cast(List[eth.BlockBody], msg))
         elif isinstance(cmd, eth.Receipts):
-            self._peers_with_pending_requests.remove(peer)
-            msg = cast(List[List[eth.Receipt]], msg)
-            self.logger.debug("Got Receipts for %d blocks from %s", len(msg), peer)
-            iterator = map(make_trie_root_and_nodes, msg)
-            receipts_tries = await wait_with_token(
-                loop.run_in_executor(None, list, iterator),
-                token=self.cancel_token)
-            for receipt_root, trie_dict_data in receipts_tries:
-                if receipt_root not in self._pending_receipts:
-                    self.logger.warning(
-                        "Got unexpected receipt root: %s",
-                        encode_hex(receipt_root),
-                    )
-                    continue
-                await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-                self._pending_receipts.pop(receipt_root)
+            await self._handle_block_receipts(peer, cast(List[List[eth.Receipt]], msg))
         elif isinstance(cmd, eth.NewBlock):
             msg = cast(Dict[str, Any], msg)
             header = msg['block'][0]
@@ -377,6 +347,41 @@ class ChainSyncer(PeerPoolSubscriber):
             # TODO: There are other msg types we'll want to handle here, but for now just log them
             # as a warning so we don't forget about it.
             self.logger.warn("Got unexpected msg: %s (%s)", cmd, msg)
+
+    async def _handle_block_receipts(
+            self, peer: ETHPeer, receipts: List[List[eth.Receipt]]) -> None:
+        self.logger.debug("Got Receipts for %d blocks from %s", len(receipts), peer)
+        self._peers_with_pending_requests.remove(peer)
+        loop = asyncio.get_event_loop()
+        iterator = map(make_trie_root_and_nodes, receipts)
+        receipts_tries = await wait_with_token(
+            loop.run_in_executor(None, list, iterator),
+            token=self.cancel_token)
+        for receipt_root, trie_dict_data in receipts_tries:
+            if receipt_root not in self._pending_receipts:
+                self.logger.warning(
+                    "Got unexpected receipt root: %s",
+                    encode_hex(receipt_root),
+                )
+                continue
+            await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
+            self._pending_receipts.pop(receipt_root)
+
+    async def _handle_block_bodies(self, peer: ETHPeer, bodies: List[eth.BlockBody]) -> None:
+        self.logger.debug("Got %d BlockBodies from %s", len(bodies), peer)
+        self._peers_with_pending_requests.remove(peer)
+        loop = asyncio.get_event_loop()
+        iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
+        transactions_tries = await wait_with_token(
+            loop.run_in_executor(None, list, iterator),
+            token=self.cancel_token)
+        for i, body in enumerate(bodies):
+            tx_root, trie_dict_data = transactions_tries[i]
+            await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
+            # TODO: Add transactions to canonical chain; blocked by
+            # https://github.com/ethereum/py-evm/issues/337
+            uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
+            self._pending_bodies.pop((tx_root, uncles_hash), None)
 
 
 def _test() -> None:
