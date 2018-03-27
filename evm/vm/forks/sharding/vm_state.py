@@ -240,7 +240,10 @@ class ShardingVMState(ShardingTransactionExecutor, ByzantiumVMState):
         block.transaction_fee_sum += transaction_fee
 
         # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(
+            block.transactions,
+            trie_class=BinaryTrie,
+        )
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(
             self.receipts,
             trie_class=BinaryTrie,
