@@ -132,7 +132,7 @@ class MainAccountStateDB(BaseAccountStateDB):
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
         if read_only:
-            self.db = ImmutableDB(db)
+            self.db = TrackedDB(ImmutableDB(db))
         else:
             self.db = TrackedDB(db)
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
@@ -320,7 +320,7 @@ class ShardingAccountStateDB(BaseAccountStateDB):
 
     def __init__(self, db, root_hash=EMPTY_SHA3, read_only=False, access_list=None):
         if read_only:
-            self.db = ImmutableDB(db)
+            self.db = TrackedDB(ImmutableDB(db))
         else:
             self.db = TrackedDB(db)
         self._trie = BinaryTrie(self.db, root_hash)

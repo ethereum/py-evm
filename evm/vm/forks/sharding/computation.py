@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from eth_utils import (
     keccak,
 )
@@ -38,6 +40,11 @@ class ShardingComputation(ByzantiumComputation):
 
     # Override
     opcodes = SHARDING_OPCODES
+
+    @contextmanager
+    def state_db(self, read_only: bool = False) -> Iterator[BaseAccountStateDB]:
+        with self.vm_state.state_db(read_only, self.msg.access_list) as state_db:
+            yield state_db
 
     def get_PAYGAS_gas_price(self):
         return self._paygas_gasprice
