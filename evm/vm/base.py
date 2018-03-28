@@ -74,8 +74,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation, block, trie_data_dict = self.get_state_class().apply_transaction(
-            self.state,
+        computation, block, trie_data_dict = self.state.apply_transaction(
             transaction,
             self.block,
         )
