@@ -66,6 +66,8 @@ def vmc():
     )
     provider = EthereumTesterProvider(eth_tester)
     w3 = Web3(provider)
+    if hasattr(w3.eth, "enable_unaudited_features"):
+        w3.eth.enable_unaudited_features()
 
     # setup vmc's web3.eth.contract instance
     vmc_tx = create_vmc_tx(
