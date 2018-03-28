@@ -28,11 +28,10 @@ validators: public({
 # Number of validators
 num_validators: public(int128)
 
-# Collation headers
-collation_headers: public({
-    parent_hash: bytes32,
-    score: int128,
-}[bytes32][int128])
+# Collation headers: (parent_hash || score)
+# parent_hash: 24 bytes
+# score: 8 bytes
+collation_headers: public(bytes32[bytes32][int128])
 
 # Receipt data
 receipts: public({
@@ -176,6 +175,21 @@ def withdraw(validator_index: int128) -> bool:
     return True
 
 
+# Helper function to get collation header score
+@public
+@constant
+def get_collation_header_score(shard_id: int128, collation_header_hash: bytes32) -> int128:
+    collation_score: int128 = convert(
+        uint256_mod(
+            convert(self.collation_headers[shard_id][collation_header_hash], 'uint256'),
+            # Mod 2^64, i.e., extract right most 8 bytes
+            convert(18446744073709551616, 'uint256')
+        ),
+        'int128'
+    )
+    return collation_score
+
+
 # Uses a block hash as a seed to pseudorandomly select a signer from the validator set.
 # [TODO] Chance of being selected should be proportional to the validator's deposit.
 # Should be able to return a value for the current period or any future period up to.
@@ -237,37 +251,68 @@ def add_header(
         receipt_root,
         convert(collation_number, 'bytes32'),
     )
-    entire_header_hash: bytes32 = sha3(header_bytes)
-    assert self.collation_headers[shard_id][entire_header_hash].score == 0
-    # Check whether the parent exists.
-    # if (parent_hash == 0), i.e., is the genesis,
-    # then there is no need to check.
-    if parent_hash != convert(0, 'bytes32'):
-        assert self.collation_headers[shard_id][parent_hash].score > 0
+    entire_header_hash: bytes32 = convert(
+        uint256_mod(
+            convert(sha3(header_bytes), 'uint256'),
+            # Mod 2^192, i.e., extract right most 24 bytes
+            convert(6277101735386680763835789423207666416102355444464034512896, 'uint256')
+        ),
+        'bytes32'
+    )
+    # Check that this header has not yet been added.
+    assert not self.collation_headers[shard_id][entire_header_hash]
+    
+    # Check if parent header exists.
+    # If it exist, check that it's score is greater than 0.
+    parent_collation_score: int128 = self.get_collation_header_score(
+        shard_id,
+        parent_hash,
+    )
+    if not not parent_hash:
+        assert parent_collation_score > 0
     # Check if only one collation in one period perd shard
     assert self.period_head[shard_id] < expected_period_number
 
-    # Check the signature with validation_code_addr
-    validator_addr: address = self.get_eligible_proposer(shard_id, floor(block.number / self.period_length))
+    # Check that there's eligible proposer in this period
+    # and msg.sender is also the eligible proposer
+    validator_addr: address = self.get_eligible_proposer(
+        shard_id,
+        floor(block.number / self.period_length)
+    )
     assert not not validator_addr
     assert msg.sender == validator_addr
 
     # Check score == collation_number
-    _score: int128 = self.collation_headers[shard_id][parent_hash].score + 1
+    _score: int128 = parent_collation_score + 1
     assert collation_number == _score
 
     # Add the header
-    self.collation_headers[shard_id][entire_header_hash] = {
-        parent_hash: parent_hash,
-        score: _score,
-    }
+    self.collation_headers[shard_id][entire_header_hash] = convert(
+        uint256_add(
+            uint256_mul(
+                convert(parent_hash, 'uint256'),
+                # Multiplied by 2^64, i.e., left shift 8 bytes
+                convert(18446744073709551616, 'uint256')
+            ),
+            uint256_mod(
+                convert(_score, 'uint256'),
+                # Mod 2^64, i.e. confine it's range to 8 bytes
+                convert(18446744073709551616, 'uint256')
+            ),
+        ),
+        'bytes32'
+    )
 
     # Update the latest period number
     self.period_head[shard_id] = expected_period_number
 
     # Determine the head
     is_new_head: bool = False
-    if _score > self.collation_headers[shard_id][self.shard_head[shard_id]].score:
+    shard_head_score: int128 = self.get_collation_header_score(
+        shard_id,
+        self.shard_head[shard_id],
+    )
+    if _score > shard_head_score:
         self.shard_head[shard_id] = entire_header_hash
         is_new_head = True
 
