@@ -1,6 +1,7 @@
 import asyncio
 import os
 import logging
+import secrets
 import sys
 
 from typing import Tuple
@@ -24,28 +25,38 @@ from p2p.constants import (
     HASH_LEN,
 )
 from p2p.ecies import ecdh_agree
+from p2p.exceptions import OperationCancelled
 from p2p.kademlia import (
     Address,
     Node,
 )
+from p2p.peer import PeerPool, BasePeer, PeerPoolSubscriber, ETHPeer, LESPeer
 from p2p.utils import sxor
 
 
-class Server:
+class Server(PeerPoolSubscriber):
     """Server listening for incoming connections"""
     logger = logging.getLogger("p2p.server.Server")
-    _server_address = ('localhost', 10000)
-    _connect_loop_sleep = 2
     
-    def __init__(self, privkey: datatypes.PrivateKey) -> None:
-        self.privkey = privkey
+    def __init__(self, privkey: datatypes.PrivateKey, server_addr: Tuple[str, str], peer_pool: PeerPool) -> None:
         self.cancel_token = CancelToken('Server')
         self.incoming_connections = []
+        self.peer_pool = peer_pool
+        self.peer_pool.subscribe(self)
+        self._running_peers = set()
+        self.privkey = privkey
+        self._server_address = server_addr
+
+    def register_peer(self, peer: ETHPeer) -> None:
+        pass
 
     async def stop(self) -> None:
         self.logger.info("Closing server...")
         self.cancel_token.trigger()
+        self.peer_pool.unsubscribe(self)
         await asyncio.sleep(1)
+        while self._running_peers:
+            self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
 
     async def run(self) -> None:
         self.logger.info("Running server...")
@@ -58,11 +69,11 @@ class Server:
                 loop.run_forever()
             except:
                 self.logger.error("Unexpected error.")
-            await awyncio.wait([self.cancel_token.wait()], timeout=_connect_loop_sleep)
+            await asyncio.sleep(1)
 
     async def receive_handshake(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        # Use reader to read the auth_init msg !!!CONSTANT???!!!
-        msg = await reader.read(437)
+        # Use reader to read the auth_init msg until EOF
+        msg = await reader.read()
 
         # Use HandshakeResponder.decode_authentication(auth_init_message) on auth init msg
         ephem_pubkey, initiator_nonce, initiator_pubkey = _decode_authentication(msg, self.privkey)
@@ -76,7 +87,7 @@ class Server:
         responder = HandshakeResponder(initiator_remote, self.privkey)
 
         # Call `HandshakeResponder.create_auth_ack_message(nonce: bytes)` to create the reply
-        responder_nonce = keccak(os.urandom(HASH_LEN))
+        responder_nonce = secrets.token_bytes(HASH_LEN) 
         auth_ack_msg = responder.create_auth_ack_message(nonce=responder_nonce) 
         auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
 
@@ -85,7 +96,7 @@ class Server:
         await writer.drain()
         
         # Use `HandshakeResponder.derive_shared_secrets()` and use the return values to instantiate a `Peer` instance
-        aes_secret, mac_secret, _, _ = responder.derive_secrets(
+        aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
             initiator_nonce=initiator_nonce,
             responder_nonce=responder_nonce,
             remote_ephemeral_pubkey=ephem_pubkey,
@@ -94,7 +105,8 @@ class Server:
         )
 
         # Store peer creation data in incoming_connections[]
-        peer = (aes_secret, mac_secret)
+        # TODO register peer in PeerPool
+        peer = (aes_secret, mac_secret, initiator_nonce, ephem_pubkey)
         self.incoming_connections.append(peer)
 
 
