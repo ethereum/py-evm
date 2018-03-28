@@ -11,7 +11,7 @@ from eth_utils import (
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
-from evm.vm.forks.frontier import FrontierBlock
+from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from p2p import ecies
 from p2p.lightchain import LightChain

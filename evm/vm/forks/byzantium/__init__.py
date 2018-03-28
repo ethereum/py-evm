@@ -5,14 +5,12 @@ from .headers import (
     configure_byzantium_header,
     compute_byzantium_difficulty,
 )
-from .blocks import ByzantiumBlock
 from .state import ByzantiumState
 
 
 ByzantiumVM = SpuriousDragonVM.configure(
     __name__='ByzantiumVM',
     # classes
-    _block_class=ByzantiumBlock,
     _state_class=ByzantiumState,
     # Methods
     create_header_from_parent=staticmethod(create_byzantium_header_from_parent),
