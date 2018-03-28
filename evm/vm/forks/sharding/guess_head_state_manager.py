@@ -81,6 +81,8 @@ class GuessHeadStateManager:
     current_collation_hash = None
     last_period_fetching_candidate_head = None
     tasks = None
+    collation_task = None
+    chain_collations = None
 
     def __init__(self, vmc, shard_id, shard_tracker, my_address):
         # a well-setup vmc handler with a shard_tracker in shard `shard_id`
@@ -100,8 +102,12 @@ class GuessHeadStateManager:
         # list of chain head, to indicate priority
         # order: older -------> newer
         self.last_period_fetching_candidate_head = 0
+
         # current tasks
         self.tasks = []
+        # collation task
+        self.collation_task = {}
+        self.chain_collations = defaultdict(list)
 
     def get_current_period(self):
         return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
@@ -207,6 +213,17 @@ class GuessHeadStateManager:
             if self.head_collation_hash is not None:
                 self.current_collation_hash = self.head_collation_hash
 
+    def set_collation_task(self, task):
+        self.tasks.append(task)
+        self.collation_task[self.current_collation_hash] = task
+        self.chain_collations[self.head_collation_hash].append(self.current_collation_hash)
+
+    def get_chain_tasks(self, head_collation_hash):
+        return (
+            self.collation_task[collation_hash]
+            for collation_hash in self.chain_collations[head_collation_hash]
+        )
+
     def process_current_collation(self):
         # only process collations when the node is collating
         if self.current_collation_hash in self.collation_validity_cache:
@@ -222,7 +239,8 @@ class GuessHeadStateManager:
         )
         task = asyncio.ensure_future(coro)
         asyncio.wait(task)
-        self.tasks.append(task)
+
+        self.set_collation_task(task)
         self.current_collation_hash = self.vmc.get_parent_hash(
             self.shard_id,
             self.current_collation_hash,
@@ -231,7 +249,7 @@ class GuessHeadStateManager:
     def is_to_create_collation(self):
         return (
             # FIXME: temparary commented out for now, ignoring the collator period issue
-            # self.is_late_collator_period() or
+            self.is_late_collator_period() or
             self.current_collation_hash == GENESIS_COLLATION_HASH
         )
 
@@ -272,37 +290,16 @@ class GuessHeadStateManager:
                 parent_hash = self.try_create_collation()
                 if stop_after_create_collation and parent_hash is not None:
                     print("!@# num_tasks={}, tasks={}".format(len(self.tasks), self.tasks))
-                    await asyncio.wait(self.tasks)
+                    if len(self.tasks) != 0:
+                        await asyncio.wait(self.tasks)
                     return parent_hash
 
-            await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
-            not_finished_tasks = clean_done_task(self.tasks)
-            self.tasks = not_finished_tasks
+            if len(self.tasks) != 0:
+                await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
+                not_finished_tasks = clean_done_task(self.tasks)
+                self.tasks = not_finished_tasks
 
     def async_daemon(self, stop_after_create_collation=False):
         loop = asyncio.get_event_loop()
         result = loop.run_until_complete(self.async_loop_main(stop_after_create_collation))
         return result
-
-    def guess_head_daemon(self, stop_after_create_collation=False):
-        # At any time, there should be only one `head_collation`
-        # The timing where `head_collation_hash` change are:
-        #    1. `head_collation` is invalid, change to the new head
-        #    2. There are new logs, and `fetch_candidate_head` is called
-        # When to stop processing collation?
-        self.head_collation_hash = self.current_collation_hash = None
-        is_verifying_collations = False
-        while True:
-            is_verifying_collations = (
-                self.is_collator_in_lookahead_periods() or
-                self.head_collation_hash is None
-            )
-            self.try_change_head()
-
-            if is_verifying_collations:
-                self.process_current_collation()
-
-            if self.is_to_create_collation():
-                parent_hash = self.try_create_collation()
-                if stop_after_create_collation and parent_hash is not None:
-                    return parent_hash
