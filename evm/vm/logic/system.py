@@ -3,9 +3,6 @@ from evm.exceptions import (
     Halt,
     Revert,
     WriteProtection,
-    InsufficientFunds,
-    GasPriceAlreadySet,
-    NotTopLevelCall
 )
 
 from evm.utils.address import (
@@ -241,36 +238,3 @@ class Create2(CreateEIP150):
         else:
             computation.stack_push(contract_address)
         computation.return_gas(child_computation.get_gas_remaining())
-
-
-def paygas(computation):
-    gas_price = computation.stack_pop(type_hint=constants.UINT256)
-
-    # Only valid if (1) triggered in a top level call and
-    # (2) not been set already during this transaction execution
-    try:
-        computation.set_PAYGAS_gasprice(gas_price)
-    except (GasPriceAlreadySet, NotTopLevelCall):
-        computation.stack_push(0)
-    else:
-        with computation.state_db(read_only=False) as state_db:
-            tx_initiator = computation.msg.to
-            tx_initiator_balance = state_db.get_balance(tx_initiator)
-
-            PAYGAS_gasprice = computation.get_PAYGAS_gas_price()
-            if PAYGAS_gasprice is None:
-                PAYGAS_gasprice = 0
-            fee_to_be_charged = (
-                PAYGAS_gasprice * computation.transaction_context.transaction_gas_limit
-            )
-
-            if tx_initiator_balance < fee_to_be_charged:
-                raise InsufficientFunds(
-                    "Insufficient funds: {0} < {1}".format(
-                        tx_initiator_balance,
-                        fee_to_be_charged
-                    )
-                )
-
-            state_db.delta_balance(tx_initiator, -1 * fee_to_be_charged)
-        computation.stack_push(1)
