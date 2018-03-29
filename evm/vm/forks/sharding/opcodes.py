@@ -4,7 +4,6 @@ from cytoolz import (
     dissoc,
 )
 
-from evm import constants
 from evm.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
 )
@@ -12,25 +11,13 @@ from evm.vm import mnemonics
 from evm.vm import opcode_values
 from evm.vm.logic import (
     call,
-    context,
-    system,
 )
-from evm.vm.opcode import as_opcode
 
 from evm.vm.forks.byzantium.opcodes import BYZANTIUM_OPCODES
 
 
 NEW_OPCODES = {
-    opcode_values.SIGHASH: as_opcode(
-        logic_fn=context.sighash,
-        mnemonic=mnemonics.SIGHASH,
-        gas_cost=constants.GAS_BASE,
-    ),
-    opcode_values.CREATE2: system.Create2.configure(
-        __name__='opcode:CREATE2',
-        mnemonic=mnemonics.CREATE2,
-        gas_cost=constants.GAS_CREATE2,
-    )(),
+
 }
 
 REMOVED_OPCODES = [
