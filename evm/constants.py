@@ -102,8 +102,6 @@ GAS_LIMIT_MAXIMUM = 2 ** 63 - 1
 GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR = 3
 GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR = 2
 
-SHARD_GAS_LIMIT = 10000000
-
 
 #
 # Difficulty
@@ -166,19 +164,6 @@ GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
 # BLOCKHASH opcode maximum depth
 #
 MAX_PREV_HEADER_DEPTH = 256
-
-#
-# Two layer storage tree prefixes
-#
-BALANCE_TRIE_PREFIX = b"\x00"
-CODE_TRIE_PREFIX = b"\x01"
-STORAGE_TRIE_PREFIX = b"\x02"
-
-
-#
-# Account Abstraction
-#
-ENTRY_POINT = 20 * b'\xff'
 
 
 #
