@@ -38,7 +38,7 @@ MainnetChain = Chain.configure(
 )
 
 
-MAINNET_GENESIS_HEADER = BlockHeader(
+MAINNET_GENESIS_PARAMS = dict(
     difficulty=17179869184,
     extra_data=decode_hex("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
     gas_limit=5000,
@@ -54,3 +54,6 @@ MAINNET_GENESIS_HEADER = BlockHeader(
     timestamp=0,
     transaction_root=constants.BLANK_ROOT_HASH,
 )
+
+
+MAINNET_GENESIS_HEADER = BlockHeader(**MAINNET_GENESIS_PARAMS)

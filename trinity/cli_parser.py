@@ -106,6 +106,14 @@ mode_parser.add_argument(
 # Chain configuration
 #
 chain_parser.add_argument(
+    '--genesis',
+    help=(
+        "JSON string or filesystem path to a json document which contains the "
+        "genesis parameters for a chain.  This value is **required** when "
+        "initializing a custom chain"
+    )
+)
+chain_parser.add_argument(
     '--data-dir',
     help=(
         "The directory where chain data is stored"

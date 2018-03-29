@@ -34,7 +34,7 @@ RopstenChain = Chain.configure(
 )
 
 
-ROPSTEN_GENESIS_HEADER = BlockHeader(
+ROPSTEN_GENESIS_PARAMS = dict(
     difficulty=1048576,
     extra_data=decode_hex("0x3535353535353535353535353535353535353535353535353535353535353535"),
     gas_limit=16777216,
@@ -50,3 +50,6 @@ ROPSTEN_GENESIS_HEADER = BlockHeader(
     timestamp=0,
     transaction_root=constants.BLANK_ROOT_HASH,
 )
+
+
+ROPSTEN_GENESIS_HEADER = BlockHeader(**ROPSTEN_GENESIS_PARAMS)
