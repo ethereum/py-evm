@@ -52,7 +52,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     network.
     """
     chaindb = None
-    _block_class = None
     _state_class = None
 
     def __init__(self, header, chaindb):
@@ -345,12 +344,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_block_class(cls):
         """
-        Return the class that this VM uses for blocks.
+        Return the class that the state class uses for blocks.
         """
-        if cls._block_class is None:
-            raise AttributeError("No `_block_class` has been set for this VM")
-
-        return cls._block_class
+        return cls.get_state_class().get_block_class()
 
     @classmethod
     def get_block_by_header(cls, block_header, db):

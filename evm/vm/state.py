@@ -237,6 +237,18 @@ class BaseState(Configurable, metaclass=ABCMeta):
         return cls.transaction_context_class
 
     #
+    # Block class
+    #
+    @classmethod
+    def get_block_class(cls) -> Type['BaseBlock']:
+        """
+
+        """
+        if cls.block_class is None:
+            raise AttributeError("No `block_class_class` has been set for this VMState")
+        return cls.block_class
+
+    #
     # Execution
     #
     def apply_transaction(
@@ -288,7 +300,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         # Create a new Block object
         block_header = block.header.clone()
         transactions = list(block.transactions)
-        block = self.block_class(block_header, transactions)
+        block = self.get_block_class()(block_header, transactions)
 
         block.transactions.append(transaction)
 
