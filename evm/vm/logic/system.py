@@ -8,7 +8,6 @@ from evm.exceptions import (
 from evm.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
-    generate_CREATE2_contract_address,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -173,68 +172,3 @@ class CreateByzantium(CreateEIP150):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return super(CreateEIP150, self).__call__(computation)
-
-
-class Create2(CreateEIP150):
-    def __call__(self, computation):
-        if computation.msg.is_static:
-            raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
-
-        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
-
-        value = computation.stack_pop(type_hint=constants.UINT256,)
-        salt = computation.stack_pop(type_hint=constants.BYTES,)
-        start_position, size = computation.stack_pop(
-            num_items=2,
-            type_hint=constants.UINT256,
-        )
-
-        computation.extend_memory(start_position, size)
-
-        with computation.state_db(read_only=True) as state_db:
-            insufficient_funds = state_db.get_balance(computation.msg.storage_address) < value
-        stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
-
-        if insufficient_funds or stack_too_deep:
-            computation.stack_push(0)
-            return
-
-        call_data = computation.memory_read(start_position, size)
-
-        create_msg_gas = self.max_child_gas_modifier(
-            computation.get_gas_remaining()
-        )
-        computation.consume_gas(create_msg_gas, reason="CREATE2")
-
-        contract_address = generate_CREATE2_contract_address(
-            salt,
-            call_data,
-        )
-
-        with computation.state_db(read_only=True) as state_db:
-            is_collision = state_db.account_has_code(contract_address)
-
-        if is_collision:
-            self.logger.debug(
-                "Address collision while creating contract: %s",
-                encode_hex(contract_address),
-            )
-            computation.stack_push(0)
-            return
-
-        child_msg = computation.prepare_child_message(
-            gas=create_msg_gas,
-            to=contract_address,
-            value=value,
-            data=b'',
-            code=call_data,
-            is_create=True,
-        )
-
-        child_computation = computation.apply_child_computation(child_msg)
-
-        if child_computation.is_error:
-            computation.stack_push(0)
-        else:
-            computation.stack_push(contract_address)
-        computation.return_gas(child_computation.get_gas_remaining())
