@@ -9,7 +9,7 @@ from .headers import (
     compute_homestead_difficulty,
     configure_homestead_header,
 )
-from .vm_state import HomesteadVMState
+from .state import HomesteadState
 
 
 class MetaHomesteadVM(FrontierVM):  # type: ignore
@@ -21,7 +21,7 @@ HomesteadVM = MetaHomesteadVM.configure(
     __name__='HomesteadVM',
     # classes
     _block_class=HomesteadBlock,
-    _state_class=HomesteadVMState,
+    _state_class=HomesteadState,
     # method overrides
     create_header_from_parent=staticmethod(create_homestead_header_from_parent),
     compute_difficulty=staticmethod(compute_homestead_difficulty),

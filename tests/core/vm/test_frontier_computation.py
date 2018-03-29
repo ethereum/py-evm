@@ -1,13 +1,13 @@
 import pytest
 
-from evm.transaction_context import (
-    BaseTransactionContext,
-)
 from evm.vm import (
     Message,
 )
 from evm.vm.forks.frontier.computation import (
     FrontierComputation,
+)
+from evm.vm.transaction_context import (
+    BaseTransactionContext,
 )
 
 from eth_utils import (
@@ -55,7 +55,7 @@ def message():
 @pytest.fixture
 def computation(message, transaction_context, state):
     computation = FrontierComputation(
-        vm_state=state,
+        state=state,
         message=message,
         transaction_context=transaction_context,
     )
@@ -77,7 +77,7 @@ def child_message(computation):
 @pytest.fixture
 def child_computation(computation, child_message):
     child_computation = computation.generate_child_computation(
-        computation.vm_state,
+        computation.state,
         child_message,
         computation.transaction_context,
     )

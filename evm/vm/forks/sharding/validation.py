@@ -6,8 +6,8 @@ from evm.validation import (
 )
 
 
-def validate_sharding_transaction(vm_state, transaction):
-    if vm_state.gas_used + transaction.gas > vm_state.gas_limit:
+def validate_sharding_transaction(state, transaction):
+    if state.gas_used + transaction.gas > state.gas_limit:
         raise ValidationError("Transaction exceeds gas limit")
 
     validate_transaction_access_list(transaction.access_list)

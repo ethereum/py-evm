@@ -1,4 +1,4 @@
-from evm.transaction_context import BaseTransactionContext
+from evm.vm.transaction_context import BaseTransactionContext
 
 
 class FrontierTransactionContext(BaseTransactionContext):

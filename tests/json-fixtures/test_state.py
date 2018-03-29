@@ -34,12 +34,12 @@ from evm.vm.forks import (
     ByzantiumVM,
     ShardingVM,
 )
-from evm.vm.forks.tangerine_whistle.vm_state import TangerineWhistleVMState
-from evm.vm.forks.frontier.vm_state import FrontierVMState
-from evm.vm.forks.homestead.vm_state import HomesteadVMState
-from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
-from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
-from evm.vm.forks.sharding.vm_state import ShardingVMState
+from evm.vm.forks.tangerine_whistle.state import TangerineWhistleState
+from evm.vm.forks.frontier.state import FrontierState
+from evm.vm.forks.homestead.state import HomesteadState
+from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
+from evm.vm.forks.byzantium.state import ByzantiumState
+from evm.vm.forks.sharding.state import ShardingState
 
 from evm.rlp.headers import (
     BlockHeader,
@@ -191,59 +191,59 @@ def get_prev_hashes_testing(self, last_block_hash, db):
     return prev_hashes
 
 
-FrontierVMStateForTesting = FrontierVMState.configure(
-    __name__='FrontierVMStateForTesting',
+FrontierStateForTesting = FrontierState.configure(
+    __name__='FrontierStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-HomesteadVMStateForTesting = HomesteadVMState.configure(
-    __name__='HomesteadVMStateForTesting',
+HomesteadStateForTesting = HomesteadState.configure(
+    __name__='HomesteadStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-TangerineWhistleVMStateForTesting = TangerineWhistleVMState.configure(
-    __name__='TangerineWhistleVMStateForTesting',
+TangerineWhistleStateForTesting = TangerineWhistleState.configure(
+    __name__='TangerineWhistleStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-SpuriousDragonVMStateForTesting = SpuriousDragonVMState.configure(
-    __name__='SpuriousDragonVMStateForTesting',
+SpuriousDragonStateForTesting = SpuriousDragonState.configure(
+    __name__='SpuriousDragonStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-ByzantiumVMStateForTesting = ByzantiumVMState.configure(
-    __name__='ByzantiumVMStateForTesting',
+ByzantiumStateForTesting = ByzantiumState.configure(
+    __name__='ByzantiumStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-ShardingVMStateForTesting = ShardingVMState.configure(
-    __name__='ShardingVMStateForTesting',
+ShardingStateForTesting = ShardingState.configure(
+    __name__='ShardingStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
 
 FrontierVMForTesting = FrontierVM.configure(
     __name__='FrontierVMForTesting',
-    _state_class=FrontierVMStateForTesting,
+    _state_class=FrontierStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     __name__='HomesteadVMForTesting',
-    _state_class=HomesteadVMStateForTesting,
+    _state_class=HomesteadStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 TangerineWhistleVMForTesting = TangerineWhistleVM.configure(
     __name__='TangerineWhistleVMForTesting',
-    _state_class=TangerineWhistleVMStateForTesting,
+    _state_class=TangerineWhistleStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 SpuriousDragonVMForTesting = SpuriousDragonVM.configure(
     __name__='SpuriousDragonVMForTesting',
-    _state_class=SpuriousDragonVMStateForTesting,
+    _state_class=SpuriousDragonStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 ByzantiumVMForTesting = ByzantiumVM.configure(
     __name__='ByzantiumVMForTesting',
-    _state_class=ByzantiumVMStateForTesting,
+    _state_class=ByzantiumStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 ShardingVMForTesting = ShardingVM.configure(
     __name__='ShardingVMForTesting',
-    _state_class=ShardingVMStateForTesting,
+    _state_class=ShardingStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
 
@@ -302,11 +302,11 @@ def test_state_fixtures(fixture, fixture_vm_class):
     )
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
-    vm_state = vm.state
-    with vm_state.mutable_state_db() as state_db:
+    state = vm.state
+    with state.mutable_state_db() as state_db:
         state_db.apply_state_dict(fixture['pre'])
     # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
+    vm.block.header.state_root = state.state_root
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(
             nonce=fixture['transaction']['nonce'],

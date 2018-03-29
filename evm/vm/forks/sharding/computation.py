@@ -72,7 +72,7 @@ class ShardingComputation(ByzantiumComputation):
         return tx_fee, gas_refund_amount
 
     def apply_message(self):
-        snapshot = self.vm_state.snapshot()
+        snapshot = self.state.snapshot()
 
         if self.msg.depth > STACK_DEPTH_LIMIT:
             raise StackDepthLimit("Stack depth limit reached")
@@ -97,26 +97,26 @@ class ShardingComputation(ByzantiumComputation):
             )
 
         computation = self.apply_computation(
-            self.vm_state,
+            self.state,
             self.msg,
             self.transaction_context,
         )
 
         if computation.is_error:
-            self.vm_state.revert(snapshot)
+            self.state.revert(snapshot)
         else:
-            self.vm_state.commit(snapshot)
+            self.state.commit(snapshot)
 
         return computation
 
     def apply_create_message(self):
         # Remove EIP160 nonce increment but keep EIP170 contract code size limit
-        snapshot = self.vm_state.snapshot()
+        snapshot = self.state.snapshot()
 
         computation = self.apply_message()
 
         if computation.is_error:
-            self.vm_state.revert(snapshot)
+            self.state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -129,7 +129,7 @@ class ShardingComputation(ByzantiumComputation):
                         len(contract_code),
                     )
                 )
-                self.vm_state.revert(snapshot)
+                self.state.revert(snapshot)
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * GAS_CODEDEPOSIT
                 try:
@@ -141,7 +141,7 @@ class ShardingComputation(ByzantiumComputation):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation._error = err
-                    self.vm_state.revert(snapshot)
+                    self.state.revert(snapshot)
                 else:
                     if self.logger:
                         self.logger.debug(
@@ -153,9 +153,9 @@ class ShardingComputation(ByzantiumComputation):
 
                     with self.state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
-                    self.vm_state.commit(snapshot)
+                    self.state.commit(snapshot)
             else:
-                self.vm_state.commit(snapshot)
+                self.state.commit(snapshot)
             return computation
 
     def prepare_child_message(self, gas, to, value, data, code, **kwargs):

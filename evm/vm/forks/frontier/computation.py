@@ -4,7 +4,7 @@ from eth_utils import (
 
 from evm import constants
 from evm import precompiles
-from evm.computation import (
+from evm.vm.computation import (
     BaseComputation
 )
 from evm.exceptions import (
@@ -35,13 +35,13 @@ class FrontierComputation(BaseComputation):
     _precompiles = FRONTIER_PRECOMPILES
 
     def apply_message(self):
-        snapshot = self.vm_state.snapshot()
+        snapshot = self.state.snapshot()
 
         if self.msg.depth > constants.STACK_DEPTH_LIMIT:
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with self.vm_state.mutable_state_db() as state_db:
+            with self.state.mutable_state_db() as state_db:
                 sender_balance = state_db.get_balance(self.msg.sender)
 
                 if sender_balance < self.msg.value:
@@ -59,19 +59,19 @@ class FrontierComputation(BaseComputation):
                 encode_hex(self.msg.storage_address),
             )
 
-        with self.vm_state.mutable_state_db() as state_db:
+        with self.state.mutable_state_db() as state_db:
             state_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
-            self.vm_state,
+            self.state,
             self.msg,
             self.transaction_context,
         )
 
         if computation.is_error:
-            self.vm_state.revert(snapshot)
+            self.state.revert(snapshot)
         else:
-            self.vm_state.commit(snapshot)
+            self.state.commit(snapshot)
 
         return computation
 
@@ -99,6 +99,6 @@ class FrontierComputation(BaseComputation):
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    with self.vm_state.mutable_state_db() as state_db:
+                    with self.state.mutable_state_db() as state_db:
                         state_db.set_code(self.msg.storage_address, contract_code)
             return computation

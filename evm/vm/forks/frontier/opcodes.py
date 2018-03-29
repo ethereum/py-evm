@@ -1,9 +1,7 @@
 from evm import constants
-from evm import opcode_values
-from evm import mnemonics
-
-from evm.opcode import as_opcode
-from evm.logic import (
+from evm.vm import mnemonics
+from evm.vm import opcode_values
+from evm.vm.logic import (
     arithmetic,
     block,
     call,
@@ -19,6 +17,7 @@ from evm.logic import (
     swap,
     system,
 )
+from evm.vm.opcode import as_opcode
 
 
 FRONTIER_OPCODES = {

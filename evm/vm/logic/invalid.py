@@ -1,5 +1,5 @@
 from evm.exceptions import InvalidInstruction
-from evm.opcode import Opcode
+from evm.vm.opcode import Opcode
 
 
 class InvalidOpcode(Opcode):

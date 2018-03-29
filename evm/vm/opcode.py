@@ -28,7 +28,7 @@ class Opcode(Configurable, metaclass=ABCMeta):
 
     @property
     def logger(self):
-        return logging.getLogger('evm.vm.logic.call.{0}'.format(self.mnemonic))
+        return logging.getLogger('evm.vm.logic.{0}'.format(self.mnemonic))
 
     @classmethod
     def as_opcode(cls, logic_fn, mnemonic, gas_cost):

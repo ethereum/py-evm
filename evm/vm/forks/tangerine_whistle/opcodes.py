@@ -4,19 +4,16 @@ from cytoolz import merge
 
 from evm.vm.forks.tangerine_whistle import constants
 from evm.constants import GAS_CREATE
-from evm import opcode_values
-from evm import mnemonics
-
-from evm.opcode import as_opcode
-
-from evm.logic import (
+from evm.vm import opcode_values
+from evm.vm import mnemonics
+from evm.vm.forks.homestead.opcodes import HOMESTEAD_OPCODES
+from evm.vm.logic import (
     call,
     context,
     storage,
     system,
 )
-
-from evm.vm.forks.homestead.opcodes import HOMESTEAD_OPCODES
+from evm.vm.opcode import as_opcode
 
 
 UPDATED_OPCODES = {

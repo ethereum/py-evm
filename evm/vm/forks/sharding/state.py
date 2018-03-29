@@ -30,10 +30,10 @@ from evm.utils.address import (
 from evm.utils.hexadecimal import (
     encode_hex,
 )
-from evm.vm_state import (
+from evm.vm.state import (
     BaseTransactionExecutor,
 )
-from evm.vm.forks.byzantium.vm_state import ByzantiumVMState
+from evm.vm.forks.byzantium.state import ByzantiumState
 from evm.vm.forks.frontier.constants import (
     REFUND_SELFDESTRUCT,
 )
@@ -197,7 +197,7 @@ class ShardingTransactionExecutor(BaseTransactionExecutor):
         return computation
 
 
-class ShardingVMState(ShardingTransactionExecutor, ByzantiumVMState):
+class ShardingState(ShardingTransactionExecutor, ByzantiumState):
     block_class = Collation
     computation_class = ShardingComputation
     transaction_context_class = ShardingTransactionContext

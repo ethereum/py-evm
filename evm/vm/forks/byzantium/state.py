@@ -7,8 +7,8 @@ from evm.rlp.receipts import (
 from evm.validation import (
     validate_lte,
 )
-from evm.vm.forks.frontier.vm_state import _make_frontier_receipt
-from evm.vm.forks.spurious_dragon.vm_state import SpuriousDragonVMState
+from evm.vm.forks.frontier.state import _make_frontier_receipt
+from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from .blocks import ByzantiumBlock
 from .computation import ByzantiumComputation
@@ -19,7 +19,7 @@ from .constants import (
 )
 
 
-class ByzantiumVMState(SpuriousDragonVMState):
+class ByzantiumState(SpuriousDragonState):
     block_class = ByzantiumBlock
     computation_class = ByzantiumComputation
 

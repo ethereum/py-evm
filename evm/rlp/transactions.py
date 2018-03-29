@@ -26,7 +26,7 @@ from evm.utils.state_access_restriction import (
     to_prefix_list_form,
 )
 
-from evm.computation import (
+from evm.vm.computation import (
     BaseComputation
 )
 

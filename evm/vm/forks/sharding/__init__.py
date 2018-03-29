@@ -10,13 +10,13 @@ from .collations import Collation
 from .headers import (
     create_sharding_header_from_parent,
 )
-from .vm_state import ShardingVMState
+from .state import ShardingState
 
 ShardingVM = ShardVM.configure(
     __name__='ShardingVM',
     # classes
     _block_class=Collation,
-    _state_class=ShardingVMState,
+    _state_class=ShardingState,
     # TODO: Replace them after we apply Collation structure
     create_header_from_parent=staticmethod(create_sharding_header_from_parent),
     compute_difficulty=staticmethod(compute_byzantium_difficulty),

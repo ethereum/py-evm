@@ -8,15 +8,14 @@ from evm import constants
 from evm.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
 )
-from evm import opcode_values
-from evm import mnemonics
-
-from evm.opcode import as_opcode
-from evm.logic import (
+from evm.vm import mnemonics
+from evm.vm import opcode_values
+from evm.vm.logic import (
     call,
     context,
     system,
 )
+from evm.vm.opcode import as_opcode
 
 from evm.vm.forks.byzantium.opcodes import BYZANTIUM_OPCODES
 

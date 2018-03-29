@@ -168,13 +168,13 @@ def vm():
         trie_class=BinaryTrie,
     )
     vm = ShardingVM(header=header, chaindb=chaindb)
-    vm_state = vm.state
-    with vm_state.state_db() as statedb:
+    state = vm.state
+    with state.state_db() as statedb:
         for address, code in HELPER_CONTRACTS.items():
             statedb.set_code(address, code)
         statedb.set_balance(ACCOUNT_ADDRESS, INITIAL_BALANCE)
     # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
+    vm.block.header.state_root = state.state_root
 
     return vm
 
@@ -260,12 +260,12 @@ def test_call_checks_block_range(vm, min_block, max_block, valid):
 
 
 def test_call_transfers_value(vm):
-    vm_state = vm.state
-    with vm_state.state_db() as state_db:
+    state = vm.state
+    with state.state_db() as state_db:
         balance_sender_before = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_before = state_db.get_balance(DESTINATION_ADDRESS)
     # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
+    vm.block.header.state_root = state.state_root
 
     transaction = UnsignedUserAccountTransaction(**merge(DEFAULT_TX_PARAMS, {
         "nonce": get_nonce(vm),
@@ -274,12 +274,12 @@ def test_call_transfers_value(vm):
     computation, _ = vm.apply_transaction(transaction)
     assert computation.is_success
 
-    vm_state = vm.state
-    with vm_state.state_db() as state_db:
+    state = vm.state
+    with state.state_db() as state_db:
         balance_sender_after = state_db.get_balance(ACCOUNT_ADDRESS)
         balance_destination_after = state_db.get_balance(DESTINATION_ADDRESS)
     # Update state_root manually
-    vm.block.header.state_root = vm_state.state_root
+    vm.block.header.state_root = state.state_root
 
     assert balance_sender_after == balance_sender_before - 10
     assert balance_destination_after == balance_destination_before + 10

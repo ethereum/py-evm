@@ -9,7 +9,7 @@ from evm.exceptions import (
     OutOfGas,
     WriteProtection,
 )
-from evm.opcode import (
+from evm.vm.opcode import (
     Opcode,
 )
 
