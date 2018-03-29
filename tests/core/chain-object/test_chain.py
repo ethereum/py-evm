@@ -119,14 +119,14 @@ def unsigned_or_signed_tx(request):
 
         else:
             return new_transaction(
-               vm,
-               from_,
-               to,
-               amount,
-               private_key=None,
-               gas_price=gas_price,
-               gas=gas,
-               data=data)
+                vm,
+                from_,
+                to,
+                amount,
+                private_key=None,
+                gas_price=gas_price,
+                gas=gas,
+                data=data)
     return tx
 
 
