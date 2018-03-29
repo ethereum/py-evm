@@ -247,6 +247,8 @@ class CollationHeader(rlp.Serializable):
                 int_to_bytes32(self.number),
             ))
         )
+        # Hash of Collation header is the right most 26 bytes of `sha3(header)`
+        # It's padded to 32 bytes because `bytes32` is easier to handle in Vyper
         return pad32(header_hash[6:])
 
     @classmethod
