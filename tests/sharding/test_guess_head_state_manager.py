@@ -23,6 +23,7 @@ def test_guess_head_state_manager_daemon_without_fork(ghs_manager, vmc):  # noqa
     # without fork
     header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
     assert ghs_manager.async_daemon(stop_after_create_collation=True) == header2_hash
+    print("!@# after")
     header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
     assert ghs_manager.async_daemon(stop_after_create_collation=True) == header3_hash
 
@@ -114,4 +115,4 @@ def test_guess_head_state_manager_step_by_step(ghs_manager, vmc):  # noqa: F811
     ghs_manager.try_change_head()
     ghs_manager.process_current_collation()
     wait_for_tasks_complete(ghs_manager)
-    assert ghs_manager.try_create_collation() == new_head_hash
+    assert ghs_manager.try_create_collation(enable_running_out_of_time=True) == new_head_hash

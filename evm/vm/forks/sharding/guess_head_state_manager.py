@@ -129,10 +129,6 @@ class GuessHeadStateManager:
             result |= self.is_collator_in_period(lookahead_period)
         return result
 
-    def is_collator_in_current_period(self):
-        current_period = self.get_current_period()
-        return self.is_collator_in_period(current_period)
-
     def is_late_collator_period(self):
         current_period = self.get_current_period()
         current_block_num = self.vmc.web3.eth.blockNumber
@@ -158,32 +154,6 @@ class GuessHeadStateManager:
         if not collation_validity:
             # TODO: make sure if it is thread-safe
             self.head_validity[head_collation_hash] = False
-
-    # use `self.head_collation_hash` and `self.collation_hash` over passing them as parameters?
-    async def process_collation(self, head_collation_hash, checking_collation_hash):
-        """
-        Verfiy collation and return the result.
-        If the verification fails(`self.verify_collation` returns False),
-        indicate the current chain which we are verifying is invalid,
-        should jump to another candidate chain
-        """
-        # Verify the collation only when it is not verified before
-        if checking_collation_hash in self.collation_validity_cache:
-            return
-        print(
-            "!@# process_collation: head_hash={}, hash={}, score={}".format(
-                head_collation_hash,
-                checking_collation_hash,
-                self.vmc.get_collation_score(self.shard_id, checking_collation_hash),
-            )
-        )
-        coroutine = self.verify_collation(head_collation_hash, checking_collation_hash)
-        task = asyncio.ensure_future(coroutine)
-        await asyncio.wait(task)
-        # self.tasks.append(task)
-        # await asyncio.wait(self.tasks, timeout=0.001)
-        # not_finished_tasks = clean_done_task(self.tasks)
-        # self.tasks = not_finished_tasks
 
     def fetch_candidate_head_hash(self):
         head_collation_hash = None
@@ -213,57 +183,75 @@ class GuessHeadStateManager:
             if self.head_collation_hash is not None:
                 self.current_collation_hash = self.head_collation_hash
 
-    def set_collation_task(self, task):
+    def set_collation_task(self, head_collation_hash, current_collation_hash, task):
         self.tasks.append(task)
-        self.collation_task[self.current_collation_hash] = task
-        self.chain_collations[self.head_collation_hash].append(self.current_collation_hash)
+        self.collation_task[current_collation_hash] = task
+        self.chain_collations[head_collation_hash].append(current_collation_hash)
 
     def get_chain_tasks(self, head_collation_hash):
-        return (
+        # TODO: ignore tasks that are done
+        return [
             self.collation_task[collation_hash]
             for collation_hash in self.chain_collations[head_collation_hash]
-        )
+        ]
 
     def process_current_collation(self):
         # only process collations when the node is collating
-        if self.current_collation_hash in self.collation_validity_cache:
-            return
         if self.head_collation_hash is None:
             return
         if self.current_collation_hash is None:
             return
-        # process current collation
-        coro = self.verify_collation(
-            self.head_collation_hash,
-            self.current_collation_hash,
-        )
-        task = asyncio.ensure_future(coro)
-        asyncio.wait(task)
+        if self.current_collation_hash not in self.collation_validity_cache:
+            # process current collation
+            coro = self.verify_collation(
+                self.head_collation_hash,
+                self.current_collation_hash,
+            )
+            task = asyncio.ensure_future(coro)
+            asyncio.wait(task)
+            self.set_collation_task(self.head_collation_hash, self.current_collation_hash, task)
+        if self.current_collation_hash != GENESIS_COLLATION_HASH:
+            self.current_collation_hash = self.vmc.get_parent_hash(
+                self.shard_id,
+                self.current_collation_hash,
+            )
 
-        self.set_collation_task(task)
-        self.current_collation_hash = self.vmc.get_parent_hash(
-            self.shard_id,
-            self.current_collation_hash,
-        )
-
-    def is_to_create_collation(self):
-        return (
-            # FIXME: temparary commented out for now, ignoring the collator period issue
-            self.is_late_collator_period() or
-            self.current_collation_hash == GENESIS_COLLATION_HASH
-        )
-
-    def try_create_collation(self):
+    def try_create_collation(self, enable_running_out_of_time=False):
         # Check if it is time to collate  #################################
         # TODO: currently it is not correct,
         #       still need to check if all of the thread has finished,
         #       and the validity of head_collation is True
-        if (self.head_collation_hash is None or
-                (not self.head_validity[self.head_collation_hash])):
+        if self.head_collation_hash is None:
+            return None
+        # if verified enough collations
+        print("!@# head_collation_hash={}, current_collation_hash={}".format(
+                self.head_collation_hash,
+                self.current_collation_hash,
+            )
+        )
+        # TODO: be replaced by the windback length checks
+        if self.current_collation_hash == GENESIS_COLLATION_HASH:
+            candidate_chain_tasks = self.get_chain_tasks(self.head_collation_hash)
+            if len(candidate_chain_tasks) != 0:
+                # check if all of the tasks in the chain are done
+                is_tasks_done = True
+                for task in candidate_chain_tasks:
+                    is_tasks_done &= task.done()
+                candidate_chain_tasks = clean_done_task(candidate_chain_tasks)
+                if not is_tasks_done:
+                    return None
+            # ensure all of the collations are done and valid
+            if not self.head_validity[self.head_collation_hash]:
+                return None
+        # or running out of time
+        elif enable_running_out_of_time and self.is_late_collator_period():
+            pass
+        # other cases, should not create collation
+        else:
             return None
         head_collation_hash = self.head_collation_hash
         create_collation(head_collation_hash, data="123")
-        self.head_collation_hash = None
+        self.head_collation_hash = self.current_collation_hash = None
         return head_collation_hash
 
     async def async_loop_main(self, stop_after_create_collation=False):
@@ -286,13 +274,11 @@ class GuessHeadStateManager:
                 # need coroutines
                 self.process_current_collation()
 
-            if self.is_to_create_collation():
-                parent_hash = self.try_create_collation()
-                if stop_after_create_collation and parent_hash is not None:
-                    print("!@# num_tasks={}, tasks={}".format(len(self.tasks), self.tasks))
-                    if len(self.tasks) != 0:
-                        await asyncio.wait(self.tasks)
-                    return parent_hash
+            # task = asyncio.ensure_future(self.try_create_collation())
+            # parent_hash = await asyncio.wait_for(task, None)
+            parent_hash = self.try_create_collation()
+            if parent_hash is not None:
+                return parent_hash
 
             if len(self.tasks) != 0:
                 await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
