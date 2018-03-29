@@ -19,20 +19,6 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 
-from tests.fillers.vm_fillers.paygas_fillers import (
-    paygas_omitted_test,
-    paygas_normal_test,
-    paygas_zero_gas_price_test,
-    paygas_repeated_test,
-    paygas_repeated_same_gasprice_test,
-    paygas_insufficient_balance_test,
-    paygas_after_call_test,
-    paygas_in_call_test,
-    paygas_fail_before_test,
-    paygas_fail_thereafter_test,
-    paygas_survives_revert_test,
-)
-
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(PARENT_DIR, "json")
@@ -41,21 +27,7 @@ TEST_PARENT_DIR = os.path.join(OUTPUT_DIR, "tests")
 
 
 DIR_STRUCTURE = {
-    ("GeneralStateTestFiller", "GeneralStateTests"): {
-        "stPaygas": [
-            paygas_omitted_test,
-            paygas_normal_test,
-            paygas_zero_gas_price_test,
-            paygas_repeated_test,
-            paygas_repeated_same_gasprice_test,
-            paygas_insufficient_balance_test,
-            paygas_after_call_test,
-            paygas_in_call_test,
-            paygas_fail_before_test,
-            paygas_fail_thereafter_test,
-            paygas_survives_revert_test,
-        ]
-    }
+
 }
 
 
