@@ -29,8 +29,8 @@ validators: public({
 num_validators: public(int128)
 
 # Collation headers: (parent_hash || score)
-# parent_hash: 24 bytes
-# score: 8 bytes
+# parent_hash: 26 bytes
+# score: 6 bytes
 collation_headers: public(bytes32[bytes32][int128])
 
 # Receipt data
@@ -182,8 +182,8 @@ def get_collation_header_score(shard_id: int128, collation_header_hash: bytes32)
     collation_score: int128 = convert(
         uint256_mod(
             convert(self.collation_headers[shard_id][collation_header_hash], 'uint256'),
-            # Mod 2^64, i.e., extract right most 8 bytes
-            convert(18446744073709551616, 'uint256')
+            # Mod 2^48, i.e., extract right most 6 bytes
+            convert(281474976710656, 'uint256')
         ),
         'int128'
     )
@@ -238,6 +238,8 @@ def add_header(
     assert block.number >= self.period_length
     assert expected_period_number == floor(block.number / self.period_length)
     assert period_start_prevhash == blockhash(expected_period_number * self.period_length - 1)
+    # Check if only one collation in one period perd shard
+    assert self.period_head[shard_id] < expected_period_number
 
     # Check if this header already exists
     header_bytes: bytes <= 288 = concat(
@@ -254,13 +256,11 @@ def add_header(
     entire_header_hash: bytes32 = convert(
         uint256_mod(
             convert(sha3(header_bytes), 'uint256'),
-            # Mod 2^192, i.e., extract right most 24 bytes
-            convert(6277101735386680763835789423207666416102355444464034512896, 'uint256')
+            # Mod 2^208, i.e., extract right most 26 bytes
+            convert(411376139330301510538742295639337626245683966408394965837152256, 'uint256')
         ),
         'bytes32'
     )
-    # Check that this header has not yet been added.
-    assert not self.collation_headers[shard_id][entire_header_hash]
     
     # Check if parent header exists.
     # If it exist, check that it's score is greater than 0.
@@ -270,8 +270,6 @@ def add_header(
     )
     if not not parent_hash:
         assert parent_collation_score > 0
-    # Check if only one collation in one period perd shard
-    assert self.period_head[shard_id] < expected_period_number
 
     # Check that there's eligible proposer in this period
     # and msg.sender is also the eligible proposer
@@ -291,13 +289,13 @@ def add_header(
         uint256_add(
             uint256_mul(
                 convert(parent_hash, 'uint256'),
-                # Multiplied by 2^64, i.e., left shift 8 bytes
-                convert(18446744073709551616, 'uint256')
+                # Multiplied by 2^48, i.e., left shift 6 bytes
+                convert(281474976710656, 'uint256')
             ),
             uint256_mod(
                 convert(_score, 'uint256'),
-                # Mod 2^64, i.e. confine it's range to 8 bytes
-                convert(18446744073709551616, 'uint256')
+                # Mod 2^48, i.e. confine it's range to 6 bytes
+                convert(281474976710656, 'uint256')
             ),
         ),
         'bytes32'

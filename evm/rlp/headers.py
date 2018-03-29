@@ -247,7 +247,7 @@ class CollationHeader(rlp.Serializable):
                 int_to_bytes32(self.number),
             ))
         )
-        return pad32(header_hash[8:])
+        return pad32(header_hash[6:])
 
     @classmethod
     @to_dict
