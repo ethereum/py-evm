@@ -11,7 +11,6 @@ from evm.exceptions import (
 from evm.db.backends.memory import MemoryDB
 from evm.db.state import (
     MainAccountStateDB,
-    ShardingAccountStateDB,
 )
 
 from evm.constants import (
@@ -26,7 +25,6 @@ INVALID_ADDRESS = b'aa' * 20
 
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_balance(state):
     assert state.get_balance(ADDRESS) == 0
@@ -77,7 +75,6 @@ def test_nonce(state):
 
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_code(state):
     assert state.get_code(ADDRESS) == b''
@@ -97,21 +94,7 @@ def test_code(state):
 
 
 @pytest.mark.parametrize("state", [
-    ShardingAccountStateDB(MemoryDB()),
-])
-def test_has_code(state):
-    assert not state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"")
-    assert not state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"code")
-    assert state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"")
-    assert not state.account_has_code(ADDRESS)
-
-
-@pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_storage(state):
     assert state.get_storage(ADDRESS, 0) == 0

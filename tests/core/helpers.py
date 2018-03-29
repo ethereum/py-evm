@@ -5,8 +5,6 @@ from eth_utils import decode_hex
 from evm.exceptions import (
     ValidationError,
 )
-from evm.utils.padding import pad32
-from evm.vm.forks.sharding.transactions import ShardingTransaction
 
 
 @curry
@@ -31,46 +29,6 @@ def new_transaction(
         return tx.as_signed_transaction(private_key, chain_id=1)
     else:
         return tx
-
-
-def new_sharding_transaction(
-        tx_initiator,
-        data_destination,
-        data_value,
-        data_msgdata,
-        data_vrs,
-        code='',
-        salt=b'\x00' * 32,
-        gas=1000000,
-        access_list=None):
-    """
-    Create and return a sharding transaction. Data will be encoded in the following order
-
-    [destination, value, msg_data, vrs].
-    """
-    assert len(data_vrs) in (0, 65)
-    tx_data = (
-        pad32(data_destination) +
-        pad32(bytes([data_value])) +
-        pad32(data_msgdata) +
-        pad32(data_vrs[:32]) +
-        pad32(data_vrs[32:64]) +
-        bytes(data_vrs[64:])
-    )
-    if access_list is None:
-        access_list = [[tx_initiator]]
-        if data_destination:
-            access_list.append([data_destination])
-    return ShardingTransaction(
-        chain_id=1,
-        shard_id=1,
-        to=tx_initiator,
-        data=tx_data,
-        gas=gas,
-        access_list=access_list,
-        code=decode_hex(code),
-        salt=salt,
-    )
 
 
 def fill_block(chain, from_, key, gas, data):

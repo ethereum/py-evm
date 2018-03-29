@@ -1,8 +1,6 @@
 class ExecutionContext:
-    # For shard chain, refer to the shard coinbase.
     _coinbase = None
 
-    # For shard chian, block info of period_start_prevhash.
     _timestamp = None
     _number = None
     _difficulty = None

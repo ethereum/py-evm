@@ -5,7 +5,6 @@ import pytest
 from eth_keys import keys
 
 from trie import (
-    BinaryTrie,
     HexaryTrie,
 )
 
@@ -21,7 +20,6 @@ from eth_utils import (
 from evm.db.chain import ChainDB
 from evm.db.state import (
     MainAccountStateDB,
-    ShardingAccountStateDB,
 )
 from evm.exceptions import (
     ValidationError,
@@ -32,18 +30,15 @@ from evm.vm.forks import (
     HomesteadVM,
     SpuriousDragonVM,
     ByzantiumVM,
-    ShardingVM,
 )
 from evm.vm.forks.tangerine_whistle.state import TangerineWhistleState
 from evm.vm.forks.frontier.state import FrontierState
 from evm.vm.forks.homestead.state import HomesteadState
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 from evm.vm.forks.byzantium.state import ByzantiumState
-from evm.vm.forks.sharding.state import ShardingState
 
 from evm.rlp.headers import (
     BlockHeader,
-    CollationHeader,
 )
 from evm.tools.fixture_tests import (
     filter_fixtures,
@@ -216,10 +211,6 @@ ByzantiumStateForTesting = ByzantiumState.configure(
     __name__='ByzantiumStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
-ShardingStateForTesting = ShardingState.configure(
-    __name__='ShardingStateForTesting',
-    get_ancestor_hash=get_block_hash_for_testing,
-)
 
 FrontierVMForTesting = FrontierVM.configure(
     __name__='FrontierVMForTesting',
@@ -246,11 +237,6 @@ ByzantiumVMForTesting = ByzantiumVM.configure(
     _state_class=ByzantiumStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
-ShardingVMForTesting = ShardingVM.configure(
-    __name__='ShardingVMForTesting',
-    _state_class=ShardingStateForTesting,
-    get_prev_hashes=get_prev_hashes_testing,
-)
 
 
 @pytest.fixture
@@ -266,8 +252,6 @@ def fixture_vm_class(fixture_data):
         return SpuriousDragonVMForTesting
     elif fork_name == ForkName.Byzantium:
         return ByzantiumVMForTesting
-    elif fork_name == ForkName.Sharding:
-        return ShardingVMForTesting
     elif fork_name == ForkName.Constantinople:
         pytest.skip("Constantinople VM has not been implemented")
     elif fork_name == ForkName.Metropolis:
@@ -277,28 +261,16 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    if fixture_vm_class is not ShardingVMForTesting:
-        account_state_class = MainAccountStateDB
-        trie_class = HexaryTrie
-        header = BlockHeader(
-            coinbase=fixture['env']['currentCoinbase'],
-            difficulty=fixture['env']['currentDifficulty'],
-            block_number=fixture['env']['currentNumber'],
-            gas_limit=fixture['env']['currentGasLimit'],
-            timestamp=fixture['env']['currentTimestamp'],
-            parent_hash=fixture['env']['previousHash'],
-        )
-    else:
-        account_state_class = ShardingAccountStateDB
-        trie_class = BinaryTrie
-        header = CollationHeader(
-            shard_id=fixture['env']['shardID'],
-            expected_period_number=fixture['env']['expectedPeriodNumber'],
-            period_start_prevhash=fixture['env']['periodStartHash'],
-            parent_hash=fixture['env']['previousHash'],
-            coinbase=fixture['env']['currentCoinbase'],
-            number=fixture['env']['currentNumber'],
-        )
+    account_state_class = MainAccountStateDB
+    trie_class = HexaryTrie
+    header = BlockHeader(
+        coinbase=fixture['env']['currentCoinbase'],
+        difficulty=fixture['env']['currentDifficulty'],
+        block_number=fixture['env']['currentNumber'],
+        gas_limit=fixture['env']['currentGasLimit'],
+        timestamp=fixture['env']['currentTimestamp'],
+        parent_hash=fixture['env']['previousHash'],
+    )
 
     chaindb = ChainDB(
         get_db_backend(),
@@ -339,18 +311,6 @@ def test_state_fixtures(fixture, fixture_vm_class):
             v=v,
             r=r,
             s=s,
-        )
-    else:
-        # sharding transaction
-        transaction = vm.create_transaction(
-            chain_id=fixture['transaction']['chainID'],
-            shard_id=fixture['transaction']['shardID'],
-            to=fixture['transaction']['to'],
-            data=fixture['transaction']['data'],
-            gas=fixture['transaction']['gasLimit'],
-            gas_price=fixture['transaction']['gasPrice'],
-            access_list=fixture['transaction']['accessList'],
-            code=fixture['transaction']['code'],
         )
 
     try:
