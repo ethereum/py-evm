@@ -151,14 +151,6 @@ class OutOfBoundsRead(VMError):
     pass
 
 
-class UnannouncedStateAccess(VMError):
-    """
-    Error raised if a storage slot or account field is accessed that has not
-    been specified in the transaction's read or write list, respectively.
-    """
-    pass
-
-
 class GasPriceAlreadySet(Exception):
     """
     Error raised if trying to reset the already set gas price.
