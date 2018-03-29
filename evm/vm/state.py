@@ -278,8 +278,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
                         lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
                     _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
 
-                # set the account balance of the sender to an arbitrary large 
-                # amount to ensure they have the necessary funds to pay for the 
+                # set the account balance of the sender to an arbitrary large
+                # amount to ensure they have the necessary funds to pay for the
                 # transaction.
                 state_db.set_balance(transaction.sender, UINT_256_MAX // 2)
 
