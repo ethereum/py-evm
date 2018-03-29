@@ -30,7 +30,7 @@ async def download_collation(collation_hash):
 
 
 async def verify_collation(collation, collation_hash):
-    # TODO: need to implemented after p2p part is done
+    # TODO: to be implemented
     print("!@# Verifying collation {}".format(collation_hash))
     await asyncio.sleep(0.01)
     # data = get_from_p2p_network(collation_hash.data_root)
@@ -47,10 +47,6 @@ async def fetch_and_verify_collation(collation_hash):
 
     :return: returns the collation's validity
     """
-    # TODO: currently do nothing, should be implemented or imported when `fetch_collation` and
-    #       `verify_collation` are implemented
-
-    print("!@# fetch_and_verify_collation: {}".format(collation_hash))
     collation = await download_collation(collation_hash)
     return await verify_collation(collation, collation_hash)
 
@@ -95,9 +91,6 @@ class GuessHeadStateManager:
         self.collation_validity_cache = {}
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
-        # TODO: need to check if it is thread-safe
-        # TODO: no need to use dict, just a class member with threading.lock()
-        #       should be okay?
         self.head_validity = defaultdict(lambda: True)
         # list of chain head, to indicate priority
         # order: older -------> newer
@@ -121,7 +114,7 @@ class GuessHeadStateManager:
 
     def is_collator_in_lookahead_periods(self):
         """
-        See if we are going to be collator in the future periods
+        See if we are going to be a collator in the future periods
         """
         result = False
         for future_periods in range(self.vmc.config['LOOKAHEAD_PERIODS']):
@@ -139,12 +132,6 @@ class GuessHeadStateManager:
         )
 
     async def verify_collation(self, head_collation_hash, collation_hash):
-        print(
-            "!@# verify_collation: hash={}, score={}".format(
-                collation_hash,
-                self.vmc.get_collation_score(self.shard_id, collation_hash),
-            )
-        )
         coroutine = fetch_and_verify_collation(
             collation_hash,
         )
@@ -152,7 +139,6 @@ class GuessHeadStateManager:
         collation_validity = await asyncio.wait_for(task, None)
         self.collation_validity_cache[collation_hash] = collation_validity
         if not collation_validity:
-            # TODO: make sure if it is thread-safe
             self.head_validity[head_collation_hash] = False
 
     def fetch_candidate_head_hash(self):
@@ -189,7 +175,7 @@ class GuessHeadStateManager:
         self.chain_collations[head_collation_hash].append(current_collation_hash)
 
     def get_chain_tasks(self, head_collation_hash):
-        # TODO: ignore tasks that are done
+        # ignore tasks that are done
         return [
             self.collation_task[collation_hash]
             for collation_hash in self.chain_collations[head_collation_hash]
@@ -218,17 +204,9 @@ class GuessHeadStateManager:
 
     def try_create_collation(self, enable_running_out_of_time=False):
         # Check if it is time to collate  #################################
-        # TODO: currently it is not correct,
-        #       still need to check if all of the thread has finished,
-        #       and the validity of head_collation is True
         if self.head_collation_hash is None:
             return None
         # if verified enough collations
-        print("!@# head_collation_hash={}, current_collation_hash={}".format(
-                self.head_collation_hash,
-                self.current_collation_hash,
-            )
-        )
         # TODO: be replaced by the windback length checks
         if self.current_collation_hash == GENESIS_COLLATION_HASH:
             candidate_chain_tasks = self.get_chain_tasks(self.head_collation_hash)
