@@ -67,9 +67,9 @@ def clean_done_task(tasks):
 
 class GuessHeadStateManager:
 
-    logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
-
     TIME_ONE_STEP = 0.1
+
+    logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
 
     collation_validity_cache = None
     head_validity = None
@@ -98,7 +98,7 @@ class GuessHeadStateManager:
 
         # current tasks
         self.tasks = []
-        # collation task
+        # map[collation_hash] -> task
         self.collation_task = {}
         self.chain_collations = defaultdict(list)
 
@@ -148,6 +148,7 @@ class GuessHeadStateManager:
             head_collation_hash = head_collation_dict['header'].hash
         except NoCandidateHead:
             self.logger.debug("No candidate head available, `guess_head` stops")
+            raise
         self.last_period_fetching_candidate_head = self.get_current_period()
         return head_collation_hash
 
@@ -240,21 +241,17 @@ class GuessHeadStateManager:
         #    2. There are new logs, and `fetch_candidate_head` is called
         # When to stop processing collation?
         self.head_collation_hash = self.current_collation_hash = None
-        is_verifying_collations = False
         self.tasks = []
         while True:
-            is_verifying_collations = (
-                self.is_collator_in_lookahead_periods() or
-                self.head_collation_hash is None
-            )
-            self.try_change_head()
-
-            if is_verifying_collations:
+            if self.is_collator_in_lookahead_periods():
+                try:
+                    self.try_change_head()
+                except NoCandidateHead:
+                    return None
                 self.process_current_collation()
-
-            parent_hash = self.try_create_collation()
-            if parent_hash is not None:
-                return parent_hash
+                parent_hash = self.try_create_collation()
+                if parent_hash is not None:
+                    return parent_hash
 
             # clean up the finished tasks
             if len(self.tasks) != 0:
@@ -262,6 +259,7 @@ class GuessHeadStateManager:
                 not_finished_tasks = clean_done_task(self.tasks)
                 self.tasks = not_finished_tasks
 
+            # yield the CPU to other coroutine
             await asyncio.sleep(self.TIME_ONE_STEP)
 
     def async_daemon(self, stop_after_create_collation=False):
