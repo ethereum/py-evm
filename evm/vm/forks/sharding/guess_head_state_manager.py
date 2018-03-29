@@ -162,7 +162,7 @@ class GuessHeadStateManager:
             if current_period > self.last_period_fetching_candidate_head:
                 # TODO: should check if it is correct
                 # flush old candidate heads first, since all those candidates are stale
-                self.shard_tracker.clean_logs()
+                # self.shard_tracker.clean_logs()
                 pass
             # perform head changing
             self.head_collation_hash = self.fetch_candidate_head_hash()
@@ -185,7 +185,8 @@ class GuessHeadStateManager:
         # only process collations when the node is collating
         if self.head_collation_hash is None:
             return
-        if self.current_collation_hash is None:
+        if (self.current_collation_hash is None or
+                self.current_collation_hash == GENESIS_COLLATION_HASH):
             return
         if self.current_collation_hash not in self.collation_validity_cache:
             # process current collation

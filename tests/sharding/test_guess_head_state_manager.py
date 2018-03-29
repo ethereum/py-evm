@@ -9,6 +9,7 @@ from evm.vm.forks.sharding.guess_head_state_manager import (
 
 from tests.sharding.fixtures import (  # noqa: F401
     default_shard_id,
+    mine,
     mk_colhdr_chain,
     vmc,
     vmc_handler,
@@ -26,7 +27,7 @@ def test_guess_head_state_manager_async_loop_main(ghs_manager, vmc):
                 1,
                 top_collation_hash=head_header_hash,
             )
-            await asyncio.sleep(3)
+            await asyncio.sleep(0.5)
 
     async def main():
         tasks = [
