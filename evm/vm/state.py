@@ -274,12 +274,14 @@ class BaseState(Configurable, metaclass=ABCMeta):
             with self.mutable_state_db() as state_db:
 
                 if not hasattr(_transaction, "get_sender"):
-                    # max out eth in random hardcoded address. what could go wrong?
                     _transaction.get_sender = \
                         lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
                     _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
 
-                state_db.set_balance(transaction.sender, UINT_256_MAX)
+                # set the account balance of the sender to an arbitrary large 
+                # amount to ensure they have the necessary funds to pay for the 
+                # transaction.
+                state_db.set_balance(transaction.sender, UINT_256_MAX // 2)
 
             computation = self.execute_transaction(_transaction)
 
