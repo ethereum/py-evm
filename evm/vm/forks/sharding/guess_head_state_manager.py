@@ -249,19 +249,19 @@ class GuessHeadStateManager:
             self.try_change_head()
 
             if is_verifying_collations:
-                # need coroutines
                 self.process_current_collation()
 
-            # task = asyncio.ensure_future(self.try_create_collation())
-            # parent_hash = await asyncio.wait_for(task, None)
             parent_hash = self.try_create_collation()
             if parent_hash is not None:
                 return parent_hash
 
+            # clean up the finished tasks
             if len(self.tasks) != 0:
                 await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
                 not_finished_tasks = clean_done_task(self.tasks)
                 self.tasks = not_finished_tasks
+
+            await asyncio.sleep(self.TIME_ONE_STEP)
 
     def async_daemon(self, stop_after_create_collation=False):
         loop = asyncio.get_event_loop()

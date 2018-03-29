@@ -1,5 +1,8 @@
 import asyncio
 
+from evm.vm.forks.sharding.constants import (
+    GENESIS_COLLATION_HASH,
+)
 from evm.vm.forks.sharding.guess_head_state_manager import (
     fetch_and_verify_collation,
 )
@@ -13,6 +16,30 @@ from tests.sharding.fixtures import (  # noqa: F401
 )
 
 
+def test_guess_head_state_manager_async_loop_main(ghs_manager, vmc):
+    async def colhdr_generator():
+        head_header_hash = GENESIS_COLLATION_HASH
+        for _ in range(5):
+            head_header_hash = mk_colhdr_chain(
+                vmc,
+                default_shard_id,
+                1,
+                top_collation_hash=head_header_hash,
+            )
+            await asyncio.sleep(3)
+
+    async def main():
+        tasks = [
+            ghs_manager.async_loop_main(False),
+            colhdr_generator()
+        ]
+        task_futures = list(map(asyncio.ensure_future, tasks))
+        await asyncio.wait(task_futures)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+
+
 def test_guess_head_state_manager_daemon_async(ghs_manager, vmc):  # noqa: F811
     # without fork
     header_hash = mk_colhdr_chain(vmc, default_shard_id, 6)
@@ -23,7 +50,6 @@ def test_guess_head_state_manager_daemon_without_fork(ghs_manager, vmc):  # noqa
     # without fork
     header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
     assert ghs_manager.async_daemon(stop_after_create_collation=True) == header2_hash
-    print("!@# after")
     header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
     assert ghs_manager.async_daemon(stop_after_create_collation=True) == header3_hash
 
