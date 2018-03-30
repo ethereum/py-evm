@@ -1,3 +1,5 @@
+import logging
+
 from tests.sharding.fixtures import (  # noqa: F401
     default_shard_id,
     mine,
@@ -8,28 +10,13 @@ from tests.sharding.fixtures import (  # noqa: F401
 )
 
 
-# def test_guess_head_async(ghs_manager, vmc):
-#     async def colhdr_generator():
-#         head_header_hash = GENESIS_COLLATION_HASH
-#         for _ in range(5):
-#             head_header_hash = mk_colhdr_chain(
-#                 vmc,
-#                 default_shard_id,
-#                 1,
-#                 top_collation_hash=head_header_hash,
-#             )
-#             await asyncio.sleep(0.5)
-
-#     async def main():
-#         tasks = [
-#             ghs_manager.async_loop_main(False),
-#             colhdr_generator()
-#         ]
-#         task_futures = list(map(asyncio.ensure_future, tasks))
-#         await asyncio.wait(task_futures)
-
-#     loop = asyncio.get_event_loop()
-#     loop.run_until_complete(main())
+logger = logging.getLogger("evm.chain.sharding.guess_head_state_manager")
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("[%(levelname)s] %(module)s::%(funcName)s\t| %(message)s")
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 
 def test_guess_head_no_new_collations(ghs_manager, vmc):  # noqa: F811

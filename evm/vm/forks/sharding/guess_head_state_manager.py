@@ -2,9 +2,8 @@ import asyncio
 from collections import (
     defaultdict,
 )
-import time
-
 import logging
+import time
 
 from evm.vm.forks.sharding.constants import (
     GENESIS_COLLATION_HASH,
@@ -13,7 +12,10 @@ from evm.vm.forks.sharding.shard_tracker import (
     NoCandidateHead,
 )
 
+
 NUM_RESERVED_BLOCKS = 5
+SIMULATED_COLLATION_DOWNLOADING_TIME = 2
+SIMULATED_COLLATION_VERIFICATION_TIME = 0.01
 
 
 logger = logging.getLogger("evm.chain.sharding.guess_head_state_manager")
@@ -21,17 +23,17 @@ logger = logging.getLogger("evm.chain.sharding.guess_head_state_manager")
 
 async def download_collation(collation_hash):
     # TODO: need to implemented after p2p part is done
-    print("!@# Start downloading collation {}".format(collation_hash))
-    await asyncio.sleep(2)
-    print("!@# Finished downloading collation {}".format(collation_hash))
+    logger.debug("Start downloading collation %s", collation_hash)
+    await asyncio.sleep(SIMULATED_COLLATION_DOWNLOADING_TIME)
+    logger.debug("Finished downloading collation %s", collation_hash)
     collation = collation_hash
     return collation
 
 
 async def verify_collation(collation, collation_hash):
     # TODO: to be implemented
-    print("!@# Verifying collation {}".format(collation_hash))
-    await asyncio.sleep(0.01)
+    logger.debug("Verifying collation %s", collation_hash)
+    await asyncio.sleep(SIMULATED_COLLATION_VERIFICATION_TIME)
     # data = get_from_p2p_network(collation_hash.data_root)
     # chunks = DATA_SIZE // 32
     # mtree = [0] * chunks + [data[chunks*32: chunks*32+32] for i in range(chunks)]
@@ -60,11 +62,13 @@ class GuessHeadStateManager:
 
     logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
 
+    last_period_fetching_candidate_head = None
+
     collation_validity_cache = None
     chain_validity = None
-    last_period_fetching_candidate_head = None
-    tasks = None
-    collation_task = None
+
+    unfinished_verifying_tasks = None
+    collation_verifying_task = None
     chain_collations = None
 
     def __init__(self, vmc, shard_id, shard_tracker, my_address):
@@ -74,20 +78,23 @@ class GuessHeadStateManager:
         self.shard_tracker = shard_tracker
         self.my_address = my_address
 
+        self.last_period_fetching_candidate_head = 0
+
         # map[collation] -> validity
         self.collation_validity_cache = {}
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
         self.chain_validity = defaultdict(lambda: True)
-        # list of chain head, to indicate priority
-        # order: older -------> newer
-        self.last_period_fetching_candidate_head = 0
 
         # current tasks
-        self.tasks = []
+        self.unfinished_verifying_tasks = []
         # map[collation_hash] -> task
-        self.collation_task = {}
+        self.collation_verifying_task = {}
+        # map[chain_head] -> list of collations
+        # the collations in the chain
         self.chain_collations = defaultdict(list)
+
+    # time related
 
     def get_current_period(self):
         return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
@@ -118,6 +125,8 @@ class GuessHeadStateManager:
             (current_block_num + NUM_RESERVED_BLOCKS >= last_block_num_in_current_period)
         )
 
+    # guess_head process related
+
     async def verify_collation(self, head_collation_hash, collation_hash):
         coroutine = fetch_and_verify_collation(
             collation_hash,
@@ -139,14 +148,14 @@ class GuessHeadStateManager:
         return head_collation_hash
 
     def set_collation_task(self, head_collation_hash, current_collation_hash, task):
-        self.tasks.append(task)
-        self.collation_task[current_collation_hash] = task
+        self.unfinished_verifying_tasks.append(task)
+        self.collation_verifying_task[current_collation_hash] = task
         self.chain_collations[head_collation_hash].append(current_collation_hash)
 
     def get_chain_tasks(self, head_collation_hash):
         # ignore tasks that are done
         return [
-            self.collation_task[collation_hash]
+            self.collation_verifying_task[collation_hash]
             for collation_hash in self.chain_collations[head_collation_hash]
         ]
 
@@ -158,7 +167,7 @@ class GuessHeadStateManager:
         start = time.time()
 
         head_collation_hash = current_collation_hash = None
-        self.tasks = []
+        self.unfinished_verifying_tasks = []
         while True:
             # discard old logs if we're in the new period
             if self.get_current_period() > self.last_period_fetching_candidate_head:
@@ -168,6 +177,8 @@ class GuessHeadStateManager:
                 break
             current_collation_hash = head_collation_hash
             while self.chain_validity[head_collation_hash]:
+                # if running out of time
+                # FIXME: currently commented out for easier testing
                 # if self.is_late_collator_period():
                 #     return head_collation_hash
 
@@ -175,6 +186,8 @@ class GuessHeadStateManager:
                 # TODO: assume the whole chain for now
                 if current_collation_hash == GENESIS_COLLATION_HASH:
                     while self.chain_validity[head_collation_hash]:
+                        # if running out of time
+                        # FIXME: currently commented out for easier testing
                         # if self.is_late_collator_period():
                         #     return head_collation_hash
                         candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
@@ -187,12 +200,13 @@ class GuessHeadStateManager:
                     #   if the chain_validity is True, it means chain_tasks are done and
                     #   chain_validity is still True, return
                     if self.chain_validity[head_collation_hash]:
-                        print("!@# time elapsed={}".format(time.time() - start))
+                        logger.debug("time elapsed=%s", time.time() - start)
                         return head_collation_hash
                     # Case 2:
                     #   chain_validity is False, change to other candidate head
                     else:
                         break
+
                 # process current collation
                 if current_collation_hash not in self.collation_validity_cache:
                     coro = self.verify_collation(
@@ -209,13 +223,13 @@ class GuessHeadStateManager:
                 )
 
                 # clean up the finished tasks, yield CPU to tasks
-                if len(self.tasks) != 0:
-                    await asyncio.wait(self.tasks, timeout=self.TIME_ONE_STEP)
-                    not_finished_tasks = clean_done_task(self.tasks)
-                    self.tasks = not_finished_tasks
+                if len(self.unfinished_verifying_tasks) != 0:
+                    await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.TIME_ONE_STEP)
+                    not_finished_tasks = clean_done_task(self.unfinished_verifying_tasks)
+                    self.unfinished_verifying_tasks = not_finished_tasks
                 # yield the CPU to other coroutine
                 await asyncio.sleep(self.TIME_ONE_STEP)
-        print("!@# time elapsed={}".format(time.time() - start))
+        logger.debug("time elapsed=%s", time.time() - start)
         return head_collation_hash
 
     def run_guess_head(self):
