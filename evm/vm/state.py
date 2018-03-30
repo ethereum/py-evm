@@ -13,8 +13,17 @@ from cytoolz import (
     merge,
 )
 
+from eth_utils import (
+    to_bytes
+)
+
 from evm.constants import (
+    DEFAULT_DO_CALL_R,
+    DEFAULT_DO_CALL_S,
+    DEFAULT_DO_CALL_SENDER,
+    DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
+    UINT_256_MAX,
 )
 from evm.db.tracked import (
     AccessLogs,
@@ -251,6 +260,36 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
+
+    def do_call(self, transaction):
+
+        _transaction = transaction
+
+        _transaction.v = DEFAULT_DO_CALL_V
+        _transaction.s = DEFAULT_DO_CALL_S
+        _transaction.r = DEFAULT_DO_CALL_R
+
+        snapshot = self.snapshot()
+        try:
+            with self.mutable_state_db() as state_db:
+
+                if not hasattr(_transaction, "get_sender"):
+                    _transaction.get_sender = \
+                        lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
+                    _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
+
+                # set the account balance of the sender to an arbitrary large
+                # amount to ensure they have the necessary funds to pay for the
+                # transaction.
+                state_db.set_balance(transaction.sender, UINT_256_MAX // 2)
+
+            computation = self.execute_transaction(_transaction)
+
+        finally:
+            self.revert(snapshot)
+
+        return computation
+
     def apply_transaction(
             self,
             transaction,

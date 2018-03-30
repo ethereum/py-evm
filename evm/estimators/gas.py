@@ -2,6 +2,7 @@ from cytoolz import (
     curry,
 )
 
+
 from evm.utils.spoof import (
     SpoofTransaction,
 )
@@ -25,9 +26,7 @@ double_execution_cost = execute_plus_buffer(2)
 
 
 def _get_computation_error(state, transaction):
-    snapshot = state.snapshot()
-    computation = state.execute_transaction(transaction)
-    state.revert(snapshot)
+    computation = state.do_call(transaction)
 
     if computation.is_error:
         return computation._error
@@ -51,7 +50,10 @@ def binary_gas_search(state, transaction, tolerance=1):
         subject to tolerance. If OutOfGas is thrown at block limit, return block limit.
     :raises VMError: if the computation fails even when given the block gas_limit to complete
     """
-    minimum_transaction = SpoofTransaction(transaction, gas=transaction.intrinsic_gas)
+    minimum_transaction = SpoofTransaction(
+        transaction,
+        gas=transaction.intrinsic_gas)
+
     if _get_computation_error(state, minimum_transaction) is None:
         return transaction.intrinsic_gas
 

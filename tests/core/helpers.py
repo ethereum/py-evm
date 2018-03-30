@@ -1,3 +1,5 @@
+from cytoolz import curry
+
 from eth_utils import decode_hex
 
 from evm.exceptions import (
@@ -7,12 +9,13 @@ from evm.utils.padding import pad32
 from evm.vm.forks.sharding.transactions import ShardingTransaction
 
 
+@curry
 def new_transaction(
         vm,
         from_,
         to,
         amount,
-        private_key,
+        private_key=None,
         gas_price=10,
         gas=100000,
         data=b''):
@@ -24,7 +27,10 @@ def new_transaction(
     nonce = vm.state.read_only_state_db.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
         nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=amount, data=data)
-    return tx.as_signed_transaction(private_key, chain_id=1)
+    if private_key:
+        return tx.as_signed_transaction(private_key, chain_id=1)
+    else:
+        return tx
 
 
 def new_sharding_transaction(

@@ -106,6 +106,9 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
             s=s,
         )
 
+    def get_intrinsic_gas(self):
+        return _get_frontier_intrinsic_gas(self.data)
+
 
 def _get_frontier_intrinsic_gas(transaction_data):
     num_zero_bytes = transaction_data.count(b'\x00')
