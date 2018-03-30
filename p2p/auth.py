@@ -202,30 +202,6 @@ class HandshakeResponder(HandshakeBase):
             auth_ack = ecies.encrypt(ack_message, self.remote.pubkey)
         return auth_ack
 
-    def decode_authentication(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
-        """Decrypts and decodes the auth_init message.
-
-        Returns the initiator's ephemeral pubkey and nonce.
-        """
-        if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
-            raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
-        elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
-            sig, initiator_pubkey, initiator_nonce, _ = decode_auth_plain(
-                ciphertext, self.privkey)
-        else:
-            sig, initiator_pubkey, initiator_nonce, _ = decode_auth_eip8(
-                ciphertext, self.privkey)
-            self.got_eip8_auth = True
-
-        # recover initiator ephemeral pubkey from sig
-        #     S(ephemeral-privk, ecdh-shared-secret ^ nonce)
-        shared_secret = ecies.ecdh_agree(self.privkey, initiator_pubkey)
-
-        ephem_pubkey = sig.recover_public_key_from_msg_hash(
-            sxor(shared_secret, initiator_nonce))
-
-        return ephem_pubkey, initiator_nonce
-
 
 eip8_ack_sedes = sedes.List(
     [

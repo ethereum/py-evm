@@ -23,6 +23,7 @@ from p2p.auth import (
     HandshakeResponder,
 )
 
+SERVER_ADDRESS = ('localhost', get_open_port())
 test_values = { k: decode_hex(v) for (k, v) in 
     {
         "initiator_private_key": "49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee",
@@ -56,8 +57,7 @@ test_values = { k: decode_hex(v) for (k, v) in
                                 "797db43c25d68e86f262e564086f59a2fc60511c42abfb3057c247a8a8fe4fb3ccbadde17514b7ac"
                                 "8000cdb6a912778426260c47f38919a91f25f4b5ffb455d6aaaf150f7e5529c100ce62d6d92826a7"
                                 "1778d809bdf60232ae21ce8a437eca8223f45ac37f6487452ce626f549b3b5fdee26afd2072e4bc7"
-                                "5833c2464c805246155289f4" }.items()}
-
+                                "5833c2464c805246155289f4" }.items()} 
 
 def get_open_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,8 +66,6 @@ def get_open_port():
     port = s.getsockname()[1]
     s.close()
     return port
-
-SERVER_ADDRESS = ('localhost', get_open_port())
 
 def random_address():
     return kademlia.Address(
@@ -82,33 +80,32 @@ def server():
 
     return Server(privkey, SERVER_ADDRESS, peer_pool)
 
-
 def test_responder_server(server, event_loop):
     # Start server
     asyncio.set_event_loop(event_loop)
     asyncio.ensure_future(server.run())
     # Send ping from client
     event_loop.run_until_complete(ping_server())
+    event_loop.run_until_complete(stall(1))
     # Assert server still running
     assert server.cancel_token.triggered is False
-    # Send another ping
-    event_loop.run_until_complete(ping_server())
+    # The sole subscriber is the server itself
     assert len(server.peer_pool._subscribers) is 1
     # Stop server
     event_loop.run_until_complete(server.stop())
     assert server.cancel_token.triggered is True
-    # Assert `incoming_connections` includes 2x peer data
+    # Assert `incoming_connections` includes peer connection data
     assert isinstance(server.peer_pool, PeerPool)
-    assert len(server.peer_pool.peers) is 0
-    assert len(server.incoming_connections) is 2
+    assert len(server.incoming_connections) is 1
     assert server.incoming_connections[0][2] == test_values['initiator_nonce']
     assert server.incoming_connections[0][3] == keys.PrivateKey(test_values['initiator_ephemeral_private_key']).public_key
     
-
 async def ping_server():
     await asyncio.sleep(1)
     asyncio.ensure_future(send_auth_msg_to_server(SERVER_ADDRESS, test_values['auth_init_ciphertext']))
 
+async def stall(t):
+    await asyncio.sleep(t)
 
 async def send_auth_msg_to_server(address, messages):
     reader, writer = await asyncio.open_connection(*address)
@@ -125,3 +122,5 @@ async def send_auth_msg_to_server(address, messages):
         else:
             writer.close()
             return
+
+

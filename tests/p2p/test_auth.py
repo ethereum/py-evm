@@ -16,6 +16,7 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.peer import BasePeer
+from p2p.server import decode_authentication
 
 
 class DummyPeer(BasePeer):
@@ -81,8 +82,7 @@ async def test_handshake():
 
     # Check that the responder correctly decodes the auth msg.
     auth_msg_ciphertext = test_values['auth_ciphertext']
-    initiator_ephemeral_pubkey, initiator_nonce = responder.decode_authentication(
-        auth_msg_ciphertext)
+    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(auth_msg_ciphertext, responder.privkey)
     assert initiator_nonce == test_values['initiator_nonce']
     assert initiator_ephemeral_pubkey == (
         keys.PrivateKey(test_values['initiator_ephemeral_private_key']).public_key)
@@ -198,8 +198,8 @@ def test_handshake_eip8():
         "3bf7678318e2d5b5340c9e488eefea198576344afbdf66db5f51204a6961a63ce072c8926c")
 
     # Check that we can decrypt/decode the EIP-8 auth init message.
-    initiator_ephemeral_pubkey, initiator_nonce = responder.decode_authentication(
-        auth_init_ciphertext)
+    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(
+        auth_init_ciphertext, responder.privkey)
     assert initiator_nonce == test_values['initiator_nonce']
     assert initiator_ephemeral_pubkey == (
         keys.PrivateKey(test_values['initiator_ephemeral_private_key']).public_key)

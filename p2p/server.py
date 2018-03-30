@@ -4,7 +4,7 @@ import logging
 import secrets
 import sys
 
-from typing import Tuple
+from typing import Tuple, cast
 from eth_keys import (
     datatypes,
     keys,
@@ -47,14 +47,28 @@ class Server(PeerPoolSubscriber):
         self.privkey = privkey
         self._server_address = server_addr
 
-    def register_peer(self, peer: ETHPeer) -> None:
-        pass
+    def register_peer(self, peer: BasePeer) -> None:
+        asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
+
+    async def handle_peer(self, peer: ETHPeer) -> None:
+        """Handle the lifecycle of the given peer."""
+        self._running_peers.add(peer)
+        try:
+            await self._handle_peer(peer)
+        finally:
+            self._running_peers.remove(peer)
+
+    async def _handle_peer(self, peer: ETHPeer) -> None:
+        while True:
+            try:
+                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+            except OperationCancelled:
+                break
 
     async def stop(self) -> None:
         self.logger.info("Closing server...")
         self.cancel_token.trigger()
         self.peer_pool.unsubscribe(self)
-        await asyncio.sleep(1)
         while self._running_peers:
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
 
@@ -67,16 +81,15 @@ class Server(PeerPoolSubscriber):
         while not self.cancel_token.triggered:
             try:
                 loop.run_forever()
-            except:
-                self.logger.error("Unexpected error.")
-            await asyncio.sleep(1)
+            except OperationCancelled:
+                break
 
     async def receive_handshake(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         # Use reader to read the auth_init msg until EOF
         msg = await reader.read()
 
         # Use HandshakeResponder.decode_authentication(auth_init_message) on auth init msg
-        ephem_pubkey, initiator_nonce, initiator_pubkey = _decode_authentication(msg, self.privkey)
+        ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(msg, self.privkey)
 
         # Get remote's address 
         ip, udp, _, _ = writer.get_extra_info("peername")
@@ -104,13 +117,18 @@ class Server(PeerPoolSubscriber):
             auth_ack_ciphertext=auth_ack_ciphertext
         )
 
-        # Store peer creation data in incoming_connections[]
-        # TODO register peer in PeerPool
+        # Create and register peer in peer_pool
         peer = (aes_secret, mac_secret, initiator_nonce, ephem_pubkey)
+        eth_peer = ETHPeer(
+                remote=initiator_remote, privkey=None, reader=None,
+                writer=None, aes_secret=aes_secret, mac_secret=mac_secret,
+                egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=None,
+                network_id=1)
+        self.register_peer(eth_peer)
         self.incoming_connections.append(peer)
 
 
-def _decode_authentication(ciphertext: bytes,
+def decode_authentication(ciphertext: bytes,
                            privkey: datatypes.PrivateKey
                            ) -> Tuple[datatypes.PublicKey, bytes, datatypes.PublicKey]:
     """
@@ -135,3 +153,4 @@ def _decode_authentication(ciphertext: bytes,
         sxor(shared_secret, initiator_nonce))
         
     return ephem_pubkey, initiator_nonce, initiator_pubkey
+
