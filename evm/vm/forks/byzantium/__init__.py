@@ -9,7 +9,10 @@ from .state import ByzantiumState
 
 
 ByzantiumVM = SpuriousDragonVM.configure(
+    # class name
     __name__='ByzantiumVM',
+    # fork name
+    fork='byzantium',
     # classes
     _state_class=ByzantiumState,
     # Methods

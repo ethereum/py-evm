@@ -51,6 +51,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     the individual VM classes for each fork of the protocol rules within that
     network.
     """
+    fork = None
     chaindb = None
     _state_class = None
 

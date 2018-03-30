@@ -17,7 +17,10 @@ class MetaHomesteadVM(FrontierVM):  # type: ignore
 
 
 HomesteadVM = MetaHomesteadVM.configure(
+    # class name
     __name__='HomesteadVM',
+    # fork name
+    fork='homestead',
     # classes
     _state_class=HomesteadState,
     # method overrides

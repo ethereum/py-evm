@@ -1,31 +1,37 @@
+import collections
+import operator
 from typing import (
-    Any
+    Any,
+    Generator,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
 )
 
 from cytoolz import (
     assoc,
+    last,
 )
 
 from eth_utils import (
-    reversed_return,
+    to_tuple,
 )
 
 from evm.chains.base import Chain
-
-from evm.vm.forks import (
-    FrontierVM as BaseFrontierVM,
-    HomesteadVM as BaseHomesteadVM,
-    TangerineWhistleVM as BaseTangerineWhistleVM,
-    SpuriousDragonVM as BaseSpuriousDragonVM,
-)
-
-from evm.utils.chain import (
-    generate_vms_by_range,
-)
-
+from evm.chains.mainnet import MainnetChain
+from evm.exceptions import ValidationError
 from evm.rlp.headers import (
     BlockHeader
 )
+from evm.utils.chain import (
+    generate_vms_by_range,
+)
+from evm.validation import (
+    validate_gte,
+)
+from evm.vm.base import BaseVM
+from evm.vm.forks.homestead import HomesteadVM
 
 
 class MaintainGasLimitMixin(object):
@@ -42,91 +48,92 @@ class MaintainGasLimitMixin(object):
             **assoc(header_params, 'gas_limit', parent_header.gas_limit)
         )
 
-# Suppressing invalid base class error for several classes.
-# Check evm.datatypes.Configurable for a longer explanation
 
-
-class FrontierTesterVM(MaintainGasLimitMixin, BaseFrontierVM):  # type: ignore
-    pass
-
-
-class BaseHomesteadTesterVM(MaintainGasLimitMixin, BaseHomesteadVM):  # type: ignore
-    pass
-
-
-class TangerineWhistleTesterVM(MaintainGasLimitMixin, BaseTangerineWhistleVM):  # type: ignore
-    pass
-
-
-class SpuriousDragonTesterVM(MaintainGasLimitMixin, BaseSpuriousDragonVM):  # type: ignore
-    pass
-
-
-INVALID_FORK_ACTIVATION_MSG = (
-    "The {0}-fork activation block may not be null if the {1}-fork block "
-    "is non null"
+MAINNET_VMS = collections.OrderedDict(
+    (vm.fork, type(vm.__name__, (MaintainGasLimitMixin, vm), {}))
+    for _, vm
+    in MainnetChain.vms_by_range.items()
 )
 
+ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[BaseVM]]]]
+VMStartBlock = Tuple[int, Type[BaseVM]]
 
-@reversed_return
-def _generate_vm_configuration(homestead_start_block=None,
-                               dao_start_block=None,
-                               tangerine_whistle_start_block=None,
-                               spurious_dragon_block=None):
-    # If no explicit configuration has been passed, configure the vm to start
-    # with the latest fork rules at block 0
-    no_declared_blocks = (
-        spurious_dragon_block is None and
-        tangerine_whistle_start_block is None and
-        homestead_start_block is None
+
+@to_tuple
+def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
+                               dao_start_block: Union[int, bool]=None) -> Generator[VMStartBlock, None, None]:  # noqa: E501
+    """
+    fork_start_blocks should be 2-tuples of (start_block, fork_name_or_vm_class)
+
+    dao_start_block determines whether the Homestead fork will support the DAO
+    fork and if so, at what block.
+
+        - dao_start_block = None: perform the DAO fork at the same block as the
+          Homestead start block.
+        - dao_start_block = False: do not perform the DAO fork.
+        - dao_start_block = <int>: perform the DAO fork at the given block number.
+    """
+    # if no configuration was passed in, initialize the chain with the *latest*
+    # Mainnet VM rules active at block 0.
+    if not fork_start_blocks:
+        yield (0, last(MAINNET_VMS.values()))
+        return
+
+    # Validate that there are no fork names which are not represented in the
+    # mainnet chain.
+    fork_names = set(
+        fork_name for
+        _, fork_name
+        in fork_start_blocks
+        if isinstance(fork_name, str)
     )
-    if no_declared_blocks:
-        yield (0, SpuriousDragonTesterVM)
+    unknown_forks = sorted(fork_names.difference(
+        MAINNET_VMS.keys()
+    ))
+    if unknown_forks:
+        raise ValidationError("Configuration contains unknown forks: {0}".format(unknown_forks))
 
-    if spurious_dragon_block is not None:
-        yield (spurious_dragon_block, SpuriousDragonTesterVM)
-
-        remaining_blocks_not_declared = (
-            homestead_start_block is None and
-            tangerine_whistle_start_block is None
+    # Validate that *if* an explicit value was passed in for dao_start_block
+    # that the Homestead fork rules are part of the VM configuration.
+    if dao_start_block is not None and 'homestead' not in fork_names:
+        raise ValidationError(
+            "The `dao_start_block` parameter is only valid for the 'homestead' "
+            "fork rules.  The 'homestead' VM was not included in the provided "
+            "fork configuration"
         )
-        if spurious_dragon_block > 0 and remaining_blocks_not_declared:
-            yield (0, TangerineWhistleTesterVM)
 
-    if tangerine_whistle_start_block is not None:
-        yield (tangerine_whistle_start_block, TangerineWhistleTesterVM)
+    # Validate that there is at least one start block for block 0
+    start_blocks = set(start_block for start_block, _ in fork_start_blocks)
+    if 0 not in start_blocks:
+        raise ValidationError(
+            "At least one VM must start at block 0.  Got start blocks: "
+            "{0}".format(sorted(start_blocks))
+        )
 
-        # If the EIP150 rules do not start at block 0 and homestead_start_block has not
-        # been configured for a specific block, configure homestead_start_block to start at
-        # block 0.
-        if tangerine_whistle_start_block > 0 and homestead_start_block is None:
-            HomesteadTesterVM = BaseHomesteadTesterVM.configure(
-                dao_fork_block_number=0,
-            )
-            yield (0, HomesteadTesterVM)
+    ordered_fork_start_blocks = sorted(fork_start_blocks, key=operator.itemgetter(0))
 
-    if homestead_start_block is not None:
-        if dao_start_block is False:
-            # If dao_start_block support has explicitely been configured as `False` then
-            # mark the HomesteadTesterVM as not supporting the fork.
-            HomesteadTesterVM = BaseHomesteadTesterVM.configure(support_dao_fork=False)
-        elif dao_start_block is not None:
-            # Otherwise, if a specific dao_start_block fork block has been set, use it.
-            HomesteadTesterVM = BaseHomesteadTesterVM.configure(
-                dao_fork_block_number=dao_start_block,
-            )
+    # Iterate over the parameters, generating a tuple of 2-tuples in the form:
+    # (start_block, vm_class)
+    for start_block, fork in ordered_fork_start_blocks:
+        if isinstance(fork, type) and issubclass(fork, BaseVM):
+            vm_class = fork
+        elif isinstance(fork, str):
+            vm_class = MAINNET_VMS[fork]
         else:
-            # Otherwise, default to the homestead_start_block block as the
-            # start of the dao_start_block fork.
-            HomesteadTesterVM = BaseHomesteadTesterVM.configure(
-                dao_fork_block_number=homestead_start_block,
-            )
-        yield (homestead_start_block, HomesteadTesterVM)
+            raise Exception("Invariant: unreachable code path")
 
-        # If the homestead_start_block block is configured to start after block 0, set the
-        # frontier rules to start at block 0.
-        if homestead_start_block > 0:
-            yield (0, FrontierTesterVM)
+        if issubclass(vm_class, HomesteadVM):
+            if dao_start_block is False:
+                yield (start_block, vm_class.configure(support_dao_fork=False))
+            elif dao_start_block is None:
+                yield (start_block, vm_class.configure(dao_fork_block_number=start_block))
+            elif isinstance(dao_start_block, int):
+                validate_gte(dao_start_block, start_block)
+                yield (start_block, vm_class.configure(dao_fork_block_number=dao_start_block))
+            else:
+                raise Exception("Invariant: unreachable code path")
+        else:
+            yield (start_block, vm_class)
 
 
 BaseMainnetTesterChain = Chain.configure(
@@ -136,6 +143,14 @@ BaseMainnetTesterChain = Chain.configure(
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
+    """
+    This class is intended to be used for in-memory test chains.  It
+    explicitely bypasses the proof of work validation to allow for instant
+    block mining.
+
+    It exposes one additional API `configure_forks` to allow for in-flight
+    configuration of fork rules.
+    """
     def validate_seal(self, block):
         """
         We don't validate the proof of work seal on the tester chain.
@@ -143,17 +158,18 @@ class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
         pass
 
     def configure_forks(self,
-                        homestead_start_block=None,
-                        dao_start_block=None,
-                        tangerine_whistle_start_block=None,
-                        spurious_dragon_block=None):
+                        *fork_start_blocks: ForkStartBlocks,
+                        dao_start_block: Union[int, bool]=None) -> None:
         """
-        TODO: add support for state_cleanup
+        On demand configuration of fork rules.  This is a foot gun that if used
+        incorrectly could cause weird VM errors.
+
+        It should generally only be used on a genesis chain (head block == 0).
+        Modifying the fork rules, especially if the modification effects
+        existing blocks could result in a broken chain.
         """
         vm_configuration = _generate_vm_configuration(
-            homestead_start_block=homestead_start_block,
+            *fork_start_blocks,
             dao_start_block=dao_start_block,
-            tangerine_whistle_start_block=tangerine_whistle_start_block,
-            spurious_dragon_block=spurious_dragon_block,
         )
         self.vms_by_range = generate_vms_by_range(vm_configuration)

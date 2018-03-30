@@ -2,6 +2,7 @@ import pytest
 
 import enum
 
+from evm.vm.forks.frontier import FrontierVM
 from evm.chains.tester import (
     _generate_vm_configuration,
 )
@@ -12,25 +13,40 @@ class Forks(enum.Enum):
     Homestead = 1
     TangerineWhistle = 2
     SpuriousDragon = 3
+    Byzantium = 4
+    Custom = 5
+
+
+class CustomFrontierVM(FrontierVM):
+    pass
 
 
 @pytest.mark.parametrize(
-    "kwargs,expected",
+    "args,kwargs,expected",
     (
         (
-            dict(),
-            ((0, Forks.SpuriousDragon),),
+            tuple(),
+            {},
+            ((0, Forks.Byzantium),),
         ),
         (
-            dict(spurious_dragon_block=1),
+            ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
+            {},
             ((0, Forks.TangerineWhistle), (1, Forks.SpuriousDragon)),
         ),
         (
-            dict(tangerine_whistle_start_block=1, spurious_dragon_block=2),
+            ((0, CustomFrontierVM), (1, 'spurious-dragon')),
+            {},
+            ((0, Forks.Custom), (1, Forks.SpuriousDragon)),
+        ),
+        (
+            ((0, 'homestead'), (1, 'tangerine-whistle'), (2, 'spurious-dragon')),
+            {},
             ((0, Forks.Homestead), (1, Forks.TangerineWhistle), (2, Forks.SpuriousDragon)),
         ),
         (
-            dict(homestead_start_block=1, tangerine_whistle_start_block=2, spurious_dragon_block=3),
+            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle'), (3, 'spurious-dragon')),
+            {},
             (
                 (0, Forks.Frontier),
                 (1, Forks.Homestead),
@@ -39,7 +55,8 @@ class Forks(enum.Enum):
             ),
         ),
         (
-            dict(homestead_start_block=1, spurious_dragon_block=3),
+            ((0, 'frontier'), (1, 'homestead'), (3, 'spurious-dragon')),
+            {},
             (
                 (0, Forks.Frontier),
                 (1, Forks.Homestead),
@@ -47,29 +64,44 @@ class Forks(enum.Enum):
             ),
         ),
         (
-            dict(tangerine_whistle_start_block=1),
+            ((0, 'homestead'), (1, 'tangerine-whistle')),
+            {},
             ((0, Forks.Homestead), (1, Forks.TangerineWhistle)),
         ),
         (
-            dict(homestead_start_block=1),
+            ((0, 'frontier'), (1, 'homestead')),
+            {},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            dict(homestead_start_block=1, dao_start_block=2),
+            ((0, 'frontier'), (1, 'homestead')),
+            {'dao_start_block': 2},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            dict(homestead_start_block=1, dao_start_block=False),
+            ((0, 'frontier'), (1, 'homestead')),
+            {'dao_start_block': False},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            dict(homestead_start_block=1, tangerine_whistle_start_block=2),
+            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle')),
+            {},
             ((0, Forks.Frontier), (1, Forks.Homestead), (2, Forks.TangerineWhistle)),
+        ),
+        (
+            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle'), (3, 'byzantium')),
+            {},
+            (
+                (0, Forks.Frontier),
+                (1, Forks.Homestead),
+                (2, Forks.TangerineWhistle),
+                (3, Forks.Byzantium),
+            ),
         ),
     ),
 )
-def test_generate_vm_configuration(kwargs, expected):
-    actual = _generate_vm_configuration(**kwargs)
+def test_generate_vm_configuration(args, kwargs, expected):
+    actual = _generate_vm_configuration(*args, **kwargs)
     assert len(actual) == len(expected)
 
     for left, right in zip(actual, expected):
@@ -95,5 +127,9 @@ def test_generate_vm_configuration(kwargs, expected):
             assert 'TangerineWhistle' in left_vm.__name__
         elif right_vm == Forks.SpuriousDragon:
             assert 'SpuriousDragon' in left_vm.__name__
+        elif right_vm == Forks.Byzantium:
+            assert 'Byzantium' in left_vm.__name__
+        elif right_vm == Forks.Custom:
+            assert 'CustomFrontier' in left_vm.__name__
         else:
             assert False, "Invariant"
