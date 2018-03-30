@@ -367,11 +367,11 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).collation_headers__score(shard_id, header0_1.hash)
+    ).get_collation_header_score(shard_id, header0_1.hash)
     assert colhdr0_1_score == 1
     colhdr0_2_score = vmc.call(
         vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    ).collation_headers__score(shard_id, header0_2.hash)
+    ).get_collation_header_score(shard_id, header0_2.hash)
     assert colhdr0_2_score == 2
     # confirm the logs are correct
     assert vmc.get_next_log(shard_id)['score'] == 2
