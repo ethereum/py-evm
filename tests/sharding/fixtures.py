@@ -270,7 +270,7 @@ def add_validator(vmc_handler):
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
     # else, there should only be one validator, for easier testing.
-    num_validators = vmc_handler.functions.get_num_validators().call(
+    num_validators = vmc_handler.functions.num_validators().call(
         vmc_handler.mk_default_contract_tx_detail(),
     )
 
@@ -286,12 +286,12 @@ def add_validator(vmc_handler):
         mine(vmc_handler, lookahead_blocks - current_block_number)
     assert vmc_handler.web3.eth.blockNumber >= lookahead_blocks
 
-    current_num_validators = vmc_handler.functions.get_num_validators().call(
+    current_num_validators = vmc_handler.functions.num_validators().call(
         vmc_handler.mk_default_contract_tx_detail(),
     )
     assert current_num_validators == num_validators + 1
     assert vmc_handler.get_eligible_proposer(default_shard_id) != ZERO_ADDRESS
-    vmc_handler.logger.debug("vmc_handler.get_num_validators()=%s", num_validators)
+    vmc_handler.logger.debug("vmc_handler.num_validators()=%s", num_validators)
 
 
 @pytest.fixture

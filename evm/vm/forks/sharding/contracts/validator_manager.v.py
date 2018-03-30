@@ -261,7 +261,7 @@ def add_header(
         ),
         'bytes32'
     )
-    
+
     # Check if parent header exists.
     # If it exist, check that it's score is greater than 0.
     parent_collation_score: int128 = self.get_collation_header_score(
