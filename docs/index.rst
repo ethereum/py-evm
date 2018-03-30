@@ -9,6 +9,13 @@ Py-EVM aims to eventually become the defacto python implementation of the EVM, e
    :maxdepth: 1
 
    quickstart.rst
+   architecture.rst
+   api.rst
+   api.chain.rst
+   api.vm.rst
+   api.state.rst
+   api.computation.rst
+   api.opcode.rst
    building_chains.rst
    contributing.rst
    low_level.rst

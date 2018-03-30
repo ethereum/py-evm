@@ -84,7 +84,10 @@ def fill_block(chain, from_, key, gas, data):
         tx = new_transaction(vm, from_, recipient, amount, key, gas=gas, data=data)
         try:
             chain.apply_transaction(tx)
-        except ValidationError:
-            break
+        except ValidationError as exc:
+            if "Transaction exceeds gas limit" == str(exc):
+                break
+            else:
+                raise exc
 
     assert chain.get_vm().state.gas_used > 0
