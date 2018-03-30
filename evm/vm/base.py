@@ -210,7 +210,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         state = self.get_state(self.chaindb, temp_block, prev_hashes)
         assert state.gas_used == 0, "There must not be any gas used in a fresh temporary block"
 
-
         snapshot = state.snapshot()
         yield state
         state.revert(snapshot)
