@@ -1,12 +1,3 @@
-import asyncio
-
-from evm.vm.forks.sharding.constants import (
-    GENESIS_COLLATION_HASH,
-)
-from evm.vm.forks.sharding.guess_head_state_manager import (
-    fetch_and_verify_collation,
-)
-
 from tests.sharding.fixtures import (  # noqa: F401
     default_shard_id,
     mine,
@@ -41,11 +32,11 @@ from tests.sharding.fixtures import (  # noqa: F401
 #     loop.run_until_complete(main())
 
 
-def test_guess_head_no_new_collations(ghs_manager, vmc):
+def test_guess_head_no_new_collations(ghs_manager, vmc):  # noqa: F811
     assert ghs_manager.run_guess_head() is None
 
 
-def test_guess_head_without_fork(ghs_manager, vmc):
+def test_guess_head_without_fork(ghs_manager, vmc):  # noqa: F811
     header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
     assert ghs_manager.run_guess_head() == header2_hash
     header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
@@ -79,7 +70,7 @@ def test_guess_head_new_only_candidate_is_invalid(ghs_manager, vmc):  # noqa: F8
     assert ghs_manager.run_guess_head() is None
 
 
-def test_guess_head_new_only_candidate_is_not_longest(ghs_manager, vmc):
+def test_guess_head_new_only_candidate_is_not_longest(ghs_manager, vmc):  # noqa: F811
     mk_colhdr_chain(vmc, default_shard_id, 3)
     ghs_manager.run_guess_head()
     mk_colhdr_chain(vmc, default_shard_id, 1)
