@@ -20,9 +20,6 @@ from evm.constants import (
 from evm.db.immutable import (
     ImmutableDB,
 )
-from evm.db.tracked import (
-    TrackedDB,
-)
 from evm.rlp.accounts import (
     Account,
 )
@@ -121,7 +118,7 @@ class MainAccountStateDB(BaseAccountStateDB):
         if read_only:
             self.db = ImmutableDB(db)
         else:
-            self.db = TrackedDB(db)
+            self.db = db
         self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     def apply_state_dict(self, state_dict):

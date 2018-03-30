@@ -25,9 +25,6 @@ from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
 )
-from evm.db.tracked import (
-    AccessLogs,
-)
 from evm.db.trie import (
     make_trie_root_and_nodes,
 )
@@ -67,7 +64,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
         self.execution_context = execution_context
         self.state_root = state_root
         self.receipts = receipts
-        self.access_logs = AccessLogs()
 
     #
     # Logging
@@ -128,9 +124,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
         if self.state_root != state.root_hash:
             self.set_state_root(state.root_hash)
 
-        self.access_logs.reads.update(state.db.access_logs.reads)
-        self.access_logs.writes.update(state.db.access_logs.writes)
-
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
@@ -151,9 +144,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         if self.state_root != state.root_hash:
             self.set_state_root(state.root_hash)
-
-            self.access_logs.reads.update(state.db.access_logs.reads)
-            self.access_logs.writes.update(state.db.access_logs.writes)
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after

@@ -22,7 +22,6 @@ def test_apply_transaction(
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
     computation, _ = vm.apply_transaction(tx)
-    access_logs = computation.state.access_logs
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
@@ -33,9 +32,6 @@ def test_apply_transaction(
     block = vm.block
     assert block.transactions[tx_idx] == tx
     assert block.header.gas_used == constants.GAS_TX
-
-    assert len(access_logs.reads) > 0
-    assert len(access_logs.writes) > 0
 
 
 def test_mine_block(chain):
