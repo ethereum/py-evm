@@ -149,17 +149,3 @@ class OutOfBoundsRead(VMError):
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
-
-
-class GasPriceAlreadySet(Exception):
-    """
-    Error raised if trying to reset the already set gas price.
-    """
-    pass
-
-
-class NotTopLevelCall(Exception):
-    """
-    Error raised if it's not executing in the top level call(i.e, msg.depth == 0)
-    """
-    pass
