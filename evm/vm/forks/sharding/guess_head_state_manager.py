@@ -159,7 +159,7 @@ class GuessHeadStateManager:
             for collation_hash in self.chain_collations[head_collation_hash]
         ]
 
-    async def guess_head(self):
+    async def guess_head(self, enable_timing_up=False):
         '''
         Perform windback process.
         returns None if there is no candidate head available in this period
@@ -179,9 +179,8 @@ class GuessHeadStateManager:
             current_depth = 0
             while self.chain_validity[head_collation_hash]:
                 # if running out of time
-                # FIXME: currently commented out for easier testing
-                # if self.is_late_collator_period():
-                #     return head_collation_hash
+                if enable_timing_up and self.is_late_collator_period():
+                    return head_collation_hash
 
                 # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
                 # TODO: assume the whole chain for now
@@ -189,9 +188,8 @@ class GuessHeadStateManager:
                         (current_collation_hash == GENESIS_COLLATION_HASH)):
                     while self.chain_validity[head_collation_hash]:
                         # if running out of time
-                        # FIXME: currently commented out for easier testing
-                        # if self.is_late_collator_period():
-                        #     return head_collation_hash
+                        if enable_timing_up and self.is_late_collator_period():
+                            return head_collation_hash
                         candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
                         is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
                         if is_chain_tasks_done:
@@ -241,7 +239,7 @@ class GuessHeadStateManager:
         logger.debug("time elapsed=%s", time.time() - start)
         return head_collation_hash
 
-    def run_guess_head(self):
+    def run_guess_head(self, enable_timing_up=False):
         loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self.guess_head())
+        result = loop.run_until_complete(self.guess_head(enable_timing_up))
         return result
