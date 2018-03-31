@@ -15,7 +15,6 @@ from web3.providers.eth_tester import (
 )
 
 from eth_utils import (
-    encode_hex,
     event_signature_to_log_topic,
 )
 
@@ -33,9 +32,8 @@ from eth_tester.backends.pyevm.main import (
 
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
-    check_chain_head,
+    get_canonical_chain,
     get_recent_block_hashes,
-    preprocess_block_param,
 )
 
 code = """
@@ -87,51 +85,27 @@ def contract():
     return w3.eth.contract(contract_address, abi=abi, bytecode=bytecode)
 
 
-def test_preprocess_block_param(contract):
-    w3 = contract.web3
-    current_block_number = contract.web3.eth.blockNumber
-    assert preprocess_block_param(w3, 1) == 1
-    assert preprocess_block_param(w3, 'earliest') == 0
-    assert preprocess_block_param(w3, 'latest') == current_block_number
-    assert preprocess_block_param(w3, 'pending') == current_block_number + 1
-    block_hash = '0x1111111111111111111111111111111111111111111111111111111111111111'
-    with pytest.raises(ValueError):
-        preprocess_block_param(w3, block_hash)
-
-
-def test_log_handler_mk_filter_params(contract):
-    log_handler = LogHandler(contract.web3)
-    filter_params = log_handler.mk_filter_params(1, 2)
-    assert 'fromBlock' in filter_params
-    assert 'toBlock' in filter_params
-    filter_params_with_address = log_handler.mk_filter_params(1, 2, contract.address)
-    assert contract.address == filter_params_with_address['address']
-    topics = [encode_hex(test_event_signature)]
-    filter_params_with_address = log_handler.mk_filter_params(1, 2, contract.address, topics)
-    assert topics == filter_params_with_address['topics']
-
-
 def test_get_recent_block_hashes(contract):
     w3 = contract.web3
     block0 = w3.eth.getBlock(0)
     block1 = w3.eth.getBlock(1)
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
-    assert len(recent_block_hashes) == 2
-    assert block0['hash'] == recent_block_hashes[0]
-    assert block1['hash'] == recent_block_hashes[1]
+    assert len(recent_block_hashes) == 3
+    assert block0['hash'] == recent_block_hashes[1]
+    assert block1['hash'] == recent_block_hashes[2]
     mine(w3, 2)
     block2 = w3.eth.getBlock(2)
     block3 = w3.eth.getBlock(3)
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
-    assert len(recent_block_hashes) == 4
-    assert block2['hash'] == recent_block_hashes[2]
-    assert block3['hash'] == recent_block_hashes[3]
+    assert len(recent_block_hashes) == 5
+    assert block2['hash'] == recent_block_hashes[3]
+    assert block3['hash'] == recent_block_hashes[4]
 
 
-def test_check_chain_head_without_forks(contract):
+def test_get_canonical_chain_without_forks(contract):
     w3 = contract.web3
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
-    revoked_hashes, new_block_hashes = check_chain_head(w3, recent_block_hashes, HISTORY_SIZE)
+    revoked_hashes, new_block_hashes = get_canonical_chain(w3, recent_block_hashes, HISTORY_SIZE)
     assert revoked_hashes == tuple()
     assert new_block_hashes == tuple()
     if len(revoked_hashes) != 0:
@@ -142,7 +116,7 @@ def test_check_chain_head_without_forks(contract):
     recent_block_hashes = new_recent_block_hashes[-1 * HISTORY_SIZE:]
     mine(w3, 1)
     block2 = w3.eth.getBlock('latest')
-    revoked_hashes, new_block_hashes = check_chain_head(
+    revoked_hashes, new_block_hashes = get_canonical_chain(
         w3,
         recent_block_hashes,
         HISTORY_SIZE,
@@ -161,7 +135,7 @@ def test_check_chain_head_without_forks(contract):
     block3 = w3.eth.getBlock(3)
     block4 = w3.eth.getBlock(4)
     block5 = w3.eth.getBlock(5)
-    revoked_hashes, new_block_hashes = check_chain_head(
+    revoked_hashes, new_block_hashes = get_canonical_chain(
         w3,
         recent_block_hashes,
         HISTORY_SIZE,
@@ -173,7 +147,7 @@ def test_check_chain_head_without_forks(contract):
     assert block5['hash'] == new_block_hashes[2]
 
 
-def test_check_chain_head_with_forks(contract):
+def test_get_canonical_chain_with_forks(contract):
     w3 = contract.web3
     counter = itertools.count()
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
@@ -184,7 +158,7 @@ def test_check_chain_head_with_forks(contract):
     contract.transact(default_tx_detail).emit_log(next(counter))
     mine(w3, 1)
     block2 = w3.eth.getBlock('latest')
-    revoked_hashes, new_block_hashes = check_chain_head(
+    revoked_hashes, new_block_hashes = get_canonical_chain(
         w3,
         recent_block_hashes,
         HISTORY_SIZE,
@@ -210,7 +184,7 @@ def test_check_chain_head_with_forks(contract):
     contract.transact(default_tx_detail).emit_log(next(counter))
     mine(w3, 1)
     block4_prime = w3.eth.getBlock('latest')
-    revoked_hashes, new_block_hashes = check_chain_head(
+    revoked_hashes, new_block_hashes = get_canonical_chain(
         w3,
         recent_block_hashes,
         HISTORY_SIZE,
