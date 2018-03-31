@@ -81,7 +81,7 @@ class GuessHeadStateManager:
         self.last_period_fetching_candidate_head = 0
 
         # map[collation] -> validity
-        self.collation_validity_cache = {}  # type: Dict[int, ShardTracker]
+        self.collation_validity_cache = {}
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
         self.chain_validity = defaultdict(lambda: True)
