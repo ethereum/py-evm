@@ -176,37 +176,12 @@ class GuessHeadStateManager:
             if head_collation_hash is None:
                 break
             current_collation_hash = head_collation_hash
-            current_depth = 0
-            while self.chain_validity[head_collation_hash]:
+            for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
                 # if running out of time
                 if enable_timing_up and self.is_late_collator_period():
                     return head_collation_hash
-
-                # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
-                # TODO: assume the whole chain for now
-                if ((current_depth == self.vmc.config['WINDBACK_LENGTH']) or
-                        (current_collation_hash == GENESIS_COLLATION_HASH)):
-                    while self.chain_validity[head_collation_hash]:
-                        # if running out of time
-                        if enable_timing_up and self.is_late_collator_period():
-                            return head_collation_hash
-                        candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
-                        is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
-                        if is_chain_tasks_done:
-                            break
-                        await asyncio.wait(candidate_chain_tasks, timeout=self.TIME_ONE_STEP)
-                    # if we break from `while`, either the chain is done or chain is invalid
-                    # Case 1:
-                    #   if the chain_validity is True, it means chain_tasks are done and
-                    #   chain_validity is still True, return
-                    if self.chain_validity[head_collation_hash]:
-                        logger.debug("time elapsed=%s", time.time() - start)
-                        return head_collation_hash
-                    # Case 2:
-                    #   chain_validity is False, change to other candidate head
-                    else:
-                        break
-
+                if current_collation_hash == GENESIS_COLLATION_HASH:
+                    break
                 # process current collation
                 # if the collation is checked before, just skip it
                 if current_collation_hash not in self.collation_validity_cache:
@@ -227,15 +202,32 @@ class GuessHeadStateManager:
                     self.shard_id,
                     current_collation_hash,
                 )
-                current_depth += 1
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:
                     await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.TIME_ONE_STEP)
-                    not_finished_tasks = clean_done_task(self.unfinished_verifying_tasks)
-                    self.unfinished_verifying_tasks = not_finished_tasks
+                    self.unfinished_verifying_tasks = clean_done_task(self.unfinished_verifying_tasks)
                 # yield the CPU to other coroutine
                 await asyncio.sleep(self.TIME_ONE_STEP)
+
+            # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
+            while self.chain_validity[head_collation_hash]:
+                # if running out of time
+                if enable_timing_up and self.is_late_collator_period():
+                    return head_collation_hash
+                candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
+                is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
+                if is_chain_tasks_done:
+                    break
+                await asyncio.wait(candidate_chain_tasks, timeout=self.TIME_ONE_STEP)
+            # if we break from `while`, either the chain is done or chain is invalid
+            # Case 1:
+            #   if the chain_validity is True, it means chain_tasks are done and
+            #   chain_validity is still True, return
+            # Case 2:
+            #   chain_validity is False, just change to other candidate head
+            if self.chain_validity[head_collation_hash]:
+                break
         logger.debug("time elapsed=%s", time.time() - start)
         return head_collation_hash
 

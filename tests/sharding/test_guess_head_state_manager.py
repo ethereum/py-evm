@@ -2,7 +2,6 @@ import logging
 
 from tests.sharding.fixtures import (  # noqa: F401
     default_shard_id,
-    mine,
     mk_colhdr_chain,
     vmc,
     vmc_handler,
@@ -76,6 +75,6 @@ def test_guess_head_windback_length(ghs_manager, vmc):  # noqa: F811
     # build a chain with head_collation_height = 5
     mk_colhdr_chain(vmc, default_shard_id, 5)
     ghs_manager.run_guess_head()
-    # the size of `collation_validity_cache` should be the WINDBACK_LENGTH, instead of the length of
-    # the chain
-    assert len(ghs_manager.collation_validity_cache) == vmc.config['WINDBACK_LENGTH']
+    # the size of `collation_validity_cache` should be the WINDBACK_LENGTH + 1(including the
+    # `head_collation` itself), instead of the length of the chain
+    assert len(ghs_manager.collation_validity_cache) == vmc.config['WINDBACK_LENGTH'] + 1
