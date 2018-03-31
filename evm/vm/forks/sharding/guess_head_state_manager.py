@@ -81,7 +81,7 @@ class GuessHeadStateManager:
         self.last_period_fetching_candidate_head = 0
 
         # map[collation] -> validity
-        self.collation_validity_cache = {}
+        self.collation_validity_cache = {}  # type: Dict[int, ShardTracker]
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
         self.chain_validity = defaultdict(lambda: True)
@@ -176,15 +176,17 @@ class GuessHeadStateManager:
             if head_collation_hash is None:
                 break
             current_collation_hash = head_collation_hash
+            current_depth = 0
             while self.chain_validity[head_collation_hash]:
                 # if running out of time
                 # FIXME: currently commented out for easier testing
                 # if self.is_late_collator_period():
                 #     return head_collation_hash
 
-                # when `WINDBACK_LENGTH` is reached
+                # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
                 # TODO: assume the whole chain for now
-                if current_collation_hash == GENESIS_COLLATION_HASH:
+                if ((current_depth == self.vmc.config['WINDBACK_LENGTH']) or
+                        (current_collation_hash == GENESIS_COLLATION_HASH)):
                     while self.chain_validity[head_collation_hash]:
                         # if running out of time
                         # FIXME: currently commented out for easier testing
@@ -208,6 +210,7 @@ class GuessHeadStateManager:
                         break
 
                 # process current collation
+                # if the collation is checked before, just skip it
                 if current_collation_hash not in self.collation_validity_cache:
                     coro = self.verify_collation(
                         head_collation_hash,
@@ -216,11 +219,17 @@ class GuessHeadStateManager:
                     task = asyncio.ensure_future(coro)
                     asyncio.wait(task, timeout=self.TIME_ONE_STEP)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
+                else:
+                    # if the collation is invalid, set its head's chain validity False
+                    self.chain_validity[head_collation_hash] &= self.collation_validity_cache[
+                        current_collation_hash
+                    ]
 
                 current_collation_hash = self.vmc.get_collation_parent_hash(
                     self.shard_id,
                     current_collation_hash,
                 )
+                current_depth += 1
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:

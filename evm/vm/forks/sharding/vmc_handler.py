@@ -1,7 +1,4 @@
 import logging
-from typing import (  # noqa: F401
-    Dict
-)
 
 from web3.contract import (
     Contract,
