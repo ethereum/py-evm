@@ -111,16 +111,6 @@ def send_withdraw_tx(vmc_handler, validator_index):
     mine(vmc_handler, 1)
 
 
-def get_collation_score_call(vmc_instance, shard_id, collation_hash):
-    collation_score = vmc_instance.functions.get_collation_headers__score(
-        default_shard_id,
-        collation_hash,
-    ).call(
-        vmc_instance.mk_default_contract_tx_detail(),
-    )
-    return collation_score
-
-
 def mk_testing_colhdr(vmc_instance,
                       shard_id,
                       parent_hash,
@@ -193,7 +183,7 @@ def mk_colhdr_chain(vmc_instance,
     :return: the collation hash of the tip of the chain
     """
     for _ in range(num_collations):
-        top_collation_number = get_collation_score_call(vmc_instance, shard_id, top_collation_hash)
+        top_collation_number = vmc_instance.get_collation_score(shard_id, top_collation_hash)
         header = mk_testing_colhdr(
             vmc_instance,
             shard_id,

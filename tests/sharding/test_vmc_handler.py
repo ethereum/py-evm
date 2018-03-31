@@ -4,10 +4,6 @@ from eth_tester.exceptions import (
     TransactionFailed,
 )
 
-from eth_tester.backends.pyevm.main import (
-    get_default_account_keys,
-)
-
 from evm.constants import (
     ZERO_ADDRESS,
 )
@@ -110,23 +106,19 @@ def test_vmc_and_shard_tracker_contract_calls(vmc):  # noqa: F811
     vmc.add_header(header0_2)
     mine(vmc, vmc.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
-    colhdr0_1_score = vmc.functions.get_collation_headers_score(
-        shard_id,
+    colhdr0_1_score = vmc.functions.get_collation_header_score(
+        default_shard_id,
         header0_1.hash,
-    ).call(
-        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    )
+    ).call(vmc.mk_default_contract_tx_detail())
     assert colhdr0_1_score == 1
-    colhdr0_2_score = vmc.functions.get_collation_headers_score(
-        shard_id,
+    colhdr0_2_score = vmc.functions.get_collation_header_score(
+        default_shard_id,
         header0_2.hash,
-    ).call(
-        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    )
+    ).call(vmc.mk_default_contract_tx_detail())
     assert colhdr0_2_score == 2
     # assert parent_hashes
-    assert vmc.get_parent_hash(default_shard_id, header0_1.hash) == GENESIS_COLLATION_HASH
-    assert vmc.get_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
+    assert vmc.get_collation_parent_hash(default_shard_id, header0_1.hash) == GENESIS_COLLATION_HASH
+    assert vmc.get_collation_parent_hash(default_shard_id, header0_2.hash) == header0_1.hash
     # confirm the logs are correct
     assert shard_tracker0.get_next_log()['score'] == 2
     assert shard_tracker0.get_next_log()['score'] == 1
@@ -153,28 +145,10 @@ def test_vmc_and_shard_tracker_contract_calls(vmc):  # noqa: F811
     })
     assert len(logs) == 4
 
-    # test `tx_to_shard` ######################################
-    vmc.tx_to_shard(
-        get_default_account_keys()[1].public_key.to_canonical_address(),
-        default_shard_id,
-        100000,
-        1,
-        b'',
-        value=1234567,
-    )
-    mine(vmc, 1)
-    receipt_value = vmc.functions.get_receipts__value(0).call(
-        vmc.mk_default_contract_tx_detail(),
-    )
-    # the receipt value should be equaled to the transaction value
-    assert receipt_value == 1234567
-
     # test `withdraw` ######################################
     send_withdraw_tx(vmc, default_validator_index)
     mine(vmc, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `get_num_validators` must be 0.
-    num_validators = vmc.functions.num_validators().call(
-        vmc.mk_contract_tx_detail(sender_address=primary_addr, gas=default_gas)
-    )
+    num_validators = vmc.functions.num_validators().call(vmc.mk_default_contract_tx_detail())
     assert num_validators == 0

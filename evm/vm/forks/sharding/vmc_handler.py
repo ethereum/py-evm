@@ -144,16 +144,16 @@ class VMC(Contract):
         address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(tx_detail)
         return decode_hex(address_in_hex)
 
-    def get_parent_hash(self, shard_id, collation_hash, gas=None):
+    def get_collation_parent_hash(self, shard_id, collation_hash, gas=None):
         tx_detail = self.mk_default_contract_tx_detail(gas=gas)
-        return self.functions.get_collation_headers__parent_hash(
+        return self.functions.get_collation_header_parent_hash(
             shard_id,
             collation_hash,
         ).call(tx_detail)
 
     def get_collation_score(self, shard_id, collation_hash, gas=None):
         tx_detail = self.mk_default_contract_tx_detail(gas=gas)
-        return self.functions.get_collation_headers__score(
+        return self.functions.get_collation_header_score(
             shard_id,
             collation_hash,
         ).call(tx_detail)
@@ -202,32 +202,6 @@ class VMC(Contract):
                 collation_header.receipt_root,
                 collation_header.number,
             ],
-            gas=gas,
-            gas_price=gas_price,
-        )
-        return tx_hash
-
-    def tx_to_shard(self,
-                    to,
-                    shard_id,
-                    tx_startgas,
-                    tx_gasprice,
-                    data,
-                    value,
-                    gas=None,
-                    gas_price=None):
-        """Make a receipt with the given parameters
-        """
-        tx_hash = self.send_transaction(
-            'tx_to_shard',
-            [
-                to_checksum_address(to),
-                shard_id,
-                tx_startgas,
-                tx_gasprice,
-                data,
-            ],
-            value=value,
             gas=gas,
             gas_price=gas_price,
         )

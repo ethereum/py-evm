@@ -139,7 +139,7 @@ def deposit() -> int128:
     # find the empty slot index in validators set
     index: int128 = self.num_validators
     if not self.is_stack_empty():
-        index = self.stack_pop()        
+        index = self.stack_pop()
     self.validators[index] = {
         deposit: msg.value,
         addr: validator_addr,
@@ -188,6 +188,22 @@ def get_collation_header_score(shard_id: int128, collation_header_hash: bytes32)
         'int128'
     )
     return collation_score
+
+
+# Helper function to get collation header score
+@public
+@constant
+def get_collation_header_parent_hash(shard_id: int128, collation_header_hash: bytes32) -> bytes32:
+    # Add the header
+    parent_hash: bytes32 = convert(
+        uint256_div(
+            convert(self.collation_headers[shard_id][collation_header_hash], 'uint256'),
+            # Divided by 2^48, i.e., right shift 6 bytes
+            convert(281474976710656, 'uint256')
+        ),
+        'bytes32',
+    )
+    return parent_hash
 
 
 # Uses a block hash as a seed to pseudorandomly select a signer from the validator set.
@@ -263,7 +279,7 @@ def add_header(
     )
 
     # Check if parent header exists.
-    # If it exist, check that it's score is greater than 0.
+    # If it exists, check that it's score is greater than 0.
     parent_collation_score: int128 = self.get_collation_header_score(
         shard_id,
         parent_hash,

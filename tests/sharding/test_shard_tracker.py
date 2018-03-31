@@ -13,7 +13,6 @@ from tests.sharding.fixtures import (  # noqa: F401
     add_header_constant_call,
     default_shard_id,
     default_validator_index,
-    get_collation_score_call,
     mine,
     mk_colhdr_chain,
     mk_testing_colhdr,

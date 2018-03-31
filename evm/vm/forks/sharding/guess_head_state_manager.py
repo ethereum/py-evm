@@ -217,7 +217,7 @@ class GuessHeadStateManager:
                     asyncio.wait(task, timeout=self.TIME_ONE_STEP)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
 
-                current_collation_hash = self.vmc.get_parent_hash(
+                current_collation_hash = self.vmc.get_collation_parent_hash(
                     self.shard_id,
                     current_collation_hash,
                 )
