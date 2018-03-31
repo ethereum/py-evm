@@ -46,33 +46,12 @@ from tests.sharding.fixtures import (  # noqa: F401
 )
 
 
-PASSPHRASE = '123'
 GENESIS_COLHDR_HASH = b'\x00' * 32
 ZERO_ADDR = b'\x00' * 20
 
 test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
-
-
-def get_code(vmc_handler, address):
-    return vmc_handler.web3.eth.getCode(to_checksum_address(address))
-
-
-def get_nonce(vmc_handler, address):
-    return vmc_handler.web3.eth.getTransactionCount(to_checksum_address(address))
-
-
-def mine(vmc_handler, num_blocks):
-    vmc_handler.web3.testing.mine(num_blocks)
-
-
-def send_raw_transaction(vmc_handler, raw_transaction):
-    w3 = vmc_handler.web3
-    raw_transaction_bytes = rlp.encode(raw_transaction)
-    raw_transaction_hex = w3.toHex(raw_transaction_bytes)
-    transaction_hash = w3.eth.sendRawTransaction(raw_transaction_hex)
-    return transaction_hash
 
 
 def is_vmc_deployed(vmc_handler):
