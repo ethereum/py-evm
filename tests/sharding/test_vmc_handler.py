@@ -54,38 +54,6 @@ test_keys = get_default_account_keys()
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 
-def is_vmc_deployed(vmc_handler):
-    return (
-        get_code(vmc_handler, vmc_handler.address) != b'' and
-        get_nonce(vmc_handler, vmc_handler.vmc_tx_sender_address) != 0
-    )
-
-
-def mk_initiating_transactions(sender_privkey,
-                               sender_starting_nonce,
-                               TransactionClass,
-                               gas_price):
-    """Make VMC and its dependent transactions
-    """
-    nonce = sender_starting_nonce
-
-    vmc_tx = create_vmc_tx(TransactionClass, gas_price=gas_price)
-
-    # the sender gives all senders of the txs money, and append the
-    # money-giving tx with the original tx to the return list
-
-    funding_tx_for_tx_sender = TransactionClass.create_unsigned_transaction(
-        nonce,
-        gas_price,
-        500000,
-        vmc_tx.sender,
-        vmc_tx.gas * vmc_tx.gas_price + vmc_tx.value,
-        b'',
-    ).as_signed_transaction(sender_privkey)
-    nonce += 1
-    return funding_tx_for_tx_sender, vmc_tx
-
-
 def send_withdraw_tx(vmc_handler, validator_index):
     assert validator_index < len(test_keys)
     vmc_handler.withdraw(validator_index)
@@ -102,38 +70,6 @@ def send_deposit_tx(vmc_handler):
     mine(vmc_handler, 1)
     vmc_handler.deposit()
     return vmc_handler.get_default_sender_address()
-
-
-def deploy_initiating_contracts(vmc_handler, privkey):
-    w3 = vmc_handler.web3
-    nonce = get_nonce(vmc_handler, privkey.public_key.to_canonical_address())
-    txs = mk_initiating_transactions(
-        privkey,
-        nonce,
-        ByzantiumTransaction,
-        vmc_handler.config['GAS_PRICE'],
-    )
-    for tx in txs:
-        send_raw_transaction(vmc_handler, tx)
-        mine(vmc_handler, 1)
-    logger.debug(
-        'deploy_initiating_contracts: vmc_tx_hash=%s',
-        w3.eth.getTransactionReceipt(encode_hex(txs[-1].hash)),
-    )
-
-
-def import_key(vmc_handler, privkey):
-    """
-    :param vmc_handler: VMCHandler
-    :param privkey: PrivateKey object from eth_keys
-    """
-    try:
-        vmc_handler.web3.personal.importRawKey(privkey.to_hex(), PASSPHRASE)
-    # Exceptions happen when the key is already imported.
-    #   - ValueError: `web3.py`
-    #   - ValidationError: `eth_tester`
-    except (ValueError, ValidationError):
-        pass
 
 
 def mk_testing_colhdr(vmc_handler,
@@ -278,17 +214,6 @@ def test_vmc_contract_calls(vmc):  # noqa: F811
             sender_address=None,
             gas=vmc.config['DEFAULT_GAS'],
         )
-
-    # test the deployment of vmc ######################################
-    # deploy vmc if it is not deployed yet.
-    if not is_vmc_deployed(vmc):
-        logger.debug('is_vmc_deployed(vmc) == True')
-        # import test_key
-        import_key(vmc, primary_key)
-        deploy_initiating_contracts(vmc, primary_key)
-        mine(vmc, 1)
-
-    assert is_vmc_deployed(vmc)
 
     lookahead_blocks = vmc.config['LOOKAHEAD_PERIODS'] * vmc.config['PERIOD_LENGTH']
     # test `deposit` and `get_eligible_proposer` ######################################
