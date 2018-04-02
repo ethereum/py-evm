@@ -1,3 +1,5 @@
+import copy
+
 from cytoolz import (
     pipe,
 )
@@ -57,6 +59,7 @@ class ShardTracker:
     current_score = None
     new_logs = None
     unchecked_logs = None
+    headers_by_height = None
 
     def __init__(self, shard_id, log_handler, vmc_address):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
@@ -67,6 +70,14 @@ class ShardTracker:
         self.current_score = None
         self.new_logs = []
         self.unchecked_logs = []
+
+        # for the alternative `fetch_candidate_head`
+        # TODO: might need to be a sliding window, discarding the headers which are no longer
+        #       needed.
+        #       However, still need to figure out the window size. Since we need to make sure that
+        #       collation headers of non-best-candidate chains in the depth <= `WINDBACK_LENGTH`
+        #       should still be reachable.
+        self.headers_by_height = []
 
     @to_tuple
     def _get_new_logs(self):
@@ -103,10 +114,8 @@ class ShardTracker:
             reversed,
             tuple,
         )
-        current_score = self.current_score
-
         for idx, log_entry in unchecked_logs:
-            if log_entry['score'] == current_score:
+            if log_entry['score'] == self.current_score:
                 return self.unchecked_logs.pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
@@ -126,3 +135,21 @@ class ShardTracker:
     def clean_logs(self):
         self.new_logs = []
         self.unchecked_logs = []
+
+    def add_log(self, log_entry):
+        collation_height = log_entry['score']
+        while len(self.headers_by_height) <= collation_height:
+            self.headers_by_height.append([])
+        self.headers_by_height[collation_height].append(log_entry['header'])
+
+    def fetch_candidate_heads_generator(self, windback_length):
+        new_logs = self._get_new_logs()
+        for log_entry in new_logs:
+            self.add_log(log_entry)
+        # TODO: deepcopy seems to be costly
+        headers_by_height = copy.deepcopy(self.headers_by_height)
+        max_height = len(headers_by_height) - 1
+        windback_index = max(0, max_height + 1 - windback_length)
+        for height in reversed(range(windback_index, max_height + 1)):
+            for header in headers_by_height[height]:
+                yield header

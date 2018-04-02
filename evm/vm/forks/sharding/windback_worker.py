@@ -8,9 +8,6 @@ import time
 from evm.vm.forks.sharding.constants import (
     GENESIS_COLLATION_HASH,
 )
-from evm.vm.forks.sharding.shard_tracker import (
-    NoCandidateHead,
-)
 
 
 NUM_RESERVED_BLOCKS = 5
@@ -102,16 +99,6 @@ class WindbackWorker:
         if not collation_validity:
             self.chain_validity[head_collation_hash] = False
 
-    def fetch_candidate_head_hash(self):
-        head_collation_hash = None
-        try:
-            head_collation_dict = self.shard_tracker.fetch_candidate_head()
-            head_collation_hash = head_collation_dict['header'].hash
-        except NoCandidateHead:
-            self.logger.debug("No candidate head available, `guess_head` stops")
-        self.latest_fetching_period = self.get_current_period()
-        return head_collation_hash
-
     def set_collation_task(self, head_collation_hash, current_collation_hash, task):
         self.unfinished_verifying_tasks.append(task)
         self.collation_verifying_task[current_collation_hash] = task
@@ -135,14 +122,15 @@ class WindbackWorker:
 
         head_collation_hash = current_collation_hash = None
         self.unfinished_verifying_tasks = []
+        candidate_heads = self.shard_tracker.fetch_candidate_heads_generator(
+            windback_length=self.vmc.config['WINDBACK_LENGTH']
+        )
         while True:
-            # discard old logs if we're in the new period
-            # TODO: should this logic be moved to the caller of `guess_head`?
-            if self.get_current_period() > self.latest_fetching_period:
-                self.shard_tracker.clean_logs()
-            head_collation_hash = self.fetch_candidate_head_hash()
-            if head_collation_hash is None:
-                break
+            try:
+                head_header = next(candidate_heads)
+            except StopIteration:
+                return None
+            head_collation_hash = head_header.hash
             current_collation_hash = head_collation_hash
             for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
                 # if time is up

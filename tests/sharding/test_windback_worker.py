@@ -62,10 +62,10 @@ def test_guess_head_new_only_candidate_is_invalid(windback_worker, vmc):  # noqa
 
 
 def test_guess_head_new_only_candidate_is_not_longest(windback_worker, vmc):  # noqa: F811
-    mk_colhdr_chain(vmc, default_shard_id, 3)
+    head_header_hash = mk_colhdr_chain(vmc, default_shard_id, 3)
     windback_worker.run_guess_head()
     mk_colhdr_chain(vmc, default_shard_id, 1)
-    assert windback_worker.run_guess_head() is None
+    assert windback_worker.run_guess_head() == head_header_hash
 
 
 def test_guess_head_windback_length(windback_worker, vmc):  # noqa: F811
