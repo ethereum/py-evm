@@ -102,13 +102,10 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             "fork configuration"
         )
 
-    # Validate that there is at least one start block for block 0
+    # If no VM is set to start at block 0, default to the frontier VM
     start_blocks = set(start_block for start_block, _ in fork_start_blocks)
     if 0 not in start_blocks:
-        raise ValidationError(
-            "At least one VM must start at block 0.  Got start blocks: "
-            "{0}".format(sorted(start_blocks))
-        )
+        yield 0, MAINNET_VMS['frontier']
 
     ordered_fork_start_blocks = sorted(fork_start_blocks, key=operator.itemgetter(0))
 
