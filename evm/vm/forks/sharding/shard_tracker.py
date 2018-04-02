@@ -6,7 +6,6 @@ from cytoolz import (
 
 from eth_utils import (
     event_signature_to_log_topic,
-    to_dict,
     to_tuple,
 )
 
