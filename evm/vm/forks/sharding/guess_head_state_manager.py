@@ -43,15 +43,6 @@ async def verify_collation(collation, collation_hash):
     return True
 
 
-async def fetch_and_verify_collation(collation_hash):
-    """Fetch the collation body and verify the collation
-
-    :return: returns the collation's validity
-    """
-    collation = await download_collation(collation_hash)
-    return await verify_collation(collation, collation_hash)
-
-
 def clean_done_task(tasks):
     return [task for task in tasks if not task.done()]
 
@@ -104,12 +95,9 @@ class GuessHeadStateManager:
 
     # guess_head process related
 
-    async def verify_collation(self, head_collation_hash, collation_hash):
-        coroutine = fetch_and_verify_collation(
-            collation_hash,
-        )
-        task = asyncio.ensure_future(coroutine)
-        collation_validity = await asyncio.wait_for(task, None)
+    async def process_collation(self, head_collation_hash, collation_hash):
+        collation = await download_collation(collation_hash)
+        collation_validity = await verify_collation(collation, collation_hash)
         self.collation_validity_cache[collation_hash] = collation_validity
         if not collation_validity:
             self.chain_validity[head_collation_hash] = False
@@ -162,7 +150,7 @@ class GuessHeadStateManager:
                 # process current collation
                 # if the collation is checked before, just skip it
                 if current_collation_hash not in self.collation_validity_cache:
-                    coro = self.verify_collation(
+                    coro = self.process_collation(
                         head_collation_hash,
                         current_collation_hash,
                     )
