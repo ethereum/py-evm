@@ -59,7 +59,7 @@ from evm.vm.forks.sharding.config import (
 from evm.vm.forks.sharding.constants import (
     GENESIS_COLLATION_HASH,
 )
-from evm.vm.forks.sharding.guess_head_state_manager import (
+from evm.vm.forks.sharding.windback_worker import (
     WindbackWorker,
 )
 from evm.vm.forks.sharding.log_handler import (
