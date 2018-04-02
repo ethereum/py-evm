@@ -123,7 +123,3 @@ class LogHandler:
             topics,
         )
         return self.w3.eth.getLogs(filter_params)
-
-    def reset(self):
-        genesis_block_hash = self.w3.eth.getBlock('earliest')['hash']
-        self.recent_block_hashes = (genesis_block_hash,)

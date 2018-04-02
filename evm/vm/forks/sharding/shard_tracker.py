@@ -31,7 +31,6 @@ class NoCandidateHead(Exception):
     pass
 
 
-@to_dict
 def parse_collation_added_log(log):
     # here assume `shard_id` is the first indexed , which is the second element in topics
     shard_id_bytes32 = log['topics'][1]
@@ -41,9 +40,11 @@ def parse_collation_added_log(log):
     is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
     header_bytes = shard_id_bytes32 + data_bytes[:-64]
     collation_header = CollationHeader.from_bytes(header_bytes)
-    yield 'header', collation_header
-    yield 'is_new_head', is_new_head
-    yield 'score', score
+    return {
+        'header': collation_header,
+        'is_new_head': is_new_head,
+        'score': score,
+    }
 
 
 class ShardTracker:
