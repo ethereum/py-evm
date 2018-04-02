@@ -35,6 +35,11 @@ class CustomFrontierVM(FrontierVM):
             ((0, Forks.TangerineWhistle), (1, Forks.SpuriousDragon)),
         ),
         (
+            ((1, 'tangerine-whistle'), (2, 'spurious-dragon')),
+            {},
+            ((0, Forks.Frontier), (1, Forks.TangerineWhistle), (2, Forks.SpuriousDragon)),
+        ),
+        (
             ((0, CustomFrontierVM), (1, 'spurious-dragon')),
             {},
             ((0, Forks.Custom), (1, Forks.SpuriousDragon)),
@@ -70,6 +75,11 @@ class CustomFrontierVM(FrontierVM):
         ),
         (
             ((0, 'frontier'), (1, 'homestead')),
+            {},
+            ((0, Forks.Frontier), (1, Forks.Homestead)),
+        ),
+        (
+            ((1, 'homestead'),),
             {},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
