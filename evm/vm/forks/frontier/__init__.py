@@ -11,7 +11,10 @@ from .headers import (
 
 
 FrontierVM = VM.configure(
+    # class name
     __name__='FrontierVM',
+    # fork name
+    fork='frontier',
     # classes
     _state_class=FrontierState,
     # helpers
