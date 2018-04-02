@@ -62,6 +62,7 @@ class GuessHeadStateManager:
 
     logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
 
+    is_time_up = None
     last_period_fetching_candidate_head = None
 
     collation_validity_cache = None
@@ -71,13 +72,12 @@ class GuessHeadStateManager:
     collation_verifying_task = None
     chain_collations = None
 
-    def __init__(self, vmc, shard_id, shard_tracker, my_address):
-        # a well-setup vmc handler with a shard_tracker in shard `shard_id`
+    def __init__(self, vmc, shard_tracker, my_address):
         self.vmc = vmc
-        self.shard_id = shard_id
         self.shard_tracker = shard_tracker
         self.my_address = my_address
 
+        self.is_time_up = False
         self.last_period_fetching_candidate_head = 0
 
         # map[collation] -> validity
@@ -94,36 +94,13 @@ class GuessHeadStateManager:
         # the collations in the chain
         self.chain_collations = defaultdict(list)
 
+    def get_shard_id(self):
+        return self.shard_tracker.shard_id
+
     # time related
 
     def get_current_period(self):
         return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
-
-    def is_collator_in_period(self, period):
-        collator_address = self.vmc.get_eligible_proposer(
-            self.shard_id,
-            period,
-        )
-        return collator_address == self.my_address
-
-    def is_collator_in_lookahead_periods(self):
-        """
-        See if we are going to be a collator in the future periods
-        """
-        result = False
-        for future_periods in range(self.vmc.config['LOOKAHEAD_PERIODS']):
-            lookahead_period = self.get_current_period() + future_periods
-            result |= self.is_collator_in_period(lookahead_period)
-        return result
-
-    def is_late_collator_period(self):
-        current_period = self.get_current_period()
-        current_block_num = self.vmc.web3.eth.blockNumber
-        last_block_num_in_current_period = current_period * self.vmc.config['PERIOD_LENGTH']
-        return (
-            self.is_collator_in_period(current_period) and
-            (current_block_num + NUM_RESERVED_BLOCKS >= last_block_num_in_current_period)
-        )
 
     # guess_head process related
 
@@ -159,7 +136,7 @@ class GuessHeadStateManager:
             for collation_hash in self.chain_collations[head_collation_hash]
         ]
 
-    async def guess_head(self, enable_timing_up=False):
+    async def guess_head(self):
         '''
         Perform windback process.
         returns None if there is no candidate head available in this period
@@ -177,8 +154,8 @@ class GuessHeadStateManager:
                 break
             current_collation_hash = head_collation_hash
             for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
-                # if running out of time
-                if enable_timing_up and self.is_late_collator_period():
+                # if time is up
+                if self.is_time_up:
                     return head_collation_hash
                 if current_collation_hash == GENESIS_COLLATION_HASH:
                     break
@@ -199,21 +176,23 @@ class GuessHeadStateManager:
                     ]
 
                 current_collation_hash = self.vmc.get_collation_parent_hash(
-                    self.shard_id,
+                    self.get_shard_id(),
                     current_collation_hash,
                 )
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:
                     await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.TIME_ONE_STEP)
-                    self.unfinished_verifying_tasks = clean_done_task(self.unfinished_verifying_tasks)
+                    self.unfinished_verifying_tasks = clean_done_task(
+                        self.unfinished_verifying_tasks
+                    )
                 # yield the CPU to other coroutine
                 await asyncio.sleep(self.TIME_ONE_STEP)
 
             # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
             while self.chain_validity[head_collation_hash]:
-                # if running out of time
-                if enable_timing_up and self.is_late_collator_period():
+                # if time is up
+                if self.is_time_up:
                     return head_collation_hash
                 candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
                 is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
@@ -231,7 +210,7 @@ class GuessHeadStateManager:
         logger.debug("time elapsed=%s", time.time() - start)
         return head_collation_hash
 
-    def run_guess_head(self, enable_timing_up=False):
+    def run_guess_head(self):
         loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self.guess_head(enable_timing_up))
+        result = loop.run_until_complete(self.guess_head())
         return result

@@ -332,7 +332,6 @@ def shard_tracker(vmc_instance, shard_id):
 def ghs_manager(vmc):
     ghs_manager = GuessHeadStateManager(
         vmc,
-        default_shard_id,
         shard_tracker(vmc, default_shard_id),
         vmc.get_default_sender_address(),
     )
