@@ -69,19 +69,6 @@ class ShardTracker:
         self.unchecked_logs = []
 
     @to_tuple
-    def peek_new_logs(self):
-        shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
-        new_logs = self.log_handler.peek_new_logs(
-            address=self.vmc_address,
-            topics=[
-                encode_hex(self.COLLATION_ADDED_TOPIC),
-                shard_id_topic_hex,
-            ],
-        )
-        for log in new_logs:
-            yield parse_collation_added_log(log)
-
-    @to_tuple
     def _get_new_logs(self):
         shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
         new_logs = self.log_handler.get_new_logs(

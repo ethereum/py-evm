@@ -47,14 +47,14 @@ def clean_done_task(tasks):
     return [task for task in tasks if not task.done()]
 
 
-class GuessHeadStateManager:
+class WindbackWorker:
 
-    TIME_ONE_STEP = 0.1
+    YIELDED_TIME = 0.1
 
-    logger = logging.getLogger("evm.chain.sharding.GuessHeadStateManager")
+    logger = logging.getLogger("evm.chain.sharding.windback_worker")
 
     is_time_up = None
-    last_period_fetching_candidate_head = None
+    latest_fetching_period = None
 
     collation_validity_cache = None
     chain_validity = None
@@ -69,7 +69,7 @@ class GuessHeadStateManager:
         self.my_address = my_address
 
         self.is_time_up = False
-        self.last_period_fetching_candidate_head = 0
+        self.latest_fetching_period = 0
 
         # map[collation] -> validity
         self.collation_validity_cache = {}
@@ -109,7 +109,7 @@ class GuessHeadStateManager:
             head_collation_hash = head_collation_dict['header'].hash
         except NoCandidateHead:
             self.logger.debug("No candidate head available, `guess_head` stops")
-        self.last_period_fetching_candidate_head = self.get_current_period()
+        self.latest_fetching_period = self.get_current_period()
         return head_collation_hash
 
     def set_collation_task(self, head_collation_hash, current_collation_hash, task):
@@ -127,7 +127,9 @@ class GuessHeadStateManager:
     async def guess_head(self):
         '''
         Perform windback process.
-        returns None if there is no candidate head available in this period
+        Returns
+            the head collation hash, if it meets the windback condition. OR
+            None, if there's no qualified candidate head.
         '''
         start = time.time()
 
@@ -135,7 +137,8 @@ class GuessHeadStateManager:
         self.unfinished_verifying_tasks = []
         while True:
             # discard old logs if we're in the new period
-            if self.get_current_period() > self.last_period_fetching_candidate_head:
+            # TODO: should this logic be moved to the caller of `guess_head`?
+            if self.get_current_period() > self.latest_fetching_period:
                 self.shard_tracker.clean_logs()
             head_collation_hash = self.fetch_candidate_head_hash()
             if head_collation_hash is None:
@@ -155,7 +158,7 @@ class GuessHeadStateManager:
                         current_collation_hash,
                     )
                     task = asyncio.ensure_future(coro)
-                    asyncio.wait(task, timeout=self.TIME_ONE_STEP)
+                    asyncio.wait(task, timeout=self.YIELDED_TIME)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
                 else:
                     # if the collation is invalid, set its head's chain validity False
@@ -170,12 +173,12 @@ class GuessHeadStateManager:
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:
-                    await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.TIME_ONE_STEP)
+                    await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.YIELDED_TIME)
                     self.unfinished_verifying_tasks = clean_done_task(
                         self.unfinished_verifying_tasks
                     )
                 # yield the CPU to other coroutine
-                await asyncio.sleep(self.TIME_ONE_STEP)
+                await asyncio.sleep(self.YIELDED_TIME)
 
             # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
             while self.chain_validity[head_collation_hash]:
@@ -186,7 +189,7 @@ class GuessHeadStateManager:
                 is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
                 if is_chain_tasks_done:
                     break
-                await asyncio.wait(candidate_chain_tasks, timeout=self.TIME_ONE_STEP)
+                await asyncio.wait(candidate_chain_tasks, timeout=self.YIELDED_TIME)
             # if we break from `while`, either the chain is done or chain is invalid
             # Case 1:
             #   if the chain_validity is True, it means chain_tasks are done and

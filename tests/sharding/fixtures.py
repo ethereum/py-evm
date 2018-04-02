@@ -60,7 +60,7 @@ from evm.vm.forks.sharding.constants import (
     GENESIS_COLLATION_HASH,
 )
 from evm.vm.forks.sharding.guess_head_state_manager import (
-    GuessHeadStateManager,
+    WindbackWorker,
 )
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
@@ -329,10 +329,9 @@ def shard_tracker(vmc_instance, shard_id):
 
 
 @pytest.fixture
-def ghs_manager(vmc):
-    ghs_manager = GuessHeadStateManager(
+def windback_worker(vmc):
+    return WindbackWorker(
         vmc,
         shard_tracker(vmc, default_shard_id),
         vmc.get_default_sender_address(),
     )
-    return ghs_manager
