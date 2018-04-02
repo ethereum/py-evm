@@ -145,6 +145,8 @@ class ShardTracker:
     def fetch_candidate_heads_generator(self, windback_length):
         new_logs = self._get_new_logs()
         for log_entry in new_logs:
+            # TODO: we can use another coroutine to sync the logs concurrently, instead of doing
+            #       that in this function
             self.add_log(log_entry)
         # TODO: deepcopy seems to be costly
         headers_by_height = copy.deepcopy(self.headers_by_height)
