@@ -8,6 +8,10 @@ class BaseDB(metaclass=ABCMeta):
 
     @abstractmethod
     def get(self, key):
+        """Return the value for the given key.
+
+        Raises KeyError if key doesn't exist.
+        """
         raise NotImplementedError(
             "The `get` method must be implemented by subclasses of BaseDB"
         )
@@ -20,6 +24,7 @@ class BaseDB(metaclass=ABCMeta):
 
     @abstractmethod
     def exists(self, key):
+        """Return True if the key exists or False if it doesn't."""
         raise NotImplementedError(
             "The `exists` method must be implemented by subclasses of BaseDB"
         )

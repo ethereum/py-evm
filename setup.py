@@ -34,10 +34,10 @@ setup(
             "coincurve>=7.0.0,<8.0.0",
         ],
         'leveldb': [
-            "leveldb>=0.194,<1.0.0",
+            "plyvel==1.0.4",
         ],
         'trinity': [
-            "leveldb>=0.194,<1.0.0",
+            "plyvel==1.0.4",
             "coincurve>=7.0.0,<8.0.0",
             "web3>=4.0.0b11,<5.0.0",
         ],
