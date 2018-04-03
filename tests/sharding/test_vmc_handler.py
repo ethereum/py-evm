@@ -23,8 +23,8 @@ from evm.rlp.headers import (
     CollationHeader,
 )
 from evm.vm.forks.sharding.vmc_handler import (
-    mk_call_context,
-    mk_transaction_context,
+    make_call_context,
+    make_transaction_context,
 )
 from evm.vm.forks.sharding.log_handler import (
     LogHandler,
@@ -51,7 +51,7 @@ test_keys = get_default_account_keys()
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.VMCHandler')
 
 
-def mk_testing_colhdr(vmc_handler,  # noqa: F811
+def make_testing_colhdr(vmc_handler,  # noqa: F811
                       shard_id,
                       parent_hash,
                       number,
@@ -59,12 +59,12 @@ def mk_testing_colhdr(vmc_handler,  # noqa: F811
     period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
-    logger.debug("mk_testing_colhdr: expected_period_number=%s", expected_period_number)
+    logger.debug("make_testing_colhdr: expected_period_number=%s", expected_period_number)
 
     period_start_prevblock_number = expected_period_number * period_length - 1
     period_start_prev_block = vmc_handler.web3.eth.getBlock(period_start_prevblock_number)
     period_start_prevhash = period_start_prev_block['hash']
-    logger.debug("mk_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
+    logger.debug("make_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
 
     transaction_root = b"tx_list " * 4
     state_root = b"post_sta" * 4
@@ -96,7 +96,7 @@ def add_header_constant_call(vmc_handler, collation_header):  # noqa: F811
     )
     # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
     # is the same as the one of parameters of `VMCHandler.add_header`
-    result = vmc_handler.call(mk_call_context(
+    result = vmc_handler.call(make_call_context(
         sender_address=vmc_handler.sender_address,
         gas=vmc_handler.config['DEFAULT_GAS'],
         gas_price=1,
@@ -104,8 +104,8 @@ def add_header_constant_call(vmc_handler, collation_header):  # noqa: F811
     return result
 
 
-def test_mk_transaction_context():
-    transaction_context = mk_transaction_context(
+def test_make_transaction_context():
+    transaction_context = make_transaction_context(
         nonce=0,
         gas=10000,
     )
@@ -113,31 +113,31 @@ def test_mk_transaction_context():
     assert 'gas' in transaction_context
     assert 'chainId' in transaction_context
     with pytest.raises(ValueError):
-        transaction_context = mk_transaction_context(
+        transaction_context = make_transaction_context(
             nonce=None,
             gas=10000,
         )
     with pytest.raises(ValueError):
-        transaction_context = mk_transaction_context(
+        transaction_context = make_transaction_context(
             nonce=0,
             gas=None,
         )
 
 
-def test_mk_call_context():
-    call_context = mk_call_context(
+def test_make_call_context():
+    call_context = make_call_context(
         sender_address=ZERO_ADDR,
         gas=1000,
     )
     assert 'from' in call_context
     assert 'gas' in call_context
     with pytest.raises(ValueError):
-        call_context = mk_call_context(
+        call_context = make_call_context(
             sender_address=ZERO_ADDR,
             gas=None,
         )
     with pytest.raises(ValueError):
-        call_context = mk_call_context(
+        call_context = make_call_context(
             sender_address=None,
             gas=1000,
         )
@@ -161,7 +161,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     # if there is currently no validator, we deposit one.
     # else, there should only be one validator, for easier testing.
     num_validators = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).num_validators()
     if num_validators == 0:
         # deposit as the first validator
@@ -178,7 +178,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     assert web3.eth.blockNumber >= lookahead_blocks
 
     num_validators = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).num_validators()
     assert num_validators == 1
     assert vmc_handler.get_eligible_proposer(shard_id) != ZERO_ADDR
@@ -186,11 +186,11 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
-    header0_1 = mk_testing_colhdr(vmc_handler, shard_id, GENESIS_COLHDR_HASH, 1)
+    header0_1 = make_testing_colhdr(vmc_handler, shard_id, GENESIS_COLHDR_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
-        header_parent_not_added = mk_testing_colhdr(
+        header_parent_not_added = make_testing_colhdr(
             vmc_handler,
             shard_id,
             header0_1.hash,
@@ -204,17 +204,17 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     with pytest.raises(TransactionFailed):
         add_header_constant_call(vmc_handler, header0_1)
     # when a valid header is added, the `add_header` call should succeed
-    header0_2 = mk_testing_colhdr(vmc_handler, shard_id, header0_1.hash, 2)
+    header0_2 = make_testing_colhdr(vmc_handler, shard_id, header0_1.hash, 2)
     vmc_handler.add_header(header0_2)
 
     mine(web3, vmc_handler.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).get_collation_header_score(shard_id, header0_1.hash)
     assert colhdr0_1_score == 1
     colhdr0_2_score = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).get_collation_header_score(shard_id, header0_2.hash)
     assert colhdr0_2_score == 2
     # confirm the logs are correct
@@ -225,10 +225,10 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
 
     # filter logs in multiple shards
     shard_1_tracker = ShardTracker(1, LogHandler(web3), vmc_handler.address)
-    header1_1 = mk_testing_colhdr(vmc_handler, 1, GENESIS_COLHDR_HASH, 1)
+    header1_1 = make_testing_colhdr(vmc_handler, 1, GENESIS_COLHDR_HASH, 1)
     vmc_handler.add_header(header1_1)
     mine(web3, 1)
-    header0_3 = mk_testing_colhdr(vmc_handler, shard_id, header0_2.hash, 3)
+    header0_3 = make_testing_colhdr(vmc_handler, shard_id, header0_2.hash, 3)
     vmc_handler.add_header(header0_3)
     mine(web3, 1)
     assert shard_0_tracker.get_next_log()['score'] == 3
@@ -252,7 +252,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     )
     mine(web3, 1)
     receipt_value = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).receipts__value(0)
     # the receipt value should be equaled to the transaction value
     assert receipt_value == 1234567
@@ -263,6 +263,6 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `num_validators` must be 0.
     num_validators = vmc_handler.call(
-        mk_call_context(sender_address=primary_addr, gas=default_gas)
+        make_call_context(sender_address=primary_addr, gas=default_gas)
     ).num_validators()
     assert num_validators == 0

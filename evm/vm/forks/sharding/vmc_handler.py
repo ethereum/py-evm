@@ -21,11 +21,11 @@ from evm.vm.forks.sharding.config import (
 
 # Basic call context helper functions
 @to_dict
-def mk_call_context(sender_address,
-                    gas=None,
-                    value=None,
-                    gas_price=None,
-                    data=None):
+def make_call_context(sender_address,
+                      gas,
+                      value=None,
+                      gas_price=None,
+                      data=None):
     if not is_canonical_address(sender_address):
         raise ValueError('sender_address should be provided in the canonical format')
     if not (isinstance(gas, int) and gas > 0):
@@ -43,12 +43,12 @@ def mk_call_context(sender_address,
 
 # Basic transaction context helper functions
 @to_dict
-def mk_transaction_context(nonce,
-                           gas,
-                           chain_id=None,
-                           value=None,
-                           gas_price=None,
-                           data=None):
+def make_transaction_context(nonce,
+                             gas,
+                             chain_id=None,
+                             value=None,
+                             gas_price=None,
+                             data=None):
     if not (isinstance(nonce, int) and nonce >= 0):
         raise ValueError('nonce should be provided as non-negative integer')
     if not (isinstance(gas, int) and gas > 0):
@@ -102,7 +102,7 @@ class VMCHandler(Contract):
         """
         if period is None:
             period = self.web3.eth.blockNumber // self.config['PERIOD_LENGTH']
-        call_context = mk_call_context(
+        call_context = make_call_context(
             sender_address=self.sender_address,
             gas=self.config["DEFAULT_GAS"]
         )
@@ -110,7 +110,7 @@ class VMCHandler(Contract):
         return decode_hex(address_in_hex)
 
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
-        call_context = mk_call_context(
+        call_context = make_call_context(
             sender_address=self.sender_address,
             gas=self.config["DEFAULT_GAS"]
         )
@@ -120,7 +120,7 @@ class VMCHandler(Contract):
         ).call(call_context)
 
     def get_collation_score(self, shard_id, collation_hash, gas=None):
-        call_context = mk_call_context(
+        call_context = make_call_context(
             sender_address=self.sender_address,
             gas=self.config["DEFAULT_GAS"]
         )
@@ -145,7 +145,7 @@ class VMCHandler(Contract):
         privkey = self.private_key
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
-        build_transaction_detail = mk_transaction_context(
+        build_transaction_detail = make_transaction_context(
             nonce=nonce,
             gas=gas,
             chain_id=chain_id,

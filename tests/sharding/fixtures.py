@@ -56,7 +56,7 @@ from tests.sharding.web3_utils import (
 )
 
 
-def mk_deploy_vmc_tx(TransactionClass, gas_price):
+def make_deploy_vmc_tx(TransactionClass, gas_price):
     vmc_json = get_vmc_json()
     vmc_bytecode = decode_hex(vmc_json['bytecode'])
     v = 27
@@ -74,7 +74,7 @@ def get_contract_address_from_deploy_tx(transaction):
 
 
 def deploy_vmc_contract(web3, gas_price, privkey):
-    deploy_vmc_tx = mk_deploy_vmc_tx(ByzantiumTransaction, gas_price=gas_price)
+    deploy_vmc_tx = make_deploy_vmc_tx(ByzantiumTransaction, gas_price=gas_price)
 
     # fund the vmc contract deployer
     fund_deployer_tx = ByzantiumTransaction.create_unsigned_transaction(
