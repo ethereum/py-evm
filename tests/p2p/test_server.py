@@ -3,27 +3,19 @@ import logging
 import pytest
 import random
 import socket
-import sys
 
 from eth_utils import decode_hex
 from eth_keys import keys
 
 from evm.db.chain import ChainDB
 from evm.db.backends.memory import MemoryDB
-from p2p import kademlia, discovery, ecies
+from p2p.kademlia import (
+    Node,
+    Address,
+)
 from p2p.server import Server
-from p2p.peer import (
-    BasePeer,
-    LESPeer,
-    ETHPeer,
-    PeerPool,
-)
-from p2p.auth import (
-    HandshakeInitiator,
-    HandshakeResponder,
-)
+from p2p.peer import PeerPool
 
-SERVER_ADDRESS = ('localhost', get_open_port())
 test_values = { k: decode_hex(v) for (k, v) in 
     {
         "initiator_private_key": "49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee",
@@ -67,18 +59,17 @@ def get_open_port():
     s.close()
     return port
 
-def random_address():
-    return kademlia.Address(
-        '10.0.0.{}'.format(random.randint(0, 255)), random.randint(0, 9999))
+SERVER_ADDRESS = ('localhost', get_open_port())
+INITIATOR_PUBKEY = keys.PrivateKey(test_values['initiator_private_key']).public_key
+INITIATOR_ADDRESS = Address('::1', get_open_port() + 1)
+INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 @pytest.fixture
 def server():
-    chaindb = ChainDB(MemoryDB())
     privkey = keys.PrivateKey(test_values['receiver_private_key'])
-    disc = discovery.DiscoveryProtocol(privkey, random_address(), bootstrap_nodes=[])
-    peer_pool = PeerPool(ETHPeer, chaindb, 1, test_values['receiver_private_key'], disc)
-
-    return Server(privkey, SERVER_ADDRESS, peer_pool)
+    chaindb = ChainDB(MemoryDB())
+    server = Server(privkey, SERVER_ADDRESS, chaindb)
+    return server
 
 def test_responder_server(server, event_loop):
     # Start server
@@ -86,19 +77,22 @@ def test_responder_server(server, event_loop):
     asyncio.ensure_future(server.run())
     # Send ping from client
     event_loop.run_until_complete(ping_server())
-    event_loop.run_until_complete(stall(1))
+    event_loop.run_until_complete(stall(0.1))
     # Assert server still running
     assert server.cancel_token.triggered is False
+    assert isinstance(server.peer_pool, PeerPool)
+    assert server.peer_pool.cancel_token.triggered is False
     # The sole subscriber is the server itself
     assert len(server.peer_pool._subscribers) is 1
+    # The sole connected node is our initiator
+    assert len(server.peer_pool.connected_nodes) is 1
+    initiator_peer = server.peer_pool.connected_nodes[INITIATOR_REMOTE]
+    assert initiator_peer.remote == INITIATOR_REMOTE 
+    assert initiator_peer.privkey == keys.PrivateKey(test_values['receiver_private_key'])
     # Stop server
     event_loop.run_until_complete(server.stop())
     assert server.cancel_token.triggered is True
-    # Assert `incoming_connections` includes peer connection data
-    assert isinstance(server.peer_pool, PeerPool)
-    assert len(server.incoming_connections) is 1
-    assert server.incoming_connections[0][2] == test_values['initiator_nonce']
-    assert server.incoming_connections[0][3] == keys.PrivateKey(test_values['initiator_ephemeral_private_key']).public_key
+    assert server.peer_pool.cancel_token.triggered is True
     
 async def ping_server():
     await asyncio.sleep(1)
@@ -122,5 +116,3 @@ async def send_auth_msg_to_server(address, messages):
         else:
             writer.close()
             return
-
-

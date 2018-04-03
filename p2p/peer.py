@@ -670,6 +670,11 @@ class PeerPool:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
+    def add_peer(self, peer):
+        self.connected_nodes[peer.remote] = peer
+        for subscriber in self._subscribers:
+            subscriber.register_peer(peer)
+
     async def run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
