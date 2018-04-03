@@ -14,11 +14,9 @@ from eth_tester.backends.pyevm.main import (
 from eth_utils import (
     is_address,
     to_checksum_address,
-)
-
-from evm.utils.hexadecimal import (
     encode_hex,
 )
+
 from evm.rlp.headers import (
     CollationHeader,
 )

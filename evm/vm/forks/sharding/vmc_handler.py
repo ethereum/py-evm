@@ -8,9 +8,6 @@ from eth_utils import (
     is_canonical_address,
     to_checksum_address,
     to_dict,
-)
-
-from evm.utils.hexadecimal import (
     decode_hex,
 )
 

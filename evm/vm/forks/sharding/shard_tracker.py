@@ -6,18 +6,13 @@ from eth_utils import (
     event_signature_to_log_topic,
     to_dict,
     to_tuple,
+    encode_hex,
+    decode_hex,
+    big_endian_to_int,
 )
 
 from evm.rlp.headers import (
     CollationHeader,
-)
-
-from evm.utils.hexadecimal import (
-    encode_hex,
-    decode_hex,
-)
-from evm.utils.numeric import (
-    big_endian_to_int,
 )
 
 
