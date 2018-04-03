@@ -2,10 +2,6 @@ import logging
 
 import pytest
 
-from eth_tester.backends.pyevm.main import (
-    get_default_account_keys,
-)
-
 from evm.rlp.headers import (
     CollationHeader,
 )
@@ -22,12 +18,6 @@ from tests.sharding.fixtures import (  # noqa: F401
     vmc_handler,
 )
 
-
-PASSPHRASE = '123'
-GENESIS_COLHDR_HASH = b'\x00' * 32
-ZERO_ADDR = b'\x00' * 20
-
-test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.ShardTracker')
 
