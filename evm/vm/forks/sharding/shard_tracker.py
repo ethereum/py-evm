@@ -46,6 +46,12 @@ def parse_collation_added_log(log):
     }
 
 
+def candidate_heads(headers_by_height, min_index, max_index):
+    for height in reversed(range(min_index, max_index + 1)):
+        for header in headers_by_height[height]:
+            yield header
+
+
 class ShardTracker:
     '''Track logs `CollationAdded` in mainchain
     '''
@@ -152,6 +158,4 @@ class ShardTracker:
         headers_by_height = copy.deepcopy(self.headers_by_height)
         max_height = len(headers_by_height) - 1
         windback_index = max(0, max_height + 1 - windback_length)
-        for height in reversed(range(windback_index, max_height + 1)):
-            for header in headers_by_height[height]:
-                yield header
+        return candidate_heads(headers_by_height, windback_index, max_height)

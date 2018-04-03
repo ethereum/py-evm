@@ -5,18 +5,15 @@ from evm.rlp.headers import (
 )
 
 from evm.vm.forks.sharding.shard_tracker import (
+    NextLogUnavailable,
     NoCandidateHead,
     parse_collation_added_log,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
-    add_header_constant_call,
-    default_shard_id,
-    default_validator_index,
     mine,
     mk_colhdr_chain,
     mk_testing_colhdr,
-    send_withdraw_tx,
     shard_tracker,
     vmc,
     vmc_handler,
@@ -50,9 +47,21 @@ def test_parse_collation_added_log(log,
     assert parsed_data['score'] == expected_score
 
 
-# TODO: isolate shard_tracker tests from vmc
 def test_shard_tracker_get_next_log(vmc):  # noqa: F811
-    shard_tracker(vmc, default_shard_id)
+    shard_tracker0 = shard_tracker(vmc, 0)
+    header2_hash = mk_colhdr_chain(vmc, 0, 2)
+    # confirm the logs are correct
+    assert shard_tracker0.get_next_log()['score'] == 2
+    assert shard_tracker0.get_next_log()['score'] == 1
+    with pytest.raises(NextLogUnavailable):
+        shard_tracker0.get_next_log()
+
+    # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
+    shard_tracker1 = shard_tracker(vmc, 1)
+    mk_colhdr_chain(vmc, 0, 1, header2_hash)
+    mk_colhdr_chain(vmc, 1, 1)
+    assert shard_tracker0.get_next_log()['score'] == 3
+    assert shard_tracker1.get_next_log()['score'] == 1
 
 
 @pytest.mark.parametrize(  # noqa: F811
@@ -78,7 +87,7 @@ def test_shard_tracker_fetch_candidate_head(vmc,
                                             mock_is_new_head,
                                             expected_score,
                                             expected_is_new_head):
-    shard_tracker0 = shard_tracker(vmc, default_shard_id)
+    shard_tracker0 = shard_tracker(vmc, 0)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -94,3 +103,15 @@ def test_shard_tracker_fetch_candidate_head(vmc,
         assert log['is_new_head'] == expected_is_new_head[i]
     with pytest.raises(NoCandidateHead):
         log = shard_tracker0.fetch_candidate_head()
+
+
+def test_fetch_candidate_heads_generator(vmc):  # noqa: F811
+    shard_tracker0 = shard_tracker(vmc, 0)
+    mk_colhdr_chain(vmc, 0, 2)
+    mk_colhdr_chain(vmc, 0, 1)
+    candidate_heads = shard_tracker0.fetch_candidate_heads_generator(vmc.config['WINDBACK_LENGTH'])
+    assert next(candidate_heads).number == 2
+    assert next(candidate_heads).number == 1
+    assert next(candidate_heads).number == 1
+    with pytest.raises(StopIteration):
+        next(candidate_heads)
