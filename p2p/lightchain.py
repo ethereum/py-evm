@@ -171,8 +171,7 @@ class LightChain(Chain, PeerPoolSubscriber):
                 self.logger.warning(repr(e))
                 await self.drop_peer(peer)
             except Exception as e:
-                self.logger.error(
-                    "Unexpected error when processing announcement: %s", repr(e))
+                self.logger.exception("Unexpected error when processing announcement")
                 await self.drop_peer(peer)
 
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:

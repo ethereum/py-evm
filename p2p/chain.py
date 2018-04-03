@@ -27,13 +27,19 @@ class ChainSyncer(PeerPoolSubscriber):
     # the round-trip times from our download requests.
     _reply_timeout = 60
 
-    def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
+    def __init__(self,
+                 chaindb: AsyncChainDB,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
         self.cancel_token = CancelToken('ChainSyncer')
+        if token is not None:
+            self.cancel_token = self.cancel_token.chain(token)
         self._running_peers = set()  # type: Set[ETHPeer]
         self._syncing = False
+        self._sync_complete = asyncio.Event()
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
         self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
         self._downloaded_receipts = asyncio.Queue()  # type: asyncio.Queue[List[bytes]]
@@ -87,18 +93,16 @@ class ChainSyncer(PeerPoolSubscriber):
 
     async def run(self) -> None:
         while True:
-            try:
-                peer = await wait_with_token(
-                    self._sync_requests.get(),
-                    token=self.cancel_token)
-            except OperationCancelled:
-                break
+            peer_or_finished = await wait_with_token(
+                self._sync_requests.get(), self._sync_complete.wait(),
+                token=self.cancel_token)
 
-            asyncio.ensure_future(self.sync(peer))
+            if self._sync_complete.is_set():
+                return
 
-            # TODO: If we're in light mode and we've synced up to head - 1024, wait until there's
-            # no more pending bodies/receipts, trigger cancel token to stop and raise an exception
-            # to tell our caller it should perform a state sync.
+            # Since self._sync_complete is not set, peer_or_finished can only be a ETHPeer
+            # instance.
+            asyncio.ensure_future(self.sync(peer_or_finished))
 
     async def sync(self, peer: ETHPeer) -> None:
         if self._syncing:
@@ -132,9 +136,9 @@ class ChainSyncer(PeerPoolSubscriber):
         # FIXME: Fetch a batch of headers, in reverse order, starting from our current head, and
         # find the common ancestor between our chain and the peer's.
         start_at = max(0, head.block_number - eth.MAX_HEADERS_FETCH)
-        peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
         while True:
             self.logger.info("Fetching chain segment starting at #%d", start_at)
+            peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
                 headers = await wait_with_token(
                     self._new_headers.get(), peer.wait_until_finished(),
@@ -181,7 +185,11 @@ class ChainSyncer(PeerPoolSubscriber):
                 start_at = header.block_number + 1
 
             self.logger.info("Imported chain segment, new head: #%d", start_at - 1)
-            peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
+            head = await self.chaindb.coro_get_canonical_head()
+            if head.hash == peer.head_hash:
+                self.logger.info("Chain sync with %s completed", peer)
+                self._sync_complete.set()
+                break
 
     async def _download_block_parts(
             self,
@@ -397,7 +405,10 @@ def _test() -> None:
     async def run():
         # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
         # token, at which point it returns and we stop the pool and downloader.
-        await downloader.run()
+        try:
+            await downloader.run()
+        except OperationCancelled:
+            pass
         await peer_pool.stop()
         await downloader.stop()
 
