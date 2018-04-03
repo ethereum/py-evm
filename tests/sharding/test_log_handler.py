@@ -90,16 +90,16 @@ def test_get_recent_block_hashes(contract):
     block0 = w3.eth.getBlock(0)
     block1 = w3.eth.getBlock(1)
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
-    assert len(recent_block_hashes) == 3
-    assert block0['hash'] == recent_block_hashes[1]
-    assert block1['hash'] == recent_block_hashes[2]
+    assert len(recent_block_hashes) == 2
+    assert block0['hash'] == recent_block_hashes[0]
+    assert block1['hash'] == recent_block_hashes[1]
     mine(w3, 2)
     block2 = w3.eth.getBlock(2)
     block3 = w3.eth.getBlock(3)
     recent_block_hashes = get_recent_block_hashes(w3, HISTORY_SIZE)
-    assert len(recent_block_hashes) == 5
-    assert block2['hash'] == recent_block_hashes[3]
-    assert block3['hash'] == recent_block_hashes[4]
+    assert len(recent_block_hashes) == 4
+    assert block2['hash'] == recent_block_hashes[2]
+    assert block3['hash'] == recent_block_hashes[3]
 
 
 def test_get_canonical_chain_without_forks(contract):

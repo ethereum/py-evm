@@ -3,18 +3,16 @@ import logging
 
 def get_recent_block_hashes(w3, history_size):
     block = w3.eth.getBlock('latest')
-    # initialize the list of recent hashes
-    recent_hashes = [block['hash']]
+    recent_hashes = []
 
-    for _ in range(history_size - 1):
+    for _ in range(history_size):
+        recent_hashes.append(block['hash'])
         # break the loop if we hit the genesis block.
         if block['number'] == 0:
-            recent_hashes.append(block['hash'])
             break
         block = w3.eth.getBlock(block['parentHash'])
-        recent_hashes.append(block['hash'])
-    reversed_recent_hashes = tuple(reversed(recent_hashes))
-    return reversed_recent_hashes
+
+    return tuple(reversed(recent_hashes))
 
 
 def get_canonical_chain(w3, recent_block_hashes, history_size):
