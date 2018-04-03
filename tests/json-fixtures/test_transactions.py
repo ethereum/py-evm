@@ -41,6 +41,10 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
 
 
+# Fixtures have an `_info` key at their root which we need to skip over.
+FIXTURE_FORK_SKIPS = {'_info', 'rlp'}
+
+
 @to_tuple
 def expand_fixtures_forks(all_fixtures):
     """
@@ -51,7 +55,7 @@ def expand_fixtures_forks(all_fixtures):
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
         for fixture_fork, fork_states in fixture.items():
-            if fixture_fork not in ['_info', 'rlp']:
+            if fixture_fork not in FIXTURE_FORK_SKIPS:
                 yield fixture_path, fixture_key, fixture_fork
 
 
