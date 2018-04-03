@@ -389,22 +389,23 @@ def normalize_signed_transaction(transaction):
     }
 
 
-def normalize_transactiontest_fixture(fixture):
+@curry
+def normalize_transactiontest_fixture(fixture, fork):
+
     normalized_fixture = {}
 
-    if 'blocknumber' in fixture:
-        normalized_fixture['blocknumber'] = to_int(fixture['blocknumber'])
+    fork_data = fixture[fork]
 
     try:
         normalized_fixture['rlp'] = decode_hex(fixture['rlp'])
     except binascii.Error:
         normalized_fixture['rlpHex'] = fixture['rlp']
 
-    if "sender" in fixture:
-        # intentionally not normalized.
-        normalized_fixture["transaction"] = fixture['transaction']
-        # intentionally not normalized.
-        normalized_fixture['sender'] = fixture['sender']
+    if "sender" in fork_data:
+        normalized_fixture['sender'] = fork_data['sender']
+
+    if "hash" in fork_data:
+        normalized_fixture['hash'] = fork_data['hash']
 
     return normalized_fixture
 

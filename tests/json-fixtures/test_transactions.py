@@ -5,32 +5,33 @@ import pytest
 import rlp
 
 from eth_utils import (
-    to_canonical_address,
+    is_same_address,
+    to_tuple,
 )
-
-from eth_keys.exceptions import (
-    BadSignature,
-)
-
-from evm import (
-    MainnetChain,
-)
-from evm.db import (
-    get_db_backend,
-)
-from evm.db.chain import ChainDB
 
 from evm.exceptions import (
     ValidationError,
 )
-from evm.rlp.headers import (
-    BlockHeader,
-)
 from evm.tools.fixture_tests import (
     generate_fixture_tests,
     load_fixture,
-    normalize_transactiontest_fixture,
-    normalize_signed_transaction,
+    normalize_transactiontest_fixture
+)
+from evm.vm.forks.frontier.transactions import (
+    FrontierTransaction
+)
+from evm.vm.forks.homestead.transactions import (
+    HomesteadTransaction
+)
+from evm.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction
+)
+from evm.vm.forks.byzantium.transactions import (
+    ByzantiumTransaction
+)
+
+from eth_typing.enums import (
+    ForkName
 )
 
 
@@ -40,68 +41,92 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
 
 
+# Fixtures have an `_info` key at their root which we need to skip over.
+FIXTURE_FORK_SKIPS = {'_info', 'rlp'}
+
+
+@to_tuple
+def expand_fixtures_forks(all_fixtures):
+    """
+    The transaction fixtures have different definitions for each fork and must be
+    expanded one step further to have one fixture for each defined fork within
+    the fixture.
+    """
+    for fixture_path, fixture_key in all_fixtures:
+        fixture = load_fixture(fixture_path, fixture_key)
+        for fixture_fork, fork_states in fixture.items():
+            if fixture_fork not in FIXTURE_FORK_SKIPS:
+                yield fixture_path, fixture_key, fixture_fork
+
+
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
         base_fixture_path=BASE_FIXTURE_PATH,
+        preprocess_fn=expand_fixtures_forks,
     )
 
 
 @pytest.fixture
 def fixture(fixture_data):
-    fixture_path, fixture_key = fixture_data
+    fixture_path, fixture_key, fixture_fork = fixture_data
     fixture = load_fixture(
         fixture_path,
         fixture_key,
-        normalize_transactiontest_fixture,
+        normalize_transactiontest_fixture(fork=fixture_fork),
     )
+
     return fixture
 
 
-def test_transaction_fixtures(fixture):
-    header = BlockHeader(1, fixture['blocknumber'], 100)
-    chain = MainnetChain(ChainDB(get_db_backend()), header=header)
-    vm = chain.get_vm()
-    TransactionClass = vm.get_transaction_class()
-
-    if 'sender' in fixture:
-        transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)
-        expected = normalize_signed_transaction(fixture['transaction'])
-
-        assert transaction.nonce == expected['nonce']
-        assert transaction.gas_price == expected['gasPrice']
-        assert transaction.gas == expected['gasLimit']
-        assert transaction.to == expected['to']
-        assert transaction.value == expected['value']
-        assert transaction.data == expected['data']
-        assert transaction.v == expected['v']
-        assert transaction.r == expected['r']
-        assert transaction.s == expected['s']
-
-        sender = to_canonical_address(fixture['sender'])
-
-        try:
-            assert transaction.sender == sender
-        except BadSignature:
-            assert not (27 <= transaction.v <= 34)
+@pytest.fixture
+def fixture_transaction_class(fixture_data):
+    _, _, fork_name = fixture_data
+    if fork_name == ForkName.Frontier:
+        return FrontierTransaction
+    elif fork_name == ForkName.Homestead:
+        return HomesteadTransaction
+    elif fork_name == ForkName.EIP150:
+        return HomesteadTransaction
+    elif fork_name == ForkName.EIP158:
+        return SpuriousDragonTransaction
+    elif fork_name == ForkName.Byzantium:
+        return ByzantiumTransaction
+    elif fork_name == ForkName.Sharding:
+        pytest.skip("Sharding Transaction class has not been implemented")
+    elif fork_name == ForkName.Constantinople:
+        pytest.skip("Constantinople Transaction class has not been implemented")
+    elif fork_name == ForkName.Metropolis:
+        pytest.skip("Metropolis Transaction class has not been implemented")
     else:
-        # check RLP correctness
-        try:
-            transaction = rlp.decode(fixture['rlp'], sedes=TransactionClass)
-        # fixture normalization changes the fixture key from rlp to rlpHex
-        except KeyError:
-            assert fixture['rlpHex']
-            return
-        # rlp is a list of bytes when it shouldn't be
-        except TypeError as err:
-            assert err.args == ("'bytes' object cannot be interpreted as an integer",)
-            return
-        # rlp is invalid or not in the correct form
-        except (rlp.exceptions.ObjectDeserializationError, rlp.exceptions.DecodingError):
-            return
+        raise ValueError("Unknown Fork Name: {0}".format(fork_name))
 
+
+def test_transaction_fixtures(fixture, fixture_transaction_class):
+
+    TransactionClass = fixture_transaction_class
+
+    try:
+        txn = rlp.decode(fixture['rlp'], sedes=TransactionClass)
+    except (rlp.DeserializationError, rlp.exceptions.DecodingError):
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    except TypeError as err:
+        # Ensure we are only letting type errors pass that are caused by
+        # RLP elements that are lists when they shouldn't be lists
+        # (see: /TransactionTests/ttWrongRLP/RLPElementIsListWhenItShouldntBe.json)
+        assert err.args == ("'bytes' object cannot be interpreted as an integer",)
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    # fixture normalization changes the fixture key from rlp to rlpHex
+    except KeyError:
+        assert fixture['rlpHex']
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    else:
         # check parameter correctness
         try:
-            transaction.validate()
+            txn.validate()
         except ValidationError:
             return
+
+    if 'sender' in fixture:
+        assert 'hash' in fixture, "Transaction was supposed to be invalid"
+        assert is_same_address(txn.get_sender(), fixture['sender'])

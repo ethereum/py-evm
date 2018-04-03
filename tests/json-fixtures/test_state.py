@@ -54,6 +54,10 @@ from evm.tools.fixture_tests import (
     should_run_slow_tests,
 )
 
+from eth_typing.enums import (
+    ForkName
+)
+
 from tests.conftest import vm_logger
 
 
@@ -73,6 +77,7 @@ def expand_fixtures_forks(all_fixtures):
     expanded one step further to have one fixture for each defined fork within
     the fixture.
     """
+
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
         for fixture_fork, post_states in sorted(fixture['post'].items()):
@@ -251,21 +256,21 @@ ShardingVMForTesting = ShardingVM.configure(
 @pytest.fixture
 def fixture_vm_class(fixture_data):
     _, _, fork_name, _ = fixture_data
-    if fork_name == 'Frontier':
+    if fork_name == ForkName.Frontier:
         return FrontierVMForTesting
-    elif fork_name == 'Homestead':
+    elif fork_name == ForkName.Homestead:
         return HomesteadVMForTesting
-    elif fork_name == 'EIP150':
+    elif fork_name == ForkName.EIP150:
         return TangerineWhistleVMForTesting
-    elif fork_name == 'EIP158':
+    elif fork_name == ForkName.EIP158:
         return SpuriousDragonVMForTesting
-    elif fork_name == 'Byzantium':
+    elif fork_name == ForkName.Byzantium:
         return ByzantiumVMForTesting
-    elif fork_name == 'Sharding':
+    elif fork_name == ForkName.Sharding:
         return ShardingVMForTesting
-    elif fork_name == 'Constantinople':
+    elif fork_name == ForkName.Constantinople:
         pytest.skip("Constantinople VM has not been implemented")
-    elif fork_name == 'Metropolis':
+    elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis VM has not been implemented")
     else:
         raise ValueError("Unknown Fork Name: {0}".format(fork_name))
