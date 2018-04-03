@@ -139,7 +139,7 @@ def deposit() -> int128:
     # find the empty slot index in validators set
     index: int128 = self.num_validators
     if not self.is_stack_empty():
-        index = self.stack_pop()        
+        index = self.stack_pop()
     self.validators[index] = {
         deposit: msg.value,
         addr: validator_addr,
@@ -188,6 +188,22 @@ def get_collation_header_score(shard_id: int128, collation_header_hash: bytes32)
         'int128'
     )
     return collation_score
+
+
+# Helper function to get collation header score
+@public
+@constant
+def get_collation_header_parent_hash(shard_id: int128, collation_header_hash: bytes32) -> bytes32:
+    # Add the header
+    parent_hash: bytes32 = convert(
+        uint256_div(
+            convert(self.collation_headers[shard_id][collation_header_hash], 'uint256'),
+            # Divided by 2^48, i.e., right shift 6 bytes
+            convert(281474976710656, 'uint256')
+        ),
+        'bytes32',
+    )
+    return parent_hash
 
 
 # Uses a block hash as a seed to pseudorandomly select a signer from the validator set.
@@ -261,9 +277,9 @@ def add_header(
         ),
         'bytes32'
     )
-    
+
     # Check if parent header exists.
-    # If it exist, check that it's score is greater than 0.
+    # If it exists, check that it's score is greater than 0.
     parent_collation_score: int128 = self.get_collation_header_score(
         shard_id,
         parent_hash,
@@ -338,49 +354,3 @@ def add_header(
 @constant
 def get_collation_gas_limit() -> int128:
     return 10000000
-
-
-# Records a request to deposit msg.value ETH to address to in shard shard_id
-# during a future collation. Saves a `receipt ID` for this request,
-# also saving `msg.sender`, `msg.value`, `to`, `shard_id`, `startgas`,
-# `gasprice`, and `data`.
-@public
-@payable
-def tx_to_shard(
-        to: address,
-        shard_id: int128,
-        tx_startgas: int128,
-        tx_gasprice: int128,
-        data: bytes <= 4096) -> int128:
-    self.receipts[self.num_receipts] = {
-        shard_id: shard_id,
-        tx_startgas: tx_startgas,
-        tx_gasprice: tx_gasprice,
-        value: msg.value,
-        sender: msg.sender,
-        to: to,
-        data: data,
-    }
-    receipt_id: int128 = self.num_receipts
-    self.num_receipts += 1
-
-    # TODO: determine the signature of the log TxToShard
-    raw_log(
-        [
-            sha3("tx_to_shard(address,int128,int128,int128,bytes4096)"),
-            convert(to, 'bytes32'),
-            convert(shard_id, 'bytes32'),
-        ],
-        concat('', convert(receipt_id, 'bytes32')),
-    )
-
-    return receipt_id
-
-
-# Updates the tx_gasprice in receipt receipt_id, and returns True on success.
-@public
-@payable
-def update_gasprice(receipt_id: int128, tx_gasprice: int128) -> bool:
-    assert self.receipts[receipt_id].sender == msg.sender
-    self.receipts[receipt_id].tx_gasprice = tx_gasprice
-    return True

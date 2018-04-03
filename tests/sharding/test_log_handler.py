@@ -181,7 +181,7 @@ def test_check_chain_head_with_forks(contract):
     snapshot_id = take_snapshot(w3)
     current_block_number = w3.eth.blockNumber
     # counter == 0 in block2
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     block2 = w3.eth.getBlock('latest')
     revoked_hashes, new_block_hashes = check_chain_head(
@@ -203,11 +203,11 @@ def test_check_chain_head_with_forks(contract):
     mine(w3, 1)  # block2_prime
     block2_prime = w3.eth.getBlock('latest')
     # counter == 1 in block3_prime
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     block3_prime = w3.eth.getBlock('latest')
     # counter == 2 in block4_prime
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     block4_prime = w3.eth.getBlock('latest')
     revoked_hashes, new_block_hashes = check_chain_head(
@@ -227,21 +227,21 @@ def test_log_handler_get_new_logs_without_forks(contract):
     w3 = contract.web3
     log_handler = LogHandler(w3)
     counter = itertools.count()
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     logs_block2 = log_handler.get_new_logs(address=contract.address)
     assert len(logs_block2) == 1
     assert int(logs_block2[0]['data'], 16) == 0
     assert log_handler.get_new_logs() == tuple()
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     logs_block3 = log_handler.get_new_logs(address=contract.address)
     assert len(logs_block3) == 1
     assert int(logs_block3[0]['data'], 16) == 1
     assert log_handler.get_new_logs() == tuple()
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     logs_block4_5 = log_handler.get_new_logs(address=contract.address)
     assert len(logs_block4_5) == 2
@@ -256,13 +256,13 @@ def test_log_handler_get_new_logs_with_forks(contract):
     counter = itertools.count()
     snapshot_id = take_snapshot(w3)
     current_block_number = w3.eth.blockNumber
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     revert_to_snapshot(w3, snapshot_id)
     assert w3.eth.blockNumber == current_block_number
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
-    contract.transact(default_tx_detail).emit_log(next(counter))
+    contract.functions.emit_log(next(counter)).transact(default_tx_detail)
     mine(w3, 1)
     logs = log_handler.get_new_logs()
     # assert len(logs) == 2
