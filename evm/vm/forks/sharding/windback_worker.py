@@ -2,6 +2,7 @@ import asyncio
 from collections import (
     defaultdict,
 )
+import copy
 import logging
 import time
 
@@ -92,12 +93,15 @@ class WindbackWorker:
 
     # guess_head process related
 
-    async def process_collation(self, head_collation_hash, collation_hash):
-        collation = await download_collation(collation_hash)
-        collation_validity = await verify_collation(collation, collation_hash)
-        self.collation_validity_cache[collation_hash] = collation_validity
+    async def process_collation(self, head_collation_hash, current_collation_hash, descendants):
+        collation = await download_collation(current_collation_hash)
+        collation_validity = await verify_collation(collation, current_collation_hash)
+        self.collation_validity_cache[current_collation_hash] = collation_validity
         if not collation_validity:
-            self.chain_validity[head_collation_hash] = False
+            # Set its descendants in current chain to be invalid chain heads
+            self.chain_validity[current_collation_hash] = False
+            for collation_hash in descendants:
+                self.chain_validity[collation_hash] = False
 
     def set_collation_task(self, head_collation_hash, current_collation_hash, task):
         self.unfinished_verifying_tasks.append(task)
@@ -131,6 +135,8 @@ class WindbackWorker:
             except StopIteration:
                 return None
             head_collation_hash = head_header.hash
+            if not self.chain_validity[head_collation_hash]:
+                continue
             current_collation_hash = head_collation_hash
             for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
                 # if time is up
@@ -138,26 +144,32 @@ class WindbackWorker:
                     return head_collation_hash
                 if current_collation_hash == GENESIS_COLLATION_HASH:
                     break
-                # process current collation
-                # if the collation is checked before, just skip it
+
+                # if a collation is an invalid head, set its descendants in the
+                # chain as invalid heads, and skip this chain
+                is_chain_of_current_collation_invalid = (
+                    (not self.chain_validity[current_collation_hash]) or
+                    (not self.collation_validity_cache.get(current_collation_hash, True))
+                )
+                if is_chain_of_current_collation_invalid:
+                    self.chain_validity[current_collation_hash] = False
+                    for collation_hash in self.chain_collations[head_collation_hash]:
+                        self.chain_validity[collation_hash] = False
+                    break
+                # process current collation  ##################################
+                # if the collation is checked before, then skip it
                 if current_collation_hash not in self.collation_validity_cache:
+                    descendants = copy.deepcopy(
+                        self.chain_collations[head_collation_hash]
+                    )
                     coro = self.process_collation(
                         head_collation_hash,
                         current_collation_hash,
+                        descendants,
                     )
                     task = asyncio.ensure_future(coro)
                     asyncio.wait(task, timeout=self.YIELDED_TIME)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
-                else:
-                    # if the collation is invalid, set its head's chain validity False
-                    self.chain_validity[head_collation_hash] &= self.collation_validity_cache[
-                        current_collation_hash
-                    ]
-
-                current_collation_hash = self.vmc.get_collation_parent_hash(
-                    self.get_shard_id(),
-                    current_collation_hash,
-                )
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:
@@ -167,6 +179,11 @@ class WindbackWorker:
                     )
                 # yield the CPU to other coroutine
                 await asyncio.sleep(self.YIELDED_TIME)
+
+                current_collation_hash = self.vmc.get_collation_parent_hash(
+                    self.get_shard_id(),
+                    current_collation_hash,
+                )
 
             # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
             while self.chain_validity[head_collation_hash]:
@@ -185,7 +202,7 @@ class WindbackWorker:
             # Case 2:
             #   chain_validity is False, just change to other candidate head
             if self.chain_validity[head_collation_hash]:
-                break
+                return head_collation_hash
         logger.debug("time elapsed=%s", time.time() - start)
         return head_collation_hash
 

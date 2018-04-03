@@ -78,3 +78,22 @@ def test_guess_head_windback_length(windback_worker, vmc):  # noqa: F811
     # the size of `collation_validity_cache` should be the WINDBACK_LENGTH + 1(including the
     # `head_collation` itself), instead of the length of the chain
     assert len(windback_worker.collation_validity_cache) == vmc.config['WINDBACK_LENGTH'] + 1
+
+
+def test_guess_head_invalid_collation_propagate_invalidity(windback_worker, vmc):  # noqa: F811
+    header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    windback_worker.collation_validity_cache[header2_hash] = False
+    header4_hash = mk_colhdr_chain(vmc, default_shard_id, 2, header2_hash)
+    windback_worker.run_guess_head()
+    assert not windback_worker.chain_validity[header2_hash]
+    assert not windback_worker.chain_validity[header4_hash]
+
+
+def test_guess_head_invalid_chain_propagate_invalidity(windback_worker, vmc):  # noqa: F811
+    header2_hash = mk_colhdr_chain(vmc, default_shard_id, 2)
+    windback_worker.chain_validity[header2_hash] = False
+    header3_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header2_hash)
+    header4_hash = mk_colhdr_chain(vmc, default_shard_id, 1, header3_hash)
+    windback_worker.run_guess_head()
+    assert not windback_worker.chain_validity[header3_hash]
+    assert not windback_worker.chain_validity[header4_hash]
