@@ -83,15 +83,15 @@ class VMCHandler(Contract):
     # property
     #
     @property
-    def get_privkey(self):
+    def private_key(self):
         return self._privkey
 
     @property
-    def get_sender_address(self):
+    def sender_address(self):
         return self._sender_address
 
     @property
-    def get_config(self):
+    def config(self):
         return self._config
 
     #
@@ -101,18 +101,18 @@ class VMCHandler(Contract):
         """Get the eligible proposer in the specified period
         """
         if period is None:
-            period = self.web3.eth.blockNumber // self.get_config['PERIOD_LENGTH']
+            period = self.web3.eth.blockNumber // self.config['PERIOD_LENGTH']
         call_context = mk_call_context(
-            sender_address=self.get_sender_address,
-            gas=self.get_config["DEFAULT_GAS"]
+            sender_address=self.sender_address,
+            gas=self.config["DEFAULT_GAS"]
         )
         address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(call_context)
         return decode_hex(address_in_hex)
 
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
         call_context = mk_call_context(
-            sender_address=self.get_sender_address,
-            gas=self.get_config["DEFAULT_GAS"]
+            sender_address=self.sender_address,
+            gas=self.config["DEFAULT_GAS"]
         )
         return self.functions.get_collation_header_parent_hash(
             shard_id,
@@ -121,8 +121,8 @@ class VMCHandler(Contract):
 
     def get_collation_score(self, shard_id, collation_hash, gas=None):
         call_context = mk_call_context(
-            sender_address=self.get_sender_address,
-            gas=self.get_config["DEFAULT_GAS"]
+            sender_address=self.sender_address,
+            gas=self.config["DEFAULT_GAS"]
         )
         return self.functions.get_collation_header_score(
             shard_id,
@@ -139,10 +139,10 @@ class VMCHandler(Contract):
                           gas_price=None,
                           data=None):
         if gas is None:
-            gas = self.get_config['DEFAULT_GAS']
+            gas = self.config['DEFAULT_GAS']
         if gas_price is None:
-            gas_price = self.get_config['GAS_PRICE']
-        privkey = self.get_privkey
+            gas_price = self.config['GAS_PRICE']
+        privkey = self.private_key
         if nonce is None:
             nonce = self.web3.eth.getTransactionCount(privkey.public_key.to_checksum_address())
         build_transaction_detail = mk_transaction_context(
@@ -173,7 +173,7 @@ class VMCHandler(Contract):
         tx_hash = self._send_transaction(
             'deposit',
             [],
-            value=self.get_config['DEPOSIT_SIZE'],
+            value=self.config['DEPOSIT_SIZE'],
             gas=gas,
             gas_price=gas_price,
         )

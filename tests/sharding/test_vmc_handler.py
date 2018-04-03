@@ -56,7 +56,7 @@ def mk_testing_colhdr(vmc_handler,  # noqa: F811
                       parent_hash,
                       number,
                       coinbase=test_keys[0].public_key.to_canonical_address()):
-    period_length = vmc_handler.get_config['PERIOD_LENGTH']
+    period_length = vmc_handler.config['PERIOD_LENGTH']
     current_block_number = vmc_handler.web3.eth.blockNumber
     expected_period_number = (current_block_number + 1) // period_length
     logger.debug("mk_testing_colhdr: expected_period_number=%s", expected_period_number)
@@ -97,8 +97,8 @@ def add_header_constant_call(vmc_handler, collation_header):  # noqa: F811
     # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
     # is the same as the one of parameters of `VMCHandler.add_header`
     result = vmc_handler.call(mk_call_context(
-        sender_address=vmc_handler.get_sender_address,
-        gas=vmc_handler.get_config['DEFAULT_GAS'],
+        sender_address=vmc_handler.sender_address,
+        gas=vmc_handler.config['DEFAULT_GAS'],
         gas_price=1,
     )).add_header(*args_with_checksum_address)
     return result
@@ -149,12 +149,12 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     validator_index = 0
     primary_key = test_keys[validator_index]
     primary_addr = primary_key.public_key.to_canonical_address()
-    default_gas = vmc_handler.get_config['DEFAULT_GAS']
+    default_gas = vmc_handler.config['DEFAULT_GAS']
 
     shard_0_tracker = ShardTracker(shard_id, LogHandler(web3), vmc_handler.address)
 
     lookahead_blocks = (
-        vmc_handler.get_config['LOOKAHEAD_PERIODS'] * vmc_handler.get_config['PERIOD_LENGTH']
+        vmc_handler.config['LOOKAHEAD_PERIODS'] * vmc_handler.config['PERIOD_LENGTH']
     )
     # test `deposit` and `get_eligible_proposer` ######################################
     # now we require 1 validator.
@@ -168,7 +168,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
         vmc_handler.deposit()
         # TODO: error occurs when we don't mine so many blocks
         mine(web3, lookahead_blocks)
-        assert vmc_handler.get_eligible_proposer(shard_id) == vmc_handler.get_sender_address
+        assert vmc_handler.get_eligible_proposer(shard_id) == vmc_handler.sender_address
 
     # assert the current_block_number >= LOOKAHEAD_PERIODS * PERIOD_LENGTH
     # to ensure that `get_eligible_proposer` works
@@ -199,7 +199,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
         add_header_constant_call(vmc_handler, header_parent_not_added)
     # when a valid header is added, the `add_header` call should succeed
     vmc_handler.add_header(header0_1)
-    mine(web3, vmc_handler.get_config['PERIOD_LENGTH'])
+    mine(web3, vmc_handler.config['PERIOD_LENGTH'])
     # if a header is added before, the second trial should fail
     with pytest.raises(TransactionFailed):
         add_header_constant_call(vmc_handler, header0_1)
@@ -207,7 +207,7 @@ def test_vmc_contract_calls(vmc_handler):  # noqa: F811
     header0_2 = mk_testing_colhdr(vmc_handler, shard_id, header0_1.hash, 2)
     vmc_handler.add_header(header0_2)
 
-    mine(web3, vmc_handler.get_config['PERIOD_LENGTH'])
+    mine(web3, vmc_handler.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
     colhdr0_1_score = vmc_handler.call(
         mk_call_context(sender_address=primary_addr, gas=default_gas)
