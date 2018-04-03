@@ -61,9 +61,9 @@ def make_transaction_context(nonce,
         yield 'data', data
 
 
-class VMCHandler(Contract):
+class SMCHandler(Contract):
 
-    logger = logging.getLogger("evm.chain.sharding.VMCHandler")
+    logger = logging.getLogger("evm.chain.sharding.SMCHandler")
 
     _privkey = None
     _sender_address = None

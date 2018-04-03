@@ -54,12 +54,12 @@ class ShardTracker:
     new_logs = None
     unchecked_logs = None
 
-    def __init__(self, shard_id, log_handler, vmc_handler_address):
+    def __init__(self, shard_id, log_handler, smc_handler_address):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
         #       to make one log_handler shared over all shards.
         self.shard_id = shard_id
         self.log_handler = log_handler
-        self.vmc_handler_address = vmc_handler_address
+        self.smc_handler_address = smc_handler_address
         self.current_score = None
         self.new_logs = []
         self.unchecked_logs = []
@@ -68,7 +68,7 @@ class ShardTracker:
     def _get_new_logs(self):
         shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
         new_logs = self.log_handler.get_new_logs(
-            address=self.vmc_handler_address,
+            address=self.smc_handler_address,
             topics=[
                 encode_hex(COLLATION_ADDED_TOPIC),
                 shard_id_topic_hex,

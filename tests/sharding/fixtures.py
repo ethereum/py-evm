@@ -42,11 +42,11 @@ from evm.utils.address import (
 from evm.vm.forks.sharding.config import (
     get_sharding_config,
 )
-from evm.vm.forks.sharding.vmc_handler import (
-    VMCHandler,
+from evm.vm.forks.sharding.smc_handler import (
+    SMCHandler,
 )
-from evm.vm.forks.sharding.vmc_utils import (
-    get_vmc_json,
+from evm.vm.forks.sharding.smc_utils import (
+    get_smc_json,
 )
 from tests.sharding.web3_utils import (
     get_code,
@@ -56,13 +56,13 @@ from tests.sharding.web3_utils import (
 )
 
 
-def make_deploy_vmc_tx(TransactionClass, gas_price):
-    vmc_json = get_vmc_json()
-    vmc_bytecode = decode_hex(vmc_json['bytecode'])
+def make_deploy_smc_tx(TransactionClass, gas_price):
+    smc_json = get_smc_json()
+    smc_bytecode = decode_hex(smc_json['bytecode'])
     v = 27
     r = 1000000000000000000000000000000000000000000000000000000000000000000000000000
     s = 1000000000000000000000000000000000000000000000000000000000000000000000000000
-    return TransactionClass(0, gas_price, 3000000, b'', 0, vmc_bytecode, v, r, s)
+    return TransactionClass(0, gas_price, 3000000, b'', 0, smc_bytecode, v, r, s)
 
 
 def get_contract_address_from_deploy_tx(transaction):
@@ -73,32 +73,32 @@ def get_contract_address_from_deploy_tx(transaction):
     )
 
 
-def deploy_vmc_contract(web3, gas_price, privkey):
-    deploy_vmc_tx = make_deploy_vmc_tx(ByzantiumTransaction, gas_price=gas_price)
+def deploy_smc_contract(web3, gas_price, privkey):
+    deploy_smc_tx = make_deploy_smc_tx(ByzantiumTransaction, gas_price=gas_price)
 
-    # fund the vmc contract deployer
+    # fund the smc contract deployer
     fund_deployer_tx = ByzantiumTransaction.create_unsigned_transaction(
         get_nonce(web3, privkey.public_key.to_canonical_address()),
         gas_price,
         500000,
-        deploy_vmc_tx.sender,
-        deploy_vmc_tx.gas * deploy_vmc_tx.gas_price + deploy_vmc_tx.value,
+        deploy_smc_tx.sender,
+        deploy_smc_tx.gas * deploy_smc_tx.gas_price + deploy_smc_tx.value,
         b'',
     ).as_signed_transaction(privkey)
     fund_deployer_tx_hash = send_raw_transaction(web3, fund_deployer_tx)
     mine(web3, 1)
     assert web3.eth.getTransactionReceipt(fund_deployer_tx_hash) is not None
 
-    # deploy vmc contract
-    deploy_vmc_tx_hash = send_raw_transaction(web3, deploy_vmc_tx)
+    # deploy smc contract
+    deploy_smc_tx_hash = send_raw_transaction(web3, deploy_smc_tx)
     mine(web3, 1)
-    assert web3.eth.getTransactionReceipt(deploy_vmc_tx_hash) is not None
+    assert web3.eth.getTransactionReceipt(deploy_smc_tx_hash) is not None
 
-    return get_contract_address_from_deploy_tx(deploy_vmc_tx)
+    return get_contract_address_from_deploy_tx(deploy_smc_tx)
 
 
 @pytest.fixture
-def vmc_handler():
+def smc_handler():
     eth_tester = EthereumTester(
         backend=PyEVMBackend(),
         auto_mine_transactions=False,
@@ -109,22 +109,22 @@ def vmc_handler():
         w3.eth.enable_unaudited_features()
 
     default_privkey = get_default_account_keys()[0]
-    # deploy vmc contract
-    vmc_addr = deploy_vmc_contract(
+    # deploy smc contract
+    smc_addr = deploy_smc_contract(
         w3,
         get_sharding_config()['GAS_PRICE'],
         default_privkey,
     )
-    assert get_code(w3, vmc_addr) != b''
+    assert get_code(w3, smc_addr) != b''
 
-    # setup vmc_handler's web3.eth.contract instance
-    vmc_json = get_vmc_json()
-    vmc_abi = vmc_json['abi']
-    vmc_bytecode = vmc_json['bytecode']
-    VMCHandlerClass = VMCHandler.factory(w3, abi=vmc_abi, bytecode=vmc_bytecode)
-    vmc_handler = VMCHandlerClass(
-        to_checksum_address(vmc_addr),
+    # setup smc_handler's web3.eth.contract instance
+    smc_json = get_smc_json()
+    smc_abi = smc_json['abi']
+    smc_bytecode = smc_json['bytecode']
+    SMCHandlerClass = SMCHandler.factory(w3, abi=smc_abi, bytecode=smc_bytecode)
+    smc_handler = SMCHandlerClass(
+        to_checksum_address(smc_addr),
         default_privkey=default_privkey,
     )
 
-    return vmc_handler
+    return smc_handler

@@ -2,8 +2,8 @@ import json
 import os
 
 
-def get_vmc_json():
+def get_smc_json():
     mydir = os.path.dirname(__file__)
-    vmc_path = os.path.join(mydir, 'contracts/validator_manager.json')
-    vmc_json_str = open(vmc_path).read()
-    return json.loads(vmc_json_str)
+    smc_path = os.path.join(mydir, 'contracts/validator_manager.json')
+    smc_json_str = open(smc_path).read()
+    return json.loads(smc_json_str)

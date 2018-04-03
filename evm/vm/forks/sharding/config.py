@@ -38,6 +38,6 @@ def get_sharding_config():
         ),
         # default gas_price
         'GAS_PRICE': env.get('PYEVM_SHARDING_GAS_PRICE', type=int, default=1),
-        # default gas, just a large enough gas for vmc_handler transactions
+        # default gas, just a large enough gas for smc_handler transactions
         'DEFAULT_GAS': env.get('PYEVM_SHARDING_DEFAULT_GAS', type=int, default=510000),
     }

@@ -15,7 +15,7 @@ from evm.vm.forks.sharding.shard_tracker import (
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
-    vmc_handler,
+    smc_handler,
 )
 
 
@@ -67,14 +67,14 @@ def test_parse_collation_added_log(log,
         ),
     )
 )
-def test_shard_tracker_fetch_candidate_head(vmc_handler,
+def test_shard_tracker_fetch_candidate_head(smc_handler,
                                             mock_score,
                                             mock_is_new_head,
                                             expected_score,
                                             expected_is_new_head):
     shard_id = 0
-    log_handler = LogHandler(vmc_handler.web3)
-    shard_0_tracker = ShardTracker(shard_id, log_handler, vmc_handler.address)
+    log_handler = LogHandler(smc_handler.web3)
+    shard_0_tracker = ShardTracker(shard_id, log_handler, smc_handler.address)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
