@@ -14,9 +14,7 @@ import rlp
 from trie.sync import HexaryTrieSync
 from trie.exceptions import SyncRequestAlreadyProcessed
 
-from eth_keys import datatypes  # noqa: F401
 from eth_utils import (
-    decode_hex,
     encode_hex,
     keccak,
 )
@@ -29,7 +27,8 @@ from evm.db.backends.base import BaseDB
 from evm.rlp.accounts import Account
 
 from p2p import eth
-from p2p.cancel_token import CancelToken
+from p2p import protocol
+from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 
@@ -39,20 +38,15 @@ class StateDownloader(PeerPoolSubscriber):
     _pending_nodes = {}  # type: Dict[Any, float]
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
-    # TODO: Experiment with different timeout/max_pending values to find the combination that
-    # yields the best results.
-    # FIXME: Should use the # of peers times MAX_STATE_FETCH here
-    _max_pending = 5 * eth.MAX_STATE_FETCH
-    _reply_timeout = 10  # seconds
-    # For simplicity/readability we use 0 here to force a report on the first iteration of the
-    # loop.
-    _last_report_time = 0
+    _reply_timeout = 20  # seconds
+    _start_time = None  # type: float
+    _total_timeouts = 0
 
     def __init__(self, state_db: BaseDB, root_hash: bytes, peer_pool: PeerPool) -> None:
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
         self.root_hash = root_hash
-        self.scheduler = StateSync(root_hash, state_db, self.logger)
+        self.scheduler = StateSync(root_hash, state_db)
         self._running_peers = set()  # type: Set[ETHPeer]
         self.cancel_token = CancelToken('StateDownloader')
 
@@ -75,24 +69,30 @@ class StateDownloader(PeerPoolSubscriber):
                 # Either our cancel token or the peer's has been triggered, so break out of the
                 # loop.
                 break
-            if isinstance(cmd, eth.NodeData):
-                self.logger.debug("Processing NodeData with %d entries", len(msg))
-                for node in msg:
-                    self._total_processed_nodes += 1
-                    node_key = keccak(node)
-                    try:
-                        self.scheduler.process([(node_key, node)])
-                    except SyncRequestAlreadyProcessed:
-                        # This means we received a node more than once, which can happen when we
-                        # retry after a timeout.
-                        pass
-                    # A node may be received more than once, so pop() with a default value.
-                    self._pending_nodes.pop(node_key, None)
-            else:
-                # It'd be very convenient if we could ignore everything that is not a NodeData
-                # when doing a StateSync, but need to double check because peers may consider that
-                # "Bad Form" and disconnect from us.
-                self.logger.debug("Ignoring %s(%s) while doing a StateSync", cmd, msg)
+
+            # Run self._handle_msg() with ensure_future() instead of awaiting for it so that we
+            # can keep consuming msgs while _handle_msg() performs cpu-intensive tasks in separate
+            # processes.
+            asyncio.ensure_future(self._handle_msg(cmd, msg))
+
+    async def _handle_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+        loop = asyncio.get_event_loop()
+        if isinstance(cmd, eth.NodeData):
+            self.logger.debug("Processing NodeData with %d entries", len(msg))
+            node_keys = await loop.run_in_executor(None, list, map(keccak, msg))
+            for node_key, node in zip(node_keys, msg):
+                self._total_processed_nodes += 1
+                try:
+                    self.scheduler.process([(node_key, node)])
+                except SyncRequestAlreadyProcessed:
+                    # This means we received a node more than once, which can happen when we
+                    # retry after a timeout.
+                    pass
+                # A node may be received more than once, so pop() with a default value.
+                self._pending_nodes.pop(node_key, None)
+        else:
+            # We ignore everything that is not a NodeData when doing a StateSync.
+            self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
 
     async def stop(self):
         self.cancel_token.trigger()
@@ -101,73 +101,94 @@ class StateDownloader(PeerPoolSubscriber):
             self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
             await asyncio.sleep(0.1)
 
-    async def request_next_batch(self):
-        requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
-        if not requests:
-            # Although our run() loop frequently yields control to let our msg handler process
-            # received nodes (scheduling new requests), there may be cases when the pending nodes
-            # take a while to arrive thus causing the scheduler to run out of new requests for a
-            # while.
-            self.logger.debug("Scheduler queue is empty, not requesting any nodes")
-            return
-        self.logger.debug("Requesting %d trie nodes", len(requests))
-        await self.request_nodes([request.node_key for request in requests])
-
     async def request_nodes(self, node_keys: List[bytes]) -> None:
         # FIXME: Need a better criteria to select peers here.
-        peer = await self.peer_pool.get_random_peer()
+        peer = await wait_with_token(self.peer_pool.get_random_peer(), token=self.cancel_token)
         now = time.time()
         for node_key in node_keys:
             self._pending_nodes[node_key] = now
+        self.logger.debug("Requesting %d trie nodes", len(node_keys))
         cast(ETHPeer, peer).sub_proto.send_get_node_data(node_keys)
 
-    async def retry_timedout(self):
-        timed_out = []
-        now = time.time()
-        for node_key, req_time in list(self._pending_nodes.items()):
-            if now - req_time > self._reply_timeout:
-                timed_out.append(node_key)
-        if not timed_out:
-            return
-        self.logger.debug("Re-requesting %d trie nodes", len(timed_out))
-        await self.request_nodes(timed_out)
+    async def _periodically_retry_timedout(self):
+        while True:
+            now = time.time()
+            oldest_request_time = now
+            timed_out = []
+            for node_key, req_time in self._pending_nodes.items():
+                if now - req_time > self._reply_timeout:
+                    timed_out.append(node_key)
+                elif req_time < oldest_request_time:
+                    oldest_request_time = req_time
+            if timed_out:
+                self.logger.debug("Re-requesting %d trie nodes", len(timed_out))
+                self._total_timeouts += len(timed_out)
+                await self.request_nodes(timed_out)
+
+            now = time.time()
+            sleep_duration = (oldest_request_time + self._reply_timeout) - now
+            try:
+                await wait_with_token(asyncio.sleep(sleep_duration), token=self.cancel_token)
+            except OperationCancelled:
+                break
 
     async def run(self):
+        """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
+
+        Raises OperationCancelled if we're interrupted before that is completed.
+        """
+        self._start_time = time.time()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
-        while self.scheduler.has_pending_requests and not self.cancel_token.triggered:
+        asyncio.ensure_future(self._periodically_report_progress())
+        asyncio.ensure_future(self._periodically_retry_timedout())
+        while self.scheduler.has_pending_requests:
+            # This ensures we yield control and give _handle_msg() a chance to process any nodes
+            # we may have received already, also ensuring we exit when our cancel token is
+            # triggered.
+            await wait_with_token(asyncio.sleep(0), token=self.cancel_token)
+
+            max_pending = len(self.peer_pool.peers) * eth.MAX_STATE_FETCH
             # Request new nodes if we haven't reached the limit of pending nodes.
-            if len(self._pending_nodes) < self._max_pending:
-                await self.request_next_batch()
-
-            # Retry pending nodes that timed out.
-            if self._pending_nodes:
-                await self.retry_timedout()
-
-            if len(self._pending_nodes) > self._max_pending:
-                # Slow down if we've reached the limit of pending nodes.
-                self.logger.debug("Pending trie nodes limit reached, sleeping a bit")
-                await asyncio.sleep(0.3)
+            if len(self._pending_nodes) < max_pending:
+                requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
+                if not requests:
+                    # Although we frequently yield control above, to let our msg handler process
+                    # received nodes (scheduling new requests), there may be cases when the
+                    # pending nodes take a while to arrive thus causing the scheduler to run out
+                    # of new requests for a while.
+                    self.logger.debug("Scheduler queue is empty, sleeping a bit")
+                    await wait_with_token(asyncio.sleep(0.5), token=self.cancel_token)
+                else:
+                    await self.request_nodes([request.node_key for request in requests])
             else:
-                # Yield control to ensure the Peer's msg_handler callback is called to process any
-                # nodes we may have received already. Otherwise we spin too fast and don't process
-                # received nodes often enough.
-                await asyncio.sleep(0)
-
-            self._maybe_report_progress()
+                self.logger.debug("Pending trie nodes limit reached, sleeping a bit")
+                await wait_with_token(asyncio.sleep(0.5), token=self.cancel_token)
 
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
-    def _maybe_report_progress(self):
-        if (time.time() - self._last_report_time) >= self._report_interval:
-            self._last_report_time = time.time()
+    async def _periodically_report_progress(self):
+        while True:
+            now = time.time()
+            self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
+            self.logger.info("Nodes processed per second (average): %d",
+                             self._total_processed_nodes / (now - self._start_time))
+            self.logger.info("Nodes committed to DB: %d", self.scheduler.committed_nodes)
             self.logger.info(
                 "Nodes requested but not received yet: %d", len(self._pending_nodes))
             self.logger.info(
                 "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
+            self.logger.info("Total nodes timed out: %d", self._total_timeouts)
+            try:
+                await wait_with_token(asyncio.sleep(self._report_interval), token=self.cancel_token)
+            except OperationCancelled:
+                break
 
 
 class StateSync(HexaryTrieSync):
+
+    def __init__(self, root_hash, db):
+        super().__init__(root_hash, db, logging.getLogger("p2p.state.StateSync"))
 
     def leaf_callback(self, data, parent):
         # TODO: Need to figure out why geth uses 64 as the depth here, and then document it.
@@ -181,30 +202,35 @@ class StateSync(HexaryTrieSync):
 
 def _test():
     import argparse
+    from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
     from p2p.peer import HardCodedNodesPeerPool
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+    from evm.chains.ropsten import RopstenChain
     from evm.db.backends.level import LevelDB
-    from evm.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
-    parser.add_argument('-root-hash', type=str, required=True, help='Hex encoded root hash')
+    parser.add_argument('-debug', action="store_true")
     args = parser.parse_args()
 
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.getLogger('p2p.state.StateDownloader').setLevel(log_level)
+
+    db = LevelDB(args.db)
+    chaindb = FakeAsyncChainDB(db)
     peer_pool = HardCodedNodesPeerPool(
-        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey())
+        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), min_peers=5)
     asyncio.ensure_future(peer_pool.run())
 
-    state_db = LevelDB(args.db)
-    root_hash = decode_hex(args.root_hash)
-    downloader = StateDownloader(state_db, root_hash, peer_pool)
+    head = chaindb.get_canonical_head()
+    downloader = StateDownloader(db, head.state_root, peer_pool)
     loop = asyncio.get_event_loop()
+    loop.set_default_executor(ProcessPoolExecutor())
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, downloader.cancel_token.trigger)
@@ -221,4 +247,9 @@ def _test():
 
 
 if __name__ == "__main__":
+    # Use the snippet below to get profile stats and print the top 50 functions by cumulative time
+    # used.
+    # import cProfile, pstats  # noqa
+    # cProfile.run('_test()', 'stats')
+    # pstats.Stats('stats').strip_dirs().sort_stats('cumulative').print_stats(50)
     _test()

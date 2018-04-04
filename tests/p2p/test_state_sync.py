@@ -1,5 +1,4 @@
 import os
-import logging
 import random
 
 from evm.db.backends.memory import MemoryDB
@@ -29,7 +28,7 @@ def make_random_state(n):
 def test_state_sync():
     state_db, contents = make_random_state(1000)
     dest_db = {}
-    scheduler = StateSync(state_db.root_hash, dest_db, logging.getLogger())
+    scheduler = StateSync(state_db.root_hash, dest_db)
     requests = scheduler.next_batch(10)
     while requests:
         results = []
