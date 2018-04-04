@@ -1,25 +1,21 @@
 import logging
 
-from eth_utils import (
-    to_dict,
-)
-
 
 def get_recent_block_hashes(w3, history_size):
     block = w3.eth.getBlock('latest')
-    recent_hashes = [block['hash']]
-    # initialize the list of recent hashes
-    for _ in range(history_size - 1):
+    recent_hashes = []
+
+    for _ in range(history_size):
+        recent_hashes.append(block['hash'])
         # break the loop if we hit the genesis block.
         if block['number'] == 0:
             break
         block = w3.eth.getBlock(block['parentHash'])
-        recent_hashes.append(block['hash'])
-    reversed_recent_hashes = tuple(reversed(recent_hashes))
-    return reversed_recent_hashes
+
+    return tuple(reversed(recent_hashes))
 
 
-def check_chain_head(w3, recent_block_hashes, history_size):
+def get_canonical_chain(w3, recent_block_hashes, history_size):
     block = w3.eth.getBlock('latest')
 
     new_block_hashes = []
@@ -30,7 +26,7 @@ def check_chain_head(w3, recent_block_hashes, history_size):
         new_block_hashes.append(block['hash'])
         block = w3.eth.getBlock(block['parentHash'])
     else:
-        raise Exception('No common ancestor found for block: {0}'.format(block['hash']))
+        raise Exception('No common ancestor found')
 
     first_common_ancestor_idx = recent_block_hashes.index(block['hash'])
 
@@ -40,26 +36,6 @@ def check_chain_head(w3, recent_block_hashes, history_size):
     reversed_new_block_hashes = tuple(reversed(new_block_hashes))
 
     return revoked_hashes, reversed_new_block_hashes
-
-
-def preprocess_block_param(w3, block_param):
-    if isinstance(block_param, int):
-        return block_param
-    elif not isinstance(block_param, str):
-        raise ValueError("block parameter {0} must be int or str type".format(block_param))
-    current_block_number = w3.eth.blockNumber
-    if block_param == 'earliest':
-        return 0
-    elif block_param == 'latest':
-        return current_block_number
-    elif block_param == 'pending':
-        return current_block_number + 1
-    else:
-        raise ValueError(
-            "block parameter {0} in string must be one of earliest/latest/pending".format(
-                block_param,
-            )
-        )
 
 
 class LogHandler:
@@ -72,19 +48,10 @@ class LogHandler:
         # ----------> higher score
         self.recent_block_hashes = get_recent_block_hashes(w3, history_size)
 
-    @to_dict
-    def mk_filter_params(self, from_block_number, to_block_number, address=None, topics=None):
-        yield 'fromBlock', preprocess_block_param(self.w3, from_block_number)
-        yield 'toBlock', preprocess_block_param(self.w3, to_block_number)
-        if address is not None:
-            yield 'address', address
-        if topics is not None:
-            yield 'topics', topics
-
     def get_new_logs(self, address=None, topics=None):
         # TODO: should see if we need to do something with revoked_hashes
         #       it seems reasonable to revoke logs in the blocks with hashes in `revoked_hashes`
-        revoked_hashes, new_block_hashes = check_chain_head(
+        revoked_hashes, new_block_hashes = get_canonical_chain(
             self.w3,
             self.recent_block_hashes,
             self.history_size,
@@ -110,10 +77,11 @@ class LogHandler:
         from_block_number = self.w3.eth.getBlock(from_block_hash)['number']
         to_block_number = self.w3.eth.getBlock(to_block_hash)['number']
 
-        filter_params = self.mk_filter_params(
-            from_block_number,
-            to_block_number,
-            address,
-            topics,
+        return self.w3.eth.getLogs(
+            {
+                'fromBlock': from_block_number,
+                'toBlock': to_block_number,
+                'address': address,
+                'topics': topics,
+            }
         )
-        return self.w3.eth.getLogs(filter_params)
