@@ -136,7 +136,7 @@ class ChainSyncer(PeerPoolSubscriber):
         # FIXME: Fetch a batch of headers, in reverse order, starting from our current head, and
         # find the common ancestor between our chain and the peer's.
         start_at = max(0, head.block_number - eth.MAX_HEADERS_FETCH)
-        while True:
+        while not self._sync_complete.is_set():
             self.logger.info("Fetching chain segment starting at #%d", start_at)
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
@@ -156,40 +156,40 @@ class ChainSyncer(PeerPoolSubscriber):
             self.logger.info("Got headers segment starting at #%d", start_at)
 
             # TODO: Process headers for consistency.
+            head_number = await self._process_headers(peer, headers)
+            start_at = head_number + 1
 
-            await self._download_block_parts(
-                [header for header in headers if not _is_body_empty(header)],
-                self.request_bodies,
-                self._downloaded_bodies,
-                _body_key,
-                'body')
+    async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
+        await self._download_block_parts(
+            [header for header in headers if not _is_body_empty(header)],
+            self.request_bodies,
+            self._downloaded_bodies,
+            _body_key,
+            'body')
+        self.logger.info("Got block bodies for chain segment")
 
-            self.logger.info("Got block bodies for chain segment starting at #%d", start_at)
+        missing_receipts = [header for header in headers if not _is_receipts_empty(header)]
+        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
+        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
+        # so we do this to avoid requesting the same receipts multiple times.
+        missing_receipts = list(unique(missing_receipts, key=_receipts_key))
+        await self._download_block_parts(
+            missing_receipts,
+            self.request_receipts,
+            self._downloaded_receipts,
+            _receipts_key,
+            'receipt')
+        self.logger.info("Got block receipts for chain segment")
 
-            missing_receipts = [header for header in headers if not _is_receipts_empty(header)]
-            # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
-            # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
-            # so we do this to avoid requesting the same receipts multiple times.
-            missing_receipts = list(unique(missing_receipts, key=_receipts_key))
-            await self._download_block_parts(
-                missing_receipts,
-                self.request_receipts,
-                self._downloaded_receipts,
-                _receipts_key,
-                'receipt')
+        for header in headers:
+            await self.chaindb.coro_persist_header(header)
 
-            self.logger.info("Got block receipts for chain segment starting at #%d", start_at)
-
-            for header in headers:
-                await self.chaindb.coro_persist_header(header)
-                start_at = header.block_number + 1
-
-            self.logger.info("Imported chain segment, new head: #%d", start_at - 1)
-            head = await self.chaindb.coro_get_canonical_head()
-            if head.hash == peer.head_hash:
-                self.logger.info("Chain sync with %s completed", peer)
-                self._sync_complete.set()
-                break
+        head = await self.chaindb.coro_get_canonical_head()
+        self.logger.info("Imported chain segment, new head: #%d", head.block_number)
+        if head.hash == peer.head_hash:
+            self.logger.info("Chain sync with %s completed", peer)
+            self._sync_complete.set()
+        return head.block_number
 
     async def _download_block_parts(
             self,
@@ -291,14 +291,7 @@ class ChainSyncer(PeerPoolSubscriber):
         elif isinstance(cmd, eth.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[eth.Receipt]], msg))
         elif isinstance(cmd, eth.NewBlock):
-            msg = cast(Dict[str, Any], msg)
-            header = msg['block'][0]
-            actual_head = header.parent_hash
-            actual_td = msg['total_difficulty'] - header.difficulty
-            if actual_td > peer.head_td:
-                peer.head_hash = actual_head
-                peer.head_td = actual_td
-                self._sync_requests.put_nowait(peer)
+            await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.Transactions):
             # TODO: Figure out what to do with those.
             pass
@@ -309,6 +302,15 @@ class ChainSyncer(PeerPoolSubscriber):
             # TODO: There are other msg types we'll want to handle here, but for now just log them
             # as a warning so we don't forget about it.
             self.logger.warn("Got unexpected msg: %s (%s)", cmd, msg)
+
+    async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
+        header = msg['block'][0]
+        actual_head = header.parent_hash
+        actual_td = msg['total_difficulty'] - header.difficulty
+        if actual_td > peer.head_td:
+            peer.head_hash = actual_head
+            peer.head_td = actual_td
+            self._sync_requests.put_nowait(peer)
 
     async def _handle_block_receipts(
             self, peer: ETHPeer, receipts: List[List[eth.Receipt]]) -> None:
