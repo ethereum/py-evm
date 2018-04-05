@@ -18,6 +18,7 @@ from eth_utils import (
 )
 
 from evm.constants import (
+    DEFAULT_DO_CALL_NONCE,
     DEFAULT_DO_CALL_R,
     DEFAULT_DO_CALL_S,
     DEFAULT_DO_CALL_SENDER,
@@ -268,6 +269,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         _transaction.v = DEFAULT_DO_CALL_V
         _transaction.s = DEFAULT_DO_CALL_S
         _transaction.r = DEFAULT_DO_CALL_R
+        _transaction.nonce = DEFAULT_DO_CALL_NONCE
 
         snapshot = self.snapshot()
         try:
