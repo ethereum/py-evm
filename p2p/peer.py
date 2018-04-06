@@ -765,9 +765,7 @@ class PeerPool:
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
                 asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-                self.connected_nodes[peer.remote] = peer
-                for subscriber in self._subscribers:
-                    subscriber.register_peer(peer)
+                self.add_peer(peer)
                 if len(self.connected_nodes) >= self.min_peers:
                     return
 

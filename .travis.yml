@@ -43,8 +43,6 @@ matrix:
     - python: "3.5"
       env: TOX_POSARGS="-e py35-transactions"
     - python: "3.5"
-      env: TOX_POSARGS="-e py35-p2p"
-    - python: "3.5"
       env: TOX_POSARGS="-e py35-database"
     #- python: "3.5"
     #- env: TOX_POSARGS="-e py35-vm-performance"

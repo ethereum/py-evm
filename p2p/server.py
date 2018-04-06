@@ -5,11 +5,11 @@ import secrets
 from typing import Tuple
 from eth_keys import datatypes
 
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 from p2p.auth import (
-    HandshakeResponder,
     decode_auth_plain,
     decode_auth_eip8,
+    HandshakeResponder,
 )
 from p2p.cancel_token import CancelToken
 from p2p.constants import (
@@ -24,8 +24,8 @@ from p2p.kademlia import (
     Node,
 )
 from p2p.peer import (
-    PeerPool,
     ETHPeer,
+    PeerPool,
 )
 from p2p.utils import sxor
 
@@ -36,22 +36,21 @@ class Server:
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
-                 server_address: Tuple[str, str],
-                 chaindb: ChainDB
+                 server_address: Address,
+                 chaindb: AsyncChainDB
                  ) -> None:
         self.cancel_token = CancelToken('Server')
         self.chaindb = chaindb
         self.privkey = privkey
         self.server_address = server_address
-        # Start Server's PeerPool
         discovery = DiscoveryProtocol(self.privkey, self.server_address, bootstrap_nodes=[])
         self.peer_pool = PeerPool(ETHPeer, self.chaindb, 1, self.privkey, discovery)
-        self.peer_pool.subscribe(self)
 
     async def run(self) -> None:
         self.logger.info("Running server...")
         loop = asyncio.get_event_loop()
-        factory = asyncio.start_server(self.receive_handshake, *self.server_address)
+        factory = asyncio.start_server(
+            self.receive_handshake, host=self.server_address.ip, port=self.server_address.udp_port)
         asyncio.ensure_future(factory)
 
         while not self.cancel_token.triggered:
@@ -63,7 +62,6 @@ class Server:
     async def stop(self) -> None:
         self.logger.info("Closing server...")
         self.cancel_token.trigger()
-        self.peer_pool.unsubscribe(self)
         asyncio.ensure_future(self.peer_pool.stop())
 
     async def receive_handshake(
@@ -74,9 +72,11 @@ class Server:
         # Use HandshakeResponder.decode_authentication(auth_init_message) on auth init msg
         ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(msg, self.privkey)
 
-        # Get remote's address
-        ip, udp, _, _ = writer.get_extra_info("peername")
-        remote_address = Address(ip, udp)
+        # Get remote's address: IPv4 or IPv6
+        peername = writer.get_extra_info("peername")
+        ip = peername[0]
+        port = peername[1]
+        remote_address = Address(ip, port)
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
         initiator_remote = Node(initiator_pubkey, remote_address)

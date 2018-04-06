@@ -82,7 +82,8 @@ async def test_handshake():
 
     # Check that the responder correctly decodes the auth msg.
     auth_msg_ciphertext = test_values['auth_ciphertext']
-    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(auth_msg_ciphertext, responder.privkey)
+    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(
+        auth_msg_ciphertext, responder.privkey)
     assert initiator_nonce == test_values['initiator_nonce']
     assert initiator_ephemeral_pubkey == (
         keys.PrivateKey(test_values['initiator_ephemeral_private_key']).public_key)
