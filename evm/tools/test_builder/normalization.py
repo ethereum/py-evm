@@ -192,21 +192,8 @@ normalize_main_environment = dict_normalizer({
 }, optional=["previousHash"])
 
 
-normalize_sharding_environment = dict_normalizer({
-    "currentCoinbase": to_canonical_address,
-    "previousHash": normalize_bytes,
-    "currentNumber": normalize_int,
-    "shardID": normalize_int,
-    "expectedPeriodNumber": normalize_int,
-    "periodStartHash": normalize_bytes,
-    "currentCoinbase": to_canonical_address,
-    "currentNumber": normalize_int,
-})
-
-
 normalize_environment = dict_options_normalizer([
     normalize_main_environment,
-    normalize_sharding_environment,
 ])
 
 
@@ -221,25 +208,8 @@ normalize_main_transaction = dict_normalizer({
 })
 
 
-normalize_access_list = eth_utils.curried.apply_formatter_to_array(
-    eth_utils.curried.apply_formatter_to_array(normalize_bytes)
-)
-
-normalize_sharding_transaction = dict_normalizer({
-    "chainID": normalize_int,
-    "shardID": normalize_int,
-    "data": normalize_bytes,
-    "gasLimit": normalize_int,
-    "gasPrice": normalize_int,
-    "to": normalize_to_address,
-    "code": normalize_bytes,
-    "accessList": normalize_access_list,
-})
-
-
 normalize_transaction = dict_options_normalizer([
     normalize_main_transaction,
-    normalize_sharding_transaction,
 ])
 
 
@@ -254,21 +224,8 @@ normalize_main_transaction_group = dict_normalizer({
 })
 
 
-normalize_sharding_transaction_group = dict_normalizer({
-    "chainID": normalize_int,
-    "shardID": normalize_int,
-    "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
-    "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
-    "gasPrice": normalize_int,
-    "to": normalize_to_address,
-    "code": normalize_bytes,
-    "accessList": normalize_access_list,
-})
-
-
 normalize_transaction_group = dict_options_normalizer([
     normalize_main_transaction_group,
-    normalize_sharding_transaction_group,
 ])
 
 

@@ -92,8 +92,6 @@ def fixture_transaction_class(fixture_data):
         return SpuriousDragonTransaction
     elif fork_name == ForkName.Byzantium:
         return ByzantiumTransaction
-    elif fork_name == ForkName.Sharding:
-        pytest.skip("Sharding Transaction class has not been implemented")
     elif fork_name == ForkName.Constantinople:
         pytest.skip("Constantinople Transaction class has not been implemented")
     elif fork_name == ForkName.Metropolis:

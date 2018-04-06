@@ -14,18 +14,6 @@ from trie import (
 from eth_utils import (
     keccak,
 )
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
-from evm.utils.state_access_restriction import (
-    get_balance_key,
-    get_storage_key,
-)
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
-    ZERO_HASH32,
-)
 
 from evm.db import (
     get_db_backend,
@@ -35,7 +23,6 @@ from evm.db.chain import (
 )
 from evm.db.state import (
     MainAccountStateDB,
-    ShardingAccountStateDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -43,7 +30,6 @@ from evm.exceptions import (
 )
 from evm.rlp.headers import (
     BlockHeader,
-    CollationHeader,
 )
 from evm.tools.fixture_tests import (
     assert_rlp_equal,
@@ -72,7 +58,7 @@ def set_empty_root(chaindb, header):
     header.state_root = root_hash
 
 
-@pytest.fixture(params=[MainAccountStateDB, ShardingAccountStateDB])
+@pytest.fixture(params=[MainAccountStateDB])
 def chaindb(request):
     if request.param is MainAccountStateDB:
         trie_class = HexaryTrie
@@ -83,31 +69,6 @@ def chaindb(request):
         account_state_class=request.param,
         trie_class=trie_class,
     )
-
-
-@pytest.fixture
-def shard_chaindb(request):
-    return ChainDB(
-        get_db_backend(),
-        account_state_class=ShardingAccountStateDB,
-        trie_class=BinaryTrie,
-    )
-
-
-@pytest.fixture
-def populated_shard_chaindb_and_root_hash(shard_chaindb):
-    if shard_chaindb.trie_class is HexaryTrie:
-        root_hash = BLANK_ROOT_HASH
-    else:
-        root_hash = EMPTY_SHA3
-
-    state_db = shard_chaindb.get_state_db(root_hash, read_only=False)
-    state_db.set_balance(A_ADDRESS, 1)
-    state_db.set_code(B_ADDRESS, b"code")
-    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key1"), 100)
-    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key2"), 200)
-    state_db.set_storage(B_ADDRESS, big_endian_to_int(b"key"), 300)
-    return shard_chaindb, state_db.root_hash
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -188,29 +149,3 @@ def test_lookup_block_hash(chaindb, block):
     chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash
-
-
-def test_get_witness_nodes(populated_shard_chaindb_and_root_hash):
-    chaindb, root_hash = populated_shard_chaindb_and_root_hash
-    header = CollationHeader(
-        shard_id=1,
-        expected_period_number=0,
-        period_start_prevhash=ZERO_HASH32,
-        parent_hash=ZERO_HASH32,
-        number=0,
-        state_root=root_hash
-    )
-
-    prefixes = [
-        get_balance_key(A_ADDRESS),
-        get_balance_key(B_ADDRESS),
-        get_storage_key(A_ADDRESS, big_endian_to_int(b"key1")),
-        get_storage_key(B_ADDRESS, big_endian_to_int(b"key1")),
-        get_storage_key(B_ADDRESS, big_endian_to_int(b"key2")),
-        get_storage_key(B_ADDRESS, big_endian_to_int(b"key")),
-        get_storage_key(B_ADDRESS, big_endian_to_int(b"")),
-    ]
-
-    witness_nodes = chaindb.get_witness_nodes(header, prefixes)
-    assert len(witness_nodes) == len(set(witness_nodes))  # no duplicates
-    assert sorted(witness_nodes) == sorted(witness_nodes)  # sorted

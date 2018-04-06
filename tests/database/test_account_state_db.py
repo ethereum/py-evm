@@ -1,29 +1,20 @@
 import pytest
 
-import copy
-
 from eth_utils import (
     keccak,
 )
 
 from evm.exceptions import (
-    UnannouncedStateAccess,
     ValidationError,
 )
 
 from evm.db.backends.memory import MemoryDB
 from evm.db.state import (
     MainAccountStateDB,
-    ShardingAccountStateDB,
 )
 
 from evm.constants import (
     EMPTY_SHA3,
-)
-from evm.utils.state_access_restriction import (
-    get_balance_key,
-    get_code_key,
-    get_storage_key,
 )
 
 
@@ -34,7 +25,6 @@ INVALID_ADDRESS = b'aa' * 20
 
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_balance(state):
     assert state.get_balance(ADDRESS) == 0
@@ -85,7 +75,6 @@ def test_nonce(state):
 
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_code(state):
     assert state.get_code(ADDRESS) == b''
@@ -105,21 +94,7 @@ def test_code(state):
 
 
 @pytest.mark.parametrize("state", [
-    ShardingAccountStateDB(MemoryDB()),
-])
-def test_has_code(state):
-    assert not state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"")
-    assert not state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"code")
-    assert state.account_has_code(ADDRESS)
-    state.set_code(ADDRESS, b"")
-    assert not state.account_has_code(ADDRESS)
-
-
-@pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
-    ShardingAccountStateDB(MemoryDB()),
 ])
 def test_storage(state):
     assert state.get_storage(ADDRESS, 0) == 0
@@ -182,57 +157,3 @@ def test_accounts(state):
         state.delete_account(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
         state.account_has_code_or_nonce(INVALID_ADDRESS)
-
-
-def test_access_restriction():
-    # populate db
-    state = ShardingAccountStateDB(MemoryDB())
-    state.set_balance(ADDRESS, 2)
-    state.set_code(ADDRESS, b"code")
-    state.set_storage(ADDRESS, 123, 4)
-
-    original_db = state.db
-    original_root_hash = state.root_hash
-
-    def make_state(access_list):
-        kv_store = copy.deepcopy(original_db.wrapped_db.kv_store)
-        db = MemoryDB(kv_store)
-        return ShardingAccountStateDB(db, original_root_hash, access_list=access_list)
-
-    # access lists to use
-    CODE_ACCESS_LIST = [get_code_key(ADDRESS)]
-    BALANCE_ACCESS_LIST = [get_balance_key(ADDRESS)]
-    STORAGE_ACCESS_LIST = [get_storage_key(ADDRESS, 123)]
-
-    # test with access list
-    state = make_state(BALANCE_ACCESS_LIST)
-    state.get_balance(ADDRESS)
-    state.set_balance(ADDRESS, 3)
-    state.delta_balance(ADDRESS, 1)
-
-    state = make_state(CODE_ACCESS_LIST)
-    state.get_code(ADDRESS)
-    state.set_code(ADDRESS, b"new_code")
-
-    state = make_state(STORAGE_ACCESS_LIST)
-    state.get_storage(ADDRESS, 123)
-    state.set_storage(ADDRESS, 123, 5)
-
-    # test without access list
-    state = make_state([])
-    with pytest.raises(UnannouncedStateAccess):
-        state.get_balance(ADDRESS)
-    with pytest.raises(UnannouncedStateAccess):
-        state.set_balance(ADDRESS, 3)
-    with pytest.raises(UnannouncedStateAccess):
-        state.delta_balance(ADDRESS, 1)
-
-    with pytest.raises(UnannouncedStateAccess):
-        state.get_code(ADDRESS)
-    with pytest.raises(UnannouncedStateAccess):
-        state.set_code(ADDRESS, b"new_code")
-
-    with pytest.raises(UnannouncedStateAccess):
-        state.get_storage(ADDRESS, 123)
-    with pytest.raises(UnannouncedStateAccess):
-        state.set_storage(ADDRESS, 123, 5)

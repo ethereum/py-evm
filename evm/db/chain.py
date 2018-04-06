@@ -12,16 +12,11 @@ from trie import (
     BinaryTrie,
     HexaryTrie,
 )
-from trie.branches import (
-    get_witness_for_key_prefix,
-)
 
 from eth_utils import (
     keccak,
     to_list,
     to_tuple,
-    to_set,
-    flatten_return,
 )
 
 from evm.constants import (
@@ -242,7 +237,7 @@ class BaseChainDB(metaclass=ABCMeta):
     # State Database API
     #
     @abstractmethod
-    def get_state_db(self, state_root, read_only, access_list=None):
+    def get_state_db(self, state_root, read_only):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -585,26 +580,12 @@ class ChainDB(BaseChainDB):
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only, access_list=None):
-        extra_kwargs = {}
-        if access_list is not None:
-            extra_kwargs["access_list"] = access_list
+    def get_state_db(self, state_root, read_only):
         return self.account_state_class(
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            **extra_kwargs
         )
-
-    #
-    # Witness API
-    #
-    @to_set
-    @flatten_return
-    def get_witness_nodes(self, collation_header, prefixes):
-        root_hash = collation_header.state_root
-        for prefix in prefixes:
-            yield get_witness_for_key_prefix(self.db, root_hash, prefix)
 
 
 class AsyncChainDB(ChainDB):

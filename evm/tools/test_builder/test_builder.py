@@ -13,7 +13,6 @@ from typing import (  # noqa: F401
 
 from evm.db.state import (
     MainAccountStateDB,
-    ShardingAccountStateDB,
 )
 from evm.tools.fixture_tests import (
     hash_log_entries,
@@ -74,19 +73,6 @@ DEFAULT_MAIN_ENVIRONMENT = {
     ),
 }
 
-DEFAULT_SHARDING_ENVIRONMENT = {
-    "shardID": 0,
-    "expectedPeriodNumber": 0,
-    "periodStartHash": decode_hex(
-        "0x148067ef259ce711201e6b2a8438b907d0ac0549deef577aff58f1b9143a134a"
-    ),
-    "currentCoinbase": to_canonical_address("0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"),
-    "currentNumber": 1,
-    "previousHash": decode_hex(
-        "0x5e20a0453cecd065ea59c37ac63e079ee08998b6045136a8ce6635c7912ec0b6"
-    ),
-}
-
 
 DEFAULT_MAIN_TRANSACTION = {
     "data": b"",
@@ -98,23 +84,9 @@ DEFAULT_MAIN_TRANSACTION = {
     "value": 0
 }
 
-DEFAULT_SHARDING_TRANSACTION = {
-    "chainID": 0,
-    "shardID": 0,
-    "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
-    "data": b"",
-    "gasLimit": 100000,
-    "gasPrice": 0,
-    "accessList": [],
-    "code": b"",
-}
-
 
 def get_default_transaction(networks):
-    if "Sharding" not in networks:
-        return DEFAULT_MAIN_TRANSACTION
-    else:
-        return DEFAULT_SHARDING_TRANSACTION
+    return DEFAULT_MAIN_TRANSACTION
 
 
 DEFAULT_EXECUTION = {
@@ -133,7 +105,6 @@ ALL_NETWORKS = [
     "EIP150",
     "EIP158",
     "Byzantium",
-    "Sharding",
 ]
 
 ACCOUNT_STATE_DB_CLASSES = {
@@ -142,7 +113,6 @@ ACCOUNT_STATE_DB_CLASSES = {
     "EIP150": MainAccountStateDB,
     "EIP158": MainAccountStateDB,
     "Byzantium": MainAccountStateDB,
-    "Sharding": ShardingAccountStateDB,
 }
 assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
 
@@ -168,10 +138,6 @@ def setup_filler(name, environment=None):
 
 def setup_main_filler(name, environment=None):
     return setup_filler(name, merge(DEFAULT_MAIN_ENVIRONMENT, environment or {}))
-
-
-def setup_sharding_filler(name, environment=None):
-    return setup_filler(name, merge(DEFAULT_SHARDING_ENVIRONMENT, environment or {}))
 
 
 @curry

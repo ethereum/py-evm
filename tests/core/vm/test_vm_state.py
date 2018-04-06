@@ -1,16 +1,11 @@
 import copy
 
-from cytoolz import (
-    merge,
-)
 import pytest
 
 from eth_utils import (
     decode_hex,
 )
 
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
@@ -118,7 +113,6 @@ def test_apply_transaction(  # noqa: F811
         tx1,
         block1,
     )
-    access_logs1 = computation.state.access_logs
 
     # Check if prev_hashes hasn't been changed
     assert parent_hash == prev_hashes[0]
@@ -135,15 +129,7 @@ def test_apply_transaction(  # noqa: F811
         tx2,
         block,
     )
-    access_logs2 = computation.state.access_logs
     post_state = computation.state
-
-    # Check AccessLogs
-    witness_db = ChainDB(MemoryDB(access_logs2.writes))
-    state_db = witness_db.get_state_db(block.header.state_root, read_only=True)
-    assert state_db.get_balance(recipient2) == amount
-    with pytest.raises(KeyError):
-        _ = state_db.get_balance(recipient1)
 
     # Check block data are correct
     assert block.header.state_root == result_block.header.state_root
@@ -154,61 +140,3 @@ def test_apply_transaction(  # noqa: F811
 
     # Make sure that state1 hasn't been changed
     assert post_state.state_root == result_block.header.state_root
-
-    # (3) Testing using witness as db data
-    # Witness_db
-    block2 = copy.deepcopy(block0)
-
-    witness_db = ChainDB(MemoryDB(access_logs1.reads))
-    prev_hashes = vm.get_prev_hashes(
-        last_block_hash=prev_block_hash,
-        db=vm.chaindb,
-    )
-    execution_context = block2.header.create_execution_context(prev_hashes)
-    # Apply the first transaction
-    state2 = SpuriousDragonState(
-        chaindb=witness_db,
-        execution_context=execution_context,
-        state_root=block2.header.state_root,
-        receipts=[],
-    )
-    computation, block, _ = state2.apply_transaction(
-        tx1,
-        block2,
-    )
-
-    # Update witness_db
-    recent_trie_nodes = merge(access_logs2.reads, access_logs1.writes)
-    witness_db = ChainDB(MemoryDB(recent_trie_nodes))
-    execution_context = block.header.create_execution_context(prev_hashes)
-    # Apply the second transaction
-    state2 = SpuriousDragonState(
-        chaindb=witness_db,
-        execution_context=execution_context,
-        state_root=block.header.state_root,
-        receipts=computation.state.receipts,
-    )
-    computation, block, _ = state2.apply_transaction(
-        tx2,
-        block,
-    )
-
-    # After applying
-    assert block.header.state_root == computation.state.state_root
-    assert block.header.transaction_root == result_block.header.transaction_root
-    assert block.header.receipt_root == result_block.header.receipt_root
-    assert block.hash == result_block.hash
-
-    # (3) Testing using witness_db and block_header to reconstruct state
-    prev_hashes = vm.get_prev_hashes(
-        last_block_hash=prev_block_hash,
-        db=vm.chaindb,
-    )
-    execution_context = block.header.create_execution_context(prev_hashes)
-    state3 = SpuriousDragonState(
-        chaindb=witness_db,
-        execution_context=execution_context,
-        state_root=block.header.state_root,
-    )
-    assert state3.state_root == post_state.state_root
-    assert state3.state_root == result_block.header.state_root

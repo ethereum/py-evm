@@ -1,7 +1,3 @@
-import os
-
-import json
-
 import pytest
 
 from eth_utils import (
@@ -9,21 +5,11 @@ from eth_utils import (
     to_canonical_address,
 )
 from eth_keys import KeyAPI
-from trie import (
-    BinaryTrie,
-)
 
 from evm import Chain
 from evm import constants
-from evm.chains.shard import (
-    Shard,
-)
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
-from evm.db.state import (
-    ShardingAccountStateDB
-)
-from evm.vm.forks.sharding import ShardingVM
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 
 
@@ -58,15 +44,6 @@ def funded_address_initial_balance():
 @pytest.fixture
 def chaindb():
     return ChainDB(get_db_backend())
-
-
-@pytest.fixture
-def shard_chaindb():
-    return ChainDB(
-        get_db_backend(),
-        account_state_class=ShardingAccountStateDB,
-        trie_class=BinaryTrie,
-    )
 
 
 @pytest.fixture
@@ -112,145 +89,6 @@ def chain(chaindb, funded_address, funded_address_initial_balance):  # noqa: F81
         ))
     chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     return chain
-
-
-PAYGAS_contracts = json.load(
-    open(os.path.join(os.path.dirname(__file__), './contract_fixtures/PAYGAS_contracts.json'))
-)
-
-
-CREATE2_contracts = json.load(
-    open(os.path.join(os.path.dirname(__file__), './contract_fixtures/CREATE2_contracts.json'))
-)
-
-
-nonce_tracking_contracts = json.load(
-    open(
-        os.path.join(os.path.dirname(__file__), './contract_fixtures/nonce_tracking_contracts.json')
-    )
-)
-
-
-SHARD_CHAIN_CONTRACTS_FIXTURES = [
-    {
-        "contract_code": CREATE2_contracts['simple_transfer_contract']['bytecode'],
-        "deployed_address": CREATE2_contracts['simple_transfer_contract']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": CREATE2_contracts['CREATE2_contract']['bytecode'],
-        "deployed_address": CREATE2_contracts['CREATE2_contract']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": PAYGAS_contracts['PAYGAS_contract_normal']['bytecode'],
-        "deployed_address": PAYGAS_contracts['PAYGAS_contract_normal']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": PAYGAS_contracts['simple_forwarder_contract']['bytecode'],
-        "deployed_address": PAYGAS_contracts['simple_forwarder_contract']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['bytecode'],
-        "deployed_address": PAYGAS_contracts['PAYGAS_contract_triggered_twice']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": nonce_tracking_contracts['nonce_tracking_contract']['bytecode'],
-        "deployed_address": nonce_tracking_contracts['nonce_tracking_contract']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-    {
-        "contract_code": nonce_tracking_contracts['no_nonce_tracking_contract']['bytecode'],
-        "deployed_address": nonce_tracking_contracts['no_nonce_tracking_contract']['address'],
-        "initial_balance": funded_address_initial_balance(),
-    },
-]
-
-
-@pytest.fixture
-def shard_chain(shard_chaindb, funded_address, funded_address_initial_balance):  # noqa: F811
-    genesis_params = {
-        "bloom": 0,
-        "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
-        "difficulty": 131072,
-        "extra_data": b"B",
-        "gas_limit": 3141592,
-        "gas_used": 0,
-        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
-        "nonce": decode_hex("0102030405060708"),
-        "block_number": 0,
-        "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
-        "transaction_root": constants.EMPTY_SHA3,
-        "receipt_root": constants.EMPTY_SHA3,
-        "timestamp": 1422494849,
-        "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
-    }
-    genesis_state = {
-        funded_address: {
-            "balance": funded_address_initial_balance,
-            "nonce": 0,
-            "code": b"",
-            "storage": {}
-        }
-    }
-    klass = Shard.configure(
-        __name__='TestChain',
-        vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
-        ))
-    shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
-
-    return shard
-
-
-@pytest.fixture
-def shard_chain_without_block_validation(shard_chaindb):  # noqa: F811
-    shard_chaindb = shard_chaindb
-    """
-    Return a Chain object containing just the genesis block.
-
-    This Chain does not perform any validation when importing new blocks.
-
-    The Chain's state includes one funded account which is where the simple transfer
-
-    contract will be deployed at.
-    """
-    overrides = {
-        'import_block': import_block_without_validation,
-        'validate_block': lambda self, block: None,
-    }
-    klass = Shard.configure(
-        __name__='TestShardChainWithoutBlockValidation',
-        vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, ShardingVM),
-        ),
-        **overrides,
-    )
-    genesis_params = {
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
-        'difficulty': constants.GENESIS_DIFFICULTY,
-        'gas_limit': constants.GENESIS_GAS_LIMIT,
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'coinbase': constants.GENESIS_COINBASE,
-        'nonce': constants.GENESIS_NONCE,
-        'mix_hash': constants.GENESIS_MIX_HASH,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'timestamp': 1501851927,
-        'transaction_root': constants.EMPTY_SHA3,
-        'receipt_root': constants.EMPTY_SHA3,
-    }
-    genesis_state = {
-        decode_hex(SHARD_CHAIN_CONTRACTS_FIXTURES[i]["deployed_address"]): {
-            'balance': SHARD_CHAIN_CONTRACTS_FIXTURES[i]["initial_balance"],
-            'code': b'',
-            'storage': {},
-        } for i in range(len(SHARD_CHAIN_CONTRACTS_FIXTURES))
-    }
-    shard = klass.from_genesis(shard_chaindb, genesis_params, genesis_state)
-    return shard
 
 
 @pytest.fixture

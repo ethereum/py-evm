@@ -22,7 +22,6 @@ from evm.constants import (
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
-    SHARD_GAS_LIMIT,
 )
 from evm.exceptions import (
     ValidationError,
@@ -53,8 +52,7 @@ from typing import (
     Tuple,
     Union,
     Iterator,
-    List,
-    Any
+    Any,
 )
 
 
@@ -303,21 +301,3 @@ class CollationHeader(rlp.Serializable):
         }
         header = cls(**header_kwargs)
         return header
-
-    def clone(self) -> 'CollationHeader':
-        # Create a new CollationHeader object with the same fields.
-        return self.__class__(**{
-            field_name: getattr(self, field_name)
-            for field_name
-            in first(zip(*self.fields))
-        })
-
-    def create_execution_context(self, prev_hashes: List[bytes]) -> ExecutionContext:
-        return ExecutionContext(
-            coinbase=self.coinbase,
-            timestamp=None,
-            block_number=self.number,
-            difficulty=None,
-            gas_limit=SHARD_GAS_LIMIT,
-            prev_hashes=prev_hashes,
-        )

@@ -2,7 +2,6 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-from typing import Type
 
 import rlp
 
@@ -12,7 +11,6 @@ from evm.utils.datatypes import (
 
 from evm.db.chain import BaseChainDB
 
-from .transactions import BaseShardingTransaction
 from .headers import CollationHeader
 
 
@@ -23,14 +21,6 @@ class BaseCollation(rlp.Serializable, Configurable, metaclass=ABCMeta):
     @classmethod
     def get_sedes(cls):
         return rlp.sedes.List(sedes for _, sedes in cls.fields)
-
-    transaction_class = None  # type: Type[BaseShardingTransaction]
-
-    @classmethod
-    def get_transaction_class(cls) -> Type[BaseShardingTransaction]:
-        if cls.transaction_class is None:
-            raise AttributeError("Collation subclasses must declare a transaction_class")
-        return cls.transaction_class
 
     @classmethod
     @abstractmethod

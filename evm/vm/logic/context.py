@@ -106,10 +106,6 @@ def gasprice(computation):
     computation.stack_push(computation.transaction_context.gas_price)
 
 
-def PAYGAS_gasprice(computation):
-    computation.stack_push(computation.get_PAYGAS_gas_price())
-
-
 def extcodesize(computation):
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     with computation.state_db(read_only=True) as state_db:
@@ -178,7 +174,3 @@ def returndatacopy(computation):
     value = computation.return_data[returndata_start_position: returndata_start_position + size]
 
     computation.memory_write(mem_start_position, size, value)
-
-
-def sighash(computation):
-    computation.stack_push(computation.transaction_context.sig_hash)

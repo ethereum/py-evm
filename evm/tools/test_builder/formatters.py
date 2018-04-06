@@ -9,22 +9,12 @@ import eth_utils.curried
 
 
 environment_formatter = eth_utils.curried.apply_formatters_to_dict({
-    # shared
     "currentCoinbase": to_checksum_address,
     "previousHash": encode_hex,
     "currentNumber": to_hex,
-
-    # only main environment
     "currentDifficulty": to_hex,
     "currentGasLimit": to_hex,
     "currentTimestamp": to_hex,
-
-    # only sharding environment
-    "shardID": to_hex,
-    "expectedPeriodNumber": to_hex,
-    "periodStartHash": encode_hex,
-    "currentCoinbase": to_checksum_address,
-    "currentNumber": to_hex,
 })
 
 
@@ -44,27 +34,15 @@ state_item_formatter = combine_argument_formatters(to_checksum_address, account_
 state_formatter = cytoolz.curried.itemmap(state_item_formatter)
 
 
-access_list_formatter = eth_utils.curried.apply_formatter_to_array(
-    eth_utils.curried.apply_formatter_to_array(encode_hex)
-)
-
 transaction_group_formatter = eth_utils.curried.apply_formatters_to_dict({
     # all transaction types
     "to": to_checksum_address,
     "data": eth_utils.curried.apply_formatter_to_array(encode_hex),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(to_hex),
     "gasPrice": to_hex,
-
-    # only main chain transactions
     "nonce": to_hex,
     "secretKey": encode_hex,
     "value": eth_utils.curried.apply_formatter_to_array(to_hex),
-
-    # only sharding transactions
-    "chainID": to_hex,
-    "shardID": to_hex,
-    "code": encode_hex,
-    "accessList": access_list_formatter,
 })
 
 
