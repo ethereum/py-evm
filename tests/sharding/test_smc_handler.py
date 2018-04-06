@@ -34,6 +34,8 @@ from evm.vm.forks.sharding.shard_tracker import (
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
+    add_header_constant_call,
+    make_testing_colhdr,
     smc_handler,
 )
 from tests.sharding.web3_utils import (
@@ -47,59 +49,6 @@ ZERO_ADDR = b'\x00' * 20
 test_keys = get_default_account_keys()
 
 logger = logging.getLogger('evm.chain.sharding.mainchain_handler.SMCHandler')
-
-
-def make_testing_colhdr(smc_handler,  # noqa: F811
-                      shard_id,
-                      parent_hash,
-                      number,
-                      coinbase=test_keys[0].public_key.to_canonical_address()):
-    period_length = smc_handler.config['PERIOD_LENGTH']
-    current_block_number = smc_handler.web3.eth.blockNumber
-    expected_period_number = (current_block_number + 1) // period_length
-    logger.debug("make_testing_colhdr: expected_period_number=%s", expected_period_number)
-
-    period_start_prevblock_number = expected_period_number * period_length - 1
-    period_start_prev_block = smc_handler.web3.eth.getBlock(period_start_prevblock_number)
-    period_start_prevhash = period_start_prev_block['hash']
-    logger.debug("make_testing_colhdr: period_start_prevhash=%s", period_start_prevhash)
-
-    transaction_root = b"tx_list " * 4
-    state_root = b"post_sta" * 4
-    receipt_root = b"receipt " * 4
-
-    collation_header = CollationHeader(
-        shard_id=shard_id,
-        expected_period_number=expected_period_number,
-        period_start_prevhash=period_start_prevhash,
-        parent_hash=parent_hash,
-        transaction_root=transaction_root,
-        coinbase=coinbase,
-        state_root=state_root,
-        receipt_root=receipt_root,
-        number=number,
-    )
-    return collation_header
-
-
-def add_header_constant_call(smc_handler, collation_header):  # noqa: F811
-    args = (
-        getattr(collation_header, field[0])
-        for field in collation_header.fields
-    )
-    # transform address from canonical to checksum_address, to comply with web3.py
-    args_with_checksum_address = (
-        to_checksum_address(item) if is_address(item) else item
-        for item in args
-    )
-    # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
-    # is the same as the one of parameters of `SMCHandler.add_header`
-    result = smc_handler.call(make_call_context(
-        sender_address=smc_handler.sender_address,
-        gas=smc_handler.config['DEFAULT_GAS'],
-        gas_price=1,
-    )).add_header(*args_with_checksum_address)
-    return result
 
 
 def test_make_transaction_context():
@@ -239,21 +188,6 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
         ]
     })
     assert len(logs) == 4
-
-    smc_handler.tx_to_shard(
-        test_keys[1].public_key.to_canonical_address(),
-        shard_id,
-        100000,
-        1,
-        b'',
-        value=1234567,
-    )
-    mine(web3, 1)
-    receipt_value = smc_handler.call(
-        make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).receipts__value(0)
-    # the receipt value should be equaled to the transaction value
-    assert receipt_value == 1234567
 
     # test `withdraw` ######################################
     smc_handler.withdraw(validator_index)

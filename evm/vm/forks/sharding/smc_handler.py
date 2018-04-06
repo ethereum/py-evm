@@ -101,7 +101,7 @@ class SMCHandler(Contract):
             period = self.web3.eth.blockNumber // self.config['PERIOD_LENGTH']
         call_context = make_call_context(
             sender_address=self.sender_address,
-            gas=self.config["DEFAULT_GAS"]
+            gas=self.config["DEFAULT_GAS"],
         )
         address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(call_context)
         return decode_hex(address_in_hex)
@@ -109,7 +109,7 @@ class SMCHandler(Contract):
     def get_parent_hash(self, shard_id, collation_hash, gas=None):
         call_context = make_call_context(
             sender_address=self.sender_address,
-            gas=self.config["DEFAULT_GAS"]
+            gas=self.config["DEFAULT_GAS"],
         )
         return self.functions.get_collation_header_parent_hash(
             shard_id,
@@ -119,7 +119,7 @@ class SMCHandler(Contract):
     def get_collation_score(self, shard_id, collation_hash, gas=None):
         call_context = make_call_context(
             sender_address=self.sender_address,
-            gas=self.config["DEFAULT_GAS"]
+            gas=self.config["DEFAULT_GAS"],
         )
         return self.functions.get_collation_header_score(
             shard_id,
