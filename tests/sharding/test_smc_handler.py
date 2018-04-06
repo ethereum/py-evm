@@ -11,21 +11,12 @@ from eth_tester.backends.pyevm.main import (
     get_default_account_keys,
 )
 
-from eth_utils import (
-    encode_hex,
+from evm.vm.forks.sharding.constants import (
+    GENESIS_COLLATION_HASH
 )
-
 from evm.vm.forks.sharding.smc_handler import (
     make_call_context,
     make_transaction_context,
-)
-from evm.vm.forks.sharding.log_handler import (
-    LogHandler,
-)
-from evm.vm.forks.sharding.shard_tracker import (
-    COLLATION_ADDED_TOPIC,
-    NextLogUnavailable,
-    ShardTracker,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
@@ -38,7 +29,6 @@ from tests.sharding.web3_utils import (
 )
 
 
-GENESIS_COLHDR_HASH = b'\x00' * 32
 ZERO_ADDR = b'\x00' * 20
 
 test_keys = get_default_account_keys()
@@ -93,8 +83,6 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
     primary_addr = primary_key.public_key.to_canonical_address()
     default_gas = smc_handler.config['DEFAULT_GAS']
 
-    shard_0_tracker = ShardTracker(shard_id, LogHandler(web3), smc_handler.address)
-
     lookahead_blocks = (
         smc_handler.config['LOOKAHEAD_PERIODS'] * smc_handler.config['PERIOD_LENGTH']
     )
@@ -128,7 +116,7 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
 
     # test `add_header` ######################################
     # create a testing collation header, whose parent is the genesis
-    header0_1 = make_testing_colhdr(smc_handler, shard_id, GENESIS_COLHDR_HASH, 1)
+    header0_1 = make_testing_colhdr(smc_handler, shard_id, GENESIS_COLLATION_HASH, 1)
     # if a header is added before its parent header is added, `add_header` should fail
     # TransactionFailed raised when assertions fail
     with pytest.raises(TransactionFailed):
@@ -165,30 +153,6 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
         make_call_context(sender_address=primary_addr, gas=default_gas)
     )
     assert colhdr0_2_score == 2
-    # confirm the logs are correct
-    assert shard_0_tracker.get_next_log()['score'] == 2
-    assert shard_0_tracker.get_next_log()['score'] == 1
-    with pytest.raises(NextLogUnavailable):
-        shard_0_tracker.get_next_log()
-
-    # filter logs in multiple shards
-    shard_1_tracker = ShardTracker(1, LogHandler(web3), smc_handler.address)
-    header1_1 = make_testing_colhdr(smc_handler, 1, GENESIS_COLHDR_HASH, 1)
-    smc_handler.add_header(header1_1)
-    mine(web3, 1)
-    header0_3 = make_testing_colhdr(smc_handler, shard_id, header0_2.hash, 3)
-    smc_handler.add_header(header0_3)
-    mine(web3, 1)
-    assert shard_0_tracker.get_next_log()['score'] == 3
-    assert shard_1_tracker.get_next_log()['score'] == 1
-    logs = web3.eth.getLogs({
-        "fromBlock": 0,
-        "toBlock": web3.eth.blockNumber,
-        "topics": [
-            encode_hex(COLLATION_ADDED_TOPIC),
-        ]
-    })
-    assert len(logs) == 4
 
     # test `withdraw` ######################################
     smc_handler.withdraw(validator_index)

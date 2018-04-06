@@ -15,6 +15,7 @@ from web3.providers.eth_tester import (
 
 from eth_utils import (
     decode_hex,
+    event_abi_to_log_topic,
     is_address,
     to_canonical_address,
     to_checksum_address,
@@ -54,6 +55,7 @@ from evm.vm.forks.sharding.log_handler import (
     LogHandler,
 )
 from evm.vm.forks.sharding.shard_tracker import (
+    COLLATION_ADDED_EVENT_NAME,
     ShardTracker,
 )
 from evm.vm.forks.sharding.smc_handler import (
@@ -241,10 +243,20 @@ def make_collation_header_chain(smc_handler,
     return top_collation_hash
 
 
+def get_collation_added_abi(smc_handler):
+    for value in smc_handler.abi:
+        if value['name'] == COLLATION_ADDED_EVENT_NAME and value['type'] == 'event':
+            return value
+    raise Exception("Event {0} is not found in SMCHandler".format(COLLATION_ADDED_EVENT_NAME))
+
+
 @pytest.fixture
-def shard_tracker(smc_instance, shard_id):
-    log_handler = LogHandler(smc_instance.web3)
-    return ShardTracker(shard_id, log_handler, smc_instance.address)
+def shard_tracker(smc_handler, shard_id):
+    log_handler = LogHandler(smc_handler.web3)
+    collation_added_topic = event_abi_to_log_topic(
+        get_collation_added_abi(smc_handler)
+    )
+    return ShardTracker(shard_id, log_handler, smc_handler.address, collation_added_topic)
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ from cytoolz import (
 )
 
 from eth_utils import (
-    event_signature_to_log_topic,
     to_tuple,
 )
 
@@ -23,9 +22,7 @@ from evm.utils.numeric import (
 
 
 # For handling logs filtering
-COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
-    "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
-)
+COLLATION_ADDED_EVENT_NAME = "CollationAdded"
 
 
 class NextLogUnavailable(Exception):
@@ -66,13 +63,15 @@ class ShardTracker:
     new_logs = None
     unchecked_logs = None
     headers_by_height = None
+    collation_added_topic = None
 
-    def __init__(self, shard_id, log_handler, smc_address):
+    def __init__(self, shard_id, log_handler, smc_address, collation_added_topic):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
         #       to make one log_handler shared over all shards.
         self.shard_id = shard_id
         self.log_handler = log_handler
         self.smc_address = smc_address
+        self.collation_added_topic = collation_added_topic
         self.current_score = None
         self.new_logs = []
         self.unchecked_logs = []
@@ -91,7 +90,7 @@ class ShardTracker:
         new_logs = self.log_handler.get_new_logs(
             address=self.smc_address,
             topics=[
-                encode_hex(COLLATION_ADDED_TOPIC),
+                encode_hex(self.collation_added_topic),
                 shard_id_topic_hex,
             ],
         )
