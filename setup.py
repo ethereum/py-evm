@@ -26,7 +26,6 @@ setup(
         "rlp>=0.4.7,<1.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
         "trie>=1.3.2,<2.0.0",
-        "eth-hash[pycryptodome]",
     ],
     extras_require={
         'coincurve': [
