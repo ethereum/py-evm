@@ -106,7 +106,7 @@ class SMCHandler(Contract):
         address_in_hex = self.functions.get_eligible_proposer(shard_id, period).call(call_context)
         return decode_hex(address_in_hex)
 
-    def get_parent_hash(self, shard_id, collation_hash, gas=None):
+    def get_collation_parent_hash(self, shard_id, collation_hash, gas=None):
         call_context = make_call_context(
             sender_address=self.sender_address,
             gas=self.config["DEFAULT_GAS"],

@@ -119,6 +119,15 @@ def deploy_smc_contract(web3, gas_price, privkey):
     return get_contract_address_from_deploy_tx(deploy_smc_tx)
 
 
+def add_collator_candidate(smc_handler):
+    smc_handler.deposit()
+    # TODO: error occurs when we don't mine so many blocks
+    lookahead_blocks = (
+        smc_handler.config['LOOKAHEAD_PERIODS'] * smc_handler.config['PERIOD_LENGTH']
+    )
+    mine(smc_handler.web3, lookahead_blocks)
+
+
 @pytest.fixture
 def smc_handler():
     eth_tester = EthereumTester(
@@ -148,10 +157,7 @@ def smc_handler():
         to_checksum_address(smc_addr),
         default_privkey=default_privkey,
     )
-    lookahead_blocks = (
-        smc_handler.config['LOOKAHEAD_PERIODS'] * smc_handler.config['PERIOD_LENGTH']
-    )
-    mine(smc_handler.web3, lookahead_blocks)
+    add_collator_candidate(smc_handler)
 
     return smc_handler
 
@@ -227,7 +233,7 @@ def make_collation_header_chain(smc_handler,
         )
         assert add_header_constant_call(smc_handler, header)
         tx_hash = smc_handler.add_header(header)
-        mine(smc_handler, smc_handler.config['PERIOD_LENGTH'])
+        mine(smc_handler.web3, smc_handler.config['PERIOD_LENGTH'])
         assert smc_handler.web3.eth.getTransactionReceipt(tx_hash) is not None
         top_collation_hash = header.hash
     return top_collation_hash

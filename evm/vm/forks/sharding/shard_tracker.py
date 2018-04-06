@@ -1,18 +1,32 @@
+import copy
+
 from cytoolz import (
     pipe,
 )
 
 from eth_utils import (
     event_signature_to_log_topic,
-    to_dict,
     to_tuple,
-    encode_hex,
-    decode_hex,
-    big_endian_to_int,
 )
 
 from evm.rlp.headers import (
     CollationHeader,
+)
+
+from evm.utils.hexadecimal import (
+    encode_hex,
+    decode_hex,
+)
+from evm.utils.numeric import (
+    big_endian_to_int,
+)
+
+
+# For handling logs filtering
+# Event:
+#   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
+COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
+    "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
 )
 
 
@@ -24,51 +38,60 @@ class NoCandidateHead(Exception):
     pass
 
 
-# For handling logs filtering
-# Event:
-#   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
-COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
-    "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
-)
-
-
-@to_dict
 def parse_collation_added_log(log):
-    # `shard_id` is the first indexed entry,hence the second entry in topics
+    # here assume `shard_id` is the first indexed , which is the second element in topics
     shard_id_bytes32 = log['topics'][1]
-    data_bytes = decode_hex(log['data'])
-    header_bytes = shard_id_bytes32 + data_bytes[:-64]
-    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
+    data_hex = log['data']
+    data_bytes = decode_hex(data_hex)
     score = big_endian_to_int(data_bytes[-32:])
+    is_new_head = bool(big_endian_to_int(data_bytes[-64:-32]))
+    header_bytes = shard_id_bytes32 + data_bytes[:-64]
     collation_header = CollationHeader.from_bytes(header_bytes)
-    yield 'header', collation_header
-    yield 'is_new_head', is_new_head
-    yield 'score', score
+    return {
+        'header': collation_header,
+        'is_new_head': is_new_head,
+        'score': score,
+    }
+
+
+def candidate_heads(headers_by_height, min_index, max_index):
+    for height in reversed(range(min_index, max_index + 1)):
+        for header in headers_by_height[height]:
+            yield header
 
 
 class ShardTracker:
-    """Track logs `CollationAdded` in mainchain
-    """
+    '''Track logs `CollationAdded` in mainchain
+    '''
 
     current_score = None
     new_logs = None
     unchecked_logs = None
+    headers_by_height = None
 
-    def __init__(self, shard_id, log_handler, smc_handler_address):
+    def __init__(self, shard_id, log_handler, smc_address):
         # TODO: currently set one log_handler for each shard. Should see if there is a better way
         #       to make one log_handler shared over all shards.
         self.shard_id = shard_id
         self.log_handler = log_handler
-        self.smc_handler_address = smc_handler_address
+        self.smc_address = smc_address
         self.current_score = None
         self.new_logs = []
         self.unchecked_logs = []
+
+        # for the alternative `fetch_candidate_head`
+        # TODO: might need to be a sliding window, discarding the headers which are no longer
+        #       needed.
+        #       However, still need to figure out the window size. Since we need to make sure that
+        #       collation headers of non-best-candidate chains in the depth <= `WINDBACK_LENGTH`
+        #       should still be reachable.
+        self.headers_by_height = []
 
     @to_tuple
     def _get_new_logs(self):
         shard_id_topic_hex = encode_hex(self.shard_id.to_bytes(32, byteorder='big'))
         new_logs = self.log_handler.get_new_logs(
-            address=self.smc_handler_address,
+            address=self.smc_address,
             topics=[
                 encode_hex(COLLATION_ADDED_TOPIC),
                 shard_id_topic_hex,
@@ -99,10 +122,8 @@ class ShardTracker:
             reversed,
             tuple,
         )
-        current_score = self.current_score
-
         for idx, log_entry in unchecked_logs:
-            if log_entry['score'] == current_score:
+            if log_entry['score'] == self.current_score:
                 return self.unchecked_logs.pop(idx)
         # If no further recorded but unchecked logs exist, go to the next
         # is_new_head = true log
@@ -122,3 +143,21 @@ class ShardTracker:
     def clean_logs(self):
         self.new_logs = []
         self.unchecked_logs = []
+
+    def add_log(self, log_entry):
+        collation_height = log_entry['score']
+        while len(self.headers_by_height) <= collation_height:
+            self.headers_by_height.append([])
+        self.headers_by_height[collation_height].append(log_entry['header'])
+
+    def fetch_candidate_heads_generator(self, windback_length):
+        new_logs = self._get_new_logs()
+        for log_entry in new_logs:
+            # TODO: we can use another coroutine to sync the logs concurrently, instead of doing
+            #       that in this function
+            self.add_log(log_entry)
+        # TODO: deepcopy seems to be costly
+        headers_by_height = copy.deepcopy(self.headers_by_height)
+        max_height = len(headers_by_height) - 1
+        windback_index = max(0, max_height + 1 - windback_length)
+        return candidate_heads(headers_by_height, windback_index, max_height)

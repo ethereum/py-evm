@@ -1,25 +1,21 @@
-import logging
-
 import pytest
 
 from evm.rlp.headers import (
     CollationHeader,
 )
-from evm.vm.forks.sharding.log_handler import (
-    LogHandler,
-)
+
 from evm.vm.forks.sharding.shard_tracker import (
+    NextLogUnavailable,
     NoCandidateHead,
-    ShardTracker,
     parse_collation_added_log,
 )
 
 from tests.sharding.fixtures import (  # noqa: F401
+    mine,
+    make_collation_header_chain,
+    shard_tracker,
     smc_handler,
 )
-
-
-logger = logging.getLogger('evm.chain.sharding.mainchain_handler.ShardTracker')
 
 
 @pytest.mark.parametrize(
@@ -49,6 +45,23 @@ def test_parse_collation_added_log(log,
     assert parsed_data['score'] == expected_score
 
 
+def test_shard_tracker_get_next_log(smc_handler):  # noqa: F811
+    shard_tracker0 = shard_tracker(smc_handler, 0)
+    header2_hash = make_collation_header_chain(smc_handler, 0, 2)
+    # confirm the logs are correct
+    assert shard_tracker0.get_next_log()['score'] == 2
+    assert shard_tracker0.get_next_log()['score'] == 1
+    with pytest.raises(NextLogUnavailable):
+        shard_tracker0.get_next_log()
+
+    # ensure that `get_next_log(0)` does not affect `get_next_log(1)`
+    shard_tracker1 = shard_tracker(smc_handler, 1)
+    make_collation_header_chain(smc_handler, 0, 1, header2_hash)
+    make_collation_header_chain(smc_handler, 1, 1)
+    assert shard_tracker0.get_next_log()['score'] == 3
+    assert shard_tracker1.get_next_log()['score'] == 1
+
+
 @pytest.mark.parametrize(  # noqa: F811
     'mock_score,mock_is_new_head,expected_score,expected_is_new_head',
     (
@@ -72,9 +85,7 @@ def test_shard_tracker_fetch_candidate_head(smc_handler,
                                             mock_is_new_head,
                                             expected_score,
                                             expected_is_new_head):
-    shard_id = 0
-    log_handler = LogHandler(smc_handler.web3)
-    shard_0_tracker = ShardTracker(shard_id, log_handler, smc_handler.address)
+    shard_tracker0 = shard_tracker(smc_handler, 0)
     mock_collation_added_logs = [
         {
             'header': [None] * 10,
@@ -83,10 +94,22 @@ def test_shard_tracker_fetch_candidate_head(smc_handler,
         } for i in range(len(mock_score))
     ]
     # mock collation_added_logs
-    shard_0_tracker.new_logs = mock_collation_added_logs
+    shard_tracker0.new_logs = mock_collation_added_logs
     for i in range(len(mock_score)):
-        log = shard_0_tracker.fetch_candidate_head()
+        log = shard_tracker0.fetch_candidate_head()
         assert log['score'] == expected_score[i]
         assert log['is_new_head'] == expected_is_new_head[i]
     with pytest.raises(NoCandidateHead):
-        log = shard_0_tracker.fetch_candidate_head()
+        log = shard_tracker0.fetch_candidate_head()
+
+
+def test_fetch_candidate_heads_generator(smc_handler):  # noqa: F811
+    shard_tracker0 = shard_tracker(smc_handler, 0)
+    make_collation_header_chain(smc_handler, 0, 2)
+    make_collation_header_chain(smc_handler, 0, 1)
+    candidate_heads = shard_tracker0.fetch_candidate_heads_generator(smc_handler.config['WINDBACK_LENGTH'])
+    assert next(candidate_heads).number == 2
+    assert next(candidate_heads).number == 1
+    assert next(candidate_heads).number == 1
+    with pytest.raises(StopIteration):
+        next(candidate_heads)
