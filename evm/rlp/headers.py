@@ -14,8 +14,10 @@ from cytoolz import (
 )
 from eth_utils import (
     keccak,
+    int_to_big_endian,
     to_dict,
 )
+from eth_keys import keys
 
 from evm.constants import (
     ZERO_ADDRESS,
@@ -229,7 +231,7 @@ class UnsignedCollationHeader(rlp.Serializable):
 
     def __repr__(self) -> str:
         return "<UnsignedCollationHeader {} shard={} height={}>".format(
-            encode_hex(self.hash)[2:10],
+            encode_hex(self.hash)[2 + 12:2 + 12 + 8],  # don't print leading zeros
             self.shard_id,
             self.height,
         )
@@ -275,8 +277,27 @@ class UnsignedCollationHeader(rlp.Serializable):
         # It's padded to 32 bytes because `bytes32` is easier to handle in Vyper
         return pad32(header_hash[6:])
 
-    def to_signed_collation(self) -> "CollationHeader":
-        raise NotImplementedError("TODO")
+    def to_signed_collation_header(
+        self,
+        proposer_private_key: keys.PrivateKey
+    ) -> "CollationHeader":
+        """Sign the collation header with the proposer's private key."""
+        if proposer_private_key.public_key.to_canonical_address() != self.proposer_address:
+            raise ValueError("Proposer private key does not belong to proposer address")
+
+        signature = proposer_private_key.sign_msg_hash(self.hash)
+        signature_bytes = b"".join([pad32(int_to_big_endian(s)) for s in signature.vrs])
+
+        return CollationHeader(
+            shard_id=self.shard_id,
+            parent_hash=self.parent_hash,
+            chunk_root=self.chunk_root,
+            period=self.period,
+            height=self.height,
+            proposer_address=self.proposer_address,
+            proposer_bid=self.proposer_bid,
+            proposer_signature=signature_bytes,
+        )
 
 
 class CollationHeader(rlp.Serializable):
