@@ -90,7 +90,8 @@ def test_guess_head_windback_length(windback_worker, smc_handler):  # noqa: F811
     assert num_verified_collations == smc_handler.config['WINDBACK_LENGTH'] + 1
 
 
-def test_guess_head_invalid_collation_propagate_invalidity(windback_worker, smc_handler):  # noqa: F811
+def test_guess_head_invalid_collation_propagate_invalidity(windback_worker,  # noqa: F811
+                                                           smc_handler):
     header2_hash = make_collation_header_chain(smc_handler, default_shard_id, 2)
     windback_worker.collation_validity_cache[header2_hash] = False
     header4_hash = make_collation_header_chain(

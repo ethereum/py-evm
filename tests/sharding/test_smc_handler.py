@@ -12,14 +12,9 @@ from eth_tester.backends.pyevm.main import (
 )
 
 from eth_utils import (
-    is_address,
-    to_checksum_address,
     encode_hex,
 )
 
-from evm.rlp.headers import (
-    CollationHeader,
-)
 from evm.vm.forks.sharding.smc_handler import (
     make_call_context,
     make_transaction_context,
@@ -107,9 +102,9 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
     # now we require 1 validator.
     # if there is currently no validator, we deposit one.
     # else, there should only be one validator, for easier testing.
-    num_validators = smc_handler.call(
+    num_validators = smc_handler.functions.num_validators().call(
         make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     if num_validators == 0:
         # deposit as the first validator
         smc_handler.deposit()
@@ -124,9 +119,9 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
         mine(web3, lookahead_blocks - current_block_number)
     assert web3.eth.blockNumber >= lookahead_blocks
 
-    num_validators = smc_handler.call(
+    num_validators = smc_handler.functions.num_validators().call(
         make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     assert num_validators == 1
     assert smc_handler.get_eligible_proposer(shard_id) != ZERO_ADDR
     logger.debug("smc_handler.num_validators()=%s", num_validators)
@@ -156,13 +151,19 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
 
     mine(web3, smc_handler.config['PERIOD_LENGTH'])
     # confirm the score of header1 and header2 are correct or not
-    colhdr0_1_score = smc_handler.call(
+    colhdr0_1_score = smc_handler.functions.get_collation_header_score(
+        shard_id,
+        header0_1.hash,
+    ).call(
         make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_header_score(shard_id, header0_1.hash)
+    )
     assert colhdr0_1_score == 1
-    colhdr0_2_score = smc_handler.call(
+    colhdr0_2_score = smc_handler.functions.get_collation_header_score(
+        shard_id,
+        header0_2.hash,
+    ).call(
         make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).get_collation_header_score(shard_id, header0_2.hash)
+    )
     assert colhdr0_2_score == 2
     # confirm the logs are correct
     assert shard_0_tracker.get_next_log()['score'] == 2
@@ -194,7 +195,7 @@ def test_smc_contract_calls(smc_handler):  # noqa: F811
     mine(web3, 1)
     # if the only validator withdraws, because there is no validator anymore, the result of
     # `num_validators` must be 0.
-    num_validators = smc_handler.call(
+    num_validators = smc_handler.functions.num_validators().call(
         make_call_context(sender_address=primary_addr, gas=default_gas)
-    ).num_validators()
+    )
     assert num_validators == 0

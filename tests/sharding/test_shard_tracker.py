@@ -107,7 +107,9 @@ def test_fetch_candidate_heads_generator(smc_handler):  # noqa: F811
     shard_tracker0 = shard_tracker(smc_handler, 0)
     make_collation_header_chain(smc_handler, 0, 2)
     make_collation_header_chain(smc_handler, 0, 1)
-    candidate_heads = shard_tracker0.fetch_candidate_heads_generator(smc_handler.config['WINDBACK_LENGTH'])
+    candidate_heads = shard_tracker0.fetch_candidate_heads_generator(
+        smc_handler.config['WINDBACK_LENGTH']
+    )
     assert next(candidate_heads).number == 2
     assert next(candidate_heads).number == 1
     assert next(candidate_heads).number == 1

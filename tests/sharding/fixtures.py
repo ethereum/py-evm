@@ -207,11 +207,13 @@ def add_header_constant_call(smc_handler, collation_header):  # noqa: F811
     )
     # Here we use *args_with_checksum_address as the argument, to ensure the order of arguments
     # is the same as the one of parameters of `SMCHandler.add_header`
-    result = smc_handler.call(make_call_context(
-        sender_address=smc_handler.sender_address,
-        gas=smc_handler.config['DEFAULT_GAS'],
-        gas_price=1,
-    )).add_header(*args_with_checksum_address)
+    result = smc_handler.functions.add_header(*args_with_checksum_address).call(
+        make_call_context(
+            sender_address=smc_handler.sender_address,
+            gas=smc_handler.config['DEFAULT_GAS'],
+            gas_price=1,
+        )
+    )
     return result
 
 

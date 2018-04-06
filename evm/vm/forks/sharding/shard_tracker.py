@@ -23,8 +23,6 @@ from evm.utils.numeric import (
 
 
 # For handling logs filtering
-# Event:
-#   CollationAdded(indexed uint256 shard, bytes collationHeader, bool isNewHead, uint256 score)
 COLLATION_ADDED_TOPIC = event_signature_to_log_topic(
     "CollationAdded(int128,int128,bytes32,bytes32,bytes32,address,bytes32,bytes32,int128,bool,int128)"  # noqa: E501
 )
