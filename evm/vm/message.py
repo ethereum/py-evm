@@ -22,7 +22,6 @@ class Message(object):
     value = None
     data = None
     gas = None  # type: int
-    access_list = None
     depth = None
 
     code = None
@@ -42,7 +41,6 @@ class Message(object):
                  value,
                  data,
                  code,
-                 access_list=None,
                  depth=0,
                  create_address=None,
                  code_address=None,

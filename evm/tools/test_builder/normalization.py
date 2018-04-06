@@ -208,11 +208,6 @@ normalize_main_transaction = dict_normalizer({
 })
 
 
-normalize_access_list = eth_utils.curried.apply_formatter_to_array(
-    eth_utils.curried.apply_formatter_to_array(normalize_bytes)
-)
-
-
 normalize_transaction = dict_options_normalizer([
     normalize_main_transaction,
 ])

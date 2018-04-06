@@ -237,7 +237,7 @@ class BaseChainDB(metaclass=ABCMeta):
     # State Database API
     #
     @abstractmethod
-    def get_state_db(self, state_root, read_only, access_list=None):
+    def get_state_db(self, state_root, read_only):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -580,15 +580,11 @@ class ChainDB(BaseChainDB):
     #
     # State Database API
     #
-    def get_state_db(self, state_root, read_only, access_list=None):
-        extra_kwargs = {}
-        if access_list is not None:
-            extra_kwargs["access_list"] = access_list
+    def get_state_db(self, state_root, read_only):
         return self.account_state_class(
             db=self.db,
             root_hash=state_root,
             read_only=read_only,
-            **extra_kwargs
         )
 
 

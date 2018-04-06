@@ -134,11 +134,10 @@ class BaseState(Configurable, metaclass=ABCMeta):
     # state_db
     #
     @contextmanager
-    def state_db(self, read_only=False, access_list=None):
+    def state_db(self, read_only=False):
         state = self._chaindb.get_state_db(
             self.state_root,
             read_only,
-            access_list=access_list
         )
         yield state
 

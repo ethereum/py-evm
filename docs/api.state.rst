@@ -63,11 +63,11 @@ Methods and Properties
     Returns the account database.
 
 
-.. method:: state_db(read_only=False, access_list=None)
+.. method:: state_db(read_only=False)
 
-    Returns the account database.  
-    
-    .. attention:: 
+    Returns the account database.
+
+    .. attention::
 
         This **must** be used as a context manager
         to ensure that modifications to the state root are correctly tracked.
