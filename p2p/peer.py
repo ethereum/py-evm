@@ -598,6 +598,8 @@ class LESPeer(BasePeer):
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto = None  # type: eth.ETHProtocol
+    head_td = None  # type: int
+    head_hash = None  # type: bytes
 
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)
@@ -773,7 +775,11 @@ class PeerPool:
 
     @property
     def peers(self) -> List[BasePeer]:
-        return list(self.connected_nodes.values())
+        peers = list(self.connected_nodes.values())
+        # Shuffle the list of peers so that dumb callsites are less likely to send all requests to
+        # a single peer even if they always pick the first one from the list.
+        random.shuffle(peers)
+        return peers
 
     async def get_random_peer(self) -> BasePeer:
         while not self.peers:
@@ -833,6 +839,8 @@ class HardCodedNodesPeerPool(PeerPool):
                        Address("51.15.132.235", 30303, 30303))
             yield Node(keys.PublicKey(decode_hex("482484b9198530ee2e00db89791823244ca41dcd372242e2e1297dd06f6d8dd357603960c5ad9cc8dc15fcdf0e4edd06b7ad7db590e67a0b54f798c26581ebd7")),  # noqa: E501
                        Address("51.15.75.138", 30303, 30303))
+            yield Node(keys.PublicKey(decode_hex("30b7ab30a01c124a6cceca36863ece12c4f5fa68e3ba9b0b51407ccc002eeed3b3102d20a88f1c1d3c3154e2449317b8ef95090e77b312d5cc39354f86d5d606")),  # noqa: E501
+                       Address("52.176.7.10", 30303, 30303))
         else:
             raise ValueError("Unknown network_id: {}".format(self.network_id))
 

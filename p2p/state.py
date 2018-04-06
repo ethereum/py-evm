@@ -42,13 +42,19 @@ class StateDownloader(PeerPoolSubscriber):
     _start_time = None  # type: float
     _total_timeouts = 0
 
-    def __init__(self, state_db: BaseDB, root_hash: bytes, peer_pool: PeerPool) -> None:
+    def __init__(self,
+                 state_db: BaseDB,
+                 root_hash: bytes,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, state_db)
         self._running_peers = set()  # type: Set[ETHPeer]
         self.cancel_token = CancelToken('StateDownloader')
+        if token is not None:
+            self.cancel_token = self.cancel_token.chain(token)
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -238,7 +244,10 @@ def _test():
     async def run():
         # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
         # token, at which point it returns and we stop the pool and downloader.
-        await downloader.run()
+        try:
+            await downloader.run()
+        except OperationCancelled:
+            pass
         await peer_pool.stop()
         await downloader.stop()
 
