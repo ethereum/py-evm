@@ -18,6 +18,7 @@ from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
     MAX_UNCLES,
 )
+from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import (
     BlockNotFound,
     ValidationError,
@@ -262,6 +263,12 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                         parent_header.timestamp,
                     )
                 )
+
+        tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
+        if tx_root_hash != block.header.transaction_root:
+            raise ValidationError(
+                "Block's transaction_root ({0}) does not match expected value: {1}".format(
+                    block.header.transaction_root, tx_root_hash))
 
         if len(block.uncles) > MAX_UNCLES:
             raise ValidationError(

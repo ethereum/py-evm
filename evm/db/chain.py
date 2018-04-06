@@ -412,17 +412,11 @@ class ChainDB(BaseChainDB):
         )
 
     def persist_block(self, block):
-        '''
-        Chain must do follow-up work to persist transactions to db
+        '''Persist the given block's header and uncles.
+
+        Assumes all block transactions have been persisted already.
         '''
         new_canonical_headers = self.persist_header(block.header)
-
-        # Persist the transaction bodies
-        transaction_db = self.trie_class(self.db, root_hash=self.empty_root_hash)
-        for i, transaction in enumerate(block.transactions):
-            index_key = rlp.encode(i, sedes=rlp.sedes.big_endian_int)
-            transaction_db[index_key] = rlp.encode(transaction)
-        assert transaction_db.root_hash == block.header.transaction_root
 
         for header in new_canonical_headers:
             for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
