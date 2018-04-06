@@ -5,7 +5,7 @@ from itertools import (
 )
 
 from evm.utils.blobs import (
-    calc_chunks_root,
+    calc_chunk_root,
     calc_merkle_root,
     chunk_iterator,
 )
@@ -67,18 +67,18 @@ def test_invalid_merkle_root_calculation(leave_number):
         calc_merkle_root([b""] * leave_number)
 
 
-def test_chunks_root_calculation():
+def test_chunk_root_calculation():
     with pytest.raises(ValueError):
-        calc_chunks_root(b"\x00" * (COLLATION_SIZE - 1))
+        calc_chunk_root(b"\x00" * (COLLATION_SIZE - 1))
     with pytest.raises(ValueError):
-        calc_chunks_root(b"\x00" * (COLLATION_SIZE + 1))
+        calc_chunk_root(b"\x00" * (COLLATION_SIZE + 1))
     with pytest.raises(ValueError):
-        calc_chunks_root(b"\x00" * (COLLATION_SIZE - CHUNK_SIZE))
+        calc_chunk_root(b"\x00" * (COLLATION_SIZE - CHUNK_SIZE))
     with pytest.raises(ValueError):
-        calc_chunks_root(b"\x00" * (COLLATION_SIZE + CHUNK_SIZE))
+        calc_chunk_root(b"\x00" * (COLLATION_SIZE + CHUNK_SIZE))
 
     chunk_number = COLLATION_SIZE // CHUNK_SIZE
     chunks = [b"\x00" * CHUNK_SIZE] * chunk_number
     body = b"".join(chunks)
 
-    assert calc_chunks_root(body) == calc_merkle_root(chunks)
+    assert calc_chunk_root(body) == calc_merkle_root(chunks)
