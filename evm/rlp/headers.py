@@ -25,7 +25,6 @@ from evm.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
     BLANK_ROOT_HASH,
-    EMPTY_SHA3,
 )
 from evm.exceptions import (
     ValidationError,
@@ -195,9 +194,7 @@ class BlockHeader(rlp.Serializable):
 
 class UnsignedCollationHeader(rlp.Serializable):
     fields = [
-        ("shard_id", big_endian_int),
-        ("expected_period_number", big_endian_int),
-        ("period_start_prevhash", hash32),
+        ("shard_id", int32),
         ("parent_hash", hash32),
         ("chunk_root", hash32),
         ("period", int32),
@@ -205,29 +202,6 @@ class UnsignedCollationHeader(rlp.Serializable):
         ("proposer_address", address),
         ("proposer_bid", int32),
     ]
-
-    def __init__(self,
-                 shard_id: int,
-                 expected_period_number: int,
-                 period_start_prevhash: bytes,
-                 parent_hash: bytes,
-                 number: int,
-                 transaction_root: bytes=EMPTY_SHA3,
-                 coinbase: bytes=ZERO_ADDRESS,
-                 state_root: bytes=EMPTY_SHA3,
-                 receipt_root: bytes=EMPTY_SHA3,
-                 sig: bytes=b'') -> None:
-        super(CollationHeader, self).__init__(
-            shard_id=shard_id,
-            expected_period_number=expected_period_number,
-            period_start_prevhash=period_start_prevhash,
-            parent_hash=parent_hash,
-            transaction_root=transaction_root,
-            coinbase=coinbase,
-            state_root=state_root,
-            receipt_root=receipt_root,
-            number=number,
-        )
 
     def __repr__(self) -> str:
         return "<UnsignedCollationHeader {} shard={} height={}>".format(
@@ -263,8 +237,6 @@ class UnsignedCollationHeader(rlp.Serializable):
         header_hash = keccak(
             b''.join([
                 int_to_bytes32(self.shard_id),
-                int_to_bytes32(self.expected_period_number),
-                self.period_start_prevhash,
                 self.parent_hash,
                 self.chunk_root,
                 int_to_bytes32(self.period),
