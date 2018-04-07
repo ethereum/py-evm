@@ -306,7 +306,11 @@ class CollationHeader(rlp.Serializable):
             int_to_bytes32(self.proposer_bid),
             self.proposer_signature,
         ])
-        assert len(encoded) == self.smc_encoded_size
+        if len(encoded) == self.smc_encoded_size:
+            raise ValueError("Encoded header size is {} instead of {} bytes".format(
+                len(encoded),
+                self.smc_encoded_size,
+            ))
         return encoded
 
     @property
