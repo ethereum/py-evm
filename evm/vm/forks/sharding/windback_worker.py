@@ -126,9 +126,7 @@ class WindbackWorker:
 
         head_collation_hash = current_collation_hash = None
         self.unfinished_verifying_tasks = []
-        candidate_heads = self.shard_tracker.fetch_candidate_heads_generator(
-            windback_length=self.vmc.config['WINDBACK_LENGTH']
-        )
+        candidate_heads = self.shard_tracker.fetch_candidate_heads_generator()
         while True:
             try:
                 head_header = next(candidate_heads)
