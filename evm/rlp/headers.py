@@ -17,7 +17,9 @@ from eth_utils import (
     int_to_big_endian,
     to_dict,
 )
-from eth_keys import keys
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 
 from evm.constants import (
     ZERO_ADDRESS,
@@ -251,7 +253,7 @@ class UnsignedCollationHeader(rlp.Serializable):
 
     def to_signed_collation_header(
         self,
-        proposer_private_key: keys.PrivateKey
+        proposer_private_key: PrivateKey
     ) -> "CollationHeader":
         """Sign the collation header with the proposer's private key."""
         if proposer_private_key.public_key.to_canonical_address() != self.proposer_address:
@@ -306,7 +308,7 @@ class CollationHeader(rlp.Serializable):
             int_to_bytes32(self.proposer_bid),
             self.proposer_signature,
         ])
-        if len(encoded) == self.smc_encoded_size:
+        if len(encoded) != self.smc_encoded_size:
             raise ValueError("Encoded header size is {} instead of {} bytes".format(
                 len(encoded),
                 self.smc_encoded_size,
