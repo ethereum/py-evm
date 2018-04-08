@@ -16,7 +16,7 @@ SIMULATED_COLLATION_DOWNLOADING_TIME = 2
 SIMULATED_COLLATION_VERIFICATION_TIME = 0.01
 
 
-logger = logging.getLogger("evm.chain.sharding.guess_head_state_manager")
+logger = logging.getLogger("evm.chain.sharding.windback_worker")
 
 
 async def download_collation(collation_hash):
@@ -41,15 +41,13 @@ async def verify_collation(collation, collation_hash):
     return True
 
 
-def clean_done_task(tasks):
+def clean_done_tasks(tasks):
     return [task for task in tasks if not task.done()]
 
 
 class WindbackWorker:
 
     YIELDED_TIME = 0.1
-
-    logger = logging.getLogger("evm.chain.sharding.windback_worker")
 
     is_time_up = None
     latest_fetching_period = None
@@ -166,13 +164,12 @@ class WindbackWorker:
                         descendants,
                     )
                     task = asyncio.ensure_future(coro)
-                    asyncio.wait(task, timeout=self.YIELDED_TIME)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
 
                 # clean up the finished tasks, yield CPU to tasks
                 if len(self.unfinished_verifying_tasks) != 0:
                     await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.YIELDED_TIME)
-                    self.unfinished_verifying_tasks = clean_done_task(
+                    self.unfinished_verifying_tasks = clean_done_tasks(
                         self.unfinished_verifying_tasks
                     )
                 # yield the CPU to other coroutine
