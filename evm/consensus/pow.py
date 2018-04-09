@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import List  # noqa: F401
 
 from pyethash import (
     EPOCH_LENGTH,
@@ -25,8 +26,9 @@ from evm.validation import (
 )
 
 
-cache_seeds = ['\x00' * 32]
-cache_by_seed = OrderedDict()  # type: OrderedDict[str, bytearray]
+# Type annotation here is to ensure we don't accidentally use strings instead of bytes.
+cache_seeds = [b'\x00' * 32]  # type: List[bytes]
+cache_by_seed = OrderedDict()  # type: OrderedDict[bytes, bytearray]
 CACHE_MAX_ITEMS = 10
 
 
