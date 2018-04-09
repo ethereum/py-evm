@@ -44,10 +44,10 @@ def spoof_execute_transaction(state, transaction):
     else:
         _transaction = SpoofTransaction(transaction)
 
-    _transaction.v = DEFAULT_SPOOF_V
-    _transaction.s = DEFAULT_SPOOF_S
-    _transaction.r = DEFAULT_SPOOF_R
-    _transaction.nonce = DEFAULT_SPOOF_NONCE
+    setattr(_transaction, 'v', DEFAULT_SPOOF_V)
+    setattr(_transaction, 's', DEFAULT_SPOOF_S)
+    setattr(_transaction, 'r', DEFAULT_SPOOF_R)
+    setattr(_transaction, 'nonce', DEFAULT_SPOOF_NONCE)
 
     snapshot = state.snapshot()
     try:
