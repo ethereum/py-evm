@@ -44,6 +44,6 @@ class ByzantiumState(SpuriousDragonState):
 
     @staticmethod
     def get_uncle_reward(block_number, uncle):
-        validate_lte(uncle.block_number, MAX_UNCLE_DEPTH)
         block_number_delta = block_number - uncle.block_number
+        validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
         return (8 - block_number_delta) * EIP649_BLOCK_REWARD // 8
