@@ -30,10 +30,10 @@ CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bd
 
 class DummyComputation(BaseComputation):
     def apply_message(self):
-        pass
+        return self
 
     def apply_create_message(self):
-        pass
+        return self
 
 
 @pytest.fixture
@@ -179,7 +179,7 @@ def test_get_accounts_for_deletion_returns(computation):
 
 
 def test_add_log_entry_starts_empty(computation):
-    assert computation.log_entries == []
+    assert computation.get_log_entries() == tuple()
 
 
 def test_add_log_entry_raises_if_address_isnt_canonical(computation):
@@ -204,20 +204,38 @@ def test_add_log_entry_raises_if_data_isnt_in_bytes(computation):
 def test_add_log_entry(computation):
     # Adds log entry to log entries
     computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
-    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6',
-                                        [1, 2, 3],
-                                        b'')]
+    assert computation.get_log_entries() == tuple(
+        [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6', [1, 2, 3], b'')])
     # Can add multiple entries
     computation.add_log_entry(CANONICAL_ADDRESS_A, [4, 5, 6], b'2')
     computation.add_log_entry(CANONICAL_ADDRESS_A, [7, 8, 9], b'3')
-    assert len(computation.log_entries) == 3
+
+    assert len(computation.get_log_entries()) == 3
 
 
 def test_get_log_entries(computation):
     computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
-    assert computation.log_entries == [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6',
-                                        [1, 2, 3],
-                                        b'')]
+    assert computation.get_log_entries() == (
+        (b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6', [1, 2, 3], b''),)
+
+
+def test_get_log_entries_order_with_children(computation, child_message):
+    parent_log = (CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    parent_log2 = (CANONICAL_ADDRESS_A, [4, 5, 6], b'2')
+    child_log = (CANONICAL_ADDRESS_A, [1, 2, 3], b'child')
+    computation.add_log_entry(*parent_log)
+    child_computation = computation.apply_child_computation(child_message)
+    # Pretend the child computation logged something.
+    child_computation.add_log_entry(*child_log)
+    computation.add_log_entry(*parent_log2)
+
+    logs = computation.get_log_entries()
+
+    # The returned log entries must be in the same order they were generated.
+    assert len(logs) == 3
+    assert logs[0] == parent_log
+    assert logs[1] == child_log
+    assert logs[2] == parent_log2
 
 
 def test_get_log_entries_with_vmerror(computation):

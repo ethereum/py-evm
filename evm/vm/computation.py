@@ -101,7 +101,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     return_data = b''
     _error = None  # type: VMError
 
-    log_entries = None  # type: List[Tuple[bytes, List[int], bytes]]
+    _log_entries = None  # type: List[Tuple[int, bytes, List[int], bytes]]
     accounts_to_delete = None  # type: Dict[bytes, bytes]
 
     # VM configuration
@@ -125,7 +125,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
         self.children = []
         self.accounts_to_delete = {}
-        self.log_entries = []
+        self._log_entries = []
 
         code = message.code
         self.code = CodeStream(code)
@@ -265,32 +265,22 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # Runtime operations
     #
     def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
-        child_computation = self.generate_child_computation(
-            self.state,
-            child_msg,
-            self.transaction_context,
-        )
+        child_computation = self.generate_child_computation(child_msg)
         self.add_child_computation(child_computation)
         return child_computation
 
-    @classmethod
-    def generate_child_computation(
-            cls,
-            state: BaseState,
-            child_msg: Message,
-            transaction_context: BaseTransactionContext) -> 'BaseComputation':
-
+    def generate_child_computation(self, child_msg: Message) -> 'BaseComputation':
         if child_msg.is_create:
-            child_computation = cls(
-                state,
+            child_computation = self.__class__(
+                self.state,
                 child_msg,
-                transaction_context,
+                self.transaction_context,
             ).apply_create_message()
         else:
-            child_computation = cls(
-                state,
+            child_computation = self.__class__(
+                self.state,
                 child_msg,
-                transaction_context,
+                self.transaction_context,
             ).apply_message()
         return child_computation
 
@@ -324,7 +314,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         for topic in topics:
             validate_uint256(topic, title="Log entry topic")
         validate_is_bytes(data, title="Log entry data")
-        self.log_entries.append((account, topics, data))
+        self._log_entries.append(
+            (self.transaction_context.get_next_log_counter(), account, topics, data))
 
     #
     # Getters
@@ -338,14 +329,22 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 *(child.get_accounts_for_deletion() for child in self.children)
             )).items())
 
-    def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
+    def _get_log_entries(self) -> List[Tuple[int, bytes, List[int], bytes]]:
+        """Return the log entries for this computation and its children.
+
+        They are sorted in the same order they were emitted during the transaction processing, and
+        include the sequential counter as the first element of the tuple representing every entry.
+        """
         if self.is_error:
-            return tuple()
+            return []
         else:
-            return tuple(itertools.chain(
-                self.log_entries,
-                *(child.get_log_entries() for child in self.children)
+            return sorted(itertools.chain(
+                self._log_entries,
+                *(child._get_log_entries() for child in self.children)
             ))
+
+    def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
+        return tuple(log[1:] for log in self._get_log_entries())
 
     def get_gas_refund(self) -> int:
         if self.is_error:
