@@ -2,6 +2,10 @@ import asyncio
 import logging
 import time
 
+from eth_utils import (
+    to_list,
+)
+
 from evm.vm.forks.sharding.constants import (
     GENESIS_COLLATION_HASH,
 )
@@ -77,6 +81,7 @@ class WindbackWorker:
         else:
             self.collation_validity[current_collation_hash] &= validity
         if not validity:
+            # TODO: should have test cases
             self.propagate_invalidity(head_collation_hash, current_collation_hash, chain_collations)
 
     def iterate_chain(self, head_collation_hash):
@@ -90,73 +95,73 @@ class WindbackWorker:
                 current_collation_hash,
             )
 
+    @to_list
+    def create_chain_tasks(self, head_collation_hash):
+        # collations in this chain
+        chain_collations = []
+        for current_collation_hash in self.iterate_chain(head_collation_hash):
+            chain_collations.append(current_collation_hash)
+            # Process current collation  ##################################
+            # If the collation is checked before, then skip it.
+            # Else, create a coroutine for it to download and verify it.
+            if current_collation_hash not in self.collation_validity:
+                coro = self.process_collation(
+                    head_collation_hash,
+                    current_collation_hash,
+                    chain_collations,
+                )
+                task = asyncio.ensure_future(coro)
+                yield task
+            elif not self.collation_validity[current_collation_hash]:
+                # if a collation is invalid, set its descendants in the
+                # chain as invalid, and skip this chain
+                self.propagate_invalidity(
+                    head_collation_hash,
+                    current_collation_hash,
+                    chain_collations,
+                )
+                break
+
+    async def wait_for_chain_tasks(self, head_collation_hash, chain_tasks):
+        """
+        Keep running the verifying tasks.
+        The loop breaks when
+          1) head collations is invalid
+          2) all verifying tasks are done
+        Or returns when
+          3) time's up
+        """
+        while self.collation_validity.get(head_collation_hash, True):
+            is_chain_tasks_done = all([task.done() for task in chain_tasks])
+            if self.is_time_up or is_chain_tasks_done:
+                break
+            await asyncio.wait(chain_tasks, timeout=self.YIELDED_TIME)
+
     async def guess_head(self):
-        '''
+        """
         Perform windback process.
         Returns
             the head collation hash, if it meets the windback condition. OR
             None, if there's no qualified candidate head.
-        '''
+        """
         start = time.time()
-
-        head_collation_hash = current_collation_hash = None
-        # map[collation_hash] -> task
-        collation_verifying_task = {}
 
         for head_header in self.shard_tracker.fetch_candidate_heads_generator():
             head_collation_hash = head_header.hash
-            # collations in this chain
-            chain_collations = []
-            for current_collation_hash in self.iterate_chain(head_collation_hash):
-                chain_collations.append(current_collation_hash)
-                # Process current collation  ##################################
-                # If the collation is checked before, then skip it.
-                # Else, create a coroutine for it to download and verify it.
-                if current_collation_hash not in self.collation_validity:
-                    coro = self.process_collation(
-                        head_collation_hash,
-                        current_collation_hash,
-                        chain_collations,
-                    )
-                    task = asyncio.ensure_future(coro)
-                    collation_verifying_task[current_collation_hash] = task
-                elif not self.collation_validity[current_collation_hash]:
-                    # if a collation is invalid, set its descendants in the
-                    # chain as invalid, and skip this chain
-                    self.propagate_invalidity(
-                        head_collation_hash,
-                        current_collation_hash,
-                        chain_collations,
-                    )
-                    break
 
-            # Keep running the verifying tasks.
-            # The loop breaks when
-            #   1) head collations is invalid
-            #   2) all verifying tasks are done
-            # Or returns when
-            #   3) time's up
-            while self.collation_validity.get(head_collation_hash, True):
-                if self.is_time_up:
-                    return head_collation_hash
-                candidate_chain_tasks = [
-                    collation_verifying_task[collation_hash]
-                    for collation_hash
-                    in chain_collations
-                    if collation_hash in collation_verifying_task
-                ]
-                is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
-                if is_chain_tasks_done:
-                    break
-                await asyncio.wait(candidate_chain_tasks, timeout=self.YIELDED_TIME)
+            chain_tasks = self.create_chain_tasks(head_collation_hash)
+
+            await self.wait_for_chain_tasks(head_collation_hash, chain_tasks)
 
             # Only returns when the head collation is still valid after verifying tasks are done
             is_head_collation_valid = (
                 head_collation_hash in self.collation_validity and
                 self.collation_validity[head_collation_hash]
             )
-            if is_head_collation_valid:
+            if self.is_time_up or is_head_collation_valid:
+                logger.debug("time elapsed=%s", time.time() - start)
                 return head_collation_hash
+
         logger.debug("time elapsed=%s", time.time() - start)
         return None
 
