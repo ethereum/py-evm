@@ -1,8 +1,4 @@
 import asyncio
-from collections import (
-    defaultdict,
-)
-import copy
 import logging
 import time
 
@@ -41,23 +37,12 @@ async def verify_collation(collation, collation_hash):
     return True
 
 
-def clean_done_tasks(tasks):
-    return [task for task in tasks if not task.done()]
-
-
 class WindbackWorker:
 
     YIELDED_TIME = 0.1
 
     is_time_up = None
-    latest_fetching_period = None
-
     collation_validity = None
-    chain_validity = None
-
-    unfinished_verifying_tasks = None
-    collation_verifying_task = None
-    chain_collations = None
 
     def __init__(self, vmc, shard_tracker, my_address):
         self.vmc = vmc
@@ -65,57 +50,34 @@ class WindbackWorker:
         self.my_address = my_address
 
         self.is_time_up = False
-        self.latest_fetching_period = 0
-
         # map[collation] -> validity
         self.collation_validity = {}
-        # map[chain_head] -> validity
-        # this should be able to be updated by the collations' validity
-        self.chain_validity = defaultdict(lambda: True)
-
-        # current tasks
-        self.unfinished_verifying_tasks = []
-        # map[collation_hash] -> task
-        self.collation_verifying_task = {}
-        # map[chain_head] -> list of collations
-        # the collations in the chain
-        self.chain_collations = defaultdict(list)
 
     @property
     def shard_id(self):
         return self.shard_tracker.shard_id
 
-    # time related
+    def propagate_invalidity(self, head_collation_hash, current_collation_hash, chain_collations):
+        # Set its descendants in current chain to be invalid chain heads
+        collation_idx = chain_collations.index(
+            current_collation_hash
+        )
+        chain_descendants = chain_collations[:collation_idx]
+        for collation_hash in chain_descendants:
+            self.collation_validity[collation_hash] = False
 
-    def get_current_period(self):
-        return self.vmc.web3.eth.blockNumber // self.vmc.config['PERIOD_LENGTH']
-
-    # guess_head process related
-
-    async def process_collation(self, head_collation_hash, current_collation_hash):
+    async def process_collation(self,
+                                head_collation_hash,
+                                current_collation_hash,
+                                chain_collations):
         collation = await download_collation(current_collation_hash)
-        collation_validity = await verify_collation(collation, current_collation_hash)
-        self.collation_validity[current_collation_hash] = collation_validity
-        if not collation_validity:
-            # Set its descendants in current chain to be invalid chain heads
-            # TODO: to be tested
-            self.chain_validity[current_collation_hash] = False
-            collation_idx = self.chain_collations[head_collation_hash].index(current_collation_hash)
-            descendants = self.chain_collations[head_collation_hash][:collation_idx]
-            for collation_hash in descendants:
-                self.chain_validity[collation_hash] = False
-
-    def set_collation_task(self, head_collation_hash, current_collation_hash, task):
-        self.unfinished_verifying_tasks.append(task)
-        self.collation_verifying_task[current_collation_hash] = task
-        self.chain_collations[head_collation_hash].append(current_collation_hash)
-
-    def get_chain_tasks(self, head_collation_hash):
-        # ignore tasks that are done
-        return [
-            self.collation_verifying_task[collation_hash]
-            for collation_hash in self.chain_collations[head_collation_hash]
-        ]
+        validity = await verify_collation(collation, current_collation_hash)
+        if current_collation_hash not in self.collation_validity:
+            self.collation_validity[current_collation_hash] = validity
+        else:
+            self.collation_validity[current_collation_hash] &= validity
+        if not validity:
+            self.propagate_invalidity(head_collation_hash, current_collation_hash, chain_collations)
 
     def iterate_chain(self, head_collation_hash):
         current_collation_hash = head_collation_hash
@@ -138,50 +100,62 @@ class WindbackWorker:
         start = time.time()
 
         head_collation_hash = current_collation_hash = None
-        self.unfinished_verifying_tasks = []
+        # map[collation_hash] -> task
+        collation_verifying_task = {}
+
         for head_header in self.shard_tracker.fetch_candidate_heads_generator():
             head_collation_hash = head_header.hash
-            if not self.chain_validity[head_collation_hash]:
-                continue
+            # collations in this chain
+            chain_collations = []
             for current_collation_hash in self.iterate_chain(head_collation_hash):
-                # if a collation is an invalid head, set its descendants in the
-                # chain as invalid heads, and skip this chain
-                is_chain_of_current_collation_invalid = (
-                    (not self.chain_validity[current_collation_hash]) or
-                    (not self.collation_validity.get(current_collation_hash, True))
-                )
-                if is_chain_of_current_collation_invalid:
-                    self.chain_validity[current_collation_hash] = False
-                    for collation_hash in self.chain_collations[head_collation_hash]:
-                        self.chain_validity[collation_hash] = False
-                    break
-                # process current collation  ##################################
-                # if the collation is checked before, then skip it
+                chain_collations.append(current_collation_hash)
+                # Process current collation  ##################################
+                # If the collation is checked before, then skip it.
+                # Else, create a coroutine for it to download and verify it.
                 if current_collation_hash not in self.collation_validity:
                     coro = self.process_collation(
                         head_collation_hash,
                         current_collation_hash,
+                        chain_collations,
                     )
                     task = asyncio.ensure_future(coro)
-                    self.set_collation_task(head_collation_hash, current_collation_hash, task)
+                    collation_verifying_task[current_collation_hash] = task
+                elif not self.collation_validity[current_collation_hash]:
+                    # if a collation is invalid, set its descendants in the
+                    # chain as invalid, and skip this chain
+                    self.propagate_invalidity(
+                        head_collation_hash,
+                        current_collation_hash,
+                        chain_collations,
+                    )
+                    break
 
-            # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
-            while self.chain_validity[head_collation_hash]:
-                # if time is up
+            # Keep running the verifying tasks.
+            # The loop breaks when
+            #   1) head collations is invalid
+            #   2) all verifying tasks are done
+            # Or returns when
+            #   3) time's up
+            while self.collation_validity.get(head_collation_hash, True):
                 if self.is_time_up:
                     return head_collation_hash
-                candidate_chain_tasks = self.get_chain_tasks(head_collation_hash)
+                candidate_chain_tasks = [
+                    collation_verifying_task[collation_hash]
+                    for collation_hash
+                    in chain_collations
+                    if collation_hash in collation_verifying_task
+                ]
                 is_chain_tasks_done = all([task.done() for task in candidate_chain_tasks])
                 if is_chain_tasks_done:
                     break
                 await asyncio.wait(candidate_chain_tasks, timeout=self.YIELDED_TIME)
-            # if we break from `while`, either the chain is done or chain is invalid
-            # Case 1:
-            #   if the chain_validity is True, it means chain_tasks are done and
-            #   chain_validity is still True, return
-            # Case 2:
-            #   chain_validity is False, just change to other candidate head
-            if self.chain_validity[head_collation_hash]:
+
+            # Only returns when the head collation is still valid after verifying tasks are done
+            is_head_collation_valid = (
+                head_collation_hash in self.collation_validity and
+                self.collation_validity[head_collation_hash]
+            )
+            if is_head_collation_valid:
                 return head_collation_hash
         logger.debug("time elapsed=%s", time.time() - start)
         return None

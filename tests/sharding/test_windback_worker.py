@@ -60,13 +60,12 @@ def test_guess_head_invalid_longest_chain(windback_worker, smc_handler):  # noqa
     # the candidates is  [`header3`, `header3_prime`, `header2`, ...]
     # since the 1st candidate is invalid, `guess_head` should returns `header3_prime` instead
     assert windback_worker.run_guess_head() == header3_prime_hash
-    assert not windback_worker.chain_validity[header4_hash]
+    assert not windback_worker.collation_validity[header4_hash]
 
 
 def test_guess_head_new_only_candidate_is_invalid(windback_worker, smc_handler):  # noqa: F811
     head_header_hash = make_collation_header_chain(smc_handler, default_shard_id, 1)
     windback_worker.collation_validity[head_header_hash] = False
-    windback_worker.chain_validity[head_header_hash] = False
     assert windback_worker.run_guess_head() is None
 
 
@@ -101,13 +100,13 @@ def test_guess_head_invalid_collation_propagate_invalidity(windback_worker,  # n
         header2_hash,
     )
     windback_worker.run_guess_head()
-    assert not windback_worker.chain_validity[header2_hash]
-    assert not windback_worker.chain_validity[header4_hash]
+    assert not windback_worker.collation_validity[header2_hash]
+    assert not windback_worker.collation_validity[header4_hash]
 
 
 def test_guess_head_invalid_chain_propagate_invalidity(windback_worker, smc_handler):  # noqa: F811
     header2_hash = make_collation_header_chain(smc_handler, default_shard_id, 2)
-    windback_worker.chain_validity[header2_hash] = False
+    windback_worker.collation_validity[header2_hash] = False
     header3_hash = make_collation_header_chain(
         smc_handler,
         default_shard_id,
@@ -121,5 +120,5 @@ def test_guess_head_invalid_chain_propagate_invalidity(windback_worker, smc_hand
         header3_hash,
     )
     windback_worker.run_guess_head()
-    assert not windback_worker.chain_validity[header3_hash]
-    assert not windback_worker.chain_validity[header4_hash]
+    assert not windback_worker.collation_validity[header3_hash]
+    assert not windback_worker.collation_validity[header4_hash]
