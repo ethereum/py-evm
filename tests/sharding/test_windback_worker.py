@@ -32,7 +32,7 @@ def test_guess_head_without_fork(windback_worker, smc_handler):  # noqa: F811
     )
     assert windback_worker.run_guess_head() == header3_hash
     # ensure all of the collations in the chain are verified
-    assert len(windback_worker.collation_validity_cache) == 3
+    assert len(windback_worker.collation_validity) == 3
 
 
 def test_guess_head_with_fork(windback_worker, smc_handler):  # noqa: F811
@@ -42,7 +42,7 @@ def test_guess_head_with_fork(windback_worker, smc_handler):  # noqa: F811
     # head changes
     assert windback_worker.run_guess_head() == header3_prime_hash
     # ensure only the chain of the best candidate is verified
-    assert len(windback_worker.collation_validity_cache) == 3
+    assert len(windback_worker.collation_validity) == 3
 
 
 def test_guess_head_invalid_longest_chain(windback_worker, smc_handler):  # noqa: F811
@@ -56,7 +56,7 @@ def test_guess_head_invalid_longest_chain(windback_worker, smc_handler):  # noqa
         top_collation_hash=header3_hash,
     )
     header3_prime_hash = make_collation_header_chain(smc_handler, default_shard_id, 3)
-    windback_worker.collation_validity_cache[header3_hash] = False
+    windback_worker.collation_validity[header3_hash] = False
     # the candidates is  [`header3`, `header3_prime`, `header2`, ...]
     # since the 1st candidate is invalid, `guess_head` should returns `header3_prime` instead
     assert windback_worker.run_guess_head() == header3_prime_hash
@@ -65,7 +65,7 @@ def test_guess_head_invalid_longest_chain(windback_worker, smc_handler):  # noqa
 
 def test_guess_head_new_only_candidate_is_invalid(windback_worker, smc_handler):  # noqa: F811
     head_header_hash = make_collation_header_chain(smc_handler, default_shard_id, 1)
-    windback_worker.collation_validity_cache[head_header_hash] = False
+    windback_worker.collation_validity[head_header_hash] = False
     windback_worker.chain_validity[head_header_hash] = False
     assert windback_worker.run_guess_head() is None
 
@@ -84,16 +84,16 @@ def test_guess_head_windback_length(windback_worker, smc_handler):  # noqa: F811
     # build a chain with head_collation_height = 5
     make_collation_header_chain(smc_handler, default_shard_id, 5)
     windback_worker.run_guess_head()
-    # the size of `collation_validity_cache` should be the WINDBACK_LENGTH + 1(including the
+    # the size of `collation_validity` should be the WINDBACK_LENGTH + 1(including the
     # `head_collation` itself), instead of the length of the chain
-    num_verified_collations = len(windback_worker.collation_validity_cache)
+    num_verified_collations = len(windback_worker.collation_validity)
     assert num_verified_collations == smc_handler.config['WINDBACK_LENGTH'] + 1
 
 
 def test_guess_head_invalid_collation_propagate_invalidity(windback_worker,  # noqa: F811
                                                            smc_handler):
     header2_hash = make_collation_header_chain(smc_handler, default_shard_id, 2)
-    windback_worker.collation_validity_cache[header2_hash] = False
+    windback_worker.collation_validity[header2_hash] = False
     header4_hash = make_collation_header_chain(
         smc_handler,
         default_shard_id,

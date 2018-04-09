@@ -52,7 +52,7 @@ class WindbackWorker:
     is_time_up = None
     latest_fetching_period = None
 
-    collation_validity_cache = None
+    collation_validity = None
     chain_validity = None
 
     unfinished_verifying_tasks = None
@@ -68,7 +68,7 @@ class WindbackWorker:
         self.latest_fetching_period = 0
 
         # map[collation] -> validity
-        self.collation_validity_cache = {}
+        self.collation_validity = {}
         # map[chain_head] -> validity
         # this should be able to be updated by the collations' validity
         self.chain_validity = defaultdict(lambda: True)
@@ -81,7 +81,8 @@ class WindbackWorker:
         # the collations in the chain
         self.chain_collations = defaultdict(list)
 
-    def get_shard_id(self):
+    @property
+    def shard_id(self):
         return self.shard_tracker.shard_id
 
     # time related
@@ -91,13 +92,16 @@ class WindbackWorker:
 
     # guess_head process related
 
-    async def process_collation(self, head_collation_hash, current_collation_hash, descendants):
+    async def process_collation(self, head_collation_hash, current_collation_hash):
         collation = await download_collation(current_collation_hash)
         collation_validity = await verify_collation(collation, current_collation_hash)
-        self.collation_validity_cache[current_collation_hash] = collation_validity
+        self.collation_validity[current_collation_hash] = collation_validity
         if not collation_validity:
             # Set its descendants in current chain to be invalid chain heads
+            # TODO: to be tested
             self.chain_validity[current_collation_hash] = False
+            collation_idx = self.chain_collations[head_collation_hash].index(current_collation_hash)
+            descendants = self.chain_collations[head_collation_hash][:collation_idx]
             for collation_hash in descendants:
                 self.chain_validity[collation_hash] = False
 
@@ -113,12 +117,14 @@ class WindbackWorker:
             for collation_hash in self.chain_collations[head_collation_hash]
         ]
 
-    def iterate_ancestors(self, head_collation_hash):
+    def iterate_chain(self, head_collation_hash):
         current_collation_hash = head_collation_hash
         for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
+            if current_collation_hash == GENESIS_COLLATION_HASH:
+                return
             yield current_collation_hash
             current_collation_hash = self.vmc.get_collation_parent_hash(
-                self.get_shard_id(),
+                self.shard_id,
                 current_collation_hash,
             )
 
@@ -133,27 +139,16 @@ class WindbackWorker:
 
         head_collation_hash = current_collation_hash = None
         self.unfinished_verifying_tasks = []
-        candidate_heads = self.shard_tracker.fetch_candidate_heads_generator()
-        while True:
-            try:
-                head_header = next(candidate_heads)
-            except StopIteration:
-                return None
+        for head_header in self.shard_tracker.fetch_candidate_heads_generator():
             head_collation_hash = head_header.hash
             if not self.chain_validity[head_collation_hash]:
                 continue
-            for current_collation_hash in self.iterate_ancestors(head_collation_hash):
-                # if time is up
-                if self.is_time_up:
-                    return head_collation_hash
-                if current_collation_hash == GENESIS_COLLATION_HASH:
-                    break
-
+            for current_collation_hash in self.iterate_chain(head_collation_hash):
                 # if a collation is an invalid head, set its descendants in the
                 # chain as invalid heads, and skip this chain
                 is_chain_of_current_collation_invalid = (
                     (not self.chain_validity[current_collation_hash]) or
-                    (not self.collation_validity_cache.get(current_collation_hash, True))
+                    (not self.collation_validity.get(current_collation_hash, True))
                 )
                 if is_chain_of_current_collation_invalid:
                     self.chain_validity[current_collation_hash] = False
@@ -162,14 +157,10 @@ class WindbackWorker:
                     break
                 # process current collation  ##################################
                 # if the collation is checked before, then skip it
-                if current_collation_hash not in self.collation_validity_cache:
-                    descendants = copy.deepcopy(
-                        self.chain_collations[head_collation_hash]
-                    )
+                if current_collation_hash not in self.collation_validity:
                     coro = self.process_collation(
                         head_collation_hash,
                         current_collation_hash,
-                        descendants,
                     )
                     task = asyncio.ensure_future(coro)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
@@ -193,7 +184,7 @@ class WindbackWorker:
             if self.chain_validity[head_collation_hash]:
                 return head_collation_hash
         logger.debug("time elapsed=%s", time.time() - start)
-        return head_collation_hash
+        return None
 
     def run_guess_head(self):
         loop = asyncio.get_event_loop()
