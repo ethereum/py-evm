@@ -76,11 +76,7 @@ def child_message(computation):
 
 @pytest.fixture
 def child_computation(computation, child_message):
-    child_computation = computation.generate_child_computation(
-        computation.state,
-        child_message,
-        computation.transaction_context,
-    )
+    child_computation = computation.generate_child_computation(child_message)
     return child_computation
 
 
