@@ -2,6 +2,9 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import (
+    Any,
+)
 
 import rlp
 from rlp.sedes import (
@@ -23,10 +26,6 @@ from evm.rlp.sedes import (
 
 from evm.vm.computation import (
     BaseComputation
-)
-
-from typing import (
-    Any
 )
 
 

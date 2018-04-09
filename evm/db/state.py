@@ -42,6 +42,12 @@ from .hash_trie import HashTrie
 class BaseAccountStateDB(metaclass=ABCMeta):
 
     @abstractmethod
+    def __init__(self) -> None:
+        raise NotImplementedError(
+            "Must be implemented by subclasses"
+        )
+
+    @abstractmethod
     def apply_state_dict(self, state_dict):
         raise NotImplementedError("Must be implemented by subclasses")
 
