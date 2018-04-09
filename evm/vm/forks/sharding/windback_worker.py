@@ -113,6 +113,15 @@ class WindbackWorker:
             for collation_hash in self.chain_collations[head_collation_hash]
         ]
 
+    def iterate_ancestors(self, head_collation_hash):
+        current_collation_hash = head_collation_hash
+        for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
+            yield current_collation_hash
+            current_collation_hash = self.vmc.get_collation_parent_hash(
+                self.get_shard_id(),
+                current_collation_hash,
+            )
+
     async def guess_head(self):
         '''
         Perform windback process.
@@ -133,8 +142,7 @@ class WindbackWorker:
             head_collation_hash = head_header.hash
             if not self.chain_validity[head_collation_hash]:
                 continue
-            current_collation_hash = head_collation_hash
-            for _ in range(self.vmc.config['WINDBACK_LENGTH'] + 1):
+            for current_collation_hash in self.iterate_ancestors(head_collation_hash):
                 # if time is up
                 if self.is_time_up:
                     return head_collation_hash
@@ -165,20 +173,6 @@ class WindbackWorker:
                     )
                     task = asyncio.ensure_future(coro)
                     self.set_collation_task(head_collation_hash, current_collation_hash, task)
-
-                # clean up the finished tasks, yield CPU to tasks
-                if len(self.unfinished_verifying_tasks) != 0:
-                    await asyncio.wait(self.unfinished_verifying_tasks, timeout=self.YIELDED_TIME)
-                    self.unfinished_verifying_tasks = clean_done_tasks(
-                        self.unfinished_verifying_tasks
-                    )
-                # yield the CPU to other coroutine
-                await asyncio.sleep(self.YIELDED_TIME)
-
-                current_collation_hash = self.vmc.get_collation_parent_hash(
-                    self.get_shard_id(),
-                    current_collation_hash,
-                )
 
             # when `WINDBACK_LENGTH` or GENESIS_COLLATION is reached
             while self.chain_validity[head_collation_hash]:
