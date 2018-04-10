@@ -27,7 +27,7 @@ def make_random_state(n):
 
 def test_state_sync():
     state_db, contents = make_random_state(1000)
-    dest_db = {}
+    dest_db = MemoryDB()
     scheduler = StateSync(state_db.root_hash, dest_db)
     requests = scheduler.next_batch(10)
     while requests:

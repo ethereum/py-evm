@@ -3,6 +3,8 @@ from abc import (
     abstractmethod
 )
 
+from lru import LRU
+
 import rlp
 
 from trie import (
@@ -20,6 +22,7 @@ from evm.constants import (
 from evm.db.immutable import (
     ImmutableDB,
 )
+from evm.exceptions import DecommissionedStateDB
 from evm.rlp.accounts import (
     Account,
 )
@@ -37,6 +40,12 @@ from evm.utils.padding import (
 )
 
 from .hash_trie import HashTrie
+
+
+# Use lru-dict instead of functools.lru_cache because the latter doesn't let us invalidate a single
+# entry, so we'd have to invalidate the whole cache in _set_account() and that turns out to be too
+# expensive.
+account_cache = LRU(2048)
 
 
 class BaseAccountStateDB(metaclass=ABCMeta):
@@ -121,11 +130,24 @@ class BaseAccountStateDB(metaclass=ABCMeta):
 class MainAccountStateDB(BaseAccountStateDB):
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+        # Keep a reference to the original db instance to use it as part of _get_account()'s cache
+        # key.
+        self._unwrapped_db = db
         if read_only:
             self.db = ImmutableDB(db)
         else:
             self.db = db
-        self._trie = HashTrie(HexaryTrie(self.db, root_hash))
+        self.__trie = HashTrie(HexaryTrie(self.db, root_hash))
+
+    @property
+    def _trie(self):
+        if self.__trie is None:
+            raise DecommissionedStateDB()
+        return self.__trie
+
+    @_trie.setter
+    def _trie(self, value):
+        self.__trie = value
 
     def apply_state_dict(self, state_dict):
         for account, account_data in state_dict.items():
@@ -138,7 +160,7 @@ class MainAccountStateDB(BaseAccountStateDB):
 
     def decommission(self):
         self.db = None
-        self._trie = None
+        self.__trie = None
 
     @property
     def root_hash(self):
@@ -294,7 +316,11 @@ class MainAccountStateDB(BaseAccountStateDB):
     # Internal
     #
     def _get_account(self, address):
-        rlp_account = self._trie[address]
+        cache_key = (self._unwrapped_db, self.root_hash, address)
+        if cache_key not in account_cache:
+            account_cache[cache_key] = self._trie[address]
+
+        rlp_account = account_cache[cache_key]
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
             account._mutable = True
@@ -303,4 +329,7 @@ class MainAccountStateDB(BaseAccountStateDB):
         return account
 
     def _set_account(self, address, account):
-        self._trie[address] = rlp.encode(account, sedes=Account)
+        rlp_account = rlp.encode(account, sedes=Account)
+        self._trie[address] = rlp_account
+        cache_key = (self._unwrapped_db, self.root_hash, address)
+        account_cache[cache_key] = rlp_account

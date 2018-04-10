@@ -6,6 +6,7 @@ from eth_utils import (
     decode_hex,
 )
 
+from evm.exceptions import DecommissionedStateDB
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from tests.core.fixtures import chain_without_block_validation  # noqa: F401
@@ -37,7 +38,7 @@ def test_state_db(state):  # noqa: F811
     with state.mutable_state_db() as state_db:
         pass
 
-    with pytest.raises(TypeError):
+    with pytest.raises(DecommissionedStateDB):
         state_db.increment_nonce(address)
 
     state.read_only_state_db.get_balance(address)

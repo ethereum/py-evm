@@ -149,3 +149,9 @@ class OutOfBoundsRead(VMError):
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
+
+
+class DecommissionedStateDB(Exception):
+    """
+    An attempt was made to use a StateDB object used after leaving the context.
+    """
