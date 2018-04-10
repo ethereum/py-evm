@@ -73,9 +73,6 @@ if TYPE_CHECKING:
     from evm.rlp.blocks import (  # noqa: F401
         BaseBlock
     )
-    from evm.rlp.collations import (  # noqa: F401
-        BaseCollation
-    )
     from evm.rlp.transactions import (  # noqa: F401
         BaseTransaction
     )
@@ -185,7 +182,7 @@ class BaseChainDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def persist_block(self, block: Union['BaseBlock', 'BaseCollation']) -> None:
+    def persist_block(self, block: 'BaseBlock') -> None:
         """
         Chain must do follow-up work to persist transactions to db
         """
