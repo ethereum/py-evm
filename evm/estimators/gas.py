@@ -47,14 +47,26 @@ def spoof_execute_transaction(state, transaction):
     setattr(_transaction, 'v', DEFAULT_SPOOF_V)
     setattr(_transaction, 's', DEFAULT_SPOOF_S)
     setattr(_transaction, 'r', DEFAULT_SPOOF_R)
-    setattr(_transaction, 'nonce', DEFAULT_SPOOF_NONCE)
+
 
     snapshot = state.snapshot()
     try:
         with state.mutable_state_db() as state_db:
-            _transaction.get_sender = \
-                lambda: to_bytes(hexstr=DEFAULT_SPOOF_SENDER)
-            _transaction.sender = to_bytes(hexstr=DEFAULT_SPOOF_SENDER)
+            if not hasattr(_transaction, 'get_sender'):
+                setattr(
+                    _transaction,
+                    'get_sender',
+                    lambda: to_bytes(hexstr=DEFAULT_SPOOF_SENDER))
+
+                setattr(
+                    _transaction,
+                    'sender',
+                    to_bytes(hexstr=DEFAULT_SPOOF_SENDER))
+
+                setattr(
+                    _transaction,
+                    'nonce',
+                    DEFAULT_SPOOF_NONCE)
 
             # set the account balance of the sender to an arbitrary large
             # amount to ensure they have the necessary funds to pay for the
