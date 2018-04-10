@@ -53,7 +53,7 @@ def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
     return root
 
 
-def calc_chunks_root(collation_body: bytes) -> bytes:
+def calc_chunk_root(collation_body: bytes) -> bytes:
     if len(collation_body) != COLLATION_SIZE:
         raise ValueError("Blob is {} instead of {} bytes in size".format(
             len(collation_body),

@@ -1,60 +1,72 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
-
 import rlp
+
+from eth_utils import (
+    encode_hex,
+)
 
 from evm.utils.datatypes import (
     Configurable,
 )
 
-from evm.db.chain import BaseChainDB
-
 from .headers import CollationHeader
+from .sedes import collation_body
 
 
-class BaseCollation(rlp.Serializable, Configurable, metaclass=ABCMeta):
+class Collation(rlp.Serializable, Configurable):
 
-    # TODO: Remove this once https://github.com/ethereum/pyrlp/issues/45 is
-    # fixed.
-    @classmethod
-    def get_sedes(cls):
-        return rlp.sedes.List(sedes for _, sedes in cls.fields)
-
-    @classmethod
-    @abstractmethod
-    def from_header(cls, header: CollationHeader, chaindb: BaseChainDB) -> 'BaseCollation':
-        """
-        Returns the collation denoted by the given collation header.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
+    fields = [
+        ("header", CollationHeader),
+        ("body", collation_body),
+    ]
 
     @property
-    @abstractmethod
     def hash(self) -> bytes:
-        raise NotImplementedError("Must be implemented by subclasses")
+        return self.header.hash
 
     @property
-    @abstractmethod
     def shard_id(self) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
+        return self.header.shard_id
 
     @property
-    @abstractmethod
-    def expected_period_number(self) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
+    def parent_hash(self) -> bytes:
+        return self.header.parent_hash
 
     @property
-    @abstractmethod
-    def number(self) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
+    def chunk_root(self) -> bytes:
+        return self.header.chunk_root
+
+    @property
+    def period(self) -> int:
+        return self.header.period
+
+    @property
+    def height(self) -> int:
+        return self.header.height
+
+    @property
+    def proposer_address(self) -> bytes:
+        return self.header.proposer_address
+
+    @property
+    def proposer_bid(self) -> int:
+        return self.header.proposer_bid
+
+    @property
+    def proposer_signature(self) -> bytes:
+        return self.header.proposer_signature
 
     def __repr__(self) -> str:
-        return '<{class_name}(#{b})>'.format(
-            class_name=self.__class__.__name__,
-            b=str(self),
+        return "<Collation {} shard={} height={}>".format(
+            self.__class__.__name__,
+            encode_hex(self.hash)[2:10],
+            self.shard_id,
+            self.height,
         )
 
     def __str__(self) -> str:
-        return "Collation #{b.expected_period_number} (shard #{b.header.shard_id})".format(b=self)
+        return "Collation {} shard={} height={} period={}".format(
+            encode_hex(self.hash)[2:10],
+            self.shard_id,
+            self.height,
+            self.period,
+        )
