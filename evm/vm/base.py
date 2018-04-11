@@ -365,8 +365,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
-    @to_tuple
     @functools.lru_cache(maxsize=32)
+    @to_tuple
     def get_prev_hashes(cls, last_block_hash, db):
         if last_block_hash == GENESIS_PARENT_HASH:
             return
