@@ -14,11 +14,7 @@ from cytoolz import (
 )
 from eth_utils import (
     keccak,
-    int_to_big_endian,
     to_dict,
-)
-from eth_keys.datatypes import (
-    PrivateKey,
 )
 
 from evm.constants import (
@@ -47,7 +43,6 @@ from .sedes import (
     hash32,
     int32,
     int256,
-    proposer_signature,
     trie_root,
 )
 
@@ -194,119 +189,30 @@ class BlockHeader(rlp.Serializable):
         )
 
 
-class UnsignedCollationHeader(rlp.Serializable):
-    fields = [
-        ("shard_id", int32),
-        ("parent_hash", hash32),
-        ("chunk_root", hash32),
-        ("period", int32),
-        ("height", int32),
-        ("proposer_address", address),
-        ("proposer_bid", int32),
-    ]
-
-    def __repr__(self) -> str:
-        return "<UnsignedCollationHeader {} shard={} height={}>".format(
-            encode_hex(self.hash)[2 + 12:2 + 12 + 8],  # don't print leading zeros
-            self.shard_id,
-            self.height,
-        )
-
-    @classmethod
-    def from_parent(
-        cls,
-        parent: 'CollationHeader',
-        chunk_root: bytes,
-        period: int,
-        proposer_address: bytes,
-        proposer_bid: int,
-    ) -> "UnsignedCollationHeader":
-        """Initialize a new unsigned collation header as a child from another header."""
-        header_kwargs = {
-            "shard_id": parent.shard_id,
-            "parent_hash": parent.hash,
-            "chunk_root": chunk_root,
-            "period": period,
-            "height": parent.height + 1,
-            "proposer_address": proposer_address,
-            "proposer_bid": proposer_bid,
-        }
-        return cls(**header_kwargs)
-
-    @property
-    def hash(self) -> bytes:
-        """Calculate the hash used to create the proposer signature."""
-        header_hash = keccak(
-            b''.join([
-                int_to_bytes32(self.shard_id),
-                self.parent_hash,
-                self.chunk_root,
-                int_to_bytes32(self.period),
-                int_to_bytes32(self.height),
-                pad32(self.proposer_address),
-                int_to_bytes32(self.proposer_bid),
-            ])
-        )
-        # Hash of Collation header is the right most 26 bytes of `sha3(header)`
-        # It's padded to 32 bytes because `bytes32` is easier to handle in Vyper
-        return pad32(header_hash[6:])
-
-    def to_signed_collation_header(
-        self,
-        proposer_private_key: PrivateKey
-    ) -> "CollationHeader":
-        """Sign the collation header with the proposer's private key."""
-        if proposer_private_key.public_key.to_canonical_address() != self.proposer_address:
-            raise ValueError("Proposer private key does not belong to proposer address")
-
-        signature = proposer_private_key.sign_msg_hash(self.hash)
-        signature_bytes = b"".join([pad32(int_to_big_endian(s)) for s in signature.vrs])
-
-        return CollationHeader(
-            shard_id=self.shard_id,
-            parent_hash=self.parent_hash,
-            chunk_root=self.chunk_root,
-            period=self.period,
-            height=self.height,
-            proposer_address=self.proposer_address,
-            proposer_bid=self.proposer_bid,
-            proposer_signature=signature_bytes,
-        )
-
-
 class CollationHeader(rlp.Serializable):
     """The header of a collation signed by the proposer."""
 
     fields_with_sizes = [
         ("shard_id", int32, 32),
-        ("parent_hash", hash32, 32),
         ("chunk_root", hash32, 32),
         ("period", int32, 32),
-        ("height", int32, 32),
         ("proposer_address", address, 32),
-        ("proposer_bid", int32, 32),
-        ("proposer_signature", proposer_signature, 96),
     ]
     fields = [(name, sedes) for name, sedes, _ in fields_with_sizes]
     smc_encoded_size = sum(size for _, _, size in fields_with_sizes)
 
     def __repr__(self) -> str:
-        return "<CollationHeader {} shard={} height={}>".format(
-            encode_hex(self.hash)[2:10],
+        return "<CollationHeader shard={} period={}>".format(
             self.shard_id,
-            self.height,
+            self.period,
         )
 
     def encode_for_smc(self) -> bytes:
         encoded = b"".join([
             int_to_bytes32(self.shard_id),
-            self.parent_hash,
             self.chunk_root,
             int_to_bytes32(self.period),
-            int_to_bytes32(self.height),
             pad32(self.proposer_address),
-            int_to_bytes32(self.proposer_bid),
-            self.proposer_signature,
         ])
         if len(encoded) != self.smc_encoded_size:
             raise ValueError("Encoded header size is {} instead of {} bytes".format(
@@ -314,10 +220,6 @@ class CollationHeader(rlp.Serializable):
                 self.smc_encoded_size,
             ))
         return encoded
-
-    @property
-    def hash(self) -> bytes:
-        return keccak(self.encode_for_smc())
 
     @classmethod
     @to_dict
@@ -349,7 +251,3 @@ class CollationHeader(rlp.Serializable):
         header_kwargs = cls._decode_header_to_dict(encoded_header)
         header = cls(**header_kwargs)
         return header
-
-    @property
-    def is_genesis(self) -> bool:
-        return self.height == 0
