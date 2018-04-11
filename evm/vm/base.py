@@ -8,6 +8,8 @@ import contextlib
 import logging
 import rlp
 
+import functools
+
 from eth_utils import (
     keccak,
     to_tuple,
@@ -363,6 +365,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
+    @functools.lru_cache(maxsize=32)
     @to_tuple
     def get_prev_hashes(cls, last_block_hash, db):
         if last_block_hash == GENESIS_PARENT_HASH:
