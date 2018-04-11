@@ -1,20 +1,52 @@
 Contributing to py-evm
 ----------------------
 
+First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
+
 .. code:: sh
 
-    pip install -e . -r requirements-dev.txt
+    $ git clone --recursive https://github.com/ethereum/py-evm.git
+
+
+Py-EVM requires Python 3. Often, the best way to guarantee a clean Python 3 environment is with `virtualenv <https://virtualenv.pypa.io/en/stable/>`_, like:
+
+.. code:: sh
+
+    # once:
+    $ virtualenv -p python3 venv
+
+    # each session:
+    $ . venv/bin/activate
+
+After we have activated our virtual environment, installing all dependencies that are needed to run, develop and test all code in this repository is as easy as:
+
+.. code:: sh
+
+    pip install -e .[dev]
+
 
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
-You can run the tests with:
+A great way to explore the code base is to run the tests.
+
+We can run all tests with:
 
 .. code:: sh
 
-    py.test tests
+    pytest
 
-Or you can install ``tox`` to run the full test suite.
+However, running the entire test suite does take a very long time so often we just want to run a subset instead, like:
+
+.. code:: sh
+
+    pytest tests/core/padding-utils/test_padding.py
+
+
+We can also install ``tox`` to run the full test suite which also covers things like testing the code against different Python versions, linting etc.
+
+It is important to understand that each Pull Request must pass the full test suite as part of the CI check, hence it is often convenient to have ``tox`` installed locally as well.
+
 
 Releasing
 ~~~~~~~~~
