@@ -127,8 +127,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.db = None
-        state._trie = None
+        state.decommission()
 
     #
     # state_db
