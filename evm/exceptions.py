@@ -40,6 +40,20 @@ class CanonicalHeadNotFound(PyEVMError):
     pass
 
 
+class CollationHeaderNotFound(PyEVMError):
+    """
+    The collation header for the given shard and period does not exist in the database.
+    """
+    pass
+
+
+class CollationBodyNotFound(PyEVMError):
+    """
+    The collation body for the given shard and period does not exist in the database.
+    """
+    pass
+
+
 class ValidationError(PyEVMError):
     """
     Error to signal something does not pass a validation check.
