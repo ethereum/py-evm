@@ -3,6 +3,18 @@ from cytoolz import (
 )
 
 
+from eth_utils import (
+    to_bytes
+)
+
+from evm.constants import (
+    DEFAULT_SPOOF_NONCE,
+    DEFAULT_SPOOF_R,
+    DEFAULT_SPOOF_S,
+    DEFAULT_SPOOF_SENDER,
+    DEFAULT_SPOOF_V,
+    UINT_256_MAX,
+)
 from evm.utils.spoof import (
     SpoofTransaction,
 )
@@ -25,8 +37,52 @@ def execute_plus_buffer(multiplier, state, transaction):
 double_execution_cost = execute_plus_buffer(2)
 
 
+def spoof_execute_transaction(state, transaction):
+
+    if isinstance(transaction, SpoofTransaction):
+        _transaction = transaction
+    else:
+        _transaction = SpoofTransaction(transaction)
+
+    setattr(_transaction, 'v', DEFAULT_SPOOF_V)
+    setattr(_transaction, 's', DEFAULT_SPOOF_S)
+    setattr(_transaction, 'r', DEFAULT_SPOOF_R)
+
+
+    snapshot = state.snapshot()
+    try:
+        with state.mutable_state_db() as state_db:
+            if not hasattr(_transaction, 'get_sender'):
+                setattr(
+                    _transaction,
+                    'get_sender',
+                    lambda: to_bytes(hexstr=DEFAULT_SPOOF_SENDER))
+
+                setattr(
+                    _transaction,
+                    'sender',
+                    to_bytes(hexstr=DEFAULT_SPOOF_SENDER))
+
+                setattr(
+                    _transaction,
+                    'nonce',
+                    DEFAULT_SPOOF_NONCE)
+
+            # set the account balance of the sender to an arbitrary large
+            # amount to ensure they have the necessary funds to pay for the
+            # transaction.
+            state_db.set_balance(transaction.sender, UINT_256_MAX // 2)
+
+        computation = state.execute_transaction(_transaction)
+
+    finally:
+        state.revert(snapshot)
+
+    return computation
+
+
 def _get_computation_error(state, transaction):
-    computation = state.do_call(transaction)
+    computation = spoof_execute_transaction(state, transaction)
 
     if computation.is_error:
         return computation._error
