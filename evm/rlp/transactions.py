@@ -12,6 +12,10 @@ from rlp.sedes import (
     binary,
 )
 
+from eth_typing import (
+    Address
+)
+
 from eth_utils import (
     keccak,
 )
@@ -51,7 +55,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
         return keccak(rlp.encode(self))
 
     @property
-    def sender(self) -> bytes:
+    def sender(self) -> Address:
         """
         Convenience property for the return value of `get_sender`
         """
@@ -101,7 +105,7 @@ class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_sender(self) -> bytes:
+    def get_sender(self) -> Address:
         """
         Get the 20-byte address which sent this transaction.
         """

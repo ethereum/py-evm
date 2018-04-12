@@ -1,6 +1,9 @@
 import rlp
 from rlp import sedes
 
+from eth_typing import (
+    Hash32
+)
 from eth_utils import keccak
 
 from evm.rlp.headers import BlockHeader
@@ -22,7 +25,7 @@ class ImmutableBlockHeader(BlockHeader):
         return sedes.make_immutable(obj)
 
     @property
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = keccak(self._cached_rlp)
         return self._hash

@@ -12,6 +12,10 @@ from cytoolz import (
     first,
     sliding_window,
 )
+from eth_typing import (
+    Address,
+    Hash32
+)
 from eth_utils import (
     keccak,
     to_dict,
@@ -82,16 +86,16 @@ class BlockHeader(rlp.Serializable):
                  block_number: int,
                  gas_limit: int,
                  timestamp: int=None,
-                 coinbase: bytes=ZERO_ADDRESS,
-                 parent_hash: bytes=ZERO_HASH32,
-                 uncles_hash: bytes=EMPTY_UNCLE_HASH,
-                 state_root: bytes=BLANK_ROOT_HASH,
-                 transaction_root: bytes=BLANK_ROOT_HASH,
-                 receipt_root: bytes=BLANK_ROOT_HASH,
+                 coinbase: Address=ZERO_ADDRESS,
+                 parent_hash: Hash32=ZERO_HASH32,
+                 uncles_hash: Hash32=EMPTY_UNCLE_HASH,
+                 state_root: Hash32=BLANK_ROOT_HASH,
+                 transaction_root: Hash32=BLANK_ROOT_HASH,
+                 receipt_root: Hash32=BLANK_ROOT_HASH,
                  bloom: int=0,
                  gas_used: int=0,
                  extra_data: bytes=b'',
-                 mix_hash: bytes=ZERO_HASH32,
+                 mix_hash: Hash32=ZERO_HASH32,
                  nonce: bytes=GENESIS_NONCE) -> None:
         if timestamp is None:
             timestamp = int(time.time())
@@ -120,11 +124,11 @@ class BlockHeader(rlp.Serializable):
         )
 
     @property
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
         return keccak(rlp.encode(self))
 
     @property
-    def mining_hash(self) -> bytes:
+    def mining_hash(self) -> Hash32:
         return keccak(
             rlp.encode(self, BlockHeader.exclude(['mix_hash', 'nonce'])))
 
@@ -138,7 +142,7 @@ class BlockHeader(rlp.Serializable):
                     gas_limit: int,
                     difficulty: int,
                     timestamp: int,
-                    coinbase: bytes=ZERO_ADDRESS,
+                    coinbase: Address=ZERO_ADDRESS,
                     nonce: bytes=None,
                     extra_data: bytes=None,
                     transaction_root: bytes=None,

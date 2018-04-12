@@ -8,6 +8,10 @@ from typing import (  # noqa: F401
 
 import rlp
 
+from eth_typing import (
+    Hash32
+)
+
 from evm.utils.datatypes import (
     Configurable,
 )
@@ -44,7 +48,7 @@ class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
