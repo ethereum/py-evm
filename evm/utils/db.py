@@ -36,18 +36,6 @@ def make_transaction_hash_to_block_lookup_key(transaction_hash: bytes) -> bytes:
     return b'transaction-hash-to-block:%s' % transaction_hash
 
 
-def make_collation_header_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-header-lookup:shard_id=%d,period=%d" % (shard_id, period)
-
-
-def make_collation_body_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-body-lookup:shard_id=%d,period=%d" % (shard_id, period)
-
-
-def make_collation_availability_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-availability-lookup:shard_id=%d,period=%d" % (shard_id, period)
-
-
 def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
     """
     Returns the header for the parent block.

@@ -14,11 +14,18 @@ from evm.exceptions import (
     CollationBodyNotFound,
     CollationHeaderNotFound,
 )
-from evm.utils.db import (
-    make_collation_header_lookup_key,
-    make_collation_body_lookup_key,
-    make_collation_availability_lookup_key,
-)
+
+
+def make_collation_header_lookup_key(shard_id: int, period: int) -> bytes:
+    return b"collation-header-lookup:shard_id=%d,period=%d" % (shard_id, period)
+
+
+def make_collation_body_lookup_key(shard_id: int, period: int) -> bytes:
+    return b"collation-body-lookup:shard_id=%d,period=%d" % (shard_id, period)
+
+
+def make_collation_availability_lookup_key(shard_id: int, period: int) -> bytes:
+    return b"collation-availability-lookup:shard_id=%d,period=%d" % (shard_id, period)
 
 
 class ShardDB:
