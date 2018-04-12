@@ -10,13 +10,9 @@ matrix:
     # Linting and Static Analysis
     #
     - python: "3.5"
-      env: TOX_POSARGS="-e flake8py35"
+      env: TOX_POSARGS="-e lintpy35"
     - python: "3.6"
-      env: TOX_POSARGS="-e flake8py36"
-    - python: "3.5"
-      env: TOX_POSARGS="-e mypy35"
-    - python: "3.6"
-      env: TOX_POSARGS="-e mypy36"
+      env: TOX_POSARGS="-e lintpy36"
     #
     # Python 3.5
     #
