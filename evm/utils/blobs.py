@@ -78,7 +78,7 @@ def check_body_size(body):
 @apply_to_return_value(check_body_size)
 @apply_to_return_value(lambda v: zpad_right(v, COLLATION_SIZE))
 @apply_to_return_value(b"".join)
-def serialize_blobs(blobs: Iterable[bytes]) -> bytes:
+def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
     """Serialize a sequence of blobs and return a collation body."""
     for blob in blobs:
         if len(blob) == 0:
