@@ -7,7 +7,12 @@ from typing import (
 )
 
 from eth_utils import (
+    apply_to_return_value,
+    int_to_big_endian,
     keccak,
+)
+from evm.utils.padding import (
+    zpad_right,
 )
 
 from evm.constants import (
@@ -62,3 +67,61 @@ def calc_chunk_root(collation_body: bytes) -> bytes:
 
     chunks = iterate_chunks(collation_body)
     return calc_merkle_root(chunks)
+
+
+def check_body_size(body):
+    if len(body) > COLLATION_SIZE:
+        raise ValueError("Collation body exceeds maximum allowed size")
+    return body
+
+
+@apply_to_return_value(check_body_size)
+@apply_to_return_value(lambda v: zpad_right(v, COLLATION_SIZE))
+@apply_to_return_value(b"".join)
+def serialize_blobs(blobs: Iterable[bytes]) -> bytes:
+    """Serialize a sequence of blobs and return a collation body."""
+    for blob in blobs:
+        if len(blob) == 0:
+            raise ValueError("Cannot serialize blob of length 0")
+        if len(blob) > 31 * 2**((COLLATION_SIZE - 1).bit_length() - 5):
+            raise ValueError("Cannot serialize blob of size {}".format(len(blob)))
+
+        blob_index = 0
+        for blob_index in range(0, len(blob), 31):
+            remaining_blob_bytes = len(blob) - blob_index
+
+            if remaining_blob_bytes <= 31:
+                length_bits = remaining_blob_bytes
+            else:
+                length_bits = 0
+
+            flag_bits = 0  # TODO: second parameter? blobs as tuple `(flags, blobs)`?
+            indicator_byte = int_to_big_endian(length_bits | flag_bits * 0b00100000)
+            assert len(indicator_byte) == 1
+
+            yield indicator_byte
+            yield blob[blob_index:blob_index + 31]
+
+        chunk_filler = b"\x00" * (31 - (len(blob) - blob_index))
+        yield chunk_filler
+
+
+def iterate_blobs(body: bytes) -> Iterator[bytes]:
+    """Iterate over the blobs encoded in a body."""
+    blob = b""
+    for chunk in iterate_chunks(body):
+        indicator_byte = chunk[0]
+        flag_bits = indicator_byte & 0b11100000  # TODO: yield, filter, ...?  # noqa: F841
+        length_bits = indicator_byte & 0b00011111
+
+        if length_bits == 0:
+            length = 31
+            terminal = False
+        else:
+            length = length_bits
+            terminal = True
+
+        blob += chunk[1:length + 1]
+        if terminal:
+            yield blob
+            blob = b""

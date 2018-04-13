@@ -7,7 +7,12 @@ from itertools import (
 from evm.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
+    iterate_blobs,
     iterate_chunks,
+    serialize_blobs,
+)
+from evm.utils.padding import (
+    zpad_right,
 )
 
 from evm.utils.padding import zpad_left
@@ -20,6 +25,19 @@ from evm.constants import (
     CHUNK_SIZE,
     COLLATION_SIZE,
 )
+
+
+BLOB_SERIALIZATION_TEST_DATA = [  # [(blobs, unpadded_body), ...]
+    ([], b""),
+    ([b"\x00"], b"\x01\x00"),
+    ([b"\x01"], b"\x01\x01"),
+    ([b"\xaa" * 31], b"\x1f" + b"\xaa" * 31),
+    ([b"\xaa" * 32], b"\x00" + b"\xaa" * 31 + b"\x01" + b"\xaa"),
+    (
+        [b"\xaa" * 20, b"\xbb" * 15],
+        b"\x14" + b"\xaa" * 20 + b"\x00" * 11 + b"\x0f" + b"\xbb" * 15
+    ),
+]
 
 
 def test_chunk_iteration():
@@ -82,3 +100,25 @@ def test_chunk_root_calculation():
     body = b"".join(chunks)
 
     assert calc_chunk_root(body) == calc_merkle_root(chunks)
+
+
+@pytest.mark.parametrize("blobs,unpadded_body", BLOB_SERIALIZATION_TEST_DATA)
+def test_blob_serialization(blobs, unpadded_body):
+    assert serialize_blobs(blobs) == zpad_right(unpadded_body, COLLATION_SIZE)
+
+
+@pytest.mark.parametrize("blobs,unpadded_body", BLOB_SERIALIZATION_TEST_DATA)
+def test_blob_iteration(blobs, unpadded_body):
+    body = zpad_right(unpadded_body, COLLATION_SIZE)
+    deserialized_blobs = list(iterate_blobs(body))
+    assert deserialized_blobs == blobs
+
+
+@pytest.mark.parametrize("blobs", [
+    [b""],
+    [b"\x00", b""],
+    [b"\x00" * (31 * 2**((COLLATION_SIZE - 1).bit_length() - 5) + 1)]
+])
+def test_blob_length_checks(blobs):
+    with pytest.raises(ValueError):
+        serialize_blobs(blobs)
