@@ -7,7 +7,7 @@ from itertools import (
 from evm.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
-    chunk_iterator,
+    iterate_chunks,
 )
 
 from evm.utils.padding import zpad_left
@@ -28,19 +28,19 @@ def test_chunk_iteration():
 
     chunks = test_chunks
     body = b"".join(chunks)
-    for recovered, original in zip_longest(chunk_iterator(body), chunks, fillvalue=None):
+    for recovered, original in zip_longest(iterate_chunks(body), chunks, fillvalue=None):
         assert recovered is not None and original is not None
         assert recovered == original
 
     chunks = test_chunks[:-2]
     body = b"".join(chunks)
-    for recovered, original in zip_longest(chunk_iterator(body), chunks, fillvalue=None):
+    for recovered, original in zip_longest(iterate_chunks(body), chunks, fillvalue=None):
         assert recovered is not None and original is not None
         assert recovered == original
 
     body = b"".join(test_chunks)[:-2]
     with pytest.raises(ValueError):
-        next(chunk_iterator(body))
+        next(iterate_chunks(body))
 
 
 @pytest.mark.parametrize("leaves,root", [

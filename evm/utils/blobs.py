@@ -21,7 +21,7 @@ from cytoolz import (
 )
 
 
-def chunk_iterator(collation_body: bytes) -> Iterator[bytes]:
+def iterate_chunks(collation_body: bytes) -> Iterator[bytes]:
     if len(collation_body) % CHUNK_SIZE != 0:
         raise ValueError("Blob size is {} which is not a multiple of chunk size ({})".format(
             len(collation_body),
@@ -60,5 +60,5 @@ def calc_chunk_root(collation_body: bytes) -> bytes:
             COLLATION_SIZE
         ))
 
-    chunks = chunk_iterator(collation_body)
+    chunks = iterate_chunks(collation_body)
     return calc_merkle_root(chunks)
