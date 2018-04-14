@@ -106,7 +106,7 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
                 length_bits = 0
 
             flag_bits = 0  # TODO: second parameter? blobs as tuple `(flag, blob)`?
-            indicator_byte = int_to_big_endian(length_bits | flag_bits * 0b00100000)
+            indicator_byte = int_to_big_endian(length_bits | (flag_bits << 5))
             assert len(indicator_byte) == 1
 
             yield indicator_byte
