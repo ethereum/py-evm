@@ -24,19 +24,108 @@ from eth_utils import (
 from evm.constants import (
     CHUNK_SIZE,
     COLLATION_SIZE,
+    MAX_BLOB_SIZE
+)
+from evm.exceptions import (
+    ValidationError,
 )
 
 
 BLOB_SERIALIZATION_TEST_DATA = [  # [(blobs, unpadded_body), ...]
-    ([], b""),
-    ([b"\x00"], b"\x01\x00"),
-    ([b"\x01"], b"\x01\x01"),
-    ([b"\xaa" * 31], b"\x1f" + b"\xaa" * 31),
-    ([b"\xaa" * 32], b"\x00" + b"\xaa" * 31 + b"\x01" + b"\xaa"),
     (
-        [b"\xaa" * 20, b"\xbb" * 15],
-        b"\x14" + b"\xaa" * 20 + b"\x00" * 11 + b"\x0f" + b"\xbb" * 15
+        [],   # no blobs
+        b"",  # everything zero
     ),
+    (
+        [
+            b"\x00",  # blob 1
+        ],
+        b"".join([
+            # blob 1
+            b"\x01",   # indicator length 1
+            b"\x00",   # data chunk 1
+        ]),
+    ),
+    (
+        [
+            b"\x01",  # blob 1
+        ],
+        b"".join([
+            # blob 1
+            b"\x01",   # indicator length 1
+            b"\x01",   # data chunk 1
+        ]),
+    ),
+    (
+        [
+            b"\xaa" * 31  # blob 1
+        ],
+        b"".join([
+            # blob 1
+            b"\x1f",       # indicator length 31
+            b"\xaa" * 31,  # data chunk 1
+        ]),
+    ),
+    (
+        [
+            b"\xaa" * 32,  # blob 1
+        ],
+        b"".join([
+            # blob 1
+            b"\x00",       # indicator non terminal
+            b"\xaa" * 31,  # data chunk 1
+            b"\x01",       # indicator length 1
+            b"\xaa",       # data chunk 2
+        ]),
+    ),
+    (
+        [
+            b"\xaa" * 20,  # blob 1
+            b"\xbb" * 15,  # blob 2
+        ],
+        b"".join([
+            # blob 1
+            b"\x14",       # indicator length 20
+            b"\xaa" * 20,  # data chunk 1
+            b"\x00" * 11,  # padding to end of chunk
+            # blob 2
+            b"\x0f",       # indicator length 15
+            b"\xbb" * 15,  # data chunk 2
+        ])
+    ),
+    (
+        [
+            b"\xaa" * 70,  # blob 1
+            b"\xbb" * 40,  # blob 2
+        ],
+        b"".join([
+            # blob 1
+            b"\x00",       # indicator non terminal
+            b"\xaa" * 31,  # data chunk 1
+            b"\x00",       # indicator non terminal
+            b"\xaa" * 31,  # data chunk 2
+            b"\x08",       # indicator length 8
+            b"\xaa" * 8,   # data chunk 3
+            b"\x00" * 23,  # padding to end of chunk
+            # blob 2
+            b"\x00",       # indicator non terminal
+            b"\xbb" * 31,  # data chunk 4
+            b"\x09",       # indicator non terminal
+            b"\xbb" * 9,   # data chunk 5
+        ])
+    ),
+    (
+        [
+            b"\xaa" * MAX_BLOB_SIZE,  # blob 1
+        ],
+        b"".join([
+            b"\x00",  # indicator non terminal
+            b"\xaa" * 31,
+        ] * (COLLATION_SIZE // CHUNK_SIZE - 1) + [
+            b"\x1f",
+            b"\xaa" * 31,
+        ])
+    )
 ]
 
 
@@ -117,8 +206,8 @@ def test_blob_iteration(blobs, unpadded_body):
 @pytest.mark.parametrize("blobs", [
     [b""],
     [b"\x00", b""],
-    [b"\x00" * (31 * 2**((COLLATION_SIZE - 1).bit_length() - 5) + 1)]
+    [b"\x00" * (MAX_BLOB_SIZE + 1)]
 ])
 def test_blob_length_checks(blobs):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         serialize_blobs(blobs)

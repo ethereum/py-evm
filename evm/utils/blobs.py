@@ -1,5 +1,8 @@
 import itertools
 import math
+from io import (
+    BytesIO,
+)
 
 from typing import (
     Iterable,
@@ -17,7 +20,13 @@ from evm.utils.padding import (
 
 from evm.constants import (
     CHUNK_SIZE,
+    CHUNK_DATA_SIZE,
     COLLATION_SIZE,
+    MAX_BLOB_SIZE,
+)
+
+from evm.exceptions import (
+    ValidationError,
 )
 
 from cytoolz import (
@@ -71,7 +80,9 @@ def calc_chunk_root(collation_body: bytes) -> bytes:
 
 def check_body_size(body):
     if len(body) > COLLATION_SIZE:
-        raise ValueError("Collation body exceeds maximum allowed size")
+        raise ValidationError("{} byte collation body exceeds maximum allowed size".format(
+            len(body)
+        ))
     return body
 
 
@@ -80,48 +91,51 @@ def check_body_size(body):
 @apply_to_return_value(b"".join)
 def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
     """Serialize a sequence of blobs and return a collation body."""
-    for blob in blobs:
+    for i, blob in enumerate(blobs):
         if len(blob) == 0:
-            raise ValueError("Cannot serialize blob of length 0")
-        if len(blob) > 31 * 2**((COLLATION_SIZE - 1).bit_length() - 5):
-            raise ValueError("Cannot serialize blob of size {}".format(len(blob)))
+            raise ValidationError("Cannot serialize blob {} of length 0".format(i))
+        if len(blob) > MAX_BLOB_SIZE:
+            raise ValidationError("Cannot serialize blob {} of size {}".format(i, len(blob)))
 
-        blob_index = 0
-        for blob_index in range(0, len(blob), 31):
+        for blob_index in range(0, len(blob), CHUNK_DATA_SIZE):
             remaining_blob_bytes = len(blob) - blob_index
 
-            if remaining_blob_bytes <= 31:
+            if remaining_blob_bytes <= CHUNK_DATA_SIZE:
                 length_bits = remaining_blob_bytes
             else:
                 length_bits = 0
 
-            flag_bits = 0  # TODO: second parameter? blobs as tuple `(flags, blobs)`?
+            flag_bits = 0  # TODO: second parameter? blobs as tuple `(flag, blob)`?
             indicator_byte = int_to_big_endian(length_bits | flag_bits * 0b00100000)
             assert len(indicator_byte) == 1
 
             yield indicator_byte
-            yield blob[blob_index:blob_index + 31]
+            yield blob[blob_index:blob_index + CHUNK_DATA_SIZE]
 
-        chunk_filler = b"\x00" * (31 - (len(blob) - blob_index))
+        # end of range(0, N, k) is given by the largest multiple of k smaller than N, i.e.,
+        # (ceil(N / k) - 1) * k where ceil(N / k) == -(-N // k)
+        last_blob_index = (-(-len(blob) // CHUNK_DATA_SIZE) - 1) * CHUNK_DATA_SIZE
+        assert last_blob_index == blob_index
+        chunk_filler = b"\x00" * (CHUNK_DATA_SIZE - (len(blob) - last_blob_index))
         yield chunk_filler
 
 
 def iterate_blobs(body: bytes) -> Iterator[bytes]:
     """Iterate over the blobs encoded in a body."""
-    blob = b""
+    blob = BytesIO()
     for chunk in iterate_chunks(body):
         indicator_byte = chunk[0]
         flag_bits = indicator_byte & 0b11100000  # TODO: yield, filter, ...?  # noqa: F841
         length_bits = indicator_byte & 0b00011111
 
         if length_bits == 0:
-            length = 31
+            length = CHUNK_DATA_SIZE
             terminal = False
         else:
             length = length_bits
             terminal = True
 
-        blob += chunk[1:length + 1]
+        blob.write(chunk[1:length + 1])
         if terminal:
-            yield blob
-            blob = b""
+            yield blob.getvalue()
+            blob = BytesIO()
