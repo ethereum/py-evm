@@ -120,8 +120,8 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
         yield chunk_filler
 
 
-def iterate_blobs(body: bytes) -> Iterator[bytes]:
-    """Iterate over the blobs encoded in a body."""
+def deserialize_blobs(body: bytes) -> Iterator[bytes]:
+    """Deserialize the blobs encoded in a body, returning and iterator."""
     blob = BytesIO()
     for chunk in iterate_chunks(body):
         indicator_byte = chunk[0]

@@ -7,7 +7,7 @@ from itertools import (
 from evm.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
-    iterate_blobs,
+    deserialize_blobs,
     iterate_chunks,
     serialize_blobs,
 )
@@ -199,7 +199,7 @@ def test_blob_serialization(blobs, unpadded_body):
 @pytest.mark.parametrize("blobs,unpadded_body", BLOB_SERIALIZATION_TEST_DATA)
 def test_blob_iteration(blobs, unpadded_body):
     body = zpad_right(unpadded_body, COLLATION_SIZE)
-    deserialized_blobs = list(iterate_blobs(body))
+    deserialized_blobs = list(deserialize_blobs(body))
     assert deserialized_blobs == blobs
 
 
