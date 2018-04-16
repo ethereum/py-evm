@@ -8,22 +8,6 @@ def journal_db():
     return JournalDB(MemoryDB())
 
 
-def test_set_and_get(journal_db):
-    journal_db.set(b'1', b'test')
-
-    assert journal_db.get(b'1') == b'test'
-
-
-def test_get_non_existent_value(journal_db):
-    with pytest.raises(KeyError):
-        journal_db.get(b'does-not-exist')
-
-
-def test_delete_non_existent_value(journal_db):
-    with pytest.raises(KeyError):
-        journal_db.delete(b'does-not-exist')
-
-
 def test_snapshot_and_revert_with_set(journal_db):
     journal_db.set(b'1', b'test-a')
 

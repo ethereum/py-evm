@@ -1,4 +1,6 @@
 import logging
+from typing import Type, Dict  # noqa: F401
+
 from evm.db.backends.base import BaseDB
 
 from typing import (  # noqa: F401
@@ -17,54 +19,60 @@ class BatchDB(BaseDB):
     """
     logger = logging.getLogger("evm.db.BatchDB")
 
-    def __init__(self, wrapped_db):
+    wrapped_db = None  # type: BaseDB
+    cache = None  # type: Dict[bytes, bytes]
+
+    def __init__(self, wrapped_db: BaseDB):
         self.wrapped_db = wrapped_db
         self.cache = {}  # type: Dict[bytes, bytes]
 
-    def __enter__(self):
+    def __enter__(self) -> 'BatchDB':
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         # commit all the changes from local cache to underlying db
         if exc_type is None:
-            for key, value in self.cache.items():
-                self.wrapped_db.set(key, value)
+            self.commit()
         else:
-            self.logger.error("Unexpected error %s occurred when batch update", repr(exc_val))
-        self.cache = {}
-        return True
+            self.clear()
+            self.logger.exception("Unexpected error occurred when batch update")
 
-    def exists(self, key):
-        return key in self.cache or self.wrapped_db.exists(key)
+    def clear(self):
+        self.cache = {}
+
+    def commit(self):
+        for key, value in self.cache.items():
+            if value is None:
+                try:
+                    del self.wrapped_db[key]
+                except KeyError:
+                    pass
+            else:
+                self.wrapped_db[key] = value
+
+        self.clear()
+
+    def exists(self, key: bytes) -> bool:
+        try:
+            return self.cache[key] is not None
+        except KeyError:
+            return key in self.wrapped_db
 
     # if not key is found, return None
-    def get(self, key):
-        if key in self.cache:
-            return self.cache[key]
+    def get(self, key: bytes) -> bytes:
+        try:
+            value = self.cache[key]
+        except KeyError:
+            return self.wrapped_db[key]
         else:
-            try:
-                current_value = self.wrapped_db.get(key)
-            except KeyError:
-                current_value = None
-            return current_value
+            if value is None:
+                raise KeyError(key)
+            return value
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes) -> None:
         self.cache[key] = value
 
-    def delete(self, key):
-        self.cache.pop(key, None)
-
-    #
-    # Dictionary API
-    #
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __setitem__(self, key, value):
-        return self.set(key, value)
-
-    def __delitem__(self, key):
-        return self.delete(key)
-
-    def __contains__(self, key):
-        return self.exists(key)
+    def delete(self, key: bytes) -> None:
+        if key not in self:
+            raise KeyError(key)
+        self.cache[key] = None
