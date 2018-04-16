@@ -4,47 +4,89 @@ from evm.db.batch import BatchDB
 
 
 @pytest.fixture
-def batch_db():
-    return BatchDB(MemoryDB())
+def base_db():
+    return MemoryDB()
 
 
-def test_set_and_get(batch_db):
-    batch_db.set(b'1', b'test')
-    assert batch_db.get(b'1') == b'test'
+@pytest.fixture
+def batch_db(base_db):
+    return BatchDB(base_db)
 
 
-def test_with_set_and_get():
-    with BatchDB(MemoryDB()) as db:
-        db.set(b'1', b'test1')
-        db.set(b'2', b'test2')
-        assert db.get(b'1') == b'test1'
-        assert db.get(b'2') == b'test2'
-    assert db.get(b'1') == b'test1'
-    assert db.get(b'2') == b'test2'
+def test_batch_db_with_set_and_get(base_db, batch_db):
+    with batch_db:
+        batch_db.set(b'key-1', b'value-1')
+        batch_db.set(b'key-2', b'value-2')
+        assert batch_db.get(b'key-1') == b'value-1'
+        assert batch_db.get(b'key-2') == b'value-2'
+
+        # keys should not yet be set in base db.
+        assert b'key-1' not in base_db
+        assert b'key-2' not in base_db
+
+    assert base_db.get(b'key-1') == b'value-1'
+    assert base_db.get(b'key-2') == b'value-2'
 
 
-def test_with_set_and_delete():
-    with BatchDB(MemoryDB()) as db:
-        db.set(b'1', b'test1')
-        db.set(b'2', b'test2')
-        db.delete(b'1')
-        assert db.get(b'1') is None
-    assert db.get(b'1') is None
-    assert db.get(b'2') == b'test2'
+def test_batch_db_with_set_and_delete(base_db, batch_db):
+    base_db[b'key-1'] = b'origin'
+
+    with batch_db:
+        batch_db.delete(b'key-1')
+
+        assert b'key-1' not in batch_db
+        with pytest.raises(KeyError):
+            assert batch_db.get(b'key-1')
+
+        # key should still be in base batch_db
+        assert b'key-1' in base_db
+        assert b'key-1' not in batch_db
+
+    with pytest.raises(KeyError):
+        base_db.get(b'key-1')
+    with pytest.raises(KeyError):
+        batch_db.get(b'key-1')
 
 
-def test_batch_update_with_error():
-    with BatchDB(MemoryDB()) as db:
-        db.set(b'1', b'test1')
-        db.set(b'2', b'test2')
-        raise IOError
-    assert db.get(b'1') is None
-    assert db.get(b'2') is None
+def test_batch_db_with_exception(base_db, batch_db):
+    base_db.set(b'key-1', b'value-1')
+
+    try:
+        with batch_db:
+            batch_db.set(b'key-1', b'new-value-1')
+            batch_db.set(b'key-2', b'value-2')
+            raise Exception
+    except Exception:
+        pass
+
+    assert base_db.get(b'key-1') == b'value-1'
+
+    with pytest.raises(KeyError):
+        base_db[b'key-2']
+    with pytest.raises(KeyError):
+        batch_db[b'key-2']
 
 
-def test_exists():
-    with BatchDB(MemoryDB()) as db:
-        db.set(b'1', b'test1')
-        db.exists('1')
-        db.set(b'2', b'test2')
-        db.exists('2')
+def test_batch_db_with_exception_across_contexts(base_db, batch_db):
+    base_db[b'key-1'] = b'origin-1'
+    base_db[b'key-2'] = b'origin-2'
+
+    try:
+        with batch_db:
+            batch_db[b'key-1'] = b'value-1'
+            raise Exception('throw')
+    except Exception:
+        pass
+
+    assert base_db[b'key-1'] == b'origin-1'
+    assert batch_db[b'key-1'] == b'origin-1'
+    assert base_db[b'key-2'] == b'origin-2'
+    assert batch_db[b'key-2'] == b'origin-2'
+
+    with batch_db:
+        batch_db[b'key-2'] = b'value-2'
+
+    assert base_db[b'key-1'] == b'origin-1'
+    assert batch_db[b'key-1'] == b'origin-1'
+    assert base_db[b'key-2'] == b'value-2'
+    assert batch_db[b'key-2'] == b'value-2'
