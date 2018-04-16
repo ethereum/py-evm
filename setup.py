@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 
-deps={
+deps = {
     'evm': [
         "aiohttp>=2.3.1,<3.0.0",
         "async_lru>=0.1.0,<1.0.0",
@@ -28,15 +28,15 @@ deps={
         "eth-hash[pycryptodome]",
     ],
     'p2p': [
-            "aiohttp>=2.3.1,<3.0.0",
-            "async_lru>=0.1.0,<1.0.0",
-            "pysha3>=1.0.0,<2.0.0",
+        "aiohttp>=2.3.1,<3.0.0",
+        "async_lru>=0.1.0,<1.0.0",
+        "pysha3>=1.0.0,<2.0.0",
     ],
     'trinity': [
-            "ipython>=6.2.1,<7.0.0",
-            "plyvel==1.0.4",
-            "coincurve>=7.0.0,<8.0.0",
-            "web3>=4.0.0b11,<5.0.0",
+        "ipython>=6.2.1,<7.0.0",
+        "plyvel==1.0.4",
+        "coincurve>=7.0.0,<8.0.0",
+        "web3>=4.0.0b11,<5.0.0",
     ],
     'test': [
         "hypothesis==3.44.26",
@@ -66,13 +66,13 @@ deps={
 }
 
 deps['dev'] = (
-    deps['dev']
-    + deps['evm']
-    + deps['evm-extras']
-    + deps['p2p']
-    + deps['trinity']
-    + deps['test']
-    + deps['doc']
+    deps['dev'] +
+    deps['evm'] +
+    deps['evm-extras'] +
+    deps['p2p'] +
+    deps['trinity'] +
+    deps['test'] +
+    deps['doc']
 )
 
 # As long as evm, p2p and trinity are managed together in the py-evm
