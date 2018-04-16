@@ -54,6 +54,13 @@ class CollationBodyNotFound(PyEVMError):
     pass
 
 
+class CanonicalCollationNotFound(PyEVMError):
+    """
+    No collation for the given shard and period has been marked as canonical.
+    """
+    pass
+
+
 class ValidationError(PyEVMError):
     """
     Error to signal something does not pass a validation check.
