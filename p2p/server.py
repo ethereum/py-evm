@@ -2,8 +2,14 @@ import asyncio
 import logging
 import secrets
 
-from typing import Tuple
+from typing import (
+    List,
+    Tuple,
+)
+
 from eth_keys import datatypes
+
+from eth_utils import big_endian_to_int
 
 from evm.db.chain import AsyncChainDB
 from p2p.auth import (
@@ -18,7 +24,7 @@ from p2p.constants import (
 )
 from p2p.discovery import DiscoveryProtocol
 from p2p.ecies import ecdh_agree
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import DecryptionError
 from p2p.kademlia import (
     Address,
     Node,
@@ -37,27 +43,25 @@ class Server:
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  server_address: Address,
-                 chaindb: AsyncChainDB
+                 chaindb: AsyncChainDB,
+                 bootstrap_nodes: List[str],
+                 network_id: int
                  ) -> None:
         self.cancel_token = CancelToken('Server')
         self.chaindb = chaindb
         self.privkey = privkey
         self.server_address = server_address
-        discovery = DiscoveryProtocol(self.privkey, self.server_address, bootstrap_nodes=[])
-        self.peer_pool = PeerPool(ETHPeer, self.chaindb, 1, self.privkey, discovery)
+        self.network_id = network_id
+        discovery = DiscoveryProtocol(
+            self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
+        self.peer_pool = PeerPool(ETHPeer, self.chaindb, self.network_id, self.privkey, discovery)
 
     async def run(self) -> None:
         self.logger.info("Running server...")
-        loop = asyncio.get_event_loop()
         factory = asyncio.start_server(
             self.receive_handshake, host=self.server_address.ip, port=self.server_address.udp_port)
         asyncio.ensure_future(factory)
-
-        while not self.cancel_token.triggered:
-            try:
-                loop.run_forever()
-            except OperationCancelled:
-                break
+        await self.cancel_token.wait()
 
     async def stop(self) -> None:
         self.logger.info("Closing server...")
@@ -67,15 +71,22 @@ class Server:
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         # Use reader to read the auth_init msg until EOF
-        msg = await reader.read()
+        msg = await reader.read(ENCRYPTED_AUTH_MSG_LEN)
 
         # Use HandshakeResponder.decode_authentication(auth_init_message) on auth init msg
-        ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(msg, self.privkey)
+        try:
+            ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
+                msg, self.privkey)
+        # Try to decode as EIP8
+        except DecryptionError:
+            msg_size = big_endian_to_int(msg[:2])
+            remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
+            msg += await reader.read(remaining_bytes)
+            ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
+                msg, self.privkey)
 
         # Get remote's address: IPv4 or IPv6
-        peername = writer.get_extra_info("peername")
-        ip = peername[0]
-        port = peername[1]
+        ip, port, *_ = writer.get_extra_info("peername")
         remote_address = Address(ip, port)
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
@@ -105,7 +116,7 @@ class Server:
             remote=initiator_remote, privkey=self.privkey, reader=reader,
             writer=writer, aes_secret=aes_secret, mac_secret=mac_secret,
             egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=self.chaindb,
-            network_id=1
+            network_id=self.network_id
         )
         self.peer_pool.add_peer(eth_peer)
 
