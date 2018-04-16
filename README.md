@@ -59,10 +59,20 @@ so you need to clone the repo with the `--recursive` flag. Example:
 git clone --recursive git@github.com:ethereum/py-evm.git
 ```
 
+Py-EVM requires Python 3. Often, the best way to guarantee a clean Python 3 environment is with [`virtualenv`](https://virtualenv.pypa.io/en/stable/), like:
+
+```sh
+# once:
+$ virtualenv -p python3 venv
+
+# each session:
+$ . venv/bin/activate
+```
+
 Then install the required python packages via:
 
 ```sh
-pip install -e . -r requirements-dev.txt
+pip install -e .[dev]
 ```
 
 
@@ -71,7 +81,7 @@ pip install -e . -r requirements-dev.txt
 You can run the tests with:
 
 ```sh
-py.test tests
+pytest
 ```
 
 Or you can install `tox` to run the full test suite.
