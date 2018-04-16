@@ -22,14 +22,14 @@ class BatchDB(BaseDB):
     wrapped_db = None  # type: BaseDB
     cache = None  # type: Dict[bytes, bytes]
 
-    def __init__(self, wrapped_db: BaseDB):
+    def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
         self.cache = {}  # type: Dict[bytes, bytes]
 
     def __enter__(self) -> 'BatchDB':
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
         # commit all the changes from local cache to underlying db
         if exc_type is None:
             self.commit()
