@@ -7,6 +7,9 @@ from pyethash import (
     mkcache_bytes,
 )
 
+from eth_typing import (
+    Hash32
+)
 from eth_utils import (
     keccak,
 )
@@ -48,8 +51,8 @@ def get_cache(block_number: int) -> bytes:
 
 
 def check_pow(block_number: int,
-              mining_hash: bytes,
-              mix_hash: bytes,
+              mining_hash: Hash32,
+              mix_hash: Hash32,
               nonce: bytes,
               difficulty: int) -> None:
     validate_length(mix_hash, 32, title="Mix Hash")
