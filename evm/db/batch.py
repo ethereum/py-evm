@@ -1,6 +1,10 @@
 import logging
 from evm.db.backends.base import BaseDB
 
+from typing import (  # noqa: F401
+    Dict,
+)
+
 
 class BatchDB(BaseDB):
     """
@@ -15,7 +19,7 @@ class BatchDB(BaseDB):
 
     def __init__(self, wrapped_db):
         self.wrapped_db = wrapped_db
-        self.cache = {}
+        self.cache = {}  # type: Dict[bytes, bytes]
 
     def __enter__(self):
         return self
