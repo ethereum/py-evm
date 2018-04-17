@@ -185,6 +185,7 @@ def test_estimate_gas(
         # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
 
 
+# XXX: This test is failing; need to figure out why.
 def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_address):
 
     def estimation_txn(chain, from_, from_key, data):

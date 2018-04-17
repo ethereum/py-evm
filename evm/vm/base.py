@@ -62,6 +62,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.chaindb = chaindb
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, chaindb=self.chaindb)
+        self.receipts = []
 
     #
     # Logging
@@ -77,14 +78,12 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation, block, trie_data_dict = self.state.apply_transaction(
+        computation, block, receipt = self.state.apply_transaction(
             transaction,
             self.block,
         )
         self.block = block
-
-        # Persist changed transaction and receipt key-values to self.chaindb.
-        self.chaindb.persist_trie_data_dict(trie_data_dict)
+        self.receipts.append(receipt)
 
         self.clear_journal()
 
@@ -132,6 +131,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Mining
     #
     def import_block(self, block):
+        self.receipts = []
         self.configure_header(
             coinbase=block.header.coinbase,
             gas_limit=block.header.gas_limit,
@@ -156,6 +156,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         Mine the current block. Proxies to self.pack_block method.
         """
         block = self.block
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
+        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+        self.block.header.transaction_root = tx_root_hash
+        self.block.header.receipt_root = receipt_root_hash
+
         self.pack_block(block, *args, **kwargs)
 
         if block.number == 0:
@@ -266,6 +273,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                     )
                 )
 
+        # FIXME: make_trie_root_and_nodes() is rather expensive, and we already run that once in
+        # import_block(), so should refactor some of this code to avoid re-generating it here.
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
@@ -435,7 +444,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return cls._state_class
 
     @classmethod
-    def get_state(cls, chaindb, block, prev_hashes):
+    def get_state(cls, chaindb, block, prev_hashes, receipts=None):
         """
         Return state object
 
@@ -445,7 +454,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         :return: state with root defined in block
         """
         execution_context = block.header.create_execution_context(prev_hashes)
-        receipts = block.get_receipts(chaindb)
+        if receipts is None:
+            receipts = block.get_receipts(chaindb)
 
         return cls.get_state_class()(
             chaindb,
@@ -461,5 +471,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return self.get_state(
             chaindb=self.chaindb,
             block=self.block,
-            prev_hashes=self.previous_hashes
+            prev_hashes=self.previous_hashes,
+            receipts=list(self.receipts),
         )

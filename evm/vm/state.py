@@ -9,10 +9,6 @@ from typing import (  # noqa: F401
     TYPE_CHECKING
 )
 
-from cytoolz import (
-    merge,
-)
-
 from eth_utils import (
     to_bytes
 )
@@ -24,9 +20,6 @@ from evm.constants import (
     DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
-)
-from evm.db.trie import (
-    make_trie_root_and_nodes,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -299,9 +292,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
         computation = self.execute_transaction(transaction)
 
         # Set block.
-        block, trie_data_dict = self.add_transaction(transaction, computation, block)
+        block, receipt = self.add_transaction(transaction, computation, block)
         block.header.state_root = self.state_root
-        return computation, block, trie_data_dict
+        return computation, block, receipt
 
     def add_transaction(self, transaction, computation, block):
         """
@@ -331,26 +324,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         block.transactions.append(transaction)
 
-        # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(
-            block.transactions,
-            self.trie_class,
-        )
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(
-            self.receipts,
-            self.trie_class,
-        )
-
-        trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
-
         block.bloom_filter |= receipt.bloom
 
-        block.header.transaction_root = tx_root_hash
-        block.header.receipt_root = receipt_root_hash
         block.header.bloom = int(block.bloom_filter)
         block.header.gas_used = receipt.gas_used
 
-        return block, trie_data
+        return block, receipt
 
     def add_receipt(self, receipt):
         self.receipts.append(receipt)
