@@ -36,11 +36,7 @@ from cytoolz import (
 
 
 def iterate_chunks(collation_body: bytes) -> Iterator[bytes]:
-    if len(collation_body) % CHUNK_SIZE != 0:
-        raise ValueError("Blob size is {} which is not a multiple of chunk size ({})".format(
-            len(collation_body),
-            CHUNK_SIZE,
-        ))
+    check_body_size(collation_body)
     for chunk_start in range(0, len(collation_body), CHUNK_SIZE):
         yield collation_body[chunk_start:chunk_start + CHUNK_SIZE]
 
@@ -68,18 +64,13 @@ def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
 
 
 def calc_chunk_root(collation_body: bytes) -> bytes:
-    if len(collation_body) != COLLATION_SIZE:
-        raise ValueError("Blob is {} instead of {} bytes in size".format(
-            len(collation_body),
-            COLLATION_SIZE
-        ))
-
+    check_body_size(collation_body)
     chunks = iterate_chunks(collation_body)
     return calc_merkle_root(chunks)
 
 
 def check_body_size(body):
-    if len(body) > COLLATION_SIZE:
+    if len(body) != COLLATION_SIZE:
         raise ValidationError("{} byte collation body exceeds maximum allowed size".format(
             len(body)
         ))
