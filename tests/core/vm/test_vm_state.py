@@ -106,7 +106,7 @@ def test_apply_transaction(  # noqa: F811
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block1.header.state_root,
-        receipts=[],
+        gas_used=0,
     )
     parent_hash = copy.deepcopy(prev_hashes[0])
 
@@ -124,7 +124,7 @@ def test_apply_transaction(  # noqa: F811
         chaindb=chaindb1,
         execution_context=execution_context,
         state_root=block.header.state_root,
-        receipts=computation.state.receipts,
+        gas_used=computation.state.gas_used,
     )
     computation, block, _ = state1.apply_transaction(
         tx2,

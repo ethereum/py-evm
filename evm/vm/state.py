@@ -44,19 +44,18 @@ class BaseState(Configurable, metaclass=ABCMeta):
     _chaindb = None
     execution_context = None
     state_root = None
-    receipts = None
-    access_logs = None
+    gas_used = None
 
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     trie_class = None
     transaction_context_class = None  # type: Type[BaseTransactionContext]
 
-    def __init__(self, chaindb, execution_context, state_root, receipts=[]):
+    def __init__(self, chaindb, execution_context, state_root, gas_used):
         self._chaindb = chaindb
         self.execution_context = execution_context
         self.state_root = state_root
-        self.receipts = receipts
+        self.gas_used = gas_used
 
     #
     # Logging
@@ -88,16 +87,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @property
     def gas_limit(self):
         return self.execution_context.gas_limit
-
-    #
-    # Helpers
-    #
-    @property
-    def gas_used(self):
-        if self.receipts:
-            return self.receipts[-1].gas_used
-        else:
-            return 0
 
     #
     # read only state_db
@@ -315,7 +304,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :rtype: (Block, dict[bytes, bytes])
         """
         receipt = self.make_receipt(transaction, computation)
-        self.add_receipt(receipt)
+        self.gas_used = receipt.gas_used
 
         # Create a new Block object
         block_header = block.header.clone()
@@ -330,9 +319,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
         block.header.gas_used = receipt.gas_used
 
         return block, receipt
-
-    def add_receipt(self, receipt):
-        self.receipts.append(receipt)
 
     @abstractmethod
     def make_receipt(self, transaction, computation):

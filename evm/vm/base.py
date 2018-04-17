@@ -3,12 +3,12 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-
 import contextlib
-import logging
-import rlp
-
 import functools
+import logging
+from typing import List  # noqa: F401
+
+import rlp
 
 from eth_utils import (
     keccak,
@@ -28,6 +28,7 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.rlp.receipts import Receipt  # noqa: F401
 from evm.utils.datatypes import (
     Configurable,
 )
@@ -62,7 +63,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.chaindb = chaindb
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, chaindb=self.chaindb)
-        self.receipts = []
+        self.receipts = []  # type: List[Receipt]
 
     #
     # Logging
@@ -218,7 +219,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
-        state = self.get_state(self.chaindb, temp_block, prev_hashes)
+        gas_used = 0
+        if self.receipts:
+            gas_used = self.receipts[-1].gas_used
+        state = self.get_state(self.chaindb, temp_block, prev_hashes, gas_used)
         assert state.gas_used == 0, "There must not be any gas used in a fresh temporary block"
 
         snapshot = state.snapshot()
@@ -444,7 +448,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return cls._state_class
 
     @classmethod
-    def get_state(cls, chaindb, block, prev_hashes, receipts=None):
+    def get_state(cls, chaindb, block, prev_hashes, gas_used):
         """
         Return state object
 
@@ -454,23 +458,24 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         :return: state with root defined in block
         """
         execution_context = block.header.create_execution_context(prev_hashes)
-        if receipts is None:
-            receipts = block.get_receipts(chaindb)
 
         return cls.get_state_class()(
             chaindb,
             execution_context=execution_context,
             state_root=block.header.state_root,
-            receipts=receipts,
+            gas_used=gas_used,
         )
 
     @property
     def state(self):
         """Return current state property
         """
+        gas_used = 0
+        if self.receipts:
+            gas_used = self.receipts[-1].gas_used
         return self.get_state(
             chaindb=self.chaindb,
             block=self.block,
             prev_hashes=self.previous_hashes,
-            receipts=list(self.receipts),
+            gas_used=gas_used,
         )
