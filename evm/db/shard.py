@@ -68,11 +68,11 @@ class ShardDB:
     #
     # Canonical Collations
     #
-    def mark_canonical(self, header: CollationHeader) -> None:
+    def set_canonical(self, header: CollationHeader) -> None:
         key = make_canonical_hash_lookup_key(header.shard_id, header.period)
         self.db.set(key, header.hash)
 
-    def get_canonical_hash(self, shard_id: int, period: int) -> bytes:
+    def get_canonical_collation_hash(self, shard_id: int, period: int) -> bytes:
         key = make_canonical_hash_lookup_key(shard_id, period)
         try:
             canonical_hash = self.db.get(key)
@@ -87,7 +87,7 @@ class ShardDB:
             return canonical_hash
 
     def get_canonical_header(self, shard_id: int, period: int) -> CollationHeader:
-        collation_hash = self.get_canonical_hash(shard_id, period)
+        collation_hash = self.get_canonical_collation_hash(shard_id, period)
         return self.get_header_by_hash(collation_hash)
 
     def get_canonical_body(self, shard_id: int, period: int) -> bytes:
@@ -95,7 +95,7 @@ class ShardDB:
         return self.get_body_by_chunk_root(header.chunk_root)
 
     def get_canonical_collation(self, shard_id: int, period: int) -> Collation:
-        collation_hash = self.get_canonical_hash(shard_id, period)
+        collation_hash = self.get_canonical_collation_hash(shard_id, period)
         return self.get_collation_by_hash(collation_hash)
 
     #

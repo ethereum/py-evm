@@ -113,7 +113,7 @@ def test_availabilities(shard_db, header):
 
 def test_canonicality(shard_db, collation, header, body):
     with pytest.raises(CanonicalCollationNotFound):
-        shard_db.get_canonical_hash(header.shard_id, header.period)
+        shard_db.get_canonical_collation_hash(header.shard_id, header.period)
     with pytest.raises(CanonicalCollationNotFound):
         shard_db.get_canonical_header(header.shard_id, header.period)
     with pytest.raises(CanonicalCollationNotFound):
@@ -124,7 +124,7 @@ def test_canonicality(shard_db, collation, header, body):
     shard_db.add_collation(collation)
 
     with pytest.raises(CanonicalCollationNotFound):
-        shard_db.get_canonical_hash(header.shard_id, header.period)
+        shard_db.get_canonical_collation_hash(header.shard_id, header.period)
     with pytest.raises(CanonicalCollationNotFound):
         shard_db.get_canonical_header(header.shard_id, header.period)
     with pytest.raises(CanonicalCollationNotFound):
@@ -132,9 +132,9 @@ def test_canonicality(shard_db, collation, header, body):
     with pytest.raises(CanonicalCollationNotFound):
         shard_db.get_canonical_collation(header.shard_id, header.period)
 
-    shard_db.mark_canonical(header)
+    shard_db.set_canonical(header)
 
-    assert shard_db.get_canonical_hash(header.shard_id, header.period) == header.hash
+    assert shard_db.get_canonical_collation_hash(header.shard_id, header.period) == header.hash
     assert shard_db.get_canonical_header(header.shard_id, header.period) == header
     assert shard_db.get_canonical_body(header.shard_id, header.period) == body
     assert shard_db.get_canonical_collation(header.shard_id, header.period) == collation
