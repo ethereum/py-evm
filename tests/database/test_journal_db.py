@@ -2,10 +2,13 @@ import pytest
 from evm.db.backends.memory import MemoryDB
 from evm.db.journal import JournalDB
 
+@pytest.fixture
+def memory_db():
+    return MemoryDB()
 
 @pytest.fixture
-def journal_db():
-    return JournalDB(MemoryDB())
+def journal_db(memory_db):
+    return JournalDB(memory_db)
 
 
 def test_set_and_get(journal_db):
@@ -90,3 +93,32 @@ def test_revert_clears_reverted_journal_entries(journal_db):
     journal_db.revert(snapshot_a)
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_revert_to_pre_commited_snapshot(journal_db, memory_db):
+    journal_db.set(b'1', b'test-a')
+
+    assert journal_db.get(b'1') == b'test-a'
+
+    snapshot = journal_db.snapshot()
+
+    journal_db.set(b'1', b'test-b')
+
+    assert journal_db.get(b'1') == b'test-b'
+
+    snapshot2 = journal_db.snapshot()
+
+    journal_db.set(b'1', b'test-c')
+
+    assert journal_db.get(b'1') == b'test-c'
+
+    snapshot3 = journal_db.snapshot()
+    journal_db.commit(snapshot3)
+
+    assert journal_db.get(b'1') == b'test-c'
+    assert memory_db.get(b'1') == b'test-c'
+
+    journal_db.revert(snapshot)
+
+    assert journal_db.get(b'1') == b'test-a'
+    assert memory_db.get(b'1') == b'test-a'
