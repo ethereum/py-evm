@@ -49,11 +49,11 @@ def hash_layer(layer: Iterable[bytes]) -> Iterator[bytes]:
 def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
     leaves = list(leaves)  # convert potential iterator to list
     if len(leaves) == 0:
-        raise ValueError("No leaves given")
+        raise ValidationError("No leaves given")
 
     n_layers = math.log2(len(leaves))
     if not n_layers.is_integer():
-        raise ValueError("Leave number is not a power of two")
+        raise ValidationError("Leave number is not a power of two")
     n_layers = int(n_layers)
 
     first_layer = (keccak(leaf) for leaf in leaves)

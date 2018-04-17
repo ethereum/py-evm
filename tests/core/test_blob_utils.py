@@ -141,12 +141,22 @@ def test_chunk_iteration():
 
     chunks = test_chunks[:-2]
     body = b"".join(chunks)
-    for recovered, original in zip_longest(iterate_chunks(body), chunks, fillvalue=None):
-        assert recovered is not None and original is not None
-        assert recovered == original
+    with pytest.raises(ValidationError):
+        next(iterate_chunks(body))
 
-    body = b"".join(test_chunks)[:-2]
-    with pytest.raises(ValueError):
+    chunks = test_chunks
+    body = b"".join(chunks)[:-2]
+    with pytest.raises(ValidationError):
+        next(iterate_chunks(body))
+
+    chunks = test_chunks
+    body = b"".join(chunks) + b"\x00"
+    with pytest.raises(ValidationError):
+        next(iterate_chunks(body))
+
+    chunks = test_chunks + [b"\x00" * CHUNK_SIZE]
+    body = b"".join(chunks)
+    with pytest.raises(ValidationError):
         next(iterate_chunks(body))
 
 
@@ -170,18 +180,18 @@ def test_merkle_root_calculation(leaves, root):
 
 @pytest.mark.parametrize("leave_number", [0, 3, 5, 6, 7, 9])
 def test_invalid_merkle_root_calculation(leave_number):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         calc_merkle_root([b""] * leave_number)
 
 
 def test_chunk_root_calculation():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         calc_chunk_root(b"\x00" * (COLLATION_SIZE - 1))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         calc_chunk_root(b"\x00" * (COLLATION_SIZE + 1))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         calc_chunk_root(b"\x00" * (COLLATION_SIZE - CHUNK_SIZE))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         calc_chunk_root(b"\x00" * (COLLATION_SIZE + CHUNK_SIZE))
 
     chunk_number = COLLATION_SIZE // CHUNK_SIZE
