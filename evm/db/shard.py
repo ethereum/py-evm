@@ -1,3 +1,5 @@
+from enum import Enum
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -19,6 +21,12 @@ from evm.exceptions import (
     CollationBodyNotFound,
     CollationHeaderNotFound,
 )
+
+
+class Availability(Enum):
+    AVAILABLE = 0
+    UNAVAILABLE = 1
+    UNKNOWN = 2
 
 
 def make_collation_availability_lookup_key(chunk_root: bytes) -> bytes:
@@ -99,7 +107,7 @@ class ShardDB:
     def add_body(self, body: bytes) -> None:
         chunk_root = calc_chunk_root(body)
         self.db.set(chunk_root, body)
-        self.mark_available(chunk_root)
+        self.set_availability(chunk_root, Availability.AVAILABLE)
 
     def add_collation(self, collation: Collation) -> None:
         self.add_header(collation.header)
@@ -108,30 +116,30 @@ class ShardDB:
     #
     # Availability API
     #
-    def mark_unavailable(self, chunk_root: bytes) -> None:
+    def set_availability(self, chunk_root: bytes, availability: Availability) -> None:
         key = make_collation_availability_lookup_key(chunk_root)
-        self.db.set(key, rlp.encode(False))
+        if availability is Availability.AVAILABLE:
+            self.db.set(key, rlp.encode(True))
+        elif availability is Availability.UNAVAILABLE:
+            self.db.set(key, rlp.encode(False))
+        elif availability is Availability.UNKNOWN:
+            self.db.delete(key)
 
-    def mark_available(self, chunk_root: bytes) -> None:
-        key = make_collation_availability_lookup_key(chunk_root)
-        self.db.set(key, rlp.encode(True))
-
-    def is_available(self, chunk_root: bytes) -> bool:
+    def get_availability(self, chunk_root: bytes) -> Availability:
         key = make_collation_availability_lookup_key(chunk_root)
         try:
-            available = bool(rlp.decode(self.db.get(key), big_endian_int))
+            availability_entry = self.db.get(key)
         except KeyError:
-            return False
-        return available
+            return Availability.UNKNOWN
+        else:
+            available = bool(rlp.decode(availability_entry, big_endian_int))
+            if available:
+                return Availability.AVAILABLE
+            else:
+                return Availability.UNAVAILABLE
 
-    def is_unavailable(self, chunk_root: bytes) -> bool:
-        key = make_collation_availability_lookup_key(chunk_root)
-        try:
-            available = bool(rlp.decode(self.db.get(key), big_endian_int))
-        except KeyError:
-            return False
-        return not available
+    def set_unavailable(self, chunk_root: bytes) -> None:
+        self.set_availability(chunk_root, Availability.UNAVAILABLE)
 
-    def availability_unknown(self, chunk_root: bytes) -> bool:
-        key = make_collation_availability_lookup_key(chunk_root)
-        return not self.db.exists(key)
+    def set_available(self, chunk_root: bytes) -> None:
+        self.set_availability(chunk_root, Availability.AVAILABLE)

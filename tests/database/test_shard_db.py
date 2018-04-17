@@ -2,6 +2,7 @@ import pytest
 
 from evm.db.shard import (
     ShardDB,
+    Availability,
 )
 from evm.rlp.headers import (
     CollationHeader,
@@ -56,7 +57,7 @@ def collation(header, body):
 def test_header_lookup(shard_db, header):
     with pytest.raises(CollationHeaderNotFound):
         shard_db.get_header_by_hash(header.hash)
-    assert shard_db.availability_unknown(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
     shard_db.add_header(header)
     assert header == shard_db.get_header_by_hash(header.hash)
@@ -64,13 +65,13 @@ def test_header_lookup(shard_db, header):
     with pytest.raises(CollationBodyNotFound):
         shard_db.get_collation_by_hash(header.hash)
 
-    assert shard_db.availability_unknown(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
 
 def test_body_lookup(shard_db, header, body):
     with pytest.raises(CollationBodyNotFound):
         shard_db.get_body_by_chunk_root(header.chunk_root)
-    assert shard_db.availability_unknown(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
     shard_db.add_body(body)
     assert body == shard_db.get_body_by_chunk_root(header.chunk_root)
@@ -78,7 +79,7 @@ def test_body_lookup(shard_db, header, body):
     with pytest.raises(CollationHeaderNotFound):
         shard_db.get_collation_by_hash(header.hash)
 
-    assert shard_db.is_available(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.AVAILABLE
 
 
 def test_collation_lookup(shard_db, collation, header, body):
@@ -86,7 +87,7 @@ def test_collation_lookup(shard_db, collation, header, body):
         shard_db.get_header_by_hash(header.hash)
     with pytest.raises(CollationBodyNotFound):
         shard_db.get_body_by_chunk_root(header.chunk_root)
-    assert shard_db.availability_unknown(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
     shard_db.add_collation(collation)
 
@@ -94,25 +95,20 @@ def test_collation_lookup(shard_db, collation, header, body):
     assert body == shard_db.get_body_by_chunk_root(header.chunk_root)
     assert collation == shard_db.get_collation_by_hash(header.hash)
 
-    assert shard_db.is_available(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.AVAILABLE
 
 
 def test_availabilities(shard_db, header):
-    assert shard_db.availability_unknown(header.chunk_root)
-    assert not shard_db.is_available(header.chunk_root)
-    assert not shard_db.is_unavailable(header.chunk_root)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
-    shard_db.mark_unavailable(header.chunk_root)
+    shard_db.set_availability(header.chunk_root, Availability.UNAVAILABLE)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNAVAILABLE
 
-    assert not shard_db.availability_unknown(header.chunk_root)
-    assert not shard_db.is_available(header.chunk_root)
-    assert shard_db.is_unavailable(header.chunk_root)
+    shard_db.set_availability(header.chunk_root, Availability.AVAILABLE)
+    assert shard_db.get_availability(header.chunk_root) is Availability.AVAILABLE
 
-    shard_db.mark_available(header.chunk_root)
-
-    assert not shard_db.availability_unknown(header.chunk_root)
-    assert shard_db.is_available(header.chunk_root)
-    assert not shard_db.is_unavailable(header.chunk_root)
+    shard_db.set_availability(header.chunk_root, Availability.UNKNOWN)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
 
 def test_canonicality(shard_db, collation, header, body):
