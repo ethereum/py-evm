@@ -98,7 +98,8 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
 
             flag_bits = 0  # TODO: second parameter? blobs as tuple `(flag, blob)`?
             indicator_byte = int_to_big_endian(length_bits | (flag_bits << 5))
-            assert len(indicator_byte) == 1
+            if len(indicator_byte) != 1:
+                raise Exception("Invariant: indicator is not a single byte")
 
             yield indicator_byte
             yield blob[blob_index:blob_index + CHUNK_DATA_SIZE]
@@ -106,13 +107,14 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
         # end of range(0, N, k) is given by the largest multiple of k smaller than N, i.e.,
         # (ceil(N / k) - 1) * k where ceil(N / k) == -(-N // k)
         last_blob_index = (-(-len(blob) // CHUNK_DATA_SIZE) - 1) * CHUNK_DATA_SIZE
-        assert last_blob_index == blob_index
+        if last_blob_index != blob_index:
+            raise Exception("Invariant: last blob index calculation failed")
         chunk_filler = b"\x00" * (CHUNK_DATA_SIZE - (len(blob) - last_blob_index))
         yield chunk_filler
 
 
 def deserialize_blobs(body: bytes) -> Iterator[bytes]:
-    """Deserialize the blobs encoded in a body, returning and iterator."""
+    """Deserialize the blobs encoded in a body, returning an iterator."""
     blob = BytesIO()
     for chunk in iterate_chunks(body):
         indicator_byte = chunk[0]
