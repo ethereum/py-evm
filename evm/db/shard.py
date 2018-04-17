@@ -22,6 +22,10 @@ from evm.exceptions import (
     CollationHeaderNotFound,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 
 class Availability(Enum):
     AVAILABLE = 0
@@ -29,7 +33,7 @@ class Availability(Enum):
     UNKNOWN = 2
 
 
-def make_collation_availability_lookup_key(chunk_root: bytes) -> bytes:
+def make_collation_availability_lookup_key(chunk_root: Hash32) -> bytes:
     return b"collation-availability-lookup:%s" % chunk_root
 
 
@@ -46,7 +50,7 @@ class ShardDB:
     #
     # Collation Getters by Hash
     #
-    def get_header_by_hash(self, collation_hash: bytes) -> CollationHeader:
+    def get_header_by_hash(self, collation_hash: Hash32) -> CollationHeader:
         try:
             header = self.db.get(collation_hash)
         except KeyError:
@@ -60,7 +64,7 @@ class ShardDB:
             raise CollationBodyNotFound("No body with chunk root {} found".format(chunk_root))
         return body
 
-    def get_collation_by_hash(self, collation_hash: bytes) -> Collation:
+    def get_collation_by_hash(self, collation_hash: Hash32) -> Collation:
         header = self.get_header_by_hash(collation_hash)
         body = self.get_body_by_chunk_root(header.chunk_root)
         return Collation(header, body)
@@ -72,7 +76,7 @@ class ShardDB:
         key = make_canonical_hash_lookup_key(header.shard_id, header.period)
         self.db.set(key, header.hash)
 
-    def get_canonical_collation_hash(self, shard_id: int, period: int) -> bytes:
+    def get_canonical_collation_hash(self, shard_id: int, period: int) -> Hash32:
         key = make_canonical_hash_lookup_key(shard_id, period)
         try:
             canonical_hash = self.db.get(key)
@@ -116,7 +120,7 @@ class ShardDB:
     #
     # Availability API
     #
-    def set_availability(self, chunk_root: bytes, availability: Availability) -> None:
+    def set_availability(self, chunk_root: Hash32, availability: Availability) -> None:
         key = make_collation_availability_lookup_key(chunk_root)
         if availability is Availability.AVAILABLE:
             self.db.set(key, rlp.encode(True))
@@ -125,7 +129,7 @@ class ShardDB:
         elif availability is Availability.UNKNOWN:
             self.db.delete(key)
 
-    def get_availability(self, chunk_root: bytes) -> Availability:
+    def get_availability(self, chunk_root: Hash32) -> Availability:
         key = make_collation_availability_lookup_key(chunk_root)
         try:
             availability_entry = self.db.get(key)
@@ -138,8 +142,8 @@ class ShardDB:
             else:
                 return Availability.UNAVAILABLE
 
-    def set_unavailable(self, chunk_root: bytes) -> None:
+    def set_unavailable(self, chunk_root: Hash32) -> None:
         self.set_availability(chunk_root, Availability.UNAVAILABLE)
 
-    def set_available(self, chunk_root: bytes) -> None:
+    def set_available(self, chunk_root: Hash32) -> None:
         self.set_availability(chunk_root, Availability.AVAILABLE)
