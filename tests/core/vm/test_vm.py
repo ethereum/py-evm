@@ -52,32 +52,3 @@ def test_import_block(chain, funded_address, funded_address_private_key):
     parent_vm = chain.get_chain_at_block_parent(vm.block).get_vm()
     block = parent_vm.import_block(vm.block)
     assert block.transactions == [tx]
-
-
-def test_get_cumulative_gas_used(chain, funded_address, funded_address_private_key):
-    vm = chain.get_vm()
-
-    # Empty block.
-    block = vm.mine_block()
-    chain.import_block(block)
-    block1 = chain.get_canonical_block_by_number(1)
-
-    blockgas = vm.get_cumulative_gas_used(block1)
-
-    assert blockgas == 0
-
-    # Only one transaction in the block.
-    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
-    amount = 100
-    vm = chain.get_vm()
-    from_ = funded_address
-    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-
-    vm.apply_transaction(tx)
-    block = vm.mine_block()
-    chain.import_block(block)
-    block2 = chain.get_canonical_block_by_number(2)
-
-    blockgas = vm.get_cumulative_gas_used(block2)
-
-    assert blockgas == constants.GAS_TX

@@ -385,19 +385,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
 
     #
-    # Gas Usage API
-    #
-    def get_cumulative_gas_used(self, block):
-        """
-        Note return value of this function can be cached based on
-        `self.receipt_db.root_hash`
-        """
-        if len(block.transactions):
-            return block.get_receipts(self.chaindb)[-1].gas_used
-        else:
-            return 0
-
-    #
     # Headers
     #
     @classmethod
