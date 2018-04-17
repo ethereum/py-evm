@@ -1,8 +1,11 @@
+from trinity.db.rpc import BaseRPCDB
+
+
 class RPCModule:
-    _chain = None
+    _db: BaseRPCDB = None
 
-    def __init__(self, chain=None):
-        self._chain = chain
+    def __init__(self, db: BaseRPCDB=None) -> None:
+        self._db = db
 
-    def set_chain(self, chain):
-        self._chain = chain
+    def set_db(self, db: BaseRPCDB) -> None:
+        self._db = db

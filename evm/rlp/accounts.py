@@ -3,6 +3,7 @@ from rlp.sedes import (
     big_endian_int,
 )
 
+from eth_typing import Hash32
 from evm.constants import (
     EMPTY_SHA3,
     BLANK_ROOT_HASH,
@@ -16,7 +17,11 @@ from .sedes import (
 from typing import Any
 
 
-class Account(rlp.Serializable):
+class BaseAccount(rlp.Serializable):
+    pass
+
+
+class Account(BaseAccount):
     """
     RLP object for accounts.
     """
@@ -32,7 +37,7 @@ class Account(rlp.Serializable):
     def __init__(self,
                  nonce: int=0,
                  balance: int=0,
-                 storage_root: bytes=BLANK_ROOT_HASH,
-                 code_hash: bytes=EMPTY_SHA3,
+                 storage_root: Hash32=BLANK_ROOT_HASH,
+                 code_hash: Hash32=EMPTY_SHA3,
                  **kwargs: Any) -> None:
         super(Account, self).__init__(nonce, balance, storage_root, code_hash, **kwargs)
