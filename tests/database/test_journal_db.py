@@ -160,3 +160,10 @@ def test_commit_all_writes_to_underlying_db(journal_db, memory_db):
     assert len(journal_db.journal.journal_data) == 0
     assert memory_db.get(b'1') == b'test-b'
 
+def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
+    changeset = journal_db.record()
+    memory_db.set(b'1', b'test-a')
+
+    assert memory_db.exists(b'1')
+
+    assert journal_db.get(b'1') == b'test-a'
