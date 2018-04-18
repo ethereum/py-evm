@@ -211,7 +211,7 @@ class JournalDB(BaseDB):
         """
         return self.journal.create_checkpoint()
 
-    def forget(self, changeset):
+    def discard(self, changeset):
         """
         Throws away all journaled data starting at the given changeset
         """

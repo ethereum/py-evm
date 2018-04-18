@@ -22,7 +22,7 @@ def test_snapshot_and_revert_with_set(journal_db):
 
     assert journal_db.get(b'1') == b'test-b'
 
-    journal_db.forget(changeset)
+    journal_db.discard(changeset)
 
     assert journal_db.get(b'1') == b'test-a'
 
@@ -39,7 +39,7 @@ def test_snapshot_and_revert_with_delete(journal_db):
 
     assert journal_db.exists(b'1') is False
 
-    journal_db.forget(changeset)
+    journal_db.discard(changeset)
 
     assert journal_db.exists(b'1') is True
     assert journal_db.get(b'1') == b'test-a'
@@ -66,7 +66,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-e'
 
-    journal_db.forget(changeset_b)
+    journal_db.discard(changeset_b)
 
     assert journal_db.get(b'1') == b'test-c'
 
@@ -74,7 +74,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.exists(b'1') is False
 
-    journal_db.forget(changeset_a)
+    journal_db.discard(changeset_a)
 
     assert journal_db.get(b'1') == b'test-a'
 
@@ -87,7 +87,7 @@ def test_revert_removes_journal_entries(journal_db):
     assert len(journal_db.journal.journal_data) == 3
 
     # Forget *latest* changeset and prove it's the only one removed
-    journal_db.forget(changeset_b)
+    journal_db.discard(changeset_b)
     assert len(journal_db.journal.journal_data) == 2
 
     changeset_b2 = journal_db.record()
@@ -100,7 +100,7 @@ def test_revert_removes_journal_entries(journal_db):
     assert len(journal_db.journal.journal_data) == 5
 
     # Forget everything from b2 (inclusive) and what follows
-    journal_db.forget(changeset_b2)
+    journal_db.discard(changeset_b2)
     assert len(journal_db.journal.journal_data) == 2
     assert journal_db.journal.has_checkpoint(changeset_b2) is False
 
