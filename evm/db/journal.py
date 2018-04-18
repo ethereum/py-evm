@@ -247,9 +247,9 @@ class JournalDB(BaseDB):
             # ensure new root checkpoint
             self.journal.create_checkpoint()
 
-    def commit_all(self):
+    def persist(self):
         """
-        Collapses all outstanding changes
+        Persist all changes in underlying db
         """
         self.commit(self.journal.root_checkpoint_id)
 

@@ -144,7 +144,7 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
     assert journal_db.journal.has_checkpoint(changeset_c) is False
 
 
-def test_commit_all_writes_to_underlying_db(journal_db, memory_db):
+def test_persist_writes_to_underlying_db(journal_db, memory_db):
     changeset = journal_db.record()
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
@@ -156,7 +156,7 @@ def test_commit_all_writes_to_underlying_db(journal_db, memory_db):
     assert journal_db.get(b'1') == b'test-b'
     assert memory_db.exists(b'1') is False
 
-    journal_db.commit_all()
+    journal_db.persist()
     assert len(journal_db.journal.journal_data) == 1
     assert memory_db.get(b'1') == b'test-b'
 
@@ -164,13 +164,13 @@ def test_commit_all_writes_to_underlying_db(journal_db, memory_db):
 def test_journal_restarts_after_write(journal_db, memory_db):
     journal_db.set(b'1', b'test-a')
     
-    journal_db.commit_all()
+    journal_db.persist()
 
     assert memory_db.get(b'1') == b'test-a'
 
     journal_db.set(b'1', b'test-b')
 
-    journal_db.commit_all()
+    journal_db.persist()
 
     assert memory_db.get(b'1') == b'test-b'
 
