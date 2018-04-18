@@ -9,7 +9,6 @@ from rlp.sedes import (
 
 from cytoolz import (
     accumulate,
-    first,
     sliding_window,
 )
 from eth_typing import (
@@ -62,6 +61,24 @@ from typing import (
 )
 
 
+class MiningHeader(rlp.Serializable):
+    fields = [
+        ('parent_hash', hash32),
+        ('uncles_hash', hash32),
+        ('coinbase', address),
+        ('state_root', trie_root),
+        ('transaction_root', trie_root),
+        ('receipt_root', trie_root),
+        ('bloom', int256),
+        ('difficulty', big_endian_int),
+        ('block_number', big_endian_int),
+        ('gas_limit', big_endian_int),
+        ('gas_used', big_endian_int),
+        ('timestamp', big_endian_int),
+        ('extra_data', binary),
+    ]
+
+
 class BlockHeader(rlp.Serializable):
     fields = [
         ('parent_hash', hash32),
@@ -96,7 +113,8 @@ class BlockHeader(rlp.Serializable):
                  gas_used: int=0,
                  extra_data: bytes=b'',
                  mix_hash: Hash32=ZERO_HASH32,
-                 nonce: bytes=GENESIS_NONCE) -> None:
+                 nonce: bytes=GENESIS_NONCE,
+                 **kwargs: Any) -> None:
         if timestamp is None:
             timestamp = int(time.time())
         super(BlockHeader, self).__init__(
@@ -115,6 +133,7 @@ class BlockHeader(rlp.Serializable):
             extra_data=extra_data,
             mix_hash=mix_hash,
             nonce=nonce,
+            **kwargs
         )
 
     def __repr__(self) -> str:
@@ -129,8 +148,7 @@ class BlockHeader(rlp.Serializable):
 
     @property
     def mining_hash(self) -> Hash32:
-        return keccak(
-            rlp.encode(self, BlockHeader.exclude(['mix_hash', 'nonce'])))
+        return keccak(rlp.encode(tuple(self)[:-2], MiningHeader))
 
     @property
     def hex_hash(self):
@@ -174,11 +192,7 @@ class BlockHeader(rlp.Serializable):
 
     def clone(self) -> 'BlockHeader':
         # Create a new BlockHeader object with the same fields.
-        return self.__class__(**{
-            field_name: getattr(self, field_name)
-            for field_name
-            in first(zip(*self.fields))
-        })
+        return self.__class__(**self.as_dict())
 
     def create_execution_context(
             self, prev_hashes: Union[Tuple[bytes], Tuple[bytes, bytes]]) -> ExecutionContext:
@@ -243,7 +257,10 @@ class CollationHeader(rlp.Serializable):
 
         start_indices = accumulate(lambda i, field: i + field[2], cls.fields_with_sizes, 0)
         field_bounds = sliding_window(2, start_indices)
-        for (start_index, end_index), (field_name, field_type) in zip(field_bounds, cls.fields):
+        for bounds, field in zip(field_bounds, cls._meta.fields):
+            start_index, end_index = bounds
+            field_name, field_type = field
+
             field_bytes = encoded_header[start_index:end_index]
             if field_type == rlp.sedes.big_endian_int:
                 # remove the leading zeros, to avoid `not minimal length` error in deserialization

@@ -322,10 +322,9 @@ class MainAccountStateDB(BaseAccountStateDB):
 
         rlp_account = account_cache[cache_key]
         if rlp_account:
-            account = rlp.decode(rlp_account, sedes=Account)
-            account._mutable = True
+            account = rlp.decode(rlp_account, sedes=Account, mutable=True)
         else:
-            account = Account()
+            account = Account.create_mutable()
         return account
 
     def _set_account(self, address, account):

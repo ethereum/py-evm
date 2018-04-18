@@ -132,7 +132,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Mining
     #
     def import_block(self, block):
-        self.configure_header(
+        self.block = self.block.as_mutable()
+        self.block.header = self.configure_header(
             coinbase=block.header.coinbase,
             gas_limit=block.header.gas_limit,
             timestamp=block.header.timestamp,
@@ -186,7 +187,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         header = block.header
         provided_fields = set(kwargs.keys())
-        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
+        known_fields = set(BlockHeader._meta.field_names)
         unknown_fields = provided_fields.difference(known_fields)
 
         if unknown_fields:

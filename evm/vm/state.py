@@ -294,12 +294,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
         # Don't modify the given block
-        block.make_immutable()
-        self.set_state_root(block.header.state_root)
+        im_block = block.as_immutable()
+        self.set_state_root(im_block.header.state_root)
         computation = self.execute_transaction(transaction)
 
         # Set block.
-        block, trie_data_dict = self.add_transaction(transaction, computation, block)
+        block, trie_data_dict = self.add_transaction(transaction, computation, im_block)
         block.header.state_root = self.state_root
         return computation, block, trie_data_dict
 
@@ -327,7 +327,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         # Create a new Block object
         block_header = block.header.clone()
         transactions = list(block.transactions)
-        block = self.get_block_class()(block_header, transactions)
+        block = self.get_block_class().create_mutable(block_header.as_mutable(), transactions)
 
         block.transactions.append(transaction)
 
