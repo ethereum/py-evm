@@ -127,6 +127,10 @@ BLOB_SERIALIZATION_TEST_DATA = [  # [(blobs, unpadded_body), ...]
         ])
     )
 ]
+
+# By default, tests parametrized with above values have test ids which are too long to print (as
+# they contain the test data). Therefore, the following ids should be specified explicitly
+# instead:
 BLOB_SERIALIZATION_TEST_IDS = [
     "BLOB_SERIALIZATION_TEST_DATA[{}]".format(i)
     for i, _ in enumerate(BLOB_SERIALIZATION_TEST_DATA)
