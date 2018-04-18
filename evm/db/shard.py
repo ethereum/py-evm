@@ -73,6 +73,12 @@ class ShardDB:
     # Canonical Collations
     #
     def set_canonical(self, header: CollationHeader) -> None:
+        try:
+            self.get_header_by_hash(header.hash)
+        except CollationHeaderNotFound:
+            raise ValueError("Cannot set unknown header as canonical: {}".format(
+                header.hash
+            ))
         key = make_canonical_hash_lookup_key(header.shard_id, header.period)
         self.db.set(key, header.hash)
 

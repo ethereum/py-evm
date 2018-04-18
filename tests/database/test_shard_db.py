@@ -112,6 +112,9 @@ def test_availabilities(shard_db, header):
 
 
 def test_canonicality(shard_db, collation, header, body):
+    with pytest.raises(ValueError):
+        shard_db.set_canonical(header)
+
     with pytest.raises(CanonicalCollationNotFound):
         shard_db.get_canonical_collation_hash(header.shard_id, header.period)
     with pytest.raises(CanonicalCollationNotFound):
