@@ -127,6 +127,10 @@ BLOB_SERIALIZATION_TEST_DATA = [  # [(blobs, unpadded_body), ...]
         ])
     )
 ]
+BLOB_SERIALIZATION_TEST_IDS = [
+    "BLOB_SERIALIZATION_TEST_DATA[{}]".format(i)
+    for i, _ in enumerate(BLOB_SERIALIZATION_TEST_DATA)
+]
 
 
 def test_chunk_iteration():
@@ -201,12 +205,20 @@ def test_chunk_root_calculation():
     assert calc_chunk_root(body) == calc_merkle_root(chunks)
 
 
-@pytest.mark.parametrize("blobs,unpadded_body", BLOB_SERIALIZATION_TEST_DATA)
+@pytest.mark.parametrize(
+    "blobs,unpadded_body",
+    BLOB_SERIALIZATION_TEST_DATA,
+    ids=BLOB_SERIALIZATION_TEST_IDS,
+)
 def test_blob_serialization(blobs, unpadded_body):
     assert serialize_blobs(blobs) == zpad_right(unpadded_body, COLLATION_SIZE)
 
 
-@pytest.mark.parametrize("blobs,unpadded_body", BLOB_SERIALIZATION_TEST_DATA)
+@pytest.mark.parametrize(
+    "blobs,unpadded_body",
+    BLOB_SERIALIZATION_TEST_DATA,
+    ids=BLOB_SERIALIZATION_TEST_IDS,
+)
 def test_blob_iteration(blobs, unpadded_body):
     body = zpad_right(unpadded_body, COLLATION_SIZE)
     deserialized_blobs = list(deserialize_blobs(body))
