@@ -210,13 +210,6 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     # Execution API
     #
     @abstractmethod
-    def apply_transaction(self, transaction):
-        """
-        Applies the transaction to the current head block of the Chain.
-        """
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
     def estimate_gas(self, transaction, at_header=None):
         """
         Generate a gas estimation for the given transaction using the
@@ -487,18 +480,6 @@ class Chain(BaseChain):
     #
     # Mining and Execution API
     #
-    def apply_transaction(self, transaction):
-        """
-        Applies the transaction to the current head block of the Chain.
-        """
-        vm = self.get_vm()
-        computation, block = vm.apply_transaction(transaction)
-
-        # Update header
-        self.header = block.header
-
-        return computation
-
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:
             at_header = self.get_canonical_head()
