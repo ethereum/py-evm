@@ -8,6 +8,7 @@ from .headers import CollationHeader
 from .sedes import collation_body
 
 from eth_typing import (
+    Address,
     Hash32,
 )
 
@@ -28,7 +29,7 @@ class Collation(rlp.Serializable, Configurable):
         return self.header.shard_id
 
     @property
-    def chunk_root(self) -> bytes:
+    def chunk_root(self) -> Hash32:
         return self.header.chunk_root
 
     @property
@@ -36,7 +37,7 @@ class Collation(rlp.Serializable, Configurable):
         return self.header.period
 
     @property
-    def proposer_address(self) -> bytes:
+    def proposer_address(self) -> Address:
         return self.header.proposer_address
 
     def __repr__(self) -> str:

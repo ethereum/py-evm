@@ -212,7 +212,7 @@ class CollationHeader(rlp.Serializable):
         )
 
     @property
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
         return keccak(self.encode_for_smc())
 
     def encode_for_smc(self) -> bytes:

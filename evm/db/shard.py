@@ -57,7 +57,7 @@ class ShardDB:
             raise CollationHeaderNotFound("No header with hash {} found".format(collation_hash))
         return rlp.decode(header, sedes=CollationHeader)
 
-    def get_body_by_chunk_root(self, chunk_root: bytes) -> bytes:
+    def get_body_by_chunk_root(self, chunk_root: Hash32) -> bytes:
         try:
             body = self.db.get(chunk_root)
         except KeyError:
