@@ -1,15 +1,17 @@
+import collections
 from typing import Dict  # noqa: F401
 import uuid
 
 from cytoolz import (
     merge,
+    last,
 )
 
 from evm.db.backends.base import BaseDB
 from evm.exceptions import ValidationError
 
 
-class Journal(object):
+class Journal(BaseDB):
     """
     A Journal is an ordered list of checkpoints.  A checkpoint is a dictionary
     of database keys and values.  The values are the "original" value of that
@@ -17,22 +19,19 @@ class Journal(object):
 
     Checkpoints are referenced by a random uuid4.
     """
-    checkpoints = None
 
     def __init__(self):
-        # contains an array of `uuid4` instances
-        self.checkpoints = []
         # contains a mapping from all of the `uuid4` in the `checkpoints` array
         # to a dictionary of key:value pairs wher the `value` is the original
         # value for the given key at the moment this checkpoint was created.
-        self.journal_data = {}  # type: Dict[uuid.UUID, Dict[bytes, bytes]]
+        self.journal_data = collections.OrderedDict()
 
     @property
     def latest_id(self):
         """
         Returns the checkpoint_id of the latest checkpoint
         """
-        return self.checkpoints[-1]
+        return last(self.journal_data.keys())
 
     @property
     def latest(self):
@@ -48,26 +47,18 @@ class Journal(object):
         """
         self.journal_data[self.latest_id] = value
 
-    def add(self, key, value):
-        """
-        Adds the given key and value to the latest checkpoint.
-        """
-        if not self.checkpoints:
-            # If no checkpoints exist we don't need to track history.
-            return
-        elif key in self.latest:
-            # If the key is already in the latest checkpoint we should not
-            # overwrite it.
-            return
-        self.latest[key] = value
+    def is_empty(self):
+        return len(self.journal_data) == 0
+
+    def has_checkpoint(self, checkpoint_id):
+        return checkpoint_id in self.journal_data
 
     def create_checkpoint(self):
         """
-        Creates a new checkpoint.  Checkpoints are referenced by a random uuid4
+        Creates a new checkpoint. Checkpoints are referenced by a random uuid4
         to prevent collisions between multiple checkpoints.
         """
         checkpoint_id = uuid.uuid4()
-        self.checkpoints.append(checkpoint_id)
         self.journal_data[checkpoint_id] = {}
         return checkpoint_id
 
@@ -75,49 +66,92 @@ class Journal(object):
         """
         Returns all changes from the given checkpoint.  This includes all of
         the changes from any subsequent checkpoints, giving precidence to
-        earlier checkpoints.
+        later checkpoints.
         """
-        idx = self.checkpoints.index(checkpoint_id)
+        if checkpoint_id not in self.journal_data:
+            raise KeyError("Unknown checkpoint: {0}".format(checkpoint_id))
 
-        # update the checkpoint list
-        checkpoint_ids = self.checkpoints[idx:]
-        self.checkpoints = self.checkpoints[:idx]
+        all_ids = tuple(self.journal_data.keys())
+        checkpoint_idx = all_ids.index(checkpoint_id)
+        checkpoints_to_pop = all_ids[checkpoint_idx:]
 
+        #import pdb; pdb.set_trace()
         # we pull all of the checkpoints *after* the checkpoint we are
-        # reverting to and collapse them to a single set of keys that need to
-        # be reverted (giving precidence to earlier checkpoints).
-        revert_data = merge(*(
+        # reverting to and collapse them to a single set of keys (giving
+        # precedence to later checkpoints)
+        checkpoint_data = merge(*(
             self.journal_data.pop(c_id)
             for c_id
-            in reversed(checkpoint_ids)
+            in checkpoints_to_pop
         ))
 
-        return dict(revert_data.items())
+        return checkpoint_data
 
     def commit_checkpoint(self, checkpoint_id):
         """
-        Collapses all changes for the givent checkpoint into the previous
+        Collapses all changes for the given checkpoint into the previous
         checkpoint if it exists.
         """
-        changes_to_merge = self.pop_checkpoint(checkpoint_id)
-        if self.checkpoints:
+        checkpoint_data = self.pop_checkpoint(checkpoint_id)
+        if not self.is_empty():
             # we only have to merge the changes into the latest checkpoint if
             # there is one.
             self.latest = merge(
-                changes_to_merge,
                 self.latest,
+                checkpoint_data,
             )
+        return checkpoint_data
 
-    def __contains__(self, value):
-        return value in self.journal_data
+
+    #
+    # Database API
+    #
+    def get(self, key):
+        """
+        For key lookups we need to iterate through the checkpoints in reverse
+        order, returning from the first one in which the key is present.
+        """
+        for checkpoint_data in reversed(self.journal_data.values()):
+            try:
+                value = checkpoint_data[key]
+            except KeyError:
+                continue
+            else:
+                if value is None:
+                    raise KeyError(key)
+                else:
+                    return value
+        else:
+            raise KeyError(key)
+
+    def set(self, key, value):
+        self.latest[key] = value
+
+    def exists(self, key):
+        for checkpoint_data in reversed(self.journal_data.values()):
+            try:
+                value = checkpoint_data[key]
+            except KeyError:
+                continue
+            else:
+                if value is None:
+                    return False
+                else:
+                    return True
+        else:
+            return False
+
+    def delete(self, key):
+        self.latest[key] = None
 
 
 class JournalDB(BaseDB):
     """
+    TODO: Adjust comment
     A wrapper around the basic DB objects that keeps a journal of all changes.
     Each time a snapshot is taken, the underlying journal creates a new
-    checkpoint.  The journal then keeps track of the original value for any
-    keys changed.  Reverting to a checkpoint involves merging the original key
+    checkpoint. The journal then keeps track of the original value for any
+    keys changed. Reverting to a checkpoint involves merging the original key
     data from any subsequent checkpoints into the given checkpoint giving
     precidence earlier checkpoints.  Then the keys from this merged data set
     are reset to their original values.
@@ -130,42 +164,31 @@ class JournalDB(BaseDB):
     wrapped_db = None
     journal = None
 
-    def __init__(self, wrapped_db):
+    def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
         self.journal = Journal()
 
-    def get(self, key):
-        return self.wrapped_db.get(key)
+    #TODO: Discuss potential inefficiency issue
+    def get(self, key: bytes) -> bytes:
+        try:
+            return self.journal[key]
+        except KeyError:
+            return self.wrapped_db[key]
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes):
         """
         - replacing an existing value
         - setting a value that does not exist
         """
-        try:
-            current_value = self.wrapped_db.get(key)
-        except KeyError:
-            current_value = None
-
-        if current_value != value:
-            # only journal `set` operations that change the value.
-            self.journal.add(key, current_value)
-
-        return self.wrapped_db.set(key, value)
+        self.journal[key] = value
 
     def exists(self, key):
-        return self.wrapped_db.exists(key)
+        return key in self.journal or key in self.wrapped_db
 
     def delete(self, key):
-        try:
-            current_value = self.wrapped_db.get(key)
-        except KeyError:
-            # no state change so skip journaling
-            pass
-        else:
-            self.journal.add(key, current_value)
-
-        return self.wrapped_db.delete(key)
+        if key not in self.journal and key not in self.wrapped_db:
+            raise KeyError(key)
+        del self.journal[key]
 
     #
     # Snapshot API
@@ -174,7 +197,7 @@ class JournalDB(BaseDB):
         """
         Checks to be sure the checkpoint is known by the journal
         """
-        if checkpoint not in self.journal:
+        if not self.journal.has_checkpoint(checkpoint):
             raise ValidationError("Checkpoint not found in journal: {0}".format(
                 str(checkpoint)
             ))
@@ -187,40 +210,44 @@ class JournalDB(BaseDB):
 
     def revert(self, checkpoint):
         """
-        Reverts the database back to the checkpoint.
+        Reverts the database back to the checkpoint.  Reversions are done
+        simply by throwing away the journaled data.
         """
         self._validate_checkpoint(checkpoint)
-
-        for key, value in self.journal.pop_checkpoint(checkpoint).items():
-            if value is None:
-                self.wrapped_db.delete(key)
-            else:
-                self.wrapped_db.set(key, value)
+        self.journal.pop_checkpoint(checkpoint)
 
     def commit(self, checkpoint):
         """
-        Commits a given checkpoint.
+        Commits a given checkpoint. This involves committing the journal up to
+        the given checkpoint which returns all of the journal changes.  *if*
+        this is the base checkpoint then all journal data should be committed
+        to the underlying database.
         """
+        
         self._validate_checkpoint(checkpoint)
-        self.journal.commit_checkpoint(checkpoint)
+        journal_data = self.journal.commit_checkpoint(checkpoint)
+
+        if self.journal.is_empty():
+            for key, value in journal_data.items():
+                if value is not None:
+                    self.wrapped_db[key] = value
+                else:
+                    try:
+                        del self.wrapped_db[key]
+                    except KeyError:
+                        pass
+
+
+    def commit_all(self):
+        """
+        Collapses all outstanding changes
+        """
+        while not self.journal.is_empty():
+            self.commit(self.journal.latest_id)
+
 
     def clear(self):
         """
         Cleare the entire journal.
         """
         self.journal = Journal()
-
-    #
-    # Dictionary API
-    #
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __setitem__(self, key, value):
-        return self.set(key, value)
-
-    def __delitem__(self, key):
-        return self.delete(key)
-
-    def __contains__(self, key):
-        return self.exists(key)
