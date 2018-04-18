@@ -52,6 +52,7 @@ class Server:
         self.privkey = privkey
         self.server_address = server_address
         self.network_id = network_id
+        # TODO: bootstrap_nodes should be looked up by network_id.
         discovery = DiscoveryProtocol(
             self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
         self.peer_pool = PeerPool(ETHPeer, self.chaindb, self.network_id, self.privkey, discovery)
