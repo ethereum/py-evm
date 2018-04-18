@@ -3,6 +3,7 @@ from typing import Dict  # noqa: F401
 import uuid
 
 from cytoolz import (
+    first,
     merge,
     last,
 )
@@ -25,6 +26,13 @@ class Journal(BaseDB):
         # to a dictionary of key:value pairs wher the `value` is the original
         # value for the given key at the moment this checkpoint was created.
         self.journal_data = collections.OrderedDict()
+
+    @property
+    def root_checkpoint_id(self):
+        """
+        Returns the checkpoint_id of the latest checkpoint
+        """
+        return first(self.journal_data.keys())
 
     @property
     def latest_id(self):
@@ -244,8 +252,7 @@ class JournalDB(BaseDB):
         """
         Collapses all outstanding changes
         """
-        while not self.journal.is_empty():
-            self.commit(self.journal.latest_id)
+        self.commit(self.journal.root_checkpoint_id)
 
 
     def clear(self):
