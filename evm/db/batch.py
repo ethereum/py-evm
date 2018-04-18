@@ -3,10 +3,6 @@ from typing import Type, Dict  # noqa: F401
 
 from evm.db.backends.base import BaseDB
 
-from typing import (  # noqa: F401
-    Dict,
-)
-
 
 class BatchDB(BaseDB):
     """
