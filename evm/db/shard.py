@@ -148,9 +148,3 @@ class ShardDB:
                 return Availability.AVAILABLE
             else:
                 return Availability.UNAVAILABLE
-
-    def set_unavailable(self, chunk_root: Hash32) -> None:
-        self.set_availability(chunk_root, Availability.UNAVAILABLE)
-
-    def set_available(self, chunk_root: Hash32) -> None:
-        self.set_availability(chunk_root, Availability.AVAILABLE)
