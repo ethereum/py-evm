@@ -1,19 +1,33 @@
+import functools
+from typing import Dict, List, Tuple, Union
+
 import rlp
 from trie import (
     HexaryTrie,
 )
 
+from evm.constants import (
+    BLANK_ROOT_HASH,
+)
 from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
+from evm.rlp.receipts import Receipt
+from evm.rlp.transactions import BaseTransaction
 
 
-def make_trie_root_and_nodes(transactions, trie_class=HexaryTrie, chain_db_class=ChainDB):
-    chaindb = chain_db_class(MemoryDB(), trie_class=trie_class)
-    db = chaindb.db
-    transaction_db = trie_class(db, chaindb.empty_root_hash)
+def make_trie_root_and_nodes(
+        items: Union[List[Receipt], List[BaseTransaction]]) -> Tuple[bytes, Dict[bytes, bytes]]:
+    return _make_trie_root_and_nodes(tuple(rlp.encode(item) for item in items))
 
-    for index, transaction in enumerate(transactions):
+
+# This cache is expected to be useful when importing blocks as we call this once when importing
+# and again when validating the imported block. But it should also help for post-Byzantium blocks
+# as it's common for them to have duplicate receipt_roots. Given that, it probably makes sense to
+# use a relatively small cache size here.
+@functools.lru_cache(128)
+def _make_trie_root_and_nodes(items: Tuple[bytes, ...]) -> Tuple[bytes, Dict[bytes, bytes]]:
+    kv_store = {}  # type: Dict[bytes, bytes]
+    trie = HexaryTrie(MemoryDB(kv_store), BLANK_ROOT_HASH)
+    for index, item in enumerate(items):
         index_key = rlp.encode(index, sedes=rlp.sedes.big_endian_int)
-        transaction_db[index_key] = rlp.encode(transaction)
-
-    return transaction_db.root_hash, transaction_db.db.wrapped_db.kv_store
+        trie[index_key] = item
+    return trie.root_hash, kv_store
