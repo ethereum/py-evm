@@ -59,9 +59,11 @@ class Server:
 
     async def run(self) -> None:
         self.logger.info("Running server...")
-        self._server = asyncio.start_server(
-            self.receive_handshake, host=self.server_address.ip, port=self.server_address.udp_port)
-        asyncio.ensure_future(self._server)
+        self._server = await asyncio.start_server(
+            self.receive_handshake,
+            host=self.server_address.ip,
+            port=self.server_address.udp_port,
+        )
         await self.cancel_token.wait()
         await self.stop()
 
