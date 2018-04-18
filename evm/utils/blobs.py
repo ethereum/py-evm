@@ -34,19 +34,26 @@ from cytoolz import (
     pipe,
 )
 
+from typing import (
+    cast,
+)
+from eth_typing import (
+    Hash32,
+)
 
-def iterate_chunks(collation_body: bytes) -> Iterator[bytes]:
+
+def iterate_chunks(collation_body: bytes) -> Iterator[Hash32]:
     check_body_size(collation_body)
     for chunk_start in range(0, len(collation_body), CHUNK_SIZE):
-        yield collation_body[chunk_start:chunk_start + CHUNK_SIZE]
+        yield cast(Hash32, collation_body[chunk_start:chunk_start + CHUNK_SIZE])
 
 
-def hash_layer(layer: Iterable[bytes]) -> Iterator[bytes]:
+def hash_layer(layer: Iterable[Hash32]) -> Iterator[Hash32]:
     for left, right in partition(2, layer):
         yield keccak(left + right)
 
 
-def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
+def calc_merkle_root(leaves: Iterable[Hash32]) -> Hash32:
     leaves = list(leaves)  # convert potential iterator to list
     if len(leaves) == 0:
         raise ValidationError("No leaves given")
@@ -63,7 +70,7 @@ def calc_merkle_root(leaves: Iterable[bytes]) -> bytes:
     return root
 
 
-def calc_chunk_root(collation_body: bytes) -> bytes:
+def calc_chunk_root(collation_body: bytes) -> Hash32:
     check_body_size(collation_body)
     chunks = iterate_chunks(collation_body)
     return calc_merkle_root(chunks)

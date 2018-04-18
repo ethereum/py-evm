@@ -211,6 +211,10 @@ class CollationHeader(rlp.Serializable):
             self.period,
         )
 
+    @property
+    def hash(self) -> bytes:
+        return keccak(self.encode_for_smc())
+
     def encode_for_smc(self) -> bytes:
         encoded = b"".join([
             int_to_bytes32(self.shard_id),

@@ -1,3 +1,5 @@
+from enum import Enum
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -10,22 +12,33 @@ from evm.rlp.collations import (
     Collation,
 )
 
+from evm.utils.blobs import (
+    calc_chunk_root,
+)
+
 from evm.exceptions import (
+    CanonicalCollationNotFound,
     CollationBodyNotFound,
     CollationHeaderNotFound,
 )
 
-
-def make_collation_header_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-header-lookup:shard_id=%d,period=%d" % (shard_id, period)
-
-
-def make_collation_body_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-body-lookup:shard_id=%d,period=%d" % (shard_id, period)
+from eth_typing import (
+    Hash32,
+)
 
 
-def make_collation_availability_lookup_key(shard_id: int, period: int) -> bytes:
-    return b"collation-availability-lookup:shard_id=%d,period=%d" % (shard_id, period)
+class Availability(Enum):
+    AVAILABLE = 0
+    UNAVAILABLE = 1
+    UNKNOWN = 2
+
+
+def make_collation_availability_lookup_key(chunk_root: Hash32) -> bytes:
+    return b"collation-availability-lookup:%s" % chunk_root
+
+
+def make_canonical_hash_lookup_key(shard_id: int, period: int) -> bytes:
+    return b"canonical-hash-lookup:shard_id=%d,period=%d" % (shard_id, period)
 
 
 class ShardDB:
@@ -35,75 +48,102 @@ class ShardDB:
         self.db = db
 
     #
-    # Collation and header API
+    # Collation Getters by Hash
     #
-    def get_header(self, shard_id: int, period: int) -> CollationHeader:
-        key = make_collation_header_lookup_key(shard_id, period)
+    def get_header_by_hash(self, collation_hash: Hash32) -> CollationHeader:
         try:
-            header = self.db.get(key)
+            header = self.db.get(collation_hash)
         except KeyError:
-            raise CollationHeaderNotFound("No header for shard {} and period {} found".format(
-                shard_id,
-                period,
-            ))
+            raise CollationHeaderNotFound("No header with hash {} found".format(collation_hash))
         return rlp.decode(header, sedes=CollationHeader)
 
-    def get_body(self, shard_id: int, period: int) -> bytes:
-        key = make_collation_body_lookup_key(shard_id, period)
+    def get_body_by_chunk_root(self, chunk_root: bytes) -> bytes:
         try:
-            body = self.db.get(key)
+            body = self.db.get(chunk_root)
         except KeyError:
-            raise CollationBodyNotFound("No body for shard {} and period {} found".format(
-                shard_id,
-                period,
-            ))
+            raise CollationBodyNotFound("No body with chunk root {} found".format(chunk_root))
         return body
 
-    def get_collation(self, shard_id: int, period: int) -> Collation:
-        header = self.get_header(shard_id, period)
-        body = self.get_body(shard_id, period)
+    def get_collation_by_hash(self, collation_hash: Hash32) -> Collation:
+        header = self.get_header_by_hash(collation_hash)
+        body = self.get_body_by_chunk_root(header.chunk_root)
         return Collation(header, body)
 
-    def add_header(self, header: CollationHeader) -> None:
-        key = make_collation_header_lookup_key(header.shard_id, header.period)
-        self.db.set(key, rlp.encode(header))
+    #
+    # Canonical Collations
+    #
+    def set_canonical(self, header: CollationHeader) -> None:
+        key = make_canonical_hash_lookup_key(header.shard_id, header.period)
+        self.db.set(key, header.hash)
 
-    def add_body(self, shard_id: int, period: int, body: bytes) -> None:
-        key = make_collation_body_lookup_key(shard_id, period)
-        self.db.set(key, body)
-        self.mark_available(shard_id, period)
+    def get_canonical_collation_hash(self, shard_id: int, period: int) -> Hash32:
+        key = make_canonical_hash_lookup_key(shard_id, period)
+        try:
+            canonical_hash = self.db.get(key)
+        except KeyError:
+            raise CanonicalCollationNotFound(
+                "No collation set as canonical for shard {} and period {}".format(
+                    shard_id,
+                    period,
+                )
+            )
+        else:
+            return canonical_hash
+
+    def get_canonical_header(self, shard_id: int, period: int) -> CollationHeader:
+        collation_hash = self.get_canonical_collation_hash(shard_id, period)
+        return self.get_header_by_hash(collation_hash)
+
+    def get_canonical_body(self, shard_id: int, period: int) -> bytes:
+        header = self.get_canonical_header(shard_id, period)
+        return self.get_body_by_chunk_root(header.chunk_root)
+
+    def get_canonical_collation(self, shard_id: int, period: int) -> Collation:
+        collation_hash = self.get_canonical_collation_hash(shard_id, period)
+        return self.get_collation_by_hash(collation_hash)
+
+    #
+    # Collation Setters
+    #
+    def add_header(self, header: CollationHeader) -> None:
+        self.db.set(header.hash, rlp.encode(header))
+
+    def add_body(self, body: bytes) -> None:
+        chunk_root = calc_chunk_root(body)
+        self.db.set(chunk_root, body)
+        self.set_availability(chunk_root, Availability.AVAILABLE)
 
     def add_collation(self, collation: Collation) -> None:
         self.add_header(collation.header)
-        self.add_body(collation.shard_id, collation.period, collation.body)
+        self.add_body(collation.body)
 
     #
     # Availability API
     #
-    def mark_unavailable(self, shard_id: int, period: int) -> None:
-        key = make_collation_availability_lookup_key(shard_id, period)
-        self.db.set(key, rlp.encode(False))
+    def set_availability(self, chunk_root: Hash32, availability: Availability) -> None:
+        key = make_collation_availability_lookup_key(chunk_root)
+        if availability is Availability.AVAILABLE:
+            self.db.set(key, rlp.encode(True))
+        elif availability is Availability.UNAVAILABLE:
+            self.db.set(key, rlp.encode(False))
+        elif availability is Availability.UNKNOWN:
+            self.db.delete(key)
 
-    def mark_available(self, shard_id: int, period: int) -> None:
-        key = make_collation_availability_lookup_key(shard_id, period)
-        self.db.set(key, rlp.encode(True))
-
-    def is_available(self, shard_id: int, period: int) -> bool:
-        key = make_collation_availability_lookup_key(shard_id, period)
+    def get_availability(self, chunk_root: Hash32) -> Availability:
+        key = make_collation_availability_lookup_key(chunk_root)
         try:
-            available = bool(rlp.decode(self.db.get(key), big_endian_int))
+            availability_entry = self.db.get(key)
         except KeyError:
-            return False
-        return available
+            return Availability.UNKNOWN
+        else:
+            available = bool(rlp.decode(availability_entry, big_endian_int))
+            if available:
+                return Availability.AVAILABLE
+            else:
+                return Availability.UNAVAILABLE
 
-    def is_unavailable(self, shard_id: int, period: int) -> bool:
-        key = make_collation_availability_lookup_key(shard_id, period)
-        try:
-            available = bool(rlp.decode(self.db.get(key), big_endian_int))
-        except KeyError:
-            return False
-        return not available
+    def set_unavailable(self, chunk_root: Hash32) -> None:
+        self.set_availability(chunk_root, Availability.UNAVAILABLE)
 
-    def availability_unknown(self, shard_id: int, period: int) -> bool:
-        key = make_collation_availability_lookup_key(shard_id, period)
-        return not self.db.exists(key)
+    def set_available(self, chunk_root: Hash32) -> None:
+        self.set_availability(chunk_root, Availability.AVAILABLE)
