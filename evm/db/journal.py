@@ -170,14 +170,11 @@ class JournalDB(BaseDB):
     to track the original value for any given key within any given checkpoint.
     """
     wrapped_db = None
-    journal = None
+    journal = None  # type: Journal
 
     def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
-        self.journal = Journal()
-        # Not sure if that's the right thing to do but for now assume
-        # we just start recording right away.
-        self.record()
+        self.clear()
 
     #TODO: Discuss potential inefficiency issue
     def get(self, key: bytes) -> bytes:
@@ -247,6 +244,8 @@ class JournalDB(BaseDB):
                     except KeyError:
                         pass
 
+            # ensure new root checkpoint
+            self.journal.create_checkpoint()
 
     def commit_all(self):
         """
@@ -255,11 +254,13 @@ class JournalDB(BaseDB):
         self.commit(self.journal.root_checkpoint_id)
 
 
+    #TODO: rename to reset
     def clear(self):
         """
         Cleare the entire journal.
         """
         self.journal = Journal()
+        self.record()
 
     # temporary aliases to assist refactoring
     def snapshot(self):

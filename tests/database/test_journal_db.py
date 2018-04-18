@@ -157,8 +157,23 @@ def test_commit_all_writes_to_underlying_db(journal_db, memory_db):
     assert memory_db.exists(b'1') is False
 
     journal_db.commit_all()
-    assert len(journal_db.journal.journal_data) == 0
+    assert len(journal_db.journal.journal_data) == 1
     assert memory_db.get(b'1') == b'test-b'
+
+
+def test_journal_restarts_after_write(journal_db, memory_db):
+    journal_db.set(b'1', b'test-a')
+    
+    journal_db.commit_all()
+
+    assert memory_db.get(b'1') == b'test-a'
+
+    journal_db.set(b'1', b'test-b')
+
+    journal_db.commit_all()
+
+    assert memory_db.get(b'1') == b'test-b'
+
 
 def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
     changeset = journal_db.record()
