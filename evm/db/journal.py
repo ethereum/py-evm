@@ -253,3 +253,10 @@ class JournalDB(BaseDB):
         Cleare the entire journal.
         """
         self.journal = Journal()
+
+    # temporary aliases to assist refactoring
+    def snapshot(self):
+        return self.record()
+
+    def revert(self, changeset):
+        return self.discard(changeset)
