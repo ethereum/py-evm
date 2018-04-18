@@ -17,12 +17,7 @@ class ImmutableBlockHeader(BlockHeader):
     when performing a chain sync.
     """
     _hash = None
-
-    @classmethod
-    def deserialize(cls, serial, exclude=None, mutable=False, **kwargs):
-        obj = super().deserialize(serial, exclude=exclude, mutable=True, **kwargs)
-        obj._cached_rlp = rlp.codec.encode_raw(serial)
-        return sedes.make_immutable(obj)
+    _is_mutable = False
 
     @property
     def hash(self) -> Hash32:

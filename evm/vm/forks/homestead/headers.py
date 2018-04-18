@@ -61,13 +61,14 @@ def create_homestead_header_from_parent(parent_header, **header_params):
 
 def configure_homestead_header(vm, **header_params):
     validate_header_params_for_configuration(header_params)
+    header = vm.block.header.as_mutable()
 
     for field_name, value in header_params.items():
-        setattr(vm.block.header, field_name, value)
+        setattr(header, field_name, value)
 
-    if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = get_parent_header(vm.block.header, vm.chaindb)
-        vm.block.header.difficulty = compute_homestead_difficulty(
+    if 'timestamp' in header_params and header.block_number > 0:
+        parent_header = get_parent_header(header, vm.chaindb)
+        header.difficulty = compute_homestead_difficulty(
             parent_header,
             header_params['timestamp'],
         )
@@ -77,7 +78,7 @@ def configure_homestead_header(vm, **header_params):
     # get to that. Another alternative would be to do it in Block.mine(), but
     # there we'd need to manually instantiate the State and update
     # header.state_root after we're done.
-    if vm.support_dao_fork and vm.block.header.block_number == vm.dao_fork_block_number:
+    if vm.support_dao_fork and header.block_number == vm.dao_fork_block_number:
         state = vm.state
         with state.mutable_state_db() as state_db:
             for account in dao_drain_list:
@@ -87,9 +88,9 @@ def configure_homestead_header(vm, **header_params):
                 state_db.set_balance(account, 0)
 
         # Update state_root manually
-        vm.block.header.state_root = state.state_root
+        header.state_root = state.state_root
 
-    return vm.block.header
+    return header
 
 
 dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')
