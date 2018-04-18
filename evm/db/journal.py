@@ -167,6 +167,9 @@ class JournalDB(BaseDB):
     def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
         self.journal = Journal()
+        # Not sure if that's the right thing to do but for now assume
+        # we just start recording right away.
+        self.record()
 
     #TODO: Discuss potential inefficiency issue
     def get(self, key: bytes) -> bytes:
@@ -202,19 +205,18 @@ class JournalDB(BaseDB):
                 str(checkpoint)
             ))
 
-    def snapshot(self):
+    def record(self):
         """
-        Takes a snapshot of the database by creating a checkpoint.
+        Starts a new recording and returns an id for the associated changeset
         """
         return self.journal.create_checkpoint()
 
-    def revert(self, checkpoint):
+    def forget(self, changeset):
         """
-        Reverts the database back to the checkpoint.  Reversions are done
-        simply by throwing away the journaled data.
+        Throws away all journaled data starting at the given changeset
         """
-        self._validate_checkpoint(checkpoint)
-        self.journal.pop_checkpoint(checkpoint)
+        self._validate_checkpoint(changeset)
+        self.journal.pop_checkpoint(changeset)
 
     def commit(self, checkpoint):
         """
