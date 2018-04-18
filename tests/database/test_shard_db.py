@@ -101,6 +101,9 @@ def test_collation_lookup(shard_db, collation, header, body):
 def test_availabilities(shard_db, header):
     assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
 
+    shard_db.set_availability(header.chunk_root, Availability.UNKNOWN)
+    assert shard_db.get_availability(header.chunk_root) is Availability.UNKNOWN
+
     shard_db.set_availability(header.chunk_root, Availability.UNAVAILABLE)
     assert shard_db.get_availability(header.chunk_root) is Availability.UNAVAILABLE
 
