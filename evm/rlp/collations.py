@@ -7,6 +7,10 @@ from evm.utils.datatypes import (
 from .headers import CollationHeader
 from .sedes import collation_body
 
+from eth_typing import (
+    Hash32,
+)
+
 
 class Collation(rlp.Serializable, Configurable):
 
@@ -14,6 +18,10 @@ class Collation(rlp.Serializable, Configurable):
         ("header", CollationHeader),
         ("body", collation_body),
     ]
+
+    @property
+    def hash(self) -> Hash32:
+        return self.header.hash
 
     @property
     def shard_id(self) -> int:
