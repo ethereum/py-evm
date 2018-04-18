@@ -59,15 +59,18 @@ class Server:
 
     async def run(self) -> None:
         self.logger.info("Running server...")
-        factory = asyncio.start_server(
+        self._server = asyncio.start_server(
             self.receive_handshake, host=self.server_address.ip, port=self.server_address.udp_port)
-        asyncio.ensure_future(factory)
+        asyncio.ensure_future(self._server)
         await self.cancel_token.wait()
+        await self.stop()
 
     async def stop(self) -> None:
         self.logger.info("Closing server...")
         self.cancel_token.trigger()
-        asyncio.ensure_future(self.peer_pool.stop())
+        self._server.close()
+        await self._server.wait_closed()
+        await self.peer_pool.stop()
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
