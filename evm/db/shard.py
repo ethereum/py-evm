@@ -57,7 +57,7 @@ class ShardDB:
             raise CollationHeaderNotFound("No header with hash {} found".format(collation_hash))
         return rlp.decode(header, sedes=CollationHeader)
 
-    def get_body_by_chunk_root(self, chunk_root: bytes) -> bytes:
+    def get_body_by_chunk_root(self, chunk_root: Hash32) -> bytes:
         try:
             body = self.db.get(chunk_root)
         except KeyError:
@@ -73,6 +73,12 @@ class ShardDB:
     # Canonical Collations
     #
     def set_canonical(self, header: CollationHeader) -> None:
+        try:
+            self.get_header_by_hash(header.hash)
+        except CollationHeaderNotFound:
+            raise ValueError("Cannot set unknown header as canonical: {}".format(
+                header.hash
+            ))
         key = make_canonical_hash_lookup_key(header.shard_id, header.period)
         self.db.set(key, header.hash)
 
@@ -127,7 +133,8 @@ class ShardDB:
         elif availability is Availability.UNAVAILABLE:
             self.db.set(key, rlp.encode(False))
         elif availability is Availability.UNKNOWN:
-            self.db.delete(key)
+            if self.db.exists(key):
+                self.db.delete(key)
 
     def get_availability(self, chunk_root: Hash32) -> Availability:
         key = make_collation_availability_lookup_key(chunk_root)
@@ -141,9 +148,3 @@ class ShardDB:
                 return Availability.AVAILABLE
             else:
                 return Availability.UNAVAILABLE
-
-    def set_unavailable(self, chunk_root: Hash32) -> None:
-        self.set_availability(chunk_root, Availability.UNAVAILABLE)
-
-    def set_available(self, chunk_root: Hash32) -> None:
-        self.set_availability(chunk_root, Availability.AVAILABLE)

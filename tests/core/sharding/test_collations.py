@@ -35,6 +35,8 @@ def test_smc_encoding_decoding(collation_header):
 def test_body_fields(collation_header):
     assert len(CollationHeader.fields) == 4  # if not this test is outdated
     collation = Collation(header=collation_header, body=b"")
+
+    assert collation.hash == collation_header.hash
     assert collation.shard_id == collation_header.shard_id
     assert collation.chunk_root == collation_header.chunk_root
     assert collation.period == collation_header.period
