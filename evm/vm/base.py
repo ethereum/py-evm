@@ -277,8 +277,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                     )
                 )
 
-        # FIXME: make_trie_root_and_nodes() is rather expensive, and we already run that once in
-        # import_block(), so should refactor some of this code to avoid re-generating it here.
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
