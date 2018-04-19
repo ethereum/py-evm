@@ -626,6 +626,9 @@ class ChainDB(BaseChainDB):
     def commit(self, checkpoint: UUID) -> None:
         self.db.commit(checkpoint)
 
+    def persist(self) -> None:
+        self.db.persist()
+
     def clear(self) -> None:
         self.db.clear()
 
