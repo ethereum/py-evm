@@ -1,3 +1,4 @@
+import functools
 import itertools
 
 from abc import (
@@ -312,11 +313,11 @@ class ChainDB(BaseChainDB):
         """
         validate_word(block_hash, title="Block Hash")
         try:
-            block = self.db.get(block_hash)
+            header_rlp = self.db.get(block_hash)
         except KeyError:
             raise BlockNotFound("No block with hash {0} found".format(
                 encode_hex(block_hash)))
-        return rlp.decode(block, sedes=BlockHeader)
+        return _decode_block_header(header_rlp)
 
     def header_exists(self, block_hash: bytes) -> bool:
         """Returns True if the header with the given block hash is in our DB."""
@@ -639,6 +640,15 @@ class ChainDB(BaseChainDB):
             root_hash=state_root,
             read_only=read_only,
         )
+
+
+# When performing a chain sync (either fast or regular modes), we'll very often need to look
+# up recent block headers to validate the chain, and decoding their RLP representation is
+# relatively expensive so we cache that here, but use a small cache because we *should* only
+# be looking up recent blocks.
+@functools.lru_cache(128)
+def _decode_block_header(header_rlp: bytes) -> BlockHeader:
+    return rlp.decode(header_rlp, sedes=BlockHeader)
 
 
 class AsyncChainDB(ChainDB):
