@@ -35,17 +35,17 @@ def fill_block(chain, from_, key, gas, data):
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
 
-    assert chain.get_vm().state.gas_used == 0
+    vm = chain.get_vm()
+    assert vm.state.gas_used == 0
 
     while True:
-        vm = chain.get_vm()
         tx = new_transaction(vm, from_, recipient, amount, key, gas=gas, data=data)
         try:
-            chain.apply_transaction(tx)
+            vm.apply_transaction(tx)
         except ValidationError as exc:
             if "Transaction exceeds gas limit" == str(exc):
                 break
             else:
                 raise exc
 
-    assert chain.get_vm().state.gas_used > 0
+    assert vm.state.gas_used > 0

@@ -9,10 +9,6 @@ from typing import (  # noqa: F401
     TYPE_CHECKING
 )
 
-from cytoolz import (
-    merge,
-)
-
 from eth_utils import (
     to_bytes
 )
@@ -24,9 +20,6 @@ from evm.constants import (
     DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
-)
-from evm.db.trie import (
-    make_trie_root_and_nodes,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -51,19 +44,18 @@ class BaseState(Configurable, metaclass=ABCMeta):
     _chaindb = None
     execution_context = None
     state_root = None
-    receipts = None
-    access_logs = None
+    gas_used = None
 
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     trie_class = None
     transaction_context_class = None  # type: Type[BaseTransactionContext]
 
-    def __init__(self, chaindb, execution_context, state_root, receipts=[]):
+    def __init__(self, chaindb, execution_context, state_root, gas_used):
         self._chaindb = chaindb
         self.execution_context = execution_context
         self.state_root = state_root
-        self.receipts = receipts
+        self.gas_used = gas_used
 
     #
     # Logging
@@ -95,16 +87,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @property
     def gas_limit(self):
         return self.execution_context.gas_limit
-
-    #
-    # Helpers
-    #
-    @property
-    def gas_used(self):
-        if self.receipts:
-            return self.receipts[-1].gas_used
-        else:
-            return 0
 
     #
     # read only state_db
@@ -299,9 +281,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
         computation = self.execute_transaction(transaction)
 
         # Set block.
-        block, trie_data_dict = self.add_transaction(transaction, computation, block)
+        block, receipt = self.add_transaction(transaction, computation, block)
         block.header.state_root = self.state_root
-        return computation, block, trie_data_dict
+        return computation, block, receipt
 
     def add_transaction(self, transaction, computation, block):
         """
@@ -322,7 +304,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :rtype: (Block, dict[bytes, bytes])
         """
         receipt = self.make_receipt(transaction, computation)
-        self.add_receipt(receipt)
+        self.gas_used = receipt.gas_used
 
         # Create a new Block object
         block_header = block.header.clone()
@@ -331,29 +313,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         block.transactions.append(transaction)
 
-        # Get trie roots and changed key-values.
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(
-            block.transactions,
-            self.trie_class,
-        )
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(
-            self.receipts,
-            self.trie_class,
-        )
-
-        trie_data = merge(tx_kv_nodes, receipt_kv_nodes)
-
         block.bloom_filter |= receipt.bloom
 
-        block.header.transaction_root = tx_root_hash
-        block.header.receipt_root = receipt_root_hash
         block.header.bloom = int(block.bloom_filter)
         block.header.gas_used = receipt.gas_used
 
-        return block, trie_data
-
-    def add_receipt(self, receipt):
-        self.receipts.append(receipt)
+        return block, receipt
 
     @abstractmethod
     def make_receipt(self, transaction, computation):
