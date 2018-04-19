@@ -33,7 +33,7 @@ _DecodedMsgType = Union[
 class Command:
     _cmd_id = None  # type: int
     decode_strict = True
-    structure = []  # type: List[Tuple[str, Any]]
+    structure = []  # type: List[Tuple[bytes, Any]]
 
     def __init__(self, cmd_id_offset: int) -> None:
         self.cmd_id_offset = cmd_id_offset
@@ -56,10 +56,12 @@ class Command:
                 raise ValueError("Keys in data dict ({}) do not match expected keys ({})".format(
                     data_keys, expected_keys))
             data = [data[name] for name, _ in self.structure]
+
         if isinstance(self.structure, sedes.CountableList):
             encoder = self.structure
         else:
             encoder = sedes.List([type_ for _, type_ in self.structure])
+
         return rlp.encode(data, sedes=encoder)
 
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:

@@ -82,11 +82,11 @@ class ShardDB:
     #
     def mark_unavailable(self, shard_id: int, period: int) -> None:
         key = make_collation_availability_lookup_key(shard_id, period)
-        self.db.set(key, rlp.encode(False))
+        self.db.set(key, rlp.encode(0))
 
     def mark_available(self, shard_id: int, period: int) -> None:
         key = make_collation_availability_lookup_key(shard_id, period)
-        self.db.set(key, rlp.encode(True))
+        self.db.set(key, rlp.encode(1))
 
     def is_available(self, shard_id: int, period: int) -> bool:
         key = make_collation_availability_lookup_key(shard_id, period)

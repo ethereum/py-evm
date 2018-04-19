@@ -76,7 +76,7 @@ def header(request):
     block_number = request.param
     difficulty = 1
     gas_limit = 1
-    return BlockHeader(difficulty, block_number, gas_limit)
+    return BlockHeader(difficulty, block_number, gas_limit).as_mutable()
 
 
 @pytest.fixture(params=[FrontierBlock, HomesteadBlock])

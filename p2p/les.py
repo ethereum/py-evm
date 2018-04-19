@@ -1,5 +1,9 @@
 from typing import Any, cast, Dict, Generator, List, Tuple, Union
 
+from cytoolz import (
+    assoc,
+)
+
 import rlp
 from rlp import sedes
 
@@ -54,20 +58,20 @@ class Status(Command):
     structure = sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))
     # The sedes used for each key in the list above.
     items_sedes = {
-        'protocolVersion': sedes.big_endian_int,
-        'networkId': sedes.big_endian_int,
-        'headTd': sedes.big_endian_int,
-        'headHash': sedes.binary,
-        'headNum': sedes.big_endian_int,
-        'genesisHash': sedes.binary,
-        'serveHeaders': None,
-        'serveChainSince': sedes.big_endian_int,
-        'serveStateSince': sedes.big_endian_int,
-        'txRelay': None,
-        'flowControl/BL': sedes.big_endian_int,
-        'flowControl/MRC': sedes.CountableList(
+        b'protocolVersion': sedes.big_endian_int,
+        b'networkId': sedes.big_endian_int,
+        b'headTd': sedes.big_endian_int,
+        b'headHash': sedes.binary,
+        b'headNum': sedes.big_endian_int,
+        b'genesisHash': sedes.binary,
+        b'serveHeaders': None,
+        b'serveChainSince': sedes.big_endian_int,
+        b'serveStateSince': sedes.big_endian_int,
+        b'txRelay': None,
+        b'flowControl/BL': sedes.big_endian_int,
+        b'flowControl/MRC': sedes.CountableList(
             sedes.List([sedes.big_endian_int, sedes.big_endian_int, sedes.big_endian_int])),
-        'flowControl/MRR': sedes.big_endian_int,
+        b'flowControl/MRR': sedes.big_endian_int,
     }
 
     @to_dict
@@ -78,17 +82,13 @@ class Status(Command):
         # reasons, so here we need an extra pass to deserialize each of the key/value pairs we
         # know about.
         for key, value in data:
-            # The sedes.binary we use in .structure above will give us a bytes value here, but
-            # using bytes as dictionary keys makes it impossible to use the dict() constructor
-            # with keyword arguments, so we convert them to strings here.
-            str_key = key.decode('ascii')
-            if str_key not in self.items_sedes:
+            if key not in self.items_sedes:
                 continue
-            item_sedes = self.items_sedes[str_key]
+            item_sedes = self.items_sedes[key]
             if item_sedes is not None:
-                yield str_key, item_sedes.deserialize(value)
+                yield key, item_sedes.deserialize(value)
             else:
-                yield str_key, value
+                yield key, value
 
     def encode_payload(self, data):
         response = [
@@ -101,9 +101,9 @@ class Status(Command):
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
         decoded = cast(Dict[str, Any], decoded)
         return HeadInfo(
-            block_number=decoded['headNum'],
-            block_hash=decoded['headHash'],
-            total_difficulty=decoded['headTd'],
+            block_number=decoded[b'headNum'],
+            block_hash=decoded[b'headHash'],
+            total_difficulty=decoded[b'headTd'],
             reorg_depth=0,
         )
 
@@ -111,11 +111,11 @@ class Status(Command):
 class Announce(Command):
     _cmd_id = 1
     structure = [
-        ('head_hash', sedes.binary),
-        ('head_number', sedes.big_endian_int),
-        ('head_td', sedes.big_endian_int),
-        ('reorg_depth', sedes.big_endian_int),
-        ('params', sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))),
+        (b'head_hash', sedes.binary),
+        (b'head_number', sedes.big_endian_int),
+        (b'head_td', sedes.big_endian_int),
+        (b'reorg_depth', sedes.big_endian_int),
+        (b'params', sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))),
     ]
     # TODO: The params CountableList above may contain any of the values from the Status msg.
     # Need to extend this command to process that too.
@@ -123,10 +123,10 @@ class Announce(Command):
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
         decoded = cast(Dict[str, Any], decoded)
         return HeadInfo(
-            block_number=decoded['head_number'],
-            block_hash=decoded['head_hash'],
-            total_difficulty=decoded['head_td'],
-            reorg_depth=decoded['reorg_depth'],
+            block_number=decoded[b'head_number'],
+            block_hash=decoded[b'head_hash'],
+            total_difficulty=decoded[b'head_td'],
+            reorg_depth=decoded[b'reorg_depth'],
         )
 
 
@@ -142,51 +142,51 @@ class GetBlockHeadersQuery(rlp.Serializable):
 class GetBlockHeaders(Command):
     _cmd_id = 2
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('query', GetBlockHeadersQuery),
+        (b'request_id', sedes.big_endian_int),
+        (b'query', GetBlockHeadersQuery),
     ]
 
 
 class BlockHeaders(Command):
     _cmd_id = 3
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('headers', sedes.CountableList(BlockHeader)),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'headers', sedes.CountableList(BlockHeader)),
     ]
 
 
 class GetBlockBodies(Command):
     _cmd_id = 4
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('block_hashes', sedes.CountableList(sedes.binary)),
+        (b'request_id', sedes.big_endian_int),
+        (b'block_hashes', sedes.CountableList(sedes.binary)),
     ]
 
 
 class BlockBodies(Command):
     _cmd_id = 5
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('bodies', sedes.CountableList(BlockBody)),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'bodies', sedes.CountableList(BlockBody)),
     ]
 
 
 class GetReceipts(Command):
     _cmd_id = 6
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('block_hashes', sedes.CountableList(sedes.binary)),
+        (b'request_id', sedes.big_endian_int),
+        (b'block_hashes', sedes.CountableList(sedes.binary)),
     ]
 
 
 class Receipts(Command):
     _cmd_id = 7
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('receipts', sedes.CountableList(sedes.CountableList(Receipt))),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'receipts', sedes.CountableList(sedes.CountableList(Receipt))),
     ]
 
 
@@ -202,17 +202,17 @@ class ProofRequest(rlp.Serializable):
 class GetProofs(Command):
     _cmd_id = 8
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('proof_requests', sedes.CountableList(ProofRequest)),
+        (b'request_id', sedes.big_endian_int),
+        (b'proof_requests', sedes.CountableList(ProofRequest)),
     ]
 
 
 class Proofs(Command):
     _cmd_id = 9
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
     ]
 
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
@@ -222,9 +222,9 @@ class Proofs(Command):
         # doesn't have to special-case them. Soon we should be able to drop support for LES/1
         # anyway, and then all this code will go away.
         if not decoded['proofs']:
-            decoded['proof'] = []
+            decoded[b'proof'] = []
         else:
-            decoded['proof'] = decoded['proofs'][0]
+            decoded[b'proof'] = decoded[b'proofs'][0]
         return decoded
 
 
@@ -238,17 +238,17 @@ class ContractCodeRequest(rlp.Serializable):
 class GetContractCodes(Command):
     _cmd_id = 10
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('code_requests', sedes.CountableList(ContractCodeRequest)),
+        (b'request_id', sedes.big_endian_int),
+        (b'code_requests', sedes.CountableList(ContractCodeRequest)),
     ]
 
 
 class ContractCodes(Command):
     _cmd_id = 11
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('codes', sedes.CountableList(sedes.binary)),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'codes', sedes.CountableList(sedes.binary)),
     ]
 
 
@@ -260,12 +260,12 @@ class LESProtocol(Protocol):
 
     def send_handshake(self, head_info):
         resp = {
-            'protocolVersion': self.version,
-            'networkId': self.peer.network_id,
-            'headTd': head_info.total_difficulty,
-            'headHash': head_info.block_hash,
-            'headNum': head_info.block_number,
-            'genesisHash': head_info.genesis_hash,
+            b'protocolVersion': self.version,
+            b'networkId': self.peer.network_id,
+            b'headTd': head_info.total_difficulty,
+            b'headHash': head_info.block_hash,
+            b'headNum': head_info.block_number,
+            b'genesisHash': head_info.genesis_hash,
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
@@ -277,8 +277,8 @@ class LESProtocol(Protocol):
                 "Cannot ask for more than {} blocks in a single request".format(
                     MAX_BODIES_FETCH))
         data = {
-            'request_id': request_id,
-            'block_hashes': block_hashes,
+            b'request_id': request_id,
+            b'block_hashes': block_hashes,
         }
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
@@ -300,16 +300,16 @@ class LESProtocol(Protocol):
         # Number of block headers to skip between each item (i.e. step in python APIs).
         skip = 0
         data = {
-            'request_id': request_id,
-            'query': GetBlockHeadersQuery(block_number_or_hash, max_headers, skip, reverse),
+            b'request_id': request_id,
+            b'query': GetBlockHeadersQuery(block_number_or_hash, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
         self.send(header, body)
 
     def send_get_receipts(self, block_hash: bytes, request_id: int) -> None:
         data = {
-            'request_id': request_id,
-            'block_hashes': [block_hash],
+            b'request_id': request_id,
+            b'block_hashes': [block_hash],
         }
         header, body = GetReceipts(self.cmd_id_offset).encode(data)
         self.send(header, body)
@@ -317,16 +317,16 @@ class LESProtocol(Protocol):
     def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
                        request_id: int) -> None:
         data = {
-            'request_id': request_id,
-            'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
+            b'request_id': request_id,
+            b'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
         header, body = GetProofs(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int) -> None:
         data = {
-            'request_id': request_id,
-            'code_requests': [ContractCodeRequest(block_hash, key)],
+            b'request_id': request_id,
+            b'code_requests': [ContractCodeRequest(block_hash, key)],
         }
         header, body = GetContractCodes(self.cmd_id_offset).encode(data)
         self.send(header, body)
@@ -334,10 +334,7 @@ class LESProtocol(Protocol):
 
 class StatusV2(Status):
     _cmd_id = 0
-
-    def __init__(self, cmd_id_offset: int) -> None:
-        super().__init__(cmd_id_offset)
-        self.items_sedes['announceType'] = sedes.big_endian_int
+    items_sedes = assoc(Status.items_sedes, b'announceType', sedes.big_endian_int)
 
 
 class GetProofsV2(GetProofs):
@@ -347,9 +344,9 @@ class GetProofsV2(GetProofs):
 class ProofsV2(Command):
     _cmd_id = 16
     structure = [
-        ('request_id', sedes.big_endian_int),
-        ('buffer_value', sedes.big_endian_int),
-        ('proof', sedes.CountableList(sedes.raw)),
+        (b'request_id', sedes.big_endian_int),
+        (b'buffer_value', sedes.big_endian_int),
+        (b'proof', sedes.CountableList(sedes.raw)),
     ]
 
 
@@ -360,13 +357,13 @@ class LESProtocolV2(LESProtocol):
 
     def send_handshake(self, head_info):
         resp = {
-            'announceType': LES_ANNOUNCE_SIMPLE,
-            'protocolVersion': self.version,
-            'networkId': self.peer.network_id,
-            'headTd': head_info.total_difficulty,
-            'headHash': head_info.block_hash,
-            'headNum': head_info.block_number,
-            'genesisHash': head_info.genesis_hash,
+            b'announceType': LES_ANNOUNCE_SIMPLE,
+            b'protocolVersion': self.version,
+            b'networkId': self.peer.network_id,
+            b'headTd': head_info.total_difficulty,
+            b'headHash': head_info.block_hash,
+            b'headNum': head_info.block_number,
+            b'genesisHash': head_info.genesis_hash,
         }
         cmd = StatusV2(self.cmd_id_offset)
         self.logger.debug("Sending LES/Status msg: %s", resp)
@@ -379,8 +376,8 @@ class LESProtocolV2(LESProtocol):
                        from_level: int,
                        request_id: int) -> None:
         data = {
-            'request_id': request_id,
-            'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
+            b'request_id': request_id,
+            b'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
         header, body = GetProofsV2(self.cmd_id_offset).encode(data)
         self.send(header, body)

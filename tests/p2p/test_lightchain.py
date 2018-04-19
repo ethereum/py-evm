@@ -130,20 +130,20 @@ class LESProtocolServer(LESProtocol):
 
     def send_announce(self, block_hash, block_number, total_difficulty, reorg_depth):
         data = {
-            'head_hash': block_hash,
-            'head_number': block_number,
-            'head_td': total_difficulty,
-            'reorg_depth': reorg_depth,
-            'params': [],
+            b'head_hash': block_hash,
+            b'head_number': block_number,
+            b'head_td': total_difficulty,
+            b'reorg_depth': reorg_depth,
+            b'params': [],
         }
         header, body = Announce(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_block_headers(self, headers, buffer_value, request_id):
         data = {
-            'request_id': request_id,
-            'headers': headers,
-            'buffer_value': buffer_value,
+            b'request_id': request_id,
+            b'headers': headers,
+            b'buffer_value': buffer_value,
         }
         header, body = BlockHeaders(self.cmd_id_offset).encode(data)
         self.send(header, body)
@@ -183,7 +183,7 @@ class LESPeerServer(LESPeer):
             self.handle_get_block_headers(msg)
 
     def handle_get_block_headers(self, msg):
-        query = msg['query']
+        query = msg[b'query']
         block_number = query.block_number_or_hash
         assert isinstance(block_number, int)  # For now we only support block numbers
         if query.reverse:
@@ -199,7 +199,7 @@ class LESPeerServer(LESPeer):
             self.chaindb.get_canonical_block_header_by_number(i)
             for i in block_numbers
         )
-        self.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
+        self.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg[b'request_id'])
 
 
 async def get_client_and_server_peer_pair(request, event_loop, client_chaindb, server_chaindb):

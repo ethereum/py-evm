@@ -270,7 +270,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
         parent_hash=fixture['env']['previousHash'],
-    )
+    ).as_mutable()
 
     chaindb = ChainDB(
         get_db_backend(),

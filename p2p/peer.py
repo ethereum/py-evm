@@ -184,7 +184,7 @@ class BasePeer(metaclass=ABCMeta):
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
                 "{} disconnected before completing sub-proto handshake: {}".format(
-                    self, msg['reason_name']))
+                    self, msg[b'reason_name']))
         await self.process_sub_proto_handshake(cmd, msg)
         self.logger.debug("Finished %s handshake with %s", self.sub_proto, self.remote)
 
@@ -198,7 +198,7 @@ class BasePeer(metaclass=ABCMeta):
         if isinstance(cmd, Disconnect):
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
             raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
-                self, msg['reason_name']))
+                self, msg[b'reason_name']))
         self.process_p2p_handshake(cmd, msg)
 
     async def read_sub_proto_msg(
@@ -324,9 +324,9 @@ class BasePeer(metaclass=ABCMeta):
     def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
-            msg = cast(Dict[str, Any], msg)
+            msg = cast(Dict[bytes, Any], msg)
             self.logger.debug(
-                "%s disconnected; reason given: %s", self, msg['reason_name'])
+                "%s disconnected; reason given: %s", self, msg[b'reason_name'])
             self.close()
         elif isinstance(cmd, Ping):
             self.base_protocol.send_pong()
@@ -347,11 +347,11 @@ class BasePeer(metaclass=ABCMeta):
             self.handle_sub_proto_msg(cmd, msg)
 
     def process_p2p_handshake(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        msg = cast(Dict[str, Any], msg)
+        msg = cast(Dict[bytes, Any], msg)
         if not isinstance(cmd, Hello):
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
-        remote_capabilities = msg['capabilities']
+        remote_capabilities = msg[b'capabilities']
         try:
             self.sub_proto = self.select_sub_protocol(remote_capabilities)
         except NoMatchingPeerCapabilities:
@@ -481,18 +481,18 @@ class LESPeer(BasePeer):
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "Expected a LES Status msg, got {}, disconnecting".format(cmd))
-        msg = cast(Dict[str, Any], msg)
-        if msg['networkId'] != self.network_id:
+        msg = cast(Dict[bytes, Any], msg)
+        if msg[b'networkId'] != self.network_id:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['networkId'], self.network_id))
+                    self, msg[b'networkId'], self.network_id))
         genesis = await self.genesis
-        if msg['genesisHash'] != genesis.hash:
+        if msg[b'genesisHash'] != genesis.hash:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesisHash']), genesis.hex_hash))
+                    self, encode_hex(msg[b'genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
         self.head_info = cmd.as_head_info(msg)
 
@@ -507,7 +507,7 @@ class LESPeer(BasePeer):
                 return
         super().handle_sub_proto_msg(cmd, msg)
 
-    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken) -> Dict[str, Any]:
+    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken) -> Dict[bytes, Any]:
         reply = None
         got_reply = asyncio.Event()
 
@@ -527,26 +527,26 @@ class LESPeer(BasePeer):
         max_headers = 1
         self.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['headers']:
+        if not reply[b'headers']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
-        return reply['headers'][0]
+        return reply[b'headers'][0]
 
     async def get_block_by_hash(
             self, block_hash: bytes, cancel_token: CancelToken) -> BlockBody:
         request_id = gen_request_id()
         self.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['bodies']:
+        if not reply[b'bodies']:
             raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
-        return reply['bodies'][0]
+        return reply[b'bodies'][0]
 
     async def get_receipts(self, block_hash: bytes, cancel_token: CancelToken) -> List[Receipt]:
         request_id = gen_request_id()
         self.sub_proto.send_get_receipts(block_hash, request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['receipts']:
+        if not reply[b'receipts']:
             raise BlockNotFound("No block with hash {} found".format(block_hash))
-        return reply['receipts'][0]
+        return reply[b'receipts'][0]
 
     async def get_account(
             self, block_hash: bytes, address: bytes, cancel_token: CancelToken) -> Account:
@@ -565,16 +565,16 @@ class LESPeer(BasePeer):
         request_id = gen_request_id()
         self.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        return reply['proof']
+        return reply[b'proof']
 
     async def get_contract_code(
             self, block_hash: bytes, key: bytes, cancel_token: CancelToken) -> bytes:
         request_id = gen_request_id()
         self.sub_proto.send_get_contract_code(block_hash, key, request_id)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['codes']:
+        if not reply[b'codes']:
             return b''
-        return reply['codes'][0]
+        return reply[b'codes'][0]
 
     async def fetch_headers_starting_at(
             self, start_block: int, cancel_token: CancelToken) -> List[BlockHeader]:
@@ -586,13 +586,13 @@ class LESPeer(BasePeer):
         self.sub_proto.send_get_block_headers(
             start_block, self.max_headers_fetch, request_id, reverse=False)
         reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['headers']:
+        if not reply[b'headers']:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
         self.logger.info(
-            "fetched headers from %s to %s", reply['headers'][0].block_number,
-            reply['headers'][-1].block_number)
-        return reply['headers']
+            "fetched headers from %s to %s", reply[b'headers'][0].block_number,
+            reply[b'headers'][-1].block_number)
+        return reply[b'headers']
 
 
 class ETHPeer(BasePeer):
@@ -610,20 +610,20 @@ class ETHPeer(BasePeer):
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
-        msg = cast(Dict[str, Any], msg)
-        if msg['network_id'] != self.network_id:
+        msg = cast(Dict[bytes, Any], msg)
+        if msg[b'network_id'] != self.network_id:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['network_id'], self.network_id))
+                    self, msg[b'network_id'], self.network_id))
         genesis = await self.genesis
-        if msg['genesis_hash'] != genesis.hash:
+        if msg[b'genesis_hash'] != genesis.hash:
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
-        self.head_td = msg['td']
-        self.head_hash = msg['best_hash']
+                    self, encode_hex(msg[b'genesis_hash']), genesis.hex_hash))
+        self.head_td = msg[b'td']
+        self.head_hash = msg[b'best_hash']
 
 
 class PeerPoolSubscriber(metaclass=ABCMeta):

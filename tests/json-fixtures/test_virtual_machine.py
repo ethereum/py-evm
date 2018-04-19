@@ -183,7 +183,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         block_number=fixture['env']['currentNumber'],
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
-    )
+    ).as_mutable()
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
     with state.mutable_state_db() as state_db:

@@ -29,7 +29,7 @@ class ImmutableBlockHeader(BlockHeader):
 # This is needed because BaseTransaction has several @abstractmethods, which means it can't be
 # instantiated.
 class P2PTransaction(rlp.Serializable):
-    fields = BaseTransaction.fields.copy()
+    fields = BaseTransaction._meta.fields.copy()
 
 
 class BlockBody(rlp.Serializable):

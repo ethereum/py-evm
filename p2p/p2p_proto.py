@@ -20,11 +20,11 @@ class Hello(Command):
     _cmd_id = 0
     decode_strict = False
     structure = [
-        ('version', sedes.big_endian_int),
-        ('client_version_string', sedes.binary),
-        ('capabilities', sedes.CountableList(sedes.List([sedes.binary, sedes.big_endian_int]))),
-        ('listen_port', sedes.big_endian_int),
-        ('remote_pubkey', sedes.binary)
+        (b'version', sedes.big_endian_int),
+        (b'client_version_string', sedes.binary),
+        (b'capabilities', sedes.CountableList(sedes.List([sedes.binary, sedes.big_endian_int]))),
+        (b'listen_port', sedes.big_endian_int),
+        (b'remote_pubkey', sedes.binary)
     ]
 
 
@@ -48,7 +48,7 @@ class DisconnectReason(enum.Enum):
 
 class Disconnect(Command):
     _cmd_id = 1
-    structure = [('reason', sedes.big_endian_int)]
+    structure = [(b'reason', sedes.big_endian_int)]
 
     def get_reason_name(self, reason_id: int) -> str:
         try:
@@ -58,7 +58,7 @@ class Disconnect(Command):
 
     def decode(self, data: bytes) -> _DecodedMsgType:
         raw_decoded = cast(Dict[str, int], super(Disconnect, self).decode(data))
-        return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
+        return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded[b'reason']))
 
 
 class Ping(Command):
@@ -80,11 +80,13 @@ class P2PProtocol(Protocol):
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
     def send_handshake(self):
-        data = dict(version=self.version,
-                    client_version_string=CLIENT_VERSION_STRING,
-                    capabilities=self.peer.capabilities,
-                    listen_port=self.peer.listen_port,
-                    remote_pubkey=self.peer.privkey.public_key.to_bytes())
+        data = {
+            b'version': self.version,
+            b'client_version_string': CLIENT_VERSION_STRING,
+            b'capabilities': self.peer.capabilities,
+            b'listen_port': self.peer.listen_port,
+            b'remote_pubkey': self.peer.privkey.public_key.to_bytes(),
+        }
         header, body = Hello(self.cmd_id_offset).encode(data)
         self.send(header, body)
 

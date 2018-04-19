@@ -156,8 +156,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        block = self.block
-        self.pack_block(block, *args, **kwargs)
+        block = self.pack_block(self.block.as_mutable(), *args, **kwargs)
 
         if block.number == 0:
             return block

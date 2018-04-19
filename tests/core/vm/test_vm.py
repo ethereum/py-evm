@@ -35,8 +35,8 @@ def test_apply_transaction(
 
 
 def test_mine_block(chain):
-    vm = chain.get_vm()
-    block = vm.mine_block()
+    block = chain.get_vm().mine_block()
+    vm = chain.get_vm(block.header)
     assert vm.state.read_only_state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
 
 
