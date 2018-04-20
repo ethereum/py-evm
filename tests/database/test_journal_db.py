@@ -10,6 +10,16 @@ def memory_db():
 def journal_db(memory_db):
     return JournalDB(memory_db)
 
+def test_delete_removes_data_from_underlying_db_after_persist(journal_db, memory_db):
+    memory_db.set(b'1', b'test-a')
+
+    assert memory_db.exists(b'1') is True
+
+    journal_db.delete(b'1')
+    journal_db.persist()
+
+    assert memory_db.exists(b'1') is False
+
 
 def test_snapshot_and_revert_with_set(journal_db):
     journal_db.set(b'1', b'test-a')
