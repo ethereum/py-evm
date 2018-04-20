@@ -87,7 +87,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.receipts.append(receipt)
 
         self.chaindb.persist()
-        self.clear_journal()
 
         return computation, self.block
 
