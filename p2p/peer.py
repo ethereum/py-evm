@@ -670,6 +670,11 @@ class PeerPool:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
+    def add_peer(self, peer):
+        self.connected_nodes[peer.remote] = peer
+        for subscriber in self._subscribers:
+            subscriber.register_peer(peer)
+
     async def run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
@@ -760,9 +765,7 @@ class PeerPool:
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
                 asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-                self.connected_nodes[peer.remote] = peer
-                for subscriber in self._subscribers:
-                    subscriber.register_peer(peer)
+                self.add_peer(peer)
                 if len(self.connected_nodes) >= self.min_peers:
                     return
 
