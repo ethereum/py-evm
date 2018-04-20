@@ -25,7 +25,7 @@ class Journal(BaseDB):
         # contains a mapping from all of the `uuid4` in the `checkpoints` array
         # to a dictionary of key:value pairs wher the `value` is the original
         # value for the given key at the moment this checkpoint was created.
-        self.journal_data = collections.OrderedDict()
+        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, bytes]]  # noqa E501
 
     @property
     def root_checkpoint_id(self):
@@ -83,7 +83,6 @@ class Journal(BaseDB):
         checkpoint_idx = all_ids.index(checkpoint_id)
         checkpoints_to_pop = all_ids[checkpoint_idx:]
 
-        #import pdb; pdb.set_trace()
         # we pull all of the checkpoints *after* the checkpoint we are
         # reverting to and collapse them to a single set of keys (giving
         # precedence to later checkpoints)
@@ -109,7 +108,6 @@ class Journal(BaseDB):
                 checkpoint_data,
             )
         return checkpoint_data
-
 
     #
     # Database API
@@ -155,19 +153,20 @@ class Journal(BaseDB):
 
 class JournalDB(BaseDB):
     """
-    TODO: Adjust comment
     A wrapper around the basic DB objects that keeps a journal of all changes.
-    Each time a snapshot is taken, the underlying journal creates a new
-    checkpoint. The journal then keeps track of the original value for any
-    keys changed. Reverting to a checkpoint involves merging the original key
-    data from any subsequent checkpoints into the given checkpoint giving
-    precidence earlier checkpoints.  Then the keys from this merged data set
-    are reset to their original values.
+    Each time a recording is started, the underlying journal creates a new
+    changeset and assigns an id to it. The journal then keeps track of all changes
+    that go into this changeset.
+
+    Discarding a changeset simply throws it away inculding all subsequent changesets
+    that may have followed. Commiting a changeset merges the given changeset and all
+    subsequent changesets into the previous changeset giving precidence to later
+    changesets in case of conflicting keys.
 
     The added memory footprint for a JournalDB is one key/value stored per
     database key which is changed.  Subsequent changes to the same key within
-    the same checkpoint will not increase the journal size since we only need
-    to track the original value for any given key within any given checkpoint.
+    the same changeset will not increase the journal size since we only need
+    to track latest value for any given key within any given checkpoint.
     """
     wrapped_db = None
     journal = None  # type: Journal
@@ -176,14 +175,14 @@ class JournalDB(BaseDB):
         self.wrapped_db = wrapped_db
         self.clear()
 
-    #TODO: Discuss potential inefficiency issue
+    # TODO: Measure perf impact of exception ping pong
     def get(self, key: bytes) -> bytes:
         try:
             return self.journal[key]
         except KeyError:
             return self.wrapped_db[key]
 
-    def set(self, key: bytes, value: bytes):
+    def set(self, key: bytes, value: bytes) -> None:
         """
         - replacing an existing value
         - setting a value that does not exist
@@ -230,7 +229,6 @@ class JournalDB(BaseDB):
         this is the base checkpoint then all journal data should be committed
         to the underlying database.
         """
-        
         self._validate_checkpoint(checkpoint)
         journal_data = self.journal.commit_checkpoint(checkpoint)
 
@@ -253,8 +251,7 @@ class JournalDB(BaseDB):
         """
         self.commit(self.journal.root_checkpoint_id)
 
-
-    #TODO: rename to reset
+    # TODO: rename to reset
     def clear(self):
         """
         Cleare the entire journal.
