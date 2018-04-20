@@ -60,7 +60,8 @@ def test_server_authenticates_incoming_connections(server, event_loop):
     assert initiator_peer.remote == INITIATOR_REMOTE
     assert initiator_peer.privkey == keys.PrivateKey(eip8_values['receiver_private_key'])
     # Stop server
-    event_loop.run_until_complete(server.stop())
+    asyncio.ensure_future(server.stop())
+    event_loop.run_until_complete(stall(1))
     assert server.cancel_token.triggered is True
     assert server.peer_pool.cancel_token.triggered is True
 
