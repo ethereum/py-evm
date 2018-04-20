@@ -582,17 +582,13 @@ class ChainDB(BaseChainDB):
         lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
         if self.db.exists(lookup_key):
             self.db.delete(lookup_key)
+            self.db.persist()
 
     def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
         self.db.set(
             make_transaction_hash_to_data_lookup_key(transaction.hash),
             rlp.encode(transaction),
         )
-
-    def remove_pending_transaction(self, transaction: 'BaseTransaction') -> None:
-        tx_lookup_key = make_transaction_hash_to_data_lookup_key(transaction.hash)
-        if self.db.exists(tx_lookup_key):
-            self.db.delete(tx_lookup_key)
 
     def add_transaction(self,
                         block_header: BlockHeader,
