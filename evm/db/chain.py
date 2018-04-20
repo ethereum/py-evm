@@ -389,7 +389,7 @@ class ChainDB(BaseChainDB):
         for h in new_canonical_headers:
             self._add_block_number_to_hash_lookup(h)
 
-        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
+        self.base_db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
 
         return new_canonical_headers
 
@@ -619,10 +619,10 @@ class ChainDB(BaseChainDB):
     # Snapshot and revert API
     #
     def snapshot(self) -> UUID:
-        return self.db.snapshot()
+        return self.db.record()
 
     def revert(self, checkpoint: UUID) -> None:
-        self.db.revert(checkpoint)
+        self.db.discard(checkpoint)
 
     def commit(self, checkpoint: UUID) -> None:
         self.db.commit(checkpoint)
@@ -631,7 +631,7 @@ class ChainDB(BaseChainDB):
         self.db.persist()
 
     def clear(self) -> None:
-        self.db.clear()
+        self.db.reset()
 
     #
     # State Database API

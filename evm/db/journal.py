@@ -14,112 +14,112 @@ from evm.exceptions import ValidationError
 
 class Journal(BaseDB):
     """
-    A Journal is an ordered list of checkpoints.  A checkpoint is a dictionary
-    of database keys and values.  The values are the "original" value of that
-    key at the time the checkpoint was created.
+    A Journal is an ordered list of changesets.  A changeset is a dictionary
+    of database keys and values.  The values are tracked changes that were
+    written after the changeset was created
 
-    Checkpoints are referenced by a random uuid4.
+    Changesets are referenced by a random uuid4.
     """
 
     def __init__(self):
-        # contains a mapping from all of the `uuid4` in the `checkpoints` array
-        # to a dictionary of key:value pairs wher the `value` is the original
-        # value for the given key at the moment this checkpoint was created.
+        # contains a mapping from all of the `uuid4` changeset_ids
+        # to a dictionary of key:value pairs with the recorded changes
+        # that belong to the changeset
         self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, bytes]]  # noqa E501
 
     @property
-    def root_checkpoint_id(self):
+    def root_changeset_id(self):
         """
-        Returns the checkpoint_id of the latest checkpoint
+        Returns the id of the root changeset
         """
         return first(self.journal_data.keys())
 
     @property
     def latest_id(self):
         """
-        Returns the checkpoint_id of the latest checkpoint
+        Returns the id of the latest changeset
         """
         return last(self.journal_data.keys())
 
     @property
     def latest(self):
         """
-        Returns the dictionary of db keys and values for the latest checkpoint.
+        Returns the dictionary of db keys and values for the latest changeset.
         """
         return self.journal_data[self.latest_id]
 
     @latest.setter
     def latest(self, value):
         """
-        Setter for updating the *latest* checkpoint.
+        Setter for updating the *latest* changeset.
         """
         self.journal_data[self.latest_id] = value
 
     def is_empty(self):
         return len(self.journal_data) == 0
 
-    def has_checkpoint(self, checkpoint_id):
-        return checkpoint_id in self.journal_data
+    def has_changeset(self, changeset_id):
+        return changeset_id in self.journal_data
 
-    def create_checkpoint(self):
+    def record_changeset(self):
         """
-        Creates a new checkpoint. Checkpoints are referenced by a random uuid4
-        to prevent collisions between multiple checkpoints.
+        Creates a new changeset. Changesets are referenced by a random uuid4
+        to prevent collisions between multiple changesets.
         """
-        checkpoint_id = uuid.uuid4()
-        self.journal_data[checkpoint_id] = {}
-        return checkpoint_id
+        changeset_id = uuid.uuid4()
+        self.journal_data[changeset_id] = {}
+        return changeset_id
 
-    def pop_checkpoint(self, checkpoint_id):
+    def pop_changeset(self, changeset_id):
         """
-        Returns all changes from the given checkpoint.  This includes all of
-        the changes from any subsequent checkpoints, giving precidence to
-        later checkpoints.
+        Returns all changes from the given changeset.  This includes all of
+        the changes from any subsequent changeset, giving precidence to
+        later changesets.
         """
-        if checkpoint_id not in self.journal_data:
-            raise KeyError("Unknown checkpoint: {0}".format(checkpoint_id))
+        if changeset_id not in self.journal_data:
+            raise KeyError("Unknown changeset: {0}".format(changeset_id))
 
         all_ids = tuple(self.journal_data.keys())
-        checkpoint_idx = all_ids.index(checkpoint_id)
-        checkpoints_to_pop = all_ids[checkpoint_idx:]
+        changeset_idx = all_ids.index(changeset_id)
+        changesets_to_pop = all_ids[changeset_idx:]
 
-        # we pull all of the checkpoints *after* the checkpoint we are
+        # we pull all of the changesets *after* the changeset we are
         # reverting to and collapse them to a single set of keys (giving
-        # precedence to later checkpoints)
-        checkpoint_data = merge(*(
+        # precedence to later changesets)
+        changeset_data = merge(*(
             self.journal_data.pop(c_id)
             for c_id
-            in checkpoints_to_pop
+            in changesets_to_pop
         ))
 
-        return checkpoint_data
+        return changeset_data
 
-    def commit_checkpoint(self, checkpoint_id):
+    def commit_changeset(self, changeset_id):
         """
-        Collapses all changes for the given checkpoint into the previous
-        checkpoint if it exists.
+        Collapses all changes for the given changeset into the previous
+        changesets if it exists.
         """
-        checkpoint_data = self.pop_checkpoint(checkpoint_id)
+        changeset_data = self.pop_changeset(changeset_id)
         if not self.is_empty():
-            # we only have to merge the changes into the latest checkpoint if
+            # we only have to merge the changes into the latest changeset if
             # there is one.
             self.latest = merge(
                 self.latest,
-                checkpoint_data,
+                changeset_data,
             )
-        return checkpoint_data
+        return changeset_data
 
     #
     # Database API
     #
     def get(self, key):
         """
-        For key lookups we need to iterate through the checkpoints in reverse
+        For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
         """
-        for checkpoint_data in reversed(self.journal_data.values()):
+        for changeset_data in reversed(self.journal_data.values()):
             try:
-                value = checkpoint_data[key]
+                value = changeset_data[key]
             except KeyError:
                 continue
             else:
@@ -134,9 +134,9 @@ class Journal(BaseDB):
         self.latest[key] = value
 
     def exists(self, key):
-        for checkpoint_data in reversed(self.journal_data.values()):
+        for changeset_data in reversed(self.journal_data.values()):
             try:
-                value = checkpoint_data[key]
+                value = changeset_data[key]
             except KeyError:
                 continue
             else:
@@ -168,14 +168,14 @@ class JournalDB(BaseDB):
     The added memory footprint for a JournalDB is one key/value stored per
     database key which is changed.  Subsequent changes to the same key within
     the same changeset will not increase the journal size since we only need
-    to track latest value for any given key within any given checkpoint.
+    to track latest value for any given key within any given changeset.
     """
     wrapped_db = None
     journal = None  # type: Journal
 
     def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
-        self.clear()
+        self.reset()
 
     # TODO: Measure perf impact of exception ping pong
     def get(self, key: bytes) -> bytes:
@@ -202,37 +202,39 @@ class JournalDB(BaseDB):
     #
     # Snapshot API
     #
-    def _validate_checkpoint(self, checkpoint):
+    def _validate_changeset(self, changeset_id):
         """
-        Checks to be sure the checkpoint is known by the journal
+        Checks to be sure the changeset is known by the journal
         """
-        if not self.journal.has_checkpoint(checkpoint):
-            raise ValidationError("Checkpoint not found in journal: {0}".format(
-                str(checkpoint)
+        if not self.journal.has_changeset(changeset_id):
+            raise ValidationError("Changeset not found in journal: {0}".format(
+                str(changeset_id)
             ))
 
     def record(self):
         """
         Starts a new recording and returns an id for the associated changeset
         """
-        return self.journal.create_checkpoint()
+        return self.journal.record_changeset()
 
-    def discard(self, changeset):
+    def discard(self, changeset_id):
         """
         Throws away all journaled data starting at the given changeset
         """
-        self._validate_checkpoint(changeset)
-        self.journal.pop_checkpoint(changeset)
+        self._validate_changeset(changeset_id)
+        self.journal.pop_changeset(changeset_id)
 
-    def commit(self, checkpoint):
+    def commit(self, changeset_id):
         """
-        Commits a given checkpoint. This involves committing the journal up to
-        the given checkpoint which returns all of the journal changes.  *if*
-        this is the base checkpoint then all journal data should be committed
-        to the underlying database.
+        Commits a given changeset. This merges the given changeset and all
+        subsequent changesets into the previous changeset giving precidence
+        to later changesets in case of any conflicting keys.
+
+        If this is the base changeset then all changes will be written to
+        the underlying database and the Journal starts a new recording.
         """
-        self._validate_checkpoint(checkpoint)
-        journal_data = self.journal.commit_checkpoint(checkpoint)
+        self._validate_changeset(changeset_id)
+        journal_data = self.journal.commit_changeset(changeset_id)
 
         if self.journal.is_empty():
             for key, value in journal_data.items():
@@ -244,26 +246,19 @@ class JournalDB(BaseDB):
                     except KeyError:
                         pass
 
-            # ensure new root checkpoint
-            self.journal.create_checkpoint()
+            # Ensure the journal automatically restarts recording after
+            # it has been persisted to the underlying db
+            self.record()
 
     def persist(self):
         """
         Persist all changes in underlying db
         """
-        self.commit(self.journal.root_checkpoint_id)
+        self.commit(self.journal.root_changeset_id)
 
-    # TODO: rename to reset
-    def clear(self):
+    def reset(self):
         """
-        Cleare the entire journal.
+        Reset the entire journal.
         """
         self.journal = Journal()
         self.record()
-
-    # temporary aliases to assist refactoring
-    def snapshot(self):
-        return self.record()
-
-    def revert(self, changeset):
-        return self.discard(changeset)

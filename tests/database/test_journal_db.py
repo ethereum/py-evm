@@ -116,7 +116,7 @@ def test_revert_removes_journal_entries(journal_db):
     # Forget everything from b2 (inclusive) and what follows
     journal_db.discard(changeset_b2)
     assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_checkpoint(changeset_b2) is False
+    assert journal_db.journal.has_changeset(changeset_b2) is False
 
 
 def test_commit_merges_changeset_into_previous(journal_db):
@@ -130,7 +130,7 @@ def test_commit_merges_changeset_into_previous(journal_db):
     journal_db.commit(changeset)
 
     assert len(journal_db.journal.journal_data) == 1
-    assert journal_db.journal.has_checkpoint(changeset) is False
+    assert journal_db.journal.has_changeset(changeset) is False
 
 
 def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db):
@@ -154,9 +154,9 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
     journal_db.commit(changeset_b)
     assert journal_db.get(b'1') == b'test-c'
     assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_checkpoint(changeset_a)
-    assert journal_db.journal.has_checkpoint(changeset_b) is False
-    assert journal_db.journal.has_checkpoint(changeset_c) is False
+    assert journal_db.journal.has_changeset(changeset_a)
+    assert journal_db.journal.has_changeset(changeset_b) is False
+    assert journal_db.journal.has_changeset(changeset_c) is False
 
 
 def test_persist_writes_to_underlying_db(journal_db, memory_db):
