@@ -588,6 +588,11 @@ class ChainDB(BaseChainDB):
             rlp.encode(transaction),
         )
 
+    def remove_pending_transaction(self, transaction: 'BaseTransaction') -> None:
+        tx_lookup_key = make_transaction_hash_to_data_lookup_key(transaction.hash)
+        if self.db.exists(tx_lookup_key):
+            self.db.delete(tx_lookup_key)
+
     def add_transaction(self,
                         block_header: BlockHeader,
                         index_key: int,
