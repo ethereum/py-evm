@@ -39,6 +39,7 @@ from p2p.utils import sxor
 class Server:
     """Server listening for incoming connections"""
     logger = logging.getLogger("p2p.server.Server")
+    _server = None
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -57,13 +58,16 @@ class Server:
             self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
         self.peer_pool = PeerPool(ETHPeer, self.chaindb, self.network_id, self.privkey, discovery)
 
-    async def run(self) -> None:
-        self.logger.info("Running server...")
+    async def start(self) -> None:
         self._server = await asyncio.start_server(
             self.receive_handshake,
             host=self.server_address.ip,
-            port=self.server_address.udp_port,
+            port=self.server_address.tcp_port,
         )
+
+    async def run(self) -> None:
+        await self.start()
+        self.logger.info("Running server...")
         await self.cancel_token.wait()
         await self.stop()
 
