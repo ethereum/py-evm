@@ -133,22 +133,22 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     def import_block(self, block):
         self.receipts = []
-        self.configure_header(
-            coinbase=block.header.coinbase,
-            gas_limit=block.header.gas_limit,
-            timestamp=block.header.timestamp,
-            extra_data=block.header.extra_data,
-            mix_hash=block.header.mix_hash,
-            nonce=block.header.nonce,
-            uncles_hash=keccak(rlp.encode(block.uncles)),
+        self.block = self.block.copy(
+            header=self.configure_header(
+                coinbase=block.header.coinbase,
+                gas_limit=block.header.gas_limit,
+                timestamp=block.header.timestamp,
+                extra_data=block.header.extra_data,
+                mix_hash=block.header.mix_hash,
+                nonce=block.header.nonce,
+                uncles_hash=keccak(rlp.encode(block.uncles)),
+            ),
+            uncles=block.uncles,
         )
 
         # run all of the transactions.
         for transaction in block.transactions:
             self.apply_transaction(transaction)
-
-        # transfer the list of uncles.
-        self.block.uncles = block.uncles
 
         return self.mine_block()
 
@@ -156,22 +156,22 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        block = self.block
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(self.block.transactions)
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
         self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
-        self.block.header.transaction_root = tx_root_hash
-        self.block.header.receipt_root = receipt_root_hash
 
-        self.pack_block(block, *args, **kwargs)
+        header = self.block.header.copy(
+            transaction_root=tx_root_hash,
+            receipt_root=receipt_root_hash,
+        )
+
+        block = self.pack_block(self.block.copy(header=header), *args, **kwargs)
 
         if block.number == 0:
             return block
-
-        block = self.state.finalize_block(block)
-
-        return block
+        else:
+            return self.state.finalize_block(block)
 
     def pack_block(self, block, *args, **kwargs):
         """
@@ -189,12 +189,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         :param bytes nonce: 8 bytes
         """
         if 'uncles' in kwargs:
-            block.uncles = kwargs.pop('uncles')
+            uncles = kwargs.pop('uncles')
             kwargs.setdefault('uncles_hash', keccak(rlp.encode(block.uncles)))
+        else:
+            uncles = block.uncles
 
-        header = block.header
         provided_fields = set(kwargs.keys())
-        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
+        known_fields = set(BlockHeader._meta.field_names)
         unknown_fields = provided_fields.difference(known_fields)
 
         if unknown_fields:
@@ -206,13 +207,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                 )
             )
 
-        for key, value in kwargs.items():
-            setattr(header, key, value)
+        header = block.header.copy(**kwargs)
+        packed_block = block.copy(uncles=uncles, header=header)
 
         # Perform validation
-        self.validate_block(block)
+        self.validate_block(packed_block)
 
-        return block
+        return packed_block
 
     @contextlib.contextmanager
     def state_in_temp_block(self):

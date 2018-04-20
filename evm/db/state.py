@@ -204,15 +204,13 @@ class MainAccountStateDB(BaseAccountStateDB):
         else:
             del storage[slot_as_key]
 
-        account.storage_root = storage.root_hash
-        self._set_account(address, account)
+        self._set_account(address, account.copy(storage_root=storage.root_hash))
 
     def delete_storage(self, address):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        account.storage_root = BLANK_ROOT_HASH
-        self._set_account(address, account)
+        self._set_account(address, account.copy(storage_root=BLANK_ROOT_HASH))
 
     #
     # Balance
@@ -228,26 +226,23 @@ class MainAccountStateDB(BaseAccountStateDB):
         validate_uint256(balance, title="Account Balance")
 
         account = self._get_account(address)
-        account.balance = balance
-        self._set_account(address, account)
+        self._set_account(address, account.copy(balance=balance))
 
     #
     # Nonce
     #
-    def set_nonce(self, address, nonce):
-        validate_canonical_address(address, title="Storage Address")
-        validate_uint256(nonce, title="Nonce")
-
-        account = self._get_account(address)
-        account.nonce = nonce
-
-        self._set_account(address, account)
-
     def get_nonce(self, address):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.nonce
+
+    def set_nonce(self, address, nonce):
+        validate_canonical_address(address, title="Storage Address")
+        validate_uint256(nonce, title="Nonce")
+
+        account = self._get_account(address)
+        self._set_account(address, account.copy(nonce=nonce))
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
@@ -256,16 +251,6 @@ class MainAccountStateDB(BaseAccountStateDB):
     #
     # Code
     #
-    def set_code(self, address, code):
-        validate_canonical_address(address, title="Storage Address")
-        validate_is_bytes(code, title="Code")
-
-        account = self._get_account(address)
-
-        account.code_hash = keccak(code)
-        self.db[account.code_hash] = code
-        self._set_account(address, account)
-
     def get_code(self, address):
         validate_canonical_address(address, title="Storage Address")
 
@@ -273,6 +258,16 @@ class MainAccountStateDB(BaseAccountStateDB):
             return self.db[self.get_code_hash(address)]
         except KeyError:
             return b""
+
+    def set_code(self, address, code):
+        validate_canonical_address(address, title="Storage Address")
+        validate_is_bytes(code, title="Code")
+
+        account = self._get_account(address)
+
+        code_hash = keccak(code)
+        self.db[code_hash] = code
+        self._set_account(address, account.copy(code_hash=code_hash))
 
     def get_code_hash(self, address):
         validate_canonical_address(address, title="Storage Address")
@@ -284,8 +279,7 @@ class MainAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        account.code_hash = EMPTY_SHA3
-        self._set_account(address, account)
+        self._set_account(address, account.copy(code_hash=EMPTY_SHA3))
 
     #
     # Account Methods
@@ -323,7 +317,6 @@ class MainAccountStateDB(BaseAccountStateDB):
         rlp_account = account_cache[cache_key]
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
-            account._mutable = True
         else:
             account = Account()
         return account

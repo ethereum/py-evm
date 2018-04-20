@@ -18,7 +18,7 @@ def diff_rlp_object(left, right):
     if left != right:
         rlp_type = type(left)
 
-        for field_name, field_type in rlp_type.fields:
+        for field_name, field_type in rlp_type._meta.fields:
             left_value = getattr(left, field_name)
             right_value = getattr(right, field_name)
             if isinstance(field_type, type) and issubclass(field_type, rlp.Serializable):

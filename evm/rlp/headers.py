@@ -9,7 +9,6 @@ from rlp.sedes import (
 
 from cytoolz import (
     accumulate,
-    first,
     sliding_window,
 )
 from eth_typing import (
@@ -60,6 +59,24 @@ from typing import (
     Tuple,
     Union,
 )
+
+
+class MiningHeader(rlp.Serializable):
+    fields = [
+        ('parent_hash', hash32),
+        ('uncles_hash', hash32),
+        ('coinbase', address),
+        ('state_root', trie_root),
+        ('transaction_root', trie_root),
+        ('receipt_root', trie_root),
+        ('bloom', int256),
+        ('difficulty', big_endian_int),
+        ('block_number', big_endian_int),
+        ('gas_limit', big_endian_int),
+        ('gas_used', big_endian_int),
+        ('timestamp', big_endian_int),
+        ('extra_data', binary),
+    ]
 
 
 class BlockHeader(rlp.Serializable):
@@ -123,14 +140,17 @@ class BlockHeader(rlp.Serializable):
             encode_hex(self.hash)[2:10],
         )
 
+    _hash = None
+
     @property
     def hash(self) -> Hash32:
-        return keccak(rlp.encode(self))
+        if self._hash is None:
+            self._hash = keccak(rlp.encode(self))
+        return self._hash
 
     @property
     def mining_hash(self) -> Hash32:
-        return keccak(
-            rlp.encode(self, BlockHeader.exclude(['mix_hash', 'nonce'])))
+        return keccak(rlp.encode(self[:-2], MiningHeader))
 
     @property
     def hex_hash(self):
@@ -171,14 +191,6 @@ class BlockHeader(rlp.Serializable):
 
         header = cls(**header_kwargs)
         return header
-
-    def clone(self) -> 'BlockHeader':
-        # Create a new BlockHeader object with the same fields.
-        return self.__class__(**{
-            field_name: getattr(self, field_name)
-            for field_name
-            in first(zip(*self.fields))
-        })
 
     def create_execution_context(
             self, prev_hashes: Union[Tuple[bytes], Tuple[bytes, bytes]]) -> ExecutionContext:
@@ -243,7 +255,10 @@ class CollationHeader(rlp.Serializable):
 
         start_indices = accumulate(lambda i, field: i + field[2], cls.fields_with_sizes, 0)
         field_bounds = sliding_window(2, start_indices)
-        for (start_index, end_index), (field_name, field_type) in zip(field_bounds, cls.fields):
+        for byte_range, field in zip(field_bounds, cls._meta.fields):
+            start_index, end_index = byte_range
+            field_name, field_type = field
+
             field_bytes = encoded_header[start_index:end_index]
             if field_type == rlp.sedes.big_endian_int:
                 # remove the leading zeros, to avoid `not minimal length` error in deserialization

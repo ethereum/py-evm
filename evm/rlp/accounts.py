@@ -20,8 +20,6 @@ class Account(rlp.Serializable):
     """
     RLP object for accounts.
     """
-    # TODO: add _cached_rlp class attribute and measure speed.
-
     fields = [
         ('nonce', big_endian_int),
         ('balance', big_endian_int),

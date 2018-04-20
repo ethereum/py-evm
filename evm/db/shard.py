@@ -129,9 +129,9 @@ class ShardDB:
     def set_availability(self, chunk_root: Hash32, availability: Availability) -> None:
         key = make_collation_availability_lookup_key(chunk_root)
         if availability is Availability.AVAILABLE:
-            self.db.set(key, rlp.encode(True))
+            self.db.set(key, rlp.encode(1))
         elif availability is Availability.UNAVAILABLE:
-            self.db.set(key, rlp.encode(False))
+            self.db.set(key, rlp.encode(0))
         elif availability is Availability.UNKNOWN:
             if self.db.exists(key):
                 self.db.delete(key)

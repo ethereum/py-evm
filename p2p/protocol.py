@@ -60,7 +60,14 @@ class Command:
             encoder = self.structure
         else:
             encoder = sedes.List([type_ for _, type_ in self.structure])
-        return rlp.encode(data, sedes=encoder)
+        try:
+            return rlp.encode(data, sedes=encoder)
+        except Exception as arst:
+            import logging
+            logger = logging.getLogger('p2p')
+            logger.error('DATA WAS %s', data)
+            logger.error('Encoder WAS %s', encoder)
+            raise
 
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
         if isinstance(self.structure, sedes.CountableList):
@@ -100,7 +107,7 @@ class Command:
 
 class Protocol:
     logger = logging.getLogger("p2p.protocol.Protocol")
-    name = None  # type: bytes
+    name = None  # type: str
     version = None  # type: int
     cmd_length = None  # type: int
     # List of Command classes that this protocol supports.

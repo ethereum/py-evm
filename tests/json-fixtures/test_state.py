@@ -283,7 +283,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     with state.mutable_state_db() as state_db:
         state_db.apply_state_dict(fixture['pre'])
     # Update state_root manually
-    vm.block.header.state_root = state.state_root
+    vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(
             nonce=fixture['transaction']['nonce'],
