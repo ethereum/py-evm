@@ -357,6 +357,7 @@ class ChainDB(BaseChainDB):
             else:
                 new_headers = tuple()
 
+        self.db.persist()
         return new_headers
 
     def _set_as_canonical_chain_head(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
