@@ -2,13 +2,16 @@ import pytest
 from evm.db.backends.memory import MemoryDB
 from evm.db.journal import JournalDB
 
+
 @pytest.fixture
 def memory_db():
     return MemoryDB()
 
+
 @pytest.fixture
 def journal_db(memory_db):
     return JournalDB(memory_db)
+
 
 def test_delete_removes_data_from_underlying_db_after_persist(journal_db, memory_db):
     memory_db.set(b'1', b'test-a')
@@ -88,9 +91,10 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
+
 def test_revert_removes_journal_entries(journal_db):
 
-    changeset_a = journal_db.record()
+    changeset_a = journal_db.record()  # noqa: F841
     assert len(journal_db.journal.journal_data) == 2
 
     changeset_b = journal_db.record()
@@ -103,10 +107,10 @@ def test_revert_removes_journal_entries(journal_db):
     changeset_b2 = journal_db.record()
     assert len(journal_db.journal.journal_data) == 3
 
-    changeset_c = journal_db.record()
+    changeset_c = journal_db.record()  # noqa: F841
     assert len(journal_db.journal.journal_data) == 4
 
-    changeset_d = journal_db.record()
+    changeset_d = journal_db.record()  # noqa: F841
     assert len(journal_db.journal.journal_data) == 5
 
     # Forget everything from b2 (inclusive) and what follows
@@ -127,6 +131,7 @@ def test_commit_merges_changeset_into_previous(journal_db):
 
     assert len(journal_db.journal.journal_data) == 1
     assert journal_db.journal.has_checkpoint(changeset) is False
+
 
 def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db):
 
@@ -155,12 +160,12 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
 
 
 def test_persist_writes_to_underlying_db(journal_db, memory_db):
-    changeset = journal_db.record()
+    changeset = journal_db.record()  # noqa: F841
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
     assert memory_db.exists(b'1') is False
 
-    changeset_b = journal_db.record()
+    changeset_b = journal_db.record()  # noqa: F841
 
     journal_db.set(b'1', b'test-b')
     assert journal_db.get(b'1') == b'test-b'
@@ -173,7 +178,7 @@ def test_persist_writes_to_underlying_db(journal_db, memory_db):
 
 def test_journal_restarts_after_write(journal_db, memory_db):
     journal_db.set(b'1', b'test-a')
-    
+
     journal_db.persist()
 
     assert memory_db.get(b'1') == b'test-a'
@@ -186,7 +191,7 @@ def test_journal_restarts_after_write(journal_db, memory_db):
 
 
 def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
-    changeset = journal_db.record()
+    changeset = journal_db.record()  # noqa: F841
     memory_db.set(b'1', b'test-a')
 
     assert memory_db.exists(b'1')
