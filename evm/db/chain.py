@@ -115,6 +115,7 @@ class BaseChainDB(metaclass=ABCMeta):
                  account_state_class: Type[BaseAccountStateDB] = MainAccountStateDB,
                  trie_class: Type[HexaryTrie] = HexaryTrie) -> None:
 
+        self.base_db = db
         self.db = JournalDB(db)
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
@@ -334,7 +335,7 @@ class ChainDB(BaseChainDB):
                 "Cannot persist block header ({}) with unknown parent ({})".format(
                     encode_hex(header.hash), encode_hex(header.parent_hash)))
 
-        self.db.set(
+        self.base_db.set(
             header.hash,
             rlp.encode(header),
         )
@@ -343,7 +344,7 @@ class ChainDB(BaseChainDB):
             score = header.difficulty
         else:
             score = self.get_score(header.parent_hash) + header.difficulty
-        self.db.set(
+        self.base_db.set(
             make_block_hash_to_score_lookup_key(header.hash),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
 
@@ -357,7 +358,6 @@ class ChainDB(BaseChainDB):
             else:
                 new_headers = tuple()
 
-        self.db.persist()
         return new_headers
 
     def _set_as_canonical_chain_head(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
@@ -573,7 +573,7 @@ class ChainDB(BaseChainDB):
         - remove transaction hash to body lookup in the pending pool
         """
         transaction_key = TransactionKey(block_header.block_number, index)
-        self.db.set(
+        self.base_db.set(
             make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
@@ -581,8 +581,7 @@ class ChainDB(BaseChainDB):
         # because transaction is now in canonical chain, can now remove from pending txn lookups
         lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
         if self.db.exists(lookup_key):
-            self.db.delete(lookup_key)
-            self.db.persist()
+            self.base_db.delete(lookup_key)
 
     def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
         self.db.set(
@@ -685,6 +684,7 @@ class AsyncChainDB(ChainDB):
 class NonJournaledAsyncChainDB(AsyncChainDB):
 
     def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
+        self.base_db = db
         self.db = db
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
