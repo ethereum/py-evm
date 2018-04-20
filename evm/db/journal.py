@@ -163,6 +163,8 @@ class JournalDB(BaseDB):
     subsequent changesets into the previous changeset giving precidence to later
     changesets in case of conflicting keys.
 
+    Nothing is written to the underlying db until `persist()` is called.
+
     The added memory footprint for a JournalDB is one key/value stored per
     database key which is changed.  Subsequent changes to the same key within
     the same changeset will not increase the journal size since we only need
