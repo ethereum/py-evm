@@ -34,9 +34,9 @@ def test_apply_transaction(
     assert block.header.gas_used == constants.GAS_TX
 
 
-def test_mine_block(chain):
+def test_mine_block_issues_block_reward(chain):
+    block = chain.mine_block()
     vm = chain.get_vm()
-    block = vm.mine_block()
     assert vm.state.read_only_state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
 
 
@@ -51,4 +51,4 @@ def test_import_block(chain, funded_address, funded_address_private_key):
     assert not computation.is_error
     parent_vm = chain.get_chain_at_block_parent(vm.block).get_vm()
     block = parent_vm.import_block(vm.block)
-    assert block.transactions == [tx]
+    assert block.transactions == (tx,)

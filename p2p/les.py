@@ -51,7 +51,7 @@ class Status(Command):
     # A list of (key, value) pairs is all a Status msg contains, but since the values can be of
     # any type, we need to use the raw sedes here and do the actual deserialization in
     # decode_payload().
-    structure = sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))
+    structure = sedes.CountableList(sedes.List([sedes.text, sedes.raw]))
     # The sedes used for each key in the list above.
     items_sedes = {
         'protocolVersion': sedes.big_endian_int,
@@ -72,23 +72,19 @@ class Status(Command):
 
     @to_dict
     def decode_payload(self, rlp_data: bytes) -> Generator[Tuple[str, Any], None, None]:
-        data = cast(List[Tuple[bytes, bytes]], super(Status, self).decode_payload(rlp_data))
+        data = cast(List[Tuple[str, bytes]], super(Status, self).decode_payload(rlp_data))
         # The LES/Status msg contains an arbitrary list of (key, value) pairs, where values can
         # have different types and unknown keys should be ignored for forward compatibility
         # reasons, so here we need an extra pass to deserialize each of the key/value pairs we
         # know about.
         for key, value in data:
-            # The sedes.binary we use in .structure above will give us a bytes value here, but
-            # using bytes as dictionary keys makes it impossible to use the dict() constructor
-            # with keyword arguments, so we convert them to strings here.
-            str_key = key.decode('ascii')
-            if str_key not in self.items_sedes:
+            if key not in self.items_sedes:
                 continue
-            item_sedes = self.items_sedes[str_key]
+            item_sedes = self.items_sedes[key]
             if item_sedes is not None:
-                yield str_key, item_sedes.deserialize(value)
+                yield key, item_sedes.deserialize(value)
             else:
-                yield str_key, value
+                yield key, value
 
     def encode_payload(self, data):
         response = [
@@ -115,7 +111,7 @@ class Announce(Command):
         ('head_number', sedes.big_endian_int),
         ('head_td', sedes.big_endian_int),
         ('reorg_depth', sedes.big_endian_int),
-        ('params', sedes.CountableList(sedes.List([sedes.binary, sedes.raw]))),
+        ('params', sedes.CountableList(sedes.List([sedes.text, sedes.raw]))),
     ]
     # TODO: The params CountableList above may contain any of the values from the Status msg.
     # Need to extend this command to process that too.
@@ -135,7 +131,7 @@ class GetBlockHeadersQuery(rlp.Serializable):
         ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
-        ('reverse', sedes.big_endian_int),
+        ('reverse', sedes.boolean),
     ]
 
 
@@ -253,7 +249,7 @@ class ContractCodes(Command):
 
 
 class LESProtocol(Protocol):
-    name = b'les'
+    name = 'les'
     version = 1
     _commands = [Status, Announce, BlockHeaders, BlockBodies, Receipts, Proofs, ContractCodes]
     cmd_length = 15

@@ -21,8 +21,8 @@ class Hello(Command):
     decode_strict = False
     structure = [
         ('version', sedes.big_endian_int),
-        ('client_version_string', sedes.binary),
-        ('capabilities', sedes.CountableList(sedes.List([sedes.binary, sedes.big_endian_int]))),
+        ('client_version_string', sedes.text),
+        ('capabilities', sedes.CountableList(sedes.List([sedes.text, sedes.big_endian_int]))),
         ('listen_port', sedes.big_endian_int),
         ('remote_pubkey', sedes.binary)
     ]
@@ -70,7 +70,7 @@ class Pong(Command):
 
 
 class P2PProtocol(Protocol):
-    name = b'p2p'
+    name = 'p2p'
     version = 4
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16

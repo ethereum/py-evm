@@ -190,7 +190,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         setup_state_db(fixture['pre'], state_db)
         code = state_db.get_code(fixture['exec']['address'])
     # Update state_root manually
-    vm.block.header.state_root = state.state_root
+    vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
 
     message = Message(
         to=fixture['exec']['address'],
@@ -210,7 +210,9 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         transaction_context,
     )
     # Update state_root manually
-    vm.block.header.state_root = computation.state.state_root
+    vm.block = vm.block.copy(
+        header=vm.block.header.copy(state_root=computation.state.state_root),
+    )
 
     if 'post' in fixture:
         #

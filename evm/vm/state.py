@@ -9,6 +9,10 @@ from typing import (  # noqa: F401
     TYPE_CHECKING
 )
 
+from eth_bloom import (
+    BloomFilter,
+)
+
 from eth_utils import (
     to_bytes
 )
@@ -275,15 +279,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :return: the computation, applied block, and the trie_data_dict
         :rtype: (Computation, Block, dict[bytes, bytes])
         """
-        # Don't modify the given block
-        block.make_immutable()
         self.set_state_root(block.header.state_root)
         computation = self.execute_transaction(transaction)
 
         # Set block.
-        block, receipt = self.add_transaction(transaction, computation, block)
-        block.header.state_root = self.state_root
-        return computation, block, receipt
+        new_block, receipt = self.add_transaction(transaction, computation, block)
+        return computation, new_block, receipt
 
     def add_transaction(self, transaction, computation, block):
         """
@@ -306,19 +307,17 @@ class BaseState(Configurable, metaclass=ABCMeta):
         receipt = self.make_receipt(transaction, computation)
         self.gas_used = receipt.gas_used
 
-        # Create a new Block object
-        block_header = block.header.clone()
-        transactions = list(block.transactions)
-        block = self.get_block_class()(block_header, transactions)
+        new_header = block.header.copy(
+            bloom=int(BloomFilter(block.header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+            state_root=self.state_root,
+        )
+        new_block = block.copy(
+            header=new_header,
+            transactions=tuple(block.transactions) + (transaction,),
+        )
 
-        block.transactions.append(transaction)
-
-        block.bloom_filter |= receipt.bloom
-
-        block.header.bloom = int(block.bloom_filter)
-        block.header.gas_used = receipt.gas_used
-
-        return block, receipt
+        return new_block, receipt
 
     @abstractmethod
     def make_receipt(self, transaction, computation):
@@ -354,8 +353,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
                     uncle_reward,
                     uncle.coinbase,
                 )
-        block.header.state_root = self.state_root
-        return block
+        return block.copy(header=block.header.copy(state_root=self.state_root))
 
     @staticmethod
     @abstractmethod

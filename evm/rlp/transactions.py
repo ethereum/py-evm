@@ -33,7 +33,7 @@ from evm.vm.computation import (
 )
 
 
-class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
+class BaseTransaction(rlp.Serializable):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),

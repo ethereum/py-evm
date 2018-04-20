@@ -62,34 +62,33 @@ def create_homestead_header_from_parent(parent_header, **header_params):
 def configure_homestead_header(vm, **header_params):
     validate_header_params_for_configuration(header_params)
 
-    for field_name, value in header_params.items():
-        setattr(vm.block.header, field_name, value)
+    with vm.block.header.build_changeset(**header_params) as changeset:
+        if 'timestamp' in header_params and changeset.block_number > 0:
+            parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
+            changeset.difficulty = compute_homestead_difficulty(
+                parent_header,
+                header_params['timestamp'],
+            )
 
-    if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = get_parent_header(vm.block.header, vm.chaindb)
-        vm.block.header.difficulty = compute_homestead_difficulty(
-            parent_header,
-            header_params['timestamp'],
-        )
+        # In geth the modification of the state in the DAO fork block is performed
+        # before any transactions are applied, so doing it here is the closest we
+        # get to that. Another alternative would be to do it in Block.mine(), but
+        # there we'd need to manually instantiate the State and update
+        # header.state_root after we're done.
+        if vm.support_dao_fork and changeset.block_number == vm.dao_fork_block_number:
+            state = vm.state
+            with state.mutable_state_db() as state_db:
+                for account in dao_drain_list:
+                    account = decode_hex(account)
+                    balance = state_db.get_balance(account)
+                    state_db.delta_balance(dao_refund_contract, balance)
+                    state_db.set_balance(account, 0)
 
-    # In geth the modification of the state in the DAO fork block is performed
-    # before any transactions are applied, so doing it here is the closest we
-    # get to that. Another alternative would be to do it in Block.mine(), but
-    # there we'd need to manually instantiate the State and update
-    # header.state_root after we're done.
-    if vm.support_dao_fork and vm.block.header.block_number == vm.dao_fork_block_number:
-        state = vm.state
-        with state.mutable_state_db() as state_db:
-            for account in dao_drain_list:
-                account = decode_hex(account)
-                balance = state_db.get_balance(account)
-                state_db.delta_balance(dao_refund_contract, balance)
-                state_db.set_balance(account, 0)
+            # Update state_root manually
+            changeset.state_root = state.state_root
 
-        # Update state_root manually
-        vm.block.header.state_root = state.state_root
-
-    return vm.block.header
+        header = changeset.commit()
+    return header
 
 
 dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')

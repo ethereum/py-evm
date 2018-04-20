@@ -53,9 +53,11 @@ B_ADDRESS = b"\xbb" * 20
 
 def set_empty_root(chaindb, header):
     root_hash = get_empty_root_hash(chaindb)
-    header.transaction_root = root_hash
-    header.receipt_root = root_hash
-    header.state_root = root_hash
+    return header.copy(
+        transaction_root=root_hash,
+        receipt_root=root_hash,
+        state_root=root_hash,
+    )
 
 
 @pytest.fixture(params=[MainAccountStateDB])
@@ -105,13 +107,13 @@ def test_persist_header(chaindb, header):
 
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_persist_header_unknown_parent(chaindb, header, seed):
-    header.parent_hash = keccak(seed)
+    n_header = header.copy(parent_hash=keccak(seed))
     with pytest.raises(ParentNotFound):
-        chaindb.persist_header(header)
+        chaindb.persist_header(n_header)
 
 
 def test_persist_block(chaindb, block):
-    set_empty_root(chaindb, block.header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block(block)
@@ -137,15 +139,15 @@ def test_get_score(chaindb):
 
 
 def test_get_block_header_by_hash(chaindb, block, header):
-    set_empty_root(chaindb, block.header)
-    set_empty_root(chaindb, header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
+    header = set_empty_root(chaindb, header)
     chaindb.persist_block(block)
     block_header = chaindb.get_block_header_by_hash(block.hash)
     assert_rlp_equal(block_header, header)
 
 
 def test_lookup_block_hash(chaindb, block):
-    set_empty_root(chaindb, block.header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
     chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash

@@ -70,14 +70,13 @@ def create_byzantium_header_from_parent(parent_header, **header_params):
 def configure_byzantium_header(vm, **header_params):
     validate_header_params_for_configuration(header_params)
 
-    for field_name, value in header_params.items():
-        setattr(vm.block.header, field_name, value)
+    with vm.block.header.build_changeset(**header_params) as changeset:
+        if 'timestamp' in header_params and changeset.block_number > 0:
+            parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
+            changeset.difficulty = compute_byzantium_difficulty(
+                parent_header,
+                header_params['timestamp'],
+            )
 
-    if 'timestamp' in header_params and vm.block.header.block_number > 0:
-        parent_header = get_parent_header(vm.block.header, vm.chaindb)
-        vm.block.header.difficulty = compute_byzantium_difficulty(
-            parent_header,
-            header_params['timestamp'],
-        )
-
-    return vm.block.header
+        header = changeset.commit()
+    return header

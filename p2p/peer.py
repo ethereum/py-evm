@@ -229,7 +229,7 @@ class BasePeer(metaclass=ABCMeta):
         )
 
     @property
-    def capabilities(self) -> List[Tuple[bytes, int]]:
+    def capabilities(self) -> List[Tuple[str, int]]:
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:

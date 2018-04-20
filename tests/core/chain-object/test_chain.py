@@ -58,7 +58,7 @@ def test_import_block(chain, tx):
     chain.add_pending_transaction(tx)
 
     block = chain.import_block(vm.block)
-    assert block.transactions == [tx]
+    assert block.transactions == (tx,)
     assert chain.get_block_by_hash(block.hash) == block
     assert chain.get_canonical_block_by_number(block.number) == block
     assert chain.get_canonical_transaction(tx.hash) == tx
