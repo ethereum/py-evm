@@ -1,11 +1,14 @@
 import json
 import logging
-from typing import Dict  # noqa: F401
+from typing import Dict, Type, Tuple
 
 from evm.exceptions import (
     ValidationError,
 )
 
+from trinity.db.rpc import (
+    BaseRPCDB,
+)
 from trinity.rpc.modules import (  # noqa: F401
     Eth,
     EVM,
@@ -51,17 +54,18 @@ class RPCServer:
     then proxies to the appropriate method. For example, see
     :meth:`RPCServer.eth_getBlockByHash`.
     '''
-    chain = None
-    module_classes = (
+    db: BaseRPCDB = None
+    module_classes: Tuple[..., Type[RPCModule]] = (
         Eth,
         EVM,
     )
+    modules: Dict[str, RPCModule]
 
-    def __init__(self, chain):
-        self.modules = {}  # type: Dict[str, RPCModule]
-        self.chain = chain
+    def __init__(self, db):
+        self.modules = {}
+        self.db = db
         for M in self.module_classes:
-            self.modules[M.__name__.lower()] = M(chain)
+            self.modules[M.__name__.lower()] = M(db)
         if len(self.modules) != len(self.module_classes):
             raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
 
@@ -100,7 +104,7 @@ class RPCServer:
             result = method(*params)
 
             if request['method'] == 'evm_resetToGenesisFixture':
-                self.chain, result = result, True
+                self.db, result = result, True
 
         except NotImplementedError as exc:
             error = "Method not implemented: %r %s" % (request['method'], exc)
@@ -124,11 +128,11 @@ class RPCServer:
         return generate_response(request, result, error)
 
     @property
-    def chain(self):
-        return self.__chain
+    def db(self):
+        return self.__db
 
-    @chain.setter
-    def chain(self, new_chain):
-        self.__chain = new_chain
+    @db.setter
+    def db(self, new_db):
+        self.__db = new_db
         for module in self.modules.values():
-            module.set_chain(new_chain)
+            module.set_db(new_db)
