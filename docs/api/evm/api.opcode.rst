@@ -23,7 +23,7 @@ Here are some simple examples.
 
 
 The `:func:~evm.vm.opcode.as_opcode` helper
-----------------------------------------
+-------------------------------------------
 
 
 While these examples are demonstrative of *simple* logic, opcodes will
