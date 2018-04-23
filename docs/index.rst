@@ -7,15 +7,20 @@ Py-EVM aims to eventually become the defacto python implementation of the EVM, e
 
 .. toctree::
    :maxdepth: 1
+   :caption: General
 
-   quickstart.rst
-   architecture.rst
-   api.rst
-   api.chain.rst
-   api.vm.rst
-   api.state.rst
-   api.computation.rst
-   api.opcode.rst
-   building_chains.rst
-   contributing.rst
-   low_level.rst
+   introduction
+   quickstart
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Fundamentals
+
+   guides/index
+   api/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Community
+
+   contributing

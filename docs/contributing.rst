@@ -1,5 +1,5 @@
-Contributing to py-evm
-----------------------
+Contributing
+------------
 
 First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
 
