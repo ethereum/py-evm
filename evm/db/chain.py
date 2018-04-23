@@ -256,14 +256,14 @@ class BaseChainDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
-    # Snapshot and revert API
+    # Record and discard API
     #
     @abstractmethod
-    def snapshot(self) -> UUID:
+    def record(self) -> UUID:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def revert(self, checkpoint: UUID) -> None:
+    def discard(self, checkpoint: UUID) -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -616,16 +616,16 @@ class ChainDB(BaseChainDB):
             self.db[key] = value
 
     #
-    # Snapshot and revert API
+    # Record and discard API
     #
-    def snapshot(self) -> UUID:
+    def record(self) -> UUID:
         return self.journal_db.record()
 
-    def revert(self, checkpoint: UUID) -> None:
-        self.journal_db.discard(checkpoint)
+    def discard(self, changeset_id: UUID) -> None:
+        self.journal_db.discard(changeset_id)
 
-    def commit(self, checkpoint: UUID) -> None:
-        self.journal_db.commit(checkpoint)
+    def commit(self, changeset_id: UUID) -> None:
+        self.journal_db.commit(changeset_id)
 
     def persist(self) -> None:
         self.journal_db.persist()
@@ -685,6 +685,7 @@ class NonJournaledAsyncChainDB(AsyncChainDB):
 
     def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
         self.db = db
+        self.journal_db = db
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
 
