@@ -4,7 +4,7 @@ import secrets
 
 from typing import (
     List,
-    Tuple,
+    Type,
 )
 
 from eth_keys import datatypes
@@ -13,27 +13,33 @@ from eth_utils import big_endian_to_int
 
 from evm.db.chain import AsyncChainDB
 from p2p.auth import (
-    decode_auth_plain,
-    decode_auth_eip8,
+    decode_authentication,
     HandshakeResponder,
 )
-from p2p.cancel_token import CancelToken
+from p2p.cancel_token import (
+    CancelToken,
+    wait_with_token,
+)
 from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
+    DEFAULT_MIN_PEERS,
+    HANDSHAKE_TIMEOUT,
     HASH_LEN,
 )
 from p2p.discovery import DiscoveryProtocol
-from p2p.ecies import ecdh_agree
-from p2p.exceptions import DecryptionError
+from p2p.exceptions import (
+    DecryptionError,
+    HandshakeFailure,
+)
 from p2p.kademlia import (
     Address,
     Node,
 )
 from p2p.peer import (
+    BasePeer,
     ETHPeer,
     PeerPool,
 )
-from p2p.utils import sxor
 
 
 class Server:
@@ -46,17 +52,27 @@ class Server:
                  server_address: Address,
                  chaindb: AsyncChainDB,
                  bootstrap_nodes: List[str],
-                 network_id: int
+                 network_id: int,
+                 min_peers: int = DEFAULT_MIN_PEERS,
+                 peer_class: Type[BasePeer] = ETHPeer,
                  ) -> None:
         self.cancel_token = CancelToken('Server')
         self.chaindb = chaindb
         self.privkey = privkey
         self.server_address = server_address
         self.network_id = network_id
+        self.peer_class = peer_class
         # TODO: bootstrap_nodes should be looked up by network_id.
         discovery = DiscoveryProtocol(
             self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
-        self.peer_pool = PeerPool(ETHPeer, self.chaindb, self.network_id, self.privkey, discovery)
+        self.peer_pool = PeerPool(
+            peer_class,
+            self.chaindb,
+            self.network_id,
+            self.privkey,
+            discovery,
+            min_peers=min_peers,
+        )
 
     async def start(self) -> None:
         self._server = await asyncio.start_server(
@@ -68,6 +84,12 @@ class Server:
     async def run(self) -> None:
         await self.start()
         self.logger.info("Running server...")
+        self.logger.info(
+            "enode://%s@%s:%s",
+            self.privkey.public_key.to_hex()[2:],
+            self.server_address.ip,
+            self.server_address.tcp_port,
+        )
         await self.cancel_token.wait()
         await self.stop()
 
@@ -80,10 +102,22 @@ class Server:
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        # Use reader to read the auth_init msg until EOF
-        msg = await reader.read(ENCRYPTED_AUTH_MSG_LEN)
+        await wait_with_token(
+            self._receive_handshake(reader, writer),
+            token=self.cancel_token,
+            timeout=HANDSHAKE_TIMEOUT,
+        )
 
-        # Use HandshakeResponder.decode_authentication(auth_init_message) on auth init msg
+    async def _receive_handshake(
+            self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        self.logger.debug("Receiving handshake...")
+        # Use reader to read the auth_init msg until EOF
+        msg = await wait_with_token(
+            reader.read(ENCRYPTED_AUTH_MSG_LEN),
+            token=self.cancel_token,
+        )
+
+        # Use decode_authentication(auth_init_message) on auth init msg
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
@@ -91,13 +125,16 @@ class Server:
         except DecryptionError:
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
-            msg += await reader.read(remaining_bytes)
+            msg += await wait_with_token(
+                reader.read(remaining_bytes),
+                token=self.cancel_token,
+            )
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
 
         # Get remote's address: IPv4 or IPv6
-        ip, port, *_ = writer.get_extra_info("peername")
-        remote_address = Address(ip, port)
+        ip, socket, *_ = writer.get_extra_info("peername")
+        remote_address = Address(ip, socket)
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
         initiator_remote = Node(initiator_pubkey, remote_address)
@@ -122,36 +159,109 @@ class Server:
         )
 
         # Create and register peer in peer_pool
-        eth_peer = ETHPeer(
-            remote=initiator_remote, privkey=self.privkey, reader=reader,
-            writer=writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=self.chaindb,
+        peer = self.peer_class(
+            remote=initiator_remote,
+            privkey=self.privkey,
+            reader=reader,
+            writer=writer,
+            aes_secret=aes_secret,
+            mac_secret=mac_secret,
+            egress_mac=egress_mac,
+            ingress_mac=ingress_mac,
+            chaindb=self.chaindb,
             network_id=self.network_id
         )
-        self.peer_pool.add_peer(eth_peer)
+
+        await self.do_p2p_handshake(peer)
+
+    async def do_p2p_handshake(self, peer: BasePeer) -> None:
+        try:
+            # P2P Handshake.
+            await peer.do_p2p_handshake(),
+        except (HandshakeFailure, asyncio.TimeoutError) as e:
+            self.logger.debug('Unable to finish P2P handshake: %s', str(e))
+        else:
+            # Run peer and add peer.
+            self.peer_pool.start_peer(peer)
 
 
-def decode_authentication(ciphertext: bytes,
-                          privkey: datatypes.PrivateKey
-                          ) -> Tuple[datatypes.PublicKey, bytes, datatypes.PublicKey]:
-    """
-    Decrypts and decodes the ciphertext msg.
-    Returns the initiator's ephemeral pubkey, nonce, and pubkey.
-    """
-    if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
-        raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
-    elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
-        sig, initiator_pubkey, initiator_nonce, _ = decode_auth_plain(
-            ciphertext, privkey)
+def _test() -> None:
+    import argparse
+
+    from eth_keys import keys
+    from eth_utils import (
+        decode_hex,
+    )
+
+    from evm.db.backends.memory import MemoryDB
+
+    from p2p import ecies
+    from p2p.exceptions import (
+        OperationCancelled,
+    )
+
+    from tests.p2p.dumb_peer import DumbPeer
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-debug', action="store_true")
+    parser.add_argument('-server-address', type=str, required=True)
+    parser.add_argument('-bootstrap', '--list', type=str)
+    parser.add_argument('-privkey', type=str)
+
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%H:%M:%S')
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.getLogger('p2p.server.Server').setLevel(log_level)
+
+    loop = asyncio.get_event_loop()
+    chaindb = FakeAsyncChainDB(MemoryDB())
+
+    if args.privkey:
+        privkey = keys.PrivateKey(decode_hex(args.privkey))
     else:
-        sig, initiator_pubkey, initiator_nonce, _ = decode_auth_eip8(
-            ciphertext, privkey)
+        privkey = ecies.generate_privkey()
 
-    # recover initiator ephemeral pubkey from sig
-    #   S(ephemeral-privk, ecdh-shared-secret ^ nonce)
-    shared_secret = ecdh_agree(privkey, initiator_pubkey)
+    ip, port = args.server_address.split(':')
+    server_address = Address(ip, port)
+    if args.list:
+        bootstrap_nodes = args.list.split(',')
+    else:
+        bootstrap_nodes = []
 
-    ephem_pubkey = sig.recover_public_key_from_msg_hash(
-        sxor(shared_secret, initiator_nonce))
+    server = Server(
+        privkey,
+        server_address,
+        chaindb,
+        bootstrap_nodes,
+        1,
+        peer_class=DumbPeer
+    )
 
-    return ephem_pubkey, initiator_nonce, initiator_pubkey
+    asyncio.ensure_future(server.run())
+    asyncio.ensure_future(server.peer_pool.run())
+
+    async def run():
+        try:
+            while True:
+                if len(server.peer_pool.connected_nodes) >= 1:
+                    server.logger.debug('peers: %d', len(server.peer_pool.connected_nodes))
+                else:
+                    server.logger.debug('no peer connected')
+                await asyncio.sleep(1)
+
+        except (OperationCancelled, KeyboardInterrupt):
+            pass
+        await server.peer_pool.stop()
+        await server.stop()
+
+    loop.run_until_complete(run())
+    loop.close()
+
+
+if __name__ == "__main__":
+    _test()

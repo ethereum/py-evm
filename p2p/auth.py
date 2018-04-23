@@ -28,6 +28,7 @@ from p2p.utils import (
 from .constants import (
     AUTH_ACK_LEN,
     AUTH_MSG_LEN,
+    ENCRYPTED_AUTH_MSG_LEN,
     ENCRYPTED_AUTH_ACK_LEN,
     ENCRYPT_OVERHEAD_LENGTH,
     HASH_LEN,
@@ -275,3 +276,29 @@ def decode_auth_eip8(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[
         nonce,
         version
     )
+
+
+def decode_authentication(ciphertext: bytes,
+                          privkey: datatypes.PrivateKey
+                          ) -> Tuple[datatypes.PublicKey, bytes, datatypes.PublicKey]:
+    """
+    Decrypts and decodes the ciphertext msg.
+    Returns the initiator's ephemeral pubkey, nonce, and pubkey.
+    """
+    if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
+        raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
+    elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
+        sig, initiator_pubkey, initiator_nonce, _ = decode_auth_plain(
+            ciphertext, privkey)
+    else:
+        sig, initiator_pubkey, initiator_nonce, _ = decode_auth_eip8(
+            ciphertext, privkey)
+
+    # recover initiator ephemeral pubkey from sig
+    #   S(ephemeral-privk, ecdh-shared-secret ^ nonce)
+    shared_secret = ecies.ecdh_agree(privkey, initiator_pubkey)
+
+    ephem_pubkey = sig.recover_public_key_from_msg_hash(
+        sxor(shared_secret, initiator_nonce))
+
+    return ephem_pubkey, initiator_nonce, initiator_pubkey

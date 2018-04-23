@@ -78,6 +78,7 @@ from p2p.p2p_proto import (
 
 from .constants import (
     CONN_IDLE_TIMEOUT,
+    DEFAULT_MIN_PEERS,
     HANDSHAKE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
@@ -649,7 +650,7 @@ class PeerPool:
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
-                 min_peers: int = 10,
+                 min_peers: int = DEFAULT_MIN_PEERS,
                  ) -> None:
         self.peer_class = peer_class
         self.chaindb = chaindb
@@ -673,8 +674,14 @@ class PeerPool:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
+    def start_peer(self, peer):
+        asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
+        self.add_peer(peer)
+
     def add_peer(self, peer):
+        self.logger.debug('Adding peer (%s) ...', str(peer))
         self.connected_nodes[peer.remote] = peer
+        self.logger.debug('Number of peers: %d', len(self.connected_nodes))
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
 
@@ -757,7 +764,10 @@ class PeerPool:
             await self._connect_to_nodes(self._get_random_bootnode())
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
-        yield random.choice(self.discovery.bootstrap_nodes)
+        if self.discovery.bootstrap_nodes:
+            yield random.choice(self.discovery.bootstrap_nodes)
+        else:
+            self.logger.warning('No bootstrap_nodes')
 
     async def _connect_to_nodes(self, nodes: Generator[Node, None, None]) -> None:
         for node in nodes:
@@ -767,8 +777,7 @@ class PeerPool:
             peer = await self.connect(node)
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
-                asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-                self.add_peer(peer)
+                self.start_peer(peer)
                 if len(self.connected_nodes) >= self.min_peers:
                     return
 
