@@ -115,8 +115,8 @@ class BaseChainDB(metaclass=ABCMeta):
                  account_state_class: Type[BaseAccountStateDB] = MainAccountStateDB,
                  trie_class: Type[HexaryTrie] = HexaryTrie) -> None:
 
-        self.base_db = db
-        self.db = JournalDB(db)
+        self.db = db
+        self.journal_db = JournalDB(db)
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
 
@@ -335,7 +335,7 @@ class ChainDB(BaseChainDB):
                 "Cannot persist block header ({}) with unknown parent ({})".format(
                     encode_hex(header.hash), encode_hex(header.parent_hash)))
 
-        self.base_db.set(
+        self.db.set(
             header.hash,
             rlp.encode(header),
         )
@@ -344,7 +344,7 @@ class ChainDB(BaseChainDB):
             score = header.difficulty
         else:
             score = self.get_score(header.parent_hash) + header.difficulty
-        self.base_db.set(
+        self.db.set(
             make_block_hash_to_score_lookup_key(header.hash),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
 
@@ -389,7 +389,7 @@ class ChainDB(BaseChainDB):
         for h in new_canonical_headers:
             self._add_block_number_to_hash_lookup(h)
 
-        self.base_db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
+        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
 
         return new_canonical_headers
 
@@ -498,7 +498,7 @@ class ChainDB(BaseChainDB):
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.journal_db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -573,7 +573,7 @@ class ChainDB(BaseChainDB):
         - remove transaction hash to body lookup in the pending pool
         """
         transaction_key = TransactionKey(block_header.block_number, index)
-        self.base_db.set(
+        self.db.set(
             make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
@@ -581,7 +581,7 @@ class ChainDB(BaseChainDB):
         # because transaction is now in canonical chain, can now remove from pending txn lookups
         lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
         if self.db.exists(lookup_key):
-            self.base_db.delete(lookup_key)
+            self.db.delete(lookup_key)
 
     def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
         self.db.set(
@@ -606,7 +606,7 @@ class ChainDB(BaseChainDB):
     # Raw Database API
     #
     def exists(self, key: bytes) -> bool:
-        return self.db.exists(key)
+        return self.journal_db.exists(key)
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
         """
@@ -619,19 +619,19 @@ class ChainDB(BaseChainDB):
     # Snapshot and revert API
     #
     def snapshot(self) -> UUID:
-        return self.db.record()
+        return self.journal_db.record()
 
     def revert(self, checkpoint: UUID) -> None:
-        self.db.discard(checkpoint)
+        self.journal_db.discard(checkpoint)
 
     def commit(self, checkpoint: UUID) -> None:
-        self.db.commit(checkpoint)
+        self.journal_db.commit(checkpoint)
 
     def persist(self) -> None:
-        self.db.persist()
+        self.journal_db.persist()
 
     def clear(self) -> None:
-        self.db.reset()
+        self.journal_db.reset()
 
     #
     # State Database API
@@ -640,7 +640,7 @@ class ChainDB(BaseChainDB):
                      state_root: bytes,
                      read_only: bool) -> BaseAccountStateDB:
         return self.account_state_class(
-            db=self.db,
+            db=self.journal_db,
             root_hash=state_root,
             read_only=read_only,
         )
@@ -684,7 +684,6 @@ class AsyncChainDB(ChainDB):
 class NonJournaledAsyncChainDB(AsyncChainDB):
 
     def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
-        self.base_db = db
         self.db = db
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
