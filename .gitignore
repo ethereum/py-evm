@@ -43,6 +43,7 @@ docs/modules.rst
 
 # pytest
 .cache/
+.pytest_cache/
 
 # fixtures
 fixtures/**
