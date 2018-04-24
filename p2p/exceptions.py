@@ -48,3 +48,7 @@ class OperationCancelled(Exception):
 
 class NoMatchingPeerCapabilities(Exception):
     pass
+
+
+class RemoteDisconnected(Exception):
+    pass
