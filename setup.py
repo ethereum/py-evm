@@ -51,7 +51,7 @@ deps = {
         "flake8==3.5.0",
         "mypy>=0.580",
     ],
-    'doc': [
+    'docs': [
         "py-evm>=0.2.0-alpha.14",
         "pytest~=3.2",
         "Sphinx>=1.5.5,<2.0.0",
@@ -72,7 +72,7 @@ deps['dev'] = (
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
-    deps['doc']
+    deps['docs']
 )
 
 # As long as evm, p2p and trinity are managed together in the py-evm
