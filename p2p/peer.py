@@ -52,6 +52,7 @@ from p2p.exceptions import (
     NoMatchingPeerCapabilities,
     OperationCancelled,
     PeerConnectionLost,
+    RemoteDisconnected,
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
@@ -259,6 +260,7 @@ class BasePeer(metaclass=ABCMeta):
         except Exception:
             self.logger.exception("Unexpected error when handling remote msg")
         finally:
+            self.close()
             self._finished.set()
             if finished_callback is not None:
                 finished_callback(self)
@@ -289,7 +291,6 @@ class BasePeer(metaclass=ABCMeta):
         if self._finished.is_set():
             return
         self.cancel_token.trigger()
-        self.close()
         await self._finished.wait()
         self.logger.debug("Stopped %s", self)
 
@@ -302,7 +303,11 @@ class BasePeer(metaclass=ABCMeta):
                     "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
 
-            self.process_msg(cmd, msg)
+            try:
+                self.process_msg(cmd, msg)
+            except RemoteDisconnected as e:
+                self.logger.info("%s disconnected: %s", self, e)
+                return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
@@ -325,9 +330,7 @@ class BasePeer(metaclass=ABCMeta):
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
-            self.logger.debug(
-                "%s disconnected; reason given: %s", self, msg['reason_name'])
-            self.close()
+            raise RemoteDisconnected(msg['reason_name'])
         elif isinstance(cmd, Ping):
             self.base_protocol.send_pong()
         elif isinstance(cmd, Pong):
@@ -891,7 +894,7 @@ def _test():
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
     nodekey = keys.PrivateKey(decode_hex(
