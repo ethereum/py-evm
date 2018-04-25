@@ -6,7 +6,7 @@ from eth_utils import (
     decode_hex,
 )
 
-from evm.exceptions import DecommissionedStateDB
+from evm.exceptions import DecommissionedAccountDB
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from tests.core.helpers import new_transaction
@@ -37,7 +37,7 @@ def test_state_db(state):
     with state.mutable_state_db() as state_db:
         pass
 
-    with pytest.raises(DecommissionedStateDB):
+    with pytest.raises(DecommissionedAccountDB):
         state_db.increment_nonce(address)
 
     state.read_only_state_db.get_balance(address)

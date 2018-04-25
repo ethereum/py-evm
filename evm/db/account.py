@@ -23,7 +23,7 @@ from evm.constants import (
 from evm.db.immutable import (
     ImmutableDB,
 )
-from evm.exceptions import DecommissionedStateDB
+from evm.exceptions import DecommissionedAccountDB
 from evm.rlp.accounts import (
     Account,
 )
@@ -49,7 +49,7 @@ from .hash_trie import HashTrie
 account_cache = LRU(2048)
 
 
-class BaseAccountStateDB(metaclass=ABCMeta):
+class BaseAccountDB(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self) -> None:
@@ -147,7 +147,7 @@ class BaseAccountStateDB(metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclass")
 
 
-class MainAccountStateDB(BaseAccountStateDB):
+class AccountDB(BaseAccountDB):
 
     def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
         # Keep a reference to the original db instance to use it as part of _get_account()'s cache
@@ -162,7 +162,7 @@ class MainAccountStateDB(BaseAccountStateDB):
     @property
     def _trie(self):
         if self.__trie is None:
-            raise DecommissionedStateDB()
+            raise DecommissionedAccountDB()
         return self.__trie
 
     @_trie.setter

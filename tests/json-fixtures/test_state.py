@@ -18,8 +18,8 @@ from eth_utils import (
 )
 
 from evm.db.chain import ChainDB
-from evm.db.state import (
-    MainAccountStateDB,
+from evm.db.account import (
+    AccountDB,
 )
 from evm.exceptions import (
     ValidationError,
@@ -261,7 +261,7 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    account_state_class = MainAccountStateDB
+    account_state_class = AccountDB
     trie_class = HexaryTrie
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],

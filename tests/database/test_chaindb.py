@@ -21,8 +21,8 @@ from evm.db import (
 from evm.db.chain import (
     ChainDB,
 )
-from evm.db.state import (
-    MainAccountStateDB,
+from evm.db.account import (
+    AccountDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -60,9 +60,9 @@ def set_empty_root(chaindb, header):
     )
 
 
-@pytest.fixture(params=[MainAccountStateDB])
+@pytest.fixture(params=[AccountDB])
 def chaindb(request):
-    if request.param is MainAccountStateDB:
+    if request.param is AccountDB:
         trie_class = HexaryTrie
     else:
         trie_class = BinaryTrie
