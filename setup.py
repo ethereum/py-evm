@@ -18,11 +18,11 @@ deps = {
         "trie>=1.3.2,<2.0.0",
         "lru-dict>=1.1.6",
     ],
-    # The evm-extras sections is for libraries that the evm does not
+    # The evm-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
-    'evm-extras': [
+    'evm-extra': [
         "coincurve>=7.0.0,<8.0.0",
         "plyvel==1.0.4",
         "eth-hash[pycryptodome]",
@@ -51,7 +51,7 @@ deps = {
         "flake8==3.5.0",
         "mypy>=0.580",
     ],
-    'docs': [
+    'doc': [
         "py-evm>=0.2.0-alpha.14",
         "pytest~=3.2",
         "Sphinx>=1.5.5,<2.0.0",
@@ -68,11 +68,11 @@ deps = {
 deps['dev'] = (
     deps['dev'] +
     deps['evm'] +
-    deps['evm-extras'] +
+    deps['evm-extra'] +
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
-    deps['docs']
+    deps['doc']
 )
 
 # As long as evm, p2p and trinity are managed together in the py-evm
