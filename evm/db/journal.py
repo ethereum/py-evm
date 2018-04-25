@@ -244,7 +244,7 @@ class JournalDB(BaseDB):
 
             # Ensure the journal automatically restarts recording after
             # it has been persisted to the underlying db
-            self.record()
+            self.reset()
 
     def persist(self) -> None:
         """
