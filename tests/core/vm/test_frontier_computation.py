@@ -14,7 +14,6 @@ from eth_utils import (
     to_canonical_address,
 )
 
-from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
 NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
@@ -22,7 +21,7 @@ CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 
 
-@pytest.fixture  # noqa: F811
+@pytest.fixture
 def state(chain_without_block_validation):
     state = chain_without_block_validation.get_vm().state
     with state.mutable_state_db() as state_db:
