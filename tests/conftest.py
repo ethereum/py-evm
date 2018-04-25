@@ -14,7 +14,8 @@ def vm_logger():
 
     # level = TRACE_LEVEL_NUM
     # level = logging.DEBUG
-    level = logging.INFO
+    # level = logging.INFO
+    level = logging.ERROR
 
     logger.setLevel(level)
     handler.setLevel(level)

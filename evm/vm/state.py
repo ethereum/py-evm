@@ -285,11 +285,10 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         # Set block.
         new_block, receipt = self.add_transaction(transaction, computation, block)
-
         with self.mutable_state_db() as state_db:
             state_db.persist()
 
-        return computation, new_block, receipt
+        return new_block, receipt, computation
 
     def add_transaction(self, transaction, computation, block):
         """
