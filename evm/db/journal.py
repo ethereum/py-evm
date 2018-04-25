@@ -1,5 +1,5 @@
 import collections
-from typing import Dict  # noqa: F401
+from typing import Dict, Union  # noqa: F401
 import uuid
 
 from cytoolz import (
@@ -10,6 +10,13 @@ from cytoolz import (
 
 from evm.db.backends.base import BaseDB
 from evm.exceptions import ValidationError
+
+
+class DeletedEntry:
+    pass
+
+
+DELETED_ENTRY = DeletedEntry()
 
 
 class Journal(BaseDB):
@@ -25,7 +32,7 @@ class Journal(BaseDB):
         # contains a mapping from all of the `uuid4` changeset_ids
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
-        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, bytes]]  # noqa E501
+        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
 
     @property
     def root_changeset_id(self) -> uuid.UUID:
@@ -42,14 +49,14 @@ class Journal(BaseDB):
         return last(self.journal_data.keys())
 
     @property
-    def latest(self) -> Dict[bytes, bytes]:
+    def latest(self) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Returns the dictionary of db keys and values for the latest changeset.
         """
         return self.journal_data[self.latest_id]
 
     @latest.setter
-    def latest(self, value: Dict[bytes, bytes]) -> None:
+    def latest(self, value: Dict[bytes, Union[bytes, DeletedEntry]]) -> None:
         """
         Setter for updating the *latest* changeset.
         """
@@ -119,31 +126,22 @@ class Journal(BaseDB):
         """
         # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
         for changeset_data in reversed(self.journal_data.values()):  # type: ignore
-            try:
-                value = changeset_data[key]
-            except KeyError:
-                continue
+            if key in changeset_data:
+                return changeset_data[key]
             else:
-                if value is None:
-                    raise KeyError(key)
-                else:
-                    return value
-        else:
-            raise KeyError(key)
+                continue
+
+        return None
 
     def set(self, key: bytes, value: bytes) -> None:
         self.latest[key] = value
 
     def exists(self, key: bytes) -> bool:
-        try:
-            self.get(key)
-        except KeyError:
-            return False
-        else:
-            return True
+        val = self.get(key)
+        return val is not None and val is not DELETED_ENTRY
 
     def delete(self, key: bytes) -> None:
-        self.latest[key] = None
+        self.latest[key] = DELETED_ENTRY
 
 
 class JournalDB(BaseDB):
@@ -172,12 +170,13 @@ class JournalDB(BaseDB):
         self.wrapped_db = wrapped_db
         self.reset()
 
-    # TODO: Measure perf impact of exception ping pong
     def get(self, key: bytes) -> bytes:
-        try:
-            return self.journal[key]
-        except KeyError:
+
+        val = self.journal[key]
+        if val is None:
             return self.wrapped_db[key]
+        else:
+            return val
 
     def set(self, key: bytes, value: bytes) -> None:
         """
@@ -233,7 +232,7 @@ class JournalDB(BaseDB):
 
         if self.journal.is_empty():
             for key, value in journal_data.items():
-                if value is not None:
+                if value is not DELETED_ENTRY:
                     self.wrapped_db[key] = value
                 else:
                     try:
