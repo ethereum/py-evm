@@ -20,7 +20,6 @@ def test_building_block_incrementally_with_single_transaction(
         funded_address,
         funded_address_private_key):
     head_hash = chain.get_canonical_head().hash
-
     tx = new_transaction(
         chain.get_vm(),
         from_=funded_address,

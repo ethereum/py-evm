@@ -45,9 +45,9 @@ from evm.db.backends.base import (
 from evm.db.journal import (
     JournalDB,
 )
-from evm.db.state import (
-    BaseAccountStateDB,
-    MainAccountStateDB,
+from evm.db.account import (
+    BaseAccountDB,
+    AccountDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -110,7 +110,7 @@ class BaseChainDB(metaclass=ABCMeta):
 
     def __init__(self,
                  db: BaseDB,
-                 account_state_class: Type[BaseAccountStateDB] = MainAccountStateDB,
+                 account_state_class: Type[BaseAccountDB] = AccountDB,
                  trie_class: Type[HexaryTrie] = HexaryTrie) -> None:
 
         self.db = db
@@ -248,7 +248,7 @@ class BaseChainDB(metaclass=ABCMeta):
     @abstractmethod
     def get_state_db(self,
                      state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
+                     read_only: bool) -> BaseAccountDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -573,7 +573,7 @@ class ChainDB(BaseChainDB):
     #
     def get_state_db(self,
                      state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
+                     read_only: bool) -> BaseAccountDB:
         return self.account_state_class(
             db=self.journal_db,
             root_hash=state_root,

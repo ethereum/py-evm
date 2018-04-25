@@ -172,7 +172,8 @@ class OutOfBoundsRead(VMError):
     pass
 
 
-class DecommissionedStateDB(Exception):
+class DecommissionedAccountDB(Exception):
     """
-    Raised when an attempt was made to use a StateDB object used after leaving the context.
+    Raised when an attempt was made to use a AccountDB object used after
+    leaving the context.
     """
