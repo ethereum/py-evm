@@ -314,7 +314,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         )
 
     try:
-        computation, _ = vm.apply_transaction(transaction)
+        block, _, computation = vm.apply_transaction(transaction)
     except ValidationError as err:
         transaction_error = err
         LOGGER.warn("Got transaction error", exc_info=True)
@@ -340,4 +340,4 @@ def test_state_fixtures(fixture, fixture_vm_class):
             else:
                 assert computation.output == expected_output
 
-    assert vm.block.header.state_root == fixture['post']['hash']
+    assert block.header.state_root == fixture['post']['hash']

@@ -284,7 +284,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         # Set block.
         new_block, receipt = self.add_transaction(transaction, computation, block)
-        return computation, new_block, receipt
+        return new_block, receipt, computation
 
     def add_transaction(self, transaction, computation, block):
         """
