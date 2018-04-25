@@ -19,6 +19,7 @@ def test_delete_removes_data_from_underlying_db_after_persist(journal_db, memory
     assert memory_db.exists(b'1') is True
 
     journal_db.delete(b'1')
+    assert memory_db.exists(b'1') is True
     journal_db.persist()
 
     assert memory_db.exists(b'1') is False
@@ -147,10 +148,6 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
     changeset_c = journal_db.record()
     assert len(journal_db.journal.journal_data) == 4
 
-    # TODO: Clarify
-    # This seems counterintuitive to me. Why does commiting to changeset_b
-    # Mean we are implicitly commiting to subsequent changesets?
-    # Why don't we just merge b into a but keep c seperate?
     journal_db.commit(changeset_b)
     assert journal_db.get(b'1') == b'test-c'
     assert len(journal_db.journal.journal_data) == 2
