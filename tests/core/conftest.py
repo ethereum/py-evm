@@ -3,13 +3,16 @@ import pytest
 from eth_utils import (
     decode_hex,
     to_canonical_address,
+    to_wei,
 )
-from eth_keys import KeyAPI
+from eth_keys import keys
 
 from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
+# TODO: tests should not be locked into one set of VM rules.  Look at expanding
+# to all mainnet vms.
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 
 
@@ -19,7 +22,7 @@ def import_block_without_validation(chain, block):
 
 @pytest.fixture
 def funded_address_private_key():
-    return KeyAPI().PrivateKey(
+    return keys.PrivateKey(
         decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
     )
 
@@ -31,7 +34,7 @@ def funded_address(funded_address_private_key):
 
 @pytest.fixture
 def funded_address_initial_balance():
-    return 10000000000
+    return to_wei(1000, 'ether')
 
 
 @pytest.fixture

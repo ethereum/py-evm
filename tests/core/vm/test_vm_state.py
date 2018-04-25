@@ -78,7 +78,7 @@ def test_apply_transaction(
         amount,
         private_key=funded_address_private_key,
     )
-    computation, result_block = vm_example.apply_transaction(tx1)
+    result_block, _, computation = vm_example.apply_transaction(tx1)
 
     # The second transaction
     recipient2 = decode_hex('0x2222222222222222222222222222222222222222')
@@ -89,7 +89,7 @@ def test_apply_transaction(
         amount,
         private_key=funded_address_private_key,
     )
-    computation, result_block = vm_example.apply_transaction(tx2)
+    result_block, _, computation = vm_example.apply_transaction(tx2)
     assert len(result_block.transactions) == 2
 
     # (2) Test State.apply_transaction(...)
@@ -109,7 +109,7 @@ def test_apply_transaction(
     )
     parent_hash = copy.deepcopy(prev_hashes[0])
 
-    computation, block, _ = state1.apply_transaction(
+    block, _, computation = state1.apply_transaction(
         tx1,
         block1,
     )
@@ -125,7 +125,7 @@ def test_apply_transaction(
         state_root=block.header.state_root,
         gas_used=computation.state.gas_used,
     )
-    computation, block, _ = state1.apply_transaction(
+    block, _, computation = state1.apply_transaction(
         tx2,
         block,
     )

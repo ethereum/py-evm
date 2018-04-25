@@ -63,7 +63,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.chaindb = chaindb
         block_class = self.get_block_class()
         self.block = block_class.from_header(header=header, chaindb=self.chaindb)
-        self.receipts = []  # type: List[Receipt]
 
     #
     # Logging
@@ -79,14 +78,14 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Apply the transaction to the vm in the current block.
         """
-        computation, block, receipt = self.state.apply_transaction(
+        block, receipt, computation = self.state.apply_transaction(
             transaction,
             self.block,
         )
         self.block = block
-        self.receipts.append(receipt)
+        self.chaindb.persist()
 
-        return computation, self.block
+        return self.block, receipt, computation
 
     def execute_bytecode(self,
                          origin,
@@ -130,7 +129,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Mining
     #
     def import_block(self, block):
-        self.receipts = []
+        self.receipts = []  # type: List[Receipt]
         self.block = self.block.copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
@@ -145,8 +144,34 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         )
 
         # run all of the transactions.
-        for transaction in block.transactions:
+        execution_data = [
             self.apply_transaction(transaction)
+            for transaction
+            in block.transactions
+        ]
+        if execution_data:
+            _, receipts, _ = zip(*execution_data)
+        else:
+            receipts = tuple()
+
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+
+        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+
+        if receipts:
+            gas_used = receipts[-1].gas_used
+        else:
+            gas_used = 0
+
+        self.block = self.block.copy(
+            header=self.block.header.copy(
+                transaction_root=tx_root_hash,
+                receipt_root=receipt_root_hash,
+                gas_used=gas_used,
+            ),
+        )
 
         return self.mine_block()
 
@@ -154,17 +179,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(self.block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(self.receipts)
-        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
-        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
-
-        header = self.block.header.copy(
-            transaction_root=tx_root_hash,
-            receipt_root=receipt_root_hash,
-        )
-
-        block = self.pack_block(self.block.copy(header=header), *args, **kwargs)
+        block = self.pack_block(self.block, *args, **kwargs)
 
         if block.number == 0:
             return block
@@ -218,10 +233,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
-        gas_used = 0
-        if self.receipts:
-            gas_used = self.receipts[-1].gas_used
-        state = self.get_state(self.chaindb, temp_block, prev_hashes, gas_used)
+        state = self.get_state(self.chaindb, temp_block, prev_hashes, gas_used=0)
         assert state.gas_used == 0, "There must not be any gas used in a fresh temporary block"
 
         snapshot = state.snapshot()
@@ -464,12 +476,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     def state(self):
         """Return current state property
         """
-        gas_used = 0
-        if self.receipts:
-            gas_used = self.receipts[-1].gas_used
         return self.get_state(
             chaindb=self.chaindb,
             block=self.block,
             prev_hashes=self.previous_hashes,
-            gas_used=gas_used,
+            gas_used=self.block.header.gas_used,
         )

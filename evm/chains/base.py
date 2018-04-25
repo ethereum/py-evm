@@ -22,6 +22,7 @@ from evm.constants import (
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
+from evm.db.trie import make_trie_root_and_nodes
 from evm.estimators import (
     get_gas_estimator,
 )
@@ -195,6 +196,13 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     # Execution API
     #
+    @abstractmethod
+    def apply_transaction(self, transaction):
+        """
+        Applies the transaction to the current tip block.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
+
     @abstractmethod
     def estimate_gas(self, transaction, at_header=None):
         """
@@ -460,6 +468,26 @@ class Chain(BaseChain):
     #
     # Mining and Execution API
     #
+    def apply_transaction(self, transaction):
+        """
+        Applies the transaction to the current tip block.
+        """
+        vm = self.get_vm()
+        block, receipt, computation = vm.apply_transaction(transaction)
+        receipts = block.get_receipts(self.chaindb) + [receipt]
+
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+
+        self.header = block.header.copy(
+            transaction_root=tx_root_hash,
+            receipt_root=receipt_root_hash,
+        )
+
+        return block.copy(header=self.header), receipt, computation
+
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:
             at_header = self.get_canonical_head()
