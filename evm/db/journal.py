@@ -134,18 +134,12 @@ class Journal(BaseDB):
         self.latest[key] = value
 
     def exists(self, key):
-        for changeset_data in reversed(self.journal_data.values()):
-            try:
-                value = changeset_data[key]
-            except KeyError:
-                continue
-            else:
-                if value is None:
-                    return False
-                else:
-                    return True
-        else:
+        try:
+            self.get(key)
+        except KeyError:
             return False
+        else:
+            return True
 
     def delete(self, key):
         self.latest[key] = None
