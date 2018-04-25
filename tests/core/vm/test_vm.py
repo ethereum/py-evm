@@ -1,13 +1,17 @@
+import pytest
+
 from eth_utils import decode_hex
 
 from evm import constants
 
-from tests.core.fixtures import (  # noqa: F401
-    chain_without_block_validation,
-)
 from tests.core.helpers import (
     new_transaction,
 )
+
+
+@pytest.fixture
+def chain(chain_without_block_validation):
+    return chain_without_block_validation
 
 
 def test_apply_transaction(

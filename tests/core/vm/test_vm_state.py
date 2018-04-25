@@ -9,17 +9,16 @@ from eth_utils import (
 from evm.exceptions import DecommissionedStateDB
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
-from tests.core.fixtures import chain_without_block_validation  # noqa: F401
 from tests.core.helpers import new_transaction
 
 
-@pytest.fixture  # noqa: F811
+@pytest.fixture
 def state(chain_without_block_validation):
     return chain_without_block_validation.get_vm().state
 
 
-def test_block_properties(chain_without_block_validation):  # noqa: F811
-    chain = chain_without_block_validation  # noqa: F811
+def test_block_properties(chain_without_block_validation):
+    chain = chain_without_block_validation
     vm = chain.get_vm()
     block = chain.import_block(vm.mine_block())
 
@@ -30,7 +29,7 @@ def test_block_properties(chain_without_block_validation):  # noqa: F811
     assert vm.state.gas_limit == block.header.gas_limit
 
 
-def test_state_db(state):  # noqa: F811
+def test_state_db(state):
     address = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     initial_state_root = state.state_root
 
@@ -52,11 +51,11 @@ def test_state_db(state):  # noqa: F811
         state.read_only_state_db.set_balance(address, 0)
 
 
-def test_apply_transaction(  # noqa: F811
+def test_apply_transaction(
         chain_without_block_validation,
         funded_address,
         funded_address_private_key):
-    chain = chain_without_block_validation  # noqa: F811
+    chain = chain_without_block_validation
 
     # Don't change these variables
     vm = chain.get_vm()
