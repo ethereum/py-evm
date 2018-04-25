@@ -173,7 +173,9 @@ class JournalDB(BaseDB):
     def get(self, key: bytes) -> bytes:
 
         val = self.journal[key]
-        if val is None:
+        if val is DELETED_ENTRY:
+            raise KeyError(key)
+        elif val is None:
             return self.wrapped_db[key]
         else:
             return val
