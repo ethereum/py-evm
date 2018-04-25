@@ -21,47 +21,47 @@ class Journal(BaseDB):
     Changesets are referenced by a random uuid4.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # contains a mapping from all of the `uuid4` changeset_ids
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
         self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, bytes]]  # noqa E501
 
     @property
-    def root_changeset_id(self):
+    def root_changeset_id(self) -> uuid.UUID:
         """
         Returns the id of the root changeset
         """
         return first(self.journal_data.keys())
 
     @property
-    def latest_id(self):
+    def latest_id(self) -> uuid.UUID:
         """
         Returns the id of the latest changeset
         """
         return last(self.journal_data.keys())
 
     @property
-    def latest(self):
+    def latest(self) -> Dict[bytes, bytes]:
         """
         Returns the dictionary of db keys and values for the latest changeset.
         """
         return self.journal_data[self.latest_id]
 
     @latest.setter
-    def latest(self, value):
+    def latest(self, value: Dict[bytes, bytes]) -> None:
         """
         Setter for updating the *latest* changeset.
         """
         self.journal_data[self.latest_id] = value
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self.journal_data) == 0
 
-    def has_changeset(self, changeset_id):
+    def has_changeset(self, changeset_id: uuid.UUID) -> bool:
         return changeset_id in self.journal_data
 
-    def record_changeset(self):
+    def record_changeset(self) -> uuid.UUID:
         """
         Creates a new changeset. Changesets are referenced by a random uuid4
         to prevent collisions between multiple changesets.
@@ -70,7 +70,7 @@ class Journal(BaseDB):
         self.journal_data[changeset_id] = {}
         return changeset_id
 
-    def pop_changeset(self, changeset_id):
+    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
         """
         Returns all changes from the given changeset.  This includes all of
         the changes from any subsequent changeset, giving precidence to
@@ -94,7 +94,7 @@ class Journal(BaseDB):
 
         return changeset_data
 
-    def commit_changeset(self, changeset_id):
+    def commit_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
         """
         Collapses all changes for the given changeset into the previous
         changesets if it exists.
@@ -112,12 +112,13 @@ class Journal(BaseDB):
     #
     # Database API
     #
-    def get(self, key):
+    def get(self, key: bytes) -> bytes:
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
         """
-        for changeset_data in reversed(self.journal_data.values()):
+        # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
+        for changeset_data in reversed(self.journal_data.values()):  # type: ignore
             try:
                 value = changeset_data[key]
             except KeyError:
@@ -130,10 +131,10 @@ class Journal(BaseDB):
         else:
             raise KeyError(key)
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes) -> None:
         self.latest[key] = value
 
-    def exists(self, key):
+    def exists(self, key: bytes) -> bool:
         try:
             self.get(key)
         except KeyError:
@@ -141,7 +142,7 @@ class Journal(BaseDB):
         else:
             return True
 
-    def delete(self, key):
+    def delete(self, key: bytes) -> None:
         self.latest[key] = None
 
 
@@ -185,10 +186,10 @@ class JournalDB(BaseDB):
         """
         self.journal[key] = value
 
-    def exists(self, key):
+    def exists(self, key: bytes) -> bool:
         return key in self.journal or key in self.wrapped_db
 
-    def delete(self, key):
+    def delete(self, key: bytes) -> None:
         if key not in self.journal and key not in self.wrapped_db:
             raise KeyError(key)
         del self.journal[key]
@@ -196,7 +197,7 @@ class JournalDB(BaseDB):
     #
     # Snapshot API
     #
-    def _validate_changeset(self, changeset_id):
+    def _validate_changeset(self, changeset_id: uuid.UUID) -> None:
         """
         Checks to be sure the changeset is known by the journal
         """
@@ -205,20 +206,20 @@ class JournalDB(BaseDB):
                 str(changeset_id)
             ))
 
-    def record(self):
+    def record(self) -> uuid.UUID:
         """
         Starts a new recording and returns an id for the associated changeset
         """
         return self.journal.record_changeset()
 
-    def discard(self, changeset_id):
+    def discard(self, changeset_id: uuid.UUID) -> None:
         """
         Throws away all journaled data starting at the given changeset
         """
         self._validate_changeset(changeset_id)
         self.journal.pop_changeset(changeset_id)
 
-    def commit(self, changeset_id):
+    def commit(self, changeset_id: uuid.UUID) -> None:
         """
         Commits a given changeset. This merges the given changeset and all
         subsequent changesets into the previous changeset giving precidence
@@ -244,13 +245,13 @@ class JournalDB(BaseDB):
             # it has been persisted to the underlying db
             self.record()
 
-    def persist(self):
+    def persist(self) -> None:
         """
         Persist all changes in underlying db
         """
         self.commit(self.journal.root_changeset_id)
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the entire journal.
         """
