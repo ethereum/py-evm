@@ -46,7 +46,7 @@ from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address, Node
 from p2p import protocol
 from p2p.exceptions import (
-    AuthenticationError,
+    DecryptionError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
     NoMatchingPeerCapabilities,
@@ -397,7 +397,7 @@ class BasePeer(metaclass=ABCMeta):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise AuthenticationError('Invalid header mac')
+            raise DecryptionError('Invalid header mac')
         return self.aes_dec.update(header_ciphertext)
 
     def decrypt_body(self, data: bytes, body_size: int) -> bytes:
@@ -414,7 +414,7 @@ class BasePeer(metaclass=ABCMeta):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise AuthenticationError('Invalid frame mac')
+            raise DecryptionError('Invalid frame mac')
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
     def get_frame_size(self, header: bytes) -> int:
