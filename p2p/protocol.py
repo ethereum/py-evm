@@ -123,7 +123,7 @@ class Protocol:
         self.peer.send(header, body)
 
     def __repr__(self):
-        return "(%s, %d)" % (self.name.decode('ascii'), self.version)
+        return "(%s, %d)" % (self.name, self.version)
 
 
 def _pad_to_16_byte_boundary(data):

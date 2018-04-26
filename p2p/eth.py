@@ -50,7 +50,7 @@ class GetBlockHeaders(Command):
         ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
-        ('reverse', sedes.big_endian_int),
+        ('reverse', sedes.boolean),
     ]
 
 
