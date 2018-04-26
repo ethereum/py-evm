@@ -316,6 +316,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     try:
         block, _, computation = vm.apply_transaction(transaction)
     except ValidationError as err:
+        block = vm.block
         transaction_error = err
         LOGGER.warn("Got transaction error", exc_info=True)
     else:
