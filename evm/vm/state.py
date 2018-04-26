@@ -145,27 +145,27 @@ class BaseState(Configurable, metaclass=ABCMeta):
         Perform a full snapshot of the current state.
 
         Snapshots are a combination of the state_root at the time of the
-        snapshot and the checkpoint_id returned from the journaled DB.
+        snapshot and the id of the changeset from the journaled DB.
         """
-        return (self.state_root, self._chaindb.snapshot())
+        return (self.state_root, self._chaindb.record())
 
     def revert(self, snapshot):
         """
         Revert the VM to the state at the snapshot
         """
-        state_root, checkpoint_id = snapshot
+        state_root, changeset_id = snapshot
 
         with self.mutable_state_db() as state_db:
             # first revert the database state root.
             state_db.root_hash = state_root
 
         # now roll the underlying database back
-        self._chaindb.revert(checkpoint_id)
+        self._chaindb.discard(changeset_id)
 
     def commit(self, snapshot):
         """
         Commits the journal to the point where the snapshot was taken.  This
-        will destroy any journal checkpoints *after* the snapshot checkpoint.
+        will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
         self._chaindb.commit(checkpoint_id)
