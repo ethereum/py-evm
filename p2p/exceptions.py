@@ -5,13 +5,6 @@ class BaseP2PError(Exception):
     pass
 
 
-class AuthenticationError(BaseP2PError):
-    """
-    Raised when a message could not be decrypted.
-    """
-    pass
-
-
 class DecryptionError(BaseP2PError):
     """
     Raised when a message could not be decrypted.
