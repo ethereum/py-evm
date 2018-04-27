@@ -1,83 +1,83 @@
 class PyEVMError(Exception):
     """
-    Base error class for all py-evm errors.
+    Base class for all py-evm errors.
     """
     pass
 
 
 class VMNotFound(PyEVMError):
     """
-    No VM available for the provided block number.
+    Raised when no VM is available for the provided block number.
     """
     pass
 
 
 class BlockNotFound(PyEVMError):
     """
-    The block with the given number/hash does not exist.
+    Raised when the block with the given number/hash does not exist.
     """
     pass
 
 
 class TransactionNotFound(PyEVMError):
     """
-    The transaction with the given hash or block index dos not exist.
+    Raised when the transaction with the given hash or block index does not exist.
     """
     pass
 
 
 class ParentNotFound(PyEVMError):
     """
-    The parent of a given block does not exist.
+    Raised when the parent of a given block does not exist.
     """
     pass
 
 
 class CanonicalHeadNotFound(PyEVMError):
     """
-    The chain has no canonical head.
+    Raised when the chain has no canonical head.
     """
     pass
 
 
 class CollationHeaderNotFound(PyEVMError):
     """
-    The collation header for the given shard and period does not exist in the database.
+    Raised when the collation header for the given shard and period does not exist in the database.
     """
     pass
 
 
 class CollationBodyNotFound(PyEVMError):
     """
-    The collation body for the given shard and period does not exist in the database.
+    Raised when the collation body for the given shard and period does not exist in the database.
     """
     pass
 
 
 class CanonicalCollationNotFound(PyEVMError):
     """
-    No collation for the given shard and period has been marked as canonical.
+    Raised when no collation for the given shard and period has been marked as canonical.
     """
     pass
 
 
 class ValidationError(PyEVMError):
     """
-    Error to signal something does not pass a validation check.
+    Raised when something does not pass a validation check.
     """
     pass
 
 
 class Halt(PyEVMError):
     """
-    Raised by opcode function to halt vm execution.
+    Raised when an opcode function halts vm execution.
     """
     pass
 
 
 class VMError(PyEVMError):
     """
-    Class of errors which can be raised during VM execution.
+    Base class for errors raised during VM execution.
     """
     burns_gas = True
     erases_return_data = True
@@ -85,42 +85,42 @@ class VMError(PyEVMError):
 
 class OutOfGas(VMError):
     """
-    Error signaling that VM execution has run out of gas.
+    Raised when a VM execution has run out of gas.
     """
     pass
 
 
 class InsufficientStack(VMError):
     """
-    Error signaling that the stack is empty.
+    Raised when the stack is empty.
     """
     pass
 
 
 class FullStack(VMError):
     """
-    Error signaling that the stack is full.
+    Raised when the stack is full.
     """
     pass
 
 
 class InvalidJumpDestination(VMError):
     """
-    Error signaling that the jump destination for a JUMPDEST operation is invalid.
+    Raised when the jump destination for a JUMPDEST operation is invalid.
     """
     pass
 
 
 class InvalidInstruction(VMError):
     """
-    Error signaling that an opcode is invalid.
+    Raised when an opcode is invalid.
     """
     pass
 
 
 class InsufficientFunds(VMError):
     """
-    Error signaling that an account has insufficient funds to transfer the
+    Raised when an account has insufficient funds to transfer the
     requested value.
     """
     pass
@@ -128,29 +128,29 @@ class InsufficientFunds(VMError):
 
 class StackDepthLimit(VMError):
     """
-    Error signaling that the call stack has exceeded it's maximum allowed depth.
+    Raised when the call stack has exceeded it's maximum allowed depth.
     """
     pass
 
 
 class ContractCreationCollision(VMError):
     """
-    Error signaling that there was an address collision during contract creation.
+    Raised when there was an address collision during contract creation.
     """
     pass
 
 
 class IncorrectContractCreationAddress(VMError):
     """
-    Error signaling that the address provided by transaction does not
-    match thecalculated contract creation address.
+    Raised when the address provided by transaction does not
+    match the calculated contract creation address.
     """
     pass
 
 
 class Revert(VMError):
     """
-    Error used by the REVERT opcode
+    Raised when the REVERT opcode occured
     """
     burns_gas = False
     erases_return_data = False
@@ -158,7 +158,7 @@ class Revert(VMError):
 
 class WriteProtection(VMError):
     """
-    Error raised if an attempt to modify the state database is made while
+    Raised when an attempt to modify the state database is made while
     operating inside of a STATICCALL context.
     """
     pass
@@ -166,7 +166,7 @@ class WriteProtection(VMError):
 
 class OutOfBoundsRead(VMError):
     """
-    Error raised to indicate an attempt was made to read data beyond the
+    Raised when an attempt was made to read data beyond the
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
@@ -174,5 +174,5 @@ class OutOfBoundsRead(VMError):
 
 class DecommissionedStateDB(Exception):
     """
-    An attempt was made to use a StateDB object used after leaving the context.
+    Raised when an attempt was made to use a StateDB object used after leaving the context.
     """
