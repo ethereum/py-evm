@@ -9,7 +9,6 @@ from trie import (
 from evm.constants import (
     BLANK_ROOT_HASH,
 )
-from evm.db.backends.memory import MemoryDB
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
 
@@ -26,8 +25,9 @@ def make_trie_root_and_nodes(
 @functools.lru_cache(128)
 def _make_trie_root_and_nodes(items: Tuple[bytes, ...]) -> Tuple[bytes, Dict[bytes, bytes]]:
     kv_store = {}  # type: Dict[bytes, bytes]
-    trie = HexaryTrie(MemoryDB(kv_store), BLANK_ROOT_HASH)
-    for index, item in enumerate(items):
-        index_key = rlp.encode(index, sedes=rlp.sedes.big_endian_int)
-        trie[index_key] = item
+    trie = HexaryTrie(kv_store, BLANK_ROOT_HASH)
+    with trie.squash_changes() as memory_trie:
+        for index, item in enumerate(items):
+            index_key = rlp.encode(index, sedes=rlp.sedes.big_endian_int)
+            memory_trie[index_key] = item
     return trie.root_hash, kv_store
