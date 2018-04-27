@@ -15,7 +15,7 @@ deps = {
         "py-ecc>=1.4.2,<2.0.0",
         "rlp>=1.0.1,<2.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
-        "trie>=1.3.2,<2.0.0",
+        "trie>=1.3.5,<2.0.0",
         "lru-dict>=1.1.6",
     ],
     # The evm-extra sections is for libraries that the evm does not
