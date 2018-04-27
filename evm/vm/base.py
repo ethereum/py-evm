@@ -86,8 +86,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.block = block
         self.receipts.append(receipt)
 
-        self.chaindb.persist()
-
         return computation, self.block
 
     def execute_bytecode(self,
