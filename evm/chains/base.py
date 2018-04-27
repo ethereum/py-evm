@@ -162,20 +162,6 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def add_pending_transaction(self, transaction):
-        """
-        Adds a transaction to the set of pending transactions.
-        """
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
-    def get_pending_transaction(self, transaction_hash):
-        """
-        Retrieves a transaction from the set of pending transactions.
-        """
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
     def create_transaction(self, *args, **kwargs):
         """
         Creates a transaction object.
@@ -340,12 +326,6 @@ class Chain(BaseChain):
                 block_num,
                 index,
             ))
-
-    def add_pending_transaction(self, transaction):
-        return self.chaindb.add_pending_transaction(transaction)
-
-    def get_pending_transaction(self, transaction_hash):
-        return self.get_vm().get_pending_transaction(transaction_hash)
 
     def create_transaction(self, *args, **kwargs):
         """

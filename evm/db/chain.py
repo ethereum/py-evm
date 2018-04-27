@@ -59,7 +59,6 @@ from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
     make_transaction_hash_to_block_lookup_key,
-    make_transaction_hash_to_data_lookup_key,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -216,18 +215,7 @@ class BaseChainDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def get_pending_transaction(
-            self,
-            transaction_hash: bytes,
-            transaction_class: Type['BaseTransaction']) -> Type['BaseTransaction']:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
     def get_transaction_index(self, transaction_hash: bytes) -> Tuple[int, int]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -524,17 +512,6 @@ class ChainDB(BaseChainDB):
             raise TransactionNotFound(
                 "No transaction is at index {} of block {}".format(transaction_index, block_number))
 
-    def get_pending_transaction(
-            self,
-            transaction_hash: bytes,
-            transaction_class: Type['BaseTransaction']) -> Type['BaseTransaction']:
-        try:
-            data = self.db.get(make_transaction_hash_to_data_lookup_key(transaction_hash))
-            return rlp.decode(data, sedes=transaction_class)
-        except KeyError:
-            raise TransactionNotFound(
-                "Transaction with hash {} not found".format(encode_hex(transaction_hash)))
-
     def get_transaction_index(self, transaction_hash: bytes) -> Tuple[int, int]:
         try:
             encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
@@ -563,17 +540,6 @@ class ChainDB(BaseChainDB):
         self.db.set(
             make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
-        )
-
-        # because transaction is now in canonical chain, can now remove from pending txn lookups
-        lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
-        if self.db.exists(lookup_key):
-            self.db.delete(lookup_key)
-
-    def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
-        self.db.set(
-            make_transaction_hash_to_data_lookup_key(transaction.hash),
-            rlp.encode(transaction),
         )
 
     def add_transaction(self,

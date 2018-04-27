@@ -58,32 +58,16 @@ def test_import_block(chain, tx):
     computation, _ = vm.apply_transaction(tx)
     assert not computation.is_error
 
-    # add pending so that we can confirm it gets removed when imported to a block
-    chain.add_pending_transaction(tx)
-
     block = chain.import_block(vm.block)
     assert block.transactions == (tx,)
     assert chain.get_block_by_hash(block.hash) == block
     assert chain.get_canonical_block_by_number(block.number) == block
     assert chain.get_canonical_transaction(tx.hash) == tx
 
-    with pytest.raises(TransactionNotFound):
-        # after mining, the transaction shouldn't be in the pending set anymore
-        chain.get_pending_transaction(tx.hash)
-
-
-def test_get_pending_transaction(chain, tx):
-    chain.add_pending_transaction(tx)
-    assert chain.get_pending_transaction(tx.hash) == tx
-
 
 def test_empty_transaction_lookups(chain):
-
     with pytest.raises(TransactionNotFound):
         chain.get_canonical_transaction(b'\0' * 32)
-
-    with pytest.raises(TransactionNotFound):
-        chain.get_pending_transaction(b'\0' * 32)
 
 
 def test_canonical_chain(valid_chain):
