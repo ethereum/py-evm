@@ -147,7 +147,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
-        return (self.state_root, self._chaindb.record())
+        with self.mutable_state_db() as state_db:
+            return (self.state_root, state_db.record())
 
     def revert(self, snapshot):
         """
@@ -158,9 +159,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
         with self.mutable_state_db() as state_db:
             # first revert the database state root.
             state_db.root_hash = state_root
-
-        # now roll the underlying database back
-        self._chaindb.discard(changeset_id)
+            # now roll the underlying database back
+            state_db.discard(changeset_id)
 
     def commit(self, snapshot):
         """
@@ -168,13 +168,14 @@ class BaseState(Configurable, metaclass=ABCMeta):
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
-        self._chaindb.commit(checkpoint_id)
+        with self.mutable_state_db() as state_db:
+            state_db.commit(checkpoint_id)
 
     def is_key_exists(self, key):
         """
         Check if the given key exsits in chaindb
         """
-        return self._chaindb.exists(key)
+        return self.read_only_state_db.exists(key)
 
     #
     # Access self.prev_hashes (Read-only)
@@ -284,6 +285,10 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         # Set block.
         new_block, receipt = self.add_transaction(transaction, computation, block)
+
+        with self.mutable_state_db() as state_db:
+            state_db.persist()
+
         return computation, new_block, receipt
 
     def add_transaction(self, transaction, computation, block):
@@ -353,6 +358,11 @@ class BaseState(Configurable, metaclass=ABCMeta):
                     uncle_reward,
                     uncle.coinbase,
                 )
+            # We need to call `persist` here since the state db batches
+            # all writes untill we tell it to write to the underlying db
+            # TODO: Refactor to only use batching/journaling for tx processing
+            state_db.persist()
+
         return block.copy(header=block.header.copy(state_root=self.state_root))
 
     @staticmethod

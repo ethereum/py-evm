@@ -14,7 +14,6 @@ from typing import (
     TYPE_CHECKING,
     Union
 )
-from uuid import UUID
 
 import rlp
 
@@ -256,25 +255,6 @@ class BaseChainDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
-    # Record and discard API
-    #
-    @abstractmethod
-    def record(self) -> UUID:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def discard(self, checkpoint: UUID) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def commit(self, checkpoint: UUID) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def clear(self) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
     # State Database API
     #
     @abstractmethod
@@ -498,7 +478,7 @@ class ChainDB(BaseChainDB):
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = self.trie_class(self.journal_db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -606,7 +586,7 @@ class ChainDB(BaseChainDB):
     # Raw Database API
     #
     def exists(self, key: bytes) -> bool:
-        return self.journal_db.exists(key)
+        return self.db.exists(key)
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
         """
@@ -614,24 +594,6 @@ class ChainDB(BaseChainDB):
         """
         for key, value in trie_data_dict.items():
             self.db[key] = value
-
-    #
-    # Record and discard API
-    #
-    def record(self) -> UUID:
-        return self.journal_db.record()
-
-    def discard(self, changeset_id: UUID) -> None:
-        self.journal_db.discard(changeset_id)
-
-    def commit(self, changeset_id: UUID) -> None:
-        self.journal_db.commit(changeset_id)
-
-    def persist(self) -> None:
-        self.journal_db.persist()
-
-    def clear(self) -> None:
-        self.journal_db.reset()
 
     #
     # State Database API
@@ -688,15 +650,3 @@ class NonJournaledAsyncChainDB(AsyncChainDB):
         self.journal_db = db
         self.account_state_class = account_state_class
         self.set_trie(trie_class)
-
-    def snapshot(self):
-        raise NotImplementedError()
-
-    def revert(self, checkpoint):
-        raise NotImplementedError()
-
-    def commit(self, checkpoint):
-        raise NotImplementedError()
-
-    def clear(self):
-        raise NotImplementedError()

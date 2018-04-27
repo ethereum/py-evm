@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from uuid import UUID
 
 from lru import LRU
 
@@ -124,6 +125,25 @@ class BaseAccountStateDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def account_is_empty(self, address):
+        raise NotImplementedError("Must be implemented by subclass")
+
+    #
+    # Record and discard API
+    #
+    @abstractmethod
+    def record(self) -> UUID:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    @abstractmethod
+    def discard(self, checkpoint: UUID) -> None:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    @abstractmethod
+    def commit(self, checkpoint: UUID) -> None:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    @abstractmethod
+    def clear(self) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
 
@@ -326,3 +346,24 @@ class MainAccountStateDB(BaseAccountStateDB):
         self._trie[address] = rlp_account
         cache_key = (self._unwrapped_db, self.root_hash, address)
         account_cache[cache_key] = rlp_account
+
+    #
+    # Record and discard API
+    #
+    def record(self) -> UUID:
+        return self._unwrapped_db.record()
+
+    def discard(self, changeset_id: UUID) -> None:
+        self._unwrapped_db.discard(changeset_id)
+
+    def commit(self, changeset_id: UUID) -> None:
+        self._unwrapped_db.commit(changeset_id)
+
+    def persist(self) -> None:
+        self._unwrapped_db.persist()
+
+    def clear(self) -> None:
+        self._unwrapped_db.reset()
+
+    def exists(self, key: bytes) -> bool:
+        return self._unwrapped_db.exists(key)
