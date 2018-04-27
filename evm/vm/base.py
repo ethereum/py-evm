@@ -129,7 +129,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Mining
     #
     def import_block(self, block):
-        self.receipts = []  # type: List[Receipt]
         self.block = self.block.copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
