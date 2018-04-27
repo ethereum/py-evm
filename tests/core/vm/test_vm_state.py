@@ -6,7 +6,6 @@ from eth_utils import (
     decode_hex,
 )
 
-from evm.exceptions import DecommissionedStateDB
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
 from tests.core.helpers import new_transaction
@@ -27,28 +26,6 @@ def test_block_properties(chain_without_block_validation):
     assert vm.state.block_number == block.header.block_number
     assert vm.state.difficulty == block.header.difficulty
     assert vm.state.gas_limit == block.header.gas_limit
-
-
-def test_state_db(state):
-    address = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
-    initial_state_root = state.state_root
-
-    # test cannot write to state_db after context exits
-    with state.mutable_state_db() as state_db:
-        pass
-
-    with pytest.raises(DecommissionedStateDB):
-        state_db.increment_nonce(address)
-
-    state.read_only_state_db.get_balance(address)
-    assert state.state_root == initial_state_root
-
-    with state.mutable_state_db() as state_db:
-        state_db.set_balance(address, 10)
-    assert state.state_root != initial_state_root
-
-    with pytest.raises(TypeError):
-        state.read_only_state_db.set_balance(address, 0)
 
 
 def test_apply_transaction(

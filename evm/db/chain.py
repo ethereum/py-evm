@@ -12,14 +12,12 @@ from typing import (
     Tuple,
     Type,
     TYPE_CHECKING,
-    Union
 )
 from uuid import UUID
 
 import rlp
 
 from trie import (
-    BinaryTrie,
     HexaryTrie,
 )
 
@@ -31,8 +29,6 @@ from eth_utils import (
 
 from evm.constants import (
     GENESIS_PARENT_HASH,
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -47,8 +43,8 @@ from evm.db.journal import (
     JournalDB,
 )
 from evm.db.account import (
-    BaseAccountStateDB,
-    MainAccountStateDB,
+    BaseAccountDB,
+    AccountDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -89,36 +85,11 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(metaclass=ABCMeta):
-    trie_class = None
-    empty_root_hash = None
-
-    #
-    # Trie
-    #
-    def set_trie(self, trie_class: Union[Type[HexaryTrie], Type[BinaryTrie]]) -> None:
-        """
-        Sets trie_class and root_hash.
-        """
-        if trie_class is HexaryTrie:
-            empty_root_hash = BLANK_ROOT_HASH
-        elif trie_class is BinaryTrie:
-            empty_root_hash = EMPTY_SHA3
-        else:
-            raise NotImplementedError(
-                "trie_class {} is not supported.".format(trie_class)
-            )
-        self.trie_class = trie_class
-        self.empty_root_hash = empty_root_hash
-
     def __init__(self,
-                 db: BaseDB,
-                 account_state_class: Type[BaseAccountStateDB] = MainAccountStateDB,
-                 trie_class: Type[HexaryTrie] = HexaryTrie) -> None:
+                 db: BaseDB) -> None:
 
         self.db = db
         self.journal_db = JournalDB(db)
-        self.account_state_class = account_state_class
-        self.set_trie(trie_class)
 
     #
     # Canonical chain API
@@ -280,7 +251,7 @@ class BaseChainDB(metaclass=ABCMeta):
     @abstractmethod
     def get_state_db(self,
                      state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
+                     read_only: bool) -> BaseAccountDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -485,7 +456,7 @@ class ChainDB(BaseChainDB):
     #
     @to_list
     def get_receipts(self, header: BlockHeader, receipt_class: Type[Receipt]) -> Iterable[Receipt]:
-        receipt_db = self.trie_class(db=self.db, root_hash=header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
             if receipt_key in receipt_db:
@@ -498,7 +469,7 @@ class ChainDB(BaseChainDB):
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = self.trie_class(self.journal_db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.journal_db, root_hash=block_header.transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -528,7 +499,7 @@ class ChainDB(BaseChainDB):
             block_header = self.get_canonical_block_header_by_number(block_number)
         except KeyError:
             raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         if encoded_index in transaction_db:
             encoded_transaction = transaction_db[encoded_index]
@@ -593,12 +564,12 @@ class ChainDB(BaseChainDB):
                         block_header: BlockHeader,
                         index_key: int,
                         transaction: 'BaseTransaction') -> bytes:
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header: BlockHeader, index_key: int, receipt: Receipt) -> bytes:
-        receipt_db = self.trie_class(db=self.db, root_hash=block_header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
 
@@ -638,8 +609,8 @@ class ChainDB(BaseChainDB):
     #
     def get_state_db(self,
                      state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
-        return self.account_state_class(
+                     read_only: bool) -> BaseAccountDB:
+        return AccountDB(
             db=self.journal_db,
             root_hash=state_root,
             read_only=read_only,
@@ -683,11 +654,9 @@ class AsyncChainDB(ChainDB):
 
 class NonJournaledAsyncChainDB(AsyncChainDB):
 
-    def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
+    def __init__(self, db):
         self.db = db
         self.journal_db = db
-        self.account_state_class = account_state_class
-        self.set_trie(trie_class)
 
     def snapshot(self):
         raise NotImplementedError()

@@ -6,10 +6,6 @@ from hypothesis import (
 )
 
 import rlp
-from trie import (
-    BinaryTrie,
-    HexaryTrie,
-)
 
 from eth_utils import (
     keccak,
@@ -23,9 +19,6 @@ from evm.db import (
 )
 from evm.db.chain import (
     ChainDB,
-)
-from evm.db.account import (
-    MainAccountStateDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -61,17 +54,9 @@ def set_empty_root(chaindb, header):
     )
 
 
-@pytest.fixture(params=[MainAccountStateDB])
-def chaindb(request):
-    if request.param is MainAccountStateDB:
-        trie_class = HexaryTrie
-    else:
-        trie_class = BinaryTrie
-    return ChainDB(
-        get_db_backend(),
-        account_state_class=request.param,
-        trie_class=trie_class,
-    )
+@pytest.fixture
+def chaindb():
+    return ChainDB(get_db_backend())
 
 
 @pytest.fixture(params=[0, 10, 999])

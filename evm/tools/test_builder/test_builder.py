@@ -12,7 +12,7 @@ from typing import (  # noqa: F401
 )
 
 from evm.db.account import (
-    MainAccountStateDB,
+    AccountDB,
 )
 from evm.tools.fixture_tests import (
     hash_log_entries,
@@ -108,11 +108,11 @@ ALL_NETWORKS = [
 ]
 
 ACCOUNT_STATE_DB_CLASSES = {
-    "Frontier": MainAccountStateDB,
-    "Homestead": MainAccountStateDB,
-    "EIP150": MainAccountStateDB,
-    "EIP158": MainAccountStateDB,
-    "Byzantium": MainAccountStateDB,
+    "Frontier": AccountDB,
+    "Homestead": AccountDB,
+    "EIP150": AccountDB,
+    "EIP158": AccountDB,
+    "Byzantium": AccountDB,
 }
 assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
 

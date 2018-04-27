@@ -4,10 +4,6 @@ import pytest
 
 from eth_keys import keys
 
-from trie import (
-    HexaryTrie,
-)
-
 from evm.db import (
     get_db_backend,
 )
@@ -18,9 +14,6 @@ from eth_utils import (
 )
 
 from evm.db.chain import ChainDB
-from evm.db.account import (
-    MainAccountStateDB,
-)
 from evm.exceptions import (
     ValidationError,
 )
@@ -54,6 +47,7 @@ from eth_typing.enums import (
 )
 
 from tests.conftest import vm_logger
+from tests.core.helpers import apply_state_dict
 
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -261,8 +255,6 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    account_state_class = MainAccountStateDB
-    trie_class = HexaryTrie
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -272,16 +264,12 @@ def test_state_fixtures(fixture, fixture_vm_class):
         parent_hash=fixture['env']['previousHash'],
     )
 
-    chaindb = ChainDB(
-        get_db_backend(),
-        account_state_class=account_state_class,
-        trie_class=trie_class
-    )
+    chaindb = ChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     state = vm.state
-    with state.mutable_state_db() as state_db:
-        state_db.apply_state_dict(fixture['pre'])
+    with state.mutable_state_db() as account_db:
+        apply_state_dict(account_db, fixture['pre'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
     if 'secretKey' in fixture['transaction']:

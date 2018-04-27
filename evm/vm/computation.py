@@ -20,7 +20,7 @@ from eth_typing import (
 )
 
 from evm.db.account import (
-    BaseAccountStateDB
+    BaseAccountDB
 )
 from evm.constants import (
     GAS_MEMORY,
@@ -372,7 +372,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             return self._gas_meter.gas_remaining
 
     @contextmanager
-    def state_db(self, read_only: bool = False) -> Iterator[BaseAccountStateDB]:
+    def state_db(self, read_only: bool = False) -> Iterator[BaseAccountDB]:
         with self.state.state_db(read_only) as state_db:
             yield state_db
 

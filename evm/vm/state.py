@@ -2,7 +2,6 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-from contextlib import contextmanager
 import logging
 from typing import (  # noqa: F401
     Type,
@@ -25,8 +24,12 @@ from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
 )
-from evm.db.account import (
+from evm.db.account import (  # noqa: F401
     BaseAccountDB,
+    AccountDB,
+)
+from evm.db.journal import (
+    JournalDB,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -48,21 +51,68 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
-    _chaindb = None
+    _db = None
     execution_context = None
     state_root = None
-    gas_used = None
 
-    block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
-    trie_class = None
     transaction_context_class = None  # type: Type[BaseTransactionContext]
+    account_db_class = None  # Type[BaseAccountDB]
 
-    def __init__(self, chaindb, execution_context, state_root, gas_used):
-        self._chaindb = chaindb
+    def __init__(self, db, execution_context, state_root):
+        self._db = db
+        self._journal_db = JournalDB(self._db)
+        self.account_db = self.get_account_db_class()(self._journal_db, state_root)
         self.execution_context = execution_context
-        self.state_root = state_root
-        self.gas_used = gas_used
+
+    @classmethod
+    def get_account_db_class(cls):
+        if cls.account_db_class is None:
+            raise AttributeError("No account_db_class defined for {0}".format(cls.__name__))
+        return cls.account_db_class
+
+    #
+    # Account State
+    #
+    @property
+    def state_root(self):
+        return self.account_db.root_hash
+
+    def snapshot(self):
+        """
+        Perform a full snapshot of the current state.
+
+        Snapshots are a combination of the state_root at the time of the
+        snapshot and the id of the changeset from the journaled DB.
+        """
+        return (self.state_root, self._journal_db.record())
+
+    def revert(self, snapshot):
+        """
+        Revert the VM to the state at the snapshot
+        """
+        state_root, changeset_id = snapshot
+
+        # roll the underlying database back
+        self._journal_db.discard(changeset_id)
+
+        # replace the account_db
+        self.account_db = self.get_account_db_class()(self._journal_db, state_root)
+
+    def commit(self, snapshot):
+        """
+        Commits the journal to the point where the snapshot was taken.  This
+        will merge in any changesets that were recorded *after* the snapshot changeset.
+        """
+        _, checkpoint_id = snapshot
+        self._journal_db.commit(checkpoint_id)
+
+    def persist(self):
+        self._journal_db.persist()
+
+    def reset(self):
+        self._journal_db = JournalDB(self._db)
+        self.record()
 
     #
     # Logging
@@ -74,7 +124,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Block Object Properties (in opcodes)
     #
-
     @property
     def coinbase(self):
         return self.execution_context.coinbase
@@ -94,90 +143,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @property
     def gas_limit(self):
         return self.execution_context.gas_limit
-
-    #
-    # read only state_db
-    #
-    @property
-    def read_only_state_db(self):
-        return self._chaindb.get_state_db(self.state_root, read_only=True)
-
-    #
-    # mutable state_db
-    #
-    @contextmanager
-    def mutable_state_db(self):
-        state = self._chaindb.get_state_db(self.state_root, read_only=False)
-        yield state
-
-        if self.state_root != state.root_hash:
-            self.set_state_root(state.root_hash)
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.decommission()
-
-    #
-    # state_db
-    #
-    @contextmanager
-    def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(
-            self.state_root,
-            read_only,
-        )
-        yield state
-
-        if self.state_root != state.root_hash:
-            self.set_state_root(state.root_hash)
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        state.decommission()
-
-    def set_state_root(self, state_root):
-        self.state_root = state_root
-
-    #
-    # Access self._chaindb
-    #
-    def snapshot(self):
-        """
-        Perform a full snapshot of the current state.
-
-        Snapshots are a combination of the state_root at the time of the
-        snapshot and the id of the changeset from the journaled DB.
-        """
-        return (self.state_root, self._chaindb.record())
-
-    def revert(self, snapshot):
-        """
-        Revert the VM to the state at the snapshot
-        """
-        state_root, changeset_id = snapshot
-
-        with self.mutable_state_db() as state_db:
-            # first revert the database state root.
-            state_db.root_hash = state_root
-
-        # now roll the underlying database back
-        self._chaindb.discard(changeset_id)
-
-    def commit(self, snapshot):
-        """
-        Commits the journal to the point where the snapshot was taken.  This
-        will merge in any changesets that were recorded *after* the snapshot changeset.
-        """
-        _, checkpoint_id = snapshot
-        self._chaindb.commit(checkpoint_id)
-
-    def is_key_exists(self, key):
-        """
-        Check if the given key exsits in chaindb
-        """
-        return self._chaindb.exists(key)
 
     #
     # Access self.prev_hashes (Read-only)
