@@ -353,6 +353,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
                     uncle_reward,
                     uncle.coinbase,
                 )
+            self._chaindb.persist()
         return block.copy(header=block.header.copy(state_root=self.state_root))
 
     @staticmethod

@@ -470,6 +470,7 @@ class Chain(BaseChain):
         genesis_header = BlockHeader(**genesis_params)
         genesis_chain = cls(chaindb, genesis_header)
         chaindb.persist_block(genesis_chain.get_block())
+        chaindb.persist()
         return cls.from_genesis_header(chaindb, genesis_header)
 
     @classmethod
