@@ -1,0 +1,269 @@
+version: 2.0
+
+# heavily inspired by: 
+# https://raw.githubusercontent.com/pinax/pinax-wiki/6bd2a99ab6f702e300d708532a6d1d9aa638b9f8/.circleci/config.yml
+
+common: &common
+  working_directory: ~/repo
+  steps:
+    - checkout
+    - run:
+        name: checkout fixtures submodule
+        command: git submodule update --init --recursive
+    - run:
+        name: merge pull request base
+        command: |
+          if [[ -n "${CIRCLE_PR_NUMBER}" ]]; then
+            PR_INFO_URL=https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER
+
+            PR_BASE_BRANCH=$(curl -L "$PR_INFO_URL" | python -c 'import json, sys; obj = json.load(sys.stdin); sys.stdout.write(obj["base"]["ref"])')
+            git fetch origin +"$PR_BASE_BRANCH":circleci/pr-base
+
+            # We need these config values or git complains when creating the
+            # merge commit
+            git config --global user.name "Circle CI"
+            git config --global user.email "circleci@example.com"
+
+            git merge --no-edit circleci/pr-base
+          fi
+    - restore_cache:
+        keys:
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run:
+        name: install dependencies
+        command: pip install --user tox
+    - run:
+        name: run tox
+        command: ~/.local/bin/tox
+    - save_cache:
+        paths:
+          - .hypothesis
+          - .tox
+          - ~/.cache/pip
+          - ~/.local
+          - ./eggs
+        key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+
+jobs:
+  lint-py35:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: lint-py35
+  lint-py36:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: lint-py36
+  py35-native-state-byzantium:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-byzantium
+  py35-native-state-frontier:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-frontier
+  py35-native-state-homestead:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-homestead
+  py35-native-state-eip150:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-eip150
+  py35-native-state-eip158:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-eip158
+  py35-native-blockchain:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-blockchain
+  py35-vm:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-vm
+  py35-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-core
+  py35-transactions:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-transactions
+  py35-database:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-database
+  py36-native-state-byzantium:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-byzantium
+  py36-native-state-frontier:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-frontier
+  py36-native-state-homestead:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-homestead
+  py36-native-state-eip150:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-eip150
+  py36-native-state-eip158:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-eip158
+  py36-rpc-state-byzantium:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-byzantium
+  py36-rpc-state-frontier:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-frontier
+  py36-rpc-state-homestead:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-homestead
+  py36-rpc-state-eip150:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-eip150
+  py36-rpc-state-eip158:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-eip158
+  py36-native-blockchain:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-blockchain
+  py36-rpc-blockchain:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-blockchain
+  py36-vm:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-vm
+  py36-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-core
+  py36-trinity:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-trinity
+  py36-transactions:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-transactions
+  py36-p2p:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-p2p
+  py36-database:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-database
+  py36-rpc-state-quadratic:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-quadratic
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - lint-py35
+      - lint-py36
+      - py35-native-state-byzantium
+      - py35-native-state-frontier
+      - py35-native-state-homestead
+      - py35-native-state-eip150
+      - py35-native-state-eip158
+      - py35-native-blockchain
+      - py35-vm
+      - py35-core
+      - py35-transactions
+      - py35-database
+      - py36-native-state-byzantium
+      - py36-native-state-frontier
+      - py36-native-state-homestead
+      - py36-native-state-eip150
+      - py36-native-state-eip158
+      - py36-rpc-state-byzantium
+      - py36-rpc-state-frontier
+      - py36-rpc-state-homestead
+      - py36-rpc-state-eip150
+      - py36-rpc-state-eip158
+      - py36-native-blockchain
+      - py36-rpc-blockchain
+      - py36-vm
+      - py36-core
+      - py36-trinity
+      - py36-transactions
+      - py36-p2p
+      - py36-database
+      - py36-rpc-state-quadratic
