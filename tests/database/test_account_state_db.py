@@ -9,7 +9,7 @@ from evm.exceptions import (
 )
 
 from evm.db.backends.memory import MemoryDB
-from evm.db.state import (
+from evm.db.account import (
     MainAccountStateDB,
 )
 
@@ -26,7 +26,7 @@ INVALID_ADDRESS = b'aa' * 20
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_balance(state):
+def test_accound_db_balance(state):
     assert state.get_balance(ADDRESS) == 0
 
     state.set_balance(ADDRESS, 1)
@@ -52,7 +52,7 @@ def test_balance(state):
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_nonce(state):
+def test_accound_db_nonce(state):
     assert state.get_nonce(ADDRESS) == 0
 
     state.set_nonce(ADDRESS, 5)
@@ -76,7 +76,7 @@ def test_nonce(state):
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_code(state):
+def test_accound_db_code(state):
     assert state.get_code(ADDRESS) == b''
     assert state.get_code_hash(ADDRESS) == EMPTY_SHA3
 
@@ -96,7 +96,7 @@ def test_code(state):
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_storage(state):
+def test_accound_db_storage(state):
     assert state.get_storage(ADDRESS, 0) == 0
 
     state.set_storage(ADDRESS, 0, 123)
@@ -119,7 +119,7 @@ def test_storage(state):
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_storage_deletion(state):
+def test_accound_db_storage_deletion(state):
     state.set_storage(ADDRESS, 0, 123)
     state.set_storage(OTHER_ADDRESS, 1, 321)
     state.delete_storage(ADDRESS)
@@ -133,7 +133,7 @@ def test_storage_deletion(state):
 @pytest.mark.parametrize("state", [
     MainAccountStateDB(MemoryDB()),
 ])
-def test_accounts(state):
+def test_accound_db_accounts(state):
     assert not state.account_exists(ADDRESS)
     assert not state.account_has_code_or_nonce(ADDRESS)
 

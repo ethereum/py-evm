@@ -46,7 +46,7 @@ from evm.db.backends.base import (
 from evm.db.journal import (
     JournalDB,
 )
-from evm.db.state import (
+from evm.db.account import (
     BaseAccountStateDB,
     MainAccountStateDB,
 )

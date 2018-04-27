@@ -19,7 +19,7 @@ from eth_typing import (
     Address
 )
 
-from evm.db.state import (
+from evm.db.account import (
     BaseAccountStateDB
 )
 from evm.constants import (

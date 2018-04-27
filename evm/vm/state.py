@@ -25,6 +25,9 @@ from evm.constants import (
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
 )
+from evm.db.account import (
+    BaseAccountDB,
+)
 from evm.utils.datatypes import (
     Configurable,
 )

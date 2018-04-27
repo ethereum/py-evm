@@ -2,7 +2,7 @@ import os
 import random
 
 from evm.db.backends.memory import MemoryDB
-from evm.db.state import MainAccountStateDB
+from evm.db.account import MainAccountStateDB
 
 from p2p.state import StateSync
 

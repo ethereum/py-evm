@@ -11,7 +11,7 @@ from typing import (  # noqa: F401
     List,
 )
 
-from evm.db.state import (
+from evm.db.account import (
     MainAccountStateDB,
 )
 from evm.tools.fixture_tests import (

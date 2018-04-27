@@ -15,13 +15,16 @@ from eth_utils import (
     keccak,
 )
 
+from evm.constants import (
+    BLANK_ROOT_HASH,
+)
 from evm.db import (
     get_db_backend,
 )
 from evm.db.chain import (
     ChainDB,
 )
-from evm.db.state import (
+from evm.db.account import (
     MainAccountStateDB,
 )
 from evm.exceptions import (
@@ -35,7 +38,6 @@ from evm.tools.fixture_tests import (
     assert_rlp_equal,
 )
 from evm.utils.db import (
-    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
 )
@@ -52,11 +54,10 @@ B_ADDRESS = b"\xbb" * 20
 
 
 def set_empty_root(chaindb, header):
-    root_hash = get_empty_root_hash(chaindb)
     return header.copy(
-        transaction_root=root_hash,
-        receipt_root=root_hash,
-        state_root=root_hash,
+        transaction_root=BLANK_ROOT_HASH,
+        receipt_root=BLANK_ROOT_HASH,
+        state_root=BLANK_ROOT_HASH,
     )
 
 

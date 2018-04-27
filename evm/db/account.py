@@ -19,10 +19,6 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from evm.db.immutable import (
-    ImmutableDB,
-)
-from evm.exceptions import DecommissionedStateDB
 from evm.rlp.accounts import (
     Account,
 )
@@ -48,21 +44,13 @@ from .hash_trie import HashTrie
 account_cache = LRU(2048)
 
 
-class BaseAccountStateDB(metaclass=ABCMeta):
+class BaseAccountDB(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self) -> None:
         raise NotImplementedError(
             "Must be implemented by subclasses"
         )
-
-    @abstractmethod
-    def apply_state_dict(self, state_dict):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def decommission(self):
-        raise NotImplementedError("Must be implemented by subclasses")
 
     # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
     @property  # type: ignore
@@ -127,40 +115,13 @@ class BaseAccountStateDB(metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclass")
 
 
-class MainAccountStateDB(BaseAccountStateDB):
-
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+class AccountDB(BaseAccountDB):
+    def __init__(self, db, root_hash=BLANK_ROOT_HASH):
         # Keep a reference to the original db instance to use it as part of _get_account()'s cache
         # key.
         self._unwrapped_db = db
-        if read_only:
-            self.db = ImmutableDB(db)
-        else:
-            self.db = db
-        self.__trie = HashTrie(HexaryTrie(self.db, root_hash))
-
-    @property
-    def _trie(self):
-        if self.__trie is None:
-            raise DecommissionedStateDB()
-        return self.__trie
-
-    @_trie.setter
-    def _trie(self, value):
-        self.__trie = value
-
-    def apply_state_dict(self, state_dict):
-        for account, account_data in state_dict.items():
-            self.set_balance(account, account_data["balance"])
-            self.set_nonce(account, account_data["nonce"])
-            self.set_code(account, account_data["code"])
-
-            for slot, value in account_data["storage"].items():
-                self.set_storage(account, slot, value)
-
-    def decommission(self):
-        self.db = None
-        self.__trie = None
+        self.db = db
+        self._trie = HashTrie(HexaryTrie(self.db, root_hash))
 
     @property
     def root_hash(self):

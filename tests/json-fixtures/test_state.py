@@ -18,7 +18,7 @@ from eth_utils import (
 )
 
 from evm.db.chain import ChainDB
-from evm.db.state import (
+from evm.db.account import (
     MainAccountStateDB,
 )
 from evm.exceptions import (
