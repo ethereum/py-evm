@@ -474,11 +474,11 @@ class ChainDB(BaseChainDB):
             else:
                 break
 
-    def _get_block_transaction_data(self, block_header: BlockHeader) -> Iterable[bytes]:
+    def _get_block_transaction_data(self, transaction_root: bytes) -> Iterable[bytes]:
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = self.trie_class(self.db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -488,15 +488,22 @@ class ChainDB(BaseChainDB):
 
     @to_list
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[bytes]:
-        for encoded_transaction in self._get_block_transaction_data(block_header):
+        for encoded_transaction in self._get_block_transaction_data(block_header.transaction_root):
             yield keccak(encoded_transaction)
 
-    @to_list
     def get_block_transactions(
             self,
-            block_header: BlockHeader,
+            header: BlockHeader,
             transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
-        for encoded_transaction in self._get_block_transaction_data(block_header):
+        return self._get_block_transactions(header.transaction_root, transaction_class)
+
+    @functools.lru_cache(maxsize=32)
+    @to_list
+    def _get_block_transactions(
+            self,
+            transaction_root: bytes,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+        for encoded_transaction in self._get_block_transaction_data(transaction_root):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
     def get_transaction_by_index(
