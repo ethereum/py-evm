@@ -15,9 +15,12 @@ def chain(chain_without_block_validation):
     return chain_without_block_validation
 
 
-def test_building_block_incrementally_with_single_transaction(chain,
-                                                              funded_address,
-                                                              funded_address_private_key):
+def test_building_block_incrementally_with_single_transaction(
+        chain,
+        funded_address,
+        funded_address_private_key):
+    head_hash = chain.get_canonical_head().hash
+
     tx = new_transaction(
         chain.get_vm(),
         from_=funded_address,
@@ -27,6 +30,9 @@ def test_building_block_incrementally_with_single_transaction(chain,
     _, _, computation = chain.apply_transaction(tx)
     assert computation.is_success
 
+    # test that the *latest* block hasn't changed
+    assert chain.get_canonical_head().hash == head_hash
+
     mined_block = chain.mine_block()
     assert len(mined_block.transactions) == 1
 
@@ -34,11 +40,13 @@ def test_building_block_incrementally_with_single_transaction(chain,
     assert actual_tx == tx
 
 
-def test_building_block_incrementally_with_multiple_transactions(chain,
-                                                                 funded_address,
-                                                                 funded_address_private_key):
+def test_building_block_incrementally_with_multiple_transactions(
+        chain,
+        funded_address,
+        funded_address_private_key):
     txns = []
-    for _ in range(3):
+    head_hash = chain.get_canonical_head().hash
+    for expected_len in range(1, 4):
         tx = new_transaction(
             chain.get_vm(),
             from_=funded_address,
@@ -49,8 +57,16 @@ def test_building_block_incrementally_with_multiple_transactions(chain,
         _, _, computation = chain.apply_transaction(tx)
         assert computation.is_success
 
+        # test that the pending block has the expected number of transactions
+        vm = chain.get_vm()
+        assert len(vm.block.transactions) == expected_len
+        assert vm.block.transactions[-1] == tx
+
+        # test that the *latest* block hasn't changed
+        assert chain.get_canonical_head().hash == head_hash
+
     mined_block = chain.mine_block()
     assert len(mined_block.transactions) == 3
 
-    for left, right in zip(txns, mined_block.transactions):
-        assert left == right
+    for expected, actual in zip(txns, mined_block.transactions):
+        assert expected == actual

@@ -83,7 +83,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             self.block,
         )
         self.block = block
-        self.chaindb.persist()
 
         return self.block, receipt, computation
 
@@ -233,7 +232,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
         state = self.get_state(self.chaindb, temp_block, prev_hashes, gas_used=0)
-        assert state.gas_used == 0, "There must not be any gas used in a fresh temporary block"
 
         snapshot = state.snapshot()
         yield state
