@@ -15,6 +15,10 @@ from .opcodes import HOMESTEAD_OPCODES
 
 
 class HomesteadComputation(FrontierComputation):
+    """
+    A class for all execution computations in the ``Frontier`` fork.
+    Inherits from :class:`~evm.vm.forks.frontier.computation.FrontierComputation`
+    """
     # Override
     opcodes = HOMESTEAD_OPCODES
 

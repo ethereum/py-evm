@@ -16,6 +16,10 @@ from .opcodes import SPURIOUS_DRAGON_OPCODES
 
 
 class SpuriousDragonComputation(HomesteadComputation):
+    """
+    A class for all execution computations in the ``SpuriousDragon`` fork.
+    Inherits from :class:`~evm.vm.forks.homestead.computation.HomesteadComputation`
+    """
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 

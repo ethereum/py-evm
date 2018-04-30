@@ -41,6 +41,22 @@ if TYPE_CHECKING:
 
 
 class BaseState(Configurable, metaclass=ABCMeta):
+    """
+    The base class that encapsulates all of the various moving parts related to
+    the state of the VM during execution.
+    Each :class:`~evm.vm.base.BaseVM` must be configured with a subclass of the
+    :class:`~evm.vm.state.BaseState`.
+
+      .. note::
+
+        Each :class:`~evm.vm.state.BaseState` class must be configured with:
+
+        - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
+        - ``computation_class``: The :class:`~evm.vm.computation.BaseComputation` class for
+          vm execution.
+        - ``transaction_context_class``: The :class:`~evm.vm.transaction_context.TransactionContext`
+          class for vm execution.
+    """
     #
     # Set from __init__
     #
@@ -73,22 +89,37 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     @property
     def coinbase(self):
+        """
+        Return the current ``coinbase`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.coinbase
 
     @property
     def timestamp(self):
+        """
+        Return the current ``timestamp`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.timestamp
 
     @property
     def block_number(self):
+        """
+        Return the current ``block_number`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.block_number
 
     @property
     def difficulty(self):
+        """
+        Return the current ``difficulty`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.difficulty
 
     @property
     def gas_limit(self):
+        """
+        Return the current ``gas_limit`` from the current :attr:`~transaction_context`
+        """
         return self.execution_context.gas_limit
 
     #
@@ -96,12 +127,19 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     @classmethod
     def get_account_db_class(cls):
+        """
+        Return the :class:`~evm.db.account.BaseAccountDB` class that the
+        state class uses.
+        """
         if cls.account_db_class is None:
             raise AttributeError("No account_db_class set for {0}".format(cls.__name__))
         return cls.account_db_class
 
     @property
     def state_root(self):
+        """
+        Return the current ``state_root`` from the underlying database
+        """
         return self.account_db.state_root
 
     #
@@ -111,7 +149,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         """
         Perform a full snapshot of the current state.
 
-        Snapshots are a combination of the state_root at the time of the
+        Snapshots are a combination of the :attr:`~state_root` at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
         return (self.state_root, self.account_db.record())
@@ -129,7 +167,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     def commit(self, snapshot):
         """
-        Commits the journal to the point where the snapshot was taken.  This
+        Commit the journal to the point where the snapshot was taken.  This
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
@@ -140,7 +178,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     def get_ancestor_hash(self, block_number):
         """
-        Return the hash of the ancestor with the given block number.
+        Return the hash for the ancestor block with number ``block_number``.
+        Return the empty bytestring ``b''`` if the block number is outside of the
+        range of available block numbers (typically the last 255 blocks).
         """
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
@@ -172,7 +212,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_transaction_context_class(cls):
         """
-
+        Return the :class:`~evm.vm.transaction_context.BaseTransactionContext` class that the
+        state class uses.
         """
         if cls.transaction_context_class is None:
             raise AttributeError("No `transaction_context_class` has been set for this State")
@@ -244,7 +285,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     def finalize_block(self, block):
         """
-        Apply rewards.
+        Perform any finalization steps like awarding the block mining reward.
         """
         block_reward = self.get_block_reward() + (
             len(block.uncles) * self.get_nephew_reward()
@@ -275,16 +316,35 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @staticmethod
     @abstractmethod
     def get_block_reward():
+        """
+        Return the amount in **wei** that should be given to a miner as a reward
+        for this block.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @staticmethod
     @abstractmethod
     def get_uncle_reward(block_number, uncle):
+        """
+        Return the reward which should be given to the miner of the given `uncle`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
     @abstractmethod
     def get_nephew_reward(cls):
+        """
+        Return the reward which should be given to the miner of the given `nephew`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
         raise NotImplementedError("Must be implemented by subclasses")
 
 
