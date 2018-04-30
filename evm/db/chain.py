@@ -551,7 +551,7 @@ class ChainDB(BaseChainDB):
                        read_only: bool) -> BaseAccountDB:
         return AccountDB(
             db=self.journal_db,
-            root_hash=state_root,
+            state_root=state_root,
             read_only=read_only,
         )
 

@@ -60,14 +60,9 @@ class BaseAccountDB(metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
-    @property  # type: ignore
+    @property  # tyoe: ignore
     @abstractmethod
-    def root_hash(self):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @root_hash.setter  # type: ignore
-    @abstractmethod
-    def root_hash(self, value):
+    def state_root(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
@@ -143,7 +138,7 @@ class BaseAccountDB(metaclass=ABCMeta):
 
 class AccountDB(BaseAccountDB):
 
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+    def __init__(self, db, state_root=BLANK_ROOT_HASH, read_only=False):
         # Keep a reference to the original db instance to use it as part of _get_account()'s cache
         # key.
         self._unwrapped_db = db
@@ -151,7 +146,7 @@ class AccountDB(BaseAccountDB):
             self.db = ImmutableDB(db)
         else:
             self.db = db
-        self.__trie = HashTrie(HexaryTrie(self.db, root_hash))
+        self.__trie = HashTrie(HexaryTrie(self.db, state_root))
 
     @property
     def _trie(self):
@@ -168,11 +163,11 @@ class AccountDB(BaseAccountDB):
         self.__trie = None
 
     @property
-    def root_hash(self):
+    def state_root(self):
         return self._trie.root_hash
 
-    @root_hash.setter
-    def root_hash(self, value):
+    @state_root.setter
+    def state_root(self, value):
         self._trie.root_hash = value
 
     #
@@ -315,7 +310,7 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_account(self, address):
-        cache_key = (self._unwrapped_db, self.root_hash, address)
+        cache_key = (self._unwrapped_db, self.state_root, address)
         if cache_key not in account_cache:
             account_cache[cache_key] = self._trie[address]
 
@@ -329,7 +324,7 @@ class AccountDB(BaseAccountDB):
     def _set_account(self, address, account):
         rlp_account = rlp.encode(account, sedes=Account)
         self._trie[address] = rlp_account
-        cache_key = (self._unwrapped_db, self.root_hash, address)
+        cache_key = (self._unwrapped_db, self.state_root, address)
         account_cache[cache_key] = rlp_account
 
     #

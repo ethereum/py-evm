@@ -448,14 +448,14 @@ class Chain(BaseChain):
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', account_db.root_hash)
-        elif genesis_params['state_root'] != account_db.root_hash:
+            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
+        elif genesis_params['state_root'] != account_db.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    account_db.root_hash,
+                    account_db.state_root,
                     genesis_params['state_root'],
                 )
             )
