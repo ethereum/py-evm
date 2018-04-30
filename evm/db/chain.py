@@ -221,9 +221,9 @@ class BaseChainDB(metaclass=ABCMeta):
     # State Database API
     #
     @abstractmethod
-    def get_state_db(self,
-                     state_root: bytes,
-                     read_only: bool) -> BaseAccountDB:
+    def get_account_db(self,
+                       state_root: bytes,
+                       read_only: bool) -> BaseAccountDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -546,9 +546,9 @@ class ChainDB(BaseChainDB):
     #
     # State Database API
     #
-    def get_state_db(self,
-                     state_root: bytes,
-                     read_only: bool) -> BaseAccountDB:
+    def get_account_db(self,
+                       state_root: bytes,
+                       read_only: bool) -> BaseAccountDB:
         return AccountDB(
             db=self.journal_db,
             root_hash=state_root,

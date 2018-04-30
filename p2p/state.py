@@ -47,14 +47,14 @@ class StateDownloader(PeerPoolSubscriber):
     _total_timeouts = 0
 
     def __init__(self,
-                 state_db: BaseDB,
+                 account_db: BaseDB,
                  root_hash: bytes,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
         self.root_hash = root_hash
-        self.scheduler = StateSync(root_hash, state_db)
+        self.scheduler = StateSync(root_hash, account_db)
         self._running_peers = set()  # type: Set[ETHPeer]
         self._peers_with_pending_requests = {}  # type: Dict[ETHPeer, float]
         self.cancel_token = CancelToken('StateDownloader')

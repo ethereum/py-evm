@@ -44,9 +44,9 @@ def state_at_block(chain, at_block, read_only=True):
     at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     if read_only:
-        yield vm.state.read_only_state_db
+        yield vm.state.read_only_account_db
     else:
-        with vm.state.mutable_state_db() as state:
+        with vm.state.mutable_account_db() as state:
             yield state
 
 

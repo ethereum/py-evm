@@ -372,9 +372,9 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             return self._gas_meter.gas_remaining
 
     @contextmanager
-    def state_db(self, read_only: bool = False) -> Iterator[BaseAccountDB]:
-        with self.state.state_db(read_only) as state_db:
-            yield state_db
+    def account_db(self, read_only: bool = False) -> Iterator[BaseAccountDB]:
+        with self.state.account_db(read_only) as account_db:
+            yield account_db
 
     #
     # Context Manager API

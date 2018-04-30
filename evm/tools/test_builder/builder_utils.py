@@ -113,10 +113,10 @@ def get_version_from_git():
     return to_text(version)
 
 
-def calc_state_root(state, account_state_db_class):
-    state_db = account_state_db_class(MemoryDB())
-    apply_state_dict(state_db, state)
-    return state_db.root_hash
+def calc_state_root(state, account_db_class):
+    account_db = account_db_class(MemoryDB())
+    apply_state_dict(account_db, state)
+    return account_db.root_hash
 
 
 def generate_random_keypair():

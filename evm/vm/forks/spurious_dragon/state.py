@@ -23,13 +23,13 @@ class SpuriousDragonState(HomesteadState):
         #
         touched_accounts = collect_touched_accounts(computation)
 
-        with self.mutable_state_db() as state_db:
+        with self.mutable_account_db() as account_db:
             for account in touched_accounts:
-                if state_db.account_exists(account) and state_db.account_is_empty(account):
+                if account_db.account_exists(account) and account_db.account_is_empty(account):
                     self.logger.debug(
                         "CLEARING EMPTY ACCOUNT: %s",
                         encode_hex(account),
                     )
-                    state_db.delete_account(account)
+                    account_db.delete_account(account)
 
         return computation

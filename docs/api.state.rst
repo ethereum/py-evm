@@ -52,17 +52,17 @@ Methods and Properties
     Returns the current ``gas_used`` from the current block.
 
 
-.. attribute:: read_only_state_db
+.. attribute:: read_only_account_db
 
     Returns a read-only version of the account database.
 
 
-.. method:: mutable_state_db()
+.. method:: mutable_account_db()
 
     Returns the account database.
 
 
-.. method:: state_db(read_only=False)
+.. method:: account_db(read_only=False)
 
     Returns the account database.
 

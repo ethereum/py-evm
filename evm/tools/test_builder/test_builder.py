@@ -286,8 +286,8 @@ def fill_state_test(filler):
         result = normalize_state(expect["result"])
         post_state = deep_merge(pre_state, result)
         for network in networks:
-            account_state_db_class = ACCOUNT_STATE_DB_CLASSES[network]
-            post_state_root = calc_state_root(post_state, account_state_db_class)
+            account_db_class = ACCOUNT_STATE_DB_CLASSES[network]
+            post_state_root = calc_state_root(post_state, account_db_class)
             post[network].append({
                 "hash": encode_hex(post_state_root),
                 "indexes": indexes,
