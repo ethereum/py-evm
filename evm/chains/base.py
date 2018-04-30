@@ -471,6 +471,9 @@ class Chain(BaseChain):
     def apply_transaction(self, transaction):
         """
         Applies the transaction to the current tip block.
+
+        WARNING: Receipt and Transaction trie generation is computationally
+        heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
         block, receipt, computation = vm.apply_transaction(transaction)
