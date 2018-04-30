@@ -1,13 +1,3 @@
-from trie import (
-    BinaryTrie,
-    HexaryTrie,
-)
-
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
-)
-
 from evm.rlp.headers import BlockHeader
 
 from typing import TYPE_CHECKING
@@ -41,23 +31,6 @@ def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> Bloc
     Returns the header for the parent block.
     """
     return db.get_block_header_by_hash(block_hash)
-
-
-def get_empty_root_hash(db: 'BaseChainDB') -> bytes:
-    root_hash = None
-    if db.trie_class is HexaryTrie:
-        root_hash = BLANK_ROOT_HASH
-    elif db.trie_class is BinaryTrie:
-        root_hash = EMPTY_SHA3
-    elif db.trie_class is None:
-        raise AttributeError(
-            "BaseChainDB must declare a trie_class."
-        )
-    else:
-        raise NotImplementedError(
-            "db.trie_class {} is not supported.".format(db.trie_class)
-        )
-    return root_hash
 
 
 def apply_state_dict(account_db, state_dict):
