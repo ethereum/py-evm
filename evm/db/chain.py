@@ -39,9 +39,6 @@ from evm.exceptions import (
 from evm.db.backends.base import (
     BaseDB
 )
-from evm.db.journal import (
-    JournalDB,
-)
 from evm.db.account import (
     BaseAccountDB,
     AccountDB,
@@ -91,7 +88,6 @@ class BaseChainDB(metaclass=ABCMeta):
                  db: BaseDB) -> None:
 
         self.db = db
-        self.journal_db = JournalDB(db)
 
     #
     # Canonical chain API
@@ -222,8 +218,7 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def get_account_db(self,
-                       state_root: bytes,
-                       read_only: bool) -> BaseAccountDB:
+                       state_root: bytes) -> BaseAccountDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -547,12 +542,10 @@ class ChainDB(BaseChainDB):
     # State Database API
     #
     def get_account_db(self,
-                       state_root: bytes,
-                       read_only: bool) -> BaseAccountDB:
+                       state_root: bytes) -> BaseAccountDB:
         return AccountDB(
-            db=self.journal_db,
+            db=self.db,
             state_root=state_root,
-            read_only=read_only,
         )
 
 

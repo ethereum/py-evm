@@ -8,14 +8,11 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+from evm.db.account import (
+    AccountDB,
+)
 from evm.exceptions import (
     ContractCreationCollision,
-)
-from evm.rlp.logs import (
-    Log,
-)
-from evm.rlp.receipts import (
-    Receipt,
 )
 from evm.vm.message import (
     Message,
@@ -50,27 +47,27 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.validate_transaction(transaction)
 
         gas_fee = transaction.gas * transaction.gas_price
-        with self.mutable_account_db() as account_db:
-            # Buy Gas
-            account_db.delta_balance(transaction.sender, -1 * gas_fee)
 
-            # Increment Nonce
-            account_db.increment_nonce(transaction.sender)
+        # Buy Gas
+        self.account_db.delta_balance(transaction.sender, -1 * gas_fee)
 
-            # Setup VM Message
-            message_gas = transaction.gas - transaction.intrinsic_gas
+        # Increment Nonce
+        self.account_db.increment_nonce(transaction.sender)
 
-            if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
-                contract_address = generate_contract_address(
-                    transaction.sender,
-                    account_db.get_nonce(transaction.sender) - 1,
-                )
-                data = b''
-                code = transaction.data
-            else:
-                contract_address = None
-                data = transaction.data
-                code = account_db.get_code(transaction.to)
+        # Setup VM Message
+        message_gas = transaction.gas - transaction.intrinsic_gas
+
+        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
+            contract_address = generate_contract_address(
+                transaction.sender,
+                self.account_db.get_nonce(transaction.sender) - 1,
+            )
+            data = b''
+            code = transaction.data
+        else:
+            contract_address = None
+            data = transaction.data
+            code = self.account_db.get_code(transaction.to)
 
         self.logger.info(
             (
@@ -105,7 +102,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             origin=transaction.sender,
         )
         if message.is_create:
-            is_collision = self.read_only_account_db.account_has_code_or_nonce(
+            is_collision = self.account_db.account_has_code_or_nonce(
                 message.storage_address
             )
 
@@ -152,8 +149,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 encode_hex(computation.msg.sender),
             )
 
-            with self.mutable_account_db() as account_db:
-                account_db.delta_balance(computation.msg.sender, gas_refund_amount)
+            self.account_db.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -162,60 +158,27 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             transaction_fee,
             encode_hex(self.coinbase),
         )
-        with self.mutable_account_db() as account_db:
-            account_db.delta_balance(self.coinbase, transaction_fee)
+        self.account_db.delta_balance(self.coinbase, transaction_fee)
 
         # Process Self Destructs
-        with self.mutable_account_db() as account_db:
-            for account, beneficiary in computation.get_accounts_for_deletion():
-                # TODO: need to figure out how we prevent multiple selfdestructs from
-                # the same account and if this is the right place to put this.
-                self.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+        for account, beneficiary in computation.get_accounts_for_deletion():
+            # TODO: need to figure out how we prevent multiple selfdestructs from
+            # the same account and if this is the right place to put this.
+            self.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
-                # TODO: this balance setting is likely superflous and can be
-                # removed since `delete_account` does this.
-                account_db.set_balance(account, 0)
-                account_db.delete_account(account)
+            # TODO: this balance setting is likely superflous and can be
+            # removed since `delete_account` does this.
+            self.account_db.set_balance(account, 0)
+            self.account_db.delete_account(account)
 
         return computation
-
-
-def _make_frontier_receipt(state, transaction, computation):
-    # Reusable for other forks
-
-    logs = [
-        Log(address, topics, data)
-        for address, topics, data
-        in computation.get_log_entries()
-    ]
-
-    gas_remaining = computation.get_gas_remaining()
-    gas_refund = computation.get_gas_refund()
-    tx_gas_used = (
-        transaction.gas - gas_remaining
-    ) - min(
-        gas_refund,
-        (transaction.gas - gas_remaining) // 2,
-    )
-    gas_used = state.gas_used + tx_gas_used
-
-    receipt = Receipt(
-        state_root=state.state_root,
-        gas_used=gas_used,
-        logs=logs,
-    )
-
-    return receipt
 
 
 class FrontierState(BaseState, FrontierTransactionExecutor):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
-
-    def make_receipt(self, transaction, computation):
-        receipt = _make_frontier_receipt(self, transaction, computation)
-        return receipt
+    account_db_class = AccountDB  # Type[BaseAccountDB]
 
     def validate_transaction(self, transaction):
         validate_frontier_transaction(self, transaction)

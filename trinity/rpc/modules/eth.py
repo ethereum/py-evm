@@ -40,14 +40,10 @@ def get_header(chain, at_block):
 
 
 @contextmanager
-def state_at_block(chain, at_block, read_only=True):
+def account_db_at_block(chain, at_block, read_only=True):
     at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
-    if read_only:
-        yield vm.state.read_only_account_db
-    else:
-        with vm.state.mutable_account_db() as state:
-            yield state
+    return vm.state.account_db
 
 
 def get_block_at_number(chain, at_block):
@@ -81,8 +77,8 @@ class Eth(RPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     def getBalance(self, address, at_block):
-        with state_at_block(self._chain, at_block) as state:
-            balance = state.get_balance(address)
+        account_db = account_db_at_block(self._chain, at_block)
+        balance = account_db.get_balance(address)
 
         return hex(balance)
 
@@ -108,8 +104,8 @@ class Eth(RPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     def getCode(self, address, at_block):
-        with state_at_block(self._chain, at_block) as state:
-            code = state.get_code(address)
+        account_db = account_db_at_block(self._chain, at_block)
+        code = account_db.get_code(address)
         return encode_hex(code)
 
     @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
@@ -117,8 +113,8 @@ class Eth(RPCModule):
         if not is_integer(position) or position < 0:
             raise TypeError("Position of storage must be a whole number, but was: %r" % position)
 
-        with state_at_block(self._chain, at_block) as state:
-            stored_val = state.get_storage(address, position)
+        account_db = account_db_at_block(self._chain, at_block)
+        stored_val = account_db.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -135,8 +131,8 @@ class Eth(RPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     def getTransactionCount(self, address, at_block):
-        with state_at_block(self._chain, at_block) as state:
-            nonce = state.get_nonce(address)
+        account_db = account_db_at_block(self._chain, at_block)
+        nonce = account_db.get_nonce(address)
         return hex(nonce)
 
     @format_params(decode_hex)

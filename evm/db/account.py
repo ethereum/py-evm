@@ -18,10 +18,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from evm.db.immutable import (
-    ImmutableDB,
+from evm.db.journal import (
+    JournalDB,
 )
-from evm.exceptions import DecommissionedAccountDB
 from evm.rlp.accounts import (
     Account,
 )
@@ -54,10 +53,6 @@ class BaseAccountDB(metaclass=ABCMeta):
         raise NotImplementedError(
             "Must be implemented by subclasses"
         )
-
-    @abstractmethod
-    def decommission(self):
-        raise NotImplementedError("Must be implemented by subclasses")
 
     # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
     @property  # tyoe: ignore
@@ -138,29 +133,12 @@ class BaseAccountDB(metaclass=ABCMeta):
 
 class AccountDB(BaseAccountDB):
 
-    def __init__(self, db, state_root=BLANK_ROOT_HASH, read_only=False):
+    def __init__(self, db, state_root=BLANK_ROOT_HASH):
         # Keep a reference to the original db instance to use it as part of _get_account()'s cache
         # key.
         self._unwrapped_db = db
-        if read_only:
-            self.db = ImmutableDB(db)
-        else:
-            self.db = db
-        self.__trie = HashTrie(HexaryTrie(self.db, state_root))
-
-    @property
-    def _trie(self):
-        if self.__trie is None:
-            raise DecommissionedAccountDB()
-        return self.__trie
-
-    @_trie.setter
-    def _trie(self, value):
-        self.__trie = value
-
-    def decommission(self):
-        self.db = None
-        self.__trie = None
+        self.db = JournalDB(db)
+        self._trie = HashTrie(HexaryTrie(self.db, state_root))
 
     @property
     def state_root(self):
@@ -331,19 +309,16 @@ class AccountDB(BaseAccountDB):
     # Record and discard API
     #
     def record(self) -> UUID:
-        return self._unwrapped_db.record()
+        return self.db.record()
 
     def discard(self, changeset_id: UUID) -> None:
-        self._unwrapped_db.discard(changeset_id)
+        return self.db.discard(changeset_id)
 
     def commit(self, changeset_id: UUID) -> None:
-        self._unwrapped_db.commit(changeset_id)
+        return self.db.commit(changeset_id)
 
     def persist(self) -> None:
-        self._unwrapped_db.persist()
+        return self.db.persist()
 
     def clear(self) -> None:
-        self._unwrapped_db.reset()
-
-    def exists(self, key: bytes) -> bool:
-        return self._unwrapped_db.exists(key)
+        return self.db.reset()

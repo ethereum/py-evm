@@ -187,9 +187,8 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     )
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
-    with state.mutable_account_db() as account_db:
-        setup_account_db(fixture['pre'], account_db)
-        code = account_db.get_code(fixture['exec']['address'])
+    setup_account_db(fixture['pre'], state.account_db)
+    code = state.account_db.get_code(fixture['exec']['address'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
 
@@ -262,4 +261,4 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         assert isinstance(computation._error, VMError)
         expected_account_db = fixture['pre']
 
-    verify_account_db(expected_account_db, vm.state.read_only_account_db)
+    verify_account_db(expected_account_db, vm.state.account_db)

@@ -39,27 +39,24 @@ Methods and Properties
     Returns the current ``block_number`` from the current :attr:`execution_context`
 
 
-.. attribute:: difficulty()
+.. attribute:: difficulty
 
     Returns the current ``difficulty`` from the current :attr:`execution_context`
 
-.. attribute:: gas_limit()
+
+.. attribute:: gas_limit
 
     Returns the current ``gas_limit`` from the current :attr:`transaction_context`
+
 
 .. attribute:: gas_used
 
     Returns the current ``gas_used`` from the current block.
 
 
-.. attribute:: read_only_account_db
+.. attribute:: account_db
 
-    Returns a read-only version of the account database.
-
-
-.. method:: mutable_account_db()
-
-    Returns the account database.
+    Access to the ``AccountDB`` at the current state root.
 
 
 .. method:: account_db(read_only=False)
@@ -90,10 +87,6 @@ Methods and Properties
 
     Commits changes to the state database.  This discards any checkpoints which
     were taken **after** the ``snapshot``.  """
-
-.. method:: is_key_exists(key)
-
-    Return ``True`` or ``False`` for whether the given key is in the underlying database.
 
 .. method:: get_ancestor_hash(block_number)
 

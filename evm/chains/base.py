@@ -437,13 +437,14 @@ class Chain(BaseChain):
         """
         Initializes the Chain from a genesis state.
         """
-        account_db = chaindb.get_account_db(BLANK_ROOT_HASH, read_only=False)
+        account_db = chaindb.get_account_db(BLANK_ROOT_HASH)
 
         if genesis_state is None:
             genesis_state = {}
 
         # mutation
         apply_state_dict(account_db, genesis_state)
+        account_db.persist()
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
