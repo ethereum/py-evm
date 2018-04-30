@@ -170,10 +170,3 @@ class OutOfBoundsRead(VMError):
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
-
-
-class DecommissionedAccountDB(Exception):
-    """
-    Raised when an attempt was made to use a AccountDB object used after
-    leaving the context.
-    """

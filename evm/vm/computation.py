@@ -2,7 +2,6 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-from contextlib import contextmanager
 import itertools
 import logging
 from typing import (  # noqa: F401
@@ -19,9 +18,6 @@ from eth_typing import (
     Address
 )
 
-from evm.db.account import (
-    BaseAccountDB
-)
 from evm.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -370,11 +366,6 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             return 0
         else:
             return self._gas_meter.gas_remaining
-
-    @contextmanager
-    def account_db(self, read_only: bool = False) -> Iterator[BaseAccountDB]:
-        with self.state.account_db(read_only) as account_db:
-            yield account_db
 
     #
     # Context Manager API

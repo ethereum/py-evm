@@ -23,8 +23,7 @@ class SpuriousDragonComputation(HomesteadComputation):
         snapshot = self.state.snapshot()
 
         # EIP161 nonce incrementation
-        with self.state.mutable_account_db() as account_db:
-            account_db.increment_nonce(self.msg.storage_address)
+        self.state.account_db.increment_nonce(self.msg.storage_address)
 
         computation = self.apply_message()
 
@@ -64,8 +63,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.state.mutable_account_db() as account_db:
-                        account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

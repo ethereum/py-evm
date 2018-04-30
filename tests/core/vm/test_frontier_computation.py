@@ -24,8 +24,7 @@ CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bd
 @pytest.fixture
 def state(chain_without_block_validation):
     state = chain_without_block_validation.get_vm().state
-    with state.mutable_account_db() as account_db:
-        account_db.set_balance(CANONICAL_ADDRESS_A, 1000)
+    state.account_db.set_balance(CANONICAL_ADDRESS_A, 1000)
     return state
 
 

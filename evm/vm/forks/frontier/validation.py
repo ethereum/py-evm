@@ -5,7 +5,7 @@ from evm.exceptions import (
 
 def validate_frontier_transaction(state, transaction):
     gas_cost = transaction.gas * transaction.gas_price
-    sender_balance = state.read_only_account_db.get_balance(transaction.sender)
+    sender_balance = state.account_db.get_balance(transaction.sender)
 
     if sender_balance < gas_cost:
         raise ValidationError(
@@ -20,5 +20,5 @@ def validate_frontier_transaction(state, transaction):
     if state.gas_used + transaction.gas > state.gas_limit:
         raise ValidationError("Transaction exceeds gas limit")
 
-    if state.read_only_account_db.get_nonce(transaction.sender) != transaction.nonce:
+    if state.account_db.get_nonce(transaction.sender) != transaction.nonce:
         raise ValidationError("Invalid transaction nonce")

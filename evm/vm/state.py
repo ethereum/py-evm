@@ -2,15 +2,10 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-from contextlib import contextmanager
 import logging
 from typing import (  # noqa: F401
     Type,
     TYPE_CHECKING
-)
-
-from eth_bloom import (
-    BloomFilter,
 )
 
 from eth_utils import (
@@ -24,6 +19,10 @@ from evm.constants import (
     DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
     UINT_256_MAX,
+)
+from evm.db.account import (  # noqa: F401
+    BaseAccountDB,
+    AccountDB,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -53,11 +52,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
+    account_db_class = None  # type: Type[BaseAccountDB]
 
-    def __init__(self, chaindb, execution_context, state_root, gas_used):
-        self._chaindb = chaindb
+    def __init__(self, db, execution_context, state_root, gas_used):
+        self._db = db
         self.execution_context = execution_context
-        self.state_root = state_root
+        self.account_db = self.get_account_db_class()(self._db, state_root)
         self.gas_used = gas_used
 
     #
@@ -92,49 +92,17 @@ class BaseState(Configurable, metaclass=ABCMeta):
         return self.execution_context.gas_limit
 
     #
-    # read only account_db
+    # Access to account db
     #
+    @classmethod
+    def get_account_db_class(cls):
+        if cls.account_db_class is None:
+            raise AttributeError("No account_db_class set for {0}".format(cls.__name__))
+        return cls.account_db_class
+
     @property
-    def read_only_account_db(self):
-        return self._chaindb.get_account_db(self.state_root, read_only=True)
-
-    #
-    # mutable account_db
-    #
-    @contextmanager
-    def mutable_account_db(self):
-        account_db = self._chaindb.get_account_db(self.state_root, read_only=False)
-        yield account_db
-
-        if self.state_root != account_db.state_root:
-            self.set_state_root(account_db.state_root)
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        account_db.decommission()
-
-    #
-    # account_db
-    #
-    @contextmanager
-    def account_db(self, read_only=False):
-        account_db = self._chaindb.get_account_db(
-            self.state_root,
-            read_only,
-        )
-        yield account_db
-
-        if self.state_root != account_db.state_root:
-            self.set_state_root(account_db.state_root)
-
-        # remove the reference to the underlying `db` object to ensure that no
-        # further modifications can occur using the `State` object after
-        # leaving the context.
-        account_db.decommission()
-
-    def set_state_root(self, state_root):
-        self.state_root = state_root
+    def state_root(self):
+        return self.account_db.state_root
 
     #
     # Access self._chaindb
@@ -146,8 +114,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
-        with self.mutable_account_db() as account_db:
-            return (self.state_root, account_db.record())
+        return (self.state_root, self.account_db.record())
 
     def revert(self, snapshot):
         """
@@ -155,11 +122,10 @@ class BaseState(Configurable, metaclass=ABCMeta):
         """
         state_root, changeset_id = snapshot
 
-        with self.mutable_account_db() as account_db:
-            # first revert the database state root.
-            account_db.state_root = state_root
-            # now roll the underlying database back
-            account_db.discard(changeset_id)
+        # first revert the database state root.
+        self.account_db.state_root = state_root
+        # now roll the underlying database back
+        self.account_db.discard(changeset_id)
 
     def commit(self, snapshot):
         """
@@ -167,14 +133,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
-        with self.mutable_account_db() as account_db:
-            account_db.commit(checkpoint_id)
-
-    def is_key_exists(self, key):
-        """
-        Check if the given key exsits in chaindb
-        """
-        return self.read_only_account_db.exists(key)
+        self.account_db.commit(checkpoint_id)
 
     #
     # Access self.prev_hashes (Read-only)
@@ -225,7 +184,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_block_class(cls) -> Type['BaseBlock']:
         """
+        Return the class used for Blocks
 
+        TODO: this should move up to the VM
         """
         if cls.block_class is None:
             raise AttributeError("No `block_class_class` has been set for this VMState")
@@ -245,17 +206,15 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         snapshot = self.snapshot()
         try:
-            with self.mutable_account_db() as account_db:
+            if not hasattr(_transaction, "get_sender"):
+                _transaction.get_sender = \
+                    lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
+                _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
 
-                if not hasattr(_transaction, "get_sender"):
-                    _transaction.get_sender = \
-                        lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
-                    _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
-
-                # set the account balance of the sender to an arbitrary large
-                # amount to ensure they have the necessary funds to pay for the
-                # transaction.
-                account_db.set_balance(transaction.sender, UINT_256_MAX // 2)
+            # set the account balance of the sender to an arbitrary large
+            # amount to ensure they have the necessary funds to pay for the
+            # transaction.
+            self.account_db.set_balance(transaction.sender, UINT_256_MAX // 2)
 
             computation = self.execute_transaction(_transaction)
 
@@ -266,68 +225,19 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     def apply_transaction(
             self,
-            transaction,
-            block):
+            transaction):
         """
-        Apply transaction to the given block
+        Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :param block: the block which the transaction applies on
         :type transaction: Transaction
-        :type block: Block
 
         :return: the computation, applied block, and the trie_data_dict
-        :rtype: (Computation, Block, dict[bytes, bytes])
+        :rtype: (Computation, dict[bytes, bytes])
         """
-        self.set_state_root(block.header.state_root)
         computation = self.execute_transaction(transaction)
-
-        # Set block.
-        new_block, receipt = self.add_transaction(transaction, computation, block)
-        with self.mutable_account_db() as account_db:
-            account_db.persist()
-
-        return new_block, receipt, computation
-
-    def add_transaction(self, transaction, computation, block):
-        """
-        Add a transaction to the given block and
-        return `trie_data` to store the transaction data in chaindb in VM layer.
-
-        Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
-        bloom, and used_gas of the block.
-
-        :param transaction: the executed transaction
-        :param computation: the Computation object with executed result
-        :param block: the Block which the transaction is added in
-        :type transaction: Transaction
-        :type computation: Computation
-        :type block: Block
-
-        :return: the block and the trie_data
-        :rtype: (Block, dict[bytes, bytes])
-        """
-        receipt = self.make_receipt(transaction, computation)
-        self.gas_used = receipt.gas_used
-
-        new_header = block.header.copy(
-            bloom=int(BloomFilter(block.header.bloom) | receipt.bloom),
-            gas_used=receipt.gas_used,
-            state_root=self.state_root,
-        )
-        new_block = block.copy(
-            header=new_header,
-            transactions=tuple(block.transactions) + (transaction,),
-        )
-
-        return new_block, receipt
-
-    @abstractmethod
-    def make_receipt(self, transaction, computation):
-        """
-        Make receipt.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
+        self.account_db.persist()
+        return self.account_db.state_root, computation
 
     #
     # Finalization
@@ -340,26 +250,25 @@ class BaseState(Configurable, metaclass=ABCMeta):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        with self.mutable_account_db() as account_db:
-            account_db.delta_balance(block.header.coinbase, block_reward)
-            self.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                block.header.coinbase,
-            )
+        self.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.logger.debug(
+            "BLOCK REWARD: %s -> %s",
+            block_reward,
+            block.header.coinbase,
+        )
 
-            for uncle in block.uncles:
-                uncle_reward = self.get_uncle_reward(block.number, uncle)
-                account_db.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    uncle.coinbase,
-                )
-            # We need to call `persist` here since the state db batches
-            # all writes untill we tell it to write to the underlying db
-            # TODO: Refactor to only use batching/journaling for tx processing
-            account_db.persist()
+        for uncle in block.uncles:
+            uncle_reward = self.get_uncle_reward(block.number, uncle)
+            self.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.logger.debug(
+                "UNCLE REWARD REWARD: %s -> %s",
+                uncle_reward,
+                uncle.coinbase,
+            )
+        # We need to call `persist` here since the state db batches
+        # all writes untill we tell it to write to the underlying db
+        # TODO: Refactor to only use batching/journaling for tx processing
+        self.account_db.persist()
 
         return block.copy(header=block.header.copy(state_root=self.state_root))
 

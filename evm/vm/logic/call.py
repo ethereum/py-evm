@@ -65,8 +65,9 @@ class BaseCall(Opcode, metaclass=ABCMeta):
         computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
-        with computation.account_db(read_only=True) as account_db:
-            sender_balance = account_db.get_balance(computation.msg.storage_address)
+        sender_balance = computation.state.account_db.get_balance(
+            computation.msg.storage_address
+        )
 
         insufficient_funds = should_transfer_value and sender_balance < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
@@ -91,11 +92,10 @@ class BaseCall(Opcode, metaclass=ABCMeta):
             computation.return_gas(child_msg_gas)
             computation.stack_push(0)
         else:
-            with computation.account_db(read_only=True) as account_db:
-                if code_address:
-                    code = account_db.get_code(code_address)
-                else:
-                    code = account_db.get_code(to)
+            if code_address:
+                code = computation.state.account_db.get_code(code_address)
+            else:
+                code = computation.state.account_db.get_code(to)
 
             child_msg_kwargs = {
                 'gas': child_msg_gas,
@@ -133,8 +133,7 @@ class BaseCall(Opcode, metaclass=ABCMeta):
 
 class Call(BaseCall):
     def compute_msg_extra_gas(self, computation, gas, to, value):
-        with computation.account_db(read_only=True) as account_db:
-            account_exists = account_db.account_exists(to)
+        account_exists = computation.state.account_db.account_exists(to)
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
@@ -291,11 +290,10 @@ def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callsti
 #
 class CallEIP161(CallEIP150):
     def compute_msg_extra_gas(self, computation, gas, to, value):
-        with computation.account_db(read_only=True) as account_db:
-            account_is_dead = (
-                not account_db.account_exists(to) or
-                account_db.account_is_empty(to)
-            )
+        account_is_dead = (
+            not computation.state.account_db.account_exists(to) or
+            computation.state.account_db.account_is_empty(to)
+        )
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if (account_is_dead and value) else 0

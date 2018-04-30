@@ -272,8 +272,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     state = vm.state
-    with state.mutable_account_db() as account_db:
-        apply_state_dict(account_db, fixture['pre'])
+    apply_state_dict(state.account_db, fixture['pre'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
     if 'secretKey' in fixture['transaction']:

@@ -10,6 +10,10 @@ from typing import List  # noqa: F401
 
 import rlp
 
+from eth_bloom import (
+    BloomFilter,
+)
+
 from eth_utils import (
     to_tuple,
 )
@@ -62,8 +66,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
-        block_class = self.get_block_class()
-        self.block = block_class.from_header(header=header, chaindb=self.chaindb)
+        self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
+        self.state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            state_root=self.block.header.state_root,
+            gas_used=self.block.header.gas_used,
+        )
 
     #
     # Logging
@@ -75,15 +84,29 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
+    @abstractmethod
+    def make_receipt(self, transaction, computation, state):
+        """
+        Make receipt.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
     def apply_transaction(self, transaction):
         """
         Apply the transaction to the vm in the current block.
         """
-        block, receipt, computation = self.state.apply_transaction(
-            transaction,
-            self.block,
+        state_root, computation = self.state.apply_transaction(transaction)
+        receipt = self.make_receipt(transaction, computation, self.state)
+
+        new_header = self.block.header.copy(
+            bloom=int(BloomFilter(self.block.header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+            state_root=state_root,
         )
-        self.block = block
+        self.block = self.block.copy(
+            header=new_header,
+            transactions=tuple(self.block.transactions) + (transaction,),
+        )
 
         return self.block, receipt, computation
 
@@ -232,7 +255,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
-        state = self.get_state(self.chaindb, temp_block, prev_hashes, gas_used=0)
+
+        state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=self.block.header.create_execution_context(prev_hashes),
+            state_root=temp_block.header.state_root,
+            gas_used=0,
+        )
 
         snapshot = state.snapshot()
         yield state
@@ -301,7 +330,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         for uncle in block.uncles:
             self.validate_uncle(block, uncle)
 
-        if not self.state.is_key_exists(block.header.state_root):
+        if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
                 "- state_root: {0}".format(
@@ -439,33 +468,3 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             raise AttributeError("No `_state_class` has been set for this VM")
 
         return cls._state_class
-
-    @classmethod
-    def get_state(cls, chaindb, block, prev_hashes, gas_used):
-        """
-        Return state object
-
-        :param ChainDB chaindb: chaindb which cointains the state data
-        :param Block block: block defining the state root and receipts
-        :param tuple prev_hashes: previous block headers
-        :return: state with root defined in block
-        """
-        execution_context = block.header.create_execution_context(prev_hashes)
-
-        return cls.get_state_class()(
-            chaindb,
-            execution_context=execution_context,
-            state_root=block.header.state_root,
-            gas_used=gas_used,
-        )
-
-    @property
-    def state(self):
-        """Return current state property
-        """
-        return self.get_state(
-            chaindb=self.chaindb,
-            block=self.block,
-            prev_hashes=self.previous_hashes,
-            gas_used=self.block.header.gas_used,
-        )
