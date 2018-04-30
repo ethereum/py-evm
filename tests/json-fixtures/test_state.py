@@ -4,10 +4,6 @@ import pytest
 
 from eth_keys import keys
 
-from trie import (
-    HexaryTrie,
-)
-
 from evm.db import (
     get_db_backend,
 )
@@ -20,9 +16,6 @@ from eth_utils import (
 from eth_hash.auto import keccak
 
 from evm.db.chain import ChainDB
-from evm.db.account import (
-    AccountDB,
-)
 from evm.exceptions import (
     ValidationError,
 )
@@ -266,8 +259,6 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    account_state_class = AccountDB
-    trie_class = HexaryTrie
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -277,11 +268,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         parent_hash=fixture['env']['previousHash'],
     )
 
-    chaindb = ChainDB(
-        get_db_backend(),
-        account_state_class=account_state_class,
-        trie_class=trie_class
-    )
+    chaindb = ChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     state = vm.state

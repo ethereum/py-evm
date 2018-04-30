@@ -52,7 +52,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
-    trie_class = None
     transaction_context_class = None  # type: Type[BaseTransactionContext]
 
     def __init__(self, chaindb, execution_context, state_root, gas_used):

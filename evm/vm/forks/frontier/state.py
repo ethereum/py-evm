@@ -1,10 +1,6 @@
 from __future__ import absolute_import
 from typing import Type  # noqa: F401
 
-from trie import (
-    HexaryTrie,
-)
-
 from eth_hash.auto import keccak
 
 from evm import constants
@@ -215,7 +211,6 @@ def _make_frontier_receipt(state, transaction, computation):
 class FrontierState(BaseState, FrontierTransactionExecutor):
     block_class = FrontierBlock
     computation_class = FrontierComputation
-    trie_class = HexaryTrie
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
 
     def make_receipt(self, transaction, computation):

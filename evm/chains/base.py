@@ -19,6 +19,7 @@ from evm.consensus.pow import (
     check_pow,
 )
 from evm.constants import (
+    BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
@@ -436,7 +437,7 @@ class Chain(BaseChain):
         """
         Initializes the Chain from a genesis state.
         """
-        state_db = chaindb.get_state_db(chaindb.empty_root_hash, read_only=False)
+        state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
 
         if genesis_state is None:
             genesis_state = {}

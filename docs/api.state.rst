@@ -19,7 +19,6 @@ configured.
 - ``block_class``: The `~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
 - ``computation_class``: The `~evm.vm.computation.BaseComputation` class for vm
   execution.
-- ``trie_class``: The class that is used to house the state trie.
 - ``transaction_context_class``: The
   `~evm.vm.transaction_context.TransactionContext` class for vm execution.
 

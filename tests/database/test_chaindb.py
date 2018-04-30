@@ -6,21 +6,17 @@ from hypothesis import (
 )
 
 import rlp
-from trie import (
-    BinaryTrie,
-    HexaryTrie,
-)
 
 from eth_hash.auto import keccak
 
+from evm.constants import (
+    BLANK_ROOT_HASH,
+)
 from evm.db import (
     get_db_backend,
 )
 from evm.db.chain import (
     ChainDB,
-)
-from evm.db.account import (
-    AccountDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -33,7 +29,6 @@ from evm.tools.fixture_tests import (
     assert_rlp_equal,
 )
 from evm.utils.db import (
-    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
 )
@@ -50,25 +45,16 @@ B_ADDRESS = b"\xbb" * 20
 
 
 def set_empty_root(chaindb, header):
-    root_hash = get_empty_root_hash(chaindb)
     return header.copy(
-        transaction_root=root_hash,
-        receipt_root=root_hash,
-        state_root=root_hash,
+        transaction_root=BLANK_ROOT_HASH,
+        receipt_root=BLANK_ROOT_HASH,
+        state_root=BLANK_ROOT_HASH,
     )
 
 
-@pytest.fixture(params=[AccountDB])
+@pytest.fixture
 def chaindb(request):
-    if request.param is AccountDB:
-        trie_class = HexaryTrie
-    else:
-        trie_class = BinaryTrie
-    return ChainDB(
-        get_db_backend(),
-        account_state_class=request.param,
-        trie_class=trie_class,
-    )
+    return ChainDB(get_db_backend())
 
 
 @pytest.fixture(params=[0, 10, 999])
