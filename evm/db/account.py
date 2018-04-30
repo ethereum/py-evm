@@ -56,10 +56,6 @@ class BaseAccountDB(metaclass=ABCMeta):
         )
 
     @abstractmethod
-    def apply_state_dict(self, state_dict):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
     def decommission(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -166,15 +162,6 @@ class AccountDB(BaseAccountDB):
     @_trie.setter
     def _trie(self, value):
         self.__trie = value
-
-    def apply_state_dict(self, state_dict):
-        for account, account_data in state_dict.items():
-            self.set_balance(account, account_data["balance"])
-            self.set_nonce(account, account_data["nonce"])
-            self.set_code(account, account_data["code"])
-
-            for slot, value in account_data["storage"].items():
-                self.set_storage(account, slot, value)
 
     def decommission(self):
         self.db = None

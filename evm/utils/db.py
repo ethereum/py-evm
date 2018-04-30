@@ -58,3 +58,15 @@ def get_empty_root_hash(db: 'BaseChainDB') -> bytes:
             "db.trie_class {} is not supported.".format(db.trie_class)
         )
     return root_hash
+
+
+def apply_state_dict(account_db, state_dict):
+    for account, account_data in state_dict.items():
+        account_db.set_balance(account, account_data["balance"])
+        account_db.set_nonce(account, account_data["nonce"])
+        account_db.set_code(account, account_data["code"])
+
+        for slot, value in account_data["storage"].items():
+            account_db.set_storage(account, slot, value)
+
+    return account_db

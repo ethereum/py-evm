@@ -40,6 +40,9 @@ from evm.validation import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.utils.db import (
+    apply_state_dict,
+)
 from evm.utils.chain import (
     generate_vms_by_range,
 )
@@ -438,7 +441,8 @@ class Chain(BaseChain):
         if genesis_state is None:
             genesis_state = {}
 
-        state_db.apply_state_dict(genesis_state)
+        # mutation
+        apply_state_dict(state_db, genesis_state)
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value

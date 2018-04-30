@@ -50,6 +50,9 @@ from evm.tools.fixture_tests import (
     normalize_statetest_fixture,
     should_run_slow_tests,
 )
+from evm.utils.db import (
+    apply_state_dict,
+)
 
 from eth_typing.enums import (
     ForkName
@@ -283,7 +286,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
 
     state = vm.state
     with state.mutable_state_db() as state_db:
-        state_db.apply_state_dict(fixture['pre'])
+        apply_state_dict(state_db, fixture['pre'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
     if 'secretKey' in fixture['transaction']:
