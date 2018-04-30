@@ -103,35 +103,35 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     @contextmanager
     def mutable_account_db(self):
-        state = self._chaindb.get_account_db(self.state_root, read_only=False)
-        yield state
+        account_db = self._chaindb.get_account_db(self.state_root, read_only=False)
+        yield account_db
 
-        if self.state_root != state.root_hash:
-            self.set_state_root(state.root_hash)
+        if self.state_root != account_db.state_root:
+            self.set_state_root(account_db.state_root)
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.decommission()
+        account_db.decommission()
 
     #
     # account_db
     #
     @contextmanager
     def account_db(self, read_only=False):
-        state = self._chaindb.get_account_db(
+        account_db = self._chaindb.get_account_db(
             self.state_root,
             read_only,
         )
-        yield state
+        yield account_db
 
-        if self.state_root != state.root_hash:
-            self.set_state_root(state.root_hash)
+        if self.state_root != account_db.state_root:
+            self.set_state_root(account_db.state_root)
 
         # remove the reference to the underlying `db` object to ensure that no
         # further modifications can occur using the `State` object after
         # leaving the context.
-        state.decommission()
+        account_db.decommission()
 
     def set_state_root(self, state_root):
         self.state_root = state_root
@@ -157,7 +157,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         with self.mutable_account_db() as account_db:
             # first revert the database state root.
-            account_db.root_hash = state_root
+            account_db.state_root = state_root
             # now roll the underlying database back
             account_db.discard(changeset_id)
 
