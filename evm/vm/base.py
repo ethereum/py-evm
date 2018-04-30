@@ -55,10 +55,14 @@ from evm.vm.message import (
 
 class BaseVM(Configurable, metaclass=ABCMeta):
     """
-    The VM class represents the Chain rules for a specific protocol definition
-    such as the Frontier or Homestead network.  Define a Chain which specifies
-    the individual VM classes for each fork of the protocol rules within that
-    network.
+    The :class:`~evm.vm.base.BaseVM` class represents the Chain rules for a
+    specific protocol definition such as the Frontier or Homestead network.
+
+      .. note::
+
+        Each :class:`~evm.vm.base.BaseVM` class must be configured with:
+
+        ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
     fork = None
     chaindb = None
@@ -95,6 +99,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                          code,
                          code_address=None,
                          ):
+        """
+        Execute raw bytecode in the context of the current state of
+        the virtual machine.
+        """
         if origin is None:
             origin = sender
 
@@ -131,7 +139,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     def apply_transaction(self, transaction):
         """
-        Apply the transaction to the vm in the current block.
+        Apply the transaction to the current block. This is a wrapper around
+        :func:`~evm.vm.state.State.apply_transaction` with some extra orchestration logic.
         """
         state_root, computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(transaction, computation, self.state)
@@ -150,6 +159,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Mining
     #
     def import_block(self, block):
+        """
+        Import the given block to the chain.
+        """
         self.block = self.block.copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
@@ -300,6 +312,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Validate
     #
     def validate_block(self, block):
+        """
+        Validate the the given block.
+        """
         if not block.is_genesis:
             parent_header = get_parent_header(block.header, self.chaindb)
 
@@ -362,6 +377,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             )
 
     def validate_uncle(self, block, uncle):
+        """
+        Validate the given uncle in the context of the given block.
+        """
         if uncle.block_number >= block.number:
             raise ValidationError(
                 "Uncle number ({0}) is higher than block number ({1})".format(
@@ -397,13 +415,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     def create_transaction(self, *args, **kwargs):
         """
-        Proxy for instantiating a transaction for this VM.
+        Proxy for instantiating a signed transaction for this VM.
         """
         return self.get_transaction_class()(*args, **kwargs)
 
     def create_unsigned_transaction(self, *args, **kwargs):
         """
-        Proxy for instantiating a transaction for this VM.
+        Proxy for instantiating an unsigned transaction for this VM.
         """
         return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
 
@@ -413,12 +431,15 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_block_class(cls):
         """
-        Return the class that the state class uses for blocks.
+        Return the :class:`~evm.rlp.blocks.Block` class that the state class uses for blocks.
         """
         return cls.get_state_class().get_block_class()
 
     @classmethod
     def get_block_by_header(cls, block_header, db):
+        """
+        Lookup and return the block for the given header.
+        """
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
@@ -439,6 +460,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     @property
     def previous_hashes(self):
+        """
+        Return the block hashes for the previous 255 blocks relative to the tip block
+        """
         return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
 
     #

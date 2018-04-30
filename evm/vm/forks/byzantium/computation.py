@@ -23,6 +23,10 @@ BYZANTIUM_PRECOMPILES = merge(
 
 
 class ByzantiumComputation(SpuriousDragonComputation):
+    """
+    A class for all execution computations in the ``Byzantium`` fork.
+    Inherits from :class:`~evm.vm.forks.spurious_dragon.computation.SpuriousDragonComputation`
+    """
     # Override
     opcodes = BYZANTIUM_OPCODES
     _precompiles = BYZANTIUM_PRECOMPILES

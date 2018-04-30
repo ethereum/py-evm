@@ -28,6 +28,10 @@ FRONTIER_PRECOMPILES = {
 
 
 class FrontierComputation(BaseComputation):
+    """
+    A class for all execution computations in the ``Frontier`` fork.
+    Inherits from :class:`~evm.vm.computation.BaseComputation`
+    """
     # Override
     opcodes = FRONTIER_OPCODES
     _precompiles = FRONTIER_PRECOMPILES
