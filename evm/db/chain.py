@@ -614,12 +614,3 @@ class AsyncChainDB(ChainDB):
 
     async def coro_persist_trie_data_dict(self, *args, **kwargs):
         raise NotImplementedError()
-
-
-class NonJournaledAsyncChainDB(AsyncChainDB):
-
-    def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
-        self.db = db
-        self.journal_db = db
-        self.account_state_class = account_state_class
-        self.set_trie(trie_class)
