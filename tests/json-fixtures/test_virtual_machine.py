@@ -8,9 +8,10 @@ from evm.db import (
 from evm.db.chain import ChainDB
 
 from eth_utils import (
-    keccak,
     to_bytes,
 )
+
+from eth_hash.auto import keccak
 
 from evm.exceptions import (
     VMError,

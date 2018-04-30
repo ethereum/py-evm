@@ -20,7 +20,6 @@ from eth_utils import (
     decode_hex,
     is_0x_prefixed,
     to_bytes,
-    keccak,
     to_canonical_address,
     to_normalized_address,
     to_tuple,
@@ -29,6 +28,8 @@ from eth_utils import (
 from eth_utils.curried import (
     hexstr_if_str,
 )
+
+from eth_hash.auto import keccak
 
 from evm import MainnetChain
 from evm.constants import (

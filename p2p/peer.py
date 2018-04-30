@@ -23,13 +23,14 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import (
     decode_hex,
     encode_hex,
-    keccak,
 )
 
 from eth_keys import (
     datatypes,
     keys,
 )
+
+from eth_hash.auto import keccak
 
 from trie import HexaryTrie
 

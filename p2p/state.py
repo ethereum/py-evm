@@ -19,8 +19,9 @@ from trie.exceptions import SyncRequestAlreadyProcessed
 
 from eth_utils import (
     encode_hex,
-    keccak,
 )
+
+from eth_hash.auto import keccak
 
 from evm.constants import (
     BLANK_ROOT_HASH,

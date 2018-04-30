@@ -5,8 +5,9 @@ import rlp
 from eth_utils import (
     decode_hex,
     encode_hex,
-    keccak,
 )
+
+from eth_hash.auto import keccak
 
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION

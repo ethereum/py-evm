@@ -1,8 +1,6 @@
 import pytest
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.exceptions import (
     ValidationError,

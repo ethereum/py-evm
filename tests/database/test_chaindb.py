@@ -11,9 +11,7 @@ from trie import (
     HexaryTrie,
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.db import (
     get_db_backend,

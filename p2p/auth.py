@@ -15,9 +15,7 @@ from eth_keys import (
     keys,
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from p2p import ecies
 from p2p import kademlia
