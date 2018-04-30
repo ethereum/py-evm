@@ -24,8 +24,8 @@ from evm.tools.fixture_tests import (
     generate_fixture_tests,
     load_fixture,
     filter_fixtures,
-    setup_state_db,
-    verify_state_db,
+    setup_account_db,
+    verify_account_db,
     hash_log_entries,
 )
 from evm.vm.forks import (
@@ -187,9 +187,9 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     )
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
-    with state.mutable_state_db() as state_db:
-        setup_state_db(fixture['pre'], state_db)
-        code = state_db.get_code(fixture['exec']['address'])
+    with state.mutable_account_db() as account_db:
+        setup_account_db(fixture['pre'], account_db)
+        code = account_db.get_code(fixture['exec']['address'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
 
@@ -253,13 +253,13 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
             assert data == child_computation.msg.data or child_computation.msg.code
             assert gas_limit == child_computation.msg.gas
             assert value == child_computation.msg.value
-        post_state = fixture['post']
+        expected_account_db = fixture['post']
     else:
         #
         # Error checks
         #
         assert computation.is_error
         assert isinstance(computation._error, VMError)
-        post_state = fixture['pre']
+        expected_account_db = fixture['pre']
 
-    verify_state_db(post_state, vm.state.read_only_state_db)
+    verify_account_db(expected_account_db, vm.state.read_only_account_db)

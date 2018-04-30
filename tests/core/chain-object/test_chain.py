@@ -46,11 +46,11 @@ def test_import_block_validation(valid_chain, funded_address, funded_address_ini
     tx = imported_block.transactions[0]
     assert tx.value == 10
     vm = valid_chain.get_vm()
-    state_db = vm.state.read_only_state_db
-    assert state_db.get_balance(
+    account_db = vm.state.read_only_account_db
+    assert account_db.get_balance(
         decode_hex("095e7baea6a6c7c4c2dfeb977efac326af552d87")) == tx.value
     tx_gas = tx.gas_price * constants.GAS_TX
-    assert state_db.get_balance(funded_address) == (
+    assert account_db.get_balance(funded_address) == (
         funded_address_initial_balance - tx.value - tx_gas)
 
 

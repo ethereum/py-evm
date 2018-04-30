@@ -142,7 +142,7 @@ Methods and Properties
 
     STUB
 
-.. method:: state_db(self, read_only=False)
+.. method:: account_db(self, read_only=False)
 
     STUB
 

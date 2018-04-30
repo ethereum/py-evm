@@ -13,8 +13,8 @@ from evm.utils.numeric import (
 
 def balance(computation):
     addr = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    with computation.state_db(read_only=True) as state_db:
-        balance = state_db.get_balance(addr)
+    with computation.account_db(read_only=True) as account_db:
+        balance = account_db.get_balance(addr)
     computation.stack_push(balance)
 
 
@@ -108,8 +108,8 @@ def gasprice(computation):
 
 def extcodesize(computation):
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    with computation.state_db(read_only=True) as state_db:
-        code_size = len(state_db.get_code(account))
+    with computation.account_db(read_only=True) as account_db:
+        code_size = len(account_db.get_code(account))
 
     computation.stack_push(code_size)
 
@@ -132,8 +132,8 @@ def extcodecopy(computation):
         reason='EXTCODECOPY: word gas cost',
     )
 
-    with computation.state_db(read_only=True) as state_db:
-        code = state_db.get_code(account)
+    with computation.account_db(read_only=True) as account_db:
+        code = account_db.get_code(account)
 
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = code_bytes.ljust(size, b'\x00')

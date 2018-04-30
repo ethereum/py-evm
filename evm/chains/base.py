@@ -437,25 +437,25 @@ class Chain(BaseChain):
         """
         Initializes the Chain from a genesis state.
         """
-        state_db = chaindb.get_state_db(BLANK_ROOT_HASH, read_only=False)
+        account_db = chaindb.get_account_db(BLANK_ROOT_HASH, read_only=False)
 
         if genesis_state is None:
             genesis_state = {}
 
         # mutation
-        apply_state_dict(state_db, genesis_state)
+        apply_state_dict(account_db, genesis_state)
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', state_db.root_hash)
-        elif genesis_params['state_root'] != state_db.root_hash:
+            genesis_params = assoc(genesis_params, 'state_root', account_db.root_hash)
+        elif genesis_params['state_root'] != account_db.root_hash:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    state_db.root_hash,
+                    account_db.root_hash,
                     genesis_params['state_root'],
                 )
             )

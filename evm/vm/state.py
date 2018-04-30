@@ -92,18 +92,18 @@ class BaseState(Configurable, metaclass=ABCMeta):
         return self.execution_context.gas_limit
 
     #
-    # read only state_db
+    # read only account_db
     #
     @property
-    def read_only_state_db(self):
-        return self._chaindb.get_state_db(self.state_root, read_only=True)
+    def read_only_account_db(self):
+        return self._chaindb.get_account_db(self.state_root, read_only=True)
 
     #
-    # mutable state_db
+    # mutable account_db
     #
     @contextmanager
-    def mutable_state_db(self):
-        state = self._chaindb.get_state_db(self.state_root, read_only=False)
+    def mutable_account_db(self):
+        state = self._chaindb.get_account_db(self.state_root, read_only=False)
         yield state
 
         if self.state_root != state.root_hash:
@@ -115,11 +115,11 @@ class BaseState(Configurable, metaclass=ABCMeta):
         state.decommission()
 
     #
-    # state_db
+    # account_db
     #
     @contextmanager
-    def state_db(self, read_only=False):
-        state = self._chaindb.get_state_db(
+    def account_db(self, read_only=False):
+        state = self._chaindb.get_account_db(
             self.state_root,
             read_only,
         )
@@ -146,8 +146,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
         Snapshots are a combination of the state_root at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
-        with self.mutable_state_db() as state_db:
-            return (self.state_root, state_db.record())
+        with self.mutable_account_db() as account_db:
+            return (self.state_root, account_db.record())
 
     def revert(self, snapshot):
         """
@@ -155,11 +155,11 @@ class BaseState(Configurable, metaclass=ABCMeta):
         """
         state_root, changeset_id = snapshot
 
-        with self.mutable_state_db() as state_db:
+        with self.mutable_account_db() as account_db:
             # first revert the database state root.
-            state_db.root_hash = state_root
+            account_db.root_hash = state_root
             # now roll the underlying database back
-            state_db.discard(changeset_id)
+            account_db.discard(changeset_id)
 
     def commit(self, snapshot):
         """
@@ -167,14 +167,14 @@ class BaseState(Configurable, metaclass=ABCMeta):
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
-        with self.mutable_state_db() as state_db:
-            state_db.commit(checkpoint_id)
+        with self.mutable_account_db() as account_db:
+            account_db.commit(checkpoint_id)
 
     def is_key_exists(self, key):
         """
         Check if the given key exsits in chaindb
         """
-        return self.read_only_state_db.exists(key)
+        return self.read_only_account_db.exists(key)
 
     #
     # Access self.prev_hashes (Read-only)
@@ -245,7 +245,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         snapshot = self.snapshot()
         try:
-            with self.mutable_state_db() as state_db:
+            with self.mutable_account_db() as account_db:
 
                 if not hasattr(_transaction, "get_sender"):
                     _transaction.get_sender = \
@@ -255,7 +255,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
                 # set the account balance of the sender to an arbitrary large
                 # amount to ensure they have the necessary funds to pay for the
                 # transaction.
-                state_db.set_balance(transaction.sender, UINT_256_MAX // 2)
+                account_db.set_balance(transaction.sender, UINT_256_MAX // 2)
 
             computation = self.execute_transaction(_transaction)
 
@@ -284,8 +284,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         # Set block.
         new_block, receipt = self.add_transaction(transaction, computation, block)
-        with self.mutable_state_db() as state_db:
-            state_db.persist()
+        with self.mutable_account_db() as account_db:
+            account_db.persist()
 
         return new_block, receipt, computation
 
@@ -340,8 +340,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        with self.mutable_state_db() as state_db:
-            state_db.delta_balance(block.header.coinbase, block_reward)
+        with self.mutable_account_db() as account_db:
+            account_db.delta_balance(block.header.coinbase, block_reward)
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",
                 block_reward,
@@ -350,7 +350,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
             for uncle in block.uncles:
                 uncle_reward = self.get_uncle_reward(block.number, uncle)
-                state_db.delta_balance(uncle.coinbase, uncle_reward)
+                account_db.delta_balance(uncle.coinbase, uncle_reward)
                 self.logger.debug(
                     "UNCLE REWARD REWARD: %s -> %s",
                     uncle_reward,
@@ -359,7 +359,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
             # We need to call `persist` here since the state db batches
             # all writes untill we tell it to write to the underlying db
             # TODO: Refactor to only use batching/journaling for tx processing
-            state_db.persist()
+            account_db.persist()
 
         return block.copy(header=block.header.copy(state_root=self.state_root))
 

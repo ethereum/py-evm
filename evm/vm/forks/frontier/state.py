@@ -50,12 +50,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.validate_transaction(transaction)
 
         gas_fee = transaction.gas * transaction.gas_price
-        with self.mutable_state_db() as state_db:
+        with self.mutable_account_db() as account_db:
             # Buy Gas
-            state_db.delta_balance(transaction.sender, -1 * gas_fee)
+            account_db.delta_balance(transaction.sender, -1 * gas_fee)
 
             # Increment Nonce
-            state_db.increment_nonce(transaction.sender)
+            account_db.increment_nonce(transaction.sender)
 
             # Setup VM Message
             message_gas = transaction.gas - transaction.intrinsic_gas
@@ -63,14 +63,14 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
                 contract_address = generate_contract_address(
                     transaction.sender,
-                    state_db.get_nonce(transaction.sender) - 1,
+                    account_db.get_nonce(transaction.sender) - 1,
                 )
                 data = b''
                 code = transaction.data
             else:
                 contract_address = None
                 data = transaction.data
-                code = state_db.get_code(transaction.to)
+                code = account_db.get_code(transaction.to)
 
         self.logger.info(
             (
@@ -105,7 +105,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             origin=transaction.sender,
         )
         if message.is_create:
-            is_collision = self.read_only_state_db.account_has_code_or_nonce(
+            is_collision = self.read_only_account_db.account_has_code_or_nonce(
                 message.storage_address
             )
 
@@ -152,8 +152,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 encode_hex(computation.msg.sender),
             )
 
-            with self.mutable_state_db() as state_db:
-                state_db.delta_balance(computation.msg.sender, gas_refund_amount)
+            with self.mutable_account_db() as account_db:
+                account_db.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
         transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
@@ -162,11 +162,11 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             transaction_fee,
             encode_hex(self.coinbase),
         )
-        with self.mutable_state_db() as state_db:
-            state_db.delta_balance(self.coinbase, transaction_fee)
+        with self.mutable_account_db() as account_db:
+            account_db.delta_balance(self.coinbase, transaction_fee)
 
         # Process Self Destructs
-        with self.mutable_state_db() as state_db:
+        with self.mutable_account_db() as account_db:
             for account, beneficiary in computation.get_accounts_for_deletion():
                 # TODO: need to figure out how we prevent multiple selfdestructs from
                 # the same account and if this is the right place to put this.
@@ -174,8 +174,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
                 # TODO: this balance setting is likely superflous and can be
                 # removed since `delete_account` does this.
-                state_db.set_balance(account, 0)
-                state_db.delete_account(account)
+                account_db.set_balance(account, 0)
+                account_db.delete_account(account)
 
         return computation
 

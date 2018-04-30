@@ -38,7 +38,7 @@ from evm.constants import (
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
 from evm.utils.state import (
-    diff_state_db,
+    diff_account_db,
 )
 from evm.utils.rlp import (
     diff_rlp_object,
@@ -477,22 +477,22 @@ def normalize_blockchain_fixtures(fixture):
 #
 # State Setup
 #
-def setup_state_db(desired_state, state_db):
+def setup_account_db(desired_state, account_db):
     for account, account_data in desired_state.items():
         for slot, value in account_data['storage'].items():
-            state_db.set_storage(account, slot, value)
+            account_db.set_storage(account, slot, value)
 
         nonce = account_data['nonce']
         code = account_data['code']
         balance = account_data['balance']
 
-        state_db.set_nonce(account, nonce)
-        state_db.set_code(account, code)
-        state_db.set_balance(account, balance)
+        account_db.set_nonce(account, nonce)
+        account_db.set_code(account, code)
+        account_db.set_balance(account, balance)
 
 
-def verify_state_db(expected_state, state_db):
-    diff = diff_state_db(expected_state, state_db)
+def verify_account_db(expected_state, account_db):
+    diff = diff_account_db(expected_state, account_db)
     if diff:
         error_messages = []
         for account, field, actual_value, expected_value in diff:
