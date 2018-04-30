@@ -12,9 +12,7 @@ from trie import (
     HexaryTrie,
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.constants import (
     BLANK_ROOT_HASH,

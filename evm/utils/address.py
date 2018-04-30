@@ -1,8 +1,6 @@
 import rlp
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 
 def force_bytes_to_address(value: bytes) -> bytes:

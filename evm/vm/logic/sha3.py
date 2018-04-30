@@ -1,6 +1,4 @@
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm import constants
 from evm.utils.numeric import (

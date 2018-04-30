@@ -1,9 +1,7 @@
 import asyncio
 import os
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB

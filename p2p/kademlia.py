@@ -26,13 +26,14 @@ from eth_utils import (
     big_endian_to_int,
     decode_hex,
     encode_hex,
-    keccak,
 )
 
 from eth_keys import (
     datatypes,
     keys,
 )
+
+from eth_hash.auto import keccak
 
 from p2p.cancel_token import CancelToken, wait_with_token
 

@@ -23,10 +23,11 @@ from trie import (
 )
 
 from eth_utils import (
-    keccak,
     to_list,
     to_tuple,
 )
+
+from eth_hash.auto import keccak
 
 from evm.constants import (
     GENESIS_PARENT_HASH,

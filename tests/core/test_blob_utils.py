@@ -4,6 +4,8 @@ from itertools import (
     zip_longest,
 )
 
+from eth_hash.auto import keccak
+
 from evm.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
@@ -17,9 +19,6 @@ from evm.utils.padding import (
 
 from evm.utils.padding import zpad_left
 from evm.utils.numeric import int_to_big_endian
-from eth_utils import (
-    keccak,
-)
 
 from evm.constants import (
     CHUNK_SIZE,

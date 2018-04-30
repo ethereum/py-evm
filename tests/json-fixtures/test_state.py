@@ -13,9 +13,11 @@ from evm.db import (
 )
 
 from eth_utils import (
-    keccak,
+    to_bytes,
     to_tuple,
 )
+
+from eth_hash.auto import keccak
 
 from evm.db.chain import ChainDB
 from evm.db.account import (
@@ -183,7 +185,7 @@ def get_block_hash_for_testing(self, block_number):
     elif block_number < self.block_number - 256:
         return b''
     else:
-        return keccak(text="{0}".format(block_number))
+        return keccak(to_bytes(text="{0}".format(block_number)))
 
 
 def get_prev_hashes_testing(self, last_block_hash, db):
