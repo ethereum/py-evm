@@ -427,17 +427,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
-    # Snapshot and Revert
-    #
-    def clear_journal(self):
-        """
-        Clear the journal.  This should be called at any point of VM execution
-        where the statedb is being committed, such as after a transaction has
-        been applied to a block.
-        """
-        self.chaindb.clear()
-
-    #
     # State
     #
     @classmethod
