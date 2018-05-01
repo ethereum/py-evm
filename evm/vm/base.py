@@ -261,7 +261,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         state = self.get_state_class()(
             db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(prev_hashes),
+            execution_context=temp_block.header.create_execution_context(prev_hashes),
             state_root=temp_block.header.state_root,
             gas_used=0,
         )
