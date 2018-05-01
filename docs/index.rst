@@ -23,3 +23,4 @@ Table of contents
    :caption: Community
 
    contributing
+   code_of_conduct
