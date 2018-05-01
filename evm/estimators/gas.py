@@ -9,16 +9,12 @@ from evm.utils.spoof import (
 
 
 def _get_computation_error(state, transaction):
-    snapshot = state.snapshot()
-    try:
-        computation = state.do_call(transaction)
+    computation = state.do_call(transaction)
 
-        if computation.is_error:
-            return computation._error
-        else:
-            return None
-    finally:
-        state.revert(snapshot)
+    if computation.is_error:
+        return computation._error
+    else:
+        return None
 
 
 @curry
