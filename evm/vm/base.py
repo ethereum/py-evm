@@ -166,6 +166,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             ),
             uncles=block.uncles,
         )
+        # we need to re-initialize the `state` to update the execution context.
+        self.state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            state_root=self.block.header.state_root,
+            gas_used=self.block.header.gas_used,
+        )
 
         # run all of the transactions.
         execution_data = [
