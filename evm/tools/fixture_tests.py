@@ -489,6 +489,7 @@ def setup_account_db(desired_state, account_db):
         account_db.set_nonce(account, nonce)
         account_db.set_code(account, code)
         account_db.set_balance(account, balance)
+    account_db.persist()
 
 
 def verify_account_db(expected_state, account_db):

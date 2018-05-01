@@ -39,10 +39,6 @@ from evm.exceptions import (
 from evm.db.backends.base import (
     BaseDB
 )
-from evm.db.account import (
-    BaseAccountDB,
-    AccountDB,
-)
 from evm.rlp.headers import (
     BlockHeader,
 )
@@ -211,14 +207,6 @@ class BaseChainDB(metaclass=ABCMeta):
         """
         Store raw trie data to db from a dict
         """
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # State Database API
-    #
-    @abstractmethod
-    def get_account_db(self,
-                       state_root: bytes) -> BaseAccountDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -537,16 +525,6 @@ class ChainDB(BaseChainDB):
         """
         for key, value in trie_data_dict.items():
             self.db[key] = value
-
-    #
-    # State Database API
-    #
-    def get_account_db(self,
-                       state_root: bytes) -> BaseAccountDB:
-        return AccountDB(
-            db=self.db,
-            state_root=state_root,
-        )
 
 
 # When performing a chain sync (either fast or regular modes), we'll very often need to look

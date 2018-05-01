@@ -363,14 +363,15 @@ class Chain(BaseChain):
     #
     # Chain Operations
     #
-    def get_vm_class_for_block_number(self, block_number):
+    @classmethod
+    def get_vm_class_for_block_number(cls, block_number):
         """
         Returns the VM class for the given block number.
         """
         validate_block_number(block_number)
-        for n in reversed(self.vms_by_range.keys()):
+        for n in reversed(cls.vms_by_range.keys()):
             if block_number >= n:
-                return self.vms_by_range[n]
+                return cls.vms_by_range[n]
         else:
             raise VMNotFound("No vm available for block #{0}".format(block_number))
 
@@ -437,7 +438,11 @@ class Chain(BaseChain):
         """
         Initializes the Chain from a genesis state.
         """
-        account_db = chaindb.get_account_db(BLANK_ROOT_HASH)
+        genesis_vm_class = cls.get_vm_class_for_block_number(0)
+        account_db = genesis_vm_class.get_state_class().get_account_db_class()(
+            chaindb.db,
+            BLANK_ROOT_HASH,
+        )
 
         if genesis_state is None:
             genesis_state = {}
