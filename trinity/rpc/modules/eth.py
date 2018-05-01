@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from cytoolz import (
     identity,
 )
@@ -39,7 +38,6 @@ def get_header(chain, at_block):
     return at_header
 
 
-@contextmanager
 def account_db_at_block(chain, at_block, read_only=True):
     at_header = get_header(chain, at_block)
     vm = chain.get_vm(at_header)
