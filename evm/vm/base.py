@@ -84,32 +84,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
-    @abstractmethod
-    def make_receipt(self, transaction, computation, state):
-        """
-        Make receipt.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_transaction(self, transaction):
-        """
-        Apply the transaction to the vm in the current block.
-        """
-        state_root, computation = self.state.apply_transaction(transaction)
-        receipt = self.make_receipt(transaction, computation, self.state)
-
-        new_header = self.block.header.copy(
-            bloom=int(BloomFilter(self.block.header.bloom) | receipt.bloom),
-            gas_used=receipt.gas_used,
-            state_root=state_root,
-        )
-        self.block = self.block.copy(
-            header=new_header,
-            transactions=tuple(self.block.transactions) + (transaction,),
-        )
-
-        return self.block, receipt, computation
-
     def execute_bytecode(self,
                          origin,
                          gas_price,
@@ -148,6 +122,34 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             transaction_context,
         )
 
+    @abstractmethod
+    def make_receipt(self, transaction, computation, state):
+        """
+        Make receipt.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def apply_transaction(self, transaction):
+        """
+        Apply the transaction to the vm in the current block.
+        """
+        state_root, computation = self.state.apply_transaction(transaction)
+        receipt = self.make_receipt(transaction, computation, self.state)
+        # TODO: remove this mutation.
+        self.state.gas_used = receipt.gas_used
+
+        new_header = self.block.header.copy(
+            bloom=int(BloomFilter(self.block.header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+            state_root=state_root,
+        )
+        self.block = self.block.copy(
+            header=new_header,
+            transactions=tuple(self.block.transactions) + (transaction,),
+        )
+
+        return self.block, receipt, computation
+
     #
     # Mining
     #
@@ -182,16 +184,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
         self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
 
-        if receipts:
-            gas_used = receipts[-1].gas_used
-        else:
-            gas_used = 0
-
         self.block = self.block.copy(
             header=self.block.header.copy(
                 transaction_root=tx_root_hash,
                 receipt_root=receipt_root_hash,
-                gas_used=gas_used,
             ),
         )
 
