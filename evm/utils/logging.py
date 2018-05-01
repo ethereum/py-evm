@@ -11,7 +11,7 @@ class TraceLogger(Logger):
         Logger.__init__(self, name, level)
 
     def trace(self, message: str, *args: Any, **kwargs: Any) -> None:
-        self.log(TRACE_LEVEL_NUM, message, args, **kwargs)
+        self.log(TRACE_LEVEL_NUM, message, *args, **kwargs)
 
 
 def setup_trace_logging() -> None:
