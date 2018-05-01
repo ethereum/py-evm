@@ -84,6 +84,9 @@ def configure_homestead_header(vm, **header_params):
                 state.account_db.delta_balance(dao_refund_contract, balance)
                 state.account_db.set_balance(account, 0)
 
+            # Persist the changes to the database
+            state.account_db.persist()
+
             # Update state_root manually
             changeset.state_root = state.state_root
 
