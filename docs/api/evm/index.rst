@@ -10,6 +10,5 @@ This section aims to provide a detailed description of all APIs. If you are look
 
    api.chain
    api.computation
-   api.opcode
    api.state
    api.vm
