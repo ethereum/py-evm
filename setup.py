@@ -85,7 +85,7 @@ install_requires = deps['evm'] + deps['p2p'] + deps['trinity']
 setup(
     name='py-evm',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.15',
+    version='0.2.0-alpha.16',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
     author='Piper Merriam',
