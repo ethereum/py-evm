@@ -15,6 +15,10 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from trinity.constants import (
+    SYNC_FULL,
+    SYNC_LIGHT,
+)
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -26,6 +30,7 @@ DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
     MAINNET_NETWORK_ID: 'mainnet',
 }
+DATABASE_DIR_NAME = 'chain'
 
 
 #
@@ -50,16 +55,6 @@ def get_data_dir_for_network_id(network_id: int) -> str:
         return get_local_data_dir(DEFAULT_DATA_DIRS[network_id])
     except KeyError:
         raise KeyError("Unknown network id: `{0}`".format(network_id))
-
-
-DATABASE_DIR_NAME = 'chain'
-
-
-def get_database_dir(data_dir: str) -> str:
-    """
-    Returns the directory path where chain data will be stored.
-    """
-    return os.path.join(data_dir, DATABASE_DIR_NAME)
 
 
 NODEKEY_FILENAME = 'nodekey'
@@ -121,8 +116,10 @@ class ChainConfig:
                  network_id: int,
                  data_dir: str=None,
                  nodekey_path: str=None,
-                 nodekey: PrivateKey=None) -> None:
+                 nodekey: PrivateKey=None,
+                 sync_mode: str=SYNC_FULL) -> None:
         self.network_id = network_id
+        self.sync_mode = sync_mode
 
         # validation
         if nodekey is not None and nodekey_path is not None:
@@ -154,7 +151,12 @@ class ChainConfig:
 
     @property
     def database_dir(self) -> str:
-        return get_database_dir(self.data_dir)
+        if self.sync_mode == SYNC_FULL:
+            return os.path.join(self.data_dir, DATABASE_DIR_NAME, "full")
+        elif self.sync_mode == SYNC_LIGHT:
+            return os.path.join(self.data_dir, DATABASE_DIR_NAME, "light")
+        else:
+            raise ValueError("Unknown sync mode: {}}".format(self.sync_mode))
 
     @property
     def database_ipc_path(self) -> str:
@@ -227,3 +229,6 @@ def construct_chain_config_params(args):
         yield 'nodekey_path', args.nodekey_path
     elif args.nodekey is not None:
         yield 'nodekey', decode_hex(args.nodekey)
+
+    if args.sync_mode is not None:
+        yield 'sync_mode', args.sync_mode

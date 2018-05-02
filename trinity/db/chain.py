@@ -1,33 +1,13 @@
-import asyncio
-import functools
-
-from typing import Callable, Any
-
-
 # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
 # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
 from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
 
-
-def async_method(method_name: str) -> Callable[..., Any]:
-    async def method(self, *args, **kwargs):
-        loop = asyncio.get_event_loop()
-
-        return await loop.run_in_executor(
-            None,
-            functools.partial(self._callmethod, kwds=kwargs),
-            method_name,
-            args,
-        )
-    return method
-
-
-def sync_method(method_name: str) -> Callable[..., Any]:
-    def method(self, *args, **kwargs):
-        return self._callmethod(method_name, args, kwargs)
-    return method
+from trinity.utils.mp import (
+    async_method,
+    sync_method,
+)
 
 
 class ChainDBProxy(BaseProxy):

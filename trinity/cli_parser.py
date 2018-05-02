@@ -91,7 +91,7 @@ mode_parser = syncing_parser.add_mutually_exclusive_group()
 mode_parser.add_argument(
     '--sync-mode',
     choices={SYNC_LIGHT, SYNC_FULL},
-    default=SYNC_LIGHT,
+    default=SYNC_FULL,
 )
 mode_parser.add_argument(
     '--light',  # TODO: consider --sync-mode like geth.

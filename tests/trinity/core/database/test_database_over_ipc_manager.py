@@ -2,12 +2,11 @@ import multiprocessing
 from multiprocessing.managers import (
     BaseManager,
 )
-import os
 import tempfile
 
 import pytest
 
-from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
 from evm.db.chain import (
     ChainDB,
 )
@@ -17,6 +16,9 @@ from trinity.chains import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.utils.chains import (
+    ChainConfig,
+)
 from trinity.utils.db import (
     MemoryDB,
 )
@@ -36,18 +38,18 @@ def database_server_ipc_path():
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        ipc_path = os.path.join(temp_dir, 'chaindb.ipc')
+        chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, data_dir=temp_dir)
 
         chaindb_server_process = multiprocessing.Process(
             target=serve_chaindb,
-            args=(core_db, ipc_path),
+            args=(chain_config, core_db),
         )
         chaindb_server_process.start()
 
-        wait_for_ipc(ipc_path)
+        wait_for_ipc(chain_config.database_ipc_path)
 
         try:
-            yield ipc_path
+            yield chain_config.database_ipc_path
         finally:
             kill_process_gracefully(chaindb_server_process)
 
