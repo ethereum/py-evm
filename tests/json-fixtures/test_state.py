@@ -310,7 +310,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         header, receipt, computation = vm.apply_transaction(transaction)
         transactions = vm.block.transactions + (transaction, )
         receipts = vm.block.get_receipts(chaindb) + (receipt, )
-        block = vm.seal_block(vm.block, header, transactions, receipts)
+        block = vm.set_block_transactions(vm.block, header, transactions, receipts)
     except ValidationError as err:
         block = vm.block
         transaction_error = err

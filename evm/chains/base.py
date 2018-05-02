@@ -493,7 +493,7 @@ class Chain(BaseChain):
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        new_block = vm.seal_block(base_block, new_header, transactions, receipts)
+        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
 
         self.header = new_block.header
 

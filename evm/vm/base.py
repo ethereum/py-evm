@@ -183,11 +183,16 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             receipts = tuple()
             header_with_txns = self.block.header
 
-        self.block = self.seal_block(self.block, header_with_txns, block.transactions, receipts)
+        self.block = self.set_block_transactions(
+            self.block,
+            header_with_txns,
+            block.transactions,
+            receipts,
+        )
 
         return self.mine_block()
 
-    def seal_block(self, base_block, new_header, transactions, receipts):
+    def set_block_transactions(self, base_block, new_header, transactions, receipts):
 
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
