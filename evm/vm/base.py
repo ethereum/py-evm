@@ -315,6 +315,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         Validate the the given block.
         """
+        if not isinstance(block, self.get_block_class()):
+            raise ValidationError(
+                "This vm ({0!r}) is not equipped to validate a block of type {1!r}".format(
+                    self,
+                    block,
+                )
+            )
         if not block.is_genesis:
             parent_header = get_parent_header(block.header, self.chaindb)
 
