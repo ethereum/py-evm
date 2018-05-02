@@ -1,10 +1,10 @@
 import rlp
 
 from evm.constants import (
+    CREATE_CONTRACT_ADDRESS,
     GAS_TX,
     GAS_TXDATAZERO,
     GAS_TXDATANONZERO,
-    CREATE_CONTRACT_ADDRESS,
 )
 from evm.validation import (
     validate_uint256,

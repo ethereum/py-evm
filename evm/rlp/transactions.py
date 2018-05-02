@@ -31,7 +31,40 @@ from evm.vm.computation import (
 )
 
 
-class BaseTransaction(rlp.Serializable):
+class BaseTransactionCommonMethods:
+    def validate(self) -> None:
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
+        pass
+
+    @property
+    def intrinsic_gas(self) -> int:
+        """
+        Convenience property for the return value of `get_intrinsic_gas`
+        """
+        return self.get_intrinsic_gas()
+
+    @abstractmethod
+    def get_intrinsic_gas(self) -> int:
+        """
+        Compute the baseline gas cost for this transaction.  This is the amount
+        of gas needed to send this transaction (but that is not actually used
+        for computation).
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def gas_used_by(self, computation: BaseComputation) -> int:
+        """
+        Return the gas used by the given computation. In Frontier,
+        for example, this is sum of the intrinsic cost and the gas used
+        during computation.
+        """
+        return self.get_intrinsic_gas() + computation.get_gas_used()
+
+
+class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -58,13 +91,6 @@ class BaseTransaction(rlp.Serializable):
         Convenience property for the return value of `get_sender`
         """
         return self.get_sender()
-
-    @property
-    def intrinsic_gas(self) -> int:
-        """
-        Convenience property for the return value of `get_intrinsic_gas`
-        """
-        return self.get_intrinsic_gas()
 
     # +-------------------------------------------------------------+
     # | API that must be implemented by all Transaction subclasses. |
@@ -110,26 +136,6 @@ class BaseTransaction(rlp.Serializable):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
-    # Get gas costs
-    #
-    @abstractmethod
-    def get_intrinsic_gas(self) -> int:
-        """
-        Compute the baseline gas cost for this transaction.  This is the amount
-        of gas needed to send this transaction (but that is not actually used
-        for computation).
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def gas_used_by(self, computation: BaseComputation) -> int:
-        """
-        Return the gas used by the given computation. In Frontier,
-        for example, this is sum of the intrinsic cost and the gas used
-        during computation.
-        """
-        return self.get_intrinsic_gas() + computation.get_gas_used()
-
-    #
     # Conversion to and creation of unsigned transactions.
     #
     @abstractmethod
@@ -148,7 +154,7 @@ class BaseTransaction(rlp.Serializable):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
+class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionCommonMethods, metaclass=ABCMeta):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -161,13 +167,6 @@ class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
     #
     # API that must be implemented by all Transaction subclasses.
     #
-    def validate(self) -> None:
-        """
-        Hook called during instantiation to ensure that all transaction
-        parameters pass validation rules.
-        """
-        pass
-
     @abstractmethod
     def as_signed_transaction(self, private_key: bytes) -> 'BaseTransaction':
         """
@@ -175,27 +174,3 @@ class BaseUnsignedTransaction(rlp.Serializable, metaclass=ABCMeta):
         provided `private_key`
         """
         raise NotImplementedError("Must be implemented by subclasses")
-
-    @property
-    def intrinsic_gas(self) -> int:
-        """
-        Convenience property for the return value of `get_intrinsic_gas`
-        """
-        return self.get_intrinsic_gas()
-
-    @abstractmethod
-    def get_intrinsic_gas(self) -> int:
-        """
-        Compute the baseline gas cost for this transaction.  This is the amount
-        of gas needed to send this transaction (but that is not actually used
-        for computation).
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def gas_used_by(self, computation: BaseComputation) -> int:
-        """
-        Return the gas used by the given computation. In Frontier,
-        for example, this is sum of the intrinsic cost and the gas used
-        during computation.
-        """
-        return self.get_intrinsic_gas() + computation.get_gas_used()

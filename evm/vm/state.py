@@ -8,17 +8,8 @@ from typing import (  # noqa: F401
     TYPE_CHECKING
 )
 
-from eth_utils import (
-    to_bytes
-)
-
 from evm.constants import (
-    DEFAULT_DO_CALL_R,
-    DEFAULT_DO_CALL_S,
-    DEFAULT_DO_CALL_SENDER,
-    DEFAULT_DO_CALL_V,
     MAX_PREV_HEADER_DEPTH,
-    UINT_256_MAX,
 )
 from evm.db.account import (  # noqa: F401
     BaseAccountDB,
@@ -53,6 +44,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
     account_db_class = None  # type: Type[BaseAccountDB]
+    transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
     def __init__(self, db, execution_context, state_root, gas_used):
         self._db = db
@@ -195,34 +187,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
-
-    def do_call(self, transaction):
-
-        _transaction = transaction
-
-        _transaction.v = DEFAULT_DO_CALL_V
-        _transaction.s = DEFAULT_DO_CALL_S
-        _transaction.r = DEFAULT_DO_CALL_R
-
-        snapshot = self.snapshot()
-        try:
-            if not hasattr(_transaction, "get_sender"):
-                _transaction.get_sender = \
-                    lambda: to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
-                _transaction.sender = to_bytes(hexstr=DEFAULT_DO_CALL_SENDER)
-
-            # set the account balance of the sender to an arbitrary large
-            # amount to ensure they have the necessary funds to pay for the
-            # transaction.
-            self.account_db.set_balance(transaction.sender, UINT_256_MAX // 2)
-
-            computation = self.execute_transaction(_transaction)
-
-        finally:
-            self.revert(snapshot)
-
-        return computation
-
     def apply_transaction(
             self,
             transaction):
@@ -287,24 +251,44 @@ class BaseState(Configurable, metaclass=ABCMeta):
     def get_nephew_reward(cls):
         raise NotImplementedError("Must be implemented by subclasses")
 
+    def get_transaction_executor(self, transaction):
+        vm_state = self
+        return self.transaction_executor(vm_state)
+
+    @abstractmethod
+    def execute_transaction(self):
+        raise NotImplementedError()
+
 
 class BaseTransactionExecutor(metaclass=ABCMeta):
-    def execute_transaction(self, transaction):
-        """
-        Execute the transaction in the vm.
-        """
-        message = self.run_pre_computation(transaction)
-        computation = self.run_computation(transaction, message)
-        return self.run_post_computation(transaction, computation)
+    def __init__(self, vm_state):
+        self.vm_state = vm_state
+
+    def get_transaction_context(self, transaction):
+        return self.vm_state.get_transaction_context_class()(
+            gas_price=transaction.gas_price,
+            origin=transaction.sender,
+        )
+
+    def __call__(self, transaction):
+        valid_transaction = self.validate_transaction(transaction)
+        message = self.build_evm_message(valid_transaction)
+        computation = self.build_computation(message, valid_transaction)
+        finalized_computation = self.finalize_computation(computation, valid_transaction)
+        return finalized_computation
 
     @abstractmethod
-    def run_pre_computation(self, transaction):
+    def validate_transaction(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def build_evm_message(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def run_computation(self, transaction, message):
+    def build_computation(self):
         raise NotImplementedError()
 
     @abstractmethod
-    def run_post_computation(self, transaction, computation):
+    def finalize_computation(self):
         raise NotImplementedError()

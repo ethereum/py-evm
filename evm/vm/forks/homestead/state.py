@@ -1,4 +1,7 @@
-from evm.vm.forks.frontier.state import FrontierState
+from evm.vm.forks.frontier.state import (
+    FrontierState,
+    FrontierTransactionExecutor,
+)
 
 from .blocks import HomesteadBlock
 from .computation import HomesteadComputation
@@ -11,3 +14,7 @@ class HomesteadState(FrontierState):
 
     def validate_transaction(self, transaction):
         validate_homestead_transaction(self, transaction)
+
+
+class HomesteadTransactionExecutor(FrontierTransactionExecutor):
+    pass

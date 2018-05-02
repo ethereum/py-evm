@@ -6,6 +6,10 @@ from evm.exceptions import (
     ValidationError,
 )
 
+from evm.utils.spoof import (
+    SpoofTransaction,
+)
+
 
 @curry
 def new_transaction(
@@ -28,7 +32,7 @@ def new_transaction(
     if private_key:
         return tx.as_signed_transaction(private_key, chain_id=1)
     else:
-        return tx
+        return SpoofTransaction(tx, from_=from_)
 
 
 def fill_block(chain, from_, key, gas, data):

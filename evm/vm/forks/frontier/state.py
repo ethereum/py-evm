@@ -13,6 +13,7 @@ from evm.db.account import (
 )
 from evm.exceptions import (
     ContractCreationCollision,
+    ValidationError,
 )
 from evm.vm.message import (
     Message,
@@ -40,19 +41,29 @@ from .validation import validate_frontier_transaction
 
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
-    def run_pre_computation(self, transaction):
+
+    def validate_transaction(self, transaction):
+
         # Validate the transaction
+
+        if transaction.intrinsic_gas > transaction.gas:
+            raise ValidationError("Insufficient gas")
+
         transaction.validate()
+        self.vm_state.validate_transaction(transaction)
 
-        self.validate_transaction(transaction)
+        return transaction
 
-        gas_fee = transaction.gas * transaction.gas_price
+    def build_evm_message(self, transaction):
+
+        transaction_context = self.get_transaction_context(transaction)
+        gas_fee = transaction.gas * transaction_context.gas_price
 
         # Buy Gas
-        self.account_db.delta_balance(transaction.sender, -1 * gas_fee)
+        self.vm_state.account_db.delta_balance(transaction.sender, -1 * gas_fee)
 
         # Increment Nonce
-        self.account_db.increment_nonce(transaction.sender)
+        self.vm_state.account_db.increment_nonce(transaction.sender)
 
         # Setup VM Message
         message_gas = transaction.gas - transaction.intrinsic_gas
@@ -60,16 +71,16 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
             contract_address = generate_contract_address(
                 transaction.sender,
-                self.account_db.get_nonce(transaction.sender) - 1,
+                self.vm_state.account_db.get_nonce(transaction.sender) - 1,
             )
             data = b''
             code = transaction.data
         else:
             contract_address = None
             data = transaction.data
-            code = self.account_db.get_code(transaction.to)
+            code = self.vm_state.account_db.get_code(transaction.to)
 
-        self.logger.debug(
+        self.vm_state.logger.debug(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
                 "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
@@ -85,7 +96,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             encode_hex(keccak(transaction.data)),
         )
 
-        return Message(
+        message = Message(
             gas=message_gas,
             to=transaction.to,
             sender=transaction.sender,
@@ -94,42 +105,42 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             code=code,
             create_address=contract_address,
         )
+        return message
 
-    def run_computation(self, transaction, message):
+    def build_computation(self, message, transaction):
         """Apply the message to the VM."""
-        transaction_context = self.get_transaction_context_class()(
-            gas_price=transaction.gas_price,
-            origin=transaction.sender,
-        )
+        transaction_context = self.get_transaction_context(transaction)
         if message.is_create:
-            is_collision = self.account_db.account_has_code_or_nonce(
+            is_collision = self.vm_state.account_db.account_has_code_or_nonce(
                 message.storage_address
             )
 
             if is_collision:
                 # The address of the newly created contract has *somehow* collided
                 # with an existing contract address.
-                computation = self.get_computation(message, transaction_context)
+                computation = self.vm_state.get_computation(message, transaction_context)
                 computation._error = ContractCreationCollision(
                     "Address collision while creating contract: {0}".format(
                         encode_hex(message.storage_address),
                     )
                 )
-                self.logger.debug(
+                self.vm_state.logger.debug(
                     "Address collision while creating contract: %s",
                     encode_hex(message.storage_address),
                 )
             else:
-                computation = self.get_computation(
+                computation = self.vm_state.get_computation(
                     message,
                     transaction_context,
                 ).apply_create_message()
         else:
-            computation = self.get_computation(message, transaction_context).apply_message()
+            computation = self.vm_state.get_computation(
+                message,
+                transaction_context).apply_message()
 
         return computation
 
-    def run_post_computation(self, transaction, computation):
+    def finalize_computation(self, computation, transaction):
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -143,42 +154,44 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
         if gas_refund_amount:
-            self.logger.debug(
+            self.vm_state.logger.debug(
                 'TRANSACTION REFUND: %s -> %s',
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
             )
 
-            self.account_db.delta_balance(computation.msg.sender, gas_refund_amount)
+            self.vm_state.account_db.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
-        transaction_fee = (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
-        self.logger.debug(
+        transaction_fee = \
+            (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        self.vm_state.logger.debug(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,
-            encode_hex(self.coinbase),
+            encode_hex(self.vm_state.coinbase),
         )
-        self.account_db.delta_balance(self.coinbase, transaction_fee)
+        self.vm_state.account_db.delta_balance(self.vm_state.coinbase, transaction_fee)
 
         # Process Self Destructs
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
-            self.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+            self.vm_state.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.
-            self.account_db.set_balance(account, 0)
-            self.account_db.delete_account(account)
+            self.vm_state.account_db.set_balance(account, 0)
+            self.vm_state.account_db.delete_account(account)
 
         return computation
 
 
-class FrontierState(BaseState, FrontierTransactionExecutor):
+class FrontierState(BaseState):
     block_class = FrontierBlock
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
     account_db_class = AccountDB  # Type[BaseAccountDB]
+    transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 
     def validate_transaction(self, transaction):
         validate_frontier_transaction(self, transaction)
@@ -196,3 +209,7 @@ class FrontierState(BaseState, FrontierTransactionExecutor):
     @classmethod
     def get_nephew_reward(cls):
         return cls.get_block_reward() // 32
+
+    def execute_transaction(self, transaction):
+        executor = self.get_transaction_executor(transaction)
+        return executor(transaction)
