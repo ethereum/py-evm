@@ -635,3 +635,11 @@ class Chain(BaseChain):
             raise ValidationError(
                 "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
                     encode_hex(header.hash), header.gas_limit, high_bound))
+
+
+# This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
+# Chain implementation.
+class AsyncChain(Chain):
+
+    async def coro_import_block(self, block, perform_validation=True):
+        raise NotImplementedError()

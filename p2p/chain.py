@@ -9,9 +9,13 @@ from typing import (  # noqa: F401
 from cytoolz.itertoolz import partition_all, unique
 
 from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH
+from evm.chains import AsyncChain
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
+from evm.exceptions import BlockNotFound
 from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
+from evm.rlp.transactions import BaseTransaction  # noqa: F401
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
@@ -42,8 +46,10 @@ class ChainSyncer(PeerPoolSubscriber):
         self._sync_complete = asyncio.Event()
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
         self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
-        self._downloaded_receipts = asyncio.Queue()  # type: asyncio.Queue[List[bytes]]
-        self._downloaded_bodies = asyncio.Queue()  # type: asyncio.Queue[List[Tuple[bytes, bytes]]]
+        # Those are used by our msg handlers and _download_block_parts() in order to track missing
+        # bodies/receipts for a given chain segment.
+        self._downloaded_receipts = asyncio.Queue()  # type: asyncio.Queue[List[DownloadedBlockPart]]  # noqa: E501
+        self._downloaded_bodies = asyncio.Queue()  # type: asyncio.Queue[List[DownloadedBlockPart]]
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -97,6 +103,8 @@ class ChainSyncer(PeerPoolSubscriber):
                 self._sync_requests.get(), self._sync_complete.wait(),
                 token=self.cancel_token)
 
+            # In the case of a fast sync, we return once the sync is completed, and our caller
+            # must then run the StateDownloader.
             if self._sync_complete.is_set():
                 return
 
@@ -181,13 +189,15 @@ class ChainSyncer(PeerPoolSubscriber):
             'receipt')
         self.logger.info("Got block receipts for chain segment")
 
+        # FIXME: Get the bodies returned by self._download_block_parts above and use persit_block
+        # here.
         for header in headers:
             await self.chaindb.coro_persist_header(header)
 
         head = await self.chaindb.coro_get_canonical_head()
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
         if head.hash == peer.head_hash:
-            self.logger.info("Chain sync with %s completed", peer)
+            self.logger.info("Fast sync with %s completed", peer)
             self._sync_complete.set()
         return head.block_number
 
@@ -195,20 +205,21 @@ class ChainSyncer(PeerPoolSubscriber):
             self,
             headers: List[BlockHeader],
             request_func: Callable[[List[BlockHeader]], int],
-            download_queue: 'Union[asyncio.Queue[List[bytes]], asyncio.Queue[List[Tuple[bytes, bytes]]]]',  # noqa: E501
+            download_queue: 'asyncio.Queue[List[DownloadedBlockPart]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
-            part_name: str) -> None:
+            part_name: str) -> 'List[DownloadedBlockPart]':
         missing = headers.copy()
         # The ETH protocol doesn't guarantee that we'll get all body parts requested, so we need
         # to keep track of the number of pending replies and missing items to decide when to retry
         # them. See request_receipts() for more info.
         pending_replies = request_func(missing)
+        parts = []  # type: List[DownloadedBlockPart]
         while missing:
             if pending_replies == 0:
                 pending_replies = request_func(missing)
 
             try:
-                downloaded = await wait_with_token(
+                received = await wait_with_token(
                     download_queue.get(),
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
@@ -216,14 +227,17 @@ class ChainSyncer(PeerPoolSubscriber):
                 pending_replies = request_func(missing)
                 continue
 
+            parts.extend(received)
+            received_keys = set([part.unique_key for part in received])
             pending_replies -= 1
-            unexpected = set(downloaded).difference(
+            unexpected = received_keys.difference(
                 [key_func(header) for header in missing])
             for item in unexpected:
                 self.logger.warn("Got unexpected %s: %s", part_name, unexpected)
             missing = [
                 header for header in missing
-                if key_func(header) not in downloaded]
+                if key_func(header) not in received_keys]
+        return parts
 
     def _request_block_parts(
             self,
@@ -282,26 +296,23 @@ class ChainSyncer(PeerPoolSubscriber):
     async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, eth.BlockHeaders):
-            msg = cast(List[BlockHeader], msg)
-            self.logger.debug(
-                "Got BlockHeaders from %d to %d", msg[0].block_number, msg[-1].block_number)
-            self._new_headers.put_nowait(msg)
+            self._handle_block_headers(list(cast(Tuple[BlockHeader], msg)))
         elif isinstance(cmd, eth.BlockBodies):
-            await self._handle_block_bodies(peer, cast(List[eth.BlockBody], msg))
+            await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
         elif isinstance(cmd, eth.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[eth.Receipt]], msg))
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, eth.Transactions):
-            # TODO: Figure out what to do with those.
-            pass
-        elif isinstance(cmd, eth.NewBlockHashes):
-            # TODO: Figure out what to do with those.
-            pass
         else:
-            # TODO: There are other msg types we'll want to handle here, but for now just log them
-            # as a warning so we don't forget about it.
-            self.logger.warn("Got unexpected msg: %s (%s)", cmd, msg)
+            self.logger.debug("Ignoring %s msg during fast sync", cmd)
+
+    def _handle_block_headers(self, headers: List[BlockHeader]) -> None:
+        if not headers:
+            self.logger.warn("Got an empty BlockHeaders msg")
+            return
+        self.logger.debug(
+            "Got BlockHeaders from %d to %d", headers[0].block_number, headers[-1].block_number)
+        self._new_headers.put_nowait(headers)
 
     async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
         header = msg['block'][0]
@@ -320,10 +331,11 @@ class ChainSyncer(PeerPoolSubscriber):
         receipts_tries = await wait_with_token(
             loop.run_in_executor(None, list, iterator),
             token=self.cancel_token)
-        for receipt_root, trie_dict_data in receipts_tries:
+        downloaded = []  # type: List[DownloadedBlockPart]
+        for (receipt, (receipt_root, trie_dict_data)) in zip(receipts, receipts_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-        receipt_roots = [receipt_root for receipt_root, _ in receipts_tries]
-        self._downloaded_receipts.put_nowait(receipt_roots)
+            downloaded.append(DownloadedBlockPart(receipt, receipt_root))
+        self._downloaded_receipts.put_nowait(downloaded)
 
     async def _handle_block_bodies(self, peer: ETHPeer, bodies: List[eth.BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
@@ -332,12 +344,87 @@ class ChainSyncer(PeerPoolSubscriber):
         transactions_tries = await wait_with_token(
             loop.run_in_executor(None, list, iterator),
             token=self.cancel_token)
-        body_keys = []
+        downloaded = []  # type: List[DownloadedBlockPart]
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
             uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
-            body_keys.append((tx_root, uncles_hash))
-        self._downloaded_bodies.put_nowait(body_keys)
+            downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
+        self._downloaded_bodies.put_nowait(downloaded)
+
+
+class RegularChainSyncer(ChainSyncer):
+
+    def __init__(self, chain: AsyncChain, peer_pool: PeerPool, token: CancelToken = None) -> None:
+        super().__init__(chain.chaindb, peer_pool, token)
+        self.chain = chain
+
+    async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
+                          msg: protocol._DecodedMsgType) -> None:
+        if isinstance(cmd, eth.BlockHeaders):
+            self._handle_block_headers(list(cast(Tuple[BlockHeader], msg)))
+        elif isinstance(cmd, eth.BlockBodies):
+            await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
+        elif isinstance(cmd, eth.NewBlock):
+            await self._handle_new_block(peer, cast(Dict[str, Any], msg))
+        else:
+            self.logger.warn("%s msg not handled yet, need to be implemented", cmd)
+
+    async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
+        # This is needed to ensure after a state sync we only start importing blocks on top of our
+        # current head, as that's the only one whose state root is present in our DB.
+        for header in headers.copy():
+            try:
+                await self.chaindb.coro_get_block_header_by_hash(header.hash)
+            except BlockNotFound:
+                break
+            else:
+                headers.remove(header)
+        else:
+            head = await self.chaindb.coro_get_canonical_head()
+            return head.block_number
+
+        downloaded_parts = await self._download_block_parts(
+            [header for header in headers if not _is_body_empty(header)],
+            self.request_bodies,
+            self._downloaded_bodies,
+            _body_key,
+            'body')
+        self.logger.info("Got block bodies for chain segment")
+
+        parts_by_key = dict((part.unique_key, part.part) for part in downloaded_parts)
+        for header in headers:
+            vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
+            block_class = vm_class.get_block_class()
+            if _is_body_empty(header):
+                transactions = []  # type: List[BaseTransaction]
+                uncles = []  # type: List[BlockHeader]
+            else:
+                body = cast(eth.BlockBody, parts_by_key[_body_key(header)])
+                tx_class = block_class.get_transaction_class()
+                transactions = [tx_class.from_base_transaction(tx)
+                                for tx in body.transactions]
+                uncles = body.uncles
+
+            block = block_class(header, transactions, uncles)
+            t = time.time()
+            await wait_with_token(
+                self.chain.coro_import_block(block, perform_validation=True),
+                token=self.cancel_token)
+            self.logger.info("Imported block %d (%d txs) in %f seconds",
+                             block.number, len(transactions), time.time() - t)
+
+        head = await self.chaindb.coro_get_canonical_head()
+        self.logger.info("Imported chain segment, new head: #%d", head.block_number)
+        return head.block_number
+
+
+class DownloadedBlockPart:
+
+    def __init__(self,
+                 part: Union[eth.BlockBody, List[Receipt]],
+                 unique_key: Union[bytes, Tuple[bytes, bytes]]) -> None:
+        self.part = part
+        self.unique_key = unique_key
 
 
 def _body_key(header: BlockHeader) -> Tuple[bytes, bytes]:
@@ -371,7 +458,8 @@ def _test() -> None:
     from p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
+    from tests.p2p.integration_test_helpers import (
+        FakeAsyncChainDB, FakeAsyncRopstenChain, LocalGethPeerPool)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
@@ -402,7 +490,9 @@ def _test() -> None:
             ETHPeer, chaindb, RopstenChain.network_id, privkey, min_peers)
 
     asyncio.ensure_future(peer_pool.run())
-    downloader = ChainSyncer(chaindb, peer_pool)
+    chain = FakeAsyncRopstenChain(chaindb)
+    downloader = RegularChainSyncer(chain, peer_pool)
+    downloader.min_peers_to_sync = 1
 
     async def run():
         # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel

@@ -1,8 +1,10 @@
+import asyncio
 from typing import Type
 
 from eth_utils import decode_hex
 from eth_keys import datatypes, keys
 
+from evm import RopstenChain
 from evm.db.chain import AsyncChainDB
 
 from p2p import kademlia
@@ -52,3 +54,12 @@ class FakeAsyncChainDB(AsyncChainDB):
 
     async def coro_persist_trie_data_dict(self, *args, **kwargs):
         return self.persist_trie_data_dict(*args, **kwargs)
+
+
+class FakeAsyncRopstenChain(RopstenChain):
+
+    async def coro_import_block(self, block, perform_validation=True):
+        # Be nice and yield control to give other coroutines a chance to run before us as
+        # importing a block is a very expensive operation.
+        await asyncio.sleep(0)
+        return self.import_block(block, perform_validation=perform_validation)

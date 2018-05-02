@@ -69,7 +69,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             data = transaction.data
             code = self.account_db.get_code(transaction.to)
 
-        self.logger.info(
+        self.logger.debug(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
                 "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
