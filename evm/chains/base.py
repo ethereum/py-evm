@@ -487,20 +487,29 @@ class Chain(BaseChain):
         heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
-        block, receipt, computation = vm.apply_transaction(transaction)
-        receipts = block.get_receipts(self.chaindb) + [receipt]
+        old_block = vm.block
 
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+        new_header, receipt, computation = vm.apply_transaction(transaction)
+
+        transactions = old_block.transactions + (transaction, )
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+
+        receipts = old_block.get_receipts(self.chaindb) + (receipt, )
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
         self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
 
-        self.header = block.header.copy(
+        self.header = new_header.copy(
             transaction_root=tx_root_hash,
             receipt_root=receipt_root_hash,
         )
 
-        return block.copy(header=self.header), receipt, computation
+        new_block = old_block.copy(
+            header=self.header,
+            transactions=transactions,
+        )
+
+        return new_block, receipt, computation
 
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:

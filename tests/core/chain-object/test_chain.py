@@ -55,11 +55,10 @@ def test_import_block_validation(valid_chain, funded_address, funded_address_ini
 
 
 def test_import_block(chain, tx):
-    vm = chain.get_vm()
-    *_, computation = vm.apply_transaction(tx)
+    new_block, _, computation = chain.apply_transaction(tx)
     assert computation.is_success
 
-    block = chain.import_block(vm.block)
+    block = chain.import_block(new_block)
     assert block.transactions == (tx,)
     assert chain.get_block_by_hash(block.hash) == block
     assert chain.get_canonical_block_by_number(block.number) == block

@@ -143,12 +143,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             gas_used=receipt.gas_used,
             state_root=state_root,
         )
-        self.block = self.block.copy(
-            header=new_header,
-            transactions=tuple(self.block.transactions) + (transaction,),
-        )
 
-        return self.block, receipt, computation
+        return new_header, receipt, computation
 
     #
     # Mining
@@ -181,9 +177,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             in block.transactions
         ]
         if execution_data:
-            _, receipts, _ = zip(*execution_data)
+            headers, receipts, _ = zip(*execution_data)
         else:
-            receipts = tuple()
+            headers, receipts = tuple(), tuple()
 
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
@@ -191,8 +187,14 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
         self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
 
+        if len(headers):
+            header_with_txns = headers[-1]
+        else:
+            header_with_txns = self.block.header
+
         self.block = self.block.copy(
-            header=self.block.header.copy(
+            transactions=block.transactions,
+            header=header_with_txns.copy(
                 transaction_root=tx_root_hash,
                 receipt_root=receipt_root_hash,
             ),
