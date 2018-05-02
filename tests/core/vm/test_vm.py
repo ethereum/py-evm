@@ -20,12 +20,11 @@ def test_apply_transaction(
         funded_address_private_key,
         funded_address_initial_balance):
     vm = chain.get_vm()
-    tx_idx = len(vm.block.transactions)
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    *_, computation = vm.apply_transaction(tx)
+    new_header, _, computation = vm.apply_transaction(tx)
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
@@ -33,9 +32,8 @@ def test_apply_transaction(
     assert account_db.get_balance(from_) == (
         funded_address_initial_balance - amount - tx_gas)
     assert account_db.get_balance(recipient) == amount
-    block = vm.block
-    assert block.transactions[tx_idx] == tx
-    assert block.header.gas_used == constants.GAS_TX
+
+    assert new_header.gas_used == constants.GAS_TX
 
 
 def test_mine_block_issues_block_reward(chain):
@@ -46,14 +44,13 @@ def test_mine_block_issues_block_reward(chain):
 
 
 def test_import_block(chain, funded_address, funded_address_private_key):
-    vm = chain.get_vm()
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = funded_address
-    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    *_, computation = vm.apply_transaction(tx)
+    tx = new_transaction(chain.get_vm(), from_, recipient, amount, funded_address_private_key)
+    new_block, _, computation = chain.apply_transaction(tx)
 
     assert not computation.is_error
-    parent_vm = chain.get_chain_at_block_parent(vm.block).get_vm()
-    block = parent_vm.import_block(vm.block)
+    parent_vm = chain.get_chain_at_block_parent(new_block).get_vm()
+    block = parent_vm.import_block(new_block)
     assert block.transactions == (tx,)

@@ -23,7 +23,6 @@ from evm.constants import (
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
-from evm.db.trie import make_trie_root_and_nodes
 from evm.estimators import (
     get_gas_estimator,
 )
@@ -487,20 +486,18 @@ class Chain(BaseChain):
         heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
-        block, receipt, computation = vm.apply_transaction(transaction)
-        receipts = block.get_receipts(self.chaindb) + [receipt]
+        base_block = vm.block
 
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
-        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
-        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+        new_header, receipt, computation = vm.apply_transaction(transaction)
 
-        self.header = block.header.copy(
-            transaction_root=tx_root_hash,
-            receipt_root=receipt_root_hash,
-        )
+        transactions = base_block.transactions + (transaction, )
+        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        return block.copy(header=self.header), receipt, computation
+        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+
+        self.header = new_block.header
+
+        return new_block, receipt, computation
 
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:

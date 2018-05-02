@@ -409,7 +409,7 @@ class ChainDB(BaseChainDB):
     #
     # Transaction and Receipt API
     #
-    @to_list
+    @to_tuple
     def get_receipts(self, header: BlockHeader, receipt_class: Type[Receipt]) -> Iterable[Receipt]:
         receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
