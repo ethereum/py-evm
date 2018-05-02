@@ -487,27 +487,16 @@ class Chain(BaseChain):
         heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
-        old_block = vm.block
+        base_block = vm.block
 
         new_header, receipt, computation = vm.apply_transaction(transaction)
 
-        transactions = old_block.transactions + (transaction, )
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
-        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+        transactions = base_block.transactions + (transaction, )
+        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        receipts = old_block.get_receipts(self.chaindb) + (receipt, )
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
-        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+        new_block = vm.seal_block(base_block, new_header, transactions, receipts)
 
-        self.header = new_header.copy(
-            transaction_root=tx_root_hash,
-            receipt_root=receipt_root_hash,
-        )
-
-        new_block = old_block.copy(
-            header=self.header,
-            transactions=transactions,
-        )
+        self.header = new_block.header
 
         return new_block, receipt, computation
 

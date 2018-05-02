@@ -178,29 +178,31 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         ]
         if execution_data:
             headers, receipts, _ = zip(*execution_data)
-        else:
-            headers, receipts = tuple(), tuple()
-
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
-
-        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
-        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
-
-        if len(headers):
             header_with_txns = headers[-1]
         else:
+            receipts = tuple()
             header_with_txns = self.block.header
 
-        self.block = self.block.copy(
-            transactions=block.transactions,
-            header=header_with_txns.copy(
+
+        self.block = self.seal_block(self.block, header_with_txns, block.transactions, receipts)
+
+        return self.mine_block()
+
+    def seal_block(self, base_block, new_header, transactions, receipts):
+
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
+        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+
+        return base_block.copy(
+            transactions=transactions,
+            header=new_header.copy(
                 transaction_root=tx_root_hash,
                 receipt_root=receipt_root_hash,
             ),
         )
-
-        return self.mine_block()
 
     def mine_block(self, *args, **kwargs):
         """
