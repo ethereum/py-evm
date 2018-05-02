@@ -436,13 +436,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         return cls.get_state_class().get_block_class()
 
     @classmethod
-    def get_block_by_header(cls, block_header, db):
-        """
-        Lookup and return the block for the given header.
-        """
-        return cls.get_block_class().from_header(block_header, db)
-
-    @classmethod
     @functools.lru_cache(maxsize=32)
     @to_tuple
     def get_prev_hashes(cls, last_block_hash, db):

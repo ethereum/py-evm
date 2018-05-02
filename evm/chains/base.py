@@ -145,7 +145,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
 
     def get_block_by_header(self, block_header):
         vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header, self.chaindb)
+        return vm.get_block_class().from_header(block_header, self.chaindb)
 
     @to_tuple
     def get_ancestors(self, limit):
@@ -421,10 +421,6 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         block_header = self.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(block_header)
-
-    def get_block_by_header(self, block_header):
-        vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header, self.chaindb)
 
     #
     # Chain Initialization
