@@ -183,7 +183,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             receipts = tuple()
             header_with_txns = self.block.header
 
-
         self.block = self.seal_block(self.block, header_with_txns, block.transactions, receipts)
 
         return self.mine_block()

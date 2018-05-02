@@ -23,7 +23,6 @@ from evm.constants import (
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
-from evm.db.trie import make_trie_root_and_nodes
 from evm.estimators import (
     get_gas_estimator,
 )
