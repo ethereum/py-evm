@@ -29,7 +29,6 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 
-from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .transaction_context import (  # noqa: F401
@@ -175,7 +174,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 
 class FrontierState(BaseState, FrontierTransactionExecutor):
-    block_class = FrontierBlock
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
     account_db_class = AccountDB  # Type[BaseAccountDB]

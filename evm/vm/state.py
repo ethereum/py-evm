@@ -29,9 +29,6 @@ from evm.utils.datatypes import (
 )
 
 if TYPE_CHECKING:
-    from evm.rlp.blocks import (  # noqa: F401
-        BaseBlock,
-    )
     from evm.computation import (  # noqa: F401
         BaseComputation,
     )
@@ -51,7 +48,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         Each :class:`~evm.vm.state.BaseState` class must be configured with:
 
-        - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
         - ``computation_class``: The :class:`~evm.vm.computation.BaseComputation` class for
           vm execution.
         - ``transaction_context_class``: The :class:`~evm.vm.transaction_context.TransactionContext`
@@ -64,7 +60,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
     execution_context = None
     state_root = None
 
-    block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
     account_db_class = None  # type: Type[BaseAccountDB]
@@ -216,20 +211,6 @@ class BaseState(Configurable, metaclass=ABCMeta):
         if cls.transaction_context_class is None:
             raise AttributeError("No `transaction_context_class` has been set for this State")
         return cls.transaction_context_class
-
-    #
-    # Block class
-    #
-    @classmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
-        """
-        Return the class used for Blocks
-
-        TODO: this should move up to the VM
-        """
-        if cls.block_class is None:
-            raise AttributeError("No `block_class_class` has been set for this VMState")
-        return cls.block_class
 
     #
     # Execution

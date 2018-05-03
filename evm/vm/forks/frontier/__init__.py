@@ -1,4 +1,5 @@
 from typing import Type  # noqa: F401
+from evm.rlp.blocks import BaseBlock  # noqa: F401
 from evm.vm.state import BaseState  # noqa: F401
 
 
@@ -10,6 +11,7 @@ from evm.rlp.logs import (
     Log,
 )
 
+from .blocks import FrontierBlock
 from .state import FrontierState
 from .headers import (
     create_frontier_header_from_parent,
@@ -52,6 +54,7 @@ class FrontierVM(VM):
     fork = 'frontier'  # type: str
 
     # classes
+    block_class = FrontierBlock  # type: Type[BaseBlock]
     _state_class = FrontierState  # type: Type[BaseState]
 
     # methods

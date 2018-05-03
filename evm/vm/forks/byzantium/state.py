@@ -6,7 +6,6 @@ from evm.validation import (
 )
 from evm.vm.forks.spurious_dragon.state import SpuriousDragonState
 
-from .blocks import ByzantiumBlock
 from .computation import ByzantiumComputation
 from .constants import (
     EIP649_BLOCK_REWARD,
@@ -14,7 +13,6 @@ from .constants import (
 
 
 class ByzantiumState(SpuriousDragonState):
-    block_class = ByzantiumBlock
     computation_class = ByzantiumComputation
 
     @staticmethod

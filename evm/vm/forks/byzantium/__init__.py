@@ -1,6 +1,9 @@
+from evm.rlp.blocks import BaseBlock  # noqa: F401
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 from evm.vm.forks.frontier import make_frontier_receipt
+from evm.vm.state import BaseState  # noqa: F401
 
+from .blocks import ByzantiumBlock
 from .constants import (
     EIP658_TRANSACTION_STATUS_CODE_FAILURE,
     EIP658_TRANSACTION_STATUS_CODE_SUCCESS,
@@ -29,7 +32,8 @@ class ByzantiumVM(SpuriousDragonVM):
     fork = 'byzantium'
 
     # classes
-    _state_class = ByzantiumState
+    block_class = ByzantiumBlock  # type: Type[BaseBlock]
+    _state_class = ByzantiumState  # type: Type[BaseState]
 
     # Methods
     create_header_from_parent = staticmethod(create_byzantium_header_from_parent)

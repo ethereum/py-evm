@@ -6,7 +6,10 @@ from abc import (
 import contextlib
 import functools
 import logging
-from typing import List, Type  # noqa: F401
+from typing import (  # noqa: F401
+    List,
+    Type,
+)
 
 import rlp
 
@@ -30,6 +33,9 @@ from evm.db.chain import BaseChainDB  # noqa: F401
 from evm.exceptions import (
     BlockNotFound,
     ValidationError,
+)
+from evm.rlp.blocks import (  # noqa: F401
+    BaseBlock,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -64,8 +70,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         Each :class:`~evm.vm.base.BaseVM` class must be configured with:
 
-        ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
+        - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
+        - ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
+    block_class = None  # type: Type[BaseBlock]
     fork = None  # type: str
     chaindb = None  # type: BaseChainDB
     _state_class = None  # type: Type[BaseState]
@@ -459,11 +467,14 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Blocks
     #
     @classmethod
-    def get_block_class(cls):
+    def get_block_class(cls) -> Type['BaseBlock']:
         """
-        Return the :class:`~evm.rlp.blocks.Block` class that the state class uses for blocks.
+        Return the :class:`~evm.rlp.blocks.Block` class that this VM uses for blocks.
         """
-        return cls.get_state_class().get_block_class()
+        if cls.block_class is None:
+            raise AttributeError("No `block_class` has been set for this VM")
+        else:
+            return cls.block_class
 
     @classmethod
     @functools.lru_cache(maxsize=32)
