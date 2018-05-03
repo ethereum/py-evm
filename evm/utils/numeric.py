@@ -45,11 +45,7 @@ def int_to_bytes32(value):
                 value,
             )
         )
-    value_bytes = pipe(
-        value,
-        int_to_big_endian,
-        pad32,
-    )
+    value_bytes = value.to_bytes(32, 'big')
     return value_bytes
 
 
