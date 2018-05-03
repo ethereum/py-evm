@@ -251,9 +251,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
     def get_nephew_reward(cls):
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def get_transaction_executor(self, transaction):
-        vm_state = self
-        return self.transaction_executor(vm_state)
+    def get_transaction_executor(self):
+        return self.transaction_executor(self)
 
     @abstractmethod
     def execute_transaction(self):

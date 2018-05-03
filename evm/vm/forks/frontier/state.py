@@ -211,5 +211,5 @@ class FrontierState(BaseState):
         return cls.get_block_reward() // 32
 
     def execute_transaction(self, transaction):
-        executor = self.get_transaction_executor(transaction)
+        executor = self.get_transaction_executor()
         return executor(transaction)
