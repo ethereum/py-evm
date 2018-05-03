@@ -11,7 +11,7 @@ from p2p.protocol import (
     Command,
     Protocol,
 )
-from p2p.rlp import BlockBody, ImmutableBlockHeader, P2PTransaction
+from p2p.rlp import BlockBody, P2PTransaction
 from p2p.sedes import HashOrNumber
 
 
@@ -50,13 +50,13 @@ class GetBlockHeaders(Command):
         ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
-        ('reverse', sedes.big_endian_int),
+        ('reverse', sedes.boolean),
     ]
 
 
 class BlockHeaders(Command):
     _cmd_id = 4
-    structure = sedes.CountableList(ImmutableBlockHeader)
+    structure = sedes.CountableList(BlockHeader)
 
 
 class GetBlockBodies(Command):
@@ -72,9 +72,9 @@ class BlockBodies(Command):
 class NewBlock(Command):
     _cmd_id = 7
     structure = [
-        ('block', sedes.List([ImmutableBlockHeader,
+        ('block', sedes.List([BlockHeader,
                               sedes.CountableList(P2PTransaction),
-                              sedes.CountableList(ImmutableBlockHeader)])),
+                              sedes.CountableList(BlockHeader)])),
         ('total_difficulty', sedes.big_endian_int)]
 
 
@@ -99,7 +99,7 @@ class Receipts(Command):
 
 
 class ETHProtocol(Protocol):
-    name = b'eth'
+    name = 'eth'
     version = 63
     _commands = [
         Status, NewBlockHashes, Transactions, GetBlockHeaders, BlockHeaders, BlockHeaders,

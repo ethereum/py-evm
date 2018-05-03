@@ -1,6 +1,4 @@
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm import constants
 from evm.exceptions import (
@@ -18,6 +16,10 @@ from .opcodes import SPURIOUS_DRAGON_OPCODES
 
 
 class SpuriousDragonComputation(HomesteadComputation):
+    """
+    A class for all execution computations in the ``SpuriousDragon`` fork.
+    Inherits from :class:`~evm.vm.forks.homestead.computation.HomesteadComputation`
+    """
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 
@@ -25,8 +27,7 @@ class SpuriousDragonComputation(HomesteadComputation):
         snapshot = self.state.snapshot()
 
         # EIP161 nonce incrementation
-        with self.state.mutable_state_db() as state_db:
-            state_db.increment_nonce(self.msg.storage_address)
+        self.state.account_db.increment_nonce(self.msg.storage_address)
 
         computation = self.apply_message()
 
@@ -66,8 +67,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.state.mutable_state_db() as state_db:
-                        state_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

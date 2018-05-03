@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 _DecodedMsgType = Union[
     Dict[str, Any],
     List[rlp.Serializable],
+    Tuple[rlp.Serializable],
 ]
 
 
@@ -100,7 +101,7 @@ class Command:
 
 class Protocol:
     logger = logging.getLogger("p2p.protocol.Protocol")
-    name = None  # type: bytes
+    name = None  # type: str
     version = None  # type: int
     cmd_length = None  # type: int
     # List of Command classes that this protocol supports.
@@ -116,7 +117,7 @@ class Protocol:
         self.peer.send(header, body)
 
     def __repr__(self):
-        return "(%s, %d)" % (self.name.decode('ascii'), self.version)
+        return "(%s, %d)" % (self.name, self.version)
 
 
 def _pad_to_16_byte_boundary(data):

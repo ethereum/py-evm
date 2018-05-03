@@ -1,7 +1,7 @@
-Opcodes
-=======
+Creating Opcodes
+================
 
-An opcode is just a function which takes a `~evm.vm.computation.Computation`
+An opcode is just a function which takes a :class:`~evm.vm.computation.BaseComputation`
 instance as it's sole argument.  If an opcode function has a return value, this
 value will be discarded during normal VM execution.
 
@@ -22,8 +22,8 @@ Here are some simple examples.
         computation.consume_gas(5, reason='why not?')
 
 
-The `:func:~evm.vm.opcode.as_opcode` helper
-----------------------------------------
+The :func:`~evm.vm.opcode.as_opcode` helper
+-------------------------------------------
 
 
 While these examples are demonstrative of *simple* logic, opcodes will

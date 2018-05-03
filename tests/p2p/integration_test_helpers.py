@@ -1,9 +1,11 @@
+import asyncio
 from typing import Type
 
 from eth_utils import decode_hex
 from eth_keys import datatypes, keys
 
-from evm.db.chain import AsyncChainDB, NonJournaledAsyncChainDB
+from evm import RopstenChain
+from evm.db.chain import AsyncChainDB
 
 from p2p import kademlia
 from p2p.peer import BasePeer, HardCodedNodesPeerPool
@@ -28,7 +30,7 @@ class LocalGethPeerPool(HardCodedNodesPeerPool):
                             kademlia.Address('127.0.0.1', 30303, 30303))
 
 
-class FakeAsyncChainDB(NonJournaledAsyncChainDB):
+class FakeAsyncChainDB(AsyncChainDB):
     async def coro_get_score(self, *args, **kwargs):
         return self.get_score(*args, **kwargs)
 
@@ -52,3 +54,12 @@ class FakeAsyncChainDB(NonJournaledAsyncChainDB):
 
     async def coro_persist_trie_data_dict(self, *args, **kwargs):
         return self.persist_trie_data_dict(*args, **kwargs)
+
+
+class FakeAsyncRopstenChain(RopstenChain):
+
+    async def coro_import_block(self, block, perform_validation=True):
+        # Be nice and yield control to give other coroutines a chance to run before us as
+        # importing a block is a very expensive operation.
+        await asyncio.sleep(0)
+        return self.import_block(block, perform_validation=perform_validation)

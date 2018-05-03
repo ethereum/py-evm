@@ -23,13 +23,14 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import (
     decode_hex,
     encode_hex,
-    keccak,
 )
 
 from eth_keys import (
     datatypes,
     keys,
 )
+
+from eth_hash.auto import keccak
 
 from trie import HexaryTrie
 
@@ -46,12 +47,13 @@ from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address, Node
 from p2p import protocol
 from p2p.exceptions import (
-    AuthenticationError,
+    DecryptionError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
     NoMatchingPeerCapabilities,
     OperationCancelled,
     PeerConnectionLost,
+    RemoteDisconnected,
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
@@ -77,6 +79,7 @@ from p2p.p2p_proto import (
 
 from .constants import (
     CONN_IDLE_TIMEOUT,
+    DEFAULT_MIN_PEERS,
     HANDSHAKE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
@@ -228,7 +231,7 @@ class BasePeer(metaclass=ABCMeta):
         )
 
     @property
-    def capabilities(self) -> List[Tuple[bytes, int]]:
+    def capabilities(self) -> List[Tuple[str, int]]:
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
@@ -259,6 +262,7 @@ class BasePeer(metaclass=ABCMeta):
         except Exception:
             self.logger.exception("Unexpected error when handling remote msg")
         finally:
+            self.close()
             self._finished.set()
             if finished_callback is not None:
                 finished_callback(self)
@@ -289,7 +293,6 @@ class BasePeer(metaclass=ABCMeta):
         if self._finished.is_set():
             return
         self.cancel_token.trigger()
-        self.close()
         await self._finished.wait()
         self.logger.debug("Stopped %s", self)
 
@@ -302,7 +305,11 @@ class BasePeer(metaclass=ABCMeta):
                     "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
 
-            self.process_msg(cmd, msg)
+            try:
+                self.process_msg(cmd, msg)
+            except RemoteDisconnected as e:
+                self.logger.info("%s disconnected: %s", self, e)
+                return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
@@ -325,9 +332,7 @@ class BasePeer(metaclass=ABCMeta):
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
-            self.logger.debug(
-                "%s disconnected; reason given: %s", self, msg['reason_name'])
-            self.close()
+            raise RemoteDisconnected(msg['reason_name'])
         elif isinstance(cmd, Ping):
             self.base_protocol.send_pong()
         elif isinstance(cmd, Pong):
@@ -393,7 +398,7 @@ class BasePeer(metaclass=ABCMeta):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise AuthenticationError('Invalid header mac')
+            raise DecryptionError('Invalid header mac')
         return self.aes_dec.update(header_ciphertext)
 
     def decrypt_body(self, data: bytes, body_size: int) -> bytes:
@@ -410,7 +415,7 @@ class BasePeer(metaclass=ABCMeta):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise AuthenticationError('Invalid frame mac')
+            raise DecryptionError('Invalid frame mac')
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
     def get_frame_size(self, header: bytes) -> int:
@@ -646,7 +651,7 @@ class PeerPool:
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
-                 min_peers: int = 10,
+                 min_peers: int = DEFAULT_MIN_PEERS,
                  ) -> None:
         self.peer_class = peer_class
         self.chaindb = chaindb
@@ -669,6 +674,17 @@ class PeerPool:
     def unsubscribe(self, subscriber: PeerPoolSubscriber) -> None:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
+
+    def start_peer(self, peer):
+        asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
+        self.add_peer(peer)
+
+    def add_peer(self, peer):
+        self.logger.debug('Adding peer (%s) ...', str(peer))
+        self.connected_nodes[peer.remote] = peer
+        self.logger.debug('Number of peers: %d', len(self.connected_nodes))
+        for subscriber in self._subscribers:
+            subscriber.register_peer(peer)
 
     async def run(self) -> None:
         self.logger.info("Running PeerPool...")
@@ -749,7 +765,10 @@ class PeerPool:
             await self._connect_to_nodes(self._get_random_bootnode())
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
-        yield random.choice(self.discovery.bootstrap_nodes)
+        if self.discovery.bootstrap_nodes:
+            yield random.choice(self.discovery.bootstrap_nodes)
+        else:
+            self.logger.warning('No bootstrap_nodes')
 
     async def _connect_to_nodes(self, nodes: Generator[Node, None, None]) -> None:
         for node in nodes:
@@ -759,10 +778,7 @@ class PeerPool:
             peer = await self.connect(node)
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
-                asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-                self.connected_nodes[peer.remote] = peer
-                for subscriber in self._subscribers:
-                    subscriber.register_peer(peer)
+                self.start_peer(peer)
                 if len(self.connected_nodes) >= self.min_peers:
                     return
 
@@ -888,7 +904,7 @@ def _test():
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
     nodekey = keys.PrivateKey(decode_hex(

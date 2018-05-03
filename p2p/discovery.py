@@ -19,7 +19,6 @@ from typing import (
 import rlp
 from eth_utils import (
     encode_hex,
-    keccak,
     text_if_str,
     to_bytes,
     to_list,
@@ -27,6 +26,8 @@ from eth_utils import (
 
 from eth_keys import keys
 from eth_keys import datatypes
+
+from eth_hash.auto import keccak
 
 from p2p.cancel_token import CancelToken
 from p2p import kademlia

@@ -48,41 +48,38 @@ def selfdestruct(computation):
 
 def selfdestruct_eip150(computation):
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    with computation.state_db(read_only=True) as state_db:
-        if not state_db.account_exists(beneficiary):
-            computation.consume_gas(
-                constants.GAS_SELFDESTRUCT_NEWACCOUNT,
-                reason=mnemonics.SELFDESTRUCT,
-            )
+    if not computation.state.account_db.account_exists(beneficiary):
+        computation.consume_gas(
+            constants.GAS_SELFDESTRUCT_NEWACCOUNT,
+            reason=mnemonics.SELFDESTRUCT,
+        )
     _selfdestruct(computation, beneficiary)
 
 
 def selfdestruct_eip161(computation):
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    with computation.state_db(read_only=True) as state_db:
-        is_dead = (
-            not state_db.account_exists(beneficiary) or
-            state_db.account_is_empty(beneficiary)
+    is_dead = (
+        not computation.state.account_db.account_exists(beneficiary) or
+        computation.state.account_db.account_is_empty(beneficiary)
+    )
+    if is_dead and computation.state.account_db.get_balance(computation.msg.storage_address):
+        computation.consume_gas(
+            constants.GAS_SELFDESTRUCT_NEWACCOUNT,
+            reason=mnemonics.SELFDESTRUCT,
         )
-        if is_dead and state_db.get_balance(computation.msg.storage_address):
-            computation.consume_gas(
-                constants.GAS_SELFDESTRUCT_NEWACCOUNT,
-                reason=mnemonics.SELFDESTRUCT,
-            )
     _selfdestruct(computation, beneficiary)
 
 
 def _selfdestruct(computation, beneficiary):
-    with computation.state_db() as state_db:
-        local_balance = state_db.get_balance(computation.msg.storage_address)
-        beneficiary_balance = state_db.get_balance(beneficiary)
+    local_balance = computation.state.account_db.get_balance(computation.msg.storage_address)
+    beneficiary_balance = computation.state.account_db.get_balance(beneficiary)
 
-        # 1st: Transfer to beneficiary
-        state_db.set_balance(beneficiary, local_balance + beneficiary_balance)
-        # 2nd: Zero the balance of the address being deleted (must come after
-        # sending to beneficiary in case the contract named itself as the
-        # beneficiary.
-        state_db.set_balance(computation.msg.storage_address, 0)
+    # 1st: Transfer to beneficiary
+    computation.state.account_db.set_balance(beneficiary, local_balance + beneficiary_balance)
+    # 2nd: Zero the balance of the address being deleted (must come after
+    # sending to beneficiary in case the contract named itself as the
+    # beneficiary.
+    computation.state.account_db.set_balance(computation.msg.storage_address, 0)
 
     computation.logger.debug(
         "SELFDESTRUCT: %s (%s) -> %s",
@@ -110,8 +107,9 @@ class Create(Opcode):
 
         computation.extend_memory(start_position, size)
 
-        with computation.state_db(read_only=True) as state_db:
-            insufficient_funds = state_db.get_balance(computation.msg.storage_address) < value
+        insufficient_funds = computation.state.account_db.get_balance(
+            computation.msg.storage_address
+        ) < value
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
@@ -125,16 +123,15 @@ class Create(Opcode):
         )
         computation.consume_gas(create_msg_gas, reason="CREATE")
 
-        with computation.state_db() as state_db:
-            creation_nonce = state_db.get_nonce(computation.msg.storage_address)
-            state_db.increment_nonce(computation.msg.storage_address)
+        creation_nonce = computation.state.account_db.get_nonce(computation.msg.storage_address)
+        computation.state.account_db.increment_nonce(computation.msg.storage_address)
 
-            contract_address = generate_contract_address(
-                computation.msg.storage_address,
-                creation_nonce,
-            )
+        contract_address = generate_contract_address(
+            computation.msg.storage_address,
+            creation_nonce,
+        )
 
-            is_collision = state_db.account_has_code_or_nonce(contract_address)
+        is_collision = computation.state.account_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
             self.logger.debug(

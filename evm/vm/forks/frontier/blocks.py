@@ -11,9 +11,7 @@ from eth_bloom import (
     BloomFilter,
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.constants import (
     EMPTY_UNCLE_HASH,

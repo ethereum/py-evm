@@ -17,6 +17,10 @@ from eth_utils import (
     to_text,
     int_to_big_endian,
 )
+
+from evm.utils.db import (
+    apply_state_dict,
+)
 from evm.utils.padding import (
     pad32,
 )
@@ -109,10 +113,10 @@ def get_version_from_git():
     return to_text(version)
 
 
-def calc_state_root(state, account_state_db_class):
-    state_db = account_state_db_class(MemoryDB())
-    state_db.apply_state_dict(state)
-    return state_db.root_hash
+def calc_state_root(state, account_db_class):
+    account_db = account_db_class(MemoryDB())
+    apply_state_dict(account_db, state)
+    return account_db.state_root
 
 
 def generate_random_keypair():

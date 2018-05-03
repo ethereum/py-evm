@@ -1,13 +1,3 @@
-from trie import (
-    BinaryTrie,
-    HexaryTrie,
-)
-
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
-)
-
 from evm.rlp.headers import BlockHeader
 
 from typing import TYPE_CHECKING
@@ -23,13 +13,6 @@ def make_block_number_to_hash_lookup_key(block_number: int) -> bytes:
 
 def make_block_hash_to_score_lookup_key(block_hash: bytes) -> bytes:
     return b'block-hash-to-score:%s' % block_hash
-
-
-def make_transaction_hash_to_data_lookup_key(transaction_hash: bytes) -> bytes:
-    '''
-    Look up a transaction that is pending, after being issued locally
-    '''
-    return b'transaction-hash-to-data:%s' % transaction_hash
 
 
 def make_transaction_hash_to_block_lookup_key(transaction_hash: bytes) -> bytes:
@@ -50,18 +33,13 @@ def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> Bloc
     return db.get_block_header_by_hash(block_hash)
 
 
-def get_empty_root_hash(db: 'BaseChainDB') -> bytes:
-    root_hash = None
-    if db.trie_class is HexaryTrie:
-        root_hash = BLANK_ROOT_HASH
-    elif db.trie_class is BinaryTrie:
-        root_hash = EMPTY_SHA3
-    elif db.trie_class is None:
-        raise AttributeError(
-            "BaseChainDB must declare a trie_class."
-        )
-    else:
-        raise NotImplementedError(
-            "db.trie_class {} is not supported.".format(db.trie_class)
-        )
-    return root_hash
+def apply_state_dict(account_db, state_dict):
+    for account, account_data in state_dict.items():
+        account_db.set_balance(account, account_data["balance"])
+        account_db.set_nonce(account, account_data["nonce"])
+        account_db.set_code(account, account_data["code"])
+
+        for slot, value in account_data["storage"].items():
+            account_db.set_storage(account, slot, value)
+
+    return account_db

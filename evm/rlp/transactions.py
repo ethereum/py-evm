@@ -16,9 +16,7 @@ from eth_typing import (
     Address
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.exceptions import (
     ValidationError,
@@ -33,7 +31,7 @@ from evm.vm.computation import (
 )
 
 
-class BaseTransaction(rlp.Serializable, metaclass=ABCMeta):
+class BaseTransaction(rlp.Serializable):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),

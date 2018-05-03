@@ -13,16 +13,16 @@ deps = {
         "eth-utils>=1.0.1,<2.0.0",
         "pyethash>=0.1.27,<1.0.0",
         "py-ecc>=1.4.2,<2.0.0",
-        "rlp>=0.4.7,<1.0.0",
+        "rlp>=1.0.1,<2.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
-        "trie>=1.3.2,<2.0.0",
+        "trie>=1.3.5,<2.0.0",
         "lru-dict>=1.1.6",
     ],
-    # The evm-extras sections is for libraries that the evm does not
+    # The evm-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
-    'evm-extras': [
+    'evm-extra': [
         "coincurve>=7.0.0,<8.0.0",
         "plyvel==1.0.4",
         "eth-hash[pycryptodome]",
@@ -36,7 +36,9 @@ deps = {
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.4",
         "coincurve>=7.0.0,<8.0.0",
-        "web3>=4.0.0b11,<5.0.0",
+        "web3>=4.1.0,<5.0.0",
+        # required for rlp>=1.0.0
+        "eth-account>=0.2.1,<1",
     ],
     'test': [
         "hypothesis==3.44.26",
@@ -49,7 +51,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
-        "mypy>=0.580",
+        "mypy>=0.590",
     ],
     'doc': [
         "py-evm>=0.2.0-alpha.14",
@@ -68,7 +70,7 @@ deps = {
 deps['dev'] = (
     deps['dev'] +
     deps['evm'] +
-    deps['evm-extras'] +
+    deps['evm-extra'] +
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
@@ -83,7 +85,7 @@ install_requires = deps['evm'] + deps['p2p'] + deps['trinity']
 setup(
     name='py-evm',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.14',
+    version='0.2.0-alpha.16',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
     author='Piper Merriam',

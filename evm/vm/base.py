@@ -3,17 +3,22 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
-
 import contextlib
+import functools
 import logging
+from typing import List  # noqa: F401
+
 import rlp
 
-import functools
+from eth_bloom import (
+    BloomFilter,
+)
 
 from eth_utils import (
-    keccak,
     to_tuple,
 )
+
+from eth_hash.auto import keccak
 
 from evm.constants import (
     GENESIS_PARENT_HASH,
@@ -28,6 +33,7 @@ from evm.exceptions import (
 from evm.rlp.headers import (
     BlockHeader,
 )
+from evm.rlp.receipts import Receipt  # noqa: F401
 from evm.utils.datatypes import (
     Configurable,
 )
@@ -49,10 +55,14 @@ from evm.vm.message import (
 
 class BaseVM(Configurable, metaclass=ABCMeta):
     """
-    The VM class represents the Chain rules for a specific protocol definition
-    such as the Frontier or Homestead network.  Define a Chain which specifies
-    the individual VM classes for each fork of the protocol rules within that
-    network.
+    The :class:`~evm.vm.base.BaseVM` class represents the Chain rules for a
+    specific protocol definition such as the Frontier or Homestead network.
+
+      .. note::
+
+        Each :class:`~evm.vm.base.BaseVM` class must be configured with:
+
+        ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
     fork = None
     chaindb = None
@@ -60,8 +70,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
-        block_class = self.get_block_class()
-        self.block = block_class.from_header(header=header, chaindb=self.chaindb)
+        self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
+        self.state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            state_root=self.block.header.state_root,
+            gas_used=self.block.header.gas_used,
+        )
 
     #
     # Logging
@@ -73,23 +88,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
-    def apply_transaction(self, transaction):
-        """
-        Apply the transaction to the vm in the current block.
-        """
-        computation, block, trie_data_dict = self.state.apply_transaction(
-            transaction,
-            self.block,
-        )
-        self.block = block
-
-        # Persist changed transaction and receipt key-values to self.chaindb.
-        self.chaindb.persist_trie_data_dict(trie_data_dict)
-
-        self.clear_journal()
-
-        return computation, self.block
-
     def execute_bytecode(self,
                          origin,
                          gas_price,
@@ -101,6 +99,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                          code,
                          code_address=None,
                          ):
+        """
+        Execute raw bytecode in the context of the current state of
+        the virtual machine.
+        """
         if origin is None:
             origin = sender
 
@@ -128,42 +130,106 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             transaction_context,
         )
 
+    @abstractmethod
+    def make_receipt(self, transaction, computation, state):
+        """
+        Make receipt.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def apply_transaction(self, transaction):
+        """
+        Apply the transaction to the current block. This is a wrapper around
+        :func:`~evm.vm.state.State.apply_transaction` with some extra orchestration logic.
+        """
+        state_root, computation = self.state.apply_transaction(transaction)
+        receipt = self.make_receipt(transaction, computation, self.state)
+        # TODO: remove this mutation.
+        self.state.gas_used = receipt.gas_used
+
+        new_header = self.block.header.copy(
+            bloom=int(BloomFilter(self.block.header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+            state_root=state_root,
+        )
+
+        return new_header, receipt, computation
+
     #
     # Mining
     #
     def import_block(self, block):
-        self.configure_header(
-            coinbase=block.header.coinbase,
-            gas_limit=block.header.gas_limit,
-            timestamp=block.header.timestamp,
-            extra_data=block.header.extra_data,
-            mix_hash=block.header.mix_hash,
-            nonce=block.header.nonce,
-            uncles_hash=keccak(rlp.encode(block.uncles)),
+        """
+        Import the given block to the chain.
+        """
+        self.block = self.block.copy(
+            header=self.configure_header(
+                coinbase=block.header.coinbase,
+                gas_limit=block.header.gas_limit,
+                timestamp=block.header.timestamp,
+                extra_data=block.header.extra_data,
+                mix_hash=block.header.mix_hash,
+                nonce=block.header.nonce,
+                uncles_hash=keccak(rlp.encode(block.uncles)),
+            ),
+            uncles=block.uncles,
+        )
+        # we need to re-initialize the `state` to update the execution context.
+        self.state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            state_root=self.block.header.state_root,
+            gas_used=self.block.header.gas_used,
         )
 
         # run all of the transactions.
-        for transaction in block.transactions:
+        execution_data = [
             self.apply_transaction(transaction)
+            for transaction
+            in block.transactions
+        ]
+        if execution_data:
+            headers, receipts, _ = zip(*execution_data)
+            header_with_txns = headers[-1]
+        else:
+            receipts = tuple()
+            header_with_txns = self.block.header
 
-        # transfer the list of uncles.
-        self.block.uncles = block.uncles
+        self.block = self.set_block_transactions(
+            self.block,
+            header_with_txns,
+            block.transactions,
+            receipts,
+        )
 
         return self.mine_block()
+
+    def set_block_transactions(self, base_block, new_header, transactions, receipts):
+
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
+        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
+
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+
+        return base_block.copy(
+            transactions=transactions,
+            header=new_header.copy(
+                transaction_root=tx_root_hash,
+                receipt_root=receipt_root_hash,
+            ),
+        )
 
     def mine_block(self, *args, **kwargs):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        block = self.block
-        self.pack_block(block, *args, **kwargs)
+        block = self.pack_block(self.block, *args, **kwargs)
 
         if block.number == 0:
             return block
-
-        block = self.state.finalize_block(block)
-
-        return block
+        else:
+            return self.state.finalize_block(block)
 
     def pack_block(self, block, *args, **kwargs):
         """
@@ -181,12 +247,13 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         :param bytes nonce: 8 bytes
         """
         if 'uncles' in kwargs:
-            block.uncles = kwargs.pop('uncles')
+            uncles = kwargs.pop('uncles')
             kwargs.setdefault('uncles_hash', keccak(rlp.encode(block.uncles)))
+        else:
+            uncles = block.uncles
 
-        header = block.header
         provided_fields = set(kwargs.keys())
-        known_fields = set(tuple(zip(*BlockHeader.fields))[0])
+        known_fields = set(BlockHeader._meta.field_names)
         unknown_fields = provided_fields.difference(known_fields)
 
         if unknown_fields:
@@ -198,21 +265,26 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                 )
             )
 
-        for key, value in kwargs.items():
-            setattr(header, key, value)
+        header = block.header.copy(**kwargs)
+        packed_block = block.copy(uncles=uncles, header=header)
 
         # Perform validation
-        self.validate_block(block)
+        self.validate_block(packed_block)
 
-        return block
+        return packed_block
 
     @contextlib.contextmanager
     def state_in_temp_block(self):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
-        state = self.get_state(self.chaindb, temp_block, prev_hashes)
-        assert state.gas_used == 0, "There must not be any gas used in a fresh temporary block"
+
+        state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=temp_block.header.create_execution_context(prev_hashes),
+            state_root=temp_block.header.state_root,
+            gas_used=0,
+        )
 
         snapshot = state.snapshot()
         yield state
@@ -240,6 +312,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Validate
     #
     def validate_block(self, block):
+        """
+        Validate the the given block.
+        """
         if not block.is_genesis:
             parent_header = get_parent_header(block.header, self.chaindb)
 
@@ -281,7 +356,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         for uncle in block.uncles:
             self.validate_uncle(block, uncle)
 
-        if not self.state.is_key_exists(block.header.state_root):
+        if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
                 "- state_root: {0}".format(
@@ -302,6 +377,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             )
 
     def validate_uncle(self, block, uncle):
+        """
+        Validate the given uncle in the context of the given block.
+        """
         if uncle.block_number >= block.number:
             raise ValidationError(
                 "Uncle number ({0}) is higher than block number ({1})".format(
@@ -335,18 +413,15 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         return cls.get_block_class().get_transaction_class()
 
-    def get_pending_transaction(self, transaction_hash):
-        return self.chaindb.get_pending_transaction(transaction_hash, self.get_transaction_class())
-
     def create_transaction(self, *args, **kwargs):
         """
-        Proxy for instantiating a transaction for this VM.
+        Proxy for instantiating a signed transaction for this VM.
         """
         return self.get_transaction_class()(*args, **kwargs)
 
     def create_unsigned_transaction(self, *args, **kwargs):
         """
-        Proxy for instantiating a transaction for this VM.
+        Proxy for instantiating an unsigned transaction for this VM.
         """
         return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
 
@@ -356,12 +431,15 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_block_class(cls):
         """
-        Return the class that the state class uses for blocks.
+        Return the :class:`~evm.rlp.blocks.Block` class that the state class uses for blocks.
         """
         return cls.get_state_class().get_block_class()
 
     @classmethod
     def get_block_by_header(cls, block_header, db):
+        """
+        Lookup and return the block for the given header.
+        """
         return cls.get_block_class().from_header(block_header, db)
 
     @classmethod
@@ -382,6 +460,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     @property
     def previous_hashes(self):
+        """
+        Return the block hashes for the previous 255 blocks relative to the tip block
+        """
         return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
 
     #
@@ -411,17 +492,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
-    # Snapshot and Revert
-    #
-    def clear_journal(self):
-        """
-        Clear the journal.  This should be called at any point of VM execution
-        where the statedb is being committed, such as after a transaction has
-        been applied to a block.
-        """
-        self.chaindb.clear()
-
-    #
     # State
     #
     @classmethod
@@ -433,33 +503,3 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             raise AttributeError("No `_state_class` has been set for this VM")
 
         return cls._state_class
-
-    @classmethod
-    def get_state(cls, chaindb, block, prev_hashes):
-        """
-        Return state object
-
-        :param ChainDB chaindb: chaindb which cointains the state data
-        :param Block block: block defining the state root and receipts
-        :param tuple prev_hashes: previous block headers
-        :return: state with root defined in block
-        """
-        execution_context = block.header.create_execution_context(prev_hashes)
-        receipts = block.get_receipts(chaindb)
-
-        return cls.get_state_class()(
-            chaindb,
-            execution_context=execution_context,
-            state_root=block.header.state_root,
-            receipts=receipts,
-        )
-
-    @property
-    def state(self):
-        """Return current state property
-        """
-        return self.get_state(
-            chaindb=self.chaindb,
-            block=self.block,
-            prev_hashes=self.previous_hashes
-        )

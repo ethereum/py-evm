@@ -4,23 +4,18 @@ import pytest
 
 from eth_keys import keys
 
-from trie import (
-    HexaryTrie,
-)
-
 from evm.db import (
     get_db_backend,
 )
 
 from eth_utils import (
-    keccak,
+    to_bytes,
     to_tuple,
 )
 
+from eth_hash.auto import keccak
+
 from evm.db.chain import ChainDB
-from evm.db.state import (
-    MainAccountStateDB,
-)
 from evm.exceptions import (
     ValidationError,
 )
@@ -47,6 +42,9 @@ from evm.tools.fixture_tests import (
     load_fixture,
     normalize_statetest_fixture,
     should_run_slow_tests,
+)
+from evm.utils.db import (
+    apply_state_dict,
 )
 
 from eth_typing.enums import (
@@ -183,7 +181,7 @@ def get_block_hash_for_testing(self, block_number):
     elif block_number < self.block_number - 256:
         return b''
     else:
-        return keccak(text="{0}".format(block_number))
+        return keccak(to_bytes(text="{0}".format(block_number)))
 
 
 def get_prev_hashes_testing(self, last_block_hash, db):
@@ -261,8 +259,6 @@ def fixture_vm_class(fixture_data):
 
 
 def test_state_fixtures(fixture, fixture_vm_class):
-    account_state_class = MainAccountStateDB
-    trie_class = HexaryTrie
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -272,18 +268,15 @@ def test_state_fixtures(fixture, fixture_vm_class):
         parent_hash=fixture['env']['previousHash'],
     )
 
-    chaindb = ChainDB(
-        get_db_backend(),
-        account_state_class=account_state_class,
-        trie_class=trie_class
-    )
+    chaindb = ChainDB(get_db_backend())
     vm = fixture_vm_class(header=header, chaindb=chaindb)
 
     state = vm.state
-    with state.mutable_state_db() as state_db:
-        state_db.apply_state_dict(fixture['pre'])
+    apply_state_dict(state.account_db, fixture['pre'])
+    state.account_db.persist()
+
     # Update state_root manually
-    vm.block.header.state_root = state.state_root
+    vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
     if 'secretKey' in fixture['transaction']:
         unsigned_transaction = vm.create_unsigned_transaction(
             nonce=fixture['transaction']['nonce'],
@@ -314,8 +307,12 @@ def test_state_fixtures(fixture, fixture_vm_class):
         )
 
     try:
-        computation, _ = vm.apply_transaction(transaction)
+        header, receipt, computation = vm.apply_transaction(transaction)
+        transactions = vm.block.transactions + (transaction, )
+        receipts = vm.block.get_receipts(chaindb) + (receipt, )
+        block = vm.set_block_transactions(vm.block, header, transactions, receipts)
     except ValidationError as err:
+        block = vm.block
         transaction_error = err
         LOGGER.warn("Got transaction error", exc_info=True)
     else:
@@ -340,4 +337,4 @@ def test_state_fixtures(fixture, fixture_vm_class):
             else:
                 assert computation.output == expected_output
 
-    assert vm.block.header.state_root == fixture['post']['hash']
+    assert block.header.state_root == fixture['post']['hash']

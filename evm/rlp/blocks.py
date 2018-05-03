@@ -23,13 +23,6 @@ from .headers import BlockHeader
 
 
 class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
-
-    # TODO: Remove this once https://github.com/ethereum/pyrlp/issues/45 is
-    # fixed.
-    @classmethod
-    def get_sedes(cls):
-        return rlp.sedes.List(sedes for _, sedes in cls.fields)
-
     transaction_class = None  # type: Type[BaseTransaction]
 
     @classmethod

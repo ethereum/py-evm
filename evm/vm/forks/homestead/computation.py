@@ -1,6 +1,4 @@
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm import constants
 from evm.exceptions import (
@@ -17,6 +15,10 @@ from .opcodes import HOMESTEAD_OPCODES
 
 
 class HomesteadComputation(FrontierComputation):
+    """
+    A class for all execution computations in the ``Frontier`` fork.
+    Inherits from :class:`~evm.vm.forks.frontier.computation.FrontierComputation`
+    """
     # Override
     opcodes = HOMESTEAD_OPCODES
 
@@ -52,8 +54,7 @@ class HomesteadComputation(FrontierComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    with self.state.mutable_state_db() as state_db:
-                        state_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

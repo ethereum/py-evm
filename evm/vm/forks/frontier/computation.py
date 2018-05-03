@@ -1,6 +1,4 @@
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm import constants
 from evm import precompiles
@@ -30,6 +28,10 @@ FRONTIER_PRECOMPILES = {
 
 
 class FrontierComputation(BaseComputation):
+    """
+    A class for all execution computations in the ``Frontier`` fork.
+    Inherits from :class:`~evm.vm.computation.BaseComputation`
+    """
     # Override
     opcodes = FRONTIER_OPCODES
     _precompiles = FRONTIER_PRECOMPILES
@@ -41,16 +43,15 @@ class FrontierComputation(BaseComputation):
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            with self.state.mutable_state_db() as state_db:
-                sender_balance = state_db.get_balance(self.msg.sender)
+            sender_balance = self.state.account_db.get_balance(self.msg.sender)
 
-                if sender_balance < self.msg.value:
-                    raise InsufficientFunds(
-                        "Insufficient funds: {0} < {1}".format(sender_balance, self.msg.value)
-                    )
+            if sender_balance < self.msg.value:
+                raise InsufficientFunds(
+                    "Insufficient funds: {0} < {1}".format(sender_balance, self.msg.value)
+                )
 
-                state_db.delta_balance(self.msg.sender, -1 * self.msg.value)
-                state_db.delta_balance(self.msg.storage_address, self.msg.value)
+            self.state.account_db.delta_balance(self.msg.sender, -1 * self.msg.value)
+            self.state.account_db.delta_balance(self.msg.storage_address, self.msg.value)
 
             self.logger.debug(
                 "TRANSFERRED: %s from %s -> %s",
@@ -59,8 +60,7 @@ class FrontierComputation(BaseComputation):
                 encode_hex(self.msg.storage_address),
             )
 
-        with self.state.mutable_state_db() as state_db:
-            state_db.touch_account(self.msg.storage_address)
+        self.state.account_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
             self.state,
@@ -99,6 +99,5 @@ class FrontierComputation(BaseComputation):
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    with self.state.mutable_state_db() as state_db:
-                        state_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
             return computation

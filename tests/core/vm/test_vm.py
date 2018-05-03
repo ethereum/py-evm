@@ -1,13 +1,17 @@
+import pytest
+
 from eth_utils import decode_hex
 
 from evm import constants
 
-from tests.core.fixtures import (  # noqa: F401
-    chain_without_block_validation,
-)
 from tests.core.helpers import (
     new_transaction,
 )
+
+
+@pytest.fixture
+def chain(chain_without_block_validation):
+    return chain_without_block_validation
 
 
 def test_apply_transaction(
@@ -16,39 +20,37 @@ def test_apply_transaction(
         funded_address_private_key,
         funded_address_initial_balance):
     vm = chain.get_vm()
-    tx_idx = len(vm.block.transactions)
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    computation, _ = vm.apply_transaction(tx)
+    new_header, _, computation = vm.apply_transaction(tx)
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
-    state_db = vm.state.read_only_state_db
-    assert state_db.get_balance(from_) == (
+    account_db = vm.state.account_db
+    assert account_db.get_balance(from_) == (
         funded_address_initial_balance - amount - tx_gas)
-    assert state_db.get_balance(recipient) == amount
-    block = vm.block
-    assert block.transactions[tx_idx] == tx
-    assert block.header.gas_used == constants.GAS_TX
+    assert account_db.get_balance(recipient) == amount
+
+    assert new_header.gas_used == constants.GAS_TX
 
 
-def test_mine_block(chain):
+def test_mine_block_issues_block_reward(chain):
+    block = chain.mine_block()
     vm = chain.get_vm()
-    block = vm.mine_block()
-    assert vm.state.read_only_state_db.get_balance(block.header.coinbase) == constants.BLOCK_REWARD
+    coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
+    assert coinbase_balance == constants.BLOCK_REWARD
 
 
 def test_import_block(chain, funded_address, funded_address_private_key):
-    vm = chain.get_vm()
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
     from_ = funded_address
-    tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    computation, _ = vm.apply_transaction(tx)
+    tx = new_transaction(chain.get_vm(), from_, recipient, amount, funded_address_private_key)
+    new_block, _, computation = chain.apply_transaction(tx)
 
     assert not computation.is_error
-    parent_vm = chain.get_chain_at_block_parent(vm.block).get_vm()
-    block = parent_vm.import_block(vm.block)
-    assert block.transactions == [tx]
+    parent_vm = chain.get_chain_at_block_parent(new_block).get_vm()
+    block = parent_vm.import_block(new_block)
+    assert block.transactions == (tx,)

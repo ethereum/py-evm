@@ -1,9 +1,7 @@
 import asyncio
 import os
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 from evm.db.backends.memory import MemoryDB
@@ -13,6 +11,7 @@ from p2p import constants
 from p2p import ecies
 from p2p import kademlia
 from p2p.peer import LESPeer
+from p2p.server import decode_authentication
 
 from integration_test_helpers import FakeAsyncChainDB
 
@@ -79,7 +78,8 @@ async def get_directly_linked_peers_without_handshake(
     responder = auth.HandshakeResponder(peer2_remote, peer2_private_key)
     auth_cipher = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
 
-    initiator_ephemeral_pubkey, initiator_nonce = responder.decode_authentication(auth_cipher)
+    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(
+        auth_cipher, peer2_private_key)
     responder_nonce = keccak(os.urandom(constants.HASH_LEN))
     auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
     auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)

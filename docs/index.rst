@@ -1,21 +1,26 @@
-py-evm documentation
-==========================
+.. include:: introduction.rst
 
-Py-EVM is a new implementation of the Ethereum Virtual Machine written in python. It is currently in active development but is quickly progressing through the test suite provided by ethereum/tests. I have Vitalik, and the existing PyEthereum code to thank for the quick progress I’ve made as many design decisions were inspired, or even directly ported from the PyEthereum codebase.
 
-Py-EVM aims to eventually become the defacto python implementation of the EVM, enabling a wide array of use cases for both public and private chains. Development will focus on creating an EVM with a well defined API, friendly and easy to digest documentation which can be run as a fully functional mainnet node.
+Table of contents
+==============================
 
 .. toctree::
    :maxdepth: 1
+   :caption: General
 
-   quickstart.rst
-   architecture.rst
-   api.rst
-   api.chain.rst
-   api.vm.rst
-   api.state.rst
-   api.computation.rst
-   api.opcode.rst
-   building_chains.rst
-   contributing.rst
-   low_level.rst
+   introduction
+   quickstart
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Fundamentals
+
+   guides/index
+   api/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Community
+
+   contributing
+   code_of_conduct

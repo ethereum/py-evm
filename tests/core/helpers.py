@@ -12,7 +12,7 @@ def new_transaction(
         vm,
         from_,
         to,
-        amount,
+        amount=0,
         private_key=None,
         gas_price=10,
         gas=100000,
@@ -22,7 +22,7 @@ def new_transaction(
 
     The transaction will be signed with the given private key.
     """
-    nonce = vm.state.read_only_state_db.get_nonce(from_)
+    nonce = vm.state.account_db.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
         nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=amount, data=data)
     if private_key:
@@ -35,11 +35,11 @@ def fill_block(chain, from_, key, gas, data):
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
 
-    assert chain.get_vm().state.gas_used == 0
+    vm = chain.get_vm()
+    assert vm.state.gas_used == 0
 
     while True:
-        vm = chain.get_vm()
-        tx = new_transaction(vm, from_, recipient, amount, key, gas=gas, data=data)
+        tx = new_transaction(chain.get_vm(), from_, recipient, amount, key, gas=gas, data=data)
         try:
             chain.apply_transaction(tx)
         except ValidationError as exc:

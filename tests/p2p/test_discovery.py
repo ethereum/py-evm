@@ -5,9 +5,10 @@ import rlp
 
 from eth_utils import (
     decode_hex,
-    keccak,
     to_bytes,
 )
+
+from eth_hash.auto import keccak
 
 from eth_keys import keys
 

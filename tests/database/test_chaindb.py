@@ -6,23 +6,17 @@ from hypothesis import (
 )
 
 import rlp
-from trie import (
-    BinaryTrie,
-    HexaryTrie,
-)
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
+from evm.constants import (
+    BLANK_ROOT_HASH,
+)
 from evm.db import (
     get_db_backend,
 )
 from evm.db.chain import (
     ChainDB,
-)
-from evm.db.state import (
-    MainAccountStateDB,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -35,7 +29,6 @@ from evm.tools.fixture_tests import (
     assert_rlp_equal,
 )
 from evm.utils.db import (
-    get_empty_root_hash,
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
 )
@@ -52,23 +45,16 @@ B_ADDRESS = b"\xbb" * 20
 
 
 def set_empty_root(chaindb, header):
-    root_hash = get_empty_root_hash(chaindb)
-    header.transaction_root = root_hash
-    header.receipt_root = root_hash
-    header.state_root = root_hash
-
-
-@pytest.fixture(params=[MainAccountStateDB])
-def chaindb(request):
-    if request.param is MainAccountStateDB:
-        trie_class = HexaryTrie
-    else:
-        trie_class = BinaryTrie
-    return ChainDB(
-        get_db_backend(),
-        account_state_class=request.param,
-        trie_class=trie_class,
+    return header.copy(
+        transaction_root=BLANK_ROOT_HASH,
+        receipt_root=BLANK_ROOT_HASH,
+        state_root=BLANK_ROOT_HASH,
     )
+
+
+@pytest.fixture
+def chaindb(request):
+    return ChainDB(get_db_backend())
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -105,13 +91,13 @@ def test_persist_header(chaindb, header):
 
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_persist_header_unknown_parent(chaindb, header, seed):
-    header.parent_hash = keccak(seed)
+    n_header = header.copy(parent_hash=keccak(seed))
     with pytest.raises(ParentNotFound):
-        chaindb.persist_header(header)
+        chaindb.persist_header(n_header)
 
 
 def test_persist_block(chaindb, block):
-    set_empty_root(chaindb, block.header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
     block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block(block)
@@ -137,15 +123,15 @@ def test_get_score(chaindb):
 
 
 def test_get_block_header_by_hash(chaindb, block, header):
-    set_empty_root(chaindb, block.header)
-    set_empty_root(chaindb, header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
+    header = set_empty_root(chaindb, header)
     chaindb.persist_block(block)
     block_header = chaindb.get_block_header_by_hash(block.hash)
     assert_rlp_equal(block_header, header)
 
 
 def test_lookup_block_hash(chaindb, block):
-    set_empty_root(chaindb, block.header)
+    block = block.copy(header=set_empty_root(chaindb, block.header))
     chaindb._add_block_number_to_hash_lookup(block.header)
     block_hash = chaindb.lookup_block_hash(block.number)
     assert block_hash == block.hash

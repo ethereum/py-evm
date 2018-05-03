@@ -12,8 +12,10 @@ from typing import (
 from eth_utils import (
     apply_to_return_value,
     int_to_big_endian,
-    keccak,
 )
+
+from eth_hash.auto import keccak
+
 from evm.utils.padding import (
     zpad_right,
 )

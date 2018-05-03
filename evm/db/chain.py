@@ -1,3 +1,4 @@
+import functools
 import itertools
 
 from abc import (
@@ -11,27 +12,23 @@ from typing import (
     Tuple,
     Type,
     TYPE_CHECKING,
-    Union
 )
-from uuid import UUID
 
 import rlp
 
 from trie import (
-    BinaryTrie,
     HexaryTrie,
 )
 
 from eth_utils import (
-    keccak,
     to_list,
     to_tuple,
 )
 
+from eth_hash.auto import keccak
+
 from evm.constants import (
     GENESIS_PARENT_HASH,
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
 )
 from evm.exceptions import (
     BlockNotFound,
@@ -41,13 +38,6 @@ from evm.exceptions import (
 )
 from evm.db.backends.base import (
     BaseDB
-)
-from evm.db.journal import (
-    JournalDB,
-)
-from evm.db.state import (
-    BaseAccountStateDB,
-    MainAccountStateDB,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -59,7 +49,6 @@ from evm.utils.db import (
     make_block_hash_to_score_lookup_key,
     make_block_number_to_hash_lookup_key,
     make_transaction_hash_to_block_lookup_key,
-    make_transaction_hash_to_data_lookup_key,
 )
 from evm.utils.hexadecimal import (
     encode_hex,
@@ -88,35 +77,13 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(metaclass=ABCMeta):
-    trie_class = None
-    empty_root_hash = None
-
     #
     # Trie
     #
-    def set_trie(self, trie_class: Union[Type[HexaryTrie], Type[BinaryTrie]]) -> None:
-        """
-        Sets trie_class and root_hash.
-        """
-        if trie_class is HexaryTrie:
-            empty_root_hash = BLANK_ROOT_HASH
-        elif trie_class is BinaryTrie:
-            empty_root_hash = EMPTY_SHA3
-        else:
-            raise NotImplementedError(
-                "trie_class {} is not supported.".format(trie_class)
-            )
-        self.trie_class = trie_class
-        self.empty_root_hash = empty_root_hash
-
     def __init__(self,
-                 db: BaseDB,
-                 account_state_class: Type[BaseAccountStateDB] = MainAccountStateDB,
-                 trie_class: Type[HexaryTrie] = HexaryTrie) -> None:
+                 db: BaseDB) -> None:
 
-        self.db = JournalDB(db)
-        self.account_state_class = account_state_class
-        self.set_trie(trie_class)
+        self.db = db
 
     #
     # Canonical chain API
@@ -215,18 +182,7 @@ class BaseChainDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def get_pending_transaction(
-            self,
-            transaction_hash: bytes,
-            transaction_class: Type['BaseTransaction']) -> Type['BaseTransaction']:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
     def get_transaction_index(self, transaction_hash: bytes) -> Tuple[int, int]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -251,34 +207,6 @@ class BaseChainDB(metaclass=ABCMeta):
         """
         Store raw trie data to db from a dict
         """
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Snapshot and revert API
-    #
-    @abstractmethod
-    def snapshot(self) -> UUID:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def revert(self, checkpoint: UUID) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def commit(self, checkpoint: UUID) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def clear(self) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # State Database API
-    #
-    @abstractmethod
-    def get_state_db(self,
-                     state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -312,11 +240,11 @@ class ChainDB(BaseChainDB):
         """
         validate_word(block_hash, title="Block Hash")
         try:
-            block = self.db.get(block_hash)
+            header_rlp = self.db.get(block_hash)
         except KeyError:
             raise BlockNotFound("No block with hash {0} found".format(
                 encode_hex(block_hash)))
-        return rlp.decode(block, sedes=BlockHeader)
+        return _decode_block_header(header_rlp)
 
     def header_exists(self, block_hash: bytes) -> bool:
         """Returns True if the header with the given block hash is in our DB."""
@@ -481,9 +409,9 @@ class ChainDB(BaseChainDB):
     #
     # Transaction and Receipt API
     #
-    @to_list
+    @to_tuple
     def get_receipts(self, header: BlockHeader, receipt_class: Type[Receipt]) -> Iterable[Receipt]:
-        receipt_db = self.trie_class(db=self.db, root_hash=header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
             if receipt_key in receipt_db:
@@ -492,11 +420,11 @@ class ChainDB(BaseChainDB):
             else:
                 break
 
-    def _get_block_transaction_data(self, block_header: BlockHeader) -> Iterable[bytes]:
+    def _get_block_transaction_data(self, transaction_root: bytes) -> Iterable[bytes]:
         '''
         :returns: iterable of encoded transactions for the given block header
         '''
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -506,15 +434,22 @@ class ChainDB(BaseChainDB):
 
     @to_list
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[bytes]:
-        for encoded_transaction in self._get_block_transaction_data(block_header):
+        for encoded_transaction in self._get_block_transaction_data(block_header.transaction_root):
             yield keccak(encoded_transaction)
 
-    @to_list
     def get_block_transactions(
             self,
-            block_header: BlockHeader,
+            header: BlockHeader,
             transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
-        for encoded_transaction in self._get_block_transaction_data(block_header):
+        return self._get_block_transactions(header.transaction_root, transaction_class)
+
+    @functools.lru_cache(maxsize=32)
+    @to_list
+    def _get_block_transactions(
+            self,
+            transaction_root: bytes,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+        for encoded_transaction in self._get_block_transaction_data(transaction_root):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
     def get_transaction_by_index(
@@ -526,7 +461,7 @@ class ChainDB(BaseChainDB):
             block_header = self.get_canonical_block_header_by_number(block_number)
         except KeyError:
             raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         if encoded_index in transaction_db:
             encoded_transaction = transaction_db[encoded_index]
@@ -534,17 +469,6 @@ class ChainDB(BaseChainDB):
         else:
             raise TransactionNotFound(
                 "No transaction is at index {} of block {}".format(transaction_index, block_number))
-
-    def get_pending_transaction(
-            self,
-            transaction_hash: bytes,
-            transaction_class: Type['BaseTransaction']) -> Type['BaseTransaction']:
-        try:
-            data = self.db.get(make_transaction_hash_to_data_lookup_key(transaction_hash))
-            return rlp.decode(data, sedes=transaction_class)
-        except KeyError:
-            raise TransactionNotFound(
-                "Transaction with hash {} not found".format(encode_hex(transaction_hash)))
 
     def get_transaction_index(self, transaction_hash: bytes) -> Tuple[int, int]:
         try:
@@ -576,27 +500,16 @@ class ChainDB(BaseChainDB):
             rlp.encode(transaction_key),
         )
 
-        # because transaction is now in canonical chain, can now remove from pending txn lookups
-        lookup_key = make_transaction_hash_to_data_lookup_key(transaction_hash)
-        if self.db.exists(lookup_key):
-            self.db.delete(lookup_key)
-
-    def add_pending_transaction(self, transaction: 'BaseTransaction') -> None:
-        self.db.set(
-            make_transaction_hash_to_data_lookup_key(transaction.hash),
-            rlp.encode(transaction),
-        )
-
     def add_transaction(self,
                         block_header: BlockHeader,
                         index_key: int,
                         transaction: 'BaseTransaction') -> bytes:
-        transaction_db = self.trie_class(self.db, root_hash=block_header.transaction_root)
+        transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
         return transaction_db.root_hash
 
     def add_receipt(self, block_header: BlockHeader, index_key: int, receipt: Receipt) -> bytes:
-        receipt_db = self.trie_class(db=self.db, root_hash=block_header.receipt_root)
+        receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
 
@@ -613,32 +526,14 @@ class ChainDB(BaseChainDB):
         for key, value in trie_data_dict.items():
             self.db[key] = value
 
-    #
-    # Snapshot and revert API
-    #
-    def snapshot(self) -> UUID:
-        return self.db.snapshot()
 
-    def revert(self, checkpoint: UUID) -> None:
-        self.db.revert(checkpoint)
-
-    def commit(self, checkpoint: UUID) -> None:
-        self.db.commit(checkpoint)
-
-    def clear(self) -> None:
-        self.db.clear()
-
-    #
-    # State Database API
-    #
-    def get_state_db(self,
-                     state_root: bytes,
-                     read_only: bool) -> BaseAccountStateDB:
-        return self.account_state_class(
-            db=self.db,
-            root_hash=state_root,
-            read_only=read_only,
-        )
+# When performing a chain sync (either fast or regular modes), we'll very often need to look
+# up recent block headers to validate the chain, and decoding their RLP representation is
+# relatively expensive so we cache that here, but use a small cache because we *should* only
+# be looking up recent blocks.
+@functools.lru_cache(128)
+def _decode_block_header(header_rlp: bytes) -> BlockHeader:
+    return rlp.decode(header_rlp, sedes=BlockHeader)
 
 
 class AsyncChainDB(ChainDB):
@@ -664,24 +559,4 @@ class AsyncChainDB(ChainDB):
         raise NotImplementedError()
 
     async def coro_persist_trie_data_dict(self, *args, **kwargs):
-        raise NotImplementedError()
-
-
-class NonJournaledAsyncChainDB(AsyncChainDB):
-
-    def __init__(self, db, account_state_class=MainAccountStateDB, trie_class=HexaryTrie):
-        self.db = db
-        self.account_state_class = account_state_class
-        self.set_trie(trie_class)
-
-    def snapshot(self):
-        raise NotImplementedError()
-
-    def revert(self, checkpoint):
-        raise NotImplementedError()
-
-    def commit(self, checkpoint):
-        raise NotImplementedError()
-
-    def clear(self):
         raise NotImplementedError()

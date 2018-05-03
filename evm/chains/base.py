@@ -19,6 +19,7 @@ from evm.consensus.pow import (
     check_pow,
 )
 from evm.constants import (
+    BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
@@ -38,6 +39,9 @@ from evm.validation import (
 )
 from evm.rlp.headers import (
     BlockHeader,
+)
+from evm.utils.db import (
+    apply_state_dict,
 )
 from evm.utils.chain import (
     generate_vms_by_range,
@@ -162,20 +166,6 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def add_pending_transaction(self, transaction):
-        """
-        Adds a transaction to the set of pending transactions.
-        """
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
-    def get_pending_transaction(self, transaction_hash):
-        """
-        Retrieves a transaction from the set of pending transactions.
-        """
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
     def create_transaction(self, *args, **kwargs):
         """
         Creates a transaction object.
@@ -212,7 +202,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @abstractmethod
     def apply_transaction(self, transaction):
         """
-        Applies the transaction to the current head block of the Chain.
+        Applies the transaction to the current tip block.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -348,12 +338,6 @@ class Chain(BaseChain):
                 index,
             ))
 
-    def add_pending_transaction(self, transaction):
-        return self.chaindb.add_pending_transaction(transaction)
-
-    def get_pending_transaction(self, transaction_hash):
-        return self.get_vm().get_pending_transaction(transaction_hash)
-
     def create_transaction(self, *args, **kwargs):
         """
         Passthrough helper to the current VM class.
@@ -378,14 +362,15 @@ class Chain(BaseChain):
     #
     # Chain Operations
     #
-    def get_vm_class_for_block_number(self, block_number):
+    @classmethod
+    def get_vm_class_for_block_number(cls, block_number):
         """
         Returns the VM class for the given block number.
         """
         validate_block_number(block_number)
-        for n in reversed(self.vms_by_range.keys()):
+        for n in reversed(cls.vms_by_range.keys()):
             if block_number >= n:
-                return self.vms_by_range[n]
+                return cls.vms_by_range[n]
         else:
             raise VMNotFound("No vm available for block #{0}".format(block_number))
 
@@ -452,24 +437,30 @@ class Chain(BaseChain):
         """
         Initializes the Chain from a genesis state.
         """
-        state_db = chaindb.get_state_db(chaindb.empty_root_hash, read_only=False)
+        genesis_vm_class = cls.get_vm_class_for_block_number(0)
+        account_db = genesis_vm_class.get_state_class().get_account_db_class()(
+            chaindb.db,
+            BLANK_ROOT_HASH,
+        )
 
         if genesis_state is None:
             genesis_state = {}
 
-        state_db.apply_state_dict(genesis_state)
+        # mutation
+        apply_state_dict(account_db, genesis_state)
+        account_db.persist()
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', state_db.root_hash)
-        elif genesis_params['state_root'] != state_db.root_hash:
+            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
+        elif genesis_params['state_root'] != account_db.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    state_db.root_hash,
+                    account_db.state_root,
                     genesis_params['state_root'],
                 )
             )
@@ -489,15 +480,24 @@ class Chain(BaseChain):
     #
     def apply_transaction(self, transaction):
         """
-        Applies the transaction to the current head block of the Chain.
+        Applies the transaction to the current tip block.
+
+        WARNING: Receipt and Transaction trie generation is computationally
+        heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
-        computation, block = vm.apply_transaction(transaction)
+        base_block = vm.block
 
-        # Update header
-        self.header = block.header
+        new_header, receipt, computation = vm.apply_transaction(transaction)
 
-        return computation
+        transactions = base_block.transactions + (transaction, )
+        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
+
+        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+
+        self.header = new_block.header
+
+        return new_block, receipt, computation
 
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:
@@ -632,3 +632,11 @@ class Chain(BaseChain):
             raise ValidationError(
                 "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
                     encode_hex(header.hash), header.gas_limit, high_bound))
+
+
+# This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
+# Chain implementation.
+class AsyncChain(Chain):
+
+    async def coro_import_block(self, block, perform_validation=True):
+        raise NotImplementedError()

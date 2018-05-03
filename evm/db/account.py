@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from uuid import UUID
 
 from lru import LRU
 
@@ -11,18 +12,15 @@ from trie import (
     HexaryTrie,
 )
 
-from eth_utils import (
-    keccak,
-)
+from eth_hash.auto import keccak
 
 from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from evm.db.immutable import (
-    ImmutableDB,
+from evm.db.journal import (
+    JournalDB,
 )
-from evm.exceptions import DecommissionedStateDB
 from evm.rlp.accounts import (
     Account,
 )
@@ -48,7 +46,7 @@ from .hash_trie import HashTrie
 account_cache = LRU(2048)
 
 
-class BaseAccountStateDB(metaclass=ABCMeta):
+class BaseAccountDB(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self) -> None:
@@ -56,23 +54,10 @@ class BaseAccountStateDB(metaclass=ABCMeta):
             "Must be implemented by subclasses"
         )
 
-    @abstractmethod
-    def apply_state_dict(self, state_dict):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def decommission(self):
-        raise NotImplementedError("Must be implemented by subclasses")
-
     # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
-    @property  # type: ignore
+    @property  # tyoe: ignore
     @abstractmethod
-    def root_hash(self):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @root_hash.setter  # type: ignore
-    @abstractmethod
-    def root_hash(self, value):
+    def state_root(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
@@ -126,48 +111,41 @@ class BaseAccountStateDB(metaclass=ABCMeta):
     def account_is_empty(self, address):
         raise NotImplementedError("Must be implemented by subclass")
 
+    #
+    # Record and discard API
+    #
+    @abstractmethod
+    def record(self) -> UUID:
+        raise NotImplementedError("Must be implemented by subclass")
 
-class MainAccountStateDB(BaseAccountStateDB):
+    @abstractmethod
+    def discard(self, checkpoint: UUID) -> None:
+        raise NotImplementedError("Must be implemented by subclass")
 
-    def __init__(self, db, root_hash=BLANK_ROOT_HASH, read_only=False):
+    @abstractmethod
+    def commit(self, checkpoint: UUID) -> None:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    @abstractmethod
+    def clear(self) -> None:
+        raise NotImplementedError("Must be implemented by subclass")
+
+
+class AccountDB(BaseAccountDB):
+
+    def __init__(self, db, state_root=BLANK_ROOT_HASH):
         # Keep a reference to the original db instance to use it as part of _get_account()'s cache
         # key.
         self._unwrapped_db = db
-        if read_only:
-            self.db = ImmutableDB(db)
-        else:
-            self.db = db
-        self.__trie = HashTrie(HexaryTrie(self.db, root_hash))
+        self.db = JournalDB(db)
+        self._trie = HashTrie(HexaryTrie(self.db, state_root))
 
     @property
-    def _trie(self):
-        if self.__trie is None:
-            raise DecommissionedStateDB()
-        return self.__trie
-
-    @_trie.setter
-    def _trie(self, value):
-        self.__trie = value
-
-    def apply_state_dict(self, state_dict):
-        for account, account_data in state_dict.items():
-            self.set_balance(account, account_data["balance"])
-            self.set_nonce(account, account_data["nonce"])
-            self.set_code(account, account_data["code"])
-
-            for slot, value in account_data["storage"].items():
-                self.set_storage(account, slot, value)
-
-    def decommission(self):
-        self.db = None
-        self.__trie = None
-
-    @property
-    def root_hash(self):
+    def state_root(self):
         return self._trie.root_hash
 
-    @root_hash.setter
-    def root_hash(self, value):
+    @state_root.setter
+    def state_root(self, value):
         self._trie.root_hash = value
 
     #
@@ -204,15 +182,13 @@ class MainAccountStateDB(BaseAccountStateDB):
         else:
             del storage[slot_as_key]
 
-        account.storage_root = storage.root_hash
-        self._set_account(address, account)
+        self._set_account(address, account.copy(storage_root=storage.root_hash))
 
     def delete_storage(self, address):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        account.storage_root = BLANK_ROOT_HASH
-        self._set_account(address, account)
+        self._set_account(address, account.copy(storage_root=BLANK_ROOT_HASH))
 
     #
     # Balance
@@ -228,26 +204,23 @@ class MainAccountStateDB(BaseAccountStateDB):
         validate_uint256(balance, title="Account Balance")
 
         account = self._get_account(address)
-        account.balance = balance
-        self._set_account(address, account)
+        self._set_account(address, account.copy(balance=balance))
 
     #
     # Nonce
     #
-    def set_nonce(self, address, nonce):
-        validate_canonical_address(address, title="Storage Address")
-        validate_uint256(nonce, title="Nonce")
-
-        account = self._get_account(address)
-        account.nonce = nonce
-
-        self._set_account(address, account)
-
     def get_nonce(self, address):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.nonce
+
+    def set_nonce(self, address, nonce):
+        validate_canonical_address(address, title="Storage Address")
+        validate_uint256(nonce, title="Nonce")
+
+        account = self._get_account(address)
+        self._set_account(address, account.copy(nonce=nonce))
 
     def increment_nonce(self, address):
         current_nonce = self.get_nonce(address)
@@ -256,16 +229,6 @@ class MainAccountStateDB(BaseAccountStateDB):
     #
     # Code
     #
-    def set_code(self, address, code):
-        validate_canonical_address(address, title="Storage Address")
-        validate_is_bytes(code, title="Code")
-
-        account = self._get_account(address)
-
-        account.code_hash = keccak(code)
-        self.db[account.code_hash] = code
-        self._set_account(address, account)
-
     def get_code(self, address):
         validate_canonical_address(address, title="Storage Address")
 
@@ -273,6 +236,16 @@ class MainAccountStateDB(BaseAccountStateDB):
             return self.db[self.get_code_hash(address)]
         except KeyError:
             return b""
+
+    def set_code(self, address, code):
+        validate_canonical_address(address, title="Storage Address")
+        validate_is_bytes(code, title="Code")
+
+        account = self._get_account(address)
+
+        code_hash = keccak(code)
+        self.db[code_hash] = code
+        self._set_account(address, account.copy(code_hash=code_hash))
 
     def get_code_hash(self, address):
         validate_canonical_address(address, title="Storage Address")
@@ -284,8 +257,7 @@ class MainAccountStateDB(BaseAccountStateDB):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        account.code_hash = EMPTY_SHA3
-        self._set_account(address, account)
+        self._set_account(address, account.copy(code_hash=EMPTY_SHA3))
 
     #
     # Account Methods
@@ -316,14 +288,13 @@ class MainAccountStateDB(BaseAccountStateDB):
     # Internal
     #
     def _get_account(self, address):
-        cache_key = (self._unwrapped_db, self.root_hash, address)
+        cache_key = (self._unwrapped_db, self.state_root, address)
         if cache_key not in account_cache:
             account_cache[cache_key] = self._trie[address]
 
         rlp_account = account_cache[cache_key]
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
-            account._mutable = True
         else:
             account = Account()
         return account
@@ -331,5 +302,23 @@ class MainAccountStateDB(BaseAccountStateDB):
     def _set_account(self, address, account):
         rlp_account = rlp.encode(account, sedes=Account)
         self._trie[address] = rlp_account
-        cache_key = (self._unwrapped_db, self.root_hash, address)
+        cache_key = (self._unwrapped_db, self.state_root, address)
         account_cache[cache_key] = rlp_account
+
+    #
+    # Record and discard API
+    #
+    def record(self) -> UUID:
+        return self.db.record()
+
+    def discard(self, changeset_id: UUID) -> None:
+        return self.db.discard(changeset_id)
+
+    def commit(self, changeset_id: UUID) -> None:
+        return self.db.commit(changeset_id)
+
+    def persist(self) -> None:
+        return self.db.persist()
+
+    def clear(self) -> None:
+        return self.db.reset()
