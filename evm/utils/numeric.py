@@ -2,18 +2,10 @@ import functools
 import itertools
 import math
 
-from cytoolz import (
-    pipe,
-)
-
 from evm.constants import (
     UINT_255_MAX,
     UINT_256_MAX,
     UINT_256_CEILING,
-)
-
-from evm.utils.padding import (
-    pad32,
 )
 
 
