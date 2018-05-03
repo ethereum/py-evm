@@ -1,6 +1,6 @@
 # https://docs.readthedocs.io/en/latest/yaml-config.html
 build:
-    image: latest
+  image: latest
 python:
   version: 3.6
   pip_install: True
