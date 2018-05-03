@@ -26,10 +26,6 @@ def big_endian_to_int(value: bytes) -> int:
     return int.from_bytes(value, byteorder='big')
 
 
-def int_to_byte(value):
-    return bytes([value])
-
-
 def int_to_bytes32(value):
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
