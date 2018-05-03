@@ -1,39 +1,48 @@
 import logging
 
-from evm.db.chain import AsyncChainDB
+from evm.chains import AsyncChain
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import PeerPool
-from p2p.chain import ChainSyncer
+from p2p.chain import ChainSyncer, RegularChainSyncer
 from p2p.state import StateDownloader
 
 
 class FullNodeSyncer:
     logger = logging.getLogger("p2p.sync.FullNodeSyncer")
 
-    def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
-        self.chaindb = chaindb
+    def __init__(self, chain: AsyncChain, peer_pool: PeerPool) -> None:
+        self.chain = chain
         self.peer_pool = peer_pool
         self.cancel_token = CancelToken('FullNodeSyncer')
 
     async def run(self) -> None:
+        chaindb = self.chain.chaindb
         # Fast-sync chain data.
-        chain_syncer = ChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
+        head = await chaindb.coro_get_canonical_head()
+        self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
+        chain_syncer = ChainSyncer(chaindb, self.peer_pool, self.cancel_token)
         try:
             await chain_syncer.run()
         finally:
             await chain_syncer.stop()
 
         # Download state for our current head.
-        head = self.chaindb.get_canonical_head()
+        head = await chaindb.coro_get_canonical_head()
         downloader = StateDownloader(
-            self.chaindb.db, head.state_root, self.peer_pool, self.cancel_token)
+            chaindb.db, head.state_root, self.peer_pool, self.cancel_token)
         try:
             await downloader.run()
         finally:
             await downloader.stop()
 
-        # TODO: Run the regular sync.
+        # Now, loop forever, fetching missing blocks and applying them.
+        self.logger.info("Starting normal sync; current head: #%d", head.block_number)
+        chain_syncer = RegularChainSyncer(self.chain, self.peer_pool, self.cancel_token)
+        try:
+            await chain_syncer.run()
+        finally:
+            await chain_syncer.stop()
 
     async def stop(self):
         self.cancel_token.trigger()
@@ -48,7 +57,7 @@ def _test():
     from p2p.peer import ETHPeer, HardCodedNodesPeerPool
     from evm.chains.ropsten import RopstenChain
     from evm.db.backends.level import LevelDB
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, FakeAsyncRopstenChain
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
@@ -56,6 +65,7 @@ def _test():
     args = parser.parse_args()
 
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
+    chain = FakeAsyncRopstenChain(chaindb)
     peer_pool = HardCodedNodesPeerPool(
         ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), min_peers=5)
     asyncio.ensure_future(peer_pool.run())
@@ -63,7 +73,7 @@ def _test():
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ProcessPoolExecutor())
 
-    syncer = FullNodeSyncer(chaindb, peer_pool)
+    syncer = FullNodeSyncer(chain, peer_pool)
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, syncer.cancel_token.trigger)
