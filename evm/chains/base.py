@@ -132,6 +132,16 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    def get_canonical_block_hash(self, block_number):
+        """
+        Returns the block hash with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block with the given number in the
+        canonical chain.
+        """
+        validate_uint256(block_number, title="Block Number")
+        return self.chaindb.lookup_block_hash(block_number)
+
     def get_canonical_block_by_number(self, block_number):
         """
         Returns the block with the given number in the canonical chain.
@@ -139,8 +149,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+        return self.get_block_by_hash(self.get_canonical_block_hash(block_number))
 
     def get_block_by_hash(self, block_hash):
         """
@@ -633,6 +642,17 @@ class Chain(BaseChain):
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
 # Chain implementation.
 class AsyncChain(Chain):
+    async def coro_get_canonical_block_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_block_by_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_block_header_by_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_canonical_head(self, *args, **kwargs):
+        raise NotImplementedError()
 
     async def coro_import_block(self, block, perform_validation=True):
         raise NotImplementedError()
