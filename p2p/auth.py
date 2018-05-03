@@ -19,6 +19,7 @@ from eth_hash.auto import keccak
 
 from p2p import ecies
 from p2p import kademlia
+from p2p.exceptions import DecryptionError
 from p2p.utils import (
     sxor,
 )
@@ -284,7 +285,7 @@ def decode_authentication(ciphertext: bytes,
     Returns the initiator's ephemeral pubkey, nonce, and pubkey.
     """
     if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
-        raise ValueError("Auth msg too short: {}".format(len(ciphertext)))
+        raise DecryptionError("Auth msg too short: {}".format(len(ciphertext)))
     elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
         sig, initiator_pubkey, initiator_nonce, _ = decode_auth_plain(
             ciphertext, privkey)
