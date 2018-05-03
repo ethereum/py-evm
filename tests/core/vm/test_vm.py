@@ -24,7 +24,7 @@ def test_apply_transaction(
     amount = 100
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    new_header, _, computation = vm.apply_transaction(tx)
+    new_header, _, computation = vm.apply_transaction(vm.block.header, tx)
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
