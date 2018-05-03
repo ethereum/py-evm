@@ -53,9 +53,6 @@ def int_to_bytes32(value):
     return value_bytes
 
 
-byte_to_int = ord
-
-
 def ceilXX(value: int, ceiling: int) -> int:
     remainder = value % ceiling
     if remainder == 0:
