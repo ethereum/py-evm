@@ -79,13 +79,6 @@ def signed_to_unsigned(value):
         return value
 
 
-def safe_ord(value):
-    if isinstance(value, int):
-        return value
-    else:
-        return ord(value)
-
-
 def is_even(value: int) -> bool:
     return value % 2 == 0
 
