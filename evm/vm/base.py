@@ -75,7 +75,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             db=self.chaindb.db,
             execution_context=self.block.header.create_execution_context(self.previous_hashes),
             state_root=self.block.header.state_root,
-            gas_used=self.block.header.gas_used,
         )
 
     #
@@ -131,29 +130,63 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         )
 
     @abstractmethod
-    def make_receipt(self, transaction, computation, state):
+    def make_receipt(self, base_header, transaction, computation, state):
         """
-        Make receipt.
+        Generate the receipt resulting from applying the transaction.
+
+        :param base_header: the header of the block before the transaction was applied.
+        :param transaction: the transaction used to generate the receipt
+        :param computation: the result of running the transaction computation
+        :param state: the resulting state, after executing the computation
+
+        :return: receipt
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def apply_transaction(self, transaction):
+    @abstractmethod
+    def validate_transaction_against_header(self, base_header, transaction):
+        """
+        Validate that the given transaction is valid to apply to the given header.
+
+        :param base_header: header before applying the transaction
+        :param transaction: the transaction to validate
+
+        :raises: ValidationError if the transaction is not valid to apply
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    def apply_transaction(self, header, transaction):
         """
         Apply the transaction to the current block. This is a wrapper around
         :func:`~evm.vm.state.State.apply_transaction` with some extra orchestration logic.
-        """
-        state_root, computation = self.state.apply_transaction(transaction)
-        receipt = self.make_receipt(transaction, computation, self.state)
-        # TODO: remove this mutation.
-        self.state.gas_used = receipt.gas_used
 
-        new_header = self.block.header.copy(
-            bloom=int(BloomFilter(self.block.header.bloom) | receipt.bloom),
+        :param header: header of the block before application
+        :param transaction: to apply
+        """
+        self.validate_transaction_against_header(header, transaction)
+        state_root, computation = self.state.apply_transaction(transaction)
+        receipt = self.make_receipt(header, transaction, computation, self.state)
+
+        new_header = header.copy(
+            bloom=int(BloomFilter(header.bloom) | receipt.bloom),
             gas_used=receipt.gas_used,
             state_root=state_root,
         )
 
         return new_header, receipt, computation
+
+    def _apply_all_transactions(self, transactions, base_header):
+        receipts = []
+        previous_header = base_header
+        result_header = base_header
+
+        for transaction in transactions:
+            result_header, receipt, _ = self.apply_transaction(previous_header, transaction)
+
+            previous_header = result_header
+            receipts.append(receipt)
+
+        return result_header, receipts
 
     #
     # Mining
@@ -179,25 +212,14 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             db=self.chaindb.db,
             execution_context=self.block.header.create_execution_context(self.previous_hashes),
             state_root=self.block.header.state_root,
-            gas_used=self.block.header.gas_used,
         )
 
         # run all of the transactions.
-        execution_data = [
-            self.apply_transaction(transaction)
-            for transaction
-            in block.transactions
-        ]
-        if execution_data:
-            headers, receipts, _ = zip(*execution_data)
-            header_with_txns = headers[-1]
-        else:
-            receipts = tuple()
-            header_with_txns = self.block.header
+        last_header, receipts = self._apply_all_transactions(block.transactions, self.block.header)
 
         self.block = self.set_block_transactions(
             self.block,
-            header_with_txns,
+            last_header,
             block.transactions,
             receipts,
         )
@@ -283,7 +305,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             db=self.chaindb.db,
             execution_context=temp_block.header.create_execution_context(prev_hashes),
             state_root=temp_block.header.state_root,
-            gas_used=0,
         )
 
         snapshot = state.snapshot()

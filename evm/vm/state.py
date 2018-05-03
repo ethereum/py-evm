@@ -63,18 +63,16 @@ class BaseState(Configurable, metaclass=ABCMeta):
     _chaindb = None
     execution_context = None
     state_root = None
-    gas_used = None
 
     block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
     account_db_class = None  # type: Type[BaseAccountDB]
 
-    def __init__(self, db, execution_context, state_root, gas_used):
+    def __init__(self, db, execution_context, state_root):
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
-        self.gas_used = gas_used
 
     #
     # Logging

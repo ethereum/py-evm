@@ -307,7 +307,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
         )
 
     try:
-        header, receipt, computation = vm.apply_transaction(transaction)
+        header, receipt, computation = vm.apply_transaction(vm.block.header, transaction)
         transactions = vm.block.transactions + (transaction, )
         receipts = vm.block.get_receipts(chaindb) + (receipt, )
         block = vm.set_block_transactions(vm.block, header, transactions, receipts)

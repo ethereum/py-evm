@@ -14,9 +14,10 @@ from .headers import (
     compute_frontier_difficulty,
     configure_frontier_header,
 )
+from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(transaction, computation, state):
+def make_frontier_receipt(base_header, transaction, computation, state):
     # Reusable for other forks
 
     logs = [
@@ -33,7 +34,7 @@ def make_frontier_receipt(transaction, computation, state):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-    gas_used = state.gas_used + tx_gas_used
+    gas_used = base_header.gas_used + tx_gas_used
 
     receipt = Receipt(
         state_root=state.state_root,
@@ -55,5 +56,6 @@ FrontierVM = VM.configure(
     create_header_from_parent=staticmethod(create_frontier_header_from_parent),
     compute_difficulty=staticmethod(compute_frontier_difficulty),
     configure_header=configure_frontier_header,
-    make_receipt=staticmethod(make_frontier_receipt)
+    make_receipt=staticmethod(make_frontier_receipt),
+    validate_transaction_against_header=validate_frontier_transaction_against_header,
 )

@@ -181,7 +181,7 @@ class FrontierState(BaseState, FrontierTransactionExecutor):
     account_db_class = AccountDB  # Type[BaseAccountDB]
 
     def validate_transaction(self, transaction):
-        validate_frontier_transaction(self, transaction)
+        validate_frontier_transaction(self.account_db, transaction)
 
     @staticmethod
     def get_block_reward():

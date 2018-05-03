@@ -1,6 +1,3 @@
-from evm.rlp.receipts import (
-    Receipt,
-)
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 from evm.vm.forks.frontier import make_frontier_receipt
 
@@ -16,20 +13,15 @@ from .headers import (
 from .state import ByzantiumState
 
 
-def make_byzantium_receipt(transaction, computation, state):
-    old_receipt = make_frontier_receipt(transaction, computation, state)
+def make_byzantium_receipt(base_header, transaction, computation, state):
+    frontier_receipt = make_frontier_receipt(base_header, transaction, computation, state)
 
     if computation.is_error:
-        state_root = EIP658_TRANSACTION_STATUS_CODE_FAILURE
+        status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
     else:
-        state_root = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
+        status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
 
-    receipt = Receipt(
-        state_root=state_root,
-        gas_used=old_receipt.gas_used,
-        logs=old_receipt.logs,
-    )
-    return receipt
+    return frontier_receipt.copy(state_root=status_code)
 
 
 ByzantiumVM = SpuriousDragonVM.configure(

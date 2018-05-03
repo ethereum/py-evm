@@ -484,7 +484,7 @@ class Chain(BaseChain):
         vm = self.get_vm()
         base_block = vm.block
 
-        new_header, receipt, computation = vm.apply_transaction(transaction)
+        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
