@@ -243,88 +243,16 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
         return computation
 
-    def apply_transaction(
-            self,
-            transaction):
+    def apply_transaction(self, transaction):
         """
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :type transaction: Transaction
-
-        :return: the computation, applied block, and the trie_data_dict
-        :rtype: (Computation, dict[bytes, bytes])
+        :return: the new state root, and the computation
         """
         computation = self.execute_transaction(transaction)
         self.account_db.persist()
         return self.account_db.state_root, computation
-
-    #
-    # Finalization
-    #
-    def finalize_block(self, block):
-        """
-        Perform any finalization steps like awarding the block mining reward.
-        """
-        block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
-        )
-
-        self.account_db.delta_balance(block.header.coinbase, block_reward)
-        self.logger.debug(
-            "BLOCK REWARD: %s -> %s",
-            block_reward,
-            block.header.coinbase,
-        )
-
-        for uncle in block.uncles:
-            uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.account_db.delta_balance(uncle.coinbase, uncle_reward)
-            self.logger.debug(
-                "UNCLE REWARD REWARD: %s -> %s",
-                uncle_reward,
-                uncle.coinbase,
-            )
-        # We need to call `persist` here since the state db batches
-        # all writes untill we tell it to write to the underlying db
-        # TODO: Refactor to only use batching/journaling for tx processing
-        self.account_db.persist()
-
-        return block.copy(header=block.header.copy(state_root=self.state_root))
-
-    @staticmethod
-    @abstractmethod
-    def get_block_reward():
-        """
-        Return the amount in **wei** that should be given to a miner as a reward
-        for this block.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    @abstractmethod
-    def get_uncle_reward(block_number, uncle):
-        """
-        Return the reward which should be given to the miner of the given `uncle`.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    @abstractmethod
-    def get_nephew_reward(cls):
-        """
-        Return the reward which should be given to the miner of the given `nephew`.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
 
 class BaseTransactionExecutor(metaclass=ABCMeta):

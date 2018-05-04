@@ -261,7 +261,40 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         if block.number == 0:
             return block
         else:
-            return self.state.finalize_block(block)
+            return self.finalize_block(block)
+
+    #
+    # Finalization
+    #
+    def finalize_block(self, block):
+        """
+        Perform any finalization steps like awarding the block mining reward.
+        """
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
+        )
+
+        self.state.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.logger.debug(
+            "BLOCK REWARD: %s -> %s",
+            block_reward,
+            block.header.coinbase,
+        )
+
+        for uncle in block.uncles:
+            uncle_reward = self.get_uncle_reward(block.number, uncle)
+            self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.logger.debug(
+                "UNCLE REWARD REWARD: %s -> %s",
+                uncle_reward,
+                uncle.coinbase,
+            )
+        # We need to call `persist` here since the state db batches
+        # all writes until we tell it to write to the underlying db
+        # TODO: Refactor to only use batching/journaling for tx processing
+        self.state.account_db.persist()
+
+        return block.copy(header=block.header.copy(state_root=self.state.state_root))
 
     def pack_block(self, block, *args, **kwargs):
         """
@@ -498,6 +531,40 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         Return the block hashes for the previous 255 blocks relative to the tip block
         """
         return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+
+    @staticmethod
+    @abstractmethod
+    def get_block_reward() -> int:
+        """
+        Return the amount in **wei** that should be given to a miner as a reward
+        for this block.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @staticmethod
+    @abstractmethod
+    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
+        """
+        Return the reward which should be given to the miner of the given `uncle`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    @abstractmethod
+    def get_nephew_reward(cls) -> int:
+        """
+        Return the reward which should be given to the miner of the given `nephew`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Headers
