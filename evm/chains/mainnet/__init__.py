@@ -1,3 +1,4 @@
+from typing import Tuple, Type  # noqa: F401
 from eth_utils import decode_hex
 
 from .constants import (
@@ -10,7 +11,7 @@ from evm import constants
 
 from evm.chains.base import Chain
 from evm.rlp.headers import BlockHeader
-from evm.tools.chain import generate_vms_by_range
+from evm.vm.base import BaseVM  # noqa: F401
 from evm.vm.forks import (
     TangerineWhistleVM,
     FrontierVM,
@@ -33,7 +34,7 @@ MAINNET_NETWORK_ID = 1
 
 
 class BaseMainnetChain:
-    vms_by_range = generate_vms_by_range(MAINNET_VM_CONFIGURATION)  # type: Tuple[Tuple[int, BaseVM], ...]  # noqa: E501
+    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
     network_id = MAINNET_NETWORK_ID  # type: int
 
 

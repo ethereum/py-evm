@@ -1,4 +1,6 @@
-from __future__ import absolute_import
+from typing import Type  # noqa: F401
+from evm.vm.state import BaseState  # noqa: F401
+
 
 from evm.vm import VM
 from evm.rlp.receipts import (
@@ -47,10 +49,10 @@ def make_frontier_receipt(base_header, transaction, computation, state):
 
 class FrontierVM(VM):
     # fork name
-    fork = 'frontier'
+    fork = 'frontier'  # type: str
 
     # classes
-    _state_class = FrontierState
+    _state_class = FrontierState  # type: Type[BaseState]
 
     # methods
     create_header_from_parent = staticmethod(create_frontier_header_from_parent)

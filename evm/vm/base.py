@@ -6,7 +6,7 @@ from abc import (
 import contextlib
 import functools
 import logging
-from typing import List  # noqa: F401
+from typing import List, Type  # noqa: F401
 
 import rlp
 
@@ -26,6 +26,7 @@ from evm.constants import (
     MAX_UNCLES,
 )
 from evm.db.trie import make_trie_root_and_nodes
+from evm.db.chain import BaseChainDB  # noqa: F401
 from evm.exceptions import (
     BlockNotFound,
     ValidationError,
@@ -51,6 +52,7 @@ from evm.validation import (
 from evm.vm.message import (
     Message,
 )
+from evm.vm.state import BaseState  # noqa: F401
 
 
 class BaseVM(Configurable, metaclass=ABCMeta):
@@ -64,9 +66,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
-    fork = None
-    chaindb = None
-    _state_class = None
+    fork = None  # type: str
+    chaindb = None  # type: BaseChainDB
+    _state_class = None  # type: Type[BaseState]
 
     def __init__(self, header, chaindb):
         self.chaindb = chaindb

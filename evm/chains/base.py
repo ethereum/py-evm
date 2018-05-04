@@ -6,7 +6,9 @@ from abc import (
 )
 from typing import (  # noqa: F401
     Tuple,
+    Type,
     Callable,
+    TYPE_CHECKING,
 )
 
 import logging
@@ -40,6 +42,7 @@ from evm.validation import (
     validate_block_number,
     validate_uint256,
     validate_word,
+    validate_vm_configuration,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -59,6 +62,9 @@ from evm.utils.hexadecimal import (
 from evm.utils.rlp import (
     ensure_imported_block_unchanged,
 )
+
+if TYPE_CHECKING:
+    from evm.vm.base import BaseVM  # noqa: F401
 
 
 class BaseChain(Configurable, metaclass=ABCMeta):
@@ -285,21 +291,23 @@ class Chain(BaseChain):
     logger = logging.getLogger("evm.chain.chain.Chain")
     header = None  # type: BlockHeader
     network_id = None  # type: int
-    vms_by_range = None  # type: Tuple[Tuple[int, BaseVM], ...]
+    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     gas_estimator = None  # type: Callable
 
     def __init__(self, chaindb: AsyncChainDB, header: BlockHeader=None) -> None:
-        if not self.vms_by_range:
+        if not self.vm_configuration:
             raise ValueError(
-                "The Chain class cannot be instantiated with an empty `vms_by_range`"
+                "The Chain class cannot be instantiated with an empty `vm_configuration`"
             )
+        else:
+            validate_vm_configuration(self.vm_configuration)
 
         self.chaindb = chaindb  # type: AsyncChainDB
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
         if self.gas_estimator is None:
-            self.gas_estimator = get_gas_estimator()
+            self.gas_estimator = get_gas_estimator()  # type: ignore
 
     #
     # Convenience and Helpers
@@ -360,9 +368,9 @@ class Chain(BaseChain):
         Returns the VM class for the given block number.
         """
         validate_block_number(block_number)
-        for n in reversed(cls.vms_by_range.keys()):
-            if block_number >= n:
-                return cls.vms_by_range[n]
+        for start_block, vm_class in reversed(cls.vm_configuration):
+            if block_number >= start_block:
+                return vm_class
         else:
             raise VMNotFound("No vm available for block #{0}".format(block_number))
 

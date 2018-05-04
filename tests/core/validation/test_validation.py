@@ -27,6 +27,7 @@ from evm.validation import (
     validate_uint256,
     validate_unique,
     validate_vm_block_numbers,
+    validate_vm_configuration,
     validate_word,
 )
 
@@ -396,3 +397,15 @@ def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)
+
+
+@pytest.mark.parametrize(
+    'value',
+    (
+        ((-1, None),),  # negative block number
+        ((0, None), (0, None)),  # duplicate number
+    ),
+)
+def test_validate_vm_configuration_bad_configs(value):
+    with pytest.raises(ValidationError):
+        validate_vm_configuration(value)

@@ -1,3 +1,6 @@
+from typing import Type  # noqa: F401
+from evm.vm.state import BaseState  # noqa: F401
+
 from evm.chains.mainnet.constants import (
     DAO_FORK_MAINNET_BLOCK
 )
@@ -18,10 +21,10 @@ class MetaHomesteadVM(FrontierVM):
 
 class HomesteadVM(MetaHomesteadVM):
     # fork name
-    fork = 'homestead'
+    fork = 'homestead'  # type: str
 
     # classes
-    _state_class = HomesteadState
+    _state_class = HomesteadState  # type: Type[BaseState]
 
     # method overrides
     create_header_from_parent = staticmethod(create_homestead_header_from_parent)
