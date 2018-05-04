@@ -132,6 +132,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_canonical_block_hash(self, block_number):
         """
         Returns the block hash with the given number in the canonical chain.
@@ -139,9 +140,9 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        validate_uint256(block_number, title="Block Number")
-        return self.chaindb.lookup_block_hash(block_number)
+        raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_canonical_block_by_number(self, block_number):
         """
         Returns the block with the given number in the canonical chain.
@@ -149,7 +150,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        return self.get_block_by_hash(self.get_canonical_block_hash(block_number))
+        raise NotImplementedError("Chain classes must implement this method")
 
     def get_block_by_hash(self, block_hash):
         """
@@ -319,6 +320,35 @@ class Chain(BaseChain):
             self.gas_estimator = get_gas_estimator()  # type: ignore
 
     #
+    # Header API
+    #
+    def get_canonical_head(self):
+        """
+        Returns the block header at the canonical chain head.
+
+        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
+        """
+        return self.chaindb.get_canonical_head()
+
+    def get_block_header_by_hash(self, block_hash):
+        """
+        Returns the requested block header as specified by block hash.
+
+        Raises BlockNotFound if there's no block header with the given hash in the db.
+        """
+        validate_word(block_hash, title="Block Hash")
+        return self.chaindb.get_block_header_by_hash(block_hash)
+
+    def create_header_from_parent(self, parent_header, **header_params):
+        """
+        Passthrough helper to the VM class of the block descending from the
+        given header.
+        """
+        return self.get_vm_class_for_block_number(
+            block_number=parent_header.block_number + 1,
+        ).create_header_from_parent(parent_header, **header_params)
+
+    #
     # Convenience and Helpers
     #
     def get_block(self):
@@ -327,6 +357,37 @@ class Chain(BaseChain):
         """
         return self.get_vm().block
 
+    def get_canonical_block_hash(self, block_number):
+        """
+        Returns the block hash with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block with the given number in the
+        canonical chain.
+        """
+        validate_uint256(block_number, title="Block Number")
+        return self.chaindb.lookup_block_hash(block_number)
+
+    def get_canonical_block_by_number(self, block_number):
+        """
+        Returns the block with the given number in the canonical chain.
+
+        Raises BlockNotFound if there's no block with the given number in the
+        canonical chain.
+        """
+        return self.get_block_by_hash(self.get_canonical_block_hash(block_number))
+
+    def get_block_by_hash(self, block_hash):
+        """
+        Returns the requested block as specified by block hash.
+        """
+        validate_word(block_hash, title="Block Hash")
+        block_header = self.get_block_header_by_hash(block_hash)
+        return self.get_block_by_header(block_header)
+
+
+    #
+    # Transaction API
+    #
     def get_canonical_transaction(self, transaction_hash):
         (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
         VM = self.get_vm_class_for_block_number(block_num)
@@ -359,15 +420,6 @@ class Chain(BaseChain):
         """
         return self.get_vm().create_unsigned_transaction(*args, **kwargs)
 
-    def create_header_from_parent(self, parent_header, **header_params):
-        """
-        Passthrough helper to the VM class of the block descending from the
-        given header.
-        """
-        return self.get_vm_class_for_block_number(
-            block_number=parent_header.block_number + 1,
-        ).create_header_from_parent(parent_header, **header_params)
-
     #
     # Chain Operations
     #
@@ -396,23 +448,6 @@ class Chain(BaseChain):
     #
     # Header/Block Retrieval
     #
-    def get_block_header_by_hash(self, block_hash):
-        """
-        Returns the requested block header as specified by block hash.
-
-        Raises BlockNotFound if there's no block header with the given hash in the db.
-        """
-        validate_word(block_hash, title="Block Hash")
-        return self.chaindb.get_block_header_by_hash(block_hash)
-
-    def get_canonical_head(self):
-        """
-        Returns the block header at the canonical chain head.
-
-        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
-        """
-        return self.chaindb.get_canonical_head()
-
     def get_canonical_block_by_number(self, block_number):
         """
         Returns the block with the given number in the canonical chain.
