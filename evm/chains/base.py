@@ -17,6 +17,8 @@ from cytoolz import (
     assoc,
 )
 
+from eth_typing import Hash32
+
 from eth_utils import (
     to_tuple,
 )
@@ -106,7 +108,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def get_block_header_by_hash(self, block_hash):
+    def get_block_header_by_hash(self, block_hash: Hash32):
         """
         Returns the requested block header as specified by block hash.
 
@@ -152,17 +154,17 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         """
         raise NotImplementedError("Chain classes must implement this method")
 
-    def get_block_by_hash(self, block_hash):
+    def get_block_by_hash(self, block_hash: Hash32):
         """
         Returns the requested block as specified by block hash.
         """
-        validate_word(block_hash, title="Block Hash")
-        block_header = self.get_block_header_by_hash(block_hash)
-        return self.get_block_by_header(block_header)
+        raise NotImplementedError("Chain classes must implement this method")
 
     def get_block_by_header(self, block_header):
-        vm = self.get_vm(block_header)
-        return vm.get_block_class().from_header(block_header, self.chaindb)
+        """
+        Returns the requested block as specified by the block header.
+        """
+        raise NotImplementedError("Chain classes must implement this method")
 
     @to_tuple
     def get_ancestors(self, limit):
@@ -330,7 +332,7 @@ class Chain(BaseChain):
         """
         return self.chaindb.get_canonical_head()
 
-    def get_block_header_by_hash(self, block_hash):
+    def get_block_header_by_hash(self, block_hash: Hash32):
         """
         Returns the requested block header as specified by block hash.
 
@@ -356,34 +358,6 @@ class Chain(BaseChain):
         Passthrough helper to the current VM class.
         """
         return self.get_vm().block
-
-    def get_canonical_block_hash(self, block_number):
-        """
-        Returns the block hash with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
-        validate_uint256(block_number, title="Block Number")
-        return self.chaindb.lookup_block_hash(block_number)
-
-    def get_canonical_block_by_number(self, block_number):
-        """
-        Returns the block with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
-        return self.get_block_by_hash(self.get_canonical_block_hash(block_number))
-
-    def get_block_by_hash(self, block_hash):
-        """
-        Returns the requested block as specified by block hash.
-        """
-        validate_word(block_hash, title="Block Hash")
-        block_header = self.get_block_header_by_hash(block_hash)
-        return self.get_block_by_header(block_header)
-
 
     #
     # Transaction API
@@ -465,6 +439,13 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         block_header = self.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(block_header)
+
+    def get_block_by_header(self, block_header):
+        """
+        Returns the requested block as specified by the block header.
+        """
+        vm = self.get_vm(block_header)
+        return vm.get_block_by_header(block_header, self.chaindb)
 
     #
     # Chain Initialization
