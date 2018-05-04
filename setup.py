@@ -51,7 +51,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
-        "mypy>=0.590",
+        "mypy<0.600",
     ],
     'doc': [
         "py-evm>=0.2.0-alpha.14",
