@@ -33,8 +33,8 @@ MAINNET_NETWORK_ID = 1
 
 
 class BaseMainnetChain:
-    vms_by_range = generate_vms_by_range(MAINNET_VM_CONFIGURATION)
-    network_id = MAINNET_NETWORK_ID
+    vms_by_range = generate_vms_by_range(MAINNET_VM_CONFIGURATION)  # type: Tuple[Tuple[int, BaseVM], ...]  # noqa: E501
+    network_id = MAINNET_NETWORK_ID  # type: int
 
 
 class MainnetChain(BaseMainnetChain, Chain):
