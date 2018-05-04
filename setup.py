@@ -75,7 +75,8 @@ deps['dev'] = (
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
-    deps['doc']
+    deps['doc'] +
+    deps['lint']
 )
 
 # As long as evm, p2p and trinity are managed together in the py-evm
