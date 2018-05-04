@@ -209,6 +209,14 @@ def validate_vm_block_numbers(vm_block_numbers):
         validate_block_number(block_number)
 
 
+def validate_vm_configuration(vm_configuration):
+    validate_vm_block_numbers(tuple(
+        block_number
+        for block_number, _
+        in vm_configuration
+    ))
+
+
 def validate_gas_limit(gas_limit, parent_gas_limit):
     if gas_limit < GAS_LIMIT_MINIMUM:
         raise ValidationError("Gas limit {0} is below minimum {1}".format(

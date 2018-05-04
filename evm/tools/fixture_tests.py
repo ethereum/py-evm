@@ -43,7 +43,6 @@ from evm.utils.state import (
 from evm.utils.rlp import (
     diff_rlp_object,
 )
-from evm.tools.chain import generate_vms_by_range
 from evm.tools.test_builder.normalization import (
     normalize_environment,
     normalize_transaction_group,
@@ -606,7 +605,7 @@ def new_chain_from_fixture(fixture):
 
     ChainFromFixture = MainnetChain.configure(
         'ChainFromFixture',
-        vms_by_range=generate_vms_by_range(vm_config),
+        vm_configuration=vm_config,
     )
 
     return ChainFromFixture.from_genesis(
