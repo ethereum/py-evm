@@ -29,8 +29,8 @@ ROPSTEN_NETWORK_ID = 3
 
 
 class BaseRopstenChain:
-    vms_by_range = generate_vms_by_range(ROPSTEN_VM_CONFIGURATION)
-    network_id = ROPSTEN_NETWORK_ID
+    vms_by_range = generate_vms_by_range(ROPSTEN_VM_CONFIGURATION)  # type: Tuple[Tuple[int, BaseVM], ...]  # noqa: E501
+    network_id = ROPSTEN_NETWORK_ID  # type: int
 
 
 class RopstenChain(BaseRopstenChain, Chain):

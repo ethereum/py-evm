@@ -4,6 +4,10 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import (  # noqa: F401
+    Tuple,
+    Callable,
+)
 
 import logging
 
@@ -58,8 +62,6 @@ from evm.utils.rlp import (
 
 
 class BaseChain(Configurable, metaclass=ABCMeta):
-    vms_by_range = None
-
     """
     The base class for all Chain objects
     """
@@ -281,10 +283,10 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("evm.chain.chain.Chain")
-    header = None
-    network_id = None
-    vms_by_range = None
-    gas_estimator = None
+    header = None  # type: BlockHeader
+    network_id = None  # type: int
+    vms_by_range = None  # type: Tuple[Tuple[int, BaseVM], ...]
+    gas_estimator = None  # type: Callable
 
     def __init__(self, chaindb: AsyncChainDB, header: BlockHeader=None) -> None:
         if not self.vms_by_range:

@@ -6,10 +6,6 @@ import pytest
 import rlp
 from rlp import sedes
 
-from evm.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-    MAINNET_VM_CONFIGURATION,
-)
 from evm.db.backends.memory import MemoryDB
 from evm.rlp.headers import BlockHeader
 
