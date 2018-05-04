@@ -43,9 +43,6 @@ from evm.rlp.headers import (
 from evm.utils.db import (
     apply_state_dict,
 )
-from evm.utils.chain import (
-    generate_vms_by_range,
-)
 from evm.utils.datatypes import (
     Configurable,
 )
@@ -61,6 +58,8 @@ from evm.utils.rlp import (
 
 
 class BaseChain(Configurable, metaclass=ABCMeta):
+    vms_by_range = None
+
     """
     The base class for all Chain objects
     """
@@ -299,15 +298,6 @@ class Chain(BaseChain):
             self.header = self.create_header_from_parent(self.get_canonical_head())
         if self.gas_estimator is None:
             self.gas_estimator = get_gas_estimator()
-
-    @classmethod
-    def configure(cls, __name__=None, vm_configuration=None, **overrides):
-        if 'vms_by_range' in overrides:
-            raise ValueError("Cannot override vms_by_range")
-
-        if vm_configuration is not None:
-            overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
-        return super().configure(__name__, **overrides)
 
     #
     # Convenience and Helpers

@@ -24,7 +24,7 @@ from evm.exceptions import ValidationError
 from evm.rlp.headers import (
     BlockHeader
 )
-from evm.utils.chain import (
+from evm.tools.chain import (
     generate_vms_by_range,
 )
 from evm.validation import (
@@ -133,10 +133,8 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             yield (start_block, vm_class)
 
 
-BaseMainnetTesterChain = Chain.configure(
-    'MainnetTesterChain',
-    vm_configuration=_generate_vm_configuration()
-)
+class BaseMainnetTesterChain(Chain):
+    vms_by_range = generate_vms_by_range(_generate_vm_configuration())
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore

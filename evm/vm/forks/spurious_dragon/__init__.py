@@ -1,12 +1,11 @@
-from ..homestead import HomesteadVM
+from ..tangerine_whistle import TangerineWhistleVM
 
 from .state import SpuriousDragonState
 
-SpuriousDragonVM = HomesteadVM.configure(
-    # class name
-    __name__='SpuriousDragonVM',
+
+class SpuriousDragonVM(TangerineWhistleVM):
     # fork name
-    fork='spurious-dragon',
+    fork = 'spurious-dragon'
+
     # classes
-    _state_class=SpuriousDragonState,
-)
+    _state_class = SpuriousDragonState

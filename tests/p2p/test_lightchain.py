@@ -20,7 +20,6 @@ from p2p.les import (
     GetBlockHeaders,
     Status,
 )
-from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 from p2p import protocol
 
@@ -29,6 +28,8 @@ from peer_helpers import (
     get_directly_linked_peers,
     get_fresh_mainnet_chaindb,
 )
+
+from trinity.chains.mainnet import MainnetLightChain
 
 
 # A full header sync may involve several round trips, so we must be willing to wait a little bit
@@ -217,14 +218,14 @@ async def get_client_and_server_peer_pair(request, event_loop, client_chaindb, s
 
 
 async def get_lightchain_with_peers(request, event_loop, server_peer_chaindb):
-    """Return a LightChainForTests instance with a client/server peer pair.
+    """Return a MainnetLightChain instance with a client/server peer pair.
 
     The server is a LESPeerServer instance that can be used to send Announce and BlockHeaders
     messages, and the client will be registered with the LightChain so that a sync
     request is added to the LightChain's queue every time a new Announce message is received.
     """
     chaindb = get_fresh_mainnet_chaindb()
-    light_chain = LightChainForTests(chaindb, MockPeerPool())
+    light_chain = MainnetLightChain(chaindb, MockPeerPool())
     asyncio.ensure_future(light_chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
 
@@ -252,13 +253,6 @@ class MockPeerPool:
 
     async def stop(self):
         pass
-
-
-LightChainForTests = LightChain.configure(
-    'LightChainForTests',
-    vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=MAINNET_NETWORK_ID,
-)
 
 
 def assert_canonical_chains_are_equal(chaindb1, chaindb2, block_number=None):

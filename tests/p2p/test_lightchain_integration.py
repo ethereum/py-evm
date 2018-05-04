@@ -12,6 +12,7 @@ from eth_hash.auto import keccak
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
+from evm.tools.chain import generate_vms_by_range
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from p2p import ecies
@@ -21,12 +22,10 @@ from p2p.peer import LESPeer
 from integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
 
 
-IntegrationTestLightChain = LightChain.configure(
-    __name__='IntegrationTest LightChain',
-    vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=ROPSTEN_NETWORK_ID,
-    max_consecutive_timeouts=1,
-)
+class IntegrationTestLightChain(LightChain):
+    vms_by_range = generate_vms_by_range(MAINNET_VM_CONFIGURATION)
+    network_id = ROPSTEN_NETWORK_ID
+    max_consecutive_timeouts = 1
 
 
 @pytest.mark.asyncio

@@ -18,16 +18,17 @@ class:
 ::
 
   from evm import constants, Chain
+  from evm.tools.chain import generate_vms_by_range
   from evm.vm.forks.frontier import FrontierVM
   from evm.vm.forks.homestead import HomesteadVM
   from evm.chains.mainnet import HOMESTEAD_MAINNET_BLOCK
 
   chain_class = Chain.configure(
       __name__='Test Chain',
-      vm_configuration=(
+      vms_by_range=generate_vms_by_range((
           (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
           (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
-      ),
+      )),
   )
 
 Then to initialize, you can start it up with an in-memory database:
@@ -62,7 +63,7 @@ with a vm_configuration, but it also requires a network_id and privkey:
 
   DemoLightChain = LightChain.configure(
       __name__='Demo LightChain',
-      vm_configuration=MAINNET_VM_CONFIGURATION,
+      vms_by_range=generate_vms_by_range(MAINNET_VM_CONFIGURATION),
       network_id=MAINNET_NETWORK_ID,
   )
 
