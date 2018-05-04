@@ -6,7 +6,10 @@ from abc import (
 import contextlib
 import functools
 import logging
-from typing import List, Type  # noqa: F401
+from typing import (  # noqa: F401
+    List,
+    Type,
+)
 
 import rlp
 
@@ -30,6 +33,9 @@ from evm.db.chain import BaseChainDB  # noqa: F401
 from evm.exceptions import (
     BlockNotFound,
     ValidationError,
+)
+from evm.rlp.blocks import (  # noqa: F401
+    BaseBlock,
 )
 from evm.rlp.headers import (
     BlockHeader,
@@ -64,8 +70,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         Each :class:`~evm.vm.base.BaseVM` class must be configured with:
 
-        ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
+        - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
+        - ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
+    block_class = None  # type: Type[BaseBlock]
     fork = None  # type: str
     chaindb = None  # type: BaseChainDB
     _state_class = None  # type: Type[BaseState]
@@ -253,7 +261,40 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         if block.number == 0:
             return block
         else:
-            return self.state.finalize_block(block)
+            return self.finalize_block(block)
+
+    #
+    # Finalization
+    #
+    def finalize_block(self, block):
+        """
+        Perform any finalization steps like awarding the block mining reward.
+        """
+        block_reward = self.get_block_reward() + (
+            len(block.uncles) * self.get_nephew_reward()
+        )
+
+        self.state.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.logger.debug(
+            "BLOCK REWARD: %s -> %s",
+            block_reward,
+            block.header.coinbase,
+        )
+
+        for uncle in block.uncles:
+            uncle_reward = self.get_uncle_reward(block.number, uncle)
+            self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.logger.debug(
+                "UNCLE REWARD REWARD: %s -> %s",
+                uncle_reward,
+                uncle.coinbase,
+            )
+        # We need to call `persist` here since the state db batches
+        # all writes until we tell it to write to the underlying db
+        # TODO: Refactor to only use batching/journaling for tx processing
+        self.state.account_db.persist()
+
+        return block.copy(header=block.header.copy(state_root=self.state.state_root))
 
     def pack_block(self, block, *args, **kwargs):
         """
@@ -459,11 +500,14 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     # Blocks
     #
     @classmethod
-    def get_block_class(cls):
+    def get_block_class(cls) -> Type['BaseBlock']:
         """
-        Return the :class:`~evm.rlp.blocks.Block` class that the state class uses for blocks.
+        Return the :class:`~evm.rlp.blocks.Block` class that this VM uses for blocks.
         """
-        return cls.get_state_class().get_block_class()
+        if cls.block_class is None:
+            raise AttributeError("No `block_class` has been set for this VM")
+        else:
+            return cls.block_class
 
     @classmethod
     @functools.lru_cache(maxsize=32)
@@ -487,6 +531,40 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         Return the block hashes for the previous 255 blocks relative to the tip block
         """
         return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+
+    @staticmethod
+    @abstractmethod
+    def get_block_reward() -> int:
+        """
+        Return the amount in **wei** that should be given to a miner as a reward
+        for this block.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @staticmethod
+    @abstractmethod
+    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
+        """
+        Return the reward which should be given to the miner of the given `uncle`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    @abstractmethod
+    def get_nephew_reward(cls) -> int:
+        """
+        Return the reward which should be given to the miner of the given `nephew`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Headers

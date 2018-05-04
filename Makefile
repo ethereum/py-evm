@@ -23,7 +23,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	tox -elint-py36
+	tox -elint-py3{6,5}
 
 test:
 	py.test --tb native tests

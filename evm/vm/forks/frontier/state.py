@@ -4,10 +4,6 @@ from typing import Type  # noqa: F401
 from eth_hash.auto import keccak
 
 from evm import constants
-from evm.constants import (
-    BLOCK_REWARD,
-    UNCLE_DEPTH_PENALTY_FACTOR,
-)
 from evm.db.account import (
     AccountDB,
 )
@@ -29,7 +25,6 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 
-from .blocks import FrontierBlock
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .transaction_context import (  # noqa: F401
@@ -175,24 +170,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 
 class FrontierState(BaseState, FrontierTransactionExecutor):
-    block_class = FrontierBlock
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
     account_db_class = AccountDB  # Type[BaseAccountDB]
 
     def validate_transaction(self, transaction):
         validate_frontier_transaction(self.account_db, transaction)
-
-    @staticmethod
-    def get_block_reward():
-        return BLOCK_REWARD
-
-    @staticmethod
-    def get_uncle_reward(block_number, uncle):
-        return BLOCK_REWARD * (
-            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
-        ) // UNCLE_DEPTH_PENALTY_FACTOR
-
-    @classmethod
-    def get_nephew_reward(cls):
-        return cls.get_block_reward() // 32

@@ -6,13 +6,11 @@ from evm.vm.forks.homestead.state import (
     HomesteadState,
 )
 
-from .blocks import SpuriousDragonBlock
 from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
 class SpuriousDragonState(HomesteadState):
-    block_class = SpuriousDragonBlock
     computation_class = SpuriousDragonComputation
 
     def run_post_computation(self, transaction, computation):

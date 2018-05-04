@@ -1,4 +1,5 @@
 from typing import Type  # noqa: F401
+from evm.rlp.blocks import BaseBlock  # noqa: F401
 from evm.vm.state import BaseState  # noqa: F401
 
 from evm.chains.mainnet.constants import (
@@ -6,6 +7,7 @@ from evm.chains.mainnet.constants import (
 )
 from evm.vm.forks.frontier import FrontierVM
 
+from .blocks import HomesteadBlock
 from .headers import (
     create_homestead_header_from_parent,
     compute_homestead_difficulty,
@@ -24,6 +26,7 @@ class HomesteadVM(MetaHomesteadVM):
     fork = 'homestead'  # type: str
 
     # classes
+    block_class = HomesteadBlock  # type: Type[BaseBlock]
     _state_class = HomesteadState  # type: Type[BaseState]
 
     # method overrides
