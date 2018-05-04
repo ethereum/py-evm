@@ -262,11 +262,6 @@ def _test() -> None:
     import argparse
     import signal
 
-    from eth_keys import keys
-    from eth_utils import (
-        decode_hex,
-    )
-
     from evm.db.backends.memory import MemoryDB
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
@@ -274,13 +269,15 @@ def _test() -> None:
     from p2p import ecies
     from p2p.peer import ETHPeer
 
+    from trinity.utils.chains import load_nodekey
+
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action="store_true")
-    parser.add_argument('-server-address', type=str, required=True)
-    parser.add_argument('-bootstrap', '--list', type=str)
-    parser.add_argument('-privkey', type=str)
+    parser.add_argument('-address', type=str, required=True)
+    parser.add_argument('-bootnodes', type=str)
+    parser.add_argument('-nodekey', type=str)
 
     args = parser.parse_args()
 
@@ -295,15 +292,15 @@ def _test() -> None:
     chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
-    if args.privkey:
-        privkey = keys.PrivateKey(decode_hex(args.privkey))
+    if args.nodekey:
+        privkey = load_nodekey(args.nodekey)
     else:
         privkey = ecies.generate_privkey()
 
-    ip, port = args.server_address.split(':')
+    ip, port = args.address.split(':')
     server_address = Address(ip, int(port))
-    if args.list:
-        bootstrap_nodes = args.list.split(',')
+    if args.bootnodes:
+        bootstrap_nodes = args.bootnodes.split(',')
     else:
         bootstrap_nodes = ROPSTEN_BOOTNODES
 
