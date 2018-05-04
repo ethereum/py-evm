@@ -63,14 +63,14 @@ class Server:
         self.network_id = network_id
         self.peer_class = peer_class
         # TODO: bootstrap_nodes should be looked up by network_id.
-        discovery = DiscoveryProtocol(
+        self.discovery = DiscoveryProtocol(
             self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
         self.peer_pool = PeerPool(
             peer_class,
             self.chaindb,
             self.network_id,
             self.privkey,
-            discovery,
+            self.discovery,
             min_peers=min_peers,
         )
 
@@ -82,14 +82,17 @@ class Server:
         )
 
     async def run(self) -> None:
-        await self.start()
         self.logger.info("Running server...")
+        await self.start()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
             self.server_address.ip,
             self.server_address.tcp_port,
         )
+        await self.discovery.create_endpoint()
+        asyncio.ensure_future(self.discovery.bootstrap())
+        asyncio.ensure_future(self.peer_pool.run())
         await self.cancel_token.wait()
         await self.stop()
 
@@ -102,11 +105,14 @@ class Server:
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        await wait_with_token(
-            self._receive_handshake(reader, writer),
-            token=self.cancel_token,
-            timeout=HANDSHAKE_TIMEOUT,
-        )
+        try:
+            await wait_with_token(
+                self._receive_handshake(reader, writer),
+                token=self.cancel_token,
+                timeout=HANDSHAKE_TIMEOUT,
+            )
+        except TimeoutError:
+            self.logger.debug("Timeout waiting for handshake")
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -129,8 +135,12 @@ class Server:
                 reader.read(remaining_bytes),
                 token=self.cancel_token,
             )
-            ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
-                msg, self.privkey)
+            try:
+                ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
+                    msg, self.privkey)
+            except DecryptionError as e:
+                self.logger.warn("Failed to decrypt handshake: %s", e)
+                return
 
         # Get remote's address: IPv4 or IPv6
         ip, socket, *_ = writer.get_extra_info("peername")
@@ -187,6 +197,7 @@ class Server:
 
 def _test() -> None:
     import argparse
+    import signal
 
     from eth_keys import keys
     from eth_utils import (
@@ -194,13 +205,15 @@ def _test() -> None:
     )
 
     from evm.db.backends.memory import MemoryDB
+    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
+    from p2p.constants import ROPSTEN_BOOTNODES
     from p2p import ecies
     from p2p.exceptions import (
         OperationCancelled,
     )
+    from p2p.peer import ETHPeer
 
-    from tests.p2p.dumb_peer import DumbPeer
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
 
     parser = argparse.ArgumentParser()
@@ -220,6 +233,7 @@ def _test() -> None:
 
     loop = asyncio.get_event_loop()
     chaindb = FakeAsyncChainDB(MemoryDB())
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     if args.privkey:
         privkey = keys.PrivateKey(decode_hex(args.privkey))
@@ -227,37 +241,34 @@ def _test() -> None:
         privkey = ecies.generate_privkey()
 
     ip, port = args.server_address.split(':')
-    server_address = Address(ip, port)
+    server_address = Address(ip, int(port))
     if args.list:
         bootstrap_nodes = args.list.split(',')
     else:
-        bootstrap_nodes = []
+        bootstrap_nodes = ROPSTEN_BOOTNODES
 
     server = Server(
         privkey,
         server_address,
         chaindb,
         bootstrap_nodes,
-        1,
-        peer_class=DumbPeer
+        RopstenChain.network_id,
+        peer_class=ETHPeer,
     )
 
-    asyncio.ensure_future(server.run())
-    asyncio.ensure_future(server.peer_pool.run())
-
+    # NOTE: Since we create a different priv/pub key pair every time we run this, remote nodes may
+    # try to establish a connection using the pubkey from one of our previous runs, which will
+    # result in lots of DecryptionErrors in receive_handshake().
     async def run():
         try:
-            while True:
-                if len(server.peer_pool.connected_nodes) >= 1:
-                    server.logger.debug('peers: %d', len(server.peer_pool.connected_nodes))
-                else:
-                    server.logger.debug('no peer connected')
-                await asyncio.sleep(1)
-
-        except (OperationCancelled, KeyboardInterrupt):
+            await server.run()
+        except OperationCancelled:
             pass
         await server.peer_pool.stop()
         await server.stop()
+
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, server.cancel_token.trigger)
 
     loop.run_until_complete(run())
     loop.close()
