@@ -7,6 +7,8 @@ from typing import (
     Type,
 )
 
+import upnpclient
+
 from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
@@ -30,6 +32,7 @@ from p2p.discovery import DiscoveryProtocol
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
+    OperationCancelled,
 )
 from p2p.kademlia import (
     Address,
@@ -74,6 +77,56 @@ class Server:
             min_peers=min_peers,
         )
 
+    async def refresh_nat_portmap(self) -> None:
+        """Run an infinite loop refreshing our NAT port mapping.
+
+        On every iteration we configure the port mapping with a lifetime of 30 minutes and then
+        sleep for that long as well.
+        """
+        lifetime = 30 * 60
+        while True:
+            self.logger.info("Setting up NAT portmap...")
+            # This is experimental and it's OK if it fails, hence the bare except.
+            try:
+                await self._add_nat_portmap(lifetime)
+            except Exception as e:
+                if (isinstance(e, upnpclient.soap.SOAPError) and
+                        e.args == (718, 'ConflictInMappingEntry')):
+                    # An entry already exists with the parameters we specified. Maybe the router
+                    # didn't clean it up after it expired or it has been configured by other piece
+                    # of software, either way we should not override it.
+                    # https://tools.ietf.org/id/draft-ietf-pcp-upnp-igd-interworking-07.html#errors
+                    self.logger.info("NAT port mapping already configured, not overriding it")
+                else:
+                    self.logger.exception("Failed to setup NAT portmap")
+
+            try:
+                await wait_with_token(asyncio.sleep(lifetime), token=self.cancel_token)
+            except OperationCancelled:
+                break
+
+    async def _add_nat_portmap(self, lifetime: int) -> None:
+        loop = asyncio.get_event_loop()
+        # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
+        # while to complete.
+        devices = await wait_with_token(
+            loop.run_in_executor(None, upnpclient.discover),
+            token=self.cancel_token)
+        if not devices:
+            self.logger.info("No UPNP-enabled devices found")
+            return
+        device = devices[0]
+        device.WANIPConn1.AddPortMapping(
+            NewRemoteHost=device.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress'],
+            NewExternalPort=self.server_address.tcp_port,
+            NewProtocol='TCP',
+            NewInternalPort=self.server_address.tcp_port,
+            NewInternalClient=self.server_address.ip,
+            NewEnabled='1',
+            NewPortMappingDescription='Created by Py-EVM',
+            NewLeaseDuration=lifetime)
+        self.logger.info("NAT port forwarding successfully setup")
+
     async def start(self) -> None:
         self._server = await asyncio.start_server(
             self.receive_handshake,
@@ -91,10 +144,10 @@ class Server:
             self.server_address.tcp_port,
         )
         await self.discovery.create_endpoint()
+        asyncio.ensure_future(self.refresh_nat_portmap())
         asyncio.ensure_future(self.discovery.bootstrap())
         asyncio.ensure_future(self.peer_pool.run())
         await self.cancel_token.wait()
-        await self.stop()
 
     async def stop(self) -> None:
         self.logger.info("Closing server...")
@@ -102,17 +155,29 @@ class Server:
         self._server.close()
         await self._server.wait_closed()
         await self.peer_pool.stop()
+        await self._wait_pending_tasks()
+
+    # TODO: Add something like this to other service classes as well
+    async def _wait_pending_tasks(self):
+        # Wait up to 2s (checking every 0.2s) for all pending tasks to finish cleanly.
+        tries = 0
+        while asyncio.Task.all_tasks() and tries < 10:
+            await asyncio.sleep(0.2)
+            tries += 1
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
-            await wait_with_token(
+            await asyncio.wait_for(
                 self._receive_handshake(reader, writer),
-                token=self.cancel_token,
                 timeout=HANDSHAKE_TIMEOUT,
             )
-        except TimeoutError:
+        except (asyncio.futures.TimeoutError, TimeoutError):
+            # asyncio.wait_for() raises asyncio.futures.TimeoutError, but to be on the safe side
+            # we catch both that and plain TimeoutError.
             self.logger.debug("Timeout waiting for handshake")
+        except OperationCancelled:
+            pass
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -209,9 +274,6 @@ def _test() -> None:
 
     from p2p.constants import ROPSTEN_BOOTNODES
     from p2p import ecies
-    from p2p.exceptions import (
-        OperationCancelled,
-    )
     from p2p.peer import ETHPeer
 
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB
@@ -264,7 +326,6 @@ def _test() -> None:
             await server.run()
         except OperationCancelled:
             pass
-        await server.peer_pool.stop()
         await server.stop()
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
