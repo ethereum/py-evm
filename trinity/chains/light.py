@@ -1,6 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from typing import Dict, Any
 
+from evm.exceptions import ValidationError
+from evm.validation import (
+    validate_word,
+)
+
 from eth_typing import (
     Address,
     Hash32,
@@ -104,7 +109,7 @@ class LightChain(BaseLightChain):
 
         Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
         """
-        raise NotImplementedError("Chain classes must implement this method")
+        return self.lightdb.get_canonical_head()
 
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         """
@@ -112,10 +117,21 @@ class LightChain(BaseLightChain):
 
         Raises BlockNotFound if there's no block header with the given hash in the db.
         """
-        raise NotImplementedError("Chain classes must implement this method")
+        validate_word(block_hash, title="Block Hash")
+        return self.lightdb.get_block_header_by_hash(block_hash)
 
     def import_header(self, header: BlockHeader) -> BlockHeader:
         """
         Import a new header to the chain.
         """
-        raise NotImplementedError("Chain classes must implement this method")
+        if header.block_number > self.header.block_number + 1:
+            raise ValidationError(
+                "Attempt to import header #{0}.  Cannot import header with number "
+                "greater than current block #{1} + 1.".format(
+                    header.block_number,
+                    self.header.block_number,
+                )
+            )
+        self.lightdb.persist_header(header)
+        self.header = self.get_canonical_head()
+        return header

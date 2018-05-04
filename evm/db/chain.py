@@ -41,22 +41,18 @@ from evm.exceptions import (
 from evm.db.backends.base import (
     BaseDB
 )
+from evm.db.schema import SchemaV1
 from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.rlp.receipts import (
     Receipt
 )
-from evm.utils.db import (
-    make_block_hash_to_score_lookup_key,
-    make_block_number_to_hash_lookup_key,
-    make_transaction_hash_to_block_lookup_key,
-)
 from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.validation import (
-    validate_uint256,
+    validate_block_number,
     validate_word,
 )
 
@@ -67,8 +63,6 @@ if TYPE_CHECKING:
     from evm.rlp.transactions import (  # noqa: F401
         BaseTransaction
     )
-
-CANONICAL_HEAD_HASH_DB_KEY = b'v1:canonical_head_hash'
 
 
 class TransactionKey(rlp.Serializable):
@@ -217,9 +211,11 @@ class ChainDB(BaseChainDB):
     # Canonical chain API
     #
     def get_canonical_head(self) -> BlockHeader:
-        if not self.exists(CANONICAL_HEAD_HASH_DB_KEY):
+        try:
+            canonical_head_hash = self.db[SchemaV1.make_canonical_head_hash_lookup_key()]
+        except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return self.get_block_header_by_hash(self.db.get(CANONICAL_HEAD_HASH_DB_KEY))
+        return self.get_block_header_by_hash(canonical_head_hash)
 
     def get_canonical_block_header_by_number(self, block_number: int) -> BlockHeader:
         """
@@ -228,7 +224,7 @@ class ChainDB(BaseChainDB):
         Raises BlockNotFound if there's no block header with the given number in the
         canonical chain.
         """
-        validate_uint256(block_number, title="Block Number")
+        validate_block_number(block_number, title="Block Number")
         return self.get_block_header_by_hash(self.lookup_block_hash(block_number))
 
     #
@@ -273,7 +269,7 @@ class ChainDB(BaseChainDB):
         else:
             score = self.get_score(header.parent_hash) + header.difficulty
         self.db.set(
-            make_block_hash_to_score_lookup_key(header.hash),
+            SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int))
 
         try:
@@ -317,7 +313,7 @@ class ChainDB(BaseChainDB):
         for h in new_canonical_headers:
             self._add_block_number_to_hash_lookup(h)
 
-        self.db.set(CANONICAL_HEAD_HASH_DB_KEY, header.hash)
+        self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
         return new_canonical_headers
 
@@ -355,7 +351,7 @@ class ChainDB(BaseChainDB):
                 h = self.get_block_header_by_hash(h.parent_hash)
 
     def _add_block_number_to_hash_lookup(self, header: BlockHeader) -> None:
-        block_number_to_hash_key = make_block_number_to_hash_lookup_key(
+        block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(
             header.block_number
         )
         self.db.set(
@@ -368,15 +364,15 @@ class ChainDB(BaseChainDB):
     #
     def get_score(self, block_hash: Hash32) -> int:
         return rlp.decode(
-            self.db.get(make_block_hash_to_score_lookup_key(block_hash)),
+            self.db.get(SchemaV1.make_block_hash_to_score_lookup_key(block_hash)),
             sedes=rlp.sedes.big_endian_int)
 
     def lookup_block_hash(self, block_number: int) -> Hash32:
         """
         Return the block hash for the given block number.
         """
-        validate_uint256(block_number, title="Block Number")
-        number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
+        validate_block_number(block_number, title="Block Number")
+        number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block_number)
         return rlp.decode(
             self.db.get(number_to_hash_key),
             sedes=rlp.sedes.binary,
@@ -474,7 +470,7 @@ class ChainDB(BaseChainDB):
 
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[int, int]:
         try:
-            encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
+            encoded_key = self.db.get(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
         except KeyError:
             raise TransactionNotFound(
                 "Transaction {} not found in canonical chain".format(encode_hex(transaction_hash)))
@@ -483,7 +479,7 @@ class ChainDB(BaseChainDB):
         return (transaction_key.block_number, transaction_key.index)
 
     def _remove_transaction_from_canonical_chain(self, transaction_hash: Hash32) -> None:
-        self.db.delete(make_transaction_hash_to_block_lookup_key(transaction_hash))
+        self.db.delete(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
 
     def _add_transaction_to_canonical_chain(self,
                                             transaction_hash: Hash32,
@@ -498,7 +494,7 @@ class ChainDB(BaseChainDB):
         """
         transaction_key = TransactionKey(block_header.block_number, index)
         self.db.set(
-            make_transaction_hash_to_block_lookup_key(transaction_hash),
+            SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
 

@@ -19,6 +19,13 @@ class BlockNotFound(PyEVMError):
     pass
 
 
+class HeaderNotFound(PyEVMError):
+    """
+    Raised when the header with the given number/hash does not exist.
+    """
+    pass
+
+
 class TransactionNotFound(PyEVMError):
     """
     Raised when the transaction with the given hash or block index does not exist.
