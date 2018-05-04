@@ -24,16 +24,15 @@ def make_byzantium_receipt(base_header, transaction, computation, state):
     return frontier_receipt.copy(state_root=status_code)
 
 
-ByzantiumVM = SpuriousDragonVM.configure(
-    # class name
-    __name__='ByzantiumVM',
+class ByzantiumVM(SpuriousDragonVM):
     # fork name
-    fork='byzantium',
+    fork = 'byzantium'
+
     # classes
-    _state_class=ByzantiumState,
+    _state_class = ByzantiumState
+
     # Methods
-    create_header_from_parent=staticmethod(create_byzantium_header_from_parent),
-    compute_difficulty=staticmethod(compute_byzantium_difficulty),
-    configure_header=configure_byzantium_header,
-    make_receipt=staticmethod(make_byzantium_receipt)
-)
+    create_header_from_parent = staticmethod(create_byzantium_header_from_parent)
+    compute_difficulty = staticmethod(compute_byzantium_difficulty)
+    configure_header = configure_byzantium_header
+    make_receipt = staticmethod(make_byzantium_receipt)

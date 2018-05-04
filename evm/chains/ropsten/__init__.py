@@ -9,6 +9,7 @@ from evm import constants
 
 from evm.chains.base import Chain
 from evm.rlp.headers import BlockHeader
+from evm.tools.chain import generate_vms_by_range
 from evm.vm.forks import (
     ByzantiumVM,
     SpuriousDragonVM,
@@ -27,11 +28,13 @@ ROPSTEN_VM_CONFIGURATION = (
 ROPSTEN_NETWORK_ID = 3
 
 
-RopstenChain = Chain.configure(
-    'RopstenChain',
-    vm_configuration=ROPSTEN_VM_CONFIGURATION,
-    network_id=ROPSTEN_NETWORK_ID,
-)
+class BaseRopstenChain:
+    vms_by_range = generate_vms_by_range(ROPSTEN_VM_CONFIGURATION)
+    network_id = ROPSTEN_NETWORK_ID
+
+
+class RopstenChain(BaseRopstenChain, Chain):
+    pass
 
 
 ROPSTEN_GENESIS_HEADER = BlockHeader(

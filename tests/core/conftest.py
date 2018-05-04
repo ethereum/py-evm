@@ -11,6 +11,7 @@ from evm import Chain
 from evm import constants
 from evm.db import get_db_backend
 from evm.db.chain import ChainDB
+from evm.tools.chain import generate_vms_by_range
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
@@ -81,9 +82,9 @@ def chain_with_block_validation(chaindb, funded_address, funded_address_initial_
     }
     klass = Chain.configure(
         __name__='TestChain',
-        vm_configuration=(
+        vms_by_range=generate_vms_by_range((
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
-        ))
+        )))
     chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
     return chain
 
@@ -106,9 +107,9 @@ def chain_without_block_validation(chaindb, funded_address, funded_address_initi
     }
     klass = Chain.configure(
         __name__='TestChainWithoutBlockValidation',
-        vm_configuration=(
+        vms_by_range=generate_vms_by_range((
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
-        ),
+        )),
         **overrides,
     )
     genesis_params = {

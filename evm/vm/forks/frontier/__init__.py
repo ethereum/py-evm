@@ -45,17 +45,16 @@ def make_frontier_receipt(base_header, transaction, computation, state):
     return receipt
 
 
-FrontierVM = VM.configure(
-    # class name
-    __name__='FrontierVM',
+class FrontierVM(VM):
     # fork name
-    fork='frontier',
+    fork = 'frontier'
+
     # classes
-    _state_class=FrontierState,
-    # helpers
-    create_header_from_parent=staticmethod(create_frontier_header_from_parent),
-    compute_difficulty=staticmethod(compute_frontier_difficulty),
-    configure_header=configure_frontier_header,
-    make_receipt=staticmethod(make_frontier_receipt),
-    validate_transaction_against_header=validate_frontier_transaction_against_header,
-)
+    _state_class = FrontierState
+
+    # methods
+    create_header_from_parent = staticmethod(create_frontier_header_from_parent)
+    compute_difficulty = staticmethod(compute_frontier_difficulty)
+    configure_header = configure_frontier_header
+    make_receipt = staticmethod(make_frontier_receipt)
+    validate_transaction_against_header = validate_frontier_transaction_against_header

@@ -10,6 +10,7 @@ from evm import constants
 
 from evm.chains.base import Chain
 from evm.rlp.headers import BlockHeader
+from evm.tools.chain import generate_vms_by_range
 from evm.vm.forks import (
     TangerineWhistleVM,
     FrontierVM,
@@ -31,11 +32,13 @@ MAINNET_VM_CONFIGURATION = (
 MAINNET_NETWORK_ID = 1
 
 
-MainnetChain = Chain.configure(
-    'MainnetChain',
-    vm_configuration=MAINNET_VM_CONFIGURATION,
-    network_id=MAINNET_NETWORK_ID,
-)
+class BaseMainnetChain:
+    vms_by_range = generate_vms_by_range(MAINNET_VM_CONFIGURATION)
+    network_id = MAINNET_NETWORK_ID
+
+
+class MainnetChain(BaseMainnetChain, Chain):
+    pass
 
 
 MAINNET_GENESIS_HEADER = BlockHeader(
