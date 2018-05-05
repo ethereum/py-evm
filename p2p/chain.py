@@ -26,7 +26,7 @@ from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 class ChainSyncer(PeerPoolSubscriber):
     logger = logging.getLogger("p2p.chain.ChainSyncer")
     # We'll only sync if we are connected to at least min_peers_to_sync.
-    min_peers_to_sync = 2
+    min_peers_to_sync = 1
     # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
     # the round-trip times from our download requests.
     _reply_timeout = 60
@@ -367,7 +367,7 @@ class RegularChainSyncer(ChainSyncer):
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         else:
-            self.logger.warn("%s msg not handled yet, need to be implemented", cmd)
+            self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
     async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
         # This is needed to ensure after a state sync we only start importing blocks on top of our

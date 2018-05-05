@@ -1,5 +1,12 @@
-from __future__ import absolute_import
+from typing import Type  # noqa: F401
+from evm.rlp.blocks import BaseBlock  # noqa: F401
+from evm.vm.state import BaseState  # noqa: F401
 
+
+from evm.constants import (
+    BLOCK_REWARD,
+    UNCLE_DEPTH_PENALTY_FACTOR,
+)
 from evm.vm import VM
 from evm.rlp.receipts import (
     Receipt,
@@ -8,15 +15,17 @@ from evm.rlp.logs import (
     Log,
 )
 
+from .blocks import FrontierBlock
 from .state import FrontierState
 from .headers import (
     create_frontier_header_from_parent,
     compute_frontier_difficulty,
     configure_frontier_header,
 )
+from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(transaction, computation, state):
+def make_frontier_receipt(base_header, transaction, computation, state):
     # Reusable for other forks
 
     logs = [
@@ -33,7 +42,7 @@ def make_frontier_receipt(transaction, computation, state):
         gas_refund,
         (transaction.gas - gas_remaining) // 2,
     )
-    gas_used = state.gas_used + tx_gas_used
+    gas_used = base_header.gas_used + tx_gas_used
 
     receipt = Receipt(
         state_root=state.state_root,
@@ -44,16 +53,31 @@ def make_frontier_receipt(transaction, computation, state):
     return receipt
 
 
-FrontierVM = VM.configure(
-    # class name
-    __name__='FrontierVM',
+class FrontierVM(VM):
     # fork name
-    fork='frontier',
+    fork = 'frontier'  # type: str
+
     # classes
-    _state_class=FrontierState,
-    # helpers
-    create_header_from_parent=staticmethod(create_frontier_header_from_parent),
-    compute_difficulty=staticmethod(compute_frontier_difficulty),
-    configure_header=configure_frontier_header,
-    make_receipt=staticmethod(make_frontier_receipt)
-)
+    block_class = FrontierBlock  # type: Type[BaseBlock]
+    _state_class = FrontierState  # type: Type[BaseState]
+
+    # methods
+    create_header_from_parent = staticmethod(create_frontier_header_from_parent)
+    compute_difficulty = staticmethod(compute_frontier_difficulty)
+    configure_header = configure_frontier_header
+    make_receipt = staticmethod(make_frontier_receipt)
+    validate_transaction_against_header = validate_frontier_transaction_against_header
+
+    @staticmethod
+    def get_block_reward():
+        return BLOCK_REWARD
+
+    @staticmethod
+    def get_uncle_reward(block_number, uncle):
+        return BLOCK_REWARD * (
+            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
+        ) // UNCLE_DEPTH_PENALTY_FACTOR
+
+    @classmethod
+    def get_nephew_reward(cls):
+        return cls.get_block_reward() // 32

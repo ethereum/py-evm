@@ -1,5 +1,10 @@
-Contributing to py-evm
-----------------------
+Contributing
+------------
+
+Thank you for your interest in contributing! We welcome all contributions no matter their size. Please read along to learn how to get started. If you get stuck, feel free to reach for help in our `Gitter channel <https://gitter.im/ethereum/py-evm>`_.
+
+Setting the stage
+~~~~~~~~~~~~~~~~~
 
 First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
 
@@ -47,6 +52,76 @@ We can also install ``tox`` to run the full test suite which also covers things 
 
 It is important to understand that each Pull Request must pass the full test suite as part of the CI check, hence it is often convenient to have ``tox`` installed locally as well.
 
+Code Style
+~~~~~~~~~~
+
+When multiple people are working on the same body of code, it is important that they write code that conforms to a similar style. It often doesn't matter as much which style, but rather that they conform to one style.
+
+To ensure your contribution conforms to the style being used in this project, we encourage you to read our `style guide <https://github.com/pipermerriam/ethereum-dev-tactical-manual/blob/master/style-guide.md>`_.
+
+
+
+Type Hints
+~~~~~~~~~~
+
+The code bases is transitioning to use `type hints <https://www.python.org/dev/peps/pep-0484/>`_. Type hints make it easy to prevent certain types of bugs, enable richer tooling and enhance the documentation, making the code easier to follow.
+
+All new code is required to land with type hints with the exception of test code that is not expected to use type hints.
+
+All parameters as well as the return type of defs are expected to be typed with the exception of ``self`` and ``cls`` as seen in the following example.
+
+.. code:: python
+
+    def __init__(self, wrapped_db: BaseDB) -> None:
+        self.wrapped_db = wrapped_db
+        self.reset()
+
+Documentation
+~~~~~~~~~~~~~
+
+Public APIs are expected to be annotated with docstrings as seen in the following example.
+
+.. code:: python
+
+    def add_transaction(self,
+                        transaction: BaseTransaction,
+                        computation: BaseComputation,
+                        block: BaseBlock) -> Tuple[Block, Dict[bytes, bytes]]:
+            """
+            Add a transaction to the given block and
+            return `trie_data` to store the transaction data in chaindb in VM layer.
+
+            Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
+            bloom, and used_gas of the block.
+
+            :param transaction: the executed transaction
+            :param computation: the Computation object with executed result
+            :param block: the Block which the transaction is added in
+
+            :return: the block and the trie_data
+            """
+
+Docstrings are written in reStructuredText and allow certain type of directives.
+
+Notice that ``:param:`` and ``:return:`` directives are being used to describe parameters and return value. Usage of ``:type:`` and ``:rtype:`` directives on the other hand is discouraged as sphinx directly reads and displays the types from the source code type definitions making any further use of ``:type:`` and ``:rtype:`` obsolete and unnecessarily verbose.
+
+Use imperative, present tense to describe APIs: “return” not “returns”
+
+One way to test if you have it right is to complete the following sentence.
+
+If you call this API it will: __________________________
+
+Pull Requests
+~~~~~~~~~~~~~
+
+It's a good idea to make pull requests early on.  A pull request represents the
+start of a discussion, and doesn't necessarily need to be the final, finished
+submission.
+
+GitHub's documentation for working on pull requests is `available here <https://help.github.com/articles/about-pull-requests/>`_.
+
+Once you've made a pull request take a look at the Circle CI build status in the
+GitHub interface and make sure all tests are passing. In general pull requests that do not pass the CI build yet won't get reviewed unless explicitly requested.
 
 Releasing
 ~~~~~~~~~

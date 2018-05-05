@@ -4,5 +4,9 @@ from .opcodes import TANGERINE_WHISTLE_OPCODES
 
 
 class TangerineWhistleComputation(HomesteadComputation):
+    """
+    A class for all execution computations in the ``TangerineWhistle`` fork.
+    Inherits from :class:`~evm.vm.forks.homestead.computation.HomesteadComputation`
+    """
     # Override
     opcodes = TANGERINE_WHISTLE_OPCODES

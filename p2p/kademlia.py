@@ -10,7 +10,6 @@ from urllib import parse as urlparse
 from functools import total_ordering
 from typing import (  # noqa: F401
     Any,
-    AnyStr,
     Callable,
     cast,
     Dict,
@@ -365,7 +364,7 @@ class KademliaProtocol:
         else:
             self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
 
-    def recv_ping(self, remote: Node, hash_: AnyStr) -> None:
+    def recv_ping(self, remote: Node, hash_: bytes) -> None:
         """Process a received ping packet.
 
         A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a

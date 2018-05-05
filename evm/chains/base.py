@@ -4,6 +4,12 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import (  # noqa: F401
+    Tuple,
+    Type,
+    Callable,
+    TYPE_CHECKING,
+)
 
 import logging
 
@@ -23,7 +29,6 @@ from evm.constants import (
     MAX_UNCLE_DEPTH,
 )
 from evm.db.chain import AsyncChainDB
-from evm.db.trie import make_trie_root_and_nodes
 from evm.estimators import (
     get_gas_estimator,
 )
@@ -37,15 +42,13 @@ from evm.validation import (
     validate_block_number,
     validate_uint256,
     validate_word,
+    validate_vm_configuration,
 )
 from evm.rlp.headers import (
     BlockHeader,
 )
 from evm.utils.db import (
     apply_state_dict,
-)
-from evm.utils.chain import (
-    generate_vms_by_range,
 )
 from evm.utils.datatypes import (
     Configurable,
@@ -59,6 +62,9 @@ from evm.utils.hexadecimal import (
 from evm.utils.rlp import (
     ensure_imported_block_unchanged,
 )
+
+if TYPE_CHECKING:
+    from evm.vm.base import BaseVM  # noqa: F401
 
 
 class BaseChain(Configurable, metaclass=ABCMeta):
@@ -146,7 +152,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
 
     def get_block_by_header(self, block_header):
         vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header, self.chaindb)
+        return vm.get_block_class().from_header(block_header, self.chaindb)
 
     @to_tuple
     def get_ancestors(self, limit):
@@ -283,32 +289,25 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("evm.chain.chain.Chain")
-    header = None
-    network_id = None
-    vms_by_range = None
-    gas_estimator = None
+    header = None  # type: BlockHeader
+    network_id = None  # type: int
+    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    gas_estimator = None  # type: Callable
 
     def __init__(self, chaindb: AsyncChainDB, header: BlockHeader=None) -> None:
-        if not self.vms_by_range:
+        if not self.vm_configuration:
             raise ValueError(
-                "The Chain class cannot be instantiated with an empty `vms_by_range`"
+                "The Chain class cannot be instantiated with an empty `vm_configuration`"
             )
+        else:
+            validate_vm_configuration(self.vm_configuration)
 
         self.chaindb = chaindb  # type: AsyncChainDB
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
         if self.gas_estimator is None:
-            self.gas_estimator = get_gas_estimator()
-
-    @classmethod
-    def configure(cls, __name__=None, vm_configuration=None, **overrides):
-        if 'vms_by_range' in overrides:
-            raise ValueError("Cannot override vms_by_range")
-
-        if vm_configuration is not None:
-            overrides['vms_by_range'] = generate_vms_by_range(vm_configuration)
-        return super().configure(__name__, **overrides)
+            self.gas_estimator = get_gas_estimator()  # type: ignore
 
     #
     # Convenience and Helpers
@@ -369,9 +368,9 @@ class Chain(BaseChain):
         Returns the VM class for the given block number.
         """
         validate_block_number(block_number)
-        for n in reversed(cls.vms_by_range.keys()):
-            if block_number >= n:
-                return cls.vms_by_range[n]
+        for start_block, vm_class in reversed(cls.vm_configuration):
+            if block_number >= start_block:
+                return vm_class
         else:
             raise VMNotFound("No vm available for block #{0}".format(block_number))
 
@@ -422,10 +421,6 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         block_header = self.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(block_header)
-
-    def get_block_by_header(self, block_header):
-        vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header, self.chaindb)
 
     #
     # Chain Initialization
@@ -487,20 +482,18 @@ class Chain(BaseChain):
         heavy and incurs significant perferomance overhead.
         """
         vm = self.get_vm()
-        block, receipt, computation = vm.apply_transaction(transaction)
-        receipts = block.get_receipts(self.chaindb) + [receipt]
+        base_block = vm.block
 
-        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
-        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
-        self.chaindb.persist_trie_data_dict(tx_kv_nodes)
-        self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
+        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
 
-        self.header = block.header.copy(
-            transaction_root=tx_root_hash,
-            receipt_root=receipt_root_hash,
-        )
+        transactions = base_block.transactions + (transaction, )
+        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        return block.copy(header=self.header), receipt, computation
+        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+
+        self.header = new_block.header
+
+        return new_block, receipt, computation
 
     def estimate_gas(self, transaction, at_header=None):
         if at_header is None:

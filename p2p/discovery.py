@@ -10,7 +10,6 @@ import logging
 import time
 from typing import (
     Any,
-    AnyStr,
     Callable,
     Generator,
     List,
@@ -35,7 +34,6 @@ from p2p import kademlia
 from evm.utils.numeric import (
     big_endian_to_int,
     int_to_big_endian,
-    safe_ord,
 )
 
 # UDP packet constants.
@@ -98,7 +96,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(self, cmd: Command) -> Callable[[kademlia.Node, List[Any], AnyStr], None]:
+    def _get_handler(self, cmd: Command) -> Callable[[kademlia.Node, List[Any], bytes], None]:
         if cmd == CMD_PING:
             return self.recv_ping
         elif cmd == CMD_PONG:
@@ -139,7 +137,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     # FIXME: Enable type checking here once we have a mypy version that
     # includes the fix for https://github.com/python/typeshed/pull/1740
-    def datagram_received(self, data: AnyStr, addr: Tuple[str, int]) -> None:  # type: ignore
+    def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:  # type: ignore
         ip_address, udp_port = addr
         # XXX: For now we simply discard all v5 messages. The prefix below is what geth uses to
         # identify them:
@@ -161,7 +159,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.cancel_token.trigger()
         self.transport.close()
 
-    def receive(self, address: kademlia.Address, message: AnyStr) -> None:
+    def receive(self, address: kademlia.Address, message: bytes) -> None:
         try:
             remote_pubkey, cmd_id, payload, message_hash = _unpack(message)
         except DefectiveMessage as e:
@@ -184,20 +182,20 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         handler = self._get_handler(cmd)
         handler(node, payload, message_hash)
 
-    def recv_pong(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
+    def recv_pong(self, node: kademlia.Node, payload: List[Any], _: bytes) -> None:
         # The pong payload should have 3 elements: to, token, expiration
         _, token, _ = payload
         self.kademlia.recv_pong(node, token)
 
-    def recv_neighbours(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
+    def recv_neighbours(self, node: kademlia.Node, payload: List[Any], _: bytes) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
         nodes, _ = payload
         self.kademlia.recv_neighbours(node, _extract_nodes_from_payload(nodes))
 
-    def recv_ping(self, node: kademlia.Node, _: Any, message_hash: AnyStr) -> None:
+    def recv_ping(self, node: kademlia.Node, _: Any, message_hash: bytes) -> None:
         self.kademlia.recv_ping(node, message_hash)
 
-    def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: AnyStr) -> None:
+    def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: bytes) -> None:
         # The find_node payload should have 2 elements: node_id, expiration
         self.logger.debug('<<< find_node from %s', node)
         node_id, _ = payload
@@ -220,7 +218,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         message = _pack(CMD_FIND_NODE.id, [node_id], self.privkey)
         self.send(node, message)
 
-    def send_pong(self, node: kademlia.Node, token: AnyStr) -> None:
+    def send_pong(self, node: kademlia.Node, token: bytes) -> None:
         self.logger.debug('>>> pong %s', node)
         payload = [node.address.to_endpoint(), token]
         message = _pack(CMD_PONG.id, payload, self.privkey)
@@ -281,7 +279,7 @@ def _pack(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> byt
     return message_hash + signature.to_bytes() + encoded_data
 
 
-def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnyStr]:
+def _unpack(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], bytes]:
     """Unpack a UDP message received from a remote node.
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
@@ -292,7 +290,7 @@ def _unpack(message: AnyStr) -> Tuple[datatypes.PublicKey, int, List[Any], AnySt
     signature = keys.Signature(message[MAC_SIZE:HEAD_SIZE])
     signed_data = message[HEAD_SIZE:]
     remote_pubkey = signature.recover_public_key_from_msg(signed_data)
-    cmd_id = safe_ord(message[HEAD_SIZE])
+    cmd_id = message[HEAD_SIZE]
     cmd = CMD_ID_MAP[cmd_id]
     payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
     # Ignore excessive list elements as required by EIP-8.

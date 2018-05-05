@@ -10,8 +10,8 @@ from evm.vm.forks.frontier.validation import (
 )
 
 
-def validate_homestead_transaction(evm, transaction):
+def validate_homestead_transaction(account_db, transaction):
     if transaction.s > SECPK1_N // 2 or transaction.s == 0:
         raise ValidationError("Invalid signature S value")
 
-    validate_frontier_transaction(evm, transaction)
+    validate_frontier_transaction(account_db, transaction)

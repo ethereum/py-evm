@@ -2,18 +2,10 @@ import functools
 import itertools
 import math
 
-from cytoolz import (
-    pipe,
-)
-
 from evm.constants import (
     UINT_255_MAX,
     UINT_256_MAX,
     UINT_256_CEILING,
-)
-
-from evm.utils.padding import (
-    pad32,
 )
 
 
@@ -24,10 +16,6 @@ def int_to_big_endian(value: int) -> bytes:
 
 def big_endian_to_int(value: bytes) -> int:
     return int.from_bytes(value, byteorder='big')
-
-
-def int_to_byte(value):
-    return bytes([value])
 
 
 def int_to_bytes32(value):
@@ -49,15 +37,8 @@ def int_to_bytes32(value):
                 value,
             )
         )
-    value_bytes = pipe(
-        value,
-        int_to_big_endian,
-        pad32,
-    )
+    value_bytes = value.to_bytes(32, 'big')
     return value_bytes
-
-
-byte_to_int = ord
 
 
 def ceilXX(value: int, ceiling: int) -> int:
@@ -84,13 +65,6 @@ def signed_to_unsigned(value):
         return value + UINT_256_CEILING
     else:
         return value
-
-
-def safe_ord(value):
-    if isinstance(value, int):
-        return value
-    else:
-        return ord(value)
 
 
 def is_even(value: int) -> bool:

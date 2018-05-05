@@ -31,6 +31,7 @@ deps = {
         "aiohttp>=2.3.1,<3.0.0",
         "async_lru>=0.1.0,<1.0.0",
         "pysha3>=1.0.0,<2.0.0",
+        "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
         "ipython>=6.2.1,<7.0.0",
@@ -51,7 +52,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
-        "mypy>=0.590",
+        "mypy<0.600",
     ],
     'doc': [
         "py-evm>=0.2.0-alpha.14",
@@ -74,7 +75,8 @@ deps['dev'] = (
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
-    deps['doc']
+    deps['doc'] +
+    deps['lint']
 )
 
 # As long as evm, p2p and trinity are managed together in the py-evm

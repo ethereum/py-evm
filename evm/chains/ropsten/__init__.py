@@ -1,3 +1,4 @@
+from typing import Tuple, Type  # noqa: F401
 from eth_utils import decode_hex
 
 from .constants import (
@@ -9,6 +10,7 @@ from evm import constants
 
 from evm.chains.base import Chain
 from evm.rlp.headers import BlockHeader
+from evm.vm.base import BaseVM  # noqa: F401
 from evm.vm.forks import (
     ByzantiumVM,
     SpuriousDragonVM,
@@ -27,11 +29,13 @@ ROPSTEN_VM_CONFIGURATION = (
 ROPSTEN_NETWORK_ID = 3
 
 
-RopstenChain = Chain.configure(
-    'RopstenChain',
-    vm_configuration=ROPSTEN_VM_CONFIGURATION,
-    network_id=ROPSTEN_NETWORK_ID,
-)
+class BaseRopstenChain:
+    vm_configuration = ROPSTEN_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
+    network_id = ROPSTEN_NETWORK_ID  # type: int
+
+
+class RopstenChain(BaseRopstenChain, Chain):
+    pass
 
 
 ROPSTEN_GENESIS_HEADER = BlockHeader(

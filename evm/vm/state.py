@@ -20,9 +20,6 @@ from evm.utils.datatypes import (
 )
 
 if TYPE_CHECKING:
-    from evm.rlp.blocks import (  # noqa: F401
-        BaseBlock,
-    )
     from evm.computation import (  # noqa: F401
         BaseComputation,
     )
@@ -32,25 +29,37 @@ if TYPE_CHECKING:
 
 
 class BaseState(Configurable, metaclass=ABCMeta):
+    """
+    The base class that encapsulates all of the various moving parts related to
+    the state of the VM during execution.
+    Each :class:`~evm.vm.base.BaseVM` must be configured with a subclass of the
+    :class:`~evm.vm.state.BaseState`.
+
+      .. note::
+
+        Each :class:`~evm.vm.state.BaseState` class must be configured with:
+
+        - ``computation_class``: The :class:`~evm.vm.computation.BaseComputation` class for
+          vm execution.
+        - ``transaction_context_class``: The :class:`~evm.vm.transaction_context.TransactionContext`
+          class for vm execution.
+    """
     #
     # Set from __init__
     #
     _chaindb = None
     execution_context = None
     state_root = None
-    gas_used = None
 
-    block_class = None  # type: Type[BaseBlock]
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
-    def __init__(self, db, execution_context, state_root, gas_used):
+    def __init__(self, db, execution_context, state_root):
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
-        self.gas_used = gas_used
 
     #
     # Logging
@@ -65,22 +74,37 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     @property
     def coinbase(self):
+        """
+        Return the current ``coinbase`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.coinbase
 
     @property
     def timestamp(self):
+        """
+        Return the current ``timestamp`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.timestamp
 
     @property
     def block_number(self):
+        """
+        Return the current ``block_number`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.block_number
 
     @property
     def difficulty(self):
+        """
+        Return the current ``difficulty`` from the current :attr:`~execution_context`
+        """
         return self.execution_context.difficulty
 
     @property
     def gas_limit(self):
+        """
+        Return the current ``gas_limit`` from the current :attr:`~transaction_context`
+        """
         return self.execution_context.gas_limit
 
     #
@@ -88,12 +112,19 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     @classmethod
     def get_account_db_class(cls):
+        """
+        Return the :class:`~evm.db.account.BaseAccountDB` class that the
+        state class uses.
+        """
         if cls.account_db_class is None:
             raise AttributeError("No account_db_class set for {0}".format(cls.__name__))
         return cls.account_db_class
 
     @property
     def state_root(self):
+        """
+        Return the current ``state_root`` from the underlying database
+        """
         return self.account_db.state_root
 
     #
@@ -103,7 +134,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         """
         Perform a full snapshot of the current state.
 
-        Snapshots are a combination of the state_root at the time of the
+        Snapshots are a combination of the :attr:`~state_root` at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
         return (self.state_root, self.account_db.record())
@@ -121,7 +152,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
     def commit(self, snapshot):
         """
-        Commits the journal to the point where the snapshot was taken.  This
+        Commit the journal to the point where the snapshot was taken.  This
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
@@ -132,7 +163,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     def get_ancestor_hash(self, block_number):
         """
-        Return the hash of the ancestor with the given block number.
+        Return the hash for the ancestor block with number ``block_number``.
+        Return the empty bytestring ``b''`` if the block number is outside of the
+        range of available block numbers (typically the last 255 blocks).
         """
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
@@ -164,25 +197,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
     @classmethod
     def get_transaction_context_class(cls):
         """
-
+        Return the :class:`~evm.vm.transaction_context.BaseTransactionContext` class that the
+        state class uses.
         """
         if cls.transaction_context_class is None:
             raise AttributeError("No `transaction_context_class` has been set for this State")
         return cls.transaction_context_class
-
-    #
-    # Block class
-    #
-    @classmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
-        """
-        Return the class used for Blocks
-
-        TODO: this should move up to the VM
-        """
-        if cls.block_class is None:
-            raise AttributeError("No `block_class_class` has been set for this VMState")
-        return cls.block_class
 
     #
     # Execution
@@ -194,62 +214,11 @@ class BaseState(Configurable, metaclass=ABCMeta):
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :type transaction: Transaction
-
-        :return: the computation, applied block, and the trie_data_dict
-        :rtype: (Computation, dict[bytes, bytes])
+        :return: the new state root, and the computation
         """
         computation = self.execute_transaction(transaction)
         self.account_db.persist()
         return self.account_db.state_root, computation
-
-    #
-    # Finalization
-    #
-    def finalize_block(self, block):
-        """
-        Apply rewards.
-        """
-        block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
-        )
-
-        self.account_db.delta_balance(block.header.coinbase, block_reward)
-        self.logger.debug(
-            "BLOCK REWARD: %s -> %s",
-            block_reward,
-            block.header.coinbase,
-        )
-
-        for uncle in block.uncles:
-            uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.account_db.delta_balance(uncle.coinbase, uncle_reward)
-            self.logger.debug(
-                "UNCLE REWARD REWARD: %s -> %s",
-                uncle_reward,
-                uncle.coinbase,
-            )
-        # We need to call `persist` here since the state db batches
-        # all writes untill we tell it to write to the underlying db
-        # TODO: Refactor to only use batching/journaling for tx processing
-        self.account_db.persist()
-
-        return block.copy(header=block.header.copy(state_root=self.state_root))
-
-    @staticmethod
-    @abstractmethod
-    def get_block_reward():
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    @abstractmethod
-    def get_uncle_reward(block_number, uncle):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    @abstractmethod
-    def get_nephew_reward(cls):
-        raise NotImplementedError("Must be implemented by subclasses")
 
     def get_transaction_executor(self):
         return self.transaction_executor(self)

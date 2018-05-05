@@ -7,7 +7,6 @@ from evm.vm.forks.homestead.state import (
     HomesteadTransactionExecutor,
 )
 
-from .blocks import SpuriousDragonBlock
 from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
@@ -15,7 +14,7 @@ from .utils import collect_touched_accounts
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
     def finalize_computation(self, transaction, computation):
         computation = super().finalize_computation(transaction, computation)
-
+        
         #
         # EIP161 state clearing
         #
@@ -37,6 +36,6 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
 
 class SpuriousDragonState(HomesteadState):
-    block_class = SpuriousDragonBlock
+    computation_class = SpuriousDragonComputation
     computation_class = SpuriousDragonComputation
     transaction_executor = SpuriousDragonTransactionExecutor  # Type[BaseTransactionExecutor]

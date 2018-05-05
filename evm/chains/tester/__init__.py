@@ -24,9 +24,6 @@ from evm.exceptions import ValidationError
 from evm.rlp.headers import (
     BlockHeader
 )
-from evm.utils.chain import (
-    generate_vms_by_range,
-)
 from evm.validation import (
     validate_gte,
 )
@@ -50,9 +47,9 @@ class MaintainGasLimitMixin(object):
 
 
 MAINNET_VMS = collections.OrderedDict(
-    (vm.fork, type(vm.__name__, (MaintainGasLimitMixin, vm), {}))
-    for _, vm
-    in MainnetChain.vms_by_range.items()
+    (vm_class.fork, type(vm_class.__name__, (MaintainGasLimitMixin, vm_class), {}))
+    for _, vm_class
+    in MainnetChain.vm_configuration
 )
 
 ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[BaseVM]]]]
@@ -133,10 +130,8 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             yield (start_block, vm_class)
 
 
-BaseMainnetTesterChain = Chain.configure(
-    'MainnetTesterChain',
-    vm_configuration=_generate_vm_configuration()
-)
+class BaseMainnetTesterChain(Chain):
+    vm_configuration = _generate_vm_configuration()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
@@ -165,8 +160,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
         Modifying the fork rules, especially if the modification effects
         existing blocks could result in a broken chain.
         """
-        vm_configuration = _generate_vm_configuration(
+        self.vm_configuration = _generate_vm_configuration(
             *fork_start_blocks,
             dao_start_block=dao_start_block,
         )
-        self.vms_by_range = generate_vms_by_range(vm_configuration)
