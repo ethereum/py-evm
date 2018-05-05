@@ -13,6 +13,6 @@ class HomesteadState(FrontierState):
     def validate_transaction(self, transaction):
         validate_homestead_transaction(self.account_db, transaction)
 
-        
+
 class HomesteadTransactionExecutor(FrontierTransactionExecutor):
     pass

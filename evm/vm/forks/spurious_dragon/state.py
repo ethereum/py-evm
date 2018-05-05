@@ -14,7 +14,7 @@ from .utils import collect_touched_accounts
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
     def finalize_computation(self, transaction, computation):
         computation = super().finalize_computation(transaction, computation)
-        
+
         #
         # EIP161 state clearing
         #

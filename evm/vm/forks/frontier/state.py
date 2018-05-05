@@ -181,7 +181,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
 
-
 class FrontierState(BaseState):
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
