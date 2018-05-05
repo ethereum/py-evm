@@ -48,8 +48,9 @@ def binary_gas_search(state, transaction, tolerance=1):
 
     minimum_transaction = SpoofTransaction(
         transaction,
+        gas=transaction.intrinsic_gas,
         gas_price=0,
-        gas=transaction.intrinsic_gas)
+    )
 
     if _get_computation_error(state, minimum_transaction) is None:
         return transaction.intrinsic_gas
@@ -57,7 +58,8 @@ def binary_gas_search(state, transaction, tolerance=1):
     maximum_transaction = SpoofTransaction(
         transaction,
         gas=state.gas_limit,
-        gas_price=0)
+        gas_price=0,
+    )
     error = _get_computation_error(state, maximum_transaction)
     if error is not None:
         raise error

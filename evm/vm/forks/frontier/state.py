@@ -140,7 +140,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return computation
 
-    def finalize_computation(self, computation, transaction):
+    def finalize_computation(self, transaction, computation):
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:

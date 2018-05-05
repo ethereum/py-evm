@@ -273,7 +273,7 @@ class BaseTransactionExecutor(metaclass=ABCMeta):
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
         computation = self.build_computation(message, valid_transaction)
-        finalized_computation = self.finalize_computation(computation, valid_transaction)
+        finalized_computation = self.finalize_computation(valid_transaction, computation)
         return finalized_computation
 
     @abstractmethod
