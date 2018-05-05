@@ -2,6 +2,13 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from typing import Union
+
+
+class Unset:
+    pass
+
+unset = Unset()
 
 
 class BaseDB(metaclass=ABCMeta):
@@ -12,15 +19,24 @@ class BaseDB(metaclass=ABCMeta):
             "The `init` method must be implemented by subclasses of BaseDB"
         )
 
-    @abstractmethod
-    def get(self, key: bytes) -> bytes:
-        """Return the value for the given key.
-
-        Raises KeyError if key doesn't exist.
+    def get(self, key: bytes, default: Union[bytes, Unset] = unset) -> bytes:
         """
-        raise NotImplementedError(
-            "The `get` method must be implemented by subclasses of BaseDB"
-        )
+        Return the value for the given key.
+
+        If the key doesn't exist, and a default is provided, return the default value.
+        If the key doesn't exist, and a default is not provided, raise a KeyError
+
+        :return: the value with the associated key
+        :raise: KeyError if key is missing
+        """
+        try:
+            return self[key]
+        except KeyError as exc:
+            if default is unset:
+                raise exc
+            else:
+                return default
+
 
     @abstractmethod
     def set(self, key: bytes, value: bytes) -> None:
@@ -44,8 +60,11 @@ class BaseDB(metaclass=ABCMeta):
     #
     # Dictionary API
     #
+    @abstractmethod
     def __getitem__(self, key: bytes) -> bytes:
-        return self.get(key)
+        raise NotImplementedError(
+            "The `__getitem__` method must be implemented by subclasses of BaseDB"
+        )
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
         return self.set(key, value)
