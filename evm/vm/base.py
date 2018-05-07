@@ -31,7 +31,7 @@ from evm.constants import (
 from evm.db.trie import make_trie_root_and_nodes
 from evm.db.chain import BaseChainDB  # noqa: F401
 from evm.exceptions import (
-    BlockNotFound,
+    HeaderNotFound,
     ValidationError,
 )
 from evm.rlp.blocks import (  # noqa: F401
@@ -62,6 +62,222 @@ from evm.vm.state import BaseState  # noqa: F401
 
 
 class BaseVM(Configurable, metaclass=ABCMeta):
+    block = None  # type: BaseBlock
+    block_class = None  # type: Type[BaseBlock]
+    fork = None  # type: str
+    chaindb = None  # type: BaseChainDB
+    _state_class = None  # type: Type[BaseState]
+
+    @abstractmethod
+    def __init__(self, header, chaindb):
+        pass
+
+    #
+    # Logging
+    #
+    @property
+    @abstractmethod
+    def logger(self):
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Execution
+    #
+    @abstractmethod
+    def apply_transaction(self, header, transaction):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def execute_bytecode(self,
+                         origin,
+                         gas_price,
+                         gas,
+                         to,
+                         sender,
+                         value,
+                         data,
+                         code,
+                         code_address=None):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def make_receipt(self, base_header, transaction, computation, state):
+        """
+        Generate the receipt resulting from applying the transaction.
+
+        :param base_header: the header of the block before the transaction was applied.
+        :param transaction: the transaction used to generate the receipt
+        :param computation: the result of running the transaction computation
+        :param state: the resulting state, after executing the computation
+
+        :return: receipt
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Mining
+    #
+    @abstractmethod
+    def import_block(self, block):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def mine_block(self, *args, **kwargs):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def set_block_transactions(self, base_block, new_header, transactions, receipts):
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Finalization
+    #
+    @abstractmethod
+    def finalize_block(self, block):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def pack_block(self, block, *args, **kwargs):
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Headers
+    #
+    @classmethod
+    @abstractmethod
+    def compute_difficulty(cls, parent_header, timestamp):
+        """
+        Compute the difficulty for a block header.
+
+        :param parent_header: the parent header
+        :param timestamp: the timestamp of the child header
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def configure_header(self, **header_params):
+        """
+        Setup the current header with the provided parameters.  This can be
+        used to set fields like the gas limit or timestamp to value different
+        than their computed defaults.
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def create_header_from_parent(cls, parent_header, **header_params):
+        """
+        Creates and initializes a new block header from the provided
+        `parent_header`.
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Blocks
+    #
+    @classmethod
+    @abstractmethod
+    def generate_block_from_parent_header_and_coinbase(cls, parent_header, coinbase):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def get_block_class(cls) -> Type['BaseBlock']:
+        raise NotImplementedError("VM classes must implement this method")
+
+    @staticmethod
+    @abstractmethod
+    def get_block_reward() -> int:
+        """
+        Return the amount in **wei** that should be given to a miner as a reward
+        for this block.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def get_nephew_reward(cls) -> int:
+        """
+        Return the reward which should be given to the miner of the given `nephew`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def get_prev_hashes(cls, last_block_hash, db):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @staticmethod
+    @abstractmethod
+    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
+        """
+        Return the reward which should be given to the miner of the given `uncle`.
+
+          .. note::
+            This is an abstract method that must be implemented in subclasses
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Transactions
+    #
+    @abstractmethod
+    def create_transaction(self, *args, **kwargs):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def create_unsigned_transaction(self, *args, **kwargs):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def get_transaction_class(cls):
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # Validate
+    #
+    @abstractmethod
+    def validate_block(self, block):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def validate_transaction_against_header(self, base_header, transaction):
+        """
+        Validate that the given transaction is valid to apply to the given header.
+
+        :param base_header: header before applying the transaction
+        :param transaction: the transaction to validate
+
+        :raises: ValidationError if the transaction is not valid to apply
+        """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def validate_uncle(self, block, uncle):
+        raise NotImplementedError("VM classes must implement this method")
+
+    #
+    # State
+    #
+    @classmethod
+    @abstractmethod
+    def get_state_class(cls):
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    @contextlib.contextmanager
+    def state_in_temp_block(self):
+        raise NotImplementedError("VM classes must implement this method")
+
+
+class VM(BaseVM):
     """
     The :class:`~evm.vm.base.BaseVM` class represents the Chain rules for a
     specific protocol definition such as the Frontier or Homestead network.
@@ -73,11 +289,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
         - ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
-    block_class = None  # type: Type[BaseBlock]
-    fork = None  # type: str
-    chaindb = None  # type: BaseChainDB
-    _state_class = None  # type: Type[BaseState]
-
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
@@ -97,6 +308,26 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
+    def apply_transaction(self, header, transaction):
+        """
+        Apply the transaction to the current block. This is a wrapper around
+        :func:`~evm.vm.state.State.apply_transaction` with some extra orchestration logic.
+
+        :param header: header of the block before application
+        :param transaction: to apply
+        """
+        self.validate_transaction_against_header(header, transaction)
+        state_root, computation = self.state.apply_transaction(transaction)
+        receipt = self.make_receipt(header, transaction, computation, self.state)
+
+        new_header = header.copy(
+            bloom=int(BloomFilter(header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+            state_root=state_root,
+        )
+
+        return new_header, receipt, computation
+
     def execute_bytecode(self,
                          origin,
                          gas_price,
@@ -138,52 +369,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             message,
             transaction_context,
         )
-
-    @abstractmethod
-    def make_receipt(self, base_header, transaction, computation, state):
-        """
-        Generate the receipt resulting from applying the transaction.
-
-        :param base_header: the header of the block before the transaction was applied.
-        :param transaction: the transaction used to generate the receipt
-        :param computation: the result of running the transaction computation
-        :param state: the resulting state, after executing the computation
-
-        :return: receipt
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def validate_transaction_against_header(self, base_header, transaction):
-        """
-        Validate that the given transaction is valid to apply to the given header.
-
-        :param base_header: header before applying the transaction
-        :param transaction: the transaction to validate
-
-        :raises: ValidationError if the transaction is not valid to apply
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def apply_transaction(self, header, transaction):
-        """
-        Apply the transaction to the current block. This is a wrapper around
-        :func:`~evm.vm.state.State.apply_transaction` with some extra orchestration logic.
-
-        :param header: header of the block before application
-        :param transaction: to apply
-        """
-        self.validate_transaction_against_header(header, transaction)
-        state_root, computation = self.state.apply_transaction(transaction)
-        receipt = self.make_receipt(header, transaction, computation, self.state)
-
-        new_header = header.copy(
-            bloom=int(BloomFilter(header.bloom) | receipt.bloom),
-            gas_used=receipt.gas_used,
-            state_root=state_root,
-        )
-
-        return new_header, receipt, computation
 
     def _apply_all_transactions(self, transactions, base_header):
         receipts = []
@@ -236,6 +421,17 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         return self.mine_block()
 
+    def mine_block(self, *args, **kwargs):
+        """
+        Mine the current block. Proxies to self.pack_block method.
+        """
+        block = self.pack_block(self.block, *args, **kwargs)
+
+        if block.number == 0:
+            return block
+        else:
+            return self.finalize_block(block)
+
     def set_block_transactions(self, base_block, new_header, transactions, receipts):
 
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
@@ -251,17 +447,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                 receipt_root=receipt_root_hash,
             ),
         )
-
-    def mine_block(self, *args, **kwargs):
-        """
-        Mine the current block. Proxies to self.pack_block method.
-        """
-        block = self.pack_block(self.block, *args, **kwargs)
-
-        if block.number == 0:
-            return block
-        else:
-            return self.finalize_block(block)
 
     #
     # Finalization
@@ -338,22 +523,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         return packed_block
 
-    @contextlib.contextmanager
-    def state_in_temp_block(self):
-        header = self.block.header
-        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = (header.hash, ) + self.previous_hashes
-
-        state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=temp_block.header.create_execution_context(prev_hashes),
-            state_root=temp_block.header.state_root,
-        )
-
-        snapshot = state.snapshot()
-        yield state
-        state.revert(snapshot)
-
+    #
+    # Blocks
+    #
     @classmethod
     def generate_block_from_parent_header_and_coinbase(cls, parent_header, coinbase):
         """
@@ -371,6 +543,61 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             uncles=[],
         )
         return block
+
+    @classmethod
+    def get_block_class(cls) -> Type['BaseBlock']:
+        """
+        Return the :class:`~evm.rlp.blocks.Block` class that this VM uses for blocks.
+        """
+        if cls.block_class is None:
+            raise AttributeError("No `block_class` has been set for this VM")
+        else:
+            return cls.block_class
+
+    @classmethod
+    @functools.lru_cache(maxsize=32)
+    @to_tuple
+    def get_prev_hashes(cls, last_block_hash, db):
+        if last_block_hash == GENESIS_PARENT_HASH:
+            return
+
+        block_header = get_block_header_by_hash(last_block_hash, db)
+
+        for _ in range(MAX_PREV_HEADER_DEPTH):
+            yield block_header.hash
+            try:
+                block_header = get_parent_header(block_header, db)
+            except (IndexError, HeaderNotFound):
+                break
+
+    @property
+    def previous_hashes(self):
+        """
+        Convenience API for accessing the previous 255 block hashes.
+        """
+        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+
+    #
+    # Transactions
+    #
+    def create_transaction(self, *args, **kwargs):
+        """
+        Proxy for instantiating a signed transaction for this VM.
+        """
+        return self.get_transaction_class()(*args, **kwargs)
+
+    def create_unsigned_transaction(self, *args, **kwargs):
+        """
+        Proxy for instantiating an unsigned transaction for this VM.
+        """
+        return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
+
+    @classmethod
+    def get_transaction_class(cls):
+        """
+        Return the class that this VM uses for transactions.
+        """
+        return cls.get_block_class().get_transaction_class()
 
     #
     # Validate
@@ -457,7 +684,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                     uncle.block_number, block.number))
         try:
             parent_header = get_block_header_by_hash(uncle.parent_hash, self.chaindb)
-        except BlockNotFound:
+        except HeaderNotFound:
             raise ValidationError(
                 "Uncle ancestor not found: {0}".format(uncle.parent_hash))
         if uncle.block_number != parent_header.block_number + 1:
@@ -474,125 +701,6 @@ class BaseVM(Configurable, metaclass=ABCMeta):
                     uncle.gas_used, uncle.gas_limit))
 
     #
-    # Transactions
-    #
-
-    @classmethod
-    def get_transaction_class(cls):
-        """
-        Return the class that this VM uses for transactions.
-        """
-        return cls.get_block_class().get_transaction_class()
-
-    def create_transaction(self, *args, **kwargs):
-        """
-        Proxy for instantiating a signed transaction for this VM.
-        """
-        return self.get_transaction_class()(*args, **kwargs)
-
-    def create_unsigned_transaction(self, *args, **kwargs):
-        """
-        Proxy for instantiating an unsigned transaction for this VM.
-        """
-        return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
-
-    #
-    # Blocks
-    #
-    @classmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
-        """
-        Return the :class:`~evm.rlp.blocks.Block` class that this VM uses for blocks.
-        """
-        if cls.block_class is None:
-            raise AttributeError("No `block_class` has been set for this VM")
-        else:
-            return cls.block_class
-
-    @classmethod
-    @functools.lru_cache(maxsize=32)
-    @to_tuple
-    def get_prev_hashes(cls, last_block_hash, db):
-        if last_block_hash == GENESIS_PARENT_HASH:
-            return
-
-        block_header = get_block_header_by_hash(last_block_hash, db)
-
-        for _ in range(MAX_PREV_HEADER_DEPTH):
-            yield block_header.hash
-            try:
-                block_header = get_parent_header(block_header, db)
-            except (IndexError, BlockNotFound):
-                break
-
-    @property
-    def previous_hashes(self):
-        """
-        Return the block hashes for the previous 255 blocks relative to the tip block
-        """
-        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
-
-    @staticmethod
-    @abstractmethod
-    def get_block_reward() -> int:
-        """
-        Return the amount in **wei** that should be given to a miner as a reward
-        for this block.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @staticmethod
-    @abstractmethod
-    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
-        """
-        Return the reward which should be given to the miner of the given `uncle`.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    @abstractmethod
-    def get_nephew_reward(cls) -> int:
-        """
-        Return the reward which should be given to the miner of the given `nephew`.
-
-          .. note::
-            This is an abstract method that must be implemented in subclasses
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Headers
-    #
-    @classmethod
-    @abstractmethod
-    def create_header_from_parent(cls, parent_header, **header_params):
-        """
-        Creates and initializes a new block header from the provided
-        `parent_header`.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def configure_header(self, **header_params):
-        """
-        Setup the current header with the provided parameters.  This can be
-        used to set fields like the gas limit or timestamp to value different
-        than their computed defaults.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    @abstractmethod
-    def compute_difficulty(cls, parent_header, timestamp):
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
     # State
     #
     @classmethod
@@ -604,3 +712,19 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             raise AttributeError("No `_state_class` has been set for this VM")
 
         return cls._state_class
+
+    @contextlib.contextmanager
+    def state_in_temp_block(self):
+        header = self.block.header
+        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
+        prev_hashes = (header.hash, ) + self.previous_hashes
+
+        state = self.get_state_class()(
+            db=self.chaindb.db,
+            execution_context=temp_block.header.create_execution_context(prev_hashes),
+            state_root=temp_block.header.state_root,
+        )
+
+        snapshot = state.snapshot()
+        yield state
+        state.revert(snapshot)

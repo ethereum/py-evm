@@ -28,7 +28,7 @@ from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.db.chain import AsyncChainDB
 from evm.exceptions import (
-    BlockNotFound,
+    HeaderNotFound,
 )
 from evm.rlp.accounts import Account
 from evm.rlp.blocks import BaseBlock
@@ -257,12 +257,12 @@ class LightChain(Chain, PeerPoolSubscriber):
     async def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:  # type: ignore  # noqa: E501
         """Return the block with the given number from the canonical chain.
 
-        Raises BlockNotFound if it is not found.
+        Raises HeaderNotFound if it is not found.
         """
         try:
             block_hash = await self.chaindb.coro_get_canonical_block_hash(block_number)
         except KeyError:
-            raise BlockNotFound(
+            raise HeaderNotFound(
                 "No block with number {} found on local chain".format(block_number))
         return await self.get_block_by_hash(block_hash)
 
@@ -271,7 +271,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         peer = await self.get_best_peer()
         try:
             header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
-        except BlockNotFound:
+        except HeaderNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
             header = await peer.get_block_header_by_hash(block_hash, self.cancel_token)
 
