@@ -1,5 +1,6 @@
 from .base import (  # noqa: F401
     AsyncChain,
+    BaseChain,
     Chain,
 )
 from .mainnet import (  # noqa: F401

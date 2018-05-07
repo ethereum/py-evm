@@ -18,9 +18,8 @@ from eth_utils import (
     encode_hex,
 )
 
-from evm.chains import Chain
+from evm.chains import BaseChain
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.db.chain import AsyncChainDB
 from evm.exceptions import (
     BlockNotFound,
 )
@@ -49,23 +48,18 @@ from p2p.peer import (
 )
 
 
-class LightChain(Chain, PeerPoolSubscriber):
+class LightChain(PeerPoolSubscriber):
     logger = logging.getLogger("p2p.lightchain.LightChain")
     max_consecutive_timeouts = 5
 
-    def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
-        super(LightChain, self).__init__(chaindb)
+    def __init__(self, chain: BaseChain, peer_pool: PeerPool) -> None:
+        self.chain = chain
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
+        self.cancel_token = CancelToken('LightChain')
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
-        self.cancel_token = CancelToken('LightChain')
         self._running_peers = set()  # type: Set[LESPeer]
-
-    @classmethod
-    def from_genesis_header(cls, chaindb, genesis_header, peer_pool):
-        chaindb.persist_header(genesis_header)
-        return cls(chaindb, peer_pool)
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))
@@ -187,7 +181,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         raise TooManyTimeouts()
 
     async def get_sync_start_block(self, peer: LESPeer, head_info: les.HeadInfo) -> int:
-        chain_head = await self.chaindb.coro_get_canonical_head()
+        chain_head = await self.chain.coro_get_canonical_head()
         last_peer_announcement = self._last_processed_announcements.get(peer)
         if chain_head.block_number == GENESIS_BLOCK_NUMBER:
             start_block = GENESIS_BLOCK_NUMBER
@@ -209,7 +203,11 @@ class LightChain(Chain, PeerPoolSubscriber):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
-                await self.chaindb.coro_persist_header(header)
+                # ---------------!!!!!!!!!!!!!!-------------------
+                # TODO: maybe use an entirely different chain class for light
+                # chains with an `import_header` function.
+                # ---------------!!!!!!!!!!!!!!-------------------
+                await self.chain.chaindb.coro_persist_header(header)
             start_block = chain_head.block_number
         else:
             start_block = last_peer_announcement.block_number - head_info.reorg_depth
@@ -218,7 +216,7 @@ class LightChain(Chain, PeerPoolSubscriber):
     # TODO: Distribute requests among our peers, ensuring the selected peer has the info we want
     # and respecting the flow control rules.
     async def process_announcement(self, peer: LESPeer, head_info: les.HeadInfo) -> None:
-        if await self.chaindb.coro_header_exists(head_info.block_hash):
+        if await self.chain.chaindb.coro_header_exists(head_info.block_hash):
             self.logger.debug(
                 "Skipping processing of %s from %s as head has already been fetched",
                 head_info, peer)
@@ -245,30 +243,36 @@ class LightChain(Chain, PeerPoolSubscriber):
         await self.wait_until_finished()
         self.logger.debug("LightChain finished")
 
+    #
+    # TODO: move these to a specialized `Chain` class that wraps the networking
+    # layer to keep the syncing/networking code separate from this retrieval
+    # code.
+    #
     async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
         """Return the block with the given number from the canonical chain.
 
         Raises BlockNotFound if it is not found.
         """
         try:
-            block_hash = await self.chaindb.coro_lookup_block_hash(block_number)
+            block_hash = await self.chain.coro_get_canonical_block_hash(block_number)
         except KeyError:
             raise BlockNotFound(
                 "No block with number {} found on local chain".format(block_number))
-        return await self.get_block_by_hash(block_hash)
+        return await self.chain.coro_get_block_by_hash(block_hash)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
         peer = await self.get_best_peer()
         try:
-            header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
+            header = await self.chain.coro_get_block_header_by_hash(block_hash)
         except BlockNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
             header = await peer.get_block_header_by_hash(block_hash, self.cancel_token)
 
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         body = await peer.get_block_by_hash(block_hash, self.cancel_token)
-        block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
+        vm = self.chain.get_vm_class_for_block_number(header.block_number)
+        block_class = vm.get_block_class()
         transactions = [
             block_class.transaction_class.from_base_transaction(tx)
             for tx in body.transactions
