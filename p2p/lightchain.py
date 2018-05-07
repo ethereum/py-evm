@@ -18,6 +18,12 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth_typing import (
+    Address,
+    BlockNumber,
+    Hash32,
+)
+
 from evm.chains import Chain
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.db.chain import AsyncChainDB
@@ -52,6 +58,7 @@ from p2p.peer import (
 class LightChain(Chain, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.lightchain.LightChain")
     max_consecutive_timeouts = 5
+    chaindb = None  # type: AsyncChainDB
 
     def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         super(LightChain, self).__init__(chaindb)
@@ -245,7 +252,9 @@ class LightChain(Chain, PeerPoolSubscriber):
         await self.wait_until_finished()
         self.logger.debug("LightChain finished")
 
-    async def get_canonical_block_by_number(self, block_number: int) -> BaseBlock:
+    # we have to ignore type hinting in this function since it's parent classes
+    # don't use `async def`
+    async def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:  # type: ignore  # noqa: E501
         """Return the block with the given number from the canonical chain.
 
         Raises BlockNotFound if it is not found.
@@ -258,7 +267,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         return await self.get_block_by_hash(block_hash)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_block_by_hash(self, block_hash: bytes) -> BaseBlock:
+    async def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         peer = await self.get_best_peer()
         try:
             header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
@@ -280,17 +289,17 @@ class LightChain(Chain, PeerPoolSubscriber):
         )
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_receipts(self, block_hash: bytes) -> List[Receipt]:
+    async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = await self.get_best_peer()
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         return await peer.get_receipts(block_hash, self.cancel_token)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_account(self, block_hash: bytes, address: bytes) -> Account:
+    async def get_account(self, block_hash: Hash32, address: Address) -> Account:
         peer = await self.get_best_peer()
         return await peer.get_account(block_hash, address, self.cancel_token)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_contract_code(self, block_hash: bytes, key: bytes) -> bytes:
+    async def get_contract_code(self, block_hash: Hash32, key: bytes) -> bytes:
         peer = await self.get_best_peer()
         return await peer.get_contract_code(block_hash, key, self.cancel_token)
