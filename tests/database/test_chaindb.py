@@ -18,6 +18,7 @@ from evm.db import (
 from evm.db.chain import (
     ChainDB,
 )
+from evm.db.schema import SchemaV1
 from evm.exceptions import (
     BlockNotFound,
     ParentNotFound,
@@ -27,10 +28,6 @@ from evm.rlp.headers import (
 )
 from evm.tools.fixture_tests import (
     assert_rlp_equal,
-)
-from evm.utils.db import (
-    make_block_hash_to_score_lookup_key,
-    make_block_number_to_hash_lookup_key,
 )
 from evm.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -71,7 +68,7 @@ def block(request, header):
 
 
 def test_add_block_number_to_hash_lookup(chaindb, block):
-    block_number_to_hash_key = make_block_number_to_hash_lookup_key(block.number)
+    block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
     chaindb._add_block_number_to_hash_lookup(block.header)
     assert chaindb.exists(block_number_to_hash_key)
@@ -80,7 +77,7 @@ def test_add_block_number_to_hash_lookup(chaindb, block):
 def test_persist_header(chaindb, header):
     with pytest.raises(BlockNotFound):
         chaindb.get_block_header_by_hash(header.hash)
-    number_to_hash_key = make_block_hash_to_score_lookup_key(header.hash)
+    number_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(header.hash)
     assert not chaindb.exists(number_to_hash_key)
 
     chaindb.persist_header(header)
@@ -98,7 +95,7 @@ def test_persist_header_unknown_parent(chaindb, header, seed):
 
 def test_persist_block(chaindb, block):
     block = block.copy(header=set_empty_root(chaindb, block.header))
-    block_to_hash_key = make_block_hash_to_score_lookup_key(block.hash)
+    block_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block(block)
     assert chaindb.exists(block_to_hash_key)
@@ -108,7 +105,7 @@ def test_get_score(chaindb):
     genesis = BlockHeader(difficulty=1, block_number=0, gas_limit=0)
     chaindb.persist_header(genesis)
 
-    genesis_score_key = make_block_hash_to_score_lookup_key(genesis.hash)
+    genesis_score_key = SchemaV1.make_block_hash_to_score_lookup_key(genesis.hash)
     genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
     assert genesis_score == 1
     assert chaindb.get_score(genesis.hash) == 1
@@ -116,7 +113,7 @@ def test_get_score(chaindb):
     block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
     chaindb.persist_header(block1)
 
-    block1_score_key = make_block_hash_to_score_lookup_key(block1.hash)
+    block1_score_key = SchemaV1.make_block_hash_to_score_lookup_key(block1.hash)
     block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
     assert block1_score == 11
     assert chaindb.get_score(block1.hash) == 11
