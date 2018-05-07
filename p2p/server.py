@@ -238,17 +238,24 @@ class Server:
             network_id=self.network_id
         )
 
-        await self.do_p2p_handshake(peer)
+        await self.do_handshake(peer)
 
-    async def do_p2p_handshake(self, peer: BasePeer) -> None:
+    async def do_handshake(self, peer: BasePeer) -> None:
         try:
             # P2P Handshake.
             await peer.do_p2p_handshake(),
         except (HandshakeFailure, asyncio.TimeoutError) as e:
             self.logger.debug('Unable to finish P2P handshake: %s', str(e))
-        else:
-            # Run peer and add peer.
-            self.peer_pool.start_peer(peer)
+            return
+
+        try:
+            await peer.do_sub_proto_handshake()
+        except (HandshakeFailure, asyncio.TimeoutError) as e:
+            self.logger.debug('Unable to finish sub protocoll handshake: %s', str(e))
+            return
+
+        # Handshake was successful, so run and add peer
+        self.peer_pool.start_peer(peer)
 
 
 def _test() -> None:
