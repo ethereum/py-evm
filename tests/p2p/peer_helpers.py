@@ -10,6 +10,7 @@ from p2p import auth
 from p2p import constants
 from p2p import ecies
 from p2p import kademlia
+from p2p.cancel_token import CancelToken
 from p2p.peer import LESPeer
 from p2p.server import decode_authentication
 
@@ -29,6 +30,7 @@ async def get_directly_linked_peers_without_handshake(
 
     Neither the P2P handshake nor the sub-protocol handshake will be performed here.
     """
+    cancel_token = CancelToken("get_directly_linked_peers_without_handshake")
     if peer1_chaindb is None:
         peer1_chaindb = get_fresh_mainnet_chaindb()
     if peer2_chaindb is None:
@@ -39,7 +41,7 @@ async def get_directly_linked_peers_without_handshake(
         peer2_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
     peer2_remote = kademlia.Node(
         peer1_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
-    initiator = auth.HandshakeInitiator(peer1_remote, peer1_private_key)
+    initiator = auth.HandshakeInitiator(peer1_remote, peer1_private_key, cancel_token)
     peer2_reader = asyncio.StreamReader()
     peer1_reader = asyncio.StreamReader()
     # Link the peer1's writer to the peer2's reader, and the peer2's writer to the
@@ -63,7 +65,7 @@ async def get_directly_linked_peers_without_handshake(
     async def do_handshake():
         nonlocal peer1
         aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
-            initiator, peer1_reader, peer1_writer)
+            initiator, peer1_reader, peer1_writer, cancel_token)
 
         peer1 = peer1_class(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
@@ -75,7 +77,7 @@ async def get_directly_linked_peers_without_handshake(
 
     asyncio.ensure_future(do_handshake())
 
-    responder = auth.HandshakeResponder(peer2_remote, peer2_private_key)
+    responder = auth.HandshakeResponder(peer2_remote, peer2_private_key, cancel_token)
     auth_cipher = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
 
     initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(

@@ -92,6 +92,7 @@ async def handshake(remote: Node,
                     peer_class: 'Type[BasePeer]',
                     chaindb: AsyncChainDB,
                     network_id: int,
+                    token: CancelToken,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
 
@@ -110,7 +111,7 @@ async def handshake(remote: Node,
          ingress_mac,
          reader,
          writer
-         ) = await auth.handshake(remote, privkey)
+         ) = await auth.handshake(remote, privkey, token)
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer(e)
     peer = peer_class(
@@ -699,7 +700,7 @@ class PeerPool:
                 self.logger.exception("Unexpected error, restarting")
                 await self.stop_all_peers()
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-            await asyncio.wait([self.cancel_token.wait()], timeout=self._connect_loop_sleep)
+            await asyncio.wait_for(self.cancel_token.wait(), timeout=self._connect_loop_sleep)
 
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
@@ -722,9 +723,9 @@ class PeerPool:
             UnreachablePeer, TimeoutError, PeerConnectionLost, HandshakeFailure)
         try:
             self.logger.debug("Connecting to %s...", remote)
-            peer = await wait_with_token(
-                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id),
-                token=self.cancel_token,
+            peer = await asyncio.wait_for(
+                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
+                          self.cancel_token),
                 timeout=HANDSHAKE_TIMEOUT)
             return peer
         except OperationCancelled:
@@ -951,7 +952,8 @@ def _test():
     loop = asyncio.get_event_loop()
     peer = loop.run_until_complete(
         asyncio.wait_for(
-            handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id),
+            handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id,
+                      CancelToken("Peer test")),
             HANDSHAKE_TIMEOUT))
 
     async def request_stuff():
