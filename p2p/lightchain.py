@@ -20,7 +20,6 @@ from eth_utils import (
 
 from evm.chains import BaseChain
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.db.chain import AsyncChainDB
 from evm.exceptions import (
     BlockNotFound,
 )

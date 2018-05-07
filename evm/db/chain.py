@@ -130,7 +130,7 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     # Block API
     @abstractmethod
-    def lookup_block_hash(self, block_number: int) -> Hash32:
+    def get_canonical_block_hash(self, block_number: int) -> Hash32:
         """
         Return the block hash for the given block number.
         """
@@ -225,7 +225,7 @@ class ChainDB(BaseChainDB):
         canonical chain.
         """
         validate_block_number(block_number, title="Block Number")
-        return self.get_block_header_by_hash(self.lookup_block_hash(block_number))
+        return self.get_block_header_by_hash(self.get_canonical_block_hash(block_number))
 
     #
     # Block Header API
@@ -299,7 +299,7 @@ class ChainDB(BaseChainDB):
         # remove transaction lookups for blocks that are no longer canonical
         for h in new_canonical_headers:
             try:
-                old_hash = self.lookup_block_hash(h.block_number)
+                old_hash = self.get_canonical_block_hash(h.block_number)
             except KeyError:
                 # no old block, and no more possible
                 break
@@ -367,7 +367,7 @@ class ChainDB(BaseChainDB):
             self.db.get(SchemaV1.make_block_hash_to_score_lookup_key(block_hash)),
             sedes=rlp.sedes.big_endian_int)
 
-    def lookup_block_hash(self, block_number: int) -> Hash32:
+    def get_canonical_block_hash(self, block_number: int) -> Hash32:
         """
         Return the block hash for the given block number.
         """
@@ -547,7 +547,7 @@ class AsyncChainDB(ChainDB):
     async def coro_header_exists(self, *args, **kwargs):
         raise NotImplementedError()
 
-    async def coro_lookup_block_hash(self, *args, **kwargs):
+    async def coro_get_canonical_block_hash(self, *args, **kwargs):
         raise NotImplementedError()
 
     async def coro_persist_header(self, *args, **kwargs):

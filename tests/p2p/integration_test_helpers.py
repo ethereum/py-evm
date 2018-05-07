@@ -43,8 +43,8 @@ class FakeAsyncChainDB(AsyncChainDB):
     async def coro_header_exists(self, *args, **kwargs):
         return self.header_exists(*args, **kwargs)
 
-    async def coro_lookup_block_hash(self, *args, **kwargs):
-        return self.lookup_block_hash(*args, **kwargs)
+    async def coro_get_canonical_block_hash(self, *args, **kwargs):
+        return self.get_canonical_block_hash(*args, **kwargs)
 
     async def coro_persist_header(self, *args, **kwargs):
         return self.persist_header(*args, **kwargs)
