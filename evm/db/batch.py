@@ -48,14 +48,13 @@ class BatchDB(BaseDB):
 
         self.clear()
 
-    def exists(self, key: bytes) -> bool:
+    def _exists(self, key: bytes) -> bool:
         try:
             return self.cache[key] is not None
         except KeyError:
             return key in self.wrapped_db
 
-    # if not key is found, return None
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         try:
             value = self.cache[key]
         except KeyError:
@@ -65,10 +64,10 @@ class BatchDB(BaseDB):
                 raise KeyError(key)
             return value
 
-    def set(self, key: bytes, value: bytes) -> None:
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         self.cache[key] = value
 
-    def delete(self, key: bytes) -> None:
+    def __delitem__(self, key: bytes) -> None:
         if key not in self:
             raise KeyError(key)
         self.cache[key] = None

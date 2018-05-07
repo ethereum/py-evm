@@ -36,16 +36,16 @@ def test_batch_db_with_set_and_delete(base_db, batch_db):
 
         assert b'key-1' not in batch_db
         with pytest.raises(KeyError):
-            assert batch_db.get(b'key-1')
+            assert batch_db[b'key-1']
 
         # key should still be in base batch_db
         assert b'key-1' in base_db
         assert b'key-1' not in batch_db
 
     with pytest.raises(KeyError):
-        base_db.get(b'key-1')
+        base_db[b'key-1']
     with pytest.raises(KeyError):
-        batch_db.get(b'key-1')
+        batch_db[b'key-1']
 
 
 def test_batch_db_with_exception(base_db, batch_db):

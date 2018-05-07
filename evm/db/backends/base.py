@@ -2,9 +2,26 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from collections.abc import (
+    MutableMapping,
+)
 
 
-class BaseDB(metaclass=ABCMeta):
+class BaseDB(MutableMapping, metaclass=ABCMeta):
+    """
+    This is an abstract key/value lookup with all :class:`bytes` values,
+    with some convenience methods for databases. As much as possible,
+    you can use a DB as if it were a :class:`dict`.
+
+    Notable exceptions are that you cannot iterate through all values or get the length.
+    (Unless a subclass explicitly enables it).
+
+    All subclasses must implement these methods:
+    __getitem__, __setitem__, __delitem__
+
+    Subclasses may optionally implement an _exists method
+    that is type-checked for key and value.
+    """
 
     @abstractmethod
     def __init__(self) -> None:
@@ -12,46 +29,26 @@ class BaseDB(metaclass=ABCMeta):
             "The `init` method must be implemented by subclasses of BaseDB"
         )
 
-    @abstractmethod
-    def get(self, key: bytes) -> bytes:
-        """Return the value for the given key.
-
-        Raises KeyError if key doesn't exist.
-        """
-        raise NotImplementedError(
-            "The `get` method must be implemented by subclasses of BaseDB"
-        )
-
-    @abstractmethod
     def set(self, key: bytes, value: bytes) -> None:
-        raise NotImplementedError(
-            "The `set` method must be implemented by subclasses of BaseDB"
-        )
+        self[key] = value
 
-    @abstractmethod
     def exists(self, key: bytes) -> bool:
-        """Return True if the key exists or False if it doesn't."""
-        raise NotImplementedError(
-            "The `exists` method must be implemented by subclasses of BaseDB"
-        )
+        return self.__contains__(key)
 
-    @abstractmethod
+    def __contains__(self, key):
+        if hasattr(self, '_exists'):
+            return self._exists(key)
+        else:
+            return super().__contains__(key)
+
     def delete(self, key: bytes) -> None:
-        raise NotImplementedError(
-            "The `delete` method must be implemented by subclasses of BaseDB"
-        )
+        try:
+            del self[key]
+        except KeyError:
+            return None
 
-    #
-    # Dictionary API
-    #
-    def __getitem__(self, key: bytes) -> bytes:
-        return self.get(key)
+    def __iter__(self):
+        raise NotImplementedError("By default, DB classes cannot by iterated.")
 
-    def __setitem__(self, key: bytes, value: bytes) -> None:
-        return self.set(key, value)
-
-    def __delitem__(self, key: bytes) -> None:
-        return self.delete(key)
-
-    def __contains__(self, key: bytes) -> bool:
-        return self.exists(key)
+    def __len__(self):
+        raise NotImplementedError("By default, DB classes cannot return the total number of keys.")

@@ -52,14 +52,14 @@ class ShardDB:
     #
     def get_header_by_hash(self, collation_hash: Hash32) -> CollationHeader:
         try:
-            header = self.db.get(collation_hash)
+            header = self.db[collation_hash]
         except KeyError:
             raise CollationHeaderNotFound("No header with hash {} found".format(collation_hash))
         return rlp.decode(header, sedes=CollationHeader)
 
     def get_body_by_chunk_root(self, chunk_root: Hash32) -> bytes:
         try:
-            body = self.db.get(chunk_root)
+            body = self.db[chunk_root]
         except KeyError:
             raise CollationBodyNotFound("No body with chunk root {} found".format(chunk_root))
         return body
@@ -85,7 +85,7 @@ class ShardDB:
     def get_canonical_collation_hash(self, shard_id: int, period: int) -> Hash32:
         key = make_canonical_hash_lookup_key(shard_id, period)
         try:
-            canonical_hash = self.db.get(key)
+            canonical_hash = self.db[key]
         except KeyError:
             raise CanonicalCollationNotFound(
                 "No collation set as canonical for shard {} and period {}".format(
@@ -139,7 +139,7 @@ class ShardDB:
     def get_availability(self, chunk_root: Hash32) -> Availability:
         key = make_collation_availability_lookup_key(chunk_root)
         try:
-            availability_entry = self.db.get(key)
+            availability_entry = self.db[key]
         except KeyError:
             return Availability.UNKNOWN
         else:

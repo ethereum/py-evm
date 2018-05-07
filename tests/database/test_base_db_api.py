@@ -65,16 +65,14 @@ def test_database_api_delete(db):
 
 
 def test_database_api_missing_key_retrieval(db):
-    with pytest.raises(KeyError):
-        db.get(b'does-not-exist')
+    assert db.get(b'does-not-exist') is None
 
     with pytest.raises(KeyError):
         db[b'does-not-exist']
 
 
 def test_database_api_missing_key_for_deletion(db):
-    with pytest.raises(KeyError):
-        db.delete(b'does-not-exist')
+    db.delete(b'does-not-exist')
 
     with pytest.raises(KeyError):
         del db[b'does-not-exist']

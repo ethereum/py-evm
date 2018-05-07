@@ -119,7 +119,7 @@ class Journal(BaseDB):
     #
     # Database API
     #
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
@@ -133,14 +133,14 @@ class Journal(BaseDB):
 
         return None
 
-    def set(self, key: bytes, value: bytes) -> None:
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         self.latest[key] = value
 
-    def exists(self, key: bytes) -> bool:
+    def _exists(self, key: bytes) -> bool:
         val = self.get(key)
         return val is not None and val is not DELETED_ENTRY
 
-    def delete(self, key: bytes) -> None:
+    def __delitem__(self, key: bytes) -> None:
         self.latest[key] = DELETED_ENTRY
 
 
@@ -170,7 +170,7 @@ class JournalDB(BaseDB):
         self.wrapped_db = wrapped_db
         self.reset()
 
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
 
         val = self.journal[key]
         if val is DELETED_ENTRY:
@@ -180,17 +180,17 @@ class JournalDB(BaseDB):
         else:
             return val
 
-    def set(self, key: bytes, value: bytes) -> None:
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         """
         - replacing an existing value
         - setting a value that does not exist
         """
         self.journal[key] = value
 
-    def exists(self, key: bytes) -> bool:
+    def _exists(self, key: bytes) -> bool:
         return key in self.journal or key in self.wrapped_db
 
-    def delete(self, key: bytes) -> None:
+    def __delitem__(self, key: bytes) -> None:
         if key not in self.journal and key not in self.wrapped_db:
             raise KeyError(key)
         del self.journal[key]

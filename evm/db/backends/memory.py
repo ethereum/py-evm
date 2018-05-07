@@ -16,14 +16,14 @@ class MemoryDB(BaseDB):
         else:
             self.kv_store = kv_store
 
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         return self.kv_store[key]
 
-    def set(self, key: bytes, value: bytes) -> None:
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         self.kv_store[key] = value
 
-    def exists(self, key: bytes) -> bool:
+    def _exists(self, key: bytes) -> bool:
         return key in self.kv_store
 
-    def delete(self, key: bytes) -> None:
+    def __delitem__(self, key: bytes) -> None:
         del self.kv_store[key]

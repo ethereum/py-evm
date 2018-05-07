@@ -288,7 +288,7 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_account(self, address):
-        cache_key = (self._unwrapped_db, self.state_root, address)
+        cache_key = (id(self._unwrapped_db), self.state_root, address)
         if cache_key not in account_cache:
             account_cache[cache_key] = self._trie[address]
 
@@ -302,7 +302,7 @@ class AccountDB(BaseAccountDB):
     def _set_account(self, address, account):
         rlp_account = rlp.encode(account, sedes=Account)
         self._trie[address] = rlp_account
-        cache_key = (self._unwrapped_db, self.state_root, address)
+        cache_key = (id(self._unwrapped_db), self.state_root, address)
         account_cache[cache_key] = rlp_account
 
     #

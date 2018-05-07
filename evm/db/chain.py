@@ -240,7 +240,7 @@ class ChainDB(BaseChainDB):
         """
         validate_word(block_hash, title="Block Hash")
         try:
-            header_rlp = self.db.get(block_hash)
+            header_rlp = self.db[block_hash]
         except KeyError:
             raise BlockNotFound("No block with hash {0} found".format(
                 encode_hex(block_hash)))
@@ -376,7 +376,7 @@ class ChainDB(BaseChainDB):
         validate_uint256(block_number, title="Block Number")
         number_to_hash_key = make_block_number_to_hash_lookup_key(block_number)
         return rlp.decode(
-            self.db.get(number_to_hash_key),
+            self.db[number_to_hash_key],
             sedes=rlp.sedes.binary,
         )
 
@@ -472,7 +472,7 @@ class ChainDB(BaseChainDB):
 
     def get_transaction_index(self, transaction_hash: bytes) -> Tuple[int, int]:
         try:
-            encoded_key = self.db.get(make_transaction_hash_to_block_lookup_key(transaction_hash))
+            encoded_key = self.db[make_transaction_hash_to_block_lookup_key(transaction_hash)]
         except KeyError:
             raise TransactionNotFound(
                 "Transaction {} not found in canonical chain".format(encode_hex(transaction_hash)))
