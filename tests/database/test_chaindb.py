@@ -67,14 +67,14 @@ def block(request, header):
     return request.param(header)
 
 
-def test_add_block_number_to_hash_lookup(chaindb, block):
+def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
     chaindb._add_block_number_to_hash_lookup(block.header)
     assert chaindb.exists(block_number_to_hash_key)
 
 
-def test_persist_header(chaindb, header):
+def test_chaindb_persist_header(chaindb, header):
     with pytest.raises(BlockNotFound):
         chaindb.get_block_header_by_hash(header.hash)
     number_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(header.hash)
@@ -87,13 +87,13 @@ def test_persist_header(chaindb, header):
 
 
 @given(seed=st.binary(min_size=32, max_size=32))
-def test_persist_header_unknown_parent(chaindb, header, seed):
+def test_chaindb_persist_header_unknown_parent(chaindb, header, seed):
     n_header = header.copy(parent_hash=keccak(seed))
     with pytest.raises(ParentNotFound):
         chaindb.persist_header(n_header)
 
 
-def test_persist_block(chaindb, block):
+def test_chaindb_persist_block(chaindb, block):
     block = block.copy(header=set_empty_root(chaindb, block.header))
     block_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
@@ -101,7 +101,7 @@ def test_persist_block(chaindb, block):
     assert chaindb.exists(block_to_hash_key)
 
 
-def test_get_score(chaindb):
+def test_chaindb_get_score(chaindb):
     genesis = BlockHeader(difficulty=1, block_number=0, gas_limit=0)
     chaindb.persist_header(genesis)
 
@@ -119,7 +119,7 @@ def test_get_score(chaindb):
     assert chaindb.get_score(block1.hash) == 11
 
 
-def test_get_block_header_by_hash(chaindb, block, header):
+def test_chaindb_get_block_header_by_hash(chaindb, block, header):
     block = block.copy(header=set_empty_root(chaindb, block.header))
     header = set_empty_root(chaindb, header)
     chaindb.persist_block(block)
@@ -127,8 +127,8 @@ def test_get_block_header_by_hash(chaindb, block, header):
     assert_rlp_equal(block_header, header)
 
 
-def test_lookup_block_hash(chaindb, block):
+def test_chaindb_get_canonical_block_hash(chaindb, block):
     block = block.copy(header=set_empty_root(chaindb, block.header))
     chaindb._add_block_number_to_hash_lookup(block.header)
-    block_hash = chaindb.lookup_block_hash(block.number)
+    block_hash = chaindb.get_canonical_block_hash(block.number)
     assert block_hash == block.hash

@@ -174,7 +174,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+        return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         """
@@ -455,7 +455,7 @@ class Chain(BaseChain):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.lookup_block_hash(block_number))
+        return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         """

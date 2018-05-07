@@ -260,7 +260,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         Raises BlockNotFound if it is not found.
         """
         try:
-            block_hash = await self.chaindb.coro_lookup_block_hash(block_number)
+            block_hash = await self.chaindb.coro_get_canonical_block_hash(block_number)
         except KeyError:
             raise BlockNotFound(
                 "No block with number {} found on local chain".format(block_number))
