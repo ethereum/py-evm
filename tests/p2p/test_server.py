@@ -41,16 +41,15 @@ INITIATOR_ADDRESS = Address('127.0.0.1', get_open_port() + 1)
 INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
-def get_server(privkey, address, bootstrap_nodes=None, peer_class=DumbPeer):
-    if bootstrap_nodes is None:
-        bootstrap_nodes = []
+def get_server(privkey, address, peer_class):
+    bootstrap_nodes = []
     chaindb = ChainDB(MemoryDB())
     server = Server(
         privkey,
         address,
         chaindb,
         bootstrap_nodes,
-        1,
+        network_id=1,
         min_peers=1,
         peer_class=peer_class,
     )
@@ -58,9 +57,27 @@ def get_server(privkey, address, bootstrap_nodes=None, peer_class=DumbPeer):
 
 
 @pytest.fixture
-def server():
-    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, bootstrap_nodes=[], peer_class=ETHPeer)
-    return server
+async def server():
+    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)
+    await asyncio.wait_for(server.start(), timeout=1)
+    yield server
+    await asyncio.wait_for(server.stop(), timeout=1)
+
+
+@pytest.fixture
+async def receiver_server_with_dumb_peer():
+    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, DumbPeer)
+    await asyncio.wait_for(server.start(), timeout=1)
+    yield server
+    await asyncio.wait_for(server.stop(), timeout=1)
+
+
+@pytest.fixture
+async def initiator_server_with_dumb_peer():
+    server = get_server(INITIATOR_PRIVKEY, INITIATOR_ADDRESS, DumbPeer)
+    await asyncio.wait_for(server.start(), timeout=1)
+    yield server
+    await asyncio.wait_for(server.stop(), timeout=1)
 
 
 @pytest.mark.asyncio
@@ -71,49 +88,31 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
     # Only test the authentication in this test.
     monkeypatch.setattr(ETHPeer, 'do_p2p_handshake', mock_do_p2p_handshake)
 
-    await server.start()
-
     # Send auth init message to the server.
-    reader, writer = await asyncio.open_connection(SERVER_ADDRESS.ip, SERVER_ADDRESS.tcp_port)
+    reader, writer = await asyncio.wait_for(
+        asyncio.open_connection(SERVER_ADDRESS.ip, SERVER_ADDRESS.tcp_port),
+        timeout=1)
     writer.write(eip8_values['auth_init_ciphertext'])
-    await writer.drain()
+    await asyncio.wait_for(writer.drain(), timeout=1)
 
     # Await the server replying auth ack.
-    await reader.read(len(eip8_values['auth_ack_ciphertext']))
+    await asyncio.wait_for(
+        reader.read(len(eip8_values['auth_ack_ciphertext'])),
+        timeout=1)
 
     # The sole connected node is our initiator.
     assert len(server.peer_pool.connected_nodes) == 1
     initiator_peer = server.peer_pool.connected_nodes[INITIATOR_REMOTE]
     assert isinstance(initiator_peer, ETHPeer)
     assert initiator_peer.privkey == RECEIVER_PRIVKEY
-    await server.stop()
 
 
 @pytest.mark.asyncio
-async def test_two_servers(event_loop):
-    # Start server.
-    server_1 = get_server(
-        RECEIVER_PRIVKEY,
-        SERVER_ADDRESS,
-    )
-    server_2 = get_server(
-        INITIATOR_PRIVKEY,
-        INITIATOR_ADDRESS,
-    )
-
-    await server_1.start()
-    await server_2.start()
-
+async def test_two_servers(event_loop,
+                           receiver_server_with_dumb_peer,
+                           initiator_server_with_dumb_peer):
     nodes = [RECEIVER_REMOTE]
-    await server_2.peer_pool._connect_to_nodes(nodes)
+    await initiator_server_with_dumb_peer.peer_pool._connect_to_nodes(nodes)
 
-    assert len(server_1.peer_pool.connected_nodes) == 1
-    assert len(server_2.peer_pool.connected_nodes) == 1
-
-    # Stop the servers.
-    await server_1.stop()
-    await server_2.stop()
-
-    # Check if they are disconnected.
-    assert len(server_1.peer_pool.connected_nodes) == 0
-    assert len(server_2.peer_pool.connected_nodes) == 0
+    assert len(receiver_server_with_dumb_peer.peer_pool.connected_nodes) == 1
+    assert len(initiator_server_with_dumb_peer.peer_pool.connected_nodes) == 1

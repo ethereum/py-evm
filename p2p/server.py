@@ -204,7 +204,7 @@ class Server:
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
         initiator_remote = Node(initiator_pubkey, remote_address)
-        responder = HandshakeResponder(initiator_remote, self.privkey)
+        responder = HandshakeResponder(initiator_remote, self.privkey, self.cancel_token)
 
         # Call `HandshakeResponder.create_auth_ack_message(nonce: bytes)` to create the reply
         responder_nonce = secrets.token_bytes(HASH_LEN)

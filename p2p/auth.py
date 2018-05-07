@@ -19,6 +19,7 @@ from eth_hash.auto import keccak
 
 from p2p import ecies
 from p2p import kademlia
+from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import DecryptionError
 from p2p.utils import (
     sxor,
@@ -37,23 +38,25 @@ from .constants import (
 )
 
 
-async def handshake(remote: kademlia.Node, privkey: datatypes.PrivateKey) -> Tuple[
-    bytes, bytes, sha3.keccak_256, sha3.keccak_256, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
+async def handshake(
+        remote: kademlia.Node,
+        privkey: datatypes.PrivateKey,
+        token: CancelToken) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
     """
     Perform the auth handshake with given remote.
 
     Returns the established secrets and the StreamReader/StreamWriter pair already connected to
     the remote.
     """
-    initiator = HandshakeInitiator(remote, privkey)
+    initiator = HandshakeInitiator(remote, privkey, token)
     reader, writer = await initiator.connect()
     aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
-        initiator, reader, writer)
+        initiator, reader, writer, token)
     return aes_secret, mac_secret, egress_mac, ingress_mac, reader, writer
 
 
 async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamReader,
-                     writer: asyncio.StreamWriter
+                     writer: asyncio.StreamWriter, token: CancelToken,
                      ) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256]:
     """See the handshake() function above.
 
@@ -65,7 +68,7 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     auth_init = initiator.encrypt_auth_message(auth_msg)
     writer.write(auth_init)
 
-    auth_ack = await reader.read(ENCRYPTED_AUTH_ACK_LEN)
+    auth_ack = await wait_with_token(reader.read(ENCRYPTED_AUTH_ACK_LEN), token=token)
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
@@ -84,10 +87,12 @@ class HandshakeBase:
     got_eip8_auth = False
     _is_initiator = False
 
-    def __init__(self, remote: kademlia.Node, privkey: datatypes.PrivateKey) -> None:
+    def __init__(
+            self, remote: kademlia.Node, privkey: datatypes.PrivateKey, token: CancelToken) -> None:
         self.remote = remote
         self.privkey = privkey
         self.ephemeral_privkey = ecies.generate_privkey()
+        self.cancel_token = token
 
     @property
     def ephemeral_pubkey(self) -> datatypes.PublicKey:
@@ -98,8 +103,9 @@ class HandshakeBase:
         return self.privkey.public_key
 
     async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        return await asyncio.open_connection(
-            host=self.remote.address.ip, port=self.remote.address.tcp_port)
+        return await wait_with_token(
+            asyncio.open_connection(host=self.remote.address.ip, port=self.remote.address.tcp_port),
+            token=self.cancel_token)
 
     def derive_secrets(self,
                        initiator_nonce: bytes,
