@@ -632,6 +632,17 @@ class Chain(BaseChain):
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
 # Chain implementation.
 class AsyncChain(Chain):
+    async def coro_get_canonical_block_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_block_by_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_block_header_by_hash(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    async def coro_get_canonical_head(self, *args, **kwargs):
+        raise NotImplementedError()
 
     async def coro_import_block(self,
                                 block: BlockHeader,
