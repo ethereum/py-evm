@@ -16,7 +16,7 @@ class MemoryDB(BaseDB):
         else:
             self.kv_store = kv_store
 
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         return self.kv_store[key]
 
     def set(self, key: bytes, value: bytes) -> None:

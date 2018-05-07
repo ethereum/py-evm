@@ -119,7 +119,7 @@ class Journal(BaseDB):
     #
     # Database API
     #
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
@@ -170,7 +170,7 @@ class JournalDB(BaseDB):
         self.wrapped_db = wrapped_db
         self.reset()
 
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
 
         val = self.journal[key]
         if val is DELETED_ENTRY:

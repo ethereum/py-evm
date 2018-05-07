@@ -26,3 +26,6 @@ class HashTrie(object):
     @root_hash.setter
     def root_hash(self, value):
         self._trie.root_hash = value
+
+    def __getattr__(self, attr):
+        return getattr(self._trie, attr)

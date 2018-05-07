@@ -69,6 +69,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
 
+    def copy(self, **kwargs):
+        kwargs.setdefault('db', self._db)
+        kwargs.setdefault('execution_context', self.execution_context)
+        kwargs.setdefault('state_root', self.state_root)
+        return type(self)(**kwargs)
+
     #
     # Logging
     #

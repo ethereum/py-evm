@@ -1,7 +1,9 @@
-from __future__ import absolute_import
 from abc import (
     ABCMeta,
     abstractmethod
+)
+from collections import (
+    namedtuple,
 )
 import contextlib
 import functools
@@ -59,6 +61,9 @@ from evm.vm.message import (
     Message,
 )
 from evm.vm.state import BaseState  # noqa: F401
+
+BlockState = namedtuple('BlockState', 'header, state')
+TransactionResult = namedtuple('TransactionResult', 'receipt, computation')
 
 
 class BaseVM(Configurable, metaclass=ABCMeta):
@@ -185,16 +190,30 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         return new_header, receipt, computation
 
-    def _apply_all_transactions(self, transactions, base_header):
+    def _execute_transaction(self, block_state, transaction):
+        # TODO: replace apply_transaction with this implementation
+        original_state, self.state = self.state, block_state.state
+
+        header, receipt, computation = self.apply_transaction(block_state.header, transaction)
+        next_block_state = BlockState(header, self.state)
+        transaction_result = TransactionResult(receipt, computation)
+
+        self.state = original_state
+        return next_block_state, transaction_result
+
+    def _apply_all_transactions(self, block_state, transactions):
+        base_header, state = block_state.header, block_state.state
+
         receipts = []
         previous_header = base_header
         result_header = base_header
 
         for transaction in transactions:
-            result_header, receipt, _ = self.apply_transaction(previous_header, transaction)
+            block_state = BlockState(previous_header, state)
+            next_block_state, txn_result = self._execute_transaction(block_state, transaction)
 
-            previous_header = result_header
-            receipts.append(receipt)
+            previous_header = next_block_state.header
+            receipts.append(txn_result.receipt)
 
         return result_header, receipts
 
@@ -218,14 +237,19 @@ class BaseVM(Configurable, metaclass=ABCMeta):
             uncles=block.uncles,
         )
         # we need to re-initialize the `state` to update the execution context.
-        self.state = self.get_state_class()(
-            db=self.chaindb.db,
+        state = self.state.copy(
             execution_context=self.block.header.create_execution_context(self.previous_hashes),
             state_root=self.block.header.state_root,
         )
 
         # run all of the transactions.
-        last_header, receipts = self._apply_all_transactions(block.transactions, self.block.header)
+        with self.squash_trie_into_state(state) as squash_state:
+            last_header, receipts = self._apply_all_transactions(
+                BlockState(self.block.header, squash_state),
+                block.transactions,
+            )
+
+        self.state = state
 
         self.block = self.set_block_transactions(
             self.block,
@@ -344,8 +368,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = (header.hash, ) + self.previous_hashes
 
-        state = self.get_state_class()(
-            db=self.chaindb.db,
+        state = self.state.copy(
             execution_context=temp_block.header.create_execution_context(prev_hashes),
             state_root=temp_block.header.state_root,
         )
@@ -595,6 +618,30 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     #
     # State
     #
+    @contextlib.contextmanager
+    def squash_trie_into_state(self, state):
+        """
+        Drop all intermediate state roots between the previous
+        and final state root. While squashing, the trie keeps track of the
+        most recent root, ultimately dropping all roots but the final one.
+        """
+        base_trie = state.account_db._trie
+        # TODO fix this ^ ugly hack! ... by removing trie from AccountDB altogether
+        # Fix might look like:
+        #   - squash_state = state.copy(trie=squash_trie), or
+        #   - squash_state.commit_diff_to_db(self.trie)  <--- Favorite direction ATM
+
+        with base_trie.squash_changes() as squash_trie:
+            squash_state = state.copy()
+            squash_state.account_db._trie = squash_trie
+            yield squash_state
+
+            # Note: on exiting this context, the changes to squash_trie
+            # are written back to base_trie
+
+        state.account_db._trie = base_trie
+        state.account_db.db = base_trie.db
+
     @classmethod
     def get_state_class(cls):
         """

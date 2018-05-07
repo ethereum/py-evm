@@ -55,7 +55,7 @@ class BatchDB(BaseDB):
             return key in self.wrapped_db
 
     # if not key is found, return None
-    def get(self, key: bytes) -> bytes:
+    def __getitem__(self, key: bytes) -> bytes:
         try:
             value = self.cache[key]
         except KeyError:
