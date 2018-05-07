@@ -155,15 +155,6 @@ class Server:
         self._server.close()
         await self._server.wait_closed()
         await self.peer_pool.stop()
-        await self._wait_pending_tasks()
-
-    # TODO: Add something like this to other service classes as well
-    async def _wait_pending_tasks(self):
-        # Wait up to 2s (checking every 0.2s) for all pending tasks to finish cleanly.
-        tries = 0
-        while asyncio.Task.all_tasks() and tries < 10:
-            await asyncio.sleep(0.2)
-            tries += 1
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
