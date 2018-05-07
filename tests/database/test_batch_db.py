@@ -24,8 +24,15 @@ def test_batch_db_with_set_and_get(base_db, batch_db):
         assert b'key-1' not in base_db
         assert b'key-2' not in base_db
 
+        diff = batch_db.diff()
+
     assert base_db.get(b'key-1') == b'value-1'
     assert base_db.get(b'key-2') == b'value-2'
+
+    example_db = {b'key-3': b'unrelated'}
+    expected_result = {b'key-1': b'value-1', b'key-2': b'value-2', b'key-3': b'unrelated'}
+    diff.apply_to(example_db)
+    assert example_db == expected_result
 
 
 def test_batch_db_with_set_and_delete(base_db, batch_db):
@@ -42,10 +49,17 @@ def test_batch_db_with_set_and_delete(base_db, batch_db):
         assert b'key-1' in base_db
         assert b'key-1' not in batch_db
 
+        diff = batch_db.diff()
+
     with pytest.raises(KeyError):
         base_db[b'key-1']
     with pytest.raises(KeyError):
         batch_db[b'key-1']
+
+    example_db = {b'key-1': b'origin', b'key-2': b'unrelated'}
+    expected_result = {b'key-2': b'unrelated'}
+    diff.apply_to(example_db)
+    assert example_db == expected_result
 
 
 def test_batch_db_with_exception(base_db, batch_db):

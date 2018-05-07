@@ -1,6 +1,11 @@
 import logging
 from typing import Type, Dict  # noqa: F401
 
+from evm.db.diff import (
+    DBDiff,
+    DBDiffTracker,
+    DiffMissingError,
+)
 from evm.db.backends.base import BaseDB
 
 
@@ -16,11 +21,11 @@ class BatchDB(BaseDB):
     logger = logging.getLogger("evm.db.BatchDB")
 
     wrapped_db = None  # type: BaseDB
-    cache = None  # type: Dict[bytes, bytes]
+    _track_diff = None  # type: DBDiffTracker
 
     def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db
-        self.cache = {}  # type: Dict[bytes, bytes]
+        self._track_diff = DBDiffTracker()
 
     def __enter__(self) -> 'BatchDB':
         return self
@@ -31,43 +36,41 @@ class BatchDB(BaseDB):
             self.commit()
         else:
             self.clear()
-            self.logger.exception("Unexpected error occurred when batch update")
+            self.logger.exception("Unexpected error occurred during batch update")
 
     def clear(self):
-        self.cache = {}
+        self._track_diff = DBDiffTracker()
 
     def commit(self):
-        for key, value in self.cache.items():
-            if value is None:
-                try:
-                    del self.wrapped_db[key]
-                except KeyError:
-                    pass
-            else:
-                self.wrapped_db[key] = value
-
+        self.diff().apply_to(self.wrapped_db)
         self.clear()
 
     def _exists(self, key: bytes) -> bool:
         try:
-            return self.cache[key] is not None
+            self[key]
         except KeyError:
-            return key in self.wrapped_db
+            return False
+        else:
+            return True
 
     def __getitem__(self, key: bytes) -> bytes:
         try:
-            value = self.cache[key]
-        except KeyError:
-            return self.wrapped_db[key]
-        else:
-            if value is None:
+            value = self._track_diff[key]
+        except DiffMissingError as missing:
+            if missing.is_deleted():
                 raise KeyError(key)
+            else:
+                return self.wrapped_db[key]
+        else:
             return value
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
-        self.cache[key] = value
+        self._track_diff[key] = value
 
     def __delitem__(self, key: bytes) -> None:
         if key not in self:
             raise KeyError(key)
-        self.cache[key] = None
+        del self._track_diff[key]
+
+    def diff(self) -> DBDiff:
+        return self._track_diff.diff()
