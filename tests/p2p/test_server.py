@@ -82,11 +82,12 @@ async def initiator_server_with_dumb_peer():
 
 @pytest.mark.asyncio
 async def test_server_authenticates_incoming_connections(monkeypatch, server, event_loop):
-    async def mock_do_p2p_handshake(self):
+    async def mock_do_handshake(self):
         pass
 
     # Only test the authentication in this test.
-    monkeypatch.setattr(ETHPeer, 'do_p2p_handshake', mock_do_p2p_handshake)
+    monkeypatch.setattr(ETHPeer, 'do_p2p_handshake', mock_do_handshake)
+    monkeypatch.setattr(ETHPeer, 'do_sub_proto_handshake', mock_do_handshake)
 
     # Send auth init message to the server.
     reader, writer = await asyncio.wait_for(
