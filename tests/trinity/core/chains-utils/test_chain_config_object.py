@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from eth_utils import (
@@ -8,9 +10,9 @@ from eth_keys import keys
 
 from trinity.utils.chains import (
     get_local_data_dir,
-    get_database_dir,
     get_nodekey_path,
     ChainConfig,
+    DATABASE_DIR_NAME,
 )
 from trinity.utils.filesystem import (
     is_same_path,
@@ -23,7 +25,7 @@ def test_chain_config_computed_properties():
 
     assert chain_config.network_id == 1234
     assert chain_config.data_dir == data_dir
-    assert chain_config.database_dir == get_database_dir(data_dir)
+    assert chain_config.database_dir == os.path.join(data_dir, DATABASE_DIR_NAME, "full")
     assert chain_config.nodekey_path == get_nodekey_path(data_dir)
 
 

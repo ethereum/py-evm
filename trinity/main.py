@@ -1,4 +1,6 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
+import logging
 from multiprocessing.managers import (
     BaseManager,
 )
@@ -14,18 +16,25 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.exceptions import OperationCancelled
+from p2p.sync import FullNodeSyncer
 from p2p.peer import (
+    ETHPeer,
     LESPeer,
     HardCodedNodesPeerPool,
 )
 
 from trinity.chains import (
-    get_chain_protocol_class,
+    ChainProxy,
     initialize_data_dir,
-    initialize_database,
     is_data_dir_initialized,
-    is_database_initialized,
     serve_chaindb,
+)
+from trinity.chains.mainnet import (
+    MainnetLightChain,
+)
+from trinity.chains.ropsten import (
+    RopstenLightChain,
 )
 from trinity.console import (
     console,
@@ -66,17 +75,13 @@ PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
 def main() -> None:
     args = parser.parse_args()
 
-    logger, log_queue, listener = setup_trinity_logging(args.log_level.upper())
+    log_level = getattr(logging, args.log_level.upper())
+    logger, log_queue, listener = setup_trinity_logging(log_level)
 
     if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
             "Unsupported network id: {0}.  Only the ropsten and mainnet "
             "networks are supported.".format(args.network_id)
-        )
-
-    if args.sync_mode != SYNC_LIGHT:
-        raise NotImplementedError(
-            "Only light sync is supported.  Run with `--sync-mode=light` or `--light`"
         )
 
     chain_config = ChainConfig.from_parser_args(args)
@@ -99,6 +104,11 @@ def main() -> None:
     # the local logger.
     listener.start()
 
+    logging_kwargs = {
+        'log_queue': log_queue,
+        'log_level': log_level,
+    }
+
     # First initialize the database process.
     database_server_process = ctx.Process(
         target=run_database_process,
@@ -106,14 +116,18 @@ def main() -> None:
             chain_config,
             LevelDB,
         ),
-        kwargs={'log_queue': log_queue}
+        kwargs=logging_kwargs,
     )
 
-    # For now we just run the light sync against ropsten by default.
+    # TODO: Combine run_fullnode_process/run_lightnode_process into a single function that simply
+    # passes the sync mode to p2p.Server, which then selects the appropriate sync service.
+    networking_proc_fn = run_fullnode_process
+    if args.sync_mode == SYNC_LIGHT:
+        networking_proc_fn = run_lightnode_process
     networking_process = ctx.Process(
-        target=run_networking_process,
-        args=(chain_config, args.sync_mode, pool_class),
-        kwargs={'log_queue': log_queue}
+        target=networking_proc_fn,
+        args=(chain_config, pool_class),
+        kwargs=logging_kwargs,
     )
 
     # start the processes
@@ -139,15 +153,10 @@ def main() -> None:
 def run_database_process(chain_config: ChainConfig, db_class: Type[LevelDB]) -> None:
     db = db_class(db_path=chain_config.database_dir)
 
-    serve_chaindb(db, chain_config.database_ipc_path)
+    serve_chaindb(chain_config, db)
 
 
-@with_queued_logging
-def run_networking_process(
-        chain_config: ChainConfig,
-        sync_mode: str,
-        pool_class: Type[HardCodedNodesPeerPool]) -> None:
-
+def create_dbmanager(ipc_path: str) -> BaseManager:
     class DBManager(BaseManager):
         pass
 
@@ -155,16 +164,29 @@ def run_networking_process(
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
     DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
     DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
+    DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
 
-    manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
+    manager = DBManager(address=ipc_path)  # type: ignore
     manager.connect()  # type: ignore
+    return manager
 
+
+@with_queued_logging
+def run_lightnode_process(
+        chain_config: ChainConfig,
+        pool_class: Type[HardCodedNodesPeerPool]) -> None:
+
+    manager = create_dbmanager(chain_config.database_ipc_path)
     chaindb = manager.get_chaindb()  # type: ignore
 
-    if not is_database_initialized(chaindb):
-        initialize_database(chain_config, chaindb)
-
-    chain_class = get_chain_protocol_class(chain_config, sync_mode=sync_mode)
+    if chain_config.network_id == MAINNET_NETWORK_ID:
+        chain_class = MainnetLightChain  # type: ignore
+    elif chain_config.network_id == ROPSTEN_NETWORK_ID:
+        chain_class = RopstenLightChain  # type: ignore
+    else:
+        raise NotImplementedError(
+            "Only the mainnet and ropsten chains are currently supported"
+        )
     peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
     chain = chain_class(chaindb, peer_pool)
 
@@ -186,4 +208,38 @@ def run_networking_process(
             await chain.stop()
 
     loop.run_until_complete(run_chain(chain))
+    loop.close()
+
+
+@with_queued_logging
+def run_fullnode_process(
+        chain_config: ChainConfig,
+        pool_class: Type[HardCodedNodesPeerPool]) -> None:
+
+    manager = create_dbmanager(chain_config.database_ipc_path)
+    db = manager.get_db()  # type: ignore
+    chaindb = manager.get_chaindb()  # type: ignore
+    chain = manager.get_chain()  # type: ignore
+
+    peer_pool = pool_class(ETHPeer, chaindb, chain_config.network_id, chain_config.nodekey)
+    asyncio.ensure_future(peer_pool.run())
+    syncer = FullNodeSyncer(chain, chaindb, db, peer_pool)
+
+    loop = asyncio.get_event_loop()
+    # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the
+    # main thread.
+    loop.set_default_executor(ProcessPoolExecutor())
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, syncer.cancel_token.trigger)
+
+    async def run_syncer():
+        try:
+            await syncer.run()
+        except OperationCancelled:
+            pass
+        finally:
+            await peer_pool.stop()
+            await syncer.stop()
+
+    loop.run_until_complete(run_syncer())
     loop.close()

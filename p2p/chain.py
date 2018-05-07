@@ -354,8 +354,12 @@ class ChainSyncer(PeerPoolSubscriber):
 
 class RegularChainSyncer(ChainSyncer):
 
-    def __init__(self, chain: AsyncChain, peer_pool: PeerPool, token: CancelToken = None) -> None:
-        super().__init__(chain.chaindb, peer_pool, token)
+    def __init__(self,
+                 chain: AsyncChain,
+                 chaindb: AsyncChainDB,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
+        super().__init__(chaindb, peer_pool, token)
         self.chain = chain
 
     async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
@@ -395,6 +399,7 @@ class RegularChainSyncer(ChainSyncer):
         for header in headers:
             vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
             block_class = vm_class.get_block_class()
+
             if _is_body_empty(header):
                 transactions = []  # type: List[BaseTransaction]
                 uncles = []  # type: List[BlockHeader]
@@ -491,7 +496,7 @@ def _test() -> None:
 
     asyncio.ensure_future(peer_pool.run())
     chain = FakeAsyncRopstenChain(chaindb)
-    downloader = RegularChainSyncer(chain, peer_pool)
+    downloader = RegularChainSyncer(chain, chaindb, peer_pool)
     downloader.min_peers_to_sync = 1
 
     async def run():

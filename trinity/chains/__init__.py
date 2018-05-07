@@ -1,9 +1,12 @@
-from multiprocessing.managers import (
+# Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
+# https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
+from multiprocessing.managers import (  # type: ignore
     BaseManager,
+    BaseProxy,
 )
 import os
-from typing import Type
 
+from evm import MainnetChain, RopstenChain
 from evm.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
     MAINNET_NETWORK_ID,
@@ -13,27 +16,21 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 from evm.db.backends.base import BaseDB
-from evm.db.chain import ChainDB
+from evm.db.chain import AsyncChainDB
 from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
-from p2p.lightchain import LightChain
 
-from trinity.constants import SYNC_LIGHT
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.utils.chains import (
     ChainConfig,
 )
+from trinity.utils.mp import (
+    async_method,
+)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
-)
-
-from .mainnet import (
-    MainnetLightChain,
-)
-from .ropsten import (
-    RopstenLightChain,
 )
 
 
@@ -62,7 +59,7 @@ def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
     return True
 
 
-def is_database_initialized(chaindb: ChainDB) -> bool:
+def is_database_initialized(chaindb: AsyncChainDB) -> bool:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -93,7 +90,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config: ChainConfig, chaindb: ChainDB) -> None:
+def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -110,25 +107,19 @@ def initialize_database(chain_config: ChainConfig, chaindb: ChainDB) -> None:
             )
 
 
-def get_chain_protocol_class(chain_config: ChainConfig, sync_mode: str) -> Type[LightChain]:
-    """
-    Retrieve the protocol class for the given chain and sync mode.
-    """
-    if sync_mode != SYNC_LIGHT:
-        raise NotImplementedError("Currently, `sync_mode` must be set to 'light'")
-
+def serve_chaindb(chain_config: ChainConfig, db: BaseDB) -> None:
+    chaindb = AsyncChainDB(db)
+    if not is_database_initialized(chaindb):
+        initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
-        return MainnetLightChain
+        chain_class = MainnetChain  # type: ignore
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        return RopstenLightChain
+        chain_class = RopstenChain  # type: ignore
     else:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-
-
-def serve_chaindb(db: BaseDB, ipc_path: str) -> None:
-    chaindb = ChainDB(db)
+    chain = chain_class(chaindb)  # type: ignore
 
     class DBManager(BaseManager):
         pass
@@ -138,8 +129,13 @@ def serve_chaindb(db: BaseDB, ipc_path: str) -> None:
     DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)  # type: ignore
     DBManager.register(  # type: ignore
         'get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)
+    DBManager.register('get_chain', callable=lambda: chain, proxytype=ChainProxy)  # type: ignore
 
-    manager = DBManager(address=ipc_path)  # type: ignore
+    manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
     server = manager.get_server()  # type: ignore
 
     server.serve_forever()  # type: ignore
+
+
+class ChainProxy(BaseProxy):
+    coro_import_block = async_method('import_block')
