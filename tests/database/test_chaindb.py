@@ -20,7 +20,7 @@ from evm.db.chain import (
 )
 from evm.db.schema import SchemaV1
 from evm.exceptions import (
-    BlockNotFound,
+    HeaderNotFound,
     ParentNotFound,
 )
 from evm.rlp.headers import (
@@ -75,7 +75,7 @@ def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
 
 
 def test_chaindb_persist_header(chaindb, header):
-    with pytest.raises(BlockNotFound):
+    with pytest.raises(HeaderNotFound):
         chaindb.get_block_header_by_hash(header.hash)
     number_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(header.hash)
     assert not chaindb.exists(number_to_hash_key)
