@@ -52,7 +52,6 @@ from evm.exceptions import (
     VMNotFound,
 )
 from evm.validation import (
-    validate_block_number,
     validate_uint256,
     validate_word,
     validate_vm_configuration,
@@ -410,7 +409,7 @@ class Chain(BaseChain):
         """
         Returns the VM class for the given block number.
         """
-        validate_block_number(block_number)
+        validate_uint256(block_number)
         for start_block, vm_class in reversed(cls.vm_configuration):
             if block_number >= start_block:
                 return vm_class

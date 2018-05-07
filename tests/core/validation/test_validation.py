@@ -9,7 +9,6 @@ from evm.constants import (
     SECPK1_N,
 )
 from evm.validation import (
-    validate_block_number,
     validate_canonical_address,
     validate_gt,
     validate_gte,
@@ -355,28 +354,6 @@ def test_validate_lt_secpk1n2(value, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_lt_secpk1n2(value)
-
-
-@pytest.mark.parametrize(
-    "block_number,is_valid",
-    (
-        (tuple(), False),
-        ([], False),
-        ({}, False),
-        (set(), False),
-        ('abc', False),
-        (1234, True),
-        (-1, False),
-        (0, True),
-        (100, True),
-    ),
-)
-def test_validate_block_number(block_number, is_valid):
-    if is_valid:
-        validate_block_number(block_number)
-    else:
-        with pytest.raises(ValidationError):
-            validate_block_number(block_number)
 
 
 @pytest.mark.parametrize(
