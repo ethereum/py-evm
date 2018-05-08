@@ -7,7 +7,7 @@ from evm.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
-from evm.vm import VM
+from evm.vm.base import VM
 from evm.rlp.receipts import (
     Receipt,
 )

@@ -252,6 +252,7 @@ class Chain(BaseChain):
         else:
             validate_vm_configuration(self.vm_configuration)
 
+        self.chaindb = chaindb
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
@@ -412,7 +413,7 @@ class Chain(BaseChain):
         Returns the requested block as specified by the block header.
         """
         vm = self.get_vm(block_header)
-        return vm.get_block_by_header(block_header, self.chaindb)
+        return vm.block
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
         """

@@ -1,6 +1,6 @@
 import pytest
 
-from evm.vm import (
+from evm.vm.message import (
     Message,
 )
 from evm.vm.forks.frontier.computation import (

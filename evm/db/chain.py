@@ -324,7 +324,7 @@ class ChainDB(BaseChainDB):
         for h in new_canonical_headers:
             try:
                 old_hash = self.get_canonical_block_hash(h.block_number)
-            except KeyError:
+            except HeaderNotFound:
                 # no old block, and no more possible
                 break
             else:
@@ -358,7 +358,7 @@ class ChainDB(BaseChainDB):
         while True:
             try:
                 orig = self.get_canonical_block_header_by_number(h.block_number)
-            except KeyError:
+            except HeaderNotFound:
                 # This just means the block is not on the canonical chain.
                 pass
             else:
