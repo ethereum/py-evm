@@ -6,5 +6,4 @@ from .misc import (  # noqa: F401
     Address,
     BlockNumber,
     Hash32,
-    HeaderParams,
 )
