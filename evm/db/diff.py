@@ -8,10 +8,6 @@ from typing import (  # noqa: F401
     Union,
 )
 
-from cytoolz import (
-    merge,
-)
-
 
 class MissingReason:
     def __init__(self, reason):
@@ -26,17 +22,36 @@ DELETED = MissingReason("deleted")
 
 
 class DiffMissingError(KeyError):
+    """
+    Raised when trying to access a missing key/value pair in a :class:`DBDiff`
+    or :class:`DBDiffTracker`.
+
+    Use :attr:`is_deleted` to check if the value is missing because it was
+    deleted, or simply because it was never updated.
+    """
     def __init__(self, missing_key: bytes, reason: MissingReason) -> None:
         self.reason = reason
         super().__init__(missing_key, reason)
 
+    @property
     def is_deleted(self):
         return self.reason == DELETED
 
 
 class DBDiffTracker(MutableMapping):
     """
-    Recorded changes to a :class:`~evm.db.BaseDB`
+    Records changes to a :class:`~evm.db.BaseDB`
+
+    If no value is available for a key, it could be for one of two reasons:
+    - the key was never updated during tracking
+    - the key was deleted at some point
+
+    When getting a value, a special subtype of KeyError is raised on failure.
+    The exception, :class:`DiffMissingError`, can be used to check if the value
+    was deleted, or never present, using :meth:`DiffMissingError.is_deleted`.
+
+    When it's time to take the tracked changes and write them to your database,
+    get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
     """
     def __init__(self):
         self._changes = {}  # type: Dict[bytes, Union[bytes, DiffMissingError]]
@@ -69,17 +84,24 @@ class DBDiffTracker(MutableMapping):
         return len(self._changes)
 
     def diff(self):
-        return DBDiff(self)
+        return DBDiff(dict(self._changes))
 
 
 class DBDiff(Mapping):
+    """
+    DBDiff is a read-only view of the updates/inserts and deletes
+    generated when tracking changes with :class:`DBDiffTracker`.
+
+    The primary usage is to apply these changes to your underlying
+    database with :meth:`apply_to`.
+    """
     _changes = None  # type: Dict[bytes, Union[bytes, DiffMissingError]]
 
-    def __init__(self, tracker: DBDiffTracker = None) -> None:
-        if tracker is None:
+    def __init__(self, changes: Dict[bytes, Union[bytes, DiffMissingError]] = None) -> None:
+        if changes is None:
             self._changes = {}
         else:
-            self._changes = tracker._changes
+            self._changes = changes
 
     def __getitem__(self, key):
         result = self._changes.get(key, NEVER_INSERTED)
@@ -96,7 +118,14 @@ class DBDiff(Mapping):
     def __len__(self):
         return len(self._changes)
 
-    def apply_to(self, db, apply_deletes=True):
+    def apply_to(self, db: MutableMapping, apply_deletes: bool = True) -> None:
+        """
+        Apply the changes in this diff to the given database.
+        You may choose to opt out of deleting any underlying keys.
+
+        :param apply_deletes: whether the pending deletes should be
+            applied to the database
+        """
         for key, value in self._changes.items():
             if value is DELETED and apply_deletes:
                 try:
@@ -108,6 +137,13 @@ class DBDiff(Mapping):
 
     @classmethod
     def join(cls, diffs: Iterable['DBDiff']) -> 'DBDiff':
-        new_diff = cls()
-        new_diff._changes = merge(diff._changes for diff in diffs)
-        return new_diff
+        """
+        Join several DBDiff objects into a single DBDiff object.
+
+        In case of a conflict, changes in diffs that come later
+        in ``diffs`` will overwrite changes from earlier changes.
+        """
+        tracker = DBDiffTracker()
+        for diff in diffs:
+            diff.apply_to(tracker)
+        return tracker.diff()

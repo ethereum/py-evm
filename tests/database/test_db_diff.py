@@ -59,7 +59,7 @@ def test_database_api_missing_key_retrieval(db):
     try:
         val = db[b'does-not-exist']
     except DiffMissingError as exc:
-        assert not exc.is_deleted()
+        assert not exc.is_deleted
     else:
         assert False, "key should be missing, but was retrieved as {}".format(val)
 
@@ -71,7 +71,7 @@ def test_database_api_missing_key_for_deletion(db):
     try:
         val = db[b'does-not-exist']
     except DiffMissingError as exc:
-        assert exc.is_deleted()
+        assert exc.is_deleted
     else:
         assert False, "key should be missing, but was retrieved as {}".format(val)
 
@@ -84,7 +84,7 @@ def test_database_api_deleted_key_for_deletion(db):
     try:
         val = db[b'used-to-exist']
     except DiffMissingError as exc:
-        assert exc.is_deleted()
+        assert exc.is_deleted
     else:
         assert False, "key should be missing, but was retrieved as {}".format(val)
 

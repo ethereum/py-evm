@@ -57,7 +57,7 @@ class BatchDB(BaseDB):
         try:
             value = self._track_diff[key]
         except DiffMissingError as missing:
-            if missing.is_deleted():
+            if missing.is_deleted:
                 raise KeyError(key)
             else:
                 return self.wrapped_db[key]
