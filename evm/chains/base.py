@@ -11,6 +11,7 @@ from typing import (  # noqa: F401
     cast,
     Dict,
     Generator,
+    Iterator,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -190,7 +191,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         vm = self.get_vm(block_header)
         return vm.get_block_class().from_header(block_header, self.chaindb)
 
-    def get_ancestors(self, limit: int) -> Generator[BaseBlock, None, None]:
+    def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
@@ -604,10 +605,10 @@ class Chain(BaseChain):
         return type(self)(self.chaindb, init_header)
 
     @to_tuple
-    def get_ancestors(self, limit: int) -> Generator[BaseBlock, None, None]:
+    def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
         lower_limit = max(self.header.block_number - limit, 0)
         for n in reversed(range(lower_limit, self.header.block_number)):
-            yield self.get_canonical_block_by_number(cast(BlockNumber, n))
+            yield self.get_canonical_block_by_number(BlockNumber(n))
 
     #
     # Validation API
