@@ -364,7 +364,7 @@ class Chain(BaseChain):
             block_number=parent_header.block_number + 1,
         ).create_header_from_parent(parent_header, **header_params)
 
-    def get_block_header_by_hash(self, block_hash: Hash32):
+    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         """
         Returns the requested block header as specified by block hash.
 

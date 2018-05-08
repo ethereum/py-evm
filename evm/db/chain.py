@@ -146,6 +146,9 @@ class BaseChainDB(metaclass=ABCMeta):
 
     @abstractmethod
     def get_block_transactions(
+            self,
+            block_header: BlockHeader,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -442,13 +445,13 @@ class ChainDB(BaseChainDB):
         return transaction_db.root_hash
 
     def get_block_transactions(
+            self,
+            header: BlockHeader,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
         """
         Returns an iterable of transactions for the block speficied by the
         given block header.
         """
-            self,
-            header: BlockHeader,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
         return self._get_block_transactions(header.transaction_root, transaction_class)
 
     @to_list
