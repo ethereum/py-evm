@@ -16,6 +16,13 @@ from evm.db.shard import (
     Availability,
 )
 
+from evm.constants import (
+    COLLATION_SIZE,
+)
+from evm.exceptions import (
+    CanonicalCollationNotFound,
+)
+
 from p2p.cancel_token import (
     CancelToken,
     wait_with_token,
@@ -108,14 +115,13 @@ class ShardingPeer(BasePeer):
     def _handle_collations_msg(self, msg: List[Collation]) -> None:
         for collation in msg:
             self.known_collation_hashes.add(collation.hash)
-            print(self.known_collation_hashes)
             if self.incoming_collation_queue is not None:
                 self.incoming_collation_queue.put_nowait(collation)
 
     def send_collations(self, collations: List[Collation]) -> None:
         for collation in collations:
             if collation.hash not in self.known_collation_hashes:
-                self.known_collation_hashes.put(collation.hash)
+                self.known_collation_hashes.add(collation.hash)
                 self.sub_proto.send_collations(collations)
 
 
@@ -134,8 +140,8 @@ class ShardSyncer(PeerPoolSubscriber):
 
         self.mean_proposing_period = mean_proposing_period
 
-        self.collations_received_event = asyncio.Future()
-        self.collations_proposed_event = asyncio.Future()
+        self.collations_received_event = asyncio.Event()
+        self.collations_proposed_event = asyncio.Event()
 
         self.incoming_collation_queue = asyncio.Queue()
 
@@ -168,13 +174,16 @@ class ShardSyncer(PeerPoolSubscriber):
     async def run_proposer(self) -> None:
         while True:
             sleep_time = random.expovariate(1 / self.mean_proposing_period)
-            await asyncio.sleep(sleep_time)
+            await wait_with_token(
+                asyncio.sleep(sleep_time),
+                token=self.cancel_token
+            )
 
             # create collation for current period if there isn't one yet
             period = self.get_current_period()
             try:
                 existing_header = self.shard.get_header_by_period(period)
-            except KeyError:
+            except CanonicalCollationNotFound:
                 existing_header = None
 
             if existing_header:
@@ -182,9 +191,9 @@ class ShardSyncer(PeerPoolSubscriber):
             else:
                 available = False
 
-            if existing_header is None or not available:
+            if not available:
                 header = CollationHeader(self.shard.shard_id, b"\x00" * 32, period, b"\x11" * 20)
-                collation = Collation(header, b"body")
+                collation = Collation(header, b"b" * COLLATION_SIZE)
                 self.collations_proposed_event.set()
                 self.collations_proposed_event.clear()
 
@@ -196,4 +205,5 @@ class ShardSyncer(PeerPoolSubscriber):
         peer.set_incoming_collation_queue(self.incoming_collation_queue)
 
     def get_current_period(self):
+        # TODO: get this from main chain
         return int(time.time() // COLLATION_PERIOD)

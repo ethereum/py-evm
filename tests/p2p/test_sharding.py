@@ -1,6 +1,7 @@
 import pytest
 
 import asyncio
+import collections
 
 from eth_keys import keys
 from eth_utils import (
@@ -19,6 +20,9 @@ from p2p.kademlia import (
 )
 from p2p.server import (
     Server,
+)
+from p2p.exceptions import (
+    OperationCancelled,
 )
 
 from p2p.sharding import (
@@ -46,6 +50,10 @@ from evm.constants import (
 from tests.p2p.peer_helpers import (
     get_directly_linked_peers,
     get_directly_linked_peers_without_handshake,
+)
+
+from tests.p2p.test_server import (
+    get_open_port,
 )
 
 
@@ -151,15 +159,17 @@ async def test_sending_collations(request, event_loop):
 @pytest.mark.asyncio
 async def test_shard_syncer():
     cancel_token = CancelToken("canceltoken")
+
+    PeerTuple = collections.namedtuple("PeerTuple", ["node", "server", "syncer", "syncer_task"])
     n_peers = 2
-    nodes = []
-    syncers = []
+    peer_tuples = []
+
     for i in range(n_peers):
         private_key = keys.PrivateKey(pad32(int_to_big_endian(i + 1)))
-        address = Address("127.0.0.1", 30303 + i, 30303 + i)
+        port = get_open_port()
+        address = Address("127.0.0.1", port, port)
 
         node = Node(private_key.public_key, address)
-        nodes.append(node)
 
         server = Server(
             privkey=private_key,
@@ -173,14 +183,30 @@ async def test_shard_syncer():
         await server.start()
 
         shard_db = ShardDB(MemoryDB())
-        shard = Shard(shard_db, i)
+        shard = Shard(shard_db, 0)
         syncer = ShardSyncer(shard, COLLATION_PERIOD * 2, server.peer_pool, cancel_token)
-        syncers.append(syncer)
+        syncer_task = asyncio.ensure_future(syncer.run())
 
-    await syncers[0].peer_pool.connect(nodes[1])
-    assert syncers[0].peer_pool.peers == [nodes[1]]
+        peer_tuples.append(PeerTuple(
+            node=node,
+            server=server,
+            syncer=syncer,
+            syncer_task=syncer_task,
+        ))
 
-    await syncers[0].collations_received_event.wait()  # syncer 0 should receive collations
-    await syncers[0].collations_received_event.wait()  # syncer 0 should propose collations
-    await syncers[1].collations_received_event.wait()  # syncer 1 should receive collations
-    await syncers[1].collations_received_event.wait()  # syncer 1 should propose collations
+    # connect peers to each other
+    await peer_tuples[0].server.peer_pool._connect_to_nodes([peer_tuples[1].node])
+    assert len(peer_tuples[0].server.peer_pool.peers) == 1
+
+    # both syncers should propose and receive collations
+    await asyncio.wait_for(peer_tuples[0].syncer.collations_proposed_event.wait(), 10)
+    await asyncio.wait_for(peer_tuples[0].syncer.collations_received_event.wait(), 10)
+    await asyncio.wait_for(peer_tuples[1].syncer.collations_proposed_event.wait(), 10)
+    await asyncio.wait_for(peer_tuples[1].syncer.collations_received_event.wait(), 10)
+
+    # stop everything
+    await peer_tuples[0].server.stop()
+    await peer_tuples[1].server.stop()
+    cancel_token.trigger()
+    with pytest.raises(OperationCancelled):
+        await asyncio.gather(*[peer_tuple.syncer_task for peer_tuple in peer_tuples])
