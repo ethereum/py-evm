@@ -85,31 +85,14 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
-        """
-        Returns the block header with the given number in the canonical chain.
-
-        Raises HeaderNotFound if there's no block header with the given number in the
-        canonical chain.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        """
-        Return the block hash for the given block number.
-
-        Raises HeaderNotFound if there's no block header with the given number in the
-        canonical chain.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_canonical_head(self) -> BlockHeader:
-        """
-        Returns the current block header at the head of the chain.
-
-        Raises CanonicalHeadNotFound if no canonical head has been set.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -117,43 +100,22 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def header_exists(self, block_hash: Hash32) -> bool:
-        """
-        Returns True if the header with the given block hash is in our DB.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        """
-        Returns the requested block header as specified by block hash.
-
-        Raises HeaderNotFound if it is not present in the db.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
-        """
-        Returns an iterable of uncle headers specified by the given `uncles_hash`
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_score(self, block_hash: Hash32) -> int:
-        """
-        Returns the score for the header with the given hash.
-
-        Raises HeaderNotFound if no header with the given has is found in the database.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
-        """
-        Persist the given header to the database.
-
-        Returns an iterable of headers newly on the canonical chain
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -161,18 +123,10 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def persist_block(self, block: 'BaseBlock') -> None:
-        """
-        Persists the provided block to the database.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
-        """
-        Persists the list of uncles to the database.
-
-        Returns the uncles hash.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -182,51 +136,26 @@ class BaseChainDB(metaclass=ABCMeta):
     def add_receipt(self,
                     block_header: BlockHeader,
                     index_key: int, receipt: Receipt) -> Hash32:
-        """
-        Adds the given receipt to the provide block header.
-
-        Returns the updated `receipts_root` for updated block header.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def add_transaction(self,
                         block_header: BlockHeader,
                         index_key: int, transaction: 'BaseTransaction') -> Hash32:
-        """
-        Adds the given transaction to the provide block header.
-
-        Returns the updated `transactions_root` for updated block header.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_block_transactions(
-        """
-        Returns an iterable of transactions for the block speficied by the
-        given block header.
-        """
-            self,
-            block_header: BlockHeader,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
-        """
-        Returns an iterable of the transaction hashes from th block specified
-        by the given block header.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_receipts(self,
                      header: BlockHeader,
                      receipt_class: Type[Receipt]) -> Iterable[Receipt]:
-        """
-        Returns an iterable of receipts for the block specified by the given
-        block header.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -235,24 +164,10 @@ class BaseChainDB(metaclass=ABCMeta):
             block_number: BlockNumber,
             transaction_index: int,
             transaction_class: Type['BaseTransaction']) -> 'BaseTransaction':
-        """
-        Returns the transaction at the specified `transaction_index` from the
-        block specified by `block_number` from the canonical chain.
-
-        Raises TransactionNotFound if no block
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
-        """
-        Returns a 2-tuple of (block_number, transaction_index) indicating which
-        block the given transaction can be found in and at what index in the
-        block transactions.
-
-        Raises TransactionNotFound if the transaction_hash is not found in the
-        canonical chain.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -260,16 +175,10 @@ class BaseChainDB(metaclass=ABCMeta):
     #
     @abstractmethod
     def exists(self, key: bytes) -> bool:
-        """
-        Returns True if the given key exists in the database.
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
     def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
-        """
-        Store raw trie data to db from a dict
-        """
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
