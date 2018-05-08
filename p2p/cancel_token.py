@@ -43,6 +43,11 @@ class CancelToken:
             return True
         return any(token.triggered for token in self._chain)
 
+    def raise_if_triggered(self) -> None:
+        if self.triggered:
+            raise OperationCancelled(
+                "Cancellation requested by {} token".format(self.triggered_token))
+
     async def wait(self) -> None:
         if self.triggered_token is not None:
             return

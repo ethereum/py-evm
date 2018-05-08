@@ -59,25 +59,28 @@ def get_server(privkey, address, peer_class):
 @pytest.fixture
 async def server():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)
-    await asyncio.wait_for(server.start(), timeout=1)
+    await asyncio.wait_for(server._start(), timeout=1)
     yield server
-    await asyncio.wait_for(server.stop(), timeout=1)
+    server.cancel_token.trigger()
+    await asyncio.wait_for(server._close(), timeout=1)
 
 
 @pytest.fixture
 async def receiver_server_with_dumb_peer():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, DumbPeer)
-    await asyncio.wait_for(server.start(), timeout=1)
+    await asyncio.wait_for(server._start(), timeout=1)
     yield server
-    await asyncio.wait_for(server.stop(), timeout=1)
+    server.cancel_token.trigger()
+    await asyncio.wait_for(server._close(), timeout=1)
 
 
 @pytest.fixture
 async def initiator_server_with_dumb_peer():
     server = get_server(INITIATOR_PRIVKEY, INITIATOR_ADDRESS, DumbPeer)
-    await asyncio.wait_for(server.start(), timeout=1)
+    await asyncio.wait_for(server._start(), timeout=1)
     yield server
-    await asyncio.wait_for(server.stop(), timeout=1)
+    server.cancel_token.trigger()
+    await asyncio.wait_for(server._close(), timeout=1)
 
 
 @pytest.mark.asyncio
@@ -107,6 +110,9 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
     assert isinstance(initiator_peer, ETHPeer)
     assert initiator_peer.privkey == RECEIVER_PRIVKEY
 
+    # Stop our peer to make sure its pending asyncio tasks are cancelled.
+    await initiator_peer.stop()
+
 
 @pytest.mark.asyncio
 async def test_two_servers(event_loop,
@@ -114,6 +120,12 @@ async def test_two_servers(event_loop,
                            initiator_server_with_dumb_peer):
     nodes = [RECEIVER_REMOTE]
     await initiator_server_with_dumb_peer.peer_pool._connect_to_nodes(nodes)
+    # Give the receiver_server a chance to ack the handshake.
+    await asyncio.sleep(0.1)
 
     assert len(receiver_server_with_dumb_peer.peer_pool.connected_nodes) == 1
     assert len(initiator_server_with_dumb_peer.peer_pool.connected_nodes) == 1
+
+    # Stop our peer to make sure its pending asyncio tasks are cancelled.
+    peer = list(receiver_server_with_dumb_peer.peer_pool.connected_nodes.values())[0]
+    await peer.stop()

@@ -25,8 +25,8 @@ from p2p.cancel_token import (
 from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
     DEFAULT_MIN_PEERS,
-    HANDSHAKE_TIMEOUT,
     HASH_LEN,
+    REPLY_TIMEOUT,
 )
 from p2p.discovery import DiscoveryProtocol
 from p2p.exceptions import (
@@ -111,7 +111,8 @@ class Server:
         # while to complete.
         devices = await wait_with_token(
             loop.run_in_executor(None, upnpclient.discover),
-            token=self.cancel_token)
+            token=self.cancel_token,
+            timeout=2 * REPLY_TIMEOUT)
         if not devices:
             self.logger.info("No UPNP-enabled devices found")
             return
@@ -127,16 +128,20 @@ class Server:
             NewLeaseDuration=lifetime)
         self.logger.info("NAT port forwarding successfully setup")
 
-    async def start(self) -> None:
+    async def _start(self) -> None:
         self._server = await asyncio.start_server(
             self.receive_handshake,
             host=self.server_address.ip,
             port=self.server_address.tcp_port,
         )
 
+    async def _close(self) -> None:
+        self._server.close()
+        await self._server.wait_closed()
+
     async def run(self) -> None:
         self.logger.info("Running server...")
-        await self.start()
+        await self._start()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
@@ -152,23 +157,23 @@ class Server:
     async def stop(self) -> None:
         self.logger.info("Closing server...")
         self.cancel_token.trigger()
-        self._server.close()
-        await self._server.wait_closed()
         await self.peer_pool.stop()
+        await self.discovery.stop()
+        await self._close()
+        # We run lots of asyncio tasks so this is to make sure they all get a chance to execute
+        # and exit cleanly when they notice the cancel token has been triggered.
+        await asyncio.sleep(1)
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
-            await asyncio.wait_for(
-                self._receive_handshake(reader, writer),
-                timeout=HANDSHAKE_TIMEOUT,
-            )
-        except (asyncio.futures.TimeoutError, TimeoutError):
-            # asyncio.wait_for() raises asyncio.futures.TimeoutError, but to be on the safe side
-            # we catch both that and plain TimeoutError.
+            await self._receive_handshake(reader, writer)
+        except TimeoutError:
             self.logger.debug("Timeout waiting for handshake")
         except OperationCancelled:
             pass
+        except Exception as e:
+            self.logger.exception("Unexpected error handling handshake")
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -177,6 +182,7 @@ class Server:
         msg = await wait_with_token(
             reader.read(ENCRYPTED_AUTH_MSG_LEN),
             token=self.cancel_token,
+            timeout=REPLY_TIMEOUT,
         )
 
         # Use decode_authentication(auth_init_message) on auth init msg
@@ -190,6 +196,7 @@ class Server:
             msg += await wait_with_token(
                 reader.read(remaining_bytes),
                 token=self.cancel_token,
+                timeout=REPLY_TIMEOUT,
             )
             try:
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
@@ -244,7 +251,7 @@ class Server:
         try:
             # P2P Handshake.
             await peer.do_p2p_handshake(),
-        except (HandshakeFailure, asyncio.TimeoutError) as e:
+        except (HandshakeFailure, TimeoutError) as e:
             self.logger.debug('Unable to finish P2P handshake: %s', str(e))
             return
 
@@ -326,6 +333,7 @@ def _test() -> None:
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, server.cancel_token.trigger)
 
+    loop.set_debug(True)
     loop.run_until_complete(run())
     loop.close()
 
