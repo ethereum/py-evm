@@ -36,9 +36,14 @@ class DummyComputation(BaseComputation):
         return self
 
 
+class DummyTransactionContext(BaseTransactionContext):
+    def get_intrinsic_gas(self):
+        return 0
+
+
 @pytest.fixture
 def transaction_context():
-    tx_context = BaseTransactionContext(
+    tx_context = DummyTransactionContext(
         gas_price=1,
         origin=CANONICAL_ADDRESS_B,
     )
