@@ -11,9 +11,6 @@ from evm.utils.logging import (
 # This needs to be done before the other imports
 setup_trace_logging()
 
-from evm.vm import (  # noqa: F401
-    VM,
-)
 from evm.chains import (  # noqa: F401
     Chain,
     MainnetChain,

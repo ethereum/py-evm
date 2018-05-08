@@ -12,9 +12,22 @@ class VMNotFound(PyEVMError):
     pass
 
 
+class HeaderNotFound(PyEVMError):
+    """
+    Raised when a header with the given number/hash does not exist.
+    """
+
+
 class BlockNotFound(PyEVMError):
     """
     Raised when the block with the given number/hash does not exist.
+    """
+    pass
+
+
+class HeaderNotFound(PyEVMError):
+    """
+    Raised when the header with the given number/hash does not exist.
     """
     pass
 
