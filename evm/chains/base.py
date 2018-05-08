@@ -110,9 +110,6 @@ class BaseChain(Configurable, metaclass=ABCMeta):
                      chaindb: BaseChainDB,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
-        """
-        Initializes the Chain from a genesis state.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
@@ -120,16 +117,10 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     def from_genesis_header(cls,
                             chaindb: BaseChainDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
-        """
-        Initializes the chain from the genesis header.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_chain_at_block_parent(self, block: BaseBlock) -> 'BaseChain':
-        """
-        Returns a `Chain` instance with the given block's parent at the chain head.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -137,16 +128,10 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     @abstractmethod
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
-        """
-        Returns the VM instance for the given block number.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_vm_class_for_block_number(self, block_number: BlockNumber) -> Type['BaseVM']:
-        """
-        Returns the VM class for the given block number.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -156,76 +141,38 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     def create_header_from_parent(self,
                                   parent_header: BlockHeader,
                                   **header_params: HeaderParams) -> BlockHeader:
-        """
-        Creates a new header descending from the given `parent_header`,
-        initialized with the given `header_params`.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        """
-        Returns the requested block header as specified by block hash.
-
-        Raises BlockNotFound if there's no block header with the given hash in the db.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_canonical_head(self):
-        """
-        Returns the block header at the canonical chain head.
-
-        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
     # Block API
     #
     def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
-        """
-        Return `limit` number of ancestor blocks from the current canonical head.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_block(self) -> BaseBlock:
-        """
-        Returns the block at the tip of the chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
-        """
-        Returns the requested block as specified by block hash.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     def get_block_by_header(self, block_header: BlockHeader) -> BaseBlock:
-        """
-        Returns the requested block as specified by the block header.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
-        """
-        Returns the block with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_canonical_block_hash(self, block_number):
-        """
-        Returns the block hash with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -233,27 +180,16 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     @abstractmethod
     def create_transaction(self, *args: Any, **kwargs: Any) -> BaseTransaction:
-        """
-        Creates a transaction object.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def create_unsigned_transaction(self,
                                     *args: Any,
                                     **kwargs: Any) -> BaseUnsignedTransaction:
-        """
-        Creates an unsigned transaction object.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:
-        """
-        Return the transaction for the given hash.  Raises
-        `TransactionNotFound` if the transaction is not found on the canonical
-        chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -261,32 +197,18 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     @abstractmethod
     def apply_transaction(self, transaction):
-        """
-        Applies the transaction to the current tip block.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
-        """
-        Generate a gas estimation for the given transaction using the
-        configured gas estimator for this chain.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
-        """
-        Imports a complete block.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
-        """
-        Mines the current block. Proxies to the current Virtual Machine.
-        See VM. :meth:`~evm.vm.base.VM.mine_block`
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -294,36 +216,18 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     @abstractmethod
     def validate_block(self, block: BaseBlock) -> None:
-        """
-        Performs validation on a block that is either being mined or imported.
-
-        Since block validation (specifically the uncle validation must have
-        access to the ancestor blocks, this validation must occur at the Chain
-        level.
-
-        TODO: move the `seal` validation down into the vm.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def validate_gaslimit(self, header: BlockHeader) -> None:
-        """
-        Validate the gas limit on the given header.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def validate_seal(self, header: BlockHeader) -> None:
-        """
-        Validate the seal on the given header.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def validate_uncles(self, block: BaseBlock) -> None:
-        """
-        Run validation on the block uncles.
-        """
         raise NotImplementedError("Chain classes must implement this method")
 
 
@@ -402,6 +306,9 @@ class Chain(BaseChain):
     def from_genesis_header(cls,
                             chaindb: BaseChainDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
+        """
+        Initializes the chain from the genesis header.
+        """
         chaindb.persist_header(genesis_header)
         return cls(chaindb)
 
@@ -479,6 +386,9 @@ class Chain(BaseChain):
     #
     @to_tuple
     def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
+        """
+        Return `limit` number of ancestor blocks from the current canonical head.
+        """
         lower_limit = max(self.header.block_number - limit, 0)
         for n in reversed(range(lower_limit, self.header.block_number)):
             yield self.get_canonical_block_by_number(BlockNumber(n))
@@ -528,7 +438,8 @@ class Chain(BaseChain):
     #
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:
         """
-        Returns the requested transaction as specified by the transaction hash from the canonical chain.
+        Returns the requested transaction as specified by the transaction hash
+        from the canonical chain.
 
         Raises TransactionNotFound if no transaction with the specified hash is
         found in the main chain.
@@ -591,6 +502,10 @@ class Chain(BaseChain):
         return new_block, receipt, computation
 
     def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
+        """
+        Returns an estimation of the amount of gas the given transaction will
+        use if executed on top of the block specified by the given header.
+        """
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
@@ -657,6 +572,9 @@ class Chain(BaseChain):
         self.validate_gaslimit(block.header)
 
     def validate_gaslimit(self, header: BlockHeader) -> None:
+        """
+        Validate the gas limit on the given header.
+        """
         parent_header = self.get_block_header_by_hash(header.parent_hash)
         low_bound, high_bound = compute_gas_limit_bounds(parent_header)
         if header.gas_limit < low_bound:
@@ -669,11 +587,17 @@ class Chain(BaseChain):
                     encode_hex(header.hash), header.gas_limit, high_bound))
 
     def validate_seal(self, header: BlockHeader) -> None:
+        """
+        Validate the seal on the given header.
+        """
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
 
     def validate_uncles(self, block: BaseBlock) -> None:
+        """
+        Validate the uncles for the given block.
+        """
         recent_ancestors = dict(
             (ancestor.hash, ancestor)
             for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1),
