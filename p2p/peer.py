@@ -219,7 +219,7 @@ class BasePeer(metaclass=ABCMeta):
     @property
     async def genesis(self) -> BlockHeader:
         genesis_hash = await self.chaindb.coro_lookup_block_hash(
-            cast(BlockNumber, GENESIS_BLOCK_NUMBER),
+            BlockNumber(GENESIS_BLOCK_NUMBER),
         )
         return await self.chaindb.coro_get_block_header_by_hash(genesis_hash)
 
