@@ -197,16 +197,11 @@ def validate_unique(values, title="Value"):
         )
 
 
-def validate_block_number(block_number, title="Block Number"):
-    validate_is_integer(block_number, title="Block Number")
-    validate_gte(block_number, 0, title="Block Number")
-
-
 def validate_vm_block_numbers(vm_block_numbers):
     validate_unique(vm_block_numbers, title="Block Number set")
 
     for block_number in vm_block_numbers:
-        validate_block_number(block_number)
+        validate_uint256(block_number)
 
 
 def validate_vm_configuration(vm_configuration):
