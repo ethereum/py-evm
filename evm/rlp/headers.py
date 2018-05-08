@@ -1,4 +1,12 @@
 import time
+from typing import (
+    Any,
+    Iterator,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 
 import rlp
 from rlp.sedes import (
@@ -13,7 +21,7 @@ from cytoolz import (
 )
 from eth_typing import (
     Address,
-    Hash32
+    Hash32,
 )
 from eth_utils import (
     to_dict,
@@ -54,13 +62,6 @@ from evm.vm.execution_context import (
     ExecutionContext,
 )
 
-from typing import (
-    Any,
-    Iterator,
-    Tuple,
-    Union,
-)
-
 
 class MiningHeader(rlp.Serializable):
     fields = [
@@ -78,6 +79,9 @@ class MiningHeader(rlp.Serializable):
         ('timestamp', big_endian_int),
         ('extra_data', binary),
     ]
+
+
+HeaderParams = Union[Optional[int], bytes, Address, Hash32]
 
 
 class BlockHeader(rlp.Serializable):
@@ -99,6 +103,11 @@ class BlockHeader(rlp.Serializable):
         ('nonce', Binary(8, allow_empty=True))
     ]
 
+    @overload
+    def __init__(self, **kwargs: HeaderParams) -> None:
+        ...
+
+    @overload  # noqa: F811
     def __init__(self,
                  difficulty: int,
                  block_number: int,
@@ -115,6 +124,24 @@ class BlockHeader(rlp.Serializable):
                  extra_data: bytes=b'',
                  mix_hash: Hash32=ZERO_HASH32,
                  nonce: bytes=GENESIS_NONCE) -> None:
+        ...
+
+    def __init__(self,  # noqa: F811
+                 difficulty,
+                 block_number,
+                 gas_limit,
+                 timestamp=None,
+                 coinbase=ZERO_ADDRESS,
+                 parent_hash=ZERO_HASH32,
+                 uncles_hash=EMPTY_UNCLE_HASH,
+                 state_root=BLANK_ROOT_HASH,
+                 transaction_root=BLANK_ROOT_HASH,
+                 receipt_root=BLANK_ROOT_HASH,
+                 bloom=0,
+                 gas_used=0,
+                 extra_data=b'',
+                 mix_hash=ZERO_HASH32,
+                 nonce=GENESIS_NONCE):
         if timestamp is None:
             timestamp = int(time.time())
         super(BlockHeader, self).__init__(

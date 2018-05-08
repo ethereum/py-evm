@@ -6,6 +6,7 @@ from abc import (
 )
 from typing import (  # noqa: F401
     Any,
+    Optional,
     Callable,
     cast,
     Dict,
@@ -13,6 +14,7 @@ from typing import (  # noqa: F401
     Tuple,
     Type,
     TYPE_CHECKING,
+    Union,
 )
 
 import logging
@@ -59,6 +61,7 @@ from evm.rlp.blocks import (
 )
 from evm.rlp.headers import (
     BlockHeader,
+    HeaderParams,
 )
 from evm.rlp.transactions import (
     BaseTransaction,
@@ -84,6 +87,13 @@ if TYPE_CHECKING:
     from evm.vm.base import BaseVM  # noqa: F401
 
 
+# Mapping from address to account state.
+# 'balance', 'nonce' -> int
+# 'code' -> bytes
+# 'storage' -> Dict[int, int]
+AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+
+
 class BaseChain(Configurable, metaclass=ABCMeta):
     """
     The base class for all Chain objects
@@ -97,8 +107,8 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @abstractmethod
     def from_genesis(cls,
                      chaindb: BaseChainDB,
-                     genesis_params: Dict,
-                     genesis_state: Dict[Address, Dict]=None) -> 'BaseChain':
+                     genesis_params: Dict[str, HeaderParams],
+                     genesis_state: AccountState=None) -> 'BaseChain':
         """
         Initializes the Chain from a genesis state.
         """
@@ -138,7 +148,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @abstractmethod
     def create_header_from_parent(self,
                                   parent_header: BlockHeader,
-                                  **header_params: Dict) -> BlockHeader:
+                                  **header_params: HeaderParams) -> BlockHeader:
         """
         Creates a new header descending from the given `parent_header`,
         initialized with the given `header_params`.
@@ -174,12 +184,15 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         return self.get_block_by_header(block_header)
 
     def get_block_by_header(self, block_header: BlockHeader) -> BaseBlock:
+        """
+        Return the block for the specified block header.
+        """
         vm = self.get_vm(block_header)
         return vm.get_block_class().from_header(block_header, self.chaindb)
 
     def get_ancestors(self, limit: int) -> Generator[BaseBlock, None, None]:
         """
-        Returns `limit` number of ancestor blocks from the current canonical head.
+        Return `limit` number of ancestor blocks from the current canonical head.
         """
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -457,12 +470,12 @@ class Chain(BaseChain):
     @classmethod
     def from_genesis(cls,
                      chaindb: BaseChainDB,
-                     genesis_params: Dict,
-                     genesis_state: Dict[Address, Dict]=None) -> 'BaseChain':
+                     genesis_params: Dict[str, HeaderParams],
+                     genesis_state: AccountState=None) -> 'BaseChain':
         """
         Initializes the Chain from a genesis state.
         """
-        genesis_vm_class = cls.get_vm_class_for_block_number(cast(BlockNumber, 0))
+        genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
         account_db = genesis_vm_class.get_state_class().get_account_db_class()(
             chaindb.db,
             BLANK_ROOT_HASH,
