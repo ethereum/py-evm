@@ -534,6 +534,9 @@ class KademliaProtocol:
         nodes_seen = set()   # type: Set[Node]
 
         async def _find_node(node_id, remote):
+            # Short-circuit in case our token has been triggered to avoid trying to send requests
+            # over a transport that is probably closed already.
+            cancel_token.raise_if_triggered()
             self.wire.send_find_node(remote, node_id)
             candidates = await self.wait_neighbours(remote, cancel_token)
             if not candidates:

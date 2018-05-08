@@ -412,6 +412,9 @@ class RegularChainSyncer(ChainSyncer):
 
             block = block_class(header, transactions, uncles)
             t = time.time()
+            # FIXME: Instead of using wait_with_token() here we should pass our cancel_token to
+            # coro_import_block() so that it can cancel the actual import-block task. See
+            # https://github.com/ethereum/py-evm/issues/665 for details.
             await wait_with_token(
                 self.chain.coro_import_block(block, perform_validation=True),
                 token=self.cancel_token)

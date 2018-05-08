@@ -20,6 +20,7 @@ from eth_hash.auto import keccak
 from p2p import ecies
 from p2p import kademlia
 from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.constants import REPLY_TIMEOUT
 from p2p.exceptions import DecryptionError
 from p2p.utils import (
     sxor,
@@ -68,7 +69,10 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     auth_init = initiator.encrypt_auth_message(auth_msg)
     writer.write(auth_init)
 
-    auth_ack = await wait_with_token(reader.read(ENCRYPTED_AUTH_ACK_LEN), token=token)
+    auth_ack = await wait_with_token(
+        reader.read(ENCRYPTED_AUTH_ACK_LEN),
+        token=token,
+        timeout=REPLY_TIMEOUT)
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
@@ -105,7 +109,8 @@ class HandshakeBase:
     async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         return await wait_with_token(
             asyncio.open_connection(host=self.remote.address.ip, port=self.remote.address.tcp_port),
-            token=self.cancel_token)
+            token=self.cancel_token,
+            timeout=REPLY_TIMEOUT)
 
     def derive_secrets(self,
                        initiator_nonce: bytes,

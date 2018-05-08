@@ -154,10 +154,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send(self, node: kademlia.Node, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
-    def stop(self):
+    async def stop(self):
         self.logger.info('stopping discovery')
         self.cancel_token.trigger()
         self.transport.close()
+        # We run lots of asyncio tasks so this is to make sure they all get a chance to execute
+        # and exit cleanly when they notice the cancel token has been triggered.
+        await asyncio.sleep(1)
 
     def receive(self, address: kademlia.Address, message: bytes) -> None:
         try:
@@ -330,11 +333,10 @@ def _test():
                 print("Random nodes: ", list(discovery.get_random_nodes(10)))
                 print("====================================================")
         except OperationCancelled:
-            # Give all tasks started by DiscoveryProtocol a chance to stop.
-            await asyncio.sleep(2)
+            await discovery.stop()
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, discovery.stop)
+        loop.add_signal_handler(sig, discovery.cancel_token.trigger)
 
     loop.run_until_complete(run())
     loop.close()

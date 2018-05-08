@@ -82,7 +82,6 @@ from p2p.p2p_proto import (
 from .constants import (
     CONN_IDLE_TIMEOUT,
     DEFAULT_MIN_PEERS,
-    HANDSHAKE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
     REPLY_TIMEOUT,
@@ -648,7 +647,7 @@ class PeerPool:
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
     _last_lookup = 0  # type: float
-    _lookup_interval = 5  # type: int
+    _lookup_interval = 20  # type: int
 
     def __init__(self,
                  peer_class: Type[BasePeer],
@@ -696,6 +695,9 @@ class PeerPool:
         while not self.cancel_token.triggered:
             try:
                 await self.maybe_connect_to_more_peers()
+                # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
+                await wait_with_token(
+                    asyncio.sleep(self._connect_loop_sleep), token=self.cancel_token)
             except OperationCancelled as e:
                 self.logger.debug("PeerPool finished: %s", e)
                 break
@@ -703,8 +705,6 @@ class PeerPool:
                 # Most unexpected errors should be transient, so we log and restart from scratch.
                 self.logger.exception("Unexpected error, restarting")
                 await self.stop_all_peers()
-            # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-            await asyncio.wait_for(self.cancel_token.wait(), timeout=self._connect_loop_sleep)
 
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
@@ -723,14 +723,12 @@ class PeerPool:
         if remote in self.connected_nodes:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
-        expected_exceptions = (
-            UnreachablePeer, TimeoutError, PeerConnectionLost, HandshakeFailure)
+        expected_exceptions = (UnreachablePeer, TimeoutError, PeerConnectionLost, HandshakeFailure)
         try:
             self.logger.debug("Connecting to %s...", remote)
-            peer = await asyncio.wait_for(
-                handshake(remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
-                          self.cancel_token),
-                timeout=HANDSHAKE_TIMEOUT)
+            peer = await handshake(
+                remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
+                self.cancel_token)
             return peer
         except OperationCancelled:
             # Pass it on to instruct our main loop to stop.
@@ -760,6 +758,7 @@ class PeerPool:
             return
 
         if self._last_lookup + self._lookup_interval < time.time():
+            self.logger.info("Last node discovery lookup too long ago, triggering another")
             asyncio.ensure_future(self.lookup_random_node())
 
         await self._connect_to_nodes(self.get_nodes_to_connect())
@@ -955,10 +954,8 @@ def _test():
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     peer = loop.run_until_complete(
-        asyncio.wait_for(
-            handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id,
-                      CancelToken("Peer test")),
-            HANDSHAKE_TIMEOUT))
+        handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id,
+                  CancelToken("Peer test")))
 
     async def request_stuff():
         # Request some stuff from ropsten's block 2440319
