@@ -1,4 +1,5 @@
 import logging
+import time
 
 from evm.chains import AsyncChain
 from evm.db.backends.base import BaseDB
@@ -6,8 +7,13 @@ from evm.db.chain import AsyncChainDB
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import PeerPool
-from p2p.chain import ChainSyncer, RegularChainSyncer
+from p2p.chain import FastChainSyncer, RegularChainSyncer
 from p2p.state import StateDownloader
+
+
+# How old (in seconds) must our local head be to cause us to start with a fast-sync before we
+# switch to regular-sync.
+FAST_SYNC_CUTOFF = 60 * 60 * 24
 
 
 class FullNodeSyncer:
@@ -25,26 +31,30 @@ class FullNodeSyncer:
         self.cancel_token = CancelToken('FullNodeSyncer')
 
     async def run(self) -> None:
-        # Fast-sync chain data.
         head = await self.chaindb.coro_get_canonical_head()
-        self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
-        chain_syncer = ChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
-        try:
-            await chain_syncer.run()
-        finally:
-            await chain_syncer.stop()
+        # We're still too slow at block processing, so if our local head is older than
+        # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.
+        # See https://github.com/ethereum/py-evm/issues/654 for more details
+        if head.timestamp < time.time() - FAST_SYNC_CUTOFF:
+            # Fast-sync chain data.
+            self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
+            chain_syncer = FastChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
+            try:
+                await chain_syncer.run()
+            finally:
+                await chain_syncer.stop()
 
-        # Download state for our current head.
-        head = await self.chaindb.coro_get_canonical_head()
-        downloader = StateDownloader(
-            self.db, head.state_root, self.peer_pool, self.cancel_token)
-        try:
-            await downloader.run()
-        finally:
-            await downloader.stop()
+            # Download state for our current head.
+            head = await self.chaindb.coro_get_canonical_head()
+            downloader = StateDownloader(
+                self.db, head.state_root, self.peer_pool, self.cancel_token)
+            try:
+                await downloader.run()
+            finally:
+                await downloader.stop()
 
         # Now, loop forever, fetching missing blocks and applying them.
-        self.logger.info("Starting normal sync; current head: #%d", head.block_number)
+        self.logger.info("Starting regular sync; current head: #%d", head.block_number)
         chain_syncer = RegularChainSyncer(
             self.chain, self.chaindb, self.peer_pool, self.cancel_token)
         try:
