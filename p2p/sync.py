@@ -55,8 +55,12 @@ class FullNodeSyncer:
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
+        # This is a bit of a hack, but self.chain is stuck in the past as during the fast-sync we
+        # did not use it to import the blocks, so we need this to get a Chain instance with our
+        # latest head so that we can start importing blocks.
+        new_chain = type(self.chain)(self.chaindb)
         chain_syncer = RegularChainSyncer(
-            self.chain, self.chaindb, self.peer_pool, self.cancel_token)
+            new_chain, self.chaindb, self.peer_pool, self.cancel_token)
         try:
             await chain_syncer.run()
         finally:
