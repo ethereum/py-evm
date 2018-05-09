@@ -23,7 +23,13 @@ from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 
 
-class ChainSyncer(PeerPoolSubscriber):
+class FastChainSyncer(PeerPoolSubscriber):
+    """
+    Sync with the Ethereum network by fetching/storing block headers, bodies and receipts.
+
+    Here, the run() method will execute the sync loop until our local head is the same as the one
+    with the highest TD announced by any of our peers.
+    """
     logger = logging.getLogger("p2p.chain.ChainSyncer")
     # We'll only sync if we are connected to at least min_peers_to_sync.
     min_peers_to_sync = 1
@@ -352,7 +358,12 @@ class ChainSyncer(PeerPoolSubscriber):
         self._downloaded_bodies.put_nowait(downloaded)
 
 
-class RegularChainSyncer(ChainSyncer):
+class RegularChainSyncer(FastChainSyncer):
+    """
+    Sync with the Ethereum network by fetching block headers/bodies and importing them.
+
+    Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
+    """
 
     def __init__(self,
                  chain: AsyncChain,
@@ -471,6 +482,7 @@ def _test() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
+    parser.add_argument('-fast', action="store_true")
     parser.add_argument('-local-geth', action="store_true")
     parser.add_argument('-debug', action="store_true")
     args = parser.parse_args()
@@ -498,22 +510,25 @@ def _test() -> None:
             ETHPeer, chaindb, RopstenChain.network_id, privkey, min_peers)
 
     asyncio.ensure_future(peer_pool.run())
-    chain = FakeAsyncRopstenChain(chaindb)
-    downloader = RegularChainSyncer(chain, chaindb, peer_pool)
-    downloader.min_peers_to_sync = 1
+    if args.fast:
+        syncer = FastChainSyncer(chaindb, peer_pool)
+    else:
+        chain = FakeAsyncRopstenChain(chaindb)
+        syncer = RegularChainSyncer(chain, chaindb, peer_pool)
+    syncer.min_peers_to_sync = 1
 
     async def run():
-        # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
-        # token, at which point it returns and we stop the pool and downloader.
+        # syncer.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
+        # token, at which point it returns and we stop the pool and syncer.
         try:
-            await downloader.run()
+            await syncer.run()
         except OperationCancelled:
             pass
         await peer_pool.stop()
-        await downloader.stop()
+        await syncer.stop()
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, downloader.cancel_token.trigger)
+        loop.add_signal_handler(sig, syncer.cancel_token.trigger)
     loop.run_until_complete(run())
     loop.close()
 
