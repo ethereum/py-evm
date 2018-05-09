@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import random
 import time
 from typing import (
     List,
@@ -12,15 +11,20 @@ from evm.rlp.collations import Collation
 from evm.rlp.headers import CollationHeader
 from evm.chains.shard import Shard
 
+
 from evm.db.shard import (
     Availability,
 )
 
+from evm.utils.padding import (
+    zpad_right,
+)
+from evm.utils.blobs import (
+    calc_chunk_root,
+)
+
 from evm.constants import (
     COLLATION_SIZE,
-)
-from evm.exceptions import (
-    CanonicalCollationNotFound,
 )
 
 from p2p.cancel_token import (
@@ -42,6 +46,7 @@ from p2p.p2p_proto import (
 )
 from p2p.exceptions import (
     HandshakeFailure,
+    OperationCancelled,
 )
 
 
@@ -82,11 +87,8 @@ class ShardingPeer(BasePeer):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.incoming_collation_queue = None
+        self.incoming_collation_queue = asyncio.Queue()
         self.known_collation_hashes = set()
-
-    def set_incoming_collation_queue(self, queue: asyncio.Queue) -> None:
-        self.incoming_collation_queue = queue
 
     #
     # Handshake
@@ -94,11 +96,9 @@ class ShardingPeer(BasePeer):
     async def send_sub_proto_handshake(self) -> None:
         self.sub_proto.send_handshake()
 
-    async def process_sub_proto_handshake(
-        self,
-        cmd: Command,
-        msg: protocol._DecodedMsgType
-    ) -> None:
+    async def process_sub_proto_handshake(self,
+                                          cmd: Command,
+                                          msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
             self.disconnect(DisconnectReason.other)
             raise HandshakeFailure("Expected status msg, got {}, disconnecting".format(cmd))
@@ -113,12 +113,17 @@ class ShardingPeer(BasePeer):
             super().handle_sub_proto_msg(cmd, msg)
 
     def _handle_collations_msg(self, msg: List[Collation]) -> None:
+        self.logger.debug("Received {} collations".format(len(msg)))
         for collation in msg:
-            self.known_collation_hashes.add(collation.hash)
-            if self.incoming_collation_queue is not None:
+            try:
                 self.incoming_collation_queue.put_nowait(collation)
+            except asyncio.QueueFull:
+                self.logger.warning("Incoming collation queue full, dropping received collation")
+            else:
+                self.known_collation_hashes.add(collation.hash)
 
     def send_collations(self, collations: List[Collation]) -> None:
+        self.logger.debug("Sending {} collations".format(len(collations)))
         for collation in collations:
             if collation.hash not in self.known_collation_hashes:
                 self.known_collation_hashes.add(collation.hash)
@@ -126,36 +131,25 @@ class ShardingPeer(BasePeer):
 
 
 class ShardSyncer(PeerPoolSubscriber):
+    logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
-    def __init__(
-        self,
-        shard: Shard,
-        mean_proposing_period: int,
-        peer_pool: PeerPool,
-        token: CancelToken = None,
-    ) -> None:
+    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken = None) -> None:
         self.shard = shard
         self.peer_pool = peer_pool
         self.peer_pool.subscribe(self)
 
-        self.mean_proposing_period = mean_proposing_period
+        self.incoming_collation_queue = asyncio.Queue()
 
         self.collations_received_event = asyncio.Event()
         self.collations_proposed_event = asyncio.Event()
-
-        self.incoming_collation_queue = asyncio.Queue()
 
         self.cancel_token = CancelToken("ShardSyncer")
         if token is not None:
             self.cancel_token = self.cancel_token.chain(token)
 
-    async def run(self) -> None:
-        await asyncio.gather(
-            self.run_syncer(),
-            self.run_proposer(),
-        )
+        self.start_time = time.time()
 
-    async def run_syncer(self) -> None:
+    async def run(self) -> None:
         while True:
             collation = await wait_with_token(
                 self.incoming_collation_queue.get(),
@@ -163,47 +157,59 @@ class ShardSyncer(PeerPoolSubscriber):
             )
 
             if collation.shard_id != self.shard.shard_id:
+                self.logger.debug("Ignoring received collation belonging to wrong shard")
+                continue
+            if self.shard.get_availability(collation.header) is Availability.AVAILABLE:
+                self.logger.debug("Ignoring already available collation")
                 continue
 
+            self.logger.debug("Adding collation {} to shard".format(collation))
             self.shard.add_collation(collation)
-            self.collations_received_event.set()
-            self.collations_received_event.clear()
             for peer in self.peer_pool.peers:
                 peer.send_collations([collation])
 
-    async def run_proposer(self) -> None:
-        while True:
-            sleep_time = random.expovariate(1 / self.mean_proposing_period)
-            await wait_with_token(
-                asyncio.sleep(sleep_time),
-                token=self.cancel_token
-            )
+            self.collations_received_event.set()
+            self.collations_received_event.clear()
 
-            # create collation for current period if there isn't one yet
-            period = self.get_current_period()
-            try:
-                existing_header = self.shard.get_header_by_period(period)
-            except CanonicalCollationNotFound:
-                existing_header = None
+    def propose(self) -> None:
+        """Broadcast a new collation to the network and add it to the local shard."""
+        # create collation for current period
+        period = self.get_current_period()
+        body = zpad_right(str(self).encode("utf-8"), COLLATION_SIZE)
+        header = CollationHeader(self.shard.shard_id, calc_chunk_root(body), period, b"\x11" * 20)
+        collation = Collation(header, body)
 
-            if existing_header:
-                available = self.shard.get_availability(existing_header) is Availability.AVAILABLE
-            else:
-                available = False
+        self.logger.debug("Proposing collation {}".format(collation))
 
-            if not available:
-                header = CollationHeader(self.shard.shard_id, b"\x00" * 32, period, b"\x11" * 20)
-                collation = Collation(header, b"b" * COLLATION_SIZE)
-                self.collations_proposed_event.set()
-                self.collations_proposed_event.clear()
+        # add collation to local chain
+        self.shard.add_collation(collation)
 
-                # broadcast collation
-                for peer in self.peer_pool.peers:
-                    peer.send_collations([collation])
+        # broadcast collation
+        for peer in self.peer_pool.peers:
+            peer.send_collations([collation])
+
+        self.collations_proposed_event.set()
+        self.collations_proposed_event.clear()
+
+        return collation
 
     def register_peer(self, peer):
-        peer.set_incoming_collation_queue(self.incoming_collation_queue)
+        asyncio.ensure_future(self.handle_peer(peer))
+
+    async def handle_peer(self, peer):
+        while True:
+            try:
+                collation = await wait_with_token(
+                    peer.incoming_collation_queue.get(),
+                    token=self.cancel_token
+                )
+                await wait_with_token(
+                    self.incoming_collation_queue.put(collation),
+                    token=self.cancel_token
+                )
+            except OperationCancelled:
+                break  # stop handling peer if cancel token is triggered
 
     def get_current_period(self):
         # TODO: get this from main chain
-        return int(time.time() // COLLATION_PERIOD)
+        return int((time.time() - self.start_time) // COLLATION_PERIOD)
