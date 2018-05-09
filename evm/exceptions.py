@@ -32,7 +32,7 @@ class TransactionNotFound(PyEVMError):
     pass
 
 
-class ParentNotFound(PyEVMError):
+class ParentNotFound(HeaderNotFound):
     """
     Raised when the parent of a given block does not exist.
     """

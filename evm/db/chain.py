@@ -326,6 +326,7 @@ class ChainDB(BaseChainDB):
 
         return new_headers
 
+    # TODO: update this to take a `hash` rather than a full header object.
     def _set_as_canonical_chain_head(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         """
         Returns iterable of headers newly on the canonical head
