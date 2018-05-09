@@ -246,9 +246,10 @@ class CollationHeader(rlp.Serializable):
     smc_encoded_size = sum(size for _, _, size in fields_with_sizes)
 
     def __repr__(self) -> str:
-        return "<CollationHeader shard={} period={}>".format(
+        return "<CollationHeader shard={} period={} hash={}>".format(
             self.shard_id,
             self.period,
+            encode_hex(self.hash)[2:10],
         )
 
     @property

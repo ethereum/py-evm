@@ -3,6 +3,9 @@ import rlp
 from evm.utils.datatypes import (
     Configurable,
 )
+from evm.utils.hexadecimal import (
+    encode_hex,
+)
 
 from .headers import CollationHeader
 from .sedes import collation_body
@@ -41,7 +44,8 @@ class Collation(rlp.Serializable, Configurable):
         return self.header.proposer_address
 
     def __repr__(self) -> str:
-        return "<Collation shard={} period={}>".format(
+        return "<Collation shard={} period={} hash={}>".format(
             self.shard_id,
             self.period,
+            encode_hex(self.hash)[2:10],
         )
