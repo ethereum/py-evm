@@ -210,7 +210,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def get_prev_hashes(cls, last_block_hash, db):
+    def get_prev_hashes(cls, last_block_header, db):
         raise NotImplementedError("VM classes must implement this method")
 
     @staticmethod
@@ -292,11 +292,7 @@ class VM(BaseVM):
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
-        self.state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
-            state_root=self.block.header.state_root,
-        )
+        self.state = self._get_state_at_header(header, chaindb)
 
     #
     # Logging
@@ -557,11 +553,11 @@ class VM(BaseVM):
     @classmethod
     @functools.lru_cache(maxsize=32)
     @to_tuple
-    def get_prev_hashes(cls, last_block_hash, db):
-        if last_block_hash == GENESIS_PARENT_HASH:
+    def get_prev_hashes(cls, last_block_header, db):
+        if last_block_header.hash == GENESIS_PARENT_HASH:
             return
 
-        block_header = get_block_header_by_hash(last_block_hash, db)
+        block_header = last_block_header
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
             yield block_header.hash
@@ -575,7 +571,7 @@ class VM(BaseVM):
         """
         Convenience API for accessing the previous 255 block hashes.
         """
-        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+        return self.get_prev_hashes(self.block.header, self.chaindb)
 
     #
     # Transactions
@@ -717,14 +713,18 @@ class VM(BaseVM):
     def state_in_temp_block(self):
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = (header.hash, ) + self.previous_hashes
 
-        state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=temp_block.header.create_execution_context(prev_hashes),
-            state_root=temp_block.header.state_root,
-        )
+        state = self._get_state_at_header(temp_block.header, self.chaindb)
 
         snapshot = state.snapshot()
         yield state
         state.revert(snapshot)
+
+    @classmethod
+    def _get_state_at_header(cls, header, chaindb):
+        prev_hashes = cls.get_prev_hashes(header, chaindb)
+        return cls.get_state_class()(
+            db=chaindb.db,
+            execution_context=header.create_execution_context(prev_hashes),
+            state_root=header.state_root,
+        )
