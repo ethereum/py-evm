@@ -110,7 +110,7 @@ class LightChain(Chain, PeerPoolSubscriber):
 
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
-        await peer.stop()
+        await peer.cancel()
 
     async def wait_until_finished(self):
         start_at = time.time()

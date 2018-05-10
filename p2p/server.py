@@ -43,9 +43,10 @@ from p2p.peer import (
     ETHPeer,
     PeerPool,
 )
+from p2p.service import BaseService
 
 
-class Server:
+class Server(BaseService):
     """Server listening for incoming connections"""
     logger = logging.getLogger("p2p.server.Server")
     _server = None
@@ -59,7 +60,7 @@ class Server:
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
                  ) -> None:
-        self.cancel_token = CancelToken('Server')
+        super().__init__(CancelToken('Server'))
         self.chaindb = chaindb
         self.privkey = privkey
         self.server_address = server_address
@@ -84,7 +85,7 @@ class Server:
         sleep for that long as well.
         """
         lifetime = 30 * 60
-        while True:
+        while not self.is_finished:
             self.logger.info("Setting up NAT portmap...")
             # This is experimental and it's OK if it fails, hence the bare except.
             try:
@@ -139,7 +140,7 @@ class Server:
         self._server.close()
         await self._server.wait_closed()
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         self.logger.info("Running server...")
         await self._start()
         self.logger.info(
@@ -154,15 +155,11 @@ class Server:
         asyncio.ensure_future(self.peer_pool.run())
         await self.cancel_token.wait()
 
-    async def stop(self) -> None:
+    async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        self.cancel_token.trigger()
-        await self.peer_pool.stop()
+        await self.peer_pool.cancel()
         await self.discovery.stop()
         await self._close()
-        # We run lots of asyncio tasks so this is to make sure they all get a chance to execute
-        # and exit cleanly when they notice the cancel token has been triggered.
-        await asyncio.sleep(1)
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -299,6 +296,9 @@ def _test() -> None:
     chaindb = FakeAsyncChainDB(MemoryDB())
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
+    # NOTE: Since we may create a different priv/pub key pair every time we run this, remote nodes
+    # may try to establish a connection using the pubkey from one of our previous runs, which will
+    # result in lots of DecryptionErrors in receive_handshake().
     if args.nodekey:
         privkey = load_nodekey(args.nodekey)
     else:
@@ -320,21 +320,19 @@ def _test() -> None:
         peer_class=ETHPeer,
     )
 
-    # NOTE: Since we create a different priv/pub key pair every time we run this, remote nodes may
-    # try to establish a connection using the pubkey from one of our previous runs, which will
-    # result in lots of DecryptionErrors in receive_handshake().
-    async def run():
-        try:
-            await server.run()
-        except OperationCancelled:
-            pass
-        await server.stop()
-
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, server.cancel_token.trigger)
+        loop.add_signal_handler(sig, sigint_received.set)
+
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await server.cancel()
+        loop.stop()
 
     loop.set_debug(True)
-    loop.run_until_complete(run())
+    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(server.run())
+    loop.run_forever()
     loop.close()
 
 

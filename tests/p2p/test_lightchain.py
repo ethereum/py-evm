@@ -247,7 +247,7 @@ class MockPeerPool:
     async def run(self):
         pass
 
-    async def stop(self):
+    async def cancel(self):
         pass
 
 

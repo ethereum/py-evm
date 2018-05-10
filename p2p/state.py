@@ -35,9 +35,10 @@ from p2p import protocol
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.service import BaseService
 
 
-class StateDownloader(PeerPoolSubscriber):
+class StateDownloader(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.state.StateDownloader")
     _pending_nodes = {}  # type: Dict[Any, float]
     _total_processed_nodes = 0
@@ -51,14 +52,15 @@ class StateDownloader(PeerPoolSubscriber):
                  root_hash: bytes,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
+        cancel_token = CancelToken('StateDownloader')
+        if token is not None:
+            cancel_token = cancel_token.chain(token)
+        super().__init__(cancel_token)
         self.peer_pool = peer_pool
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._running_peers = set()  # type: Set[ETHPeer]
         self._peers_with_pending_requests = {}  # type: Dict[ETHPeer, float]
-        self.cancel_token = CancelToken('StateDownloader')
-        if token is not None:
-            self.cancel_token = self.cancel_token.chain(token)
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -83,7 +85,7 @@ class StateDownloader(PeerPoolSubscriber):
             self._running_peers.remove(peer)
 
     async def _handle_peer(self, peer: ETHPeer) -> None:
-        while True:
+        while not self.is_finished:
             try:
                 cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
             except OperationCancelled:
@@ -122,12 +124,17 @@ class StateDownloader(PeerPoolSubscriber):
             # We ignore everything that is not a NodeData when doing a StateSync.
             self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
 
-    async def stop(self):
-        self.cancel_token.trigger()
+    async def _cleanup(self):
         self.peer_pool.unsubscribe(self)
-        while self._running_peers:
-            self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
+        start_at = time.time()
+        # Wait at most 1 second for pending peers to finish.
+        self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
+        while time.time() < start_at + 1:
+            if not self._running_peers:
+                break
             await asyncio.sleep(0.1)
+        else:
+            self.logger.info("Waited too long for peers to finish, exiting anyway")
 
     async def request_nodes(self, node_keys: List[bytes]) -> None:
         batches = list(partition_all(eth.MAX_STATE_FETCH, node_keys))
@@ -141,7 +148,7 @@ class StateDownloader(PeerPoolSubscriber):
             self._peers_with_pending_requests[peer] = now
 
     async def _periodically_retry_timedout(self):
-        while True:
+        while not self.is_finished:
             now = time.time()
             # First, update our list of peers with pending requests by removing those for which a
             # request timed out. This loop mutates the dict, so we iterate on a copy of it.
@@ -173,7 +180,7 @@ class StateDownloader(PeerPoolSubscriber):
             except OperationCancelled:
                 break
 
-    async def run(self):
+    async def _run(self):
         """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
 
         Raises OperationCancelled if we're interrupted before that is completed.
@@ -204,7 +211,7 @@ class StateDownloader(PeerPoolSubscriber):
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
     async def _periodically_report_progress(self):
-        while True:
+        while not self.is_finished:
             now = time.time()
             self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
@@ -269,20 +276,20 @@ def _test():
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ProcessPoolExecutor())
 
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, downloader.cancel_token.trigger)
+        loop.add_signal_handler(sig, sigint_received.set)
 
-    async def run():
-        # downloader.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
-        # token, at which point it returns and we stop the pool and downloader.
-        try:
-            await downloader.run()
-        except OperationCancelled:
-            pass
-        await peer_pool.stop()
-        await downloader.stop()
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await peer_pool.cancel()
+        await downloader.cancel()
+        loop.stop()
 
-    loop.run_until_complete(run())
+    loop.set_debug(True)
+    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(downloader.run())
+    loop.run_forever()
     loop.close()
 
 

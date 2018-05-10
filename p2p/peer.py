@@ -62,6 +62,7 @@ from p2p.exceptions import (
 )
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.rlp import BlockBody
+from p2p.service import BaseService
 from p2p.utils import (
     gen_request_id,
     get_devp2p_cmd_id,
@@ -124,7 +125,7 @@ async def handshake(remote: Node,
     return peer
 
 
-class BasePeer(metaclass=ABCMeta):
+class BasePeer(BaseService):
     logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     reply_timeout = REPLY_TIMEOUT
@@ -148,7 +149,7 @@ class BasePeer(metaclass=ABCMeta):
                  chaindb: AsyncChainDB,
                  network_id: int,
                  ) -> None:
-        self._finished = asyncio.Event()
+        super().__init__(CancelToken('Peer'))
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -258,25 +259,6 @@ class BasePeer(metaclass=ABCMeta):
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
             raise PeerConnectionLost(repr(e))
 
-    async def run(self, finished_callback: Optional[Callable[['BasePeer'], None]] = None) -> None:
-        try:
-            await self.read_loop()
-        except OperationCancelled as e:
-            self.logger.debug("Peer finished: %s", e)
-        except Exception:
-            self.logger.exception("Unexpected error when handling remote msg")
-        finally:
-            self.close()
-            self._finished.set()
-            if finished_callback is not None:
-                finished_callback(self)
-
-    def is_finished(self) -> bool:
-        return self._finished.is_set()
-
-    async def wait_until_finished(self) -> bool:
-        return await self._finished.wait()
-
     def close(self):
         """Close this peer's reader/writer streams.
 
@@ -289,18 +271,10 @@ class BasePeer(metaclass=ABCMeta):
         self.reader.feed_eof()
         self.writer.close()
 
-    async def stop(self):
-        """Disconnect from the remote and flag this peer as finished.
+    async def _cleanup(self):
+        self.close()
 
-        If the peer is already flagged as finished, do nothing.
-        """
-        if self._finished.is_set():
-            return
-        self.cancel_token.trigger()
-        await self._finished.wait()
-        self.logger.debug("Stopped %s", self)
-
-    async def read_loop(self):
+    async def _run(self):
         while True:
             try:
                 cmd, msg = await self.read_msg()
@@ -642,7 +616,7 @@ class PeerPoolSubscriber(metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class PeerPool:
+class PeerPool(BaseService):
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
@@ -657,6 +631,7 @@ class PeerPool:
                  discovery: DiscoveryProtocol,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  ) -> None:
+        super().__init__(CancelToken('PeerPool'))
         self.peer_class = peer_class
         self.chaindb = chaindb
         self.network_id = network_id
@@ -664,7 +639,6 @@ class PeerPool:
         self.discovery = discovery
         self.min_peers = min_peers
         self.connected_nodes = {}  # type: Dict[Node, BasePeer]
-        self.cancel_token = CancelToken('PeerPool')
         self._subscribers = []  # type: List[PeerPoolSubscriber]
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
@@ -690,7 +664,7 @@ class PeerPool:
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
             try:
@@ -709,10 +683,9 @@ class PeerPool:
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
         await asyncio.gather(
-            *[peer.stop() for peer in self.connected_nodes.values()])
+            *[peer.cancel() for peer in self.connected_nodes.values()])
 
-    async def stop(self) -> None:
-        self.cancel_token.trigger()
+    async def _cleanup(self) -> None:
         await self.stop_all_peers()
 
     async def connect(self, remote: Node) -> BasePeer:
@@ -786,10 +759,11 @@ class PeerPool:
                 if len(self.connected_nodes) >= self.min_peers:
                     return
 
-    def _peer_finished(self, peer: BasePeer) -> None:
+    def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
         This is passed as a callback to be called when a peer finishes.
         """
+        peer = cast(BasePeer, peer)
         if peer.remote in self.connected_nodes:
             self.connected_nodes.pop(peer.remote)
 
@@ -975,11 +949,19 @@ def _test():
             peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
             peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
 
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, peer.cancel_token.trigger)
+        loop.add_signal_handler(sig, sigint_received.set)
 
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await peer.cancel()
+        loop.stop()
+
+    asyncio.ensure_future(exit_on_sigint())
     asyncio.ensure_future(request_stuff())
-    loop.run_until_complete(peer.run())
+    asyncio.ensure_future(peer.run())
+    loop.run_forever()
     loop.close()
 
 

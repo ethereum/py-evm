@@ -16,7 +16,6 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
-from p2p.exceptions import OperationCancelled
 from p2p.sync import FullNodeSyncer
 from p2p.peer import (
     ETHPeer,
@@ -204,7 +203,7 @@ def run_lightnode_process(
             await chain.run()
         finally:
             await ipc_server.stop()
-            await chain.peer_pool.stop()
+            await chain.peer_pool.cancel()
             await chain.stop()
 
     loop.run_until_complete(run_chain(chain))
@@ -229,17 +228,17 @@ def run_fullnode_process(
     # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the
     # main thread.
     loop.set_default_executor(ProcessPoolExecutor())
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, syncer.cancel_token.trigger)
+        loop.add_signal_handler(sig, sigint_received.set)
 
-    async def run_syncer():
-        try:
-            await syncer.run()
-        except OperationCancelled:
-            pass
-        finally:
-            await peer_pool.stop()
-            await syncer.stop()
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await peer_pool.cancel()
+        await syncer.cancel()
+        loop.stop()
 
-    loop.run_until_complete(run_syncer())
+    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(syncer.run())
+    loop.run_forever()
     loop.close()

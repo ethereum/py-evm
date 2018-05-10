@@ -5,9 +5,9 @@ from evm.chains import AsyncChain
 from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
 from p2p.cancel_token import CancelToken
-from p2p.exceptions import OperationCancelled
 from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
+from p2p.service import BaseService
 from p2p.state import StateDownloader
 
 
@@ -16,7 +16,7 @@ from p2p.state import StateDownloader
 FAST_SYNC_CUTOFF = 60 * 60 * 24
 
 
-class FullNodeSyncer:
+class FullNodeSyncer(BaseService):
     logger = logging.getLogger("p2p.sync.FullNodeSyncer")
 
     def __init__(self,
@@ -24,13 +24,13 @@ class FullNodeSyncer:
                  chaindb: AsyncChainDB,
                  db: BaseDB,
                  peer_pool: PeerPool) -> None:
+        super().__init__(CancelToken('FullNodeSyncer'))
         self.chain = chain
         self.chaindb = chaindb
         self.db = db
         self.peer_pool = peer_pool
-        self.cancel_token = CancelToken('FullNodeSyncer')
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         head = await self.chaindb.coro_get_canonical_head()
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.
@@ -39,19 +39,13 @@ class FullNodeSyncer:
             # Fast-sync chain data.
             self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
             chain_syncer = FastChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
-            try:
-                await chain_syncer.run()
-            finally:
-                await chain_syncer.stop()
+            await chain_syncer.run()
 
             # Download state for our current head.
             head = await self.chaindb.coro_get_canonical_head()
             downloader = StateDownloader(
                 self.db, head.state_root, self.peer_pool, self.cancel_token)
-            try:
-                await downloader.run()
-            finally:
-                await downloader.stop()
+            await downloader.run()
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
@@ -61,13 +55,11 @@ class FullNodeSyncer:
         new_chain = type(self.chain)(self.chaindb)
         chain_syncer = RegularChainSyncer(
             new_chain, self.chaindb, self.peer_pool, self.cancel_token)
-        try:
-            await chain_syncer.run()
-        finally:
-            await chain_syncer.stop()
+        await chain_syncer.run()
 
-    async def stop(self):
-        self.cancel_token.trigger()
+    async def _cleanup(self):
+        # We don't run anything in the background, so nothing to do here.
+        pass
 
 
 def _test():
@@ -97,17 +89,20 @@ def _test():
 
     syncer = FullNodeSyncer(chain, chaindb, chaindb.db, peer_pool)
 
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, syncer.cancel_token.trigger)
+        loop.add_signal_handler(sig, sigint_received.set)
 
-    async def run():
-        try:
-            await syncer.run()
-        except OperationCancelled:
-            pass
-        await peer_pool.stop()
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await syncer.cancel()
+        await peer_pool.cancel()
+        loop.stop()
 
-    loop.run_until_complete(run())
+    loop.set_debug(True)
+    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(syncer.run())
+    loop.run_forever()
     loop.close()
 
 
