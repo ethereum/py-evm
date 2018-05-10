@@ -25,7 +25,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth_typing import BlockNumber
+from eth_typing import BlockNumber, Hash32  # noqa: F401
 
 from eth_keys import (
     datatypes,
@@ -608,7 +608,7 @@ class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto = None  # type: eth.ETHProtocol
     head_td = None  # type: int
-    head_hash = None  # type: bytes
+    head_hash = None  # type: Hash32
 
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)

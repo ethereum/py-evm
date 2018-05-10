@@ -12,7 +12,7 @@ from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH
 from evm.chains import AsyncChain
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
-from evm.exceptions import BlockNotFound
+from evm.exceptions import HeaderNotFound
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction  # noqa: F401
@@ -43,7 +43,6 @@ class FastChainSyncer(PeerPoolSubscriber):
                  token: CancelToken = None) -> None:
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self.peer_pool.subscribe(self)
         self.cancel_token = CancelToken('ChainSyncer')
         if token is not None:
             self.cancel_token = self.cancel_token.chain(token)
@@ -104,6 +103,7 @@ class FastChainSyncer(PeerPoolSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     async def run(self) -> None:
+        self.peer_pool.subscribe(self)
         while True:
             peer_or_finished = await wait_with_token(
                 self._sync_requests.get(), self._sync_complete.wait(),
@@ -202,9 +202,18 @@ class FastChainSyncer(PeerPoolSubscriber):
 
         head = await self.chaindb.coro_get_canonical_head()
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
-        if head.hash == peer.head_hash:
+        # Quite often the header batch we receive here includes headers past the peer's reported
+        # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
+        # order to see if the sync is completed. Instead we just check that we have the peer's
+        # head_hash in our chain.
+        try:
+            await self.chaindb.coro_get_block_header_by_hash(peer.head_hash)
+        except HeaderNotFound:
+            pass
+        else:
             self.logger.info("Fast sync with %s completed", peer)
             self._sync_complete.set()
+
         return head.block_number
 
     async def _download_block_parts(
@@ -390,7 +399,7 @@ class RegularChainSyncer(FastChainSyncer):
         for header in headers.copy():
             try:
                 await self.chaindb.coro_get_block_header_by_hash(header.hash)
-            except BlockNotFound:
+            except HeaderNotFound:
                 break
             else:
                 headers.remove(header)

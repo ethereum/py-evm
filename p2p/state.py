@@ -52,7 +52,6 @@ class StateDownloader(PeerPoolSubscriber):
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         self.peer_pool = peer_pool
-        self.peer_pool.subscribe(self)
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._running_peers = set()  # type: Set[ETHPeer]
@@ -181,6 +180,7 @@ class StateDownloader(PeerPoolSubscriber):
         """
         self._start_time = time.time()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
+        self.peer_pool.subscribe(self)
         asyncio.ensure_future(self._periodically_report_progress())
         asyncio.ensure_future(self._periodically_retry_timedout())
         while self.scheduler.has_pending_requests:

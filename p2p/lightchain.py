@@ -63,7 +63,6 @@ class LightChain(Chain, PeerPoolSubscriber):
     def __init__(self, chaindb: AsyncChainDB, peer_pool: PeerPool) -> None:
         super(LightChain, self).__init__(chaindb)
         self.peer_pool = peer_pool
-        self.peer_pool.subscribe(self)
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
         self.cancel_token = CancelToken('LightChain')
@@ -161,6 +160,7 @@ class LightChain(Chain, PeerPoolSubscriber):
         If .stop() is called, we'll disconnect from all peers and return.
         """
         self.logger.info("Running LightChain...")
+        self.peer_pool.subscribe(self)
         while True:
             try:
                 peer, head_info = await self.wait_for_announcement()
