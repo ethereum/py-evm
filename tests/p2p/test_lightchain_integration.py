@@ -51,7 +51,7 @@ async def test_lightchain_integration(request, event_loop):
     await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
 
     def finalizer():
-        event_loop.run_until_complete(peer_pool.stop())
+        event_loop.run_until_complete(peer_pool.cancel())
         event_loop.run_until_complete(chain.stop())
 
     request.addfinalizer(finalizer)

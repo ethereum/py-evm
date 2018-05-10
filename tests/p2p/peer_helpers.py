@@ -129,8 +129,8 @@ async def get_directly_linked_peers(
 
     def finalizer():
         async def afinalizer():
-            await peer1.stop()
-            await peer2.stop()
+            await peer1.cancel()
+            await peer2.cancel()
         event_loop.run_until_complete(afinalizer())
     request.addfinalizer(finalizer)
 

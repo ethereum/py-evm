@@ -21,9 +21,10 @@ from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.service import BaseService
 
 
-class FastChainSyncer(PeerPoolSubscriber):
+class FastChainSyncer(BaseService, PeerPoolSubscriber):
     """
     Sync with the Ethereum network by fetching/storing block headers, bodies and receipts.
 
@@ -41,11 +42,12 @@ class FastChainSyncer(PeerPoolSubscriber):
                  chaindb: AsyncChainDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
+        cancel_token = CancelToken('ChainSyncer')
+        if token is not None:
+            cancel_token = cancel_token.chain(token)
+        super().__init__(cancel_token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self.cancel_token = CancelToken('ChainSyncer')
-        if token is not None:
-            self.cancel_token = self.cancel_token.chain(token)
         self._running_peers = set()  # type: Set[ETHPeer]
         self._syncing = False
         self._sync_complete = asyncio.Event()
@@ -72,7 +74,7 @@ class FastChainSyncer(PeerPoolSubscriber):
             self._running_peers.remove(peer)
 
     async def _handle_peer(self, peer: ETHPeer) -> None:
-        while True:
+        while not self.is_finished:
             try:
                 cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
             except OperationCancelled:
@@ -102,7 +104,7 @@ class FastChainSyncer(PeerPoolSubscriber):
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         self.peer_pool.subscribe(self)
         while True:
             peer_or_finished = await wait_with_token(
@@ -155,15 +157,15 @@ class FastChainSyncer(PeerPoolSubscriber):
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
                 headers = await wait_with_token(
-                    self._new_headers.get(), peer.wait_until_finished(),
+                    self._new_headers.get(), peer.finished.wait(),
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
-                await peer.stop()
+                await peer.cancel()
                 break
 
-            if peer.is_finished():
+            if peer.is_finished:
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
@@ -294,17 +296,16 @@ class FastChainSyncer(PeerPoolSubscriber):
 
     async def wait_until_finished(self) -> None:
         start_at = time.time()
-        # Wait at most 5 seconds for pending peers to finish.
+        # Wait at most 1 second for pending peers to finish.
         self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
-        while time.time() < start_at + 5:
+        while time.time() < start_at + 1:
             if not self._running_peers:
                 break
             await asyncio.sleep(0.1)
         else:
             self.logger.info("Waited too long for peers to finish, exiting anyway")
 
-    async def stop(self) -> None:
-        self.cancel_token.trigger()
+    async def _cleanup(self) -> None:
         self.peer_pool.unsubscribe(self)
         await self.wait_until_finished()
 
@@ -526,19 +527,20 @@ def _test() -> None:
         syncer = RegularChainSyncer(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
 
-    async def run():
-        # syncer.run() will run in a loop until the SIGINT/SIGTERM handler triggers its cancel
-        # token, at which point it returns and we stop the pool and syncer.
-        try:
-            await syncer.run()
-        except OperationCancelled:
-            pass
-        await peer_pool.stop()
-        await syncer.stop()
-
+    sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, syncer.cancel_token.trigger)
-    loop.run_until_complete(run())
+        loop.add_signal_handler(sig, sigint_received.set)
+
+    async def exit_on_sigint():
+        await sigint_received.wait()
+        await syncer.cancel()
+        await peer_pool.cancel()
+        loop.stop()
+
+    loop.set_debug(True)
+    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(syncer.run())
+    loop.run_forever()
     loop.close()
 
 

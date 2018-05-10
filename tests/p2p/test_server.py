@@ -111,7 +111,7 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
     assert initiator_peer.privkey == RECEIVER_PRIVKEY
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
-    await initiator_peer.stop()
+    await initiator_peer.cancel()
 
 
 @pytest.mark.asyncio
@@ -128,4 +128,4 @@ async def test_two_servers(event_loop,
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
     peer = list(receiver_server_with_dumb_peer.peer_pool.connected_nodes.values())[0]
-    await peer.stop()
+    await peer.cancel()
