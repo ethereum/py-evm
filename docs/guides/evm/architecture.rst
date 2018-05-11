@@ -22,7 +22,7 @@ Py-EVM based blockchain.
 The Chain
 ---------
 
-The term **Chain** is used to encapuslate:
+The term **Chain** is used to encapsulate:
 
 - The state transition function (e.g. VM opcodes and execution logic)
 - Protocol rules (e.g. block rewards, header rewards, difficulty calculations, transaction execution)
@@ -47,7 +47,7 @@ for each fork ruleset (e.g. **Frontier**, **Homestead**, **Tangerine Whistle**,
 The VM
 ------
 
-The term **VM** is used to encapulate:
+The term **VM** is used to encapsulate:
 
 - The state transition function for a single fork ruleset.
 - Orchestration logic for transaction execution.
@@ -67,7 +67,7 @@ The term **VMState** is used to encapsulate:
 
 - Execution context for the VM (e.g. ``coinbase`` or ``gas_limit``)
 - The state root defining the current VM state.
-- Some block valaidation
+- Some block validation
 
 
 The Message

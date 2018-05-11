@@ -27,7 +27,7 @@ The :func:`~evm.vm.opcode.as_opcode` helper
 
 
 While these examples are demonstrative of *simple* logic, opcodes will
-traditionally have an intrensic gas cost associated with them.  Py-EVM offers
+traditionally have an intrinsic gas cost associated with them.  Py-EVM offers
 an abstraction which allows for decoupling of gas consumption from opcode logic
 which can be convenient for cases where an opcode's gas cost changes between
 different VM rules but it's logic remains constant.
