@@ -49,9 +49,9 @@ Using the LightChain object
 ---------------------------
 
 The :class:`~p2p.lightchain.LightChain` is like a Chain but it will also
-connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader` s
-as they are announced on the network. As such, it must first be configured
-with a vm_configuration, but it also requires a network_id and privkey:
+connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader`
+objects as they are announced on the network. As such, it must first be
+configured with a `vm_configuration` and a `network_id`:
 
 ::
 
@@ -67,8 +67,9 @@ with a vm_configuration, but it also requires a network_id and privkey:
   )
 
 
-And in order for it to connect to other peers in the network and fetch new
-headers, you should tell asyncio to execute its run() method:
+In order for it to connect to other peers in the network and fetch new
+headers, you should give it a `privkey` and tell `asyncio` to execute
+its `run()` method:
 
 ::
 
