@@ -667,18 +667,10 @@ class PeerPool(BaseService):
     async def _run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
-            try:
-                await self.maybe_connect_to_more_peers()
-                # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-                await wait_with_token(
-                    asyncio.sleep(self._connect_loop_sleep), token=self.cancel_token)
-            except OperationCancelled as e:
-                self.logger.debug("PeerPool finished: %s", e)
-                break
-            except:  # noqa: E722
-                # Most unexpected errors should be transient, so we log and restart from scratch.
-                self.logger.exception("Unexpected error, restarting")
-                await self.stop_all_peers()
+            await self.maybe_connect_to_more_peers()
+            # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
+            await wait_with_token(
+                asyncio.sleep(self._connect_loop_sleep), token=self.cancel_token)
 
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
