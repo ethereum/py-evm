@@ -101,4 +101,4 @@ The term **Opcode** is used to encapsulate:
 
 - A single instruction within the VM such as the ``ADD`` or ``MUL`` opcodes.
 
-Opcodes are imple
+Opcodes are implemented as TODO
