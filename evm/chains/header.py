@@ -29,7 +29,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     @abstractmethod
-    def __init__(self, basedb: BaseDB, header: BlockHeader) -> None:
+    def __init__(self, basedb: BaseDB, header: BlockHeader=None) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -80,10 +80,14 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
 class HeaderChain(BaseHeaderChain):
     _headerdb_class = HeaderDB
 
-    def __init__(self, basedb: BaseDB, header: BlockHeader) -> None:
+    def __init__(self, basedb: BaseDB, header: BlockHeader=None) -> None:
         self.basedb = basedb
         self.headerdb = self.get_headerdb_class()(basedb)
-        self.header = header
+
+        if header is None:
+            self.header = self.get_canonical_head()
+        else:
+            self.header = header
 
     #
     # Chain Initialization API

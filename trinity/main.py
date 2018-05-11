@@ -29,12 +29,10 @@ from trinity.chains import (
     is_data_dir_initialized,
     serve_chaindb,
 )
-from trinity.chains.mainnet import (
-    MainnetLightChain,
+from trinity.chains.header import (
+    AsyncHeaderChainProxy,
 )
-from trinity.chains.ropsten import (
-    RopstenLightChain,
-)
+from trinity.clients.light import LightClientNode
 from trinity.console import (
     console,
 )
@@ -43,6 +41,7 @@ from trinity.constants import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
@@ -164,6 +163,8 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
     DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
     DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
+    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
+    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 
     manager = DBManager(address=ipc_path)  # type: ignore
     manager.connect()  # type: ignore
@@ -176,35 +177,28 @@ def run_lightnode_process(
         pool_class: Type[HardCodedNodesPeerPool]) -> None:
 
     manager = create_dbmanager(chain_config.database_ipc_path)
-    chaindb = manager.get_chaindb()  # type: ignore
 
-    if chain_config.network_id == MAINNET_NETWORK_ID:
-        chain_class = MainnetLightChain  # type: ignore
-    elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        chain_class = RopstenLightChain  # type: ignore
-    else:
-        raise NotImplementedError(
-            "Only the mainnet and ropsten chains are currently supported"
-        )
-    peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
-    chain = chain_class(chaindb, peer_pool)
+    headerdb = manager.get_headerdb()  # type: ignore
+    header_chain = manager.get_header_chain()  # type: ignore
+
+    peer_pool = pool_class(LESPeer, headerdb, chain_config.network_id, chain_config.nodekey)
+    light_client = LightClientNode(header_chain, headerdb, peer_pool)
 
     loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, chain.cancel_token.trigger)
+        loop.add_signal_handler(sig, light_client.cancel_token.trigger)
 
+    chain = manager.get_chain()  # type: ignore
     rpc = RPCServer(chain)
     ipc_server = IPCServer(rpc, chain_config.jsonrpc_ipc_path)
 
     async def run_chain(chain):
         try:
-            asyncio.ensure_future(chain.peer_pool.run())
             asyncio.ensure_future(ipc_server.run())
-            await chain.run()
+            await light_client.run()
         finally:
             await ipc_server.stop()
-            await chain.peer_pool.cancel()
-            await chain.stop()
+            await light_client.stop()
 
     loop.run_until_complete(run_chain(chain))
     loop.close()

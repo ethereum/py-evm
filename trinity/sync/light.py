@@ -48,7 +48,7 @@ class LightChainSyncer(BaseService, PeerPoolSubscriber):
 
     max_consecutive_timeouts = 5
 
-    _announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = None
+    _announcement_queue: "asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]" = None
     _last_processed_announcements: Dict[LESPeer, les.HeadInfo] = None
     _running_peers: Set[LESPeer] = None
 

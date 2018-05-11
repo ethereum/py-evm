@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List
 
@@ -39,25 +40,25 @@ FAST_SYNC_CUTOFF = 60 * 60 * 24
 class LightClientNode(BaseService):
     logger: logging.Logger = logging.getLogger("trinity.clients.light.LightClientNode")
 
-    chain: BaseAsyncHeaderChain = None
+    header_chain: BaseAsyncHeaderChain = None
     headerdb: BaseAsyncHeaderDB = None
 
     def __init__(self,
-                 chain: BaseAsyncHeaderChain,
+                 header_chain: BaseAsyncHeaderChain,
                  headerdb: BaseAsyncHeaderDB,
                  peer_pool: PeerPool) -> None:
         super().__init__(CancelToken('FullNodeSyncer'))
-        self.chain = chain
+        self.header_chain = header_chain
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self.syncer = LightChainSyncer(self.headerdb, self.peer_pool, self.cancel_token)
 
     async def _run(self) -> None:
+        asyncio.ensure_future(self.peer_pool.run())
         await self.syncer.run()
 
     async def _cleanup(self):
-        # We don't run anything in the background, so nothing to do here.
-        pass
+        await self.peer_pool.cancel()
 
     #
     # API for fetching chain data over network.
@@ -68,7 +69,7 @@ class LightClientNode(BaseService):
         Raises HeaderNotFound if it is not found.
         """
         try:
-            block_hash = await self.chain.coro_get_canonical_block_hash(block_number)
+            block_hash = await self.header_chain.coro_get_canonical_block_hash(block_number)
         except KeyError:
             raise HeaderNotFound(
                 "No block with number {} found on local chain".format(block_number))
@@ -78,7 +79,7 @@ class LightClientNode(BaseService):
     async def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         peer = await self.get_best_peer()
         try:
-            header = await self.chaindb.coro_get_block_header_by_hash(block_hash)
+            header = await self.headerdb.coro_get_block_header_by_hash(block_hash)
         except HeaderNotFound:
             self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
             header = await peer.get_block_header_by_hash(block_hash, self.cancel_token)

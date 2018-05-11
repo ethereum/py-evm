@@ -38,7 +38,6 @@ from trie import HexaryTrie
 
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.exceptions import BlockNotFound
-from evm.db.chain import AsyncChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
@@ -88,11 +87,13 @@ from .constants import (
     REPLY_TIMEOUT,
 )
 
+from trinity.db.header import BaseAsyncHeaderDB
+
 
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
-                    chaindb: AsyncChainDB,
+                    headerdb: BaseAsyncHeaderDB,
                     network_id: int,
                     token: CancelToken,
                     ) -> 'BasePeer':
@@ -119,7 +120,7 @@ async def handshake(remote: Node,
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
+        ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
     return peer
@@ -146,7 +147,7 @@ class BasePeer(BaseService):
                  mac_secret: bytes,
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  ) -> None:
         super().__init__(CancelToken('Peer'))
@@ -155,7 +156,7 @@ class BasePeer(BaseService):
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.network_id = network_id
         self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
         self.cancel_token = CancelToken('Peer')
@@ -218,16 +219,16 @@ class BasePeer(BaseService):
 
     @property
     async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.chaindb.coro_get_canonical_block_hash(
+        genesis_hash = await self.headerdb.coro_get_canonical_block_hash(
             BlockNumber(GENESIS_BLOCK_NUMBER),
         )
-        return await self.chaindb.coro_get_block_header_by_hash(genesis_hash)
+        return await self.headerdb.coro_get_block_header_by_hash(genesis_hash)
 
     @property
     async def _local_chain_info(self) -> 'ChainInfo':
         genesis = await self.genesis
-        head = await self.chaindb.coro_get_canonical_head()
-        total_difficulty = await self.chaindb.coro_get_score(head.hash)
+        head = await self.headerdb.coro_get_canonical_head()
+        total_difficulty = await self.headerdb.coro_get_score(head.hash)
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
@@ -625,7 +626,7 @@ class PeerPool(BaseService):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
@@ -633,7 +634,7 @@ class PeerPool(BaseService):
                  ) -> None:
         super().__init__(CancelToken('PeerPool'))
         self.peer_class = peer_class
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
         self.discovery = discovery
@@ -700,7 +701,7 @@ class PeerPool(BaseService):
         try:
             self.logger.debug("Connecting to %s...", remote)
             peer = await handshake(
-                remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
+                remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
                 self.cancel_token)
             return peer
         except OperationCancelled:
@@ -791,13 +792,13 @@ class HardCodedNodesPeerPool(PeerPool):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  min_peers: int = 2,
                  ) -> None:
         discovery = None
-        super().__init__(peer_class, chaindb, network_id, privkey, discovery, min_peers)
+        super().__init__(peer_class, headerdb, network_id, privkey, discovery, min_peers)
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
         # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
@@ -923,12 +924,12 @@ def _test():
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    headerdb = FakeAsyncChainDB(MemoryDB())
+    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     peer = loop.run_until_complete(
-        handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id,
+        handshake(remote, ecies.generate_privkey(), peer_class, headerdb, network_id,
                   CancelToken("Peer test")))
 
     async def request_stuff():
