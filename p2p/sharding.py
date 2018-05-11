@@ -5,7 +5,10 @@ from typing import (
     cast,
     List,
     Set,
+    Type,
 )
+
+from eth_keys import datatypes
 
 from eth_typing import (
     Hash32,
@@ -17,9 +20,10 @@ from evm.rlp.collations import Collation
 from evm.rlp.headers import CollationHeader
 from evm.chains.shard import Shard
 
-
+from evm.db.backends.memory import MemoryDB
 from evm.db.shard import (
     Availability,
+    ShardDB,
 )
 
 from evm.utils.padding import (
@@ -37,7 +41,10 @@ from p2p.cancel_token import (
     CancelToken,
     wait_with_token,
 )
+from p2p.discovery import DiscoveryProtocol
 from p2p import protocol
+from p2p.kademlia import Address
+from p2p.server import Server
 from p2p.service import BaseService
 from p2p.protocol import (
     Command,
@@ -221,3 +228,37 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     def get_current_period(self):
         # TODO: get this from main chain
         return int((time.time() - self.start_time) // COLLATION_PERIOD)
+
+
+class ShardingServer(Server):
+
+    def __init__(self,
+                 privkey: datatypes.PrivateKey,
+                 address: Address,
+                 network_id: int,
+                 min_peers: int = 0,
+                 peer_class: Type[BasePeer] = ShardingPeer,
+                 peer_pool_class: Type[PeerPool] = PeerPool,
+                 bootstrap_nodes: List[str] = [],
+                 ) -> None:
+        BaseService.__init__(self, CancelToken('ShardingServer'))
+        self.privkey = privkey
+        self.address = address
+        self.network_id = network_id
+        self.peer_class = peer_class
+        self.discovery = DiscoveryProtocol(
+            self.privkey, self.address, bootstrap_nodes=bootstrap_nodes)
+        # XXX: This is not supposed to work and causes both the PeerPool and Server to crash, but
+        # the tests in test_sharding.py don't seem to care
+        self.headerdb = None
+        self.peer_pool = peer_pool_class(
+            peer_class,
+            self.headerdb,
+            self.network_id,
+            self.privkey,
+            self.discovery,
+            min_peers=min_peers,
+        )
+        shard_db = ShardDB(MemoryDB())
+        shard = Shard(shard_db, 0)
+        self.syncer = ShardSyncer(shard, self.peer_pool, self.cancel_token)  # type: ignore

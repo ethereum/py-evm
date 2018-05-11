@@ -31,7 +31,8 @@ class LocalGethPeerPool(HardCodedNodesPeerPool):
                  privkey: datatypes.PrivateKey,
                  ) -> None:
         min_peers = 1
-        super().__init__(peer_class, chaindb, network_id, privkey, min_peers)
+        discovery = None
+        super().__init__(peer_class, chaindb, network_id, privkey, discovery, min_peers)
 
     def get_nodes_to_connect(self):
         nodekey = keys.PrivateKey(decode_hex(

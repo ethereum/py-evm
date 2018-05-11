@@ -18,15 +18,12 @@ from p2p.kademlia import (
     Address,
     Node,
 )
-from p2p.server import (
-    Server,
-)
 
 from p2p.sharding import (
-    ShardingProtocol,
-    ShardingPeer,
     Collations,
-    ShardSyncer,
+    ShardingPeer,
+    ShardingProtocol,
+    ShardingServer,
 )
 
 from p2p.exceptions import (
@@ -35,9 +32,6 @@ from p2p.exceptions import (
 
 from evm.rlp.headers import CollationHeader
 from evm.rlp.collations import Collation
-from evm.chains.shard import Shard
-from evm.db.shard import ShardDB
-from evm.db.backends.memory import MemoryDB
 
 from evm.constants import (
     COLLATION_SIZE,
@@ -162,7 +156,7 @@ async def test_sending_collations(request, event_loop):
 async def test_shard_syncer(n_peers, connections):
     cancel_token = CancelToken("canceltoken")
 
-    PeerTuple = collections.namedtuple("PeerTuple", ["node", "server", "syncer", "syncer_task"])
+    PeerTuple = collections.namedtuple("PeerTuple", ["node", "server", "syncer"])
     peer_tuples = []
 
     for i in range(n_peers):
@@ -172,27 +166,19 @@ async def test_shard_syncer(n_peers, connections):
 
         node = Node(private_key.public_key, address)
 
-        server = Server(
-            privkey=private_key,
-            server_address=address,
-            headerdb=None,
-            bootstrap_nodes=[],
+        server = ShardingServer(
+            private_key,
+            address,
             network_id=9324090483,
             min_peers=0,
             peer_class=ShardingPeer
         )
         asyncio.ensure_future(server.run())
 
-        shard_db = ShardDB(MemoryDB())
-        shard = Shard(shard_db, 0)
-        syncer = ShardSyncer(shard, server.peer_pool, cancel_token)
-        syncer_task = asyncio.ensure_future(syncer.run())
-
         peer_tuples.append(PeerTuple(
             node=node,
             server=server,
-            syncer=syncer,
-            syncer_task=syncer_task,
+            syncer=server.syncer,
         ))
 
     # connect peers to each other

@@ -23,8 +23,12 @@ class FullNodeSyncer(BaseService):
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  db: BaseDB,
-                 peer_pool: PeerPool) -> None:
-        super().__init__(CancelToken('FullNodeSyncer'))
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
+        cancel_token = CancelToken('FullNodeSyncer')
+        if token is not None:
+            cancel_token = cancel_token.chain(token)
+        super().__init__(cancel_token)
         self.chain = chain
         self.chaindb = chaindb
         self.db = db
@@ -80,8 +84,9 @@ def _test():
 
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chain = FakeAsyncRopstenChain(chaindb)
+    discovery = None
     peer_pool = HardCodedNodesPeerPool(
-        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), min_peers=5)
+        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), discovery, min_peers=5)
     asyncio.ensure_future(peer_pool.run())
 
     loop = asyncio.get_event_loop()
