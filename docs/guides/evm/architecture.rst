@@ -39,9 +39,9 @@ Most of the ``Chain`` APIs merely serving as a passthrough to the appropriate
 A chain has one or more underlying **Virtual Machines** or VMs.  The chain
 contains a mapping which defines which VM should be active for which blocks.
 
-The chain for the public mainnet Ethereum blockchain would have a VM defined
-for each fork rulese (e.g. **Frontier**, **Homestead**, **Tangerine Whistle**,
-**Byzantium**).
+The chain for the public mainnet Ethereum blockchain would have a separate VM defined
+for each fork ruleset (e.g. **Frontier**, **Homestead**, **Tangerine Whistle**,
+**Spurious Dragon**, **Byzantium**).
 
 
 The VM
