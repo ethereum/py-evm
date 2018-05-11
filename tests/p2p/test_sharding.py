@@ -92,6 +92,9 @@ async def test_handshake():
         peer2.do_sub_proto_handshake(),
     )
 
+    assert isinstance(peer1.sub_proto, ShardingProtocol)
+    assert isinstance(peer2.sub_proto, ShardingProtocol)
+
 
 @pytest.mark.asyncio
 async def test_invalid_handshake():
