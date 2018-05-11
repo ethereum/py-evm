@@ -149,7 +149,6 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.incoming_collation_queue: asyncio.Queue[Collation] = asyncio.Queue()
 
         self.collations_received_event = asyncio.Event()
-        self.collations_proposed_event = asyncio.Event()
 
         self.cancel_token = CancelToken("ShardSyncer")
         if token is not None:
@@ -199,9 +198,6 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         # broadcast collation
         for peer in self.peer_pool.peers:
             cast(ShardingPeer, peer).send_collations([collation])
-
-        self.collations_proposed_event.set()
-        self.collations_proposed_event.clear()
 
         return collation
 
