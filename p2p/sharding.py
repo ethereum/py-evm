@@ -32,6 +32,7 @@ from p2p.cancel_token import (
     wait_with_token,
 )
 from p2p import protocol
+from p2p.service import BaseService
 from p2p.protocol import (
     Command,
     Protocol,
@@ -130,13 +131,14 @@ class ShardingPeer(BasePeer):
                 self.sub_proto.send_collations(collations)
 
 
-class ShardSyncer(PeerPoolSubscriber):
+class ShardSyncer(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
     def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken = None) -> None:
+        super().__init__(token)
+
         self.shard = shard
         self.peer_pool = peer_pool
-        self.peer_pool.subscribe(self)
 
         self.incoming_collation_queue = asyncio.Queue()
 
@@ -149,7 +151,8 @@ class ShardSyncer(PeerPoolSubscriber):
 
         self.start_time = time.time()
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
+        self.peer_pool.subscribe(self)
         while True:
             collation = await wait_with_token(
                 self.incoming_collation_queue.get(),
@@ -170,6 +173,9 @@ class ShardSyncer(PeerPoolSubscriber):
 
             self.collations_received_event.set()
             self.collations_received_event.clear()
+
+    async def _cleanup(self) -> None:
+        self.peer_pool.unsubscribe(self)
 
     def propose(self) -> None:
         """Broadcast a new collation to the network and add it to the local shard."""

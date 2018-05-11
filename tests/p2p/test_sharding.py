@@ -21,9 +21,6 @@ from p2p.kademlia import (
 from p2p.server import (
     Server,
 )
-from p2p.exceptions import (
-    OperationCancelled,
-)
 
 from p2p.sharding import (
     ShardingProtocol,
@@ -181,7 +178,7 @@ async def test_shard_syncer(n_peers, connections):
             min_peers=0,
             peer_class=ShardingPeer
         )
-        await server.start()
+        asyncio.ensure_future(server.run())
 
         shard_db = ShardDB(MemoryDB())
         shard = Shard(shard_db, 0)
@@ -217,10 +214,5 @@ async def test_shard_syncer(n_peers, connections):
 
     # stop everything
     cancel_token.trigger()
-    await asyncio.gather(*[peer_tuple.server.stop() for peer_tuple in peer_tuples])
-    exceptions = await asyncio.gather(
-        *[peer_tuple.syncer_task for peer_tuple in peer_tuples],
-        return_exceptions=True,
-    )
-    for exception in exceptions:
-        assert isinstance(exception, OperationCancelled)
+    await asyncio.gather(*[peer_tuple.server.cancel() for peer_tuple in peer_tuples])
+    await asyncio.gather(*[peer_tuple.syncer.cancel() for peer_tuple in peer_tuples])
