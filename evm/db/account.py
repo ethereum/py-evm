@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 from uuid import UUID
+import logging
 from lru import LRU
 from typing import Tuple
 
@@ -13,6 +14,7 @@ from trie import (
 )
 
 from eth_hash.auto import keccak
+from eth_utils import encode_hex
 
 from evm.constants import (
     BLANK_ROOT_HASH,
@@ -131,6 +133,8 @@ class BaseAccountDB(metaclass=ABCMeta):
 
 
 class AccountDB(BaseAccountDB):
+
+    logger = logging.getLogger('evm.db.account.AccountDB')
 
     def __init__(self, db, state_root=BLANK_ROOT_HASH):
         r"""
@@ -349,4 +353,22 @@ class AccountDB(BaseAccountDB):
 
     def persist(self) -> None:
         self._journaldb.persist()
+        self.logger.debug("Persisting account values...")
+        accounts_displayed = set()
+        for checkpoint, accounts in reversed(self._journaltrie.journal.journal_data.items()):
+            for address in accounts:
+                if address in accounts_displayed:
+                    continue
+                else:
+                    accounts_displayed.add(address)
+                    account = self._get_account(address)
+                    self.logger.debug(
+                        "Saving Account %s: balance %d, nonce %d, storage root %s, code hash %s",
+                        encode_hex(address),
+                        account.balance,
+                        account.nonce,
+                        encode_hex(account.storage_root),
+                        encode_hex(account.code_hash),
+                    )
+
         self._journaltrie.persist()
