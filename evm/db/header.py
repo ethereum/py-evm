@@ -63,6 +63,10 @@ class BaseHeaderDB(metaclass=ABCMeta):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
+    def header_exists(self, block_hash: Hash32) -> bool:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @abstractmethod
     def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
@@ -132,6 +136,10 @@ class HeaderDB(BaseHeaderDB):
             self.db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)],
             sedes=rlp.sedes.big_endian_int,
         )
+
+    def header_exists(self, block_hash: Hash32) -> bool:
+        validate_word(block_hash, title="Block Hash")
+        return block_hash in self.db
 
     def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         """

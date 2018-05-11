@@ -448,8 +448,8 @@ class BasePeer(BaseService):
 class LESPeer(BasePeer):
     max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
-    sub_proto = None  # type: les.LESProtocol
-    head_info = None  # type: les.HeadInfo
+    sub_proto: les.LESProtocol = None
+    head_info: les.HeadInfo = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
