@@ -184,7 +184,7 @@ def get_block_hash_for_testing(self, block_number):
         return keccak(to_bytes(text="{0}".format(block_number)))
 
 
-def get_prev_hashes_testing(self, last_block_hash, db):
+def get_prev_hashes_testing(last_header, db):
     prev_hashes = []
     return prev_hashes
 
