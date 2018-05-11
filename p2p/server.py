@@ -33,6 +33,7 @@ from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
     OperationCancelled,
+    PeerConnectionLost,
 )
 from p2p.kademlia import (
     Address,
@@ -163,10 +164,13 @@ class Server(BaseService):
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        expected_exceptions = (
+            TimeoutError, PeerConnectionLost, HandshakeFailure, asyncio.IncompleteReadError,
+            ConnectionResetError, BrokenPipeError)
         try:
             await self._receive_handshake(reader, writer)
-        except TimeoutError:
-            self.logger.debug("Timeout waiting for handshake")
+        except expected_exceptions as e:
+            self.logger.debug("Could not complete handshake", exc_info=True)
         except OperationCancelled:
             pass
         except Exception as e:
@@ -174,20 +178,20 @@ class Server(BaseService):
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        self.logger.debug("Receiving handshake...")
-        # Use reader to read the auth_init msg until EOF
         msg = await wait_with_token(
             reader.read(ENCRYPTED_AUTH_MSG_LEN),
             token=self.cancel_token,
             timeout=REPLY_TIMEOUT,
         )
 
-        # Use decode_authentication(auth_init_message) on auth init msg
+        ip, socket, *_ = writer.get_extra_info("peername")
+        remote_address = Address(ip, socket)
+        self.logger.debug("Receiving handshake from %s", remote_address)
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
-        # Try to decode as EIP8
         except DecryptionError:
+            # Try to decode as EIP8
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
             msg += await wait_with_token(
@@ -199,12 +203,8 @@ class Server(BaseService):
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
             except DecryptionError as e:
-                self.logger.warn("Failed to decrypt handshake: %s", e)
+                self.logger.warn("Failed to decrypt handshake", exc_info=True)
                 return
-
-        # Get remote's address: IPv4 or IPv6
-        ip, socket, *_ = writer.get_extra_info("peername")
-        remote_address = Address(ip, socket)
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
         initiator_remote = Node(initiator_pubkey, remote_address)
@@ -245,20 +245,8 @@ class Server(BaseService):
         await self.do_handshake(peer)
 
     async def do_handshake(self, peer: BasePeer) -> None:
-        try:
-            # P2P Handshake.
-            await peer.do_p2p_handshake(),
-        except (HandshakeFailure, TimeoutError) as e:
-            self.logger.debug('Unable to finish P2P handshake: %s', str(e))
-            return
-
-        try:
-            await peer.do_sub_proto_handshake()
-        except (HandshakeFailure, asyncio.TimeoutError) as e:
-            self.logger.debug('Unable to finish sub protocoll handshake: %s', str(e))
-            return
-
-        # Handshake was successful, so run and add peer
+        await peer.do_p2p_handshake(),
+        await peer.do_sub_proto_handshake()
         self.peer_pool.start_peer(peer)
 
 
