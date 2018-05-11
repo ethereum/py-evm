@@ -70,6 +70,14 @@ class LightChainSyncer(BaseService, PeerPoolSubscriber):
 
         super().__init__(token)
 
+    _last_status_update = 0
+
+    def maybe_log_status(self):
+        if time.time() - self._last_status_update > 30:
+            head = self.headerdb.get_canonical_head()
+            self.logger.info('Light Sync Status: at header #%d', head.block_number)
+            self._last_status_update = time.time()
+
     #
     # Service API
     #
@@ -81,6 +89,7 @@ class LightChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.info("Running LightChain...")
         self.peer_pool.subscribe(self)
         while True:
+            self.maybe_log_status()
             try:
                 peer, head_info = await self.wait_for_announcement()
             except OperationCancelled:

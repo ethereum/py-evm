@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import List
 
@@ -54,11 +53,11 @@ class LightClientNode(BaseService):
         self.syncer = LightChainSyncer(self.headerdb, self.peer_pool, self.cancel_token)
 
     async def _run(self) -> None:
-        asyncio.ensure_future(self.peer_pool.run())
         await self.syncer.run()
 
     async def _cleanup(self):
-        await self.peer_pool.cancel()
+        # no cleanup to do
+        pass
 
     #
     # API for fetching chain data over network.

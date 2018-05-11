@@ -118,17 +118,26 @@ class Server(BaseService):
         if not devices:
             self.logger.info("No UPNP-enabled devices found")
             return
-        device = devices[0]
-        device.WANIPConn1.AddPortMapping(
-            NewRemoteHost=device.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress'],
-            NewExternalPort=self.server_address.tcp_port,
-            NewProtocol='TCP',
-            NewInternalPort=self.server_address.tcp_port,
-            NewInternalClient=self.server_address.ip,
-            NewEnabled='1',
-            NewPortMappingDescription='Created by Py-EVM',
-            NewLeaseDuration=lifetime)
-        self.logger.info("NAT port forwarding successfully setup")
+        for device in devices:
+            try:
+                connection = device.WANIPConn1
+            except AttributeError:
+                continue
+
+            connection.AddPortMapping(
+                NewRemoteHost=connection.GetExternalIPAddress()['NewExternalIPAddress'],
+                NewExternalPort=self.server_address.tcp_port,
+                NewProtocol='TCP',
+                NewInternalPort=self.server_address.tcp_port,
+                NewInternalClient=self.server_address.ip,
+                NewEnabled='1',
+                NewPortMappingDescription='Created by Py-EVM',
+                NewLeaseDuration=lifetime,
+            )
+            self.logger.info("NAT port forwarding successfully setup")
+            break
+        else:
+            self.logger.warning('Unable to setup port forwarding for NAT')
 
     async def _start(self) -> None:
         self._server = await asyncio.start_server(

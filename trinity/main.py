@@ -16,6 +16,11 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.constants import MAINNET_BOOTNODES
+from p2p.kademlia import (
+    Address,
+)
+from p2p.server import Server
 from p2p.sync import FullNodeSyncer
 from p2p.peer import (
     ETHPeer,
@@ -181,7 +186,19 @@ def run_lightnode_process(
     headerdb = manager.get_headerdb()  # type: ignore
     header_chain = manager.get_header_chain()  # type: ignore
 
+    chaindb = manager.get_chaindb()  # type: ignore
+
     peer_pool = pool_class(LESPeer, headerdb, chain_config.network_id, chain_config.nodekey)
+
+    server = Server(
+        privkey=chain_config.nodekey,
+        server_address=Address('0.0.0.0', udp_port=8587, tcp_port=8587),
+        chaindb=chaindb,
+        bootstrap_nodes=MAINNET_BOOTNODES,
+        network_id=chain_config.network_id,
+        peer_class=LESPeer,
+    )
+
     light_client = LightClientNode(header_chain, headerdb, peer_pool)
 
     loop = asyncio.get_event_loop()
@@ -195,10 +212,12 @@ def run_lightnode_process(
     async def run_chain(chain):
         try:
             asyncio.ensure_future(ipc_server.run())
+            asyncio.ensure_future(server.run())
             await light_client.run()
         finally:
+            await light_client.cancel()
+            await server.cancel()
             await ipc_server.stop()
-            await light_client.stop()
 
     loop.run_until_complete(run_chain(chain))
     loop.close()

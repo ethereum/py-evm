@@ -621,8 +621,9 @@ class PeerPool(BaseService):
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
-    _last_lookup = 0  # type: float
-    _lookup_interval = 20  # type: int
+    _last_lookup: float = 0
+    _lookup_interval: int = 20
+    _last_update: float = 0.0
 
     def __init__(self,
                  peer_class: Type[BasePeer],
@@ -665,9 +666,15 @@ class PeerPool(BaseService):
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
 
+    def maybe_log_status(self):
+        if time.time() - self._last_update > 30:
+            self.logger.debug('Connected to %d peers', len(self.connected_nodes))
+            self._last_update = time.time()
+
     async def _run(self) -> None:
         self.logger.info("Running PeerPool...")
         while not self.cancel_token.triggered:
+            self.maybe_log_status()
             try:
                 await self.maybe_connect_to_more_peers()
                 # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
