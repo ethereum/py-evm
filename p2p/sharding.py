@@ -2,7 +2,13 @@ import asyncio
 import logging
 import time
 from typing import (
+    cast,
     List,
+    Set,
+)
+
+from eth_typing import (
+    Hash32,
 )
 
 import rlp
@@ -86,16 +92,16 @@ class ShardingProtocol(Protocol):
 class ShardingPeer(BasePeer):
     _supported_sub_protocols = [ShardingProtocol]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.incoming_collation_queue = asyncio.Queue()
-        self.known_collation_hashes = set()
+        self.incoming_collation_queue: asyncio.Queue[Collation] = asyncio.Queue()
+        self.known_collation_hashes: Set[Hash32] = set()
 
     #
     # Handshake
     #
     async def send_sub_proto_handshake(self) -> None:
-        self.sub_proto.send_handshake()
+        cast(ShardingProtocol, self.sub_proto).send_handshake()
 
     async def process_sub_proto_handshake(self,
                                           cmd: Command,
@@ -109,7 +115,7 @@ class ShardingPeer(BasePeer):
     #
     def handle_sub_proto_msg(self, cmd: Command, msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, Collations):
-            self._handle_collations_msg(msg)
+            self._handle_collations_msg(cast(List[Collation], msg))
         else:
             super().handle_sub_proto_msg(cmd, msg)
 
@@ -128,19 +134,19 @@ class ShardingPeer(BasePeer):
         for collation in collations:
             if collation.hash not in self.known_collation_hashes:
                 self.known_collation_hashes.add(collation.hash)
-                self.sub_proto.send_collations(collations)
+                cast(ShardingProtocol, self.sub_proto).send_collations(collations)
 
 
 class ShardSyncer(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
-    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken = None) -> None:
+    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken) -> None:
         super().__init__(token)
 
         self.shard = shard
         self.peer_pool = peer_pool
 
-        self.incoming_collation_queue = asyncio.Queue()
+        self.incoming_collation_queue: asyncio.Queue[Collation] = asyncio.Queue()
 
         self.collations_received_event = asyncio.Event()
         self.collations_proposed_event = asyncio.Event()
@@ -169,7 +175,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug("Adding collation {} to shard".format(collation))
             self.shard.add_collation(collation)
             for peer in self.peer_pool.peers:
-                peer.send_collations([collation])
+                cast(ShardingPeer, peer).send_collations([collation])
 
             self.collations_received_event.set()
             self.collations_received_event.clear()
@@ -177,8 +183,8 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     async def _cleanup(self) -> None:
         self.peer_pool.unsubscribe(self)
 
-    def propose(self) -> None:
-        """Broadcast a new collation to the network and add it to the local shard."""
+    def propose(self) -> Collation:
+        """Broadcast a new collation to the network, add it to the local shard, and return it."""
         # create collation for current period
         period = self.get_current_period()
         body = zpad_right(str(self).encode("utf-8"), COLLATION_SIZE)
@@ -192,17 +198,17 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
 
         # broadcast collation
         for peer in self.peer_pool.peers:
-            peer.send_collations([collation])
+            cast(ShardingPeer, peer).send_collations([collation])
 
         self.collations_proposed_event.set()
         self.collations_proposed_event.clear()
 
         return collation
 
-    def register_peer(self, peer):
-        asyncio.ensure_future(self.handle_peer(peer))
+    def register_peer(self, peer: BasePeer) -> None:
+        asyncio.ensure_future(self.handle_peer(cast(ShardingPeer, peer)))
 
-    async def handle_peer(self, peer):
+    async def handle_peer(self, peer: ShardingPeer) -> None:
         while True:
             try:
                 collation = await wait_with_token(
