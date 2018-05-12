@@ -22,7 +22,9 @@ from eth_utils import (
 )
 
 from eth_hash.auto import keccak
-
+from evm.consensus.pow import (
+    check_pow,
+)
 from evm.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
@@ -257,6 +259,10 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
         :raises: ValidationError if the transaction is not valid to apply
         """
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
+    def validate_seal(self, header: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -606,6 +612,8 @@ class VM(BaseVM):
         """
         Validate the the given block.
         """
+        self.validate_seal(block.header)
+
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
                 "This vm ({0!r}) is not equipped to validate a block of type {1!r}".format(
@@ -653,6 +661,7 @@ class VM(BaseVM):
 
         for uncle in block.uncles:
             self.validate_uncle(block, uncle)
+            self.validate_seal(uncle)
 
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
@@ -673,6 +682,14 @@ class VM(BaseVM):
                     block.header.uncle_hash,
                 )
             )
+
+    def validate_seal(self, header: BlockHeader) -> None:
+        """
+        Validate the seal on the given header.
+        """
+        check_pow(
+            header.block_number, header.mining_hash,
+            header.mix_hash, header.nonce, header.difficulty)
 
     def validate_uncle(self, block, uncle):
         """
