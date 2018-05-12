@@ -5,7 +5,7 @@ from abc import (
 from uuid import UUID
 import logging
 from lru import LRU
-from typing import Tuple
+from typing import Set, Tuple  # noqa: F401
 
 import rlp
 
@@ -354,8 +354,10 @@ class AccountDB(BaseAccountDB):
     def persist(self) -> None:
         self._journaldb.persist()
         self.logger.debug("Persisting account values...")
-        accounts_displayed = set()
-        for checkpoint, accounts in reversed(self._journaltrie.journal.journal_data.items()):
+        accounts_displayed = set()  # type: Set[bytes]
+        queued_changes = self._journaltrie.journal.journal_data.items()
+        # mypy bug for ordered dict reversibility: https://github.com/python/typeshed/issues/2078
+        for checkpoint, accounts in reversed(queued_changes):  # type: ignore
             for address in accounts:
                 if address in accounts_displayed:
                     continue

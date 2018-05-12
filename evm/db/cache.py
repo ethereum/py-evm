@@ -26,5 +26,6 @@ class CacheDB(BaseDB):
         self._db[key] = value
 
     def __delitem__(self, key):
-        del self._cached_values[key]
+        if key in self._cached_values:
+            del self._cached_values[key]
         del self._db[key]
