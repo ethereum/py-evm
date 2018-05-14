@@ -9,7 +9,18 @@ from abc import (
     abstractmethod
 )
 
-from typing import (Any, cast, Callable, Dict, Generator, List, Optional, Tuple, Type)  # noqa: F401
+from typing import (  # noqa: F401
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    cast,
+)
 
 import sha3
 
@@ -87,13 +98,14 @@ from .constants import (
     REPLY_TIMEOUT,
 )
 
-from trinity.db.header import BaseAsyncHeaderDB
+if TYPE_CHECKING:
+    from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
-                    headerdb: BaseAsyncHeaderDB,
+                    headerdb: 'BaseAsyncHeaderDB',
                     network_id: int,
                     token: CancelToken,
                     ) -> 'BasePeer':
@@ -147,7 +159,7 @@ class BasePeer(BaseService):
                  mac_secret: bytes,
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
-                 headerdb: BaseAsyncHeaderDB,
+                 headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  ) -> None:
         super().__init__(CancelToken('Peer'))
@@ -626,7 +638,7 @@ class PeerPool(BaseService):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 headerdb: BaseAsyncHeaderDB,
+                 headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
@@ -784,7 +796,7 @@ class HardCodedNodesPeerPool(PeerPool):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 headerdb: BaseAsyncHeaderDB,
+                 headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  min_peers: int = 2,

@@ -121,13 +121,13 @@ async def test_handshake():
     initiator_peer = DummyPeer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
-        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, chaindb=None,
+        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
         network_id=1)
     initiator_peer.base_protocol.send_handshake()
     responder_peer = DummyPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=None, network_id=1)
+        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
     responder_peer.base_protocol.send_handshake()
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's

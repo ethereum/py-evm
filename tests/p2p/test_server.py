@@ -4,7 +4,7 @@ import socket
 
 from eth_keys import keys
 
-from evm.db.chain import ChainDB
+from evm.db.header import HeaderDB
 from evm.db.backends.memory import MemoryDB
 
 from p2p.peer import (
@@ -43,11 +43,11 @@ INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 def get_server(privkey, address, peer_class):
     bootstrap_nodes = []
-    chaindb = ChainDB(MemoryDB())
+    headerdb = HeaderDB(MemoryDB())
     server = Server(
         privkey,
         address,
-        chaindb,
+        headerdb,
         bootstrap_nodes,
         network_id=1,
         min_peers=1,
