@@ -34,6 +34,7 @@ from eth_utils import (
     to_tuple,
 )
 
+from evm.db.backends.base import BaseDB
 from evm.db.chain import BaseChainDB
 from evm.consensus.pow import (
     check_pow,
@@ -100,6 +101,15 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     The base class for all Chain objects
     """
     chaindb = None  # type: BaseChainDB
+    chaindb_class = None  # type: Type[BaseChainDB]
+
+    #
+    # Helpers
+    #
+    @classmethod
+    @abstractmethod
+    def get_chaindb_class(cls) -> Type[BaseChainDB]:
+        raise NotImplementedError("Chain classes must implement this method")
 
     #
     # Chain API
@@ -107,7 +117,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_genesis(cls,
-                     chaindb: BaseChainDB,
+                     base_db: BaseDB,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
         raise NotImplementedError("Chain classes must implement this method")
@@ -244,7 +254,7 @@ class Chain(BaseChain):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     gas_estimator = None  # type: Callable
 
-    def __init__(self, chaindb: BaseChainDB, header: BlockHeader=None) -> None:
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         if not self.vm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vm_configuration`"
@@ -252,7 +262,7 @@ class Chain(BaseChain):
         else:
             validate_vm_configuration(self.vm_configuration)
 
-        self.chaindb = chaindb
+        self.chaindb = self.get_chaindb_class()(base_db)
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
@@ -260,19 +270,30 @@ class Chain(BaseChain):
             self.gas_estimator = get_gas_estimator()  # type: ignore
 
     #
+    # Helpers
+    #
+    @classmethod
+    def get_chaindb_class(cls) -> Type[BaseChainDB]:
+        if cls.chaindb_class is None:
+            raise AttributeError("`chaindb_class` not set")
+        return cls.chaindb_class
+
+    #
     # Chain API
     #
     @classmethod
     def from_genesis(cls,
-                     chaindb: BaseChainDB,
+                     base_db: BaseDB,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
         """
         Initializes the Chain from a genesis state.
         """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
+        chaindb_class = cls.get_chaindb_class()
+
         account_db = genesis_vm_class.get_state_class().get_account_db_class()(
-            chaindb.db,
+            chaindb_class(base_db),
             BLANK_ROOT_HASH,
         )
 
@@ -299,19 +320,18 @@ class Chain(BaseChain):
             )
 
         genesis_header = BlockHeader(**genesis_params)
-        genesis_chain = cls(chaindb, genesis_header)
-        chaindb.persist_block(genesis_chain.get_block())
-        return cls.from_genesis_header(chaindb, genesis_header)
+        return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod
     def from_genesis_header(cls,
-                            chaindb: BaseChainDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
         """
         Initializes the chain from the genesis header.
         """
+        chaindb = cls.get_chaindb_class()(base_db)
         chaindb.persist_header(genesis_header)
-        return cls(chaindb)
+        return cls(base_db)
 
     def get_chain_at_block_parent(self, block: BaseBlock) -> BaseChain:
         """
