@@ -29,7 +29,7 @@ common: &common
         command: pip install --user tox
     - run:
         name: install leveldb build tools for pypy
-        command: if [[ "$CIRCLE_JOB" == *"pypy3"* ]]; then apt install libleveldb-dev; fi
+        command: if [[ "$CIRCLE_JOB" == *"pypy3"* ]]; then apt update && apt install libleveldb-dev; fi
     - run:
         name: run tox
         command: ~/.local/bin/tox
