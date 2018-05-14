@@ -175,7 +175,7 @@ async def test_shard_syncer(n_peers, connections):
         server = Server(
             privkey=private_key,
             server_address=address,
-            chaindb=None,
+            headerdb=None,
             bootstrap_nodes=[],
             network_id=9324090483,
             min_peers=0,
