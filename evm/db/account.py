@@ -352,8 +352,11 @@ class AccountDB(BaseAccountDB):
         self._journaltrie.commit(trie_changeset)
 
     def persist(self) -> None:
+        self.logger.debug("Persisting AccountDB...")
         self._journaldb.persist()
-        self.logger.debug("Persisting account values...")
+        self._journaltrie.persist()
+
+    def _log_pending_accounts(self) -> None:
         accounts_displayed = set()  # type: Set[bytes]
         queued_changes = self._journaltrie.journal.journal_data.items()
         # mypy bug for ordered dict reversibility: https://github.com/python/typeshed/issues/2078
@@ -365,12 +368,10 @@ class AccountDB(BaseAccountDB):
                     accounts_displayed.add(address)
                     account = self._get_account(address)
                     self.logger.debug(
-                        "Saving Account %s: balance %d, nonce %d, storage root %s, code hash %s",
+                        "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
                         encode_hex(address),
                         account.balance,
                         account.nonce,
                         encode_hex(account.storage_root),
                         encode_hex(account.code_hash),
                     )
-
-        self._journaltrie.persist()
