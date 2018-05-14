@@ -8,6 +8,7 @@ import signal
 import sys
 from typing import Type
 
+from evm.db.backends.base import BaseDB
 from evm.db.backends.level import LevelDB
 from evm.chains.mainnet import (
     MAINNET_NETWORK_ID,
@@ -154,10 +155,10 @@ def main() -> None:
 
 
 @with_queued_logging
-def run_database_process(chain_config: ChainConfig, db_class: Type[LevelDB]) -> None:
-    db = db_class(db_path=chain_config.database_dir)
+def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
+    base_db = db_class(db_path=chain_config.database_dir)
 
-    serve_chaindb(chain_config, db)
+    serve_chaindb(chain_config, base_db)
 
 
 def create_dbmanager(ipc_path: str) -> BaseManager:

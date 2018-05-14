@@ -44,18 +44,18 @@ INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
 def get_server(privkey, address, peer_class):
-    db = MemoryDB()
-    headerdb = HeaderDB(db)
-    chaindb = ChainDB(db)
+    base_db = MemoryDB()
+    headerdb = HeaderDB(base_db)
+    chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-    chain = RopstenChain(chaindb)
+    chain = RopstenChain(base_db)
     server = Server(
         privkey,
         address,
         chain,
         chaindb,
         headerdb,
-        db,
+        base_db,
         network_id=1,
         min_peers=1,
         peer_class=peer_class,

@@ -35,8 +35,7 @@ from evm import MainnetChain
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-from evm.db import get_db_backend
-from evm.db.chain import ChainDB
+from evm.db.backends.memory import MemoryDB
 from evm.utils.state import (
     diff_account_db,
 )
@@ -599,7 +598,7 @@ def genesis_params_from_fixture(fixture):
 
 
 def new_chain_from_fixture(fixture):
-    db = ChainDB(get_db_backend())
+    base_db = MemoryDB()
 
     vm_config = chain_vm_configuration(fixture)
 
@@ -609,7 +608,7 @@ def new_chain_from_fixture(fixture):
     )
 
     return ChainFromFixture.from_genesis(
-        db,
+        base_db,
         genesis_params=genesis_params_from_fixture(fixture),
         genesis_state=fixture['pre'],
     )

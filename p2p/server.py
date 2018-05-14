@@ -75,7 +75,7 @@ class Server(BaseService):
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  headerdb: 'BaseAsyncHeaderDB',
-                 db: BaseDB,
+                 base_db: BaseDB,
                  network_id: int,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
@@ -106,7 +106,7 @@ class Server(BaseService):
             self.discovery,
             min_peers=min_peers,
         )
-        self.syncer = FullNodeSyncer(chain, chaindb, db, self.peer_pool, self.cancel_token)
+        self.syncer = FullNodeSyncer(chain, chaindb, base_db, self.peer_pool, self.cancel_token)
 
     async def refresh_nat_portmap(self) -> None:
         """Run an infinite loop refreshing our NAT port mapping.

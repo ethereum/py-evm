@@ -116,8 +116,8 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
             )
 
 
-def serve_chaindb(chain_config: ChainConfig, db: BaseDB) -> None:
-    chaindb = AsyncChainDB(db)
+def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
+    chaindb = AsyncChainDB(base_db)
 
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
@@ -129,17 +129,17 @@ def serve_chaindb(chain_config: ChainConfig, db: BaseDB) -> None:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-    chain = chain_class(chaindb)  # type: ignore
+    chain = chain_class(base_db)  # type: ignore
 
-    headerdb = AsyncHeaderDB(db)
-    header_chain = AsyncHeaderChain(db)
+    headerdb = AsyncHeaderDB(base_db)
+    header_chain = AsyncHeaderChain(base_db)
 
     class DBManager(BaseManager):
         pass
 
     # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-    DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)  # type: ignore
+    DBManager.register('get_db', callable=lambda: base_db, proxytype=DBProxy)  # type: ignore
 
     DBManager.register(  # type: ignore
         'get_chaindb',

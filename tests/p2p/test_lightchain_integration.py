@@ -18,7 +18,7 @@ from p2p import ecies
 from p2p.lightchain import LightChain
 from p2p.peer import LESPeer
 
-from integration_test_helpers import FakeAsyncChainDB, LocalGethPeerPool
+from integration_test_helpers import FakeAsyncHeaderDB, LocalGethPeerPool
 
 
 class IntegrationTestLightChain(LightChain):
@@ -42,10 +42,14 @@ async def test_lightchain_integration(request, event_loop):
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-    peer_pool = LocalGethPeerPool(LESPeer, chaindb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
-    chain = IntegrationTestLightChain(chaindb, peer_pool)
+    base_db = MemoryDB()
+    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
+    peer_pool = LocalGethPeerPool(
+        LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(),
+    )
+    chain = IntegrationTestLightChain(base_db, peer_pool)
+
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
@@ -60,7 +64,7 @@ async def test_lightchain_integration(request, event_loop):
 
     # Wait for the chain to sync a few headers.
     async def wait_for_header_sync(block_number):
-        while chaindb.get_canonical_head().block_number < block_number:
+        while headerdb.get_canonical_head().block_number < block_number:
             await asyncio.sleep(0.1)
     await asyncio.wait_for(wait_for_header_sync(n), 2)
 

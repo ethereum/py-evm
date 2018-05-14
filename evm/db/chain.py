@@ -79,6 +79,10 @@ class TransactionKey(rlp.Serializable):
 class BaseChainDB(metaclass=ABCMeta):
     db = None  # type: BaseDB
 
+    @abstractmethod
+    def __init__(self, db: BaseDB) -> None:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
     #
     # Canonical Chain API
     #
