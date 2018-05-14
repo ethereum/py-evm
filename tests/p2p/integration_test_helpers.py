@@ -10,6 +10,17 @@ from evm.db.chain import AsyncChainDB
 from p2p import kademlia
 from p2p.peer import BasePeer, HardCodedNodesPeerPool
 
+from trinity.db.header import AsyncHeaderDB
+
+
+def async_passthrough(base_name):
+    coro_name = 'coro_{0}'.format(base_name)
+
+    async def passthrough_method(self, *args, **kwargs):
+        return getattr(self, base_name)(*args, **kwargs)
+    passthrough_method.__name__ = coro_name
+    return passthrough_method
+
 
 class LocalGethPeerPool(HardCodedNodesPeerPool):
 
@@ -31,29 +42,14 @@ class LocalGethPeerPool(HardCodedNodesPeerPool):
 
 
 class FakeAsyncChainDB(AsyncChainDB):
-    async def coro_get_score(self, *args, **kwargs):
-        return self.get_score(*args, **kwargs)
-
-    async def coro_get_block_header_by_hash(self, *args, **kwargs):
-        return self.get_block_header_by_hash(*args, **kwargs)
-
-    async def coro_get_canonical_head(self, *args, **kwargs):
-        return self.get_canonical_head(*args, **kwargs)
-
-    async def coro_header_exists(self, *args, **kwargs):
-        return self.header_exists(*args, **kwargs)
-
-    async def coro_get_canonical_block_hash(self, *args, **kwargs):
-        return self.get_canonical_block_hash(*args, **kwargs)
-
-    async def coro_persist_header(self, *args, **kwargs):
-        return self.persist_header(*args, **kwargs)
-
-    async def coro_persist_uncles(self, *args, **kwargs):
-        return self.persist_uncles(*args, **kwargs)
-
-    async def coro_persist_trie_data_dict(self, *args, **kwargs):
-        return self.persist_trie_data_dict(*args, **kwargs)
+    coro_get_score = async_passthrough('get_score')
+    coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
+    coro_get_canonical_head = async_passthrough('get_canonical_head')
+    coro_header_exists = async_passthrough('header_exists')
+    coro_get_canonical_block_hash = async_passthrough('get_canonical_block_hash')
+    coro_persist_header = async_passthrough('persist_header')
+    coro_persist_uncles = async_passthrough('persist_uncles')
+    coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')
 
 
 async def coro_import_block(chain, block, perform_validation=True):
@@ -69,3 +65,13 @@ class FakeAsyncRopstenChain(RopstenChain):
 
 class FakeAsyncMainnetChain(MainnetChain):
     coro_import_block = coro_import_block
+
+
+class FakeAsyncHeaderDB(AsyncHeaderDB):
+    coro_get_canonical_block_hash = async_passthrough('get_canonical_block_hash')
+    coro_get_canonical_block_header_by_number = async_passthrough('get_canonical_block_header_by_number')  # noqa: E501
+    coro_get_canonical_head = async_passthrough('get_canonical_head')
+    coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
+    coro_get_score = async_passthrough('get_score')
+    coro_header_exists = async_passthrough('header_exists')
+    coro_persist_header = async_passthrough('persist_header')

@@ -626,7 +626,7 @@ class PeerPool(BaseService):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
@@ -634,7 +634,7 @@ class PeerPool(BaseService):
                  ) -> None:
         super().__init__(CancelToken('PeerPool'))
         self.peer_class = peer_class
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
         self.discovery = discovery
@@ -693,7 +693,7 @@ class PeerPool(BaseService):
         try:
             self.logger.debug("Connecting to %s...", remote)
             peer = await handshake(
-                remote, self.privkey, self.peer_class, self.chaindb, self.network_id,
+                remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
                 self.cancel_token)
             return peer
         except OperationCancelled:
@@ -784,13 +784,13 @@ class HardCodedNodesPeerPool(PeerPool):
 
     def __init__(self,
                  peer_class: Type[BasePeer],
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  min_peers: int = 2,
                  ) -> None:
         discovery = None
-        super().__init__(peer_class, chaindb, network_id, privkey, discovery, min_peers)
+        super().__init__(peer_class, headerdb, network_id, privkey, discovery, min_peers)
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
         # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
@@ -898,7 +898,7 @@ def _test():
     import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
+    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 
     # The default remoteid can be used if you pass nodekeyhex as above to geth.
@@ -916,12 +916,12 @@ def _test():
     remote = Node(
         keys.PublicKey(decode_hex(args.remoteid)),
         Address('127.0.0.1', 30303, 30303))
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     peer = loop.run_until_complete(
-        handshake(remote, ecies.generate_privkey(), peer_class, chaindb, network_id,
+        handshake(remote, ecies.generate_privkey(), peer_class, headerdb, network_id,
                   CancelToken("Peer test")))
 
     async def request_stuff():
