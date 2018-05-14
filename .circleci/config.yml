@@ -226,6 +226,78 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
+  pypy3-native-state-byzantium:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-state-byzantium
+  pypy3-native-state-frontier:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-state-frontier
+  pypy3-native-state-homestead:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-state-homestead
+  pypy3-native-state-eip150:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-state-eip150
+  pypy3-native-state-eip158:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-state-eip158
+  pypy3-native-blockchain:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-native-blockchain
+  pypy3-vm:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-vm
+  pypy3-core:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-core
+  pypy3-trinity:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-trinity
+  pypy3-transactions:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-transactions
+  pypy3-p2p:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-p2p
+  pypy3-database:
+    <<: *common
+    docker:
+      - image: pypy:3
+        environment:
+          TOXENV: pypy3-database
 
 workflows:
   version: 2
@@ -262,3 +334,15 @@ workflows:
       - py36-p2p
       - py36-database
       - py36-rpc-state-quadratic
+      - pypy3-native-state-byzantium
+      - pypy3-native-state-frontier
+      - pypy3-native-state-homestead
+      - pypy3-native-state-eip150
+      - pypy3-native-state-eip158
+      - pypy3-native-blockchain
+      - pypy3-vm
+      - pypy3-core
+      - pypy3-trinity
+      - pypy3-transactions
+      - pypy3-p2p
+      - pypy3-database
