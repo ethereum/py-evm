@@ -10,6 +10,10 @@ from evm.db.shard import (
     ShardDB,
 )
 
+from evm.exceptions import (
+    ValidationError,
+)
+
 from evm.rlp.headers import (
     CollationHeader,
 )
@@ -23,13 +27,6 @@ class Shard:
     def __init__(self, shard_db: ShardDB, shard_id: int) -> None:
         self.shard_id = shard_id
         self.shard_db = shard_db
-
-    def _check_shard_id(self, header_or_collation: Union[CollationHeader, Collation]) -> None:
-        if header_or_collation.shard_id != self.shard_id:
-            raise ValueError("Header or collation belongs to shard {} instead of shard {}".format(
-                header_or_collation.shard_id,
-                self.shard_id,
-            ))
 
     #
     # Header/Collation Retrieval
@@ -53,17 +50,27 @@ class Shard:
     # Header/Collation Insertion
     #
     def add_header(self, header: CollationHeader) -> None:
-        self._check_shard_id(header)
+        check_shard_id(self, header)
         self.shard_db.add_header(header)
 
     def add_collation(self, collation: Collation) -> None:
-        self._check_shard_id(collation)
+        check_shard_id(self, collation)
         self.shard_db.add_collation(collation)
 
     def set_unavailable(self, header: CollationHeader) -> None:
-        self._check_shard_id(header)
+        check_shard_id(self, header)
         self.shard_db.set_availability(header.chunk_root, Availability.UNAVAILABLE)
 
     def set_canonical(self, header: CollationHeader) -> None:
-        self._check_shard_id(header)
+        check_shard_id(self, header)
         self.shard_db.set_canonical(header)
+
+
+def check_shard_id(shard: Shard, header_or_collation: Union[CollationHeader, Collation]) -> None:
+    if header_or_collation.shard_id != shard.shard_id:
+        raise ValidationError(
+            "Header or collation belongs to shard {} instead of shard {}".format(
+                header_or_collation.shard_id,
+                shard.shard_id,
+            )
+        )
