@@ -3,8 +3,9 @@ from abc import (
     abstractmethod
 )
 from uuid import UUID
-
+import logging
 from lru import LRU
+from typing import Set, Tuple  # noqa: F401
 
 import rlp
 
@@ -13,10 +14,14 @@ from trie import (
 )
 
 from eth_hash.auto import keccak
+from eth_utils import encode_hex
 
 from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
+)
+from evm.db.cache import (
+    CacheDB,
 )
 from evm.db.journal import (
     JournalDB,
@@ -115,30 +120,60 @@ class BaseAccountDB(metaclass=ABCMeta):
     # Record and discard API
     #
     @abstractmethod
-    def record(self) -> UUID:
+    def record(self) -> Tuple[UUID, UUID]:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def discard(self, checkpoint: UUID) -> None:
+    def discard(self, changeset: Tuple[UUID, UUID]) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def commit(self, checkpoint: UUID) -> None:
-        raise NotImplementedError("Must be implemented by subclass")
-
-    @abstractmethod
-    def clear(self) -> None:
+    def commit(self, changeset: Tuple[UUID, UUID]) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
 
 class AccountDB(BaseAccountDB):
 
+    logger = logging.getLogger('evm.db.account.AccountDB')
+
     def __init__(self, db, state_root=BLANK_ROOT_HASH):
-        # Keep a reference to the original db instance to use it as part of _get_account()'s cache
-        # key.
-        self._unwrapped_db = db
-        self.db = JournalDB(db)
-        self._trie = HashTrie(HexaryTrie(self.db, state_root))
+        r"""
+        Internal implementation details (subject to rapid change):
+        Database entries go through several pipes, like so...
+
+        .. code::
+
+                                                     -> hash-trie -> storage lookups
+                                                    /
+            db -----------------------> _journaldb ----------------> code lookups
+             \
+              > _trie -> _trie_cache -> _journaltrie --------------> account lookups
+
+        Journaling sequesters writes here ^, until persist is called.
+
+        _journaldb is a journaling of the keys and values used to store
+        code and account storage.
+
+        _trie is a hash-trie, used to generate the state root
+
+        _trie_cache is a cache tied to the state root of the trie. It
+        is important that this cache is checked *after* looking for
+        the key in _journaltrie, because the cache is only invalidated
+        after a state root change.
+
+        _journaltrie is a journaling of the accounts (an address->rlp mapping,
+        rather than the nodes stored by the trie). This enables
+        a squashing of all account changes before pushing them into the trie.
+
+        .. NOTE:: There is an opportunity to do something similar for storage
+
+        AccountDB synchronizes the snapshot/revert/persist of both of the
+        journals.
+        """
+        self._journaldb = JournalDB(db)
+        self._trie = HashTrie(HexaryTrie(db, state_root))
+        self._trie_cache = CacheDB(self._trie)
+        self._journaltrie = JournalDB(self._trie_cache)
 
     @property
     def state_root(self):
@@ -146,6 +181,7 @@ class AccountDB(BaseAccountDB):
 
     @state_root.setter
     def state_root(self, value):
+        self._trie_cache.reset_cache()
         self._trie.root_hash = value
 
     #
@@ -156,7 +192,7 @@ class AccountDB(BaseAccountDB):
         validate_uint256(slot, title="Storage Slot")
 
         account = self._get_account(address)
-        storage = HashTrie(HexaryTrie(self.db, account.storage_root))
+        storage = HashTrie(HexaryTrie(self._journaldb, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
@@ -172,7 +208,7 @@ class AccountDB(BaseAccountDB):
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
-        storage = HashTrie(HexaryTrie(self.db, account.storage_root))
+        storage = HashTrie(HexaryTrie(self._journaldb, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
 
@@ -233,7 +269,7 @@ class AccountDB(BaseAccountDB):
         validate_canonical_address(address, title="Storage Address")
 
         try:
-            return self.db[self.get_code_hash(address)]
+            return self._journaldb[self.get_code_hash(address)]
         except KeyError:
             return b""
 
@@ -244,7 +280,7 @@ class AccountDB(BaseAccountDB):
         account = self._get_account(address)
 
         code_hash = keccak(code)
-        self.db[code_hash] = code
+        self._journaldb[code_hash] = code
         self._set_account(address, account.copy(code_hash=code_hash))
 
     def get_code_hash(self, address):
@@ -268,12 +304,12 @@ class AccountDB(BaseAccountDB):
     def delete_account(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        del self._trie[address]
+        del self._journaltrie[address]
 
     def account_exists(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        return bool(self._trie[address])
+        return self._journaltrie.get(address, b'') != b''
 
     def touch_account(self, address):
         validate_canonical_address(address, title="Storage Address")
@@ -288,11 +324,7 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_account(self, address):
-        cache_key = (id(self._unwrapped_db), self.state_root, address)
-        if cache_key not in account_cache:
-            account_cache[cache_key] = self._trie[address]
-
-        rlp_account = account_cache[cache_key]
+        rlp_account = self._journaltrie.get(address, b'')
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
         else:
@@ -301,24 +333,45 @@ class AccountDB(BaseAccountDB):
 
     def _set_account(self, address, account):
         rlp_account = rlp.encode(account, sedes=Account)
-        self._trie[address] = rlp_account
-        cache_key = (id(self._unwrapped_db), self.state_root, address)
-        account_cache[cache_key] = rlp_account
+        self._journaltrie[address] = rlp_account
 
     #
     # Record and discard API
     #
-    def record(self) -> UUID:
-        return self.db.record()
+    def record(self) -> Tuple[UUID, UUID]:
+        return (self._journaldb.record(), self._journaltrie.record())
 
-    def discard(self, changeset_id: UUID) -> None:
-        return self.db.discard(changeset_id)
+    def discard(self, changeset: Tuple[UUID, UUID]) -> None:
+        db_changeset, trie_changeset = changeset
+        self._journaldb.discard(db_changeset)
+        self._journaltrie.discard(trie_changeset)
 
-    def commit(self, changeset_id: UUID) -> None:
-        return self.db.commit(changeset_id)
+    def commit(self, changeset: Tuple[UUID, UUID]) -> None:
+        db_changeset, trie_changeset = changeset
+        self._journaldb.commit(db_changeset)
+        self._journaltrie.commit(trie_changeset)
 
     def persist(self) -> None:
-        return self.db.persist()
+        self.logger.debug("Persisting AccountDB...")
+        self._journaldb.persist()
+        self._journaltrie.persist()
 
-    def clear(self) -> None:
-        return self.db.reset()
+    def _log_pending_accounts(self) -> None:
+        accounts_displayed = set()  # type: Set[bytes]
+        queued_changes = self._journaltrie.journal.journal_data.items()
+        # mypy bug for ordered dict reversibility: https://github.com/python/typeshed/issues/2078
+        for checkpoint, accounts in reversed(queued_changes):  # type: ignore
+            for address in accounts:
+                if address in accounts_displayed:
+                    continue
+                else:
+                    accounts_displayed.add(address)
+                    account = self._get_account(address)
+                    self.logger.debug(
+                        "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
+                        encode_hex(address),
+                        account.balance,
+                        account.nonce,
+                        encode_hex(account.storage_root),
+                        encode_hex(account.code_hash),
+                    )
