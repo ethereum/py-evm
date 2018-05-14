@@ -90,7 +90,9 @@ def test_header_chain_get_canonical_block_hash_passthrough(header_chain, genesis
     assert header_chain.get_canonical_block_hash(0) == genesis_header.hash
 
 
-def test_header_chain_get_canonical_block_header_by_number_passthrough(header_chain, genesis_header):
+def test_header_chain_get_canonical_block_header_by_number_passthrough(
+        header_chain,
+        genesis_header):
     assert header_chain.get_canonical_block_header_by_number(0) == genesis_header
 
 
