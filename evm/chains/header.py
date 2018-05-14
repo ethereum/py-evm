@@ -19,7 +19,7 @@ from evm.vm.base import BaseVM  # noqa: F401
 
 
 class BaseHeaderChain(Configurable, metaclass=ABCMeta):
-    _basedb = None  # type: BaseDB
+    _base_db = None  # type: BaseDB
 
     _headerdb_class = None  # type: Type[BaseHeaderDB]
     _headerdb = None  # type: BaseHeaderDB
@@ -29,7 +29,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     @abstractmethod
-    def __init__(self, basedb: BaseDB, header: BlockHeader=None) -> None:
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -38,7 +38,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_genesis_header(cls,
-                            basedb: BaseDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseHeaderChain':
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -80,9 +80,9 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
 class HeaderChain(BaseHeaderChain):
     _headerdb_class = HeaderDB  # type: Type[BaseHeaderDB]
 
-    def __init__(self, basedb: BaseDB, header: BlockHeader=None) -> None:
-        self.basedb = basedb
-        self.headerdb = self.get_headerdb_class()(basedb)
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+        self.base_db = base_db
+        self.headerdb = self.get_headerdb_class()(base_db)
 
         if header is None:
             self.header = self.get_canonical_head()
@@ -94,14 +94,14 @@ class HeaderChain(BaseHeaderChain):
     #
     @classmethod
     def from_genesis_header(cls,
-                            basedb: BaseDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseHeaderChain':
         """
         Initializes the chain from the genesis header.
         """
-        headerdb = cls.get_headerdb_class()(basedb)
+        headerdb = cls.get_headerdb_class()(base_db)
         headerdb.persist_header(genesis_header)
-        return cls(basedb, genesis_header)
+        return cls(base_db, genesis_header)
 
     #
     # Helpers
