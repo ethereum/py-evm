@@ -69,6 +69,10 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
+    def header_exists(self, block_hash: Hash32) -> bool:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
     def import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -140,6 +144,12 @@ class HeaderChain(BaseHeaderChain):
         Direct passthrough to `headerdb`
         """
         return self.headerdb.get_block_header_by_hash(block_hash)
+
+    def header_exists(self, block_hash: Hash32) -> bool:
+        """
+        Direct passthrough to `headerdb`
+        """
+        return self.headerdb.header_exists(block_hash)
 
     def import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         """
