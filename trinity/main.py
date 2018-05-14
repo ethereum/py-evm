@@ -182,7 +182,7 @@ def run_lightnode_process(
         pool_class: Type[HardCodedNodesPeerPool]) -> None:
 
     manager = create_dbmanager(chain_config.database_ipc_path)
-    chaindb = manager.get_chaindb()  # type: ignore
+    headerdb = manager.get_headerdb()  # type: ignore
 
     if chain_config.network_id == MAINNET_NETWORK_ID:
         chain_class = MainnetLightChain  # type: ignore
@@ -192,8 +192,8 @@ def run_lightnode_process(
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-    peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
-    chain = chain_class(chaindb, peer_pool)
+    peer_pool = pool_class(LESPeer, headerdb, chain_config.network_id, chain_config.nodekey)
+    chain = chain_class(headerdb, peer_pool)
 
     loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:

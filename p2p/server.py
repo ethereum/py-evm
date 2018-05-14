@@ -5,6 +5,7 @@ import secrets
 from typing import (
     List,
     Type,
+    TYPE_CHECKING,
 )
 
 import upnpclient
@@ -13,7 +14,6 @@ from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
-from evm.db.chain import AsyncChainDB
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -46,6 +46,9 @@ from p2p.peer import (
 )
 from p2p.service import BaseService
 
+if TYPE_CHECKING:
+    from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
+
 
 class Server(BaseService):
     """Server listening for incoming connections"""
@@ -55,14 +58,14 @@ class Server(BaseService):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  server_address: Address,
-                 chaindb: AsyncChainDB,
+                 headerdb: 'BaseAsyncHeaderDB',
                  bootstrap_nodes: List[str],
                  network_id: int,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
                  ) -> None:
         super().__init__(CancelToken('Server'))
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.privkey = privkey
         self.server_address = server_address
         self.network_id = network_id
@@ -72,7 +75,7 @@ class Server(BaseService):
             self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
         self.peer_pool = PeerPool(
             peer_class,
-            self.chaindb,
+            self.headerdb,
             self.network_id,
             self.privkey,
             self.discovery,
@@ -238,7 +241,7 @@ class Server(BaseService):
             mac_secret=mac_secret,
             egress_mac=egress_mac,
             ingress_mac=ingress_mac,
-            chaindb=self.chaindb,
+            headerdb=self.headerdb,
             network_id=self.network_id
         )
 
@@ -263,7 +266,7 @@ def _test() -> None:
 
     from trinity.utils.chains import load_nodekey
 
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
+    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action="store_true")
@@ -281,8 +284,8 @@ def _test() -> None:
     logging.getLogger('p2p.server.Server').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     # NOTE: Since we may create a different priv/pub key pair every time we run this, remote nodes
     # may try to establish a connection using the pubkey from one of our previous runs, which will
@@ -302,7 +305,7 @@ def _test() -> None:
     server = Server(
         privkey,
         server_address,
-        chaindb,
+        headerdb,
         bootstrap_nodes,
         RopstenChain.network_id,
         peer_class=ETHPeer,
