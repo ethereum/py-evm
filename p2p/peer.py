@@ -22,7 +22,7 @@ from typing import (  # noqa: F401
     cast,
 )
 
-import sha3
+from eth_hash.preimage import BasePreImage
 
 import rlp
 from rlp import sedes
@@ -157,8 +157,8 @@ class BasePeer(BaseService):
                  writer: asyncio.StreamWriter,
                  aes_secret: bytes,
                  mac_secret: bytes,
-                 egress_mac: sha3.keccak_256,
-                 ingress_mac: sha3.keccak_256,
+                 egress_mac: BasePreImage,
+                 ingress_mac: BasePreImage,
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  ) -> None:
