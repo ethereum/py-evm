@@ -2,13 +2,13 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import secrets
-
 from typing import (
     List,
     Type,
     TYPE_CHECKING,
 )
 
+import netifaces
 import upnpclient
 
 from eth_keys import datatypes
@@ -139,26 +139,54 @@ class Server(BaseService):
     async def _add_nat_portmap(self, lifetime: int) -> None:
         loop = asyncio.get_event_loop()
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
-        # while to complete. And we must use a ThreadPoolExecutor() because the response from
-        # upnpclient.discover() can't be pickled.
+        # while to complete. We must use a ThreadPoolExecutor() because the
+        # response from upnpclient.discover() can't be pickled.
         devices = await wait_with_token(
             loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
             token=self.cancel_token,
             timeout=2 * REPLY_TIMEOUT)
+
+        # If there are no UPNP devices we can exit early
         if not devices:
             self.logger.info("No UPNP-enabled devices found")
             return
-        device = devices[0]
-        device.WANIPConn1.AddPortMapping(
-            NewRemoteHost=device.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress'],
-            NewExternalPort=self.address.tcp_port,
-            NewProtocol='TCP',
-            NewInternalPort=self.address.tcp_port,
-            NewInternalClient=self.address.ip,
-            NewEnabled='1',
-            NewPortMappingDescription='Created by Py-EVM',
-            NewLeaseDuration=lifetime)
-        self.logger.info("NAT port forwarding successfully setup")
+
+        # Now we loop over all of the devices attempting to setup a port
+        # mapping from their external IP to the internal IP.
+        for device in devices:
+            try:
+                connection = device.WANIPConn1
+            except AttributeError:
+                continue
+
+            # Detect our internal IP address (or abort if we can't determine
+            # the internal IP address
+            for iface in netifaces.interfaces():
+                for _, addr in netifaces.ifaddresses(iface):
+                    network = addr['addr'].rstrip('.', 1)
+                    if network in device.location:
+                        internal_ip = addr['addr']
+                        break
+            else:
+                self.logger.warn(
+                    "Unable to detect internal IP address in order to setup NAT portmap"
+                )
+                continue
+
+            connection.AddPortMapping(
+                NewRemoteHost=connection.GetExternalIPAddress()['NewExternalIPAddress'],
+                NewExternalPort=self.server_address.tcp_port,
+                NewProtocol='TCP',
+                NewInternalPort=self.server_address.tcp_port,
+                NewInternalClient=internal_ip,
+                NewEnabled='1',
+                NewPortMappingDescription='Created by Py-EVM',
+                NewLeaseDuration=lifetime,
+            )
+            self.logger.info("NAT port forwarding successfully setup")
+            break
+        else:
+            self.logger.warning('Unable to setup port forwarding for NAT')
 
     async def _start(self) -> None:
         self._server = await asyncio.start_server(

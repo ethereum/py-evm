@@ -30,6 +30,7 @@ deps = {
     'p2p': [
         "aiohttp>=2.3.1,<3.0.0",
         "async_lru>=0.1.0,<1.0.0",
+        "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
     ],
