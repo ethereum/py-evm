@@ -86,38 +86,16 @@ def test_header_chain_initialization_header_already_persisted(base_db, genesis_h
     assert_headers_eq(head, genesis_header)
 
 
-def test_header_chain_get_canonical_block_hash_passthrough(headerdb, header_chain):
-    headers = mk_header_chain(headerdb.get_canonical_head(), 10)
-
-    # push headers directly into database
-    for header in headers:
-        headerdb.persist_header(header)
-
-    for header in headers:
-        canonical_hash = header_chain.get_canonical_block_hash(header.block_number)
-        assert canonical_hash == header.hash
+def test_header_chain_get_canonical_block_hash_passthrough(header_chain, genesis_header):
+    assert header_chain.get_canonical_block_hash(0) == genesis_header.hash
 
 
-def test_header_chain_get_canonical_block_header_by_number_passthrough(headerdb, header_chain):
-    headers = mk_header_chain(headerdb.get_canonical_head(), 10)
-
-    # push headers directly into database
-    for header in headers:
-        headerdb.persist_header(header)
-
-    for header in headers:
-        canonical_header = header_chain.get_canonical_block_header_by_number(header.block_number)
-        assert_headers_eq(canonical_header, header)
+def test_header_chain_get_canonical_block_header_by_number_passthrough(header_chain, genesis_header):
+    assert header_chain.get_canonical_block_header_by_number(0) == genesis_header
 
 
-def test_header_chain_get_canonical_head_passthrough(headerdb, header_chain, genesis_header):
-    headers = mk_header_chain(genesis_header, 10)
-
-    # push headers directly into database
-    for header in headers:
-        headerdb.persist_header(header)
-        head = header_chain.get_canonical_head()
-        assert_headers_eq(head, header)
+def test_header_chain_get_canonical_head_passthrough(header_chain):
+    assert header_chain.get_canonical_head() == header_chain.header
 
 
 def test_header_chain_import_block(header_chain, genesis_header):
@@ -157,60 +135,10 @@ def test_header_chain_import_block(header_chain, genesis_header):
     assert_headers_eq(header_chain.header, chain_c[-1])
 
 
-def test_header_chain_get_block_header_by_hash_passthrough(headerdb, header_chain):
-    chain_a = mk_header_chain(headerdb.get_canonical_head(), 5)
-    chain_b = mk_header_chain(headerdb.get_canonical_head(), 7)
-
-    # push both chains of headers into the database
-    for header in chain_a:
-        headerdb.persist_header(header)
-    for header in chain_b:
-        headerdb.persist_header(header)
-
-    # verify we can retrieve both `chain_a` and `chain_b` headers
-    for header in chain_a:
-        actual = header_chain.get_block_header_by_hash(header.hash)
-        assert actual == header
-    for header in chain_b:
-        actual = header_chain.get_block_header_by_hash(header.hash)
-        assert actual == header
+def test_header_chain_get_block_header_by_hash_passthrough(header_chain, genesis_header):
+    assert header_chain.get_block_header_by_hash(genesis_header.hash) == genesis_header
 
 
 def test_header_chain_header_exists(header_chain, genesis_header):
     assert header_chain.header_exists(genesis_header.hash) is True
-
-    chain_a = mk_header_chain(genesis_header, 3)
-    chain_b = mk_header_chain(genesis_header, 5)
-
-    assert not any(header_chain.header_exists(h.hash) for h in chain_a)
-    assert not any(header_chain.header_exists(h.hash) for h in chain_b)
-
-    for idx, header in enumerate(chain_a):
-        assert all(header_chain.header_exists(h.hash) for h in chain_a[:idx])
-        assert not any(header_chain.header_exists(h.hash) for h in chain_a[idx:])
-
-        # sanity pre-check
-        assert not header_chain.header_exists(header.hash)
-        header_chain.import_header(header)
-        assert header_chain.header_exists(header.hash)
-
-    # `chain_a` should now all exist
-    assert all(header_chain.header_exists(h.hash) for h in chain_a)
-    # `chain_b` should not be in the database.
-    assert not any(header_chain.header_exists(h.hash) for h in chain_b)
-
-    for idx, header in enumerate(chain_b):
-        # `chain_a` should remain accessible
-        assert all(header_chain.header_exists(h.hash) for h in chain_a)
-
-        assert all(header_chain.header_exists(h.hash) for h in chain_b[:idx])
-        assert not any(header_chain.header_exists(h.hash) for h in chain_b[idx:])
-
-        # sanity pre-check
-        assert not header_chain.header_exists(header.hash)
-        header_chain.import_header(header)
-        assert header_chain.header_exists(header.hash)
-
-    # both `chain_a` & `chain_b` should now all exist
-    assert all(header_chain.header_exists(h.hash) for h in chain_a)
-    assert all(header_chain.header_exists(h.hash) for h in chain_b)
+    assert header_chain.header_exists(b'\x0f' * 32) is False
