@@ -38,7 +38,6 @@ from trie import HexaryTrie
 
 from evm.constants import GENESIS_BLOCK_NUMBER
 from evm.exceptions import BlockNotFound
-from evm.db.chain import AsyncChainDB
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
@@ -88,11 +87,13 @@ from .constants import (
     REPLY_TIMEOUT,
 )
 
+from trinity.db.header import BaseAsyncHeaderDB
+
 
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
                     peer_class: 'Type[BasePeer]',
-                    chaindb: AsyncChainDB,
+                    headerdb: BaseAsyncHeaderDB,
                     network_id: int,
                     token: CancelToken,
                     ) -> 'BasePeer':
@@ -119,7 +120,7 @@ async def handshake(remote: Node,
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, chaindb=chaindb, network_id=network_id)
+        ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
     return peer
@@ -146,7 +147,7 @@ class BasePeer(BaseService):
                  mac_secret: bytes,
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
-                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  network_id: int,
                  ) -> None:
         super().__init__(CancelToken('Peer'))
@@ -155,7 +156,7 @@ class BasePeer(BaseService):
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.network_id = network_id
         self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
         self.cancel_token = CancelToken('Peer')
@@ -218,16 +219,16 @@ class BasePeer(BaseService):
 
     @property
     async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.chaindb.coro_get_canonical_block_hash(
+        genesis_hash = await self.headerdb.coro_get_canonical_block_hash(
             BlockNumber(GENESIS_BLOCK_NUMBER),
         )
-        return await self.chaindb.coro_get_block_header_by_hash(genesis_hash)
+        return await self.headerdb.coro_get_block_header_by_hash(genesis_hash)
 
     @property
     async def _local_chain_info(self) -> 'ChainInfo':
         genesis = await self.genesis
-        head = await self.chaindb.coro_get_canonical_head()
-        total_difficulty = await self.chaindb.coro_get_score(head.hash)
+        head = await self.headerdb.coro_get_canonical_head()
+        total_difficulty = await self.headerdb.coro_get_score(head.hash)
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
