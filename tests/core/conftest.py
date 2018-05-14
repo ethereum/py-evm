@@ -9,8 +9,7 @@ from eth_keys import keys
 
 from evm import Chain
 from evm import constants
-from evm.db import get_db_backend
-from evm.db.chain import ChainDB
+from evm.db.backends.memory import MemoryDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
@@ -38,12 +37,12 @@ def funded_address_initial_balance():
 
 
 @pytest.fixture
-def chaindb():
-    return ChainDB(get_db_backend())
+def base_db():
+    return MemoryDB()
 
 
 @pytest.fixture
-def chain_with_block_validation(chaindb, funded_address, funded_address_initial_balance):
+def chain_with_block_validation(base_db, funded_address, funded_address_initial_balance):
     """
     Return a Chain object containing just the genesis block.
 
@@ -84,12 +83,12 @@ def chain_with_block_validation(chaindb, funded_address, funded_address_initial_
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
         ))
-    chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
+    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
 
 
 @pytest.fixture
-def chain_without_block_validation(chaindb, funded_address, funded_address_initial_balance):
+def chain_without_block_validation(base_db, funded_address, funded_address_initial_balance):
     """
     Return a Chain object containing just the genesis block.
 
@@ -130,5 +129,5 @@ def chain_without_block_validation(chaindb, funded_address, funded_address_initi
             'storage': {},
         }
     }
-    chain = klass.from_genesis(chaindb, genesis_params, genesis_state)
+    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain

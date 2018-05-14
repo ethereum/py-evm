@@ -12,9 +12,7 @@ from eth_hash.auto import keccak
 from evm.constants import (
     BLANK_ROOT_HASH,
 )
-from evm.db import (
-    get_db_backend,
-)
+from evm.db.backends.memory import MemoryDB
 from evm.db.chain import (
     ChainDB,
 )
@@ -50,8 +48,13 @@ def set_empty_root(chaindb, header):
 
 
 @pytest.fixture
-def chaindb(request):
-    return ChainDB(get_db_backend())
+def base_db():
+    return MemoryDB()
+
+
+@pytest.fixture
+def chaindb(base_db):
+    return ChainDB(base_db)
 
 
 @pytest.fixture(params=[0, 10, 999])

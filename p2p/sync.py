@@ -5,6 +5,7 @@ from evm.chains import AsyncChain
 from evm.constants import BLANK_ROOT_HASH
 from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
+
 from p2p.cancel_token import CancelToken
 from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
@@ -20,16 +21,21 @@ FAST_SYNC_CUTOFF = 60 * 60 * 24
 class FullNodeSyncer(BaseService):
     logger = logging.getLogger("p2p.sync.FullNodeSyncer")
 
+    chain: AsyncChain = None
+    chaindb: AsyncChainDB = None
+    base_db: BaseDB = None
+    peer_pool: PeerPool = None
+
     def __init__(self,
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
-                 db: BaseDB,
+                 base_db: BaseDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
         self.chaindb = chaindb
-        self.db = db
+        self.base_db = base_db
         self.peer_pool = peer_pool
 
     async def _run(self) -> None:
@@ -45,11 +51,11 @@ class FullNodeSyncer(BaseService):
 
         # Ensure we have the state for our current head.
         head = await self.chaindb.coro_get_canonical_head()
-        if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.db:
+        if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
             self.logger.info(
                 "Missing state for current head (#%d), downloading it", head.block_number)
             downloader = StateDownloader(
-                self.db, head.state_root, self.peer_pool, self.cancel_token)
+                self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
 
         # Now, loop forever, fetching missing blocks and applying them.
@@ -57,7 +63,7 @@ class FullNodeSyncer(BaseService):
         # This is a bit of a hack, but self.chain is stuck in the past as during the fast-sync we
         # did not use it to import the blocks, so we need this to get a Chain instance with our
         # latest head so that we can start importing blocks.
-        new_chain = type(self.chain)(self.chaindb)
+        new_chain = type(self.chain)(self.base_db)
         chain_syncer = RegularChainSyncer(
             new_chain, self.chaindb, self.peer_pool, self.cancel_token)
         await chain_syncer.run()

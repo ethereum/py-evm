@@ -35,7 +35,10 @@ from eth_utils import (
 )
 
 from evm.db.backends.base import BaseDB
-from evm.db.chain import BaseChainDB
+from evm.db.chain import (
+    BaseChainDB,
+    ChainDB,
+)
 from evm.consensus.pow import (
     check_pow,
 )
@@ -125,7 +128,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_genesis_header(cls,
-                            chaindb: BaseChainDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -254,6 +257,8 @@ class Chain(BaseChain):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     gas_estimator = None  # type: Callable
 
+    chaindb_class = ChainDB  # type: Type[BaseChainDB]
+
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         if not self.vm_configuration:
             raise ValueError(
@@ -290,10 +295,9 @@ class Chain(BaseChain):
         Initializes the Chain from a genesis state.
         """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
-        chaindb_class = cls.get_chaindb_class()
 
         account_db = genesis_vm_class.get_state_class().get_account_db_class()(
-            chaindb_class(base_db),
+            base_db,
             BLANK_ROOT_HASH,
         )
 
@@ -346,7 +350,7 @@ class Chain(BaseChain):
             ))
 
         init_header = self.create_header_from_parent(parent_header)
-        return type(self)(self.chaindb, init_header)
+        return type(self)(self.chaindb.db, init_header)
 
     #
     # VM API
