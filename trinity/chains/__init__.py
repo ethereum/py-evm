@@ -21,8 +21,12 @@ from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
-from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.db.chain import ChainDBProxy
+from trinity.db.header import (
+    AsyncHeaderDB,
+    AsyncHeaderDBProxy,
+)
 from trinity.utils.chains import (
     ChainConfig,
 )
@@ -31,6 +35,11 @@ from trinity.utils.mp import (
 )
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
+)
+
+from .header import (
+    AsyncHeaderChain,
+    AsyncHeaderChainProxy,
 )
 
 
@@ -109,6 +118,7 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
 
 def serve_chaindb(chain_config: ChainConfig, db: BaseDB) -> None:
     chaindb = AsyncChainDB(db)
+
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
@@ -121,15 +131,33 @@ def serve_chaindb(chain_config: ChainConfig, db: BaseDB) -> None:
         )
     chain = chain_class(chaindb)  # type: ignore
 
+    headerdb = AsyncHeaderDB(db)
+    header_chain = AsyncHeaderChain(db)
+
     class DBManager(BaseManager):
         pass
 
     # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
     DBManager.register('get_db', callable=lambda: db, proxytype=DBProxy)  # type: ignore
+
     DBManager.register(  # type: ignore
-        'get_chaindb', callable=lambda: chaindb, proxytype=ChainDBProxy)
+        'get_chaindb',
+        callable=lambda: chaindb,
+        proxytype=ChainDBProxy,
+    )
     DBManager.register('get_chain', callable=lambda: chain, proxytype=ChainProxy)  # type: ignore
+
+    DBManager.register(  # type: ignore
+        'get_headerdb',
+        callable=lambda: headerdb,
+        proxytype=AsyncHeaderDBProxy,
+    )
+    DBManager.register(  # type: ignore
+        'get_header_chain',
+        callable=lambda: header_chain,
+        proxytype=AsyncHeaderChainProxy,
+    )
 
     manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
     server = manager.get_server()  # type: ignore
