@@ -78,7 +78,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
 
 
 class HeaderChain(BaseHeaderChain):
-    _headerdb_class = HeaderDB
+    _headerdb_class = HeaderDB  # type: Type[BaseHeaderDB]
 
     def __init__(self, basedb: BaseDB, header: BlockHeader=None) -> None:
         self.basedb = basedb
