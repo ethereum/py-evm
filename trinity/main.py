@@ -35,6 +35,9 @@ from trinity.chains.mainnet import (
 from trinity.chains.ropsten import (
     RopstenLightChain,
 )
+from trinity.chains.header import (
+    AsyncHeaderChainProxy,
+)
 from trinity.console import (
     console,
 )
@@ -43,6 +46,7 @@ from trinity.constants import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
@@ -164,6 +168,8 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
     DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
     DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
+    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
+    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 
     manager = DBManager(address=ipc_path)  # type: ignore
     manager.connect()  # type: ignore
