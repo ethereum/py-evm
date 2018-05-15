@@ -20,6 +20,9 @@ from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from evm.db.batch import (
+    BatchDB,
+)
 from evm.db.cache import (
     CacheDB,
 )
@@ -143,13 +146,13 @@ class AccountDB(BaseAccountDB):
 
         .. code::
 
-                                                     -> hash-trie -> storage lookups
-                                                    /
-            db -----------------------> _journaldb ----------------> code lookups
+                                                                   -> hash-trie -> storage lookups
+                                                                  /
+            db -------------------------------------> _journaldb ----------------> code lookups
              \
-              > _trie -> _trie_cache -> _journaltrie --------------> account lookups
+              > _batchtrie -> _trie -> _trie_cache -> _journaltrie --------------> account lookups
 
-        Journaling sequesters writes here ^, until persist is called.
+        Journaling sequesters writes at the _journal* attrs ^, until persist is called.
 
         _journaldb is a journaling of the keys and values used to store
         code and account storage.
@@ -171,7 +174,8 @@ class AccountDB(BaseAccountDB):
         journals.
         """
         self._journaldb = JournalDB(db)
-        self._trie = HashTrie(HexaryTrie(db, state_root))
+        self._batchtrie = BatchDB(db)
+        self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
         self._trie_cache = CacheDB(self._trie)
         self._journaltrie = JournalDB(self._trie_cache)
 
@@ -355,6 +359,7 @@ class AccountDB(BaseAccountDB):
         self.logger.debug("Persisting AccountDB...")
         self._journaldb.persist()
         self._journaltrie.persist()
+        self._batchtrie.commit(apply_deletes=False)
 
     def _log_pending_accounts(self) -> None:
         accounts_displayed = set()  # type: Set[bytes]
