@@ -25,10 +25,12 @@ from p2p.peer import (
 from p2p.server import Server
 
 from trinity.chains import (
-    ChainProxy,
     initialize_data_dir,
     is_data_dir_initialized,
     serve_chaindb,
+)
+from trinity.chains.chain import (
+    AsyncChainProxy,
 )
 from trinity.chains.mainnet import (
     MainnetLightChain,
@@ -45,7 +47,7 @@ from trinity.console import (
 from trinity.constants import (
     SYNC_LIGHT,
 )
-from trinity.db.chain import ChainDBProxy
+from trinity.db.chain import AsyncChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
@@ -168,8 +170,8 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
     DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
-    DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
+    DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)  # type: ignore
+    DBManager.register('get_chain', proxytype=AsyncChainProxy)  # type: ignore
     DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
     DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 

@@ -43,7 +43,7 @@ class AsyncHeaderChain(HeaderChain, BaseAsyncHeaderChain):
         raise NotImplementedError("Chain classes must implement this method")
 
 
-class AsyncHeaderChainProxy(BaseProxy, BaseAsyncHeaderChain, BaseHeaderChain):
+class AsyncHeaderChainProxy(BaseProxy, BaseAsyncHeaderChain):
     @classmethod
     def from_genesis_header(cls,
                             basedb: BaseDB,

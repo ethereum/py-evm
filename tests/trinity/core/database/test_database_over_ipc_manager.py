@@ -7,14 +7,17 @@ import tempfile
 import pytest
 
 from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
-from evm.db.chain import (
-    ChainDB,
-)
 
 from trinity.chains import (
     serve_chaindb,
 )
-from trinity.db.chain import ChainDBProxy
+from trinity.db.chain import (
+    AsyncChainDBProxy,
+)
+from trinity.db.header import (
+    AsyncHeaderDB,
+    AsyncHeaderDBProxy,
+)
 from trinity.db.base import DBProxy
 from trinity.utils.chains import (
     ChainConfig,
@@ -30,19 +33,19 @@ from trinity.utils.ipc import (
 
 @pytest.fixture
 def database_server_ipc_path():
-    core_db = MemoryDB()
-    core_db[b'key-a'] = b'value-a'
+    base_db = MemoryDB()
+    base_db[b'key-a'] = b'value-a'
 
-    chaindb = ChainDB(core_db)
-    # TODO: use a custom chain class only for testing.
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    # persist the genesis header
+    headerdb = AsyncHeaderDB(base_db)
+    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, data_dir=temp_dir)
 
         chaindb_server_process = multiprocessing.Process(
             target=serve_chaindb,
-            args=(chain_config, core_db),
+            args=(chain_config, base_db),
         )
         chaindb_server_process.start()
 
@@ -60,19 +63,28 @@ def manager(database_server_ipc_path):
         pass
 
     DBManager.register('get_db', proxytype=DBProxy)
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)
+
+    DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)
+    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)
 
     _manager = DBManager(address=database_server_ipc_path)
     _manager.connect()
     return _manager
 
 
+def test_headerdb_over_ipc_manager(manager):
+    headerdb = manager.get_headerdb()
+
+    header = headerdb.get_canonical_head()
+
+    assert header == ROPSTEN_GENESIS_HEADER
+
+
 def test_chaindb_over_ipc_manager(manager):
     chaindb = manager.get_chaindb()
 
-    header = chaindb.get_canonical_head()
-
-    assert header == ROPSTEN_GENESIS_HEADER
+    # TODO: what should we test here
+    assert False
 
 
 def test_db_over_ipc_manager(manager):

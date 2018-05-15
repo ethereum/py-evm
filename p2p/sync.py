@@ -24,7 +24,7 @@ FAST_SYNC_CUTOFF = 60 * 60 * 24
 
 
 class FullNodeSyncer(BaseService):
-    logger: logging.BaseLogger = logging.getLogger("p2p.sync.FullNodeSyncer")
+    logger: logging.Logger = logging.getLogger("p2p.sync.FullNodeSyncer")
 
     chain: AsyncChain = None
     chaindb: 'BaseAsyncChainDB' = None

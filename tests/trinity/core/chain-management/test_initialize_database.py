@@ -1,13 +1,14 @@
 import pytest
 
-# TODO: use a custom chain class only for testing.
 from evm.db.backends.level import LevelDB
-from evm.db.chain import ChainDB
 
 from trinity.chains import (
     initialize_data_dir,
     initialize_database,
     is_database_initialized,
+)
+from trinity.db.header import (
+    AsyncHeaderDB,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -22,11 +23,11 @@ def chain_config():
 
 
 @pytest.fixture
-def chaindb(chain_config):
-    return ChainDB(LevelDB(db_path=chain_config.database_dir))
+def headerdb(chain_config):
+    return AsyncHeaderDB(LevelDB(db_path=chain_config.database_dir))
 
 
-def test_initialize_database(chain_config, chaindb):
-    assert not is_database_initialized(chaindb)
-    initialize_database(chain_config, chaindb)
-    assert is_database_initialized(chaindb)
+def test_initialize_database(chain_config, headerdb):
+    assert not is_database_initialized(headerdb)
+    initialize_database(chain_config, headerdb)
+    assert is_database_initialized(headerdb)

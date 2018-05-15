@@ -2,7 +2,6 @@
 # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
 from multiprocessing.managers import (  # type: ignore
     BaseManager,
-    BaseProxy,
 )
 import os
 
@@ -22,24 +21,24 @@ from p2p import ecies
 
 from trinity.db.base import DBProxy
 from trinity.db.chain import (
-    BaseAsyncChainDB,
     AsyncChainDB,
     AsyncChainDBProxy,
 )
 from trinity.db.header import (
+    BaseAsyncHeaderDB,
     AsyncHeaderDB,
     AsyncHeaderDBProxy,
 )
 from trinity.utils.chains import (
     ChainConfig,
 )
-from trinity.utils.mp import (
-    async_method,
-)
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
 
+from .chain import (
+    AsyncChainProxy,
+)
 from .header import (
     AsyncHeaderChain,
     AsyncHeaderChainProxy,
@@ -71,9 +70,9 @@ def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
     return True
 
 
-def is_database_initialized(chaindb: BaseAsyncChainDB) -> bool:
+def is_database_initialized(headerdb: BaseAsyncHeaderDB) -> bool:
     try:
-        chaindb.get_canonical_head()
+        headerdb.get_canonical_head()
     except CanonicalHeadNotFound:
         # empty chain database
         return False
@@ -102,15 +101,15 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config: ChainConfig, chaindb: BaseAsyncChainDB) -> None:
+def initialize_database(chain_config: ChainConfig, headerdb: BaseAsyncHeaderDB) -> None:
     try:
-        chaindb.get_canonical_head()
+        headerdb.get_canonical_head()
     except CanonicalHeadNotFound:
         if chain_config.network_id == ROPSTEN_NETWORK_ID:
             # We're starting with a fresh DB.
-            chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+            headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
         elif chain_config.network_id == MAINNET_NETWORK_ID:
-            chaindb.persist_header(MAINNET_GENESIS_HEADER)
+            headerdb.persist_header(MAINNET_GENESIS_HEADER)
         else:
             # TODO: add genesis data to ChainConfig and if it's present, use it
             # here to initialize the chain.
@@ -121,9 +120,10 @@ def initialize_database(chain_config: ChainConfig, chaindb: BaseAsyncChainDB) ->
 
 def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     chaindb = AsyncChainDB(base_db)
+    headerdb = AsyncHeaderDB(base_db)
 
-    if not is_database_initialized(chaindb):
-        initialize_database(chain_config, chaindb)
+    if not is_database_initialized(headerdb):
+        initialize_database(chain_config, headerdb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
         chain_class = MainnetChain  # type: ignore
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
@@ -149,7 +149,11 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
         callable=lambda: chaindb,
         proxytype=AsyncChainDBProxy,
     )
-    DBManager.register('get_chain', callable=lambda: chain, proxytype=ChainProxy)  # type: ignore
+    DBManager.register(  # type: ignore
+        'get_chain',
+        callable=lambda: chain,
+        proxytype=AsyncChainProxy
+    )
 
     DBManager.register(  # type: ignore
         'get_headerdb',
@@ -166,7 +170,3 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     server = manager.get_server()  # type: ignore
 
     server.serve_forever()  # type: ignore
-
-
-class ChainProxy(BaseProxy):
-    coro_import_block = async_method('import_block')
