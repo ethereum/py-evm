@@ -1,5 +1,3 @@
-from functools import partial
-
 from eth_hash.auto import keccak
 
 from evm.db.keymap import (
@@ -7,4 +5,5 @@ from evm.db.keymap import (
 )
 
 
-HashTrie = partial(KeyMapDB, keccak)
+class HashTrie(KeyMapDB):
+    keymap = keccak
