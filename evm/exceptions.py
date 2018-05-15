@@ -12,6 +12,13 @@ class VMNotFound(PyEVMError):
     pass
 
 
+class StateRootNotFound(PyEVMError):
+    """
+    Raised when the requested state root is not present in our DB.
+    """
+    pass
+
+
 class HeaderNotFound(PyEVMError):
     """
     Raised when a header with the given number/hash does not exist.
