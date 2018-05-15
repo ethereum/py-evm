@@ -147,10 +147,7 @@ class ShardingPeer(BasePeer):
 class ShardSyncer(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
-    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken) -> None:
-        cancel_token = CancelToken("ShardSyncer")
-        if token is not None:
-            cancel_token = cancel_token.chain(token)
+    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken=None) -> None:
         super().__init__(token)
 
         self.shard = shard

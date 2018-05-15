@@ -52,10 +52,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                  root_hash: bytes,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        cancel_token = CancelToken('StateDownloader')
-        if token is not None:
-            cancel_token = cancel_token.chain(token)
-        super().__init__(cancel_token)
+        super().__init__(token)
         self.peer_pool = peer_pool
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
