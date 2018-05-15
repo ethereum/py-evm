@@ -10,7 +10,7 @@ from evm.utils.transactions import (
 
 class ByzantiumTransaction(SpuriousDragonTransaction):
     @classmethod
-    def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
+    def create_unsigned_transaction(cls, *, nonce, gas_price, gas, to, value, data):
         return ByzantiumUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 

@@ -268,7 +268,7 @@ def max_child_gas_eip150(gas):
     return gas - (gas // 64)
 
 
-def compute_eip150_msg_gas(computation, gas, extra_gas, value, mnemonic, callstipend):
+def compute_eip150_msg_gas(*, computation, gas, extra_gas, value, mnemonic, callstipend):
     if computation.get_gas_remaining() < extra_gas:
         # It feels wrong to raise an OutOfGas exception outside of GasMeter,
         # but I don't see an easy way around it.
