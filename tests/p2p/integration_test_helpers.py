@@ -61,10 +61,12 @@ async def coro_import_block(chain, block, perform_validation=True):
 
 
 class FakeAsyncRopstenChain(RopstenChain):
+    chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
 
 
 class FakeAsyncMainnetChain(MainnetChain):
+    chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
 
 

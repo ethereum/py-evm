@@ -17,7 +17,6 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
-from p2p.kademlia import Address
 from p2p.peer import (
     LESPeer,
     HardCodedNodesPeerPool,
@@ -131,7 +130,7 @@ def main() -> None:
     else:
         networking_process = ctx.Process(
             target=run_fullnode_process,
-            args=(chain_config, args.listen_on),
+            args=(chain_config, args.port),
             kwargs=logging_kwargs,
         )
 
@@ -219,7 +218,7 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
 
 
 @with_queued_logging
-def run_fullnode_process(chain_config: ChainConfig, listen_on: str) -> None:
+def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
 
     manager = create_dbmanager(chain_config.database_ipc_path)
     db = manager.get_db()  # type: ignore
@@ -227,10 +226,9 @@ def run_fullnode_process(chain_config: ChainConfig, listen_on: str) -> None:
     chaindb = manager.get_chaindb()  # type: ignore
     chain = manager.get_chain()  # type: ignore
 
-    address = Address(listen_on, 30303)
     peer_pool_class = HardCodedNodesPeerPool
     server = Server(
-        chain_config.nodekey, address, chain, chaindb, headerdb, db, chain_config.network_id,
+        chain_config.nodekey, port, chain, chaindb, headerdb, db, chain_config.network_id,
         peer_pool_class=peer_pool_class)
 
     loop = asyncio.get_event_loop()

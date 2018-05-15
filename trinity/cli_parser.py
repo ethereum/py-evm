@@ -49,13 +49,13 @@ trinity_parser.add_argument(
         "information.  Default: $XDG_DATA_HOME/.local/share/trinity"
     ),
 )
-# TODO: Get rid of this once https://github.com/ethereum/py-evm/issues/683 is fixed
 trinity_parser.add_argument(
-    '--listen-on',
-    type=str,
-    required=True,
+    '--port',
+    type=int,
+    required=False,
+    default=30303,
     help=(
-        "IP address on which trinity should listen for incoming peer connections"
+        "Port on which trinity should listen for incoming p2p/discovery connections. Default: 30303"
     ),
 )
 
