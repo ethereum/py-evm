@@ -32,7 +32,7 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             ))
 
     @classmethod
-    def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
+    def create_unsigned_transaction(cls, nonce=None, gas_price=None, gas=None, to=None, value=None, data=None):
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     @property

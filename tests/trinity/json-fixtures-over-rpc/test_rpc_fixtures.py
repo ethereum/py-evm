@@ -128,7 +128,7 @@ def assert_rpc_result(rpc, method, params, expected):
     return result
 
 
-def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
+def validate_account_attribute(fixture_key=None, rpc_method=None, rpc=None, state=None, addr=None, at_block=None):
     state_result, state_error = call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
 
