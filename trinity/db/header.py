@@ -82,7 +82,7 @@ class AsyncHeaderDB(HeaderDB, BaseAsyncHeaderDB):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
-class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
+class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB):
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
     coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
     coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')

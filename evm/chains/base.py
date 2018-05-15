@@ -39,6 +39,10 @@ from evm.db.chain import (
     BaseChainDB,
     ChainDB,
 )
+from evm.db.header import (
+    BaseHeaderDB,
+    HeaderDB,
+)
 from evm.consensus.pow import (
     check_pow,
 )
@@ -105,6 +109,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     """
     chaindb = None  # type: BaseChainDB
     chaindb_class = None  # type: Type[BaseChainDB]
+    headerdb_class = None  # type: Type[BaseHeaderDB]
 
     #
     # Helpers
@@ -112,6 +117,11 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def get_chaindb_class(cls) -> Type[BaseChainDB]:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @classmethod
+    @abstractmethod
+    def get_headerdb_class(cls) -> Type[BaseHeaderDB]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -257,7 +267,13 @@ class Chain(BaseChain):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     gas_estimator = None  # type: Callable
 
+    base_db = None  # type: BaseDB
+
+    chaindb = None  # type: BaseChainDB
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
+
+    headerdb = None  # type: BaseHeaderDB
+    headerdb_class = HeaderDB  # type: Type[BaseHeaderDB]
 
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         if not self.vm_configuration:
@@ -267,7 +283,10 @@ class Chain(BaseChain):
         else:
             validate_vm_configuration(self.vm_configuration)
 
-        self.chaindb = self.get_chaindb_class()(base_db)
+        self.base_db = base_db
+        self.chaindb = self.get_chaindb_class()(self.base_db)
+        self.headerdb = self.get_headerdb_class()(self.base_db)
+
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
@@ -282,6 +301,12 @@ class Chain(BaseChain):
         if cls.chaindb_class is None:
             raise AttributeError("`chaindb_class` not set")
         return cls.chaindb_class
+
+    @classmethod
+    def get_headerdb_class(cls) -> Type[BaseHeaderDB]:
+        if cls.headerdb_class is None:
+            raise AttributeError("`headerdb_class` not set")
+        return cls.headerdb_class
 
     #
     # Chain API
