@@ -794,16 +794,6 @@ class HardCodedNodesPeerPool(PeerPool):
     nodes that seem to have a good uptime.
     """
 
-    def __init__(self,
-                 peer_class: Type[BasePeer],
-                 headerdb: 'BaseAsyncHeaderDB',
-                 network_id: int,
-                 privkey: datatypes.PrivateKey,
-                 min_peers: int = 2,
-                 ) -> None:
-        discovery = None
-        super().__init__(peer_class, headerdb, network_id, privkey, discovery, min_peers)
-
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
         # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
         # hardcoded nodes.
@@ -828,7 +818,11 @@ class HardCodedNodesPeerPool(PeerPool):
                      Address("13.93.211.84", 30303, 30303)),
             ]
         elif self.network_id == RopstenChain.network_id:
+            # FIXME: Many of those nodes are no longer responsive and should be removed from this
+            # list.
             nodes = [
+                Node(keys.PublicKey(decode_hex("60ce95dc5b6873e1c53897815496c28132fa50a1227935c58fbffc30a25bf9df68594f7bdc63b1d33c2911c96013b5b058dcfc9184a78082e9af5ace05fe5486")),  # noqa: E501
+                     Address("79.98.29.93", 30303, 30303)),
                 Node(keys.PublicKey(decode_hex("0d7f627a9a139c1fbff6731d6e0123561738c5155908e32c3a1eea00a3e0c3b460d97c8aea1935c19bfb4e7013651488b8d328b9c142c0b820e221fde7894253")),  # noqa: E501
                      Address("58.250.0.61", 30303, 30303)),
                 Node(keys.PublicKey(decode_hex("360aeace83f0771dd671f253a023b4757e920aca3598563779d8edb2f4d4ca001b5dc2f900ec1547edcd34cfd5cf858e717647e9b5c1f88cef1934081337678b")),  # noqa: E501

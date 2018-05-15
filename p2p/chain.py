@@ -515,9 +515,10 @@ def _test() -> None:
         peer_pool = LocalGethPeerPool(ETHPeer, chaindb, RopstenChain.network_id, privkey)
     else:
         from p2p.peer import HardCodedNodesPeerPool
+        discovery = None
         min_peers = 5
         peer_pool = HardCodedNodesPeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, privkey, min_peers)
+            ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery, min_peers)
 
     asyncio.ensure_future(peer_pool.run())
     if args.fast:

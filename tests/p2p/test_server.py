@@ -4,6 +4,8 @@ import socket
 
 from eth_keys import keys
 
+from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+from evm.db.chain import ChainDB
 from evm.db.header import HeaderDB
 from evm.db.backends.memory import MemoryDB
 
@@ -42,13 +44,18 @@ INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
 def get_server(privkey, address, peer_class):
-    bootstrap_nodes = []
-    headerdb = HeaderDB(MemoryDB())
+    db = MemoryDB()
+    headerdb = HeaderDB(db)
+    chaindb = ChainDB(db)
+    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    chain = RopstenChain(chaindb)
     server = Server(
         privkey,
         address,
+        chain,
+        chaindb,
         headerdb,
-        bootstrap_nodes,
+        db,
         network_id=1,
         min_peers=1,
         peer_class=peer_class,
