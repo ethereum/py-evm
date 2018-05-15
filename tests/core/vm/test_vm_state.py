@@ -24,6 +24,6 @@ def test_block_properties(chain_without_block_validation):
 
 def test_missing_state_root():
     context = None
-    state = FrontierState(MemoryDB(), context, b'missing-state-root')
+    state = FrontierState(MemoryDB(), context, b'\x0f' * 32)
     with pytest.raises(StateRootNotFound):
         state.apply_transaction(None)
