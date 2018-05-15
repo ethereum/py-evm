@@ -5,11 +5,11 @@ from eth_utils import decode_hex
 from eth_keys import datatypes, keys
 
 from evm import MainnetChain, RopstenChain
-from evm.db.chain import AsyncChainDB
 
 from p2p import kademlia
 from p2p.peer import BasePeer, HardCodedNodesPeerPool
 
+from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 
 
@@ -17,6 +17,7 @@ def async_passthrough(base_name):
     coro_name = 'coro_{0}'.format(base_name)
 
     async def passthrough_method(self, *args, **kwargs):
+        await asyncio.sleep(0)
         return getattr(self, base_name)(*args, **kwargs)
     passthrough_method.__name__ = coro_name
     return passthrough_method
@@ -53,19 +54,12 @@ class FakeAsyncChainDB(AsyncChainDB):
     coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')
 
 
-async def coro_import_block(chain, block, perform_validation=True):
-    # Be nice and yield control to give other coroutines a chance to run before us as
-    # importing a block is a very expensive operation.
-    await asyncio.sleep(0)
-    return chain.import_block(block, perform_validation=perform_validation)
-
-
 class FakeAsyncRopstenChain(RopstenChain):
-    coro_import_block = coro_import_block
+    coro_import_block = async_passthrough('import_block')
 
 
 class FakeAsyncMainnetChain(MainnetChain):
-    coro_import_block = coro_import_block
+    coro_import_block = async_passthrough('import_block')
 
 
 class FakeAsyncHeaderDB(AsyncHeaderDB):

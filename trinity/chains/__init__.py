@@ -16,13 +16,16 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 from evm.db.backends.base import BaseDB
-from evm.db.chain import AsyncChainDB
 from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
 from trinity.db.base import DBProxy
-from trinity.db.chain import ChainDBProxy
+from trinity.db.chain import (
+    BaseAsyncChainDB,
+    AsyncChainDB,
+    AsyncChainDBProxy,
+)
 from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy,
@@ -68,7 +71,7 @@ def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
     return True
 
 
-def is_database_initialized(chaindb: AsyncChainDB) -> bool:
+def is_database_initialized(chaindb: BaseAsyncChainDB) -> bool:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -99,7 +102,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> None:
+def initialize_database(chain_config: ChainConfig, chaindb: BaseAsyncChainDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -144,7 +147,7 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     DBManager.register(  # type: ignore
         'get_chaindb',
         callable=lambda: chaindb,
-        proxytype=ChainDBProxy,
+        proxytype=AsyncChainDBProxy,
     )
     DBManager.register('get_chain', callable=lambda: chain, proxytype=ChainProxy)  # type: ignore
 

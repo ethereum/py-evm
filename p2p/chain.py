@@ -4,13 +4,23 @@ import math
 import operator
 import time
 from typing import (  # noqa: F401
-    Any, Awaitable, Callable, cast, Dict, Generator, List, Set, Tuple, Union)
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Set,
+    TYPE_CHECKING,
+    Tuple,
+    Union,
+    cast,
+)
 
 from cytoolz.itertoolz import partition_all, unique
 
 from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH
 from evm.chains import AsyncChain
-from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import HeaderNotFound
 from evm.rlp.headers import BlockHeader
@@ -22,6 +32,9 @@ from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
+
+if TYPE_CHECKING:
+    from trinity.db.chain import BaseAsyncChainDB  # noqa: F401
 
 
 class FastChainSyncer(BaseService, PeerPoolSubscriber):
@@ -39,7 +52,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
     _reply_timeout = 60
 
     def __init__(self,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'BaseAsyncChainDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -374,7 +387,7 @@ class RegularChainSyncer(FastChainSyncer):
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'BaseAsyncChainDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(chaindb, peer_pool, token)
