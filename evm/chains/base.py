@@ -375,7 +375,7 @@ class Chain(BaseChain):
             ))
 
         init_header = self.create_header_from_parent(parent_header)
-        return type(self)(self.chaindb.db, init_header)
+        return type(self)(self.base_db, init_header)
 
     #
     # VM API
@@ -421,7 +421,7 @@ class Chain(BaseChain):
         Raises BlockNotFound if there's no block header with the given hash in the db.
         """
         validate_word(block_hash, title="Block Hash")
-        return self.chaindb.get_block_header_by_hash(block_hash)
+        return self.headerdb.get_block_header_by_hash(block_hash)
 
     def get_canonical_head(self):
         """
@@ -429,7 +429,7 @@ class Chain(BaseChain):
 
         Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
         """
-        return self.chaindb.get_canonical_head()
+        return self.headerdb.get_canonical_head()
 
     #
     # Block API
@@ -472,7 +472,7 @@ class Chain(BaseChain):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
+        return self.get_block_by_hash(self.headerdb.get_canonical_block_hash(block_number))
 
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         """
@@ -481,7 +481,7 @@ class Chain(BaseChain):
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        return self.chaindb.get_canonical_block_hash(block_number)
+        return self.headerdb.get_canonical_block_hash(block_number)
 
     #
     # Transaction API
@@ -600,6 +600,8 @@ class Chain(BaseChain):
 
         self.validate_block(mined_block)
 
+        # first persist the header
+        self.headerdb.persist_header(mined_block.header)
         self.chaindb.persist_block(mined_block)
         self.header = self.create_header_from_parent(self.get_canonical_head())
         return mined_block
