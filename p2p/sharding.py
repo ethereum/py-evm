@@ -92,7 +92,7 @@ class ShardingProtocol(Protocol):
 
     def send_collations(self, collations: List[Collation]) -> None:
         cmd = Collations(self.cmd_id_offset)
-        self.logger.debug("Sending {} collations".format(len(collations)))
+        self.logger.debug("Sending %d collations", len(collations))
         self.send(*cmd.encode(collations))
 
 
@@ -127,7 +127,7 @@ class ShardingPeer(BasePeer):
             super().handle_sub_proto_msg(cmd, msg)
 
     def _handle_collations_msg(self, msg: List[Collation]) -> None:
-        self.logger.debug("Received {} collations".format(len(msg)))
+        self.logger.debug("Received %d collations", len(msg))
         for collation in msg:
             try:
                 self.incoming_collation_queue.put_nowait(collation)
@@ -137,7 +137,7 @@ class ShardingPeer(BasePeer):
                 self.known_collation_hashes.add(collation.hash)
 
     def send_collations(self, collations: List[Collation]) -> None:
-        self.logger.debug("Sending {} collations".format(len(collations)))
+        self.logger.debug("Sending %d collations", len(collations))
         for collation in collations:
             if collation.hash not in self.known_collation_hashes:
                 self.known_collation_hashes.add(collation.hash)
@@ -148,6 +148,9 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
     def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken) -> None:
+        cancel_token = CancelToken("ShardSyncer")
+        if token is not None:
+            cancel_token = cancel_token.chain(token)
         super().__init__(token)
 
         self.shard = shard
@@ -156,10 +159,6 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.incoming_collation_queue: asyncio.Queue[Collation] = asyncio.Queue()
 
         self.collations_received_event = asyncio.Event()
-
-        self.cancel_token = CancelToken("ShardSyncer")
-        if token is not None:
-            self.cancel_token = self.cancel_token.chain(token)
 
         self.start_time = time.time()
 
@@ -212,7 +211,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         asyncio.ensure_future(self.handle_peer(cast(ShardingPeer, peer)))
 
     async def handle_peer(self, peer: ShardingPeer) -> None:
-        while True:
+        while not self.is_finished:
             try:
                 collation = await wait_with_token(
                     peer.incoming_collation_queue.get(),
