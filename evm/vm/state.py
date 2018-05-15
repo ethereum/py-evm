@@ -9,8 +9,10 @@ from typing import (  # noqa: F401
 )
 
 from evm.constants import (
+    BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
 )
+from evm.exceptions import StateRootNotFound
 from evm.db.account import (  # noqa: F401
     BaseAccountDB,
     AccountDB,
@@ -47,9 +49,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
-    _chaindb = None
+    _db = None
     execution_context = None
-    state_root = None
 
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
@@ -207,15 +208,15 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
-    def apply_transaction(
-            self,
-            transaction):
+    def apply_transaction(self, transaction):
         """
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
         :return: the new state root, and the computation
         """
+        if self.state_root != BLANK_ROOT_HASH and self.state_root not in self._db:
+            raise StateRootNotFound(self.state_root)
         computation = self.execute_transaction(transaction)
         self.account_db.persist()
         return self.account_db.state_root, computation

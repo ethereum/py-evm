@@ -2,6 +2,7 @@ import logging
 import time
 
 from evm.chains import AsyncChain
+from evm.constants import BLANK_ROOT_HASH
 from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
 from p2p.cancel_token import CancelToken
@@ -45,8 +46,11 @@ class FullNodeSyncer(BaseService):
             chain_syncer = FastChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
             await chain_syncer.run()
 
-            # Download state for our current head.
-            head = await self.chaindb.coro_get_canonical_head()
+        # Ensure we have the state for our current head.
+        head = await self.chaindb.coro_get_canonical_head()
+        if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.db:
+            self.logger.info(
+                "Missing state for current head (#%d), downloading it", head.block_number)
             downloader = StateDownloader(
                 self.db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
@@ -75,18 +79,24 @@ def _test():
     from p2p.peer import ETHPeer, HardCodedNodesPeerPool
     from evm.chains.ropsten import RopstenChain
     from evm.db.backends.level import LevelDB
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, FakeAsyncRopstenChain
+    from tests.p2p.integration_test_helpers import (
+        FakeAsyncChainDB, FakeAsyncRopstenChain, LocalGethPeerPool)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
+    parser.add_argument('-local-geth', action="store_true")
     args = parser.parse_args()
 
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chain = FakeAsyncRopstenChain(chaindb)
-    discovery = None
-    peer_pool = HardCodedNodesPeerPool(
-        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), discovery, min_peers=5)
+    privkey = ecies.generate_privkey()
+    if args.local_geth:
+        peer_pool = LocalGethPeerPool(ETHPeer, chaindb, RopstenChain.network_id, privkey)
+    else:
+        discovery = None
+        peer_pool = HardCodedNodesPeerPool(
+            ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery, min_peers=5)
     asyncio.ensure_future(peer_pool.run())
 
     loop = asyncio.get_event_loop()
