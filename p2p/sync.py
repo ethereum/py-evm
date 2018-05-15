@@ -26,10 +26,7 @@ class FullNodeSyncer(BaseService):
                  db: BaseDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        cancel_token = CancelToken('FullNodeSyncer')
-        if token is not None:
-            cancel_token = cancel_token.chain(token)
-        super().__init__(cancel_token)
+        super().__init__(token)
         self.chain = chain
         self.chaindb = chaindb
         self.db = db

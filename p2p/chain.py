@@ -42,10 +42,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                  chaindb: AsyncChainDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        cancel_token = CancelToken('ChainSyncer')
-        if token is not None:
-            cancel_token = cancel_token.chain(token)
-        super().__init__(cancel_token)
+        super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self._running_peers = set()  # type: Set[ETHPeer]
