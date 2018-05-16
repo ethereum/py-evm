@@ -39,9 +39,6 @@ from evm.db.chain import (
     BaseChainDB,
     ChainDB,
 )
-from evm.consensus.pow import (
-    check_pow,
-)
 from evm.constants import (
     BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
@@ -245,10 +242,6 @@ class BaseChain(Configurable, metaclass=ABCMeta):
 
     @abstractmethod
     def validate_gaslimit(self, header: BlockHeader) -> None:
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
-    def validate_seal(self, header: BlockHeader) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -591,10 +584,7 @@ class Chain(BaseChain):
         Since block validation (specifically the uncle validation must have
         access to the ancestor blocks, this validation must occur at the Chain
         level.
-
-        TODO: move the `seal` validation down into the vm.
         """
-        self.validate_seal(block.header)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -612,14 +602,6 @@ class Chain(BaseChain):
             raise ValidationError(
                 "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
                     encode_hex(header.hash), header.gas_limit, high_bound))
-
-    def validate_seal(self, header: BlockHeader) -> None:
-        """
-        Validate the seal on the given header.
-        """
-        check_pow(
-            header.block_number, header.mining_hash,
-            header.mix_hash, header.nonce, header.difficulty)
 
     def validate_uncles(self, block: BaseBlock) -> None:
         """
@@ -651,8 +633,6 @@ class Chain(BaseChain):
                 raise ValidationError(
                     "Uncle's parent {0} is not an ancestor of {1}".format(
                         encode_hex(uncle.parent_hash), encode_hex(block.hash)))
-
-            self.validate_seal(uncle)
 
 
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
