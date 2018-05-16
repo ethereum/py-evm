@@ -44,9 +44,8 @@ def make_frontier_receipt(base_header, transaction, computation, state):
     )
     gas_used = base_header.gas_used + tx_gas_used
 
-    state_root = state.account_db.make_state_root()
     receipt = Receipt(
-        state_root=state_root,
+        state_root=state.state_root,
         gas_used=gas_used,
         logs=logs,
     )

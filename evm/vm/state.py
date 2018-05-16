@@ -215,7 +215,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :param transaction: the transaction to apply
         :return: the new state root, and the computation
         """
-        if self.state_root != BLANK_ROOT_HASH and self.state_root not in self._db:
+        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
             raise StateRootNotFound(self.state_root)
         computation = self.execute_transaction(transaction)
         state_root = self.account_db.make_state_root()
