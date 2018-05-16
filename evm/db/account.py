@@ -71,7 +71,7 @@ class BaseAccountDB(metaclass=ABCMeta):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def has_root(self):
+    def has_root(self, state_root: bytes) -> bool:
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
@@ -218,7 +218,7 @@ class AccountDB(BaseAccountDB):
         self._trie_cache.reset_cache()
         self._trie.root_hash = value
 
-    def has_root(self, state_root):
+    def has_root(self, state_root: bytes) -> bool:
         return state_root in self._batchtrie
 
     #
