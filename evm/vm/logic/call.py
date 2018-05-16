@@ -244,16 +244,26 @@ class CallEIP150(Call):
     def compute_msg_gas(self, computation, gas, to, value):
         extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
         return compute_eip150_msg_gas(
-            computation=computation, gas=gas, extra_gas=extra_gas, value=value, mnemonic=self.mnemonic,
-            callstipend=constants.GAS_CALLSTIPEND)
+                    computation=computation,
+                    gas=gas,
+                    extra_gas=extra_gas,
+                    value=value,
+                    mnemonic=self.mnemonic,
+                    callstipend=constants.GAS_CALLSTIPEND
+               )
 
 
 class CallCodeEIP150(CallCode):
     def compute_msg_gas(self, computation, gas, to, value):
         extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
         return compute_eip150_msg_gas(
-            computation=computation, gas=gas, extra_gas=extra_gas, value=value, mnemonic=self.mnemonic,
-            callstipend=constants.GAS_CALLSTIPEND)
+                    computation=computation,
+                    gas=gas,
+                    extra_gas=extra_gas,
+                    value=value,
+                    mnemonic=self.mnemonic,
+                    callstipend=constants.GAS_CALLSTIPEND
+               )
 
 
 class DelegateCallEIP150(DelegateCall):
@@ -261,7 +271,13 @@ class DelegateCallEIP150(DelegateCall):
         extra_gas = self.compute_msg_extra_gas(computation, gas, to, value)
         callstipend = 0
         return compute_eip150_msg_gas(
-            computation=computation, gas=gas, extra_gas=extra_gas, value=value, mnemonic=self.mnemonic, callstipend=callstipend)
+                    computation=computation,
+                    gas=gas,
+                    extra_gas=extra_gas,
+                    value=value,
+                    mnemonic=self.mnemonic,
+                    callstipend=callstipend
+               )
 
 
 def max_child_gas_eip150(gas):

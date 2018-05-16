@@ -143,7 +143,14 @@ RPC_STATE_LOOKUPS = (
 def validate_account_state(rpc, state, addr, at_block):
     standardized_state = fixture_state_in_rpc_format(state)
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
-        validate_account_attribute(fixture_key=fixture_key, rpc_method=rpc_method, rpc=rpc, state=standardized_state, addr=addr, at_block=at_block)
+        validate_account_attribute(
+            fixture_key=fixture_key,
+            rpc_method=rpc_method,
+            rpc=rpc,
+            state=standardized_state,
+            addr=addr,
+            at_block=at_block
+        )
     for key in state['storage']:
         position = '0x0' if key == '0x' else key
         expected_storage = state['storage'][key]
