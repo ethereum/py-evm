@@ -17,7 +17,7 @@ class BaseDB(MutableMapping, metaclass=ABCMeta):
     (Unless a subclass explicitly enables it).
 
     All subclasses must implement these methods:
-    __getitem__, __setitem__, __delitem__
+    __init__, __getitem__, __setitem__, __delitem__
 
     Subclasses may optionally implement an _exists method
     that is type-checked for key and value.

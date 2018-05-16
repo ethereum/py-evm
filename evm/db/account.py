@@ -7,6 +7,8 @@ import logging
 from lru import LRU
 from typing import Set, Tuple  # noqa: F401
 
+from eth_typing import Hash32
+
 import rlp
 
 from trie import (
@@ -19,6 +21,9 @@ from eth_utils import encode_hex
 from evm.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
+)
+from evm.db.batch import (
+    BatchDB,
 )
 from evm.db.cache import (
     CacheDB,
@@ -63,6 +68,10 @@ class BaseAccountDB(metaclass=ABCMeta):
     @property  # tyoe: ignore
     @abstractmethod
     def state_root(self):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @abstractmethod
+    def has_root(self, state_root: bytes) -> bool:
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
@@ -131,6 +140,23 @@ class BaseAccountDB(metaclass=ABCMeta):
     def commit(self, changeset: Tuple[UUID, UUID]) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
+    @abstractmethod
+    def make_state_root(self) -> Hash32:
+        """
+        Generate the state root with all the current changes in AccountDB
+
+        :return: the new state root
+        """
+        raise NotImplementedError("Must be implemented by subclass")
+
+    @abstractmethod
+    def persist(self) -> None:
+        """
+        Send changes to underlying database, including the trie state
+        so that it will forever be possible to read the trie from this checkpoint.
+        """
+        raise NotImplementedError("Must be implemented by subclass")
+
 
 class AccountDB(BaseAccountDB):
 
@@ -143,13 +169,19 @@ class AccountDB(BaseAccountDB):
 
         .. code::
 
-                                                     -> hash-trie -> storage lookups
-                                                    /
-            db -----------------------> _journaldb ----------------> code lookups
+                                                                    -> hash-trie -> storage lookups
+                                                                  /
+            db > _batchdb ---------------------------> _journaldb ----------------> code lookups
              \
-              > _trie -> _trie_cache -> _journaltrie --------------> account lookups
+              -> _batchtrie -> _trie -> _trie_cache -> _journaltrie --------------> account lookups
 
-        Journaling sequesters writes here ^, until persist is called.
+        Journaling sequesters writes at the _journal* attrs ^, until persist is called.
+
+        _batchtrie enables us to prune all trie changes while building
+        state,  without deleting old trie roots.
+
+        _batchdb and _batchtrie together enable us to make the state root,
+        without saving everything to the database.
 
         _journaldb is a journaling of the keys and values used to store
         code and account storage.
@@ -170,8 +202,10 @@ class AccountDB(BaseAccountDB):
         AccountDB synchronizes the snapshot/revert/persist of both of the
         journals.
         """
-        self._journaldb = JournalDB(db)
-        self._trie = HashTrie(HexaryTrie(db, state_root))
+        self._batchdb = BatchDB(db)
+        self._batchtrie = BatchDB(db)
+        self._journaldb = JournalDB(self._batchdb)
+        self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
         self._trie_cache = CacheDB(self._trie)
         self._journaltrie = JournalDB(self._trie_cache)
 
@@ -183,6 +217,9 @@ class AccountDB(BaseAccountDB):
     def state_root(self, value):
         self._trie_cache.reset_cache()
         self._trie.root_hash = value
+
+    def has_root(self, state_root: bytes) -> bool:
+        return state_root in self._batchtrie
 
     #
     # Storage
@@ -351,10 +388,16 @@ class AccountDB(BaseAccountDB):
         self._journaldb.commit(db_changeset)
         self._journaltrie.commit(trie_changeset)
 
-    def persist(self) -> None:
-        self.logger.debug("Persisting AccountDB...")
+    def make_state_root(self) -> Hash32:
+        self.logger.debug("Generating AccountDB trie")
         self._journaldb.persist()
         self._journaltrie.persist()
+        return self.state_root
+
+    def persist(self) -> None:
+        self.make_state_root()
+        self._batchtrie.commit(apply_deletes=False)
+        self._batchdb.commit(apply_deletes=True)
 
     def _log_pending_accounts(self) -> None:
         accounts_displayed = set()  # type: Set[bytes]

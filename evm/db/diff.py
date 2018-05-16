@@ -127,10 +127,13 @@ class DBDiff(Mapping):
             applied to the database
         """
         for key, value in self._changes.items():
-            if value is DELETED and apply_deletes:
-                try:
-                    del db[key]
-                except KeyError:
+            if value is DELETED:
+                if apply_deletes:
+                    try:
+                        del db[key]
+                    except KeyError:
+                        pass
+                else:
                     pass
             else:
                 db[key] = value

@@ -425,12 +425,17 @@ class VM(BaseVM):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        block = self.pack_block(self.block, *args, **kwargs)
+        packed_block = self.pack_block(self.block, *args, **kwargs)
 
-        if block.number == 0:
-            return block
+        if packed_block.number == 0:
+            final_block = packed_block
         else:
-            return self.finalize_block(block)
+            final_block = self.finalize_block(packed_block)
+
+        # Perform validation
+        self.validate_block(final_block)
+
+        return final_block
 
     def set_block_transactions(self, base_block, new_header, transactions, receipts):
 
@@ -517,9 +522,6 @@ class VM(BaseVM):
 
         header = block.header.copy(**kwargs)
         packed_block = block.copy(uncles=uncles, header=header)
-
-        # Perform validation
-        self.validate_block(packed_block)
 
         return packed_block
 
