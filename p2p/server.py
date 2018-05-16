@@ -1,19 +1,30 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import secrets
-
 from typing import (
     List,
     Type,
+    TYPE_CHECKING,
 )
 
+import netifaces
 import upnpclient
 
 from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
+from evm.chains import AsyncChain
+from evm.chains.mainnet import (
+    MAINNET_NETWORK_ID,
+)
+from evm.chains.ropsten import (
+    ROPSTEN_NETWORK_ID,
+)
+from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
+
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -26,7 +37,9 @@ from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
     DEFAULT_MIN_PEERS,
     HASH_LEN,
+    MAINNET_BOOTNODES,
     REPLY_TIMEOUT,
+    ROPSTEN_BOOTNODES,
 )
 from p2p.discovery import DiscoveryProtocol
 from p2p.exceptions import (
@@ -45,6 +58,10 @@ from p2p.peer import (
     PeerPool,
 )
 from p2p.service import BaseService
+from p2p.sync import FullNodeSyncer
+
+if TYPE_CHECKING:
+    from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
 class Server(BaseService):
@@ -54,30 +71,42 @@ class Server(BaseService):
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
-                 server_address: Address,
+                 address: Address,
+                 chain: AsyncChain,
                  chaindb: AsyncChainDB,
-                 bootstrap_nodes: List[str],
+                 headerdb: 'BaseAsyncHeaderDB',
+                 base_db: BaseDB,
                  network_id: int,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
+                 peer_pool_class: Type[PeerPool] = PeerPool,
+                 bootstrap_nodes: List[str] = [],
                  ) -> None:
         super().__init__(CancelToken('Server'))
-        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.privkey = privkey
-        self.server_address = server_address
+        self.address = address
         self.network_id = network_id
         self.peer_class = peer_class
-        # TODO: bootstrap_nodes should be looked up by network_id.
+        if not bootstrap_nodes:
+            if self.network_id == MAINNET_NETWORK_ID:
+                bootstrap_nodes = MAINNET_BOOTNODES
+            elif self.network_id == ROPSTEN_NETWORK_ID:
+                bootstrap_nodes = ROPSTEN_BOOTNODES
+            else:
+                self.logger.warn("No bootstrap nodes for network id: {}".format(network_id))
+                bootstrap_nodes = []
         self.discovery = DiscoveryProtocol(
-            self.privkey, self.server_address, bootstrap_nodes=bootstrap_nodes)
-        self.peer_pool = PeerPool(
+            self.privkey, self.address, bootstrap_nodes=bootstrap_nodes)
+        self.peer_pool = peer_pool_class(
             peer_class,
-            self.chaindb,
+            self.headerdb,
             self.network_id,
             self.privkey,
             self.discovery,
             min_peers=min_peers,
         )
+        self.syncer = FullNodeSyncer(chain, chaindb, base_db, self.peer_pool, self.cancel_token)
 
     async def refresh_nat_portmap(self) -> None:
         """Run an infinite loop refreshing our NAT port mapping.
@@ -110,31 +139,60 @@ class Server(BaseService):
     async def _add_nat_portmap(self, lifetime: int) -> None:
         loop = asyncio.get_event_loop()
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
-        # while to complete.
+        # while to complete. We must use a ThreadPoolExecutor() because the
+        # response from upnpclient.discover() can't be pickled.
         devices = await wait_with_token(
-            loop.run_in_executor(None, upnpclient.discover),
+            loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
             token=self.cancel_token,
             timeout=2 * REPLY_TIMEOUT)
+
+        # If there are no UPNP devices we can exit early
         if not devices:
             self.logger.info("No UPNP-enabled devices found")
             return
-        device = devices[0]
-        device.WANIPConn1.AddPortMapping(
-            NewRemoteHost=device.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress'],
-            NewExternalPort=self.server_address.tcp_port,
-            NewProtocol='TCP',
-            NewInternalPort=self.server_address.tcp_port,
-            NewInternalClient=self.server_address.ip,
-            NewEnabled='1',
-            NewPortMappingDescription='Created by Py-EVM',
-            NewLeaseDuration=lifetime)
-        self.logger.info("NAT port forwarding successfully setup")
+
+        # Now we loop over all of the devices attempting to setup a port
+        # mapping from their external IP to the internal IP.
+        for device in devices:
+            try:
+                connection = device.WANIPConn1
+            except AttributeError:
+                continue
+
+            # Detect our internal IP address (or abort if we can't determine
+            # the internal IP address
+            for iface in netifaces.interfaces():
+                for _, addr in netifaces.ifaddresses(iface):
+                    network = addr['addr'].rstrip('.', 1)
+                    if network in device.location:
+                        internal_ip = addr['addr']
+                        break
+            else:
+                self.logger.warn(
+                    "Unable to detect internal IP address in order to setup NAT portmap"
+                )
+                continue
+
+            connection.AddPortMapping(
+                NewRemoteHost=connection.GetExternalIPAddress()['NewExternalIPAddress'],
+                NewExternalPort=self.server_address.tcp_port,
+                NewProtocol='TCP',
+                NewInternalPort=self.server_address.tcp_port,
+                NewInternalClient=internal_ip,
+                NewEnabled='1',
+                NewPortMappingDescription='Created by Py-EVM',
+                NewLeaseDuration=lifetime,
+            )
+            self.logger.info("NAT port forwarding successfully setup")
+            break
+        else:
+            self.logger.warning('Unable to setup port forwarding for NAT')
 
     async def _start(self) -> None:
         self._server = await asyncio.start_server(
             self.receive_handshake,
-            host=self.server_address.ip,
-            port=self.server_address.tcp_port,
+            host=self.address.ip,
+            port=self.address.tcp_port,
         )
 
     async def _close(self) -> None:
@@ -147,14 +205,14 @@ class Server(BaseService):
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
-            self.server_address.ip,
-            self.server_address.tcp_port,
+            self.address.ip,
+            self.address.tcp_port,
         )
         await self.discovery.create_endpoint()
         asyncio.ensure_future(self.refresh_nat_portmap())
         asyncio.ensure_future(self.discovery.bootstrap())
         asyncio.ensure_future(self.peer_pool.run())
-        await self.cancel_token.wait()
+        await self.syncer.run()
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
@@ -203,7 +261,7 @@ class Server(BaseService):
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
             except DecryptionError as e:
-                self.logger.warn("Failed to decrypt handshake", exc_info=True)
+                self.logger.debug("Failed to decrypt handshake", exc_info=True)
                 return
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
@@ -238,7 +296,7 @@ class Server(BaseService):
             mac_secret=mac_secret,
             egress_mac=egress_mac,
             ingress_mac=ingress_mac,
-            chaindb=self.chaindb,
+            headerdb=self.headerdb,
             network_id=self.network_id
         )
 
@@ -257,18 +315,18 @@ def _test() -> None:
     from evm.db.backends.memory import MemoryDB
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
-    from p2p.constants import ROPSTEN_BOOTNODES
     from p2p import ecies
     from p2p.peer import ETHPeer
 
     from trinity.utils.chains import load_nodekey
 
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB
+    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
+    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, FakeAsyncRopstenChain
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action="store_true")
     parser.add_argument('-address', type=str, required=True)
-    parser.add_argument('-bootnodes', type=str)
+    parser.add_argument('-bootnodes', type=str, default=[])
     parser.add_argument('-nodekey', type=str)
 
     args = parser.parse_args()
@@ -281,8 +339,11 @@ def _test() -> None:
     logging.getLogger('p2p.server.Server').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
-    chaindb = FakeAsyncChainDB(MemoryDB())
+    db = MemoryDB()
+    headerdb = FakeAsyncHeaderDB(db)
+    chaindb = FakeAsyncChainDB(db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+    chain = FakeAsyncRopstenChain(chaindb)
 
     # NOTE: Since we may create a different priv/pub key pair every time we run this, remote nodes
     # may try to establish a connection using the pubkey from one of our previous runs, which will
@@ -293,19 +354,22 @@ def _test() -> None:
         privkey = ecies.generate_privkey()
 
     ip, port = args.address.split(':')
-    server_address = Address(ip, int(port))
+    address = Address(ip, int(port))
     if args.bootnodes:
         bootstrap_nodes = args.bootnodes.split(',')
     else:
-        bootstrap_nodes = ROPSTEN_BOOTNODES
+        bootstrap_nodes = []
 
     server = Server(
         privkey,
-        server_address,
+        address,
+        chain,
         chaindb,
-        bootstrap_nodes,
+        headerdb,
+        db,
         RopstenChain.network_id,
         peer_class=ETHPeer,
+        bootstrap_nodes=bootstrap_nodes,
     )
 
     sigint_received = asyncio.Event()

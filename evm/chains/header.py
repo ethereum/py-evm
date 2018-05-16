@@ -19,7 +19,7 @@ from evm.vm.base import BaseVM  # noqa: F401
 
 
 class BaseHeaderChain(Configurable, metaclass=ABCMeta):
-    _basedb = None  # type: BaseDB
+    _base_db = None  # type: BaseDB
 
     _headerdb_class = None  # type: Type[BaseHeaderDB]
     _headerdb = None  # type: BaseHeaderDB
@@ -29,7 +29,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     @abstractmethod
-    def __init__(self, basedb: BaseDB, header: BlockHeader) -> None:
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -38,7 +38,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_genesis_header(cls,
-                            basedb: BaseDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseHeaderChain':
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -51,7 +51,7 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     #
-    # Header API
+    # Canonical Chain API
     #
     @abstractmethod
     def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
@@ -61,8 +61,15 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
     def get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")
 
+    #
+    # Header API
+    #
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
+    def header_exists(self, block_hash: Hash32) -> bool:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -71,26 +78,30 @@ class BaseHeaderChain(Configurable, metaclass=ABCMeta):
 
 
 class HeaderChain(BaseHeaderChain):
-    _headerdb_class = HeaderDB
+    _headerdb_class = HeaderDB  # type: Type[BaseHeaderDB]
 
-    def __init__(self, basedb: BaseDB, header: BlockHeader) -> None:
-        self.basedb = basedb
-        self.headerdb = self.get_headerdb_class()(basedb)
-        self.header = header
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+        self.base_db = base_db
+        self.headerdb = self.get_headerdb_class()(base_db)
+
+        if header is None:
+            self.header = self.get_canonical_head()
+        else:
+            self.header = header
 
     #
     # Chain Initialization API
     #
     @classmethod
     def from_genesis_header(cls,
-                            basedb: BaseDB,
+                            base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseHeaderChain':
         """
         Initializes the chain from the genesis header.
         """
-        headerdb = cls.get_headerdb_class()(basedb)
+        headerdb = cls.get_headerdb_class()(base_db)
         headerdb.persist_header(genesis_header)
-        return cls(basedb, genesis_header)
+        return cls(base_db, genesis_header)
 
     #
     # Helpers
@@ -133,6 +144,12 @@ class HeaderChain(BaseHeaderChain):
         Direct passthrough to `headerdb`
         """
         return self.headerdb.get_block_header_by_hash(block_hash)
+
+    def header_exists(self, block_hash: Hash32) -> bool:
+        """
+        Direct passthrough to `headerdb`
+        """
+        return self.headerdb.header_exists(block_hash)
 
     def import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         """

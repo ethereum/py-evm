@@ -8,6 +8,7 @@ import signal
 import sys
 from typing import Type
 
+from evm.db.backends.base import BaseDB
 from evm.db.backends.level import LevelDB
 from evm.chains.mainnet import (
     MAINNET_NETWORK_ID,
@@ -16,12 +17,12 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
-from p2p.sync import FullNodeSyncer
+from p2p.kademlia import Address
 from p2p.peer import (
-    ETHPeer,
     LESPeer,
     HardCodedNodesPeerPool,
 )
+from p2p.server import Server
 
 from trinity.chains import (
     ChainProxy,
@@ -35,6 +36,9 @@ from trinity.chains.mainnet import (
 from trinity.chains.ropsten import (
     RopstenLightChain,
 )
+from trinity.chains.header import (
+    AsyncHeaderChainProxy,
+)
 from trinity.console import (
     console,
 )
@@ -43,6 +47,7 @@ from trinity.constants import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
+from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
@@ -91,9 +96,6 @@ def main() -> None:
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
 
-    # TODO: needs to be made generic once we have non-light modes.
-    pool_class = HardCodedNodesPeerPool
-
     # if console command, run the trinity CLI
     if args.subcommand == 'attach':
         console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
@@ -120,14 +122,18 @@ def main() -> None:
 
     # TODO: Combine run_fullnode_process/run_lightnode_process into a single function that simply
     # passes the sync mode to p2p.Server, which then selects the appropriate sync service.
-    networking_proc_fn = run_fullnode_process
     if args.sync_mode == SYNC_LIGHT:
-        networking_proc_fn = run_lightnode_process
-    networking_process = ctx.Process(
-        target=networking_proc_fn,
-        args=(chain_config, pool_class),
-        kwargs=logging_kwargs,
-    )
+        networking_process = ctx.Process(
+            target=run_lightnode_process,
+            args=(chain_config),
+            kwargs=logging_kwargs,
+        )
+    else:
+        networking_process = ctx.Process(
+            target=run_fullnode_process,
+            args=(chain_config, args.listen_on),
+            kwargs=logging_kwargs,
+        )
 
     # start the processes
     database_server_process.start()
@@ -149,10 +155,10 @@ def main() -> None:
 
 
 @with_queued_logging
-def run_database_process(chain_config: ChainConfig, db_class: Type[LevelDB]) -> None:
-    db = db_class(db_path=chain_config.database_dir)
+def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
+    base_db = db_class(db_path=chain_config.database_dir)
 
-    serve_chaindb(chain_config, db)
+    serve_chaindb(chain_config, base_db)
 
 
 def create_dbmanager(ipc_path: str) -> BaseManager:
@@ -164,6 +170,8 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
     DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
     DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
+    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
+    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 
     manager = DBManager(address=ipc_path)  # type: ignore
     manager.connect()  # type: ignore
@@ -171,12 +179,10 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
 
 
 @with_queued_logging
-def run_lightnode_process(
-        chain_config: ChainConfig,
-        pool_class: Type[HardCodedNodesPeerPool]) -> None:
+def run_lightnode_process(chain_config: ChainConfig) -> None:
 
     manager = create_dbmanager(chain_config.database_ipc_path)
-    chaindb = manager.get_chaindb()  # type: ignore
+    headerdb = manager.get_headerdb()  # type: ignore
 
     if chain_config.network_id == MAINNET_NETWORK_ID:
         chain_class = MainnetLightChain  # type: ignore
@@ -186,8 +192,10 @@ def run_lightnode_process(
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-    peer_pool = pool_class(LESPeer, chaindb, chain_config.network_id, chain_config.nodekey)
-    chain = chain_class(chaindb, peer_pool)
+    discovery = None
+    peer_pool = HardCodedNodesPeerPool(
+        LESPeer, headerdb, chain_config.network_id, chain_config.nodekey, discovery)
+    chain = chain_class(headerdb, peer_pool)
 
     loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:
@@ -211,18 +219,19 @@ def run_lightnode_process(
 
 
 @with_queued_logging
-def run_fullnode_process(
-        chain_config: ChainConfig,
-        pool_class: Type[HardCodedNodesPeerPool]) -> None:
+def run_fullnode_process(chain_config: ChainConfig, listen_on: str) -> None:
 
     manager = create_dbmanager(chain_config.database_ipc_path)
     db = manager.get_db()  # type: ignore
+    headerdb = manager.get_headerdb()  # type: ignore
     chaindb = manager.get_chaindb()  # type: ignore
     chain = manager.get_chain()  # type: ignore
 
-    peer_pool = pool_class(ETHPeer, chaindb, chain_config.network_id, chain_config.nodekey)
-    asyncio.ensure_future(peer_pool.run())
-    syncer = FullNodeSyncer(chain, chaindb, db, peer_pool)
+    address = Address(listen_on, 30303)
+    peer_pool_class = HardCodedNodesPeerPool
+    server = Server(
+        chain_config.nodekey, address, chain, chaindb, headerdb, db, chain_config.network_id,
+        peer_pool_class=peer_pool_class)
 
     loop = asyncio.get_event_loop()
     # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the
@@ -234,11 +243,10 @@ def run_fullnode_process(
 
     async def exit_on_sigint():
         await sigint_received.wait()
-        await peer_pool.cancel()
-        await syncer.cancel()
+        await server.cancel()
         loop.stop()
 
     asyncio.ensure_future(exit_on_sigint())
-    asyncio.ensure_future(syncer.run())
+    asyncio.ensure_future(server.run())
     loop.run_forever()
     loop.close()

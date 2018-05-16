@@ -13,9 +13,14 @@ class BaseService(ABC):
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
-    def __init__(self, token: CancelToken) -> None:
+    def __init__(self, token: CancelToken=None) -> None:
         self.finished = asyncio.Event()
-        self.cancel_token = token
+
+        base_token = CancelToken(type(self).__name__)
+        if token is None:
+            self.cancel_token = base_token
+        else:
+            self.cancel_token = base_token.chain(token)
 
     async def run(
             self,

@@ -42,10 +42,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                  chaindb: AsyncChainDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        cancel_token = CancelToken('ChainSyncer')
-        if token is not None:
-            cancel_token = cancel_token.chain(token)
-        super().__init__(cancel_token)
+        super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self._running_peers = set()  # type: Set[ETHPeer]
@@ -488,7 +485,7 @@ def _test() -> None:
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
-        FakeAsyncChainDB, FakeAsyncRopstenChain, LocalGethPeerPool)
+        FakeAsyncChainDB, FakeAsyncRopstenChain, LocalGethPeerPool, FakeAsyncHeaderDB)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
@@ -508,22 +505,35 @@ def _test() -> None:
     # Use a ProcessPoolExecutor as the default because the tasks we want to offload from the main
     # thread are cpu intensive.
     loop.set_default_executor(ProcessPoolExecutor())
-    chaindb = FakeAsyncChainDB(LevelDB(args.db))
+
+    base_db = LevelDB(args.db)
+
+    chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
+
+    headerdb = FakeAsyncHeaderDB(base_db)
+
     privkey = ecies.generate_privkey()
     if args.local_geth:
-        peer_pool = LocalGethPeerPool(ETHPeer, chaindb, RopstenChain.network_id, privkey)
+        peer_pool = LocalGethPeerPool(ETHPeer, headerdb, RopstenChain.network_id, privkey)
     else:
         from p2p.peer import HardCodedNodesPeerPool
+        discovery = None
         min_peers = 5
         peer_pool = HardCodedNodesPeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, privkey, min_peers)
+            peer_class=ETHPeer,
+            headerdb=headerdb,
+            network_id=RopstenChain.network_id,
+            privkey=privkey,
+            discovery=discovery,
+            min_peers=min_peers,
+        )
 
     asyncio.ensure_future(peer_pool.run())
     if args.fast:
         syncer = FastChainSyncer(chaindb, peer_pool)
     else:
-        chain = FakeAsyncRopstenChain(chaindb)
+        chain = FakeAsyncRopstenChain(base_db)
         syncer = RegularChainSyncer(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
 

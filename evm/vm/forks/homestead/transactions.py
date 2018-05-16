@@ -59,6 +59,9 @@ class HomesteadUnsignedTransaction(FrontierUnsignedTransaction):
             s=s,
         )
 
+    def get_intrinsic_gas(self):
+        return _get_homestead_intrinsic_gas(self)
+
 
 def _get_homestead_intrinsic_gas(transaction):
     num_zero_bytes = transaction.data.count(b'\x00')

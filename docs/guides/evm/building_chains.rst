@@ -35,14 +35,12 @@ Then to initialize, you can start it up with an in-memory database:
 ::
 
   from evm.db.backends.memory import MemoryDB
-  from evm.db.chain import ChainDB
   from evm.chains.mainnet import MAINNET_GENESIS_HEADER
 
   # start a fresh in-memory db
-  chaindb = ChainDB(MemoryDB())
 
   # initialize a fresh chain
-  chain = chain_class.from_genesis_header(chaindb, MAINNET_GENESIS_HEADER)
+  chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
 
 
 Using the LightChain object
@@ -75,15 +73,16 @@ its `run()` method:
 
   import asyncio
   from evm.db.backends.memory import MemoryDB
-  from evm.db.chain import ChainDB
+  from evm.db.header import HeaderDB
   from evm.chains.mainnet import 
 
   # start a fresh in-memory db
-  chaindb = ChainDB(MemoryDB())
+  base_db = MemoryDB()
+  headerdb = HeaderDB(base_db)
 
-  peer_pool = PeerPool(LESPeer, chaindb, MAINNET_NETWORK_ID, ecies.generate_privkey())
+  peer_pool = PeerPool(LESPeer, headerdb, MAINNET_NETWORK_ID, ecies.generate_privkey())
 
-  chain = DemoLightChain.from_genesis_header(chaindb, MAINNET_GENESIS_HEADER, peer_pool)
+  chain = DemoLightChain.from_genesis_header(base_db, MAINNET_GENESIS_HEADER, peer_pool)
   loop = asyncio.get_event_loop()
   loop.run_until_complete(chain.run())
 

@@ -49,12 +49,17 @@ class ChainForTesting(Chain):
 
 
 @pytest.fixture()
-def chaindb():
-    return ChainDB(MemoryDB())
+def base_db():
+    return MemoryDB()
 
 
-def test_header_chain_get_vm_class_for_block_number(chaindb, genesis_header):
-    chain = ChainForTesting.from_genesis_header(chaindb, genesis_header)
+@pytest.fixture()
+def chaindb(base_db):
+    return ChainDB(base_db)
+
+
+def test_header_chain_get_vm_class_for_block_number(base_db, genesis_header):
+    chain = ChainForTesting.from_genesis_header(base_db, genesis_header)
 
     assert chain.get_vm_class_for_block_number(0) is VM_A
 
@@ -67,10 +72,10 @@ def test_header_chain_get_vm_class_for_block_number(chaindb, genesis_header):
         assert chain.get_vm_class_for_block_number(num) is VM_B
 
 
-def test_header_chain_invalid_if_no_vm_configuration(genesis_header):
+def test_header_chain_invalid_if_no_vm_configuration(base_db, genesis_header):
     chain_class = Chain.configure('ChainNoEmptyConfiguration', vm_configuration=())
     with pytest.raises(ValueError):
-        chain_class(chaindb, genesis_header)
+        chain_class(base_db, genesis_header)
 
 
 def test_vm_not_found_if_no_matching_block_number(genesis_header):

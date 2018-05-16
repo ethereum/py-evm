@@ -14,27 +14,27 @@ from p2p.cancel_token import CancelToken
 from p2p.peer import LESPeer
 from p2p.server import decode_authentication
 
-from integration_test_helpers import FakeAsyncChainDB
+from integration_test_helpers import FakeAsyncHeaderDB
 
 
-def get_fresh_mainnet_chaindb():
-    chaindb = FakeAsyncChainDB(MemoryDB())
-    chaindb.persist_header(MAINNET_GENESIS_HEADER)
-    return chaindb
+def get_fresh_mainnet_headerdb():
+    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb.persist_header(MAINNET_GENESIS_HEADER)
+    return headerdb
 
 
 async def get_directly_linked_peers_without_handshake(
-        peer1_class=LESPeer, peer1_chaindb=None,
-        peer2_class=LESPeer, peer2_chaindb=None):
+        peer1_class=LESPeer, peer1_headerdb=None,
+        peer2_class=LESPeer, peer2_headerdb=None):
     """See get_directly_linked_peers().
 
     Neither the P2P handshake nor the sub-protocol handshake will be performed here.
     """
     cancel_token = CancelToken("get_directly_linked_peers_without_handshake")
-    if peer1_chaindb is None:
-        peer1_chaindb = get_fresh_mainnet_chaindb()
-    if peer2_chaindb is None:
-        peer2_chaindb = get_fresh_mainnet_chaindb()
+    if peer1_headerdb is None:
+        peer1_headerdb = get_fresh_mainnet_headerdb()
+    if peer2_headerdb is None:
+        peer2_headerdb = get_fresh_mainnet_headerdb()
     peer1_private_key = ecies.generate_privkey()
     peer2_private_key = ecies.generate_privkey()
     peer1_remote = kademlia.Node(
@@ -70,7 +70,7 @@ async def get_directly_linked_peers_without_handshake(
         peer1 = peer1_class(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
             writer=peer1_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=peer1_chaindb,
+            egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer1_headerdb,
             network_id=1)
 
         handshake_finished.set()
@@ -97,7 +97,7 @@ async def get_directly_linked_peers_without_handshake(
     peer2 = peer2_class(
         remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
         writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, chaindb=peer2_chaindb,
+        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer2_headerdb,
         network_id=1)
 
     return peer1, peer2
@@ -105,15 +105,15 @@ async def get_directly_linked_peers_without_handshake(
 
 async def get_directly_linked_peers(
         request, event_loop,
-        peer1_class=LESPeer, peer1_chaindb=None,
-        peer2_class=LESPeer, peer2_chaindb=None):
+        peer1_class=LESPeer, peer1_headerdb=None,
+        peer2_class=LESPeer, peer2_headerdb=None):
     """Create two peers with their readers/writers connected directly.
 
     The first peer's reader will write directly to the second's writer, and vice-versa.
     """
     peer1, peer2 = await get_directly_linked_peers_without_handshake(
-        peer1_class, peer1_chaindb,
-        peer2_class, peer2_chaindb)
+        peer1_class, peer1_headerdb,
+        peer2_class, peer2_headerdb)
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
 
