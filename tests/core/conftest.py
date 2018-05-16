@@ -103,10 +103,11 @@ def chain_without_block_validation(base_db, funded_address, funded_address_initi
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
     }
+    SpuriousDragonVMForTesting = SpuriousDragonVM.configure(validate_seal=lambda self, block: None)
     klass = Chain.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
+            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
         ),
         **overrides,
     )
