@@ -123,7 +123,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 "Got a NewBlock or a new peer, but already syncing so doing nothing")
             return
         elif len(self._running_peers) < self.min_peers_to_sync:
-            self.logger.warn(
+            self.logger.info(
                 "Connected to less peers (%d) than the minimum (%d) required to sync, "
                 "doing nothing", len(self._running_peers), self.min_peers_to_sync)
             return
