@@ -517,6 +517,9 @@ class Chain(BaseChain):
 
         new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
 
+        # since we are building the block locally, we have to persist all the incremental state
+        vm.state.account_db.persist()
+
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 

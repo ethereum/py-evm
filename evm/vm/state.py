@@ -218,8 +218,8 @@ class BaseState(Configurable, metaclass=ABCMeta):
         if self.state_root != BLANK_ROOT_HASH and self.state_root not in self._db:
             raise StateRootNotFound(self.state_root)
         computation = self.execute_transaction(transaction)
-        self.account_db.persist()
-        return self.account_db.state_root, computation
+        state_root = self.account_db.make_state_root()
+        return state_root, computation
 
     def get_transaction_executor(self):
         return self.transaction_executor(self)
