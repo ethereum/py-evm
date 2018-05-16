@@ -114,16 +114,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self._max_neighbours_per_packet_cache = _get_max_neighbours_per_packet()
         return self._max_neighbours_per_packet_cache
 
-    async def create_endpoint(self) -> None:
-        """Create a datagram connection bound to the ip/port defined in self.address.
-
-        This method will try to establish the connection in the background and return when
-        successful.
-        """
-        loop = asyncio.get_event_loop()
-        await loop.create_datagram_endpoint(
-            lambda: self, local_addr=(self.address.ip, self.address.udp_port))
-
     def connection_made(self, transport):
         self.transport = transport
 
@@ -322,7 +312,8 @@ def _test():
     # local_bootnodes = [
     #     'enode://0x3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30303']  # noqa: E501
     # discovery = DiscoveryProtocol(privkey, addr, local_bootnodes)
-    loop.run_until_complete(discovery.create_endpoint())
+    loop.run_until_complete(
+        loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port)))
 
     async def run():
         try:

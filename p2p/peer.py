@@ -162,7 +162,7 @@ class BasePeer(BaseService):
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  ) -> None:
-        super().__init__(CancelToken('Peer'))
+        super().__init__()
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -171,7 +171,6 @@ class BasePeer(BaseService):
         self.headerdb = headerdb
         self.network_id = network_id
         self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
-        self.cancel_token = CancelToken('Peer')
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -644,7 +643,7 @@ class PeerPool(BaseService):
                  discovery: DiscoveryProtocol,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  ) -> None:
-        super().__init__(CancelToken('PeerPool'))
+        super().__init__()
         self.peer_class = peer_class
         self.headerdb = headerdb
         self.network_id = network_id

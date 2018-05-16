@@ -1,12 +1,16 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import ipaddress
 import logging
 import secrets
+import socket
 from typing import (
+    cast,
     List,
     Type,
     TYPE_CHECKING,
 )
+from urllib.parse import urlparse
 
 import netifaces
 import upnpclient
@@ -30,7 +34,6 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.cancel_token import (
-    CancelToken,
     wait_with_token,
 )
 from p2p.constants import (
@@ -67,11 +70,13 @@ if TYPE_CHECKING:
 class Server(BaseService):
     """Server listening for incoming connections"""
     logger = logging.getLogger("p2p.server.Server")
-    _server = None
+    _tcp_listener = None
+    _udp_listener = None
+    _nat_portmap_lifetime = 30 * 60
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
-                 address: Address,
+                 port: int,
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  headerdb: 'BaseAsyncHeaderDB',
@@ -82,31 +87,25 @@ class Server(BaseService):
                  peer_pool_class: Type[PeerPool] = PeerPool,
                  bootstrap_nodes: List[str] = [],
                  ) -> None:
-        super().__init__(CancelToken('Server'))
+        super().__init__()
         self.headerdb = headerdb
+        self.chaindb = chaindb
+        self.chain = chain
+        self.base_db = base_db
         self.privkey = privkey
-        self.address = address
+        self.port = port
         self.network_id = network_id
         self.peer_class = peer_class
+        self.peer_pool_class = peer_pool_class
+        self.min_peers = min_peers
         if not bootstrap_nodes:
             if self.network_id == MAINNET_NETWORK_ID:
-                bootstrap_nodes = MAINNET_BOOTNODES
+                self.bootstrap_nodes = MAINNET_BOOTNODES
             elif self.network_id == ROPSTEN_NETWORK_ID:
-                bootstrap_nodes = ROPSTEN_BOOTNODES
+                self.bootstrap_nodes = ROPSTEN_BOOTNODES
             else:
                 self.logger.warn("No bootstrap nodes for network id: {}".format(network_id))
-                bootstrap_nodes = []
-        self.discovery = DiscoveryProtocol(
-            self.privkey, self.address, bootstrap_nodes=bootstrap_nodes)
-        self.peer_pool = peer_pool_class(
-            peer_class,
-            self.headerdb,
-            self.network_id,
-            self.privkey,
-            self.discovery,
-            min_peers=min_peers,
-        )
-        self.syncer = FullNodeSyncer(chain, chaindb, base_db, self.peer_pool, self.cancel_token)
+                self.bootstrap_nodes = []
 
     async def refresh_nat_portmap(self) -> None:
         """Run an infinite loop refreshing our NAT port mapping.
@@ -114,104 +113,164 @@ class Server(BaseService):
         On every iteration we configure the port mapping with a lifetime of 30 minutes and then
         sleep for that long as well.
         """
-        lifetime = 30 * 60
         while not self.is_finished:
-            self.logger.info("Setting up NAT portmap...")
-            # This is experimental and it's OK if it fails, hence the bare except.
             try:
-                await self._add_nat_portmap(lifetime)
-            except Exception as e:
-                if (isinstance(e, upnpclient.soap.SOAPError) and
-                        e.args == (718, 'ConflictInMappingEntry')):
-                    # An entry already exists with the parameters we specified. Maybe the router
-                    # didn't clean it up after it expired or it has been configured by other piece
-                    # of software, either way we should not override it.
-                    # https://tools.ietf.org/id/draft-ietf-pcp-upnp-igd-interworking-07.html#errors
-                    self.logger.info("NAT port mapping already configured, not overriding it")
-                else:
-                    self.logger.exception("Failed to setup NAT portmap")
-
-            try:
-                await wait_with_token(asyncio.sleep(lifetime), token=self.cancel_token)
+                # We start with a sleep because our _run() method will setup the initial portmap.
+                await wait_with_token(
+                    asyncio.sleep(self._nat_portmap_lifetime), token=self.cancel_token)
+                await self.add_nat_portmap()
             except OperationCancelled:
                 break
 
-    async def _add_nat_portmap(self, lifetime: int) -> None:
+    async def add_nat_portmap(self) -> None:
+        self.logger.info("Setting up NAT portmap...")
+        # This is experimental and it's OK if it fails, hence the bare except.
+        try:
+            upnp_dev = await self._discover_upnp_device()
+            if upnp_dev is None:
+                return
+            await self._add_nat_portmap(upnp_dev)
+        except upnpclient.soap.SOAPError as e:
+            if e.args == (718, 'ConflictInMappingEntry'):
+                # An entry already exists with the parameters we specified. Maybe the router
+                # didn't clean it up after it expired or it has been configured by other piece
+                # of software, either way we should not override it.
+                # https://tools.ietf.org/id/draft-ietf-pcp-upnp-igd-interworking-07.html#errors
+                self.logger.info("NAT port mapping already configured, not overriding it")
+            else:
+                self.logger.exception("Failed to setup NAT portmap")
+        except Exception:
+            self.logger.exception("Failed to setup NAT portmap")
+
+    def _find_internal_ip_on_device_network(self, upnp_dev: upnpclient.upnp.Device) -> str:
+        parsed_url = urlparse(upnp_dev.location)
+        # Get an ipaddress.IPv4Network instance for the upnp device's network.
+        upnp_dev_net = ipaddress.ip_network(parsed_url.hostname + '/24', strict=False)
+        for iface in netifaces.interfaces():
+            for family, addresses in netifaces.ifaddresses(iface).items():
+                # TODO: Support IPv6 addresses as well.
+                if family != netifaces.AF_INET:
+                    continue
+                for item in addresses:
+                    if ipaddress.ip_address(item['addr']) in upnp_dev_net:
+                        return item['addr']
+        return None
+
+    async def _add_nat_portmap(self, upnp_dev: upnpclient.upnp.Device) -> None:
+        # Detect our internal IP address (or abort if we can't determine
+        # the internal IP address
+        internal_ip = self._find_internal_ip_on_device_network(upnp_dev)
+        if internal_ip is None:
+            self.logger.warn(
+                "Unable to detect internal IP address in order to setup NAT portmap"
+            )
+            return
+
+        external_ip = upnp_dev.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress']
+        for protocol, description in [('TCP', 'ethereum p2p'), ('UDP', 'ethereum discovery')]:
+            upnp_dev.WANIPConn1.AddPortMapping(
+                NewRemoteHost=external_ip,
+                NewExternalPort=self.port,
+                NewProtocol=protocol,
+                NewInternalPort=self.port,
+                NewInternalClient=internal_ip,
+                NewEnabled='1',
+                NewPortMappingDescription=description,
+                NewLeaseDuration=self._nat_portmap_lifetime,
+            )
+        self.logger.info("NAT port forwarding successfully setup")
+
+    async def _discover_upnp_device(self) -> upnpclient.upnp.Device:
         loop = asyncio.get_event_loop()
+        # UPnP discovery can take a long time, so use a loooong timeout here.
+        discover_timeout = 10 * REPLY_TIMEOUT
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
         # while to complete. We must use a ThreadPoolExecutor() because the
         # response from upnpclient.discover() can't be pickled.
         devices = await wait_with_token(
             loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
             token=self.cancel_token,
-            timeout=2 * REPLY_TIMEOUT)
+            timeout=discover_timeout)
 
         # If there are no UPNP devices we can exit early
         if not devices:
             self.logger.info("No UPNP-enabled devices found")
-            return
+            return None
 
-        # Now we loop over all of the devices attempting to setup a port
-        # mapping from their external IP to the internal IP.
+        # Now we loop over all of the devices until we find one that we can use.
         for device in devices:
             try:
-                connection = device.WANIPConn1
+                device.WANIPConn1
             except AttributeError:
                 continue
+            return device
+        return None
 
-            # Detect our internal IP address (or abort if we can't determine
-            # the internal IP address
-            for iface in netifaces.interfaces():
-                for _, addr in netifaces.ifaddresses(iface):
-                    network = addr['addr'].rstrip('.', 1)
-                    if network in device.location:
-                        internal_ip = addr['addr']
-                        break
-            else:
-                self.logger.warn(
-                    "Unable to detect internal IP address in order to setup NAT portmap"
-                )
-                continue
-
-            connection.AddPortMapping(
-                NewRemoteHost=connection.GetExternalIPAddress()['NewExternalIPAddress'],
-                NewExternalPort=self.server_address.tcp_port,
-                NewProtocol='TCP',
-                NewInternalPort=self.server_address.tcp_port,
-                NewInternalClient=internal_ip,
-                NewEnabled='1',
-                NewPortMappingDescription='Created by Py-EVM',
-                NewLeaseDuration=lifetime,
-            )
-            self.logger.info("NAT port forwarding successfully setup")
-            break
-        else:
-            self.logger.warning('Unable to setup port forwarding for NAT')
-
-    async def _start(self) -> None:
-        self._server = await asyncio.start_server(
+    async def _start_tcp_listener(self) -> None:
+        # TODO: Support IPv6 addresses as well.
+        self._tcp_listener = await asyncio.start_server(
             self.receive_handshake,
-            host=self.address.ip,
-            port=self.address.tcp_port,
+            host='0.0.0.0',
+            port=self.port,
         )
 
+    async def _close_tcp_listener(self) -> None:
+        self._tcp_listener.close()
+        await self._tcp_listener.wait_closed()
+
+    async def _start_udp_listener(self, discovery: DiscoveryProtocol) -> None:
+        loop = asyncio.get_event_loop()
+        # TODO: Support IPv6 addresses as well.
+        self._udp_transport, _ = await loop.create_datagram_endpoint(
+            lambda: discovery,
+            local_addr=('0.0.0.0', self.port),
+            family=socket.AF_INET)
+
+    async def _close_udp_listener(self) -> None:
+        cast(asyncio.DatagramTransport, self._udp_transport).abort()
+
     async def _close(self) -> None:
-        self._server.close()
-        await self._server.wait_closed()
+        await asyncio.gather(
+            self._close_tcp_listener(), self._close_udp_listener())
+
+    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
+        # This method exists only so that ShardSyncer can provide a different implementation.
+        return FullNodeSyncer(
+            self.chain, self.chaindb, self.base_db, peer_pool, self.cancel_token)
+
+    def _make_peer_pool(self, discovery: DiscoveryProtocol) -> PeerPool:
+        # This method exists only so that ShardSyncer can provide a different implementation.
+        return self.peer_pool_class(
+            self.peer_class,
+            self.headerdb,
+            self.network_id,
+            self.privkey,
+            discovery,
+            min_peers=self.min_peers,
+        )
 
     async def _run(self) -> None:
         self.logger.info("Running server...")
-        await self._start()
+        upnp_dev = await self._discover_upnp_device()
+        external_ip = '0.0.0.0'
+        if upnp_dev is not None:
+            external_ip = upnp_dev.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress']
+            await self._add_nat_portmap(upnp_dev)
+        await self._start_tcp_listener()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
-            self.address.ip,
-            self.address.tcp_port,
+            external_ip,
+            self.port,
         )
-        await self.discovery.create_endpoint()
+        addr = Address(external_ip, self.port, self.port)
+        self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
+        await self._start_udp_listener(self.discovery)
+        self.peer_pool = self._make_peer_pool(self.discovery)
         asyncio.ensure_future(self.refresh_nat_portmap())
         asyncio.ensure_future(self.discovery.bootstrap())
         asyncio.ensure_future(self.peer_pool.run())
+        self.syncer = self._make_syncer(self.peer_pool)
         await self.syncer.run()
 
     async def _cleanup(self) -> None:
@@ -305,6 +364,10 @@ class Server(BaseService):
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake(),
         await peer.do_sub_proto_handshake()
+        self._start_peer(peer)
+
+    def _start_peer(self, peer: BasePeer) -> None:
+        # This method exists only so that we can monkey-patch it in tests.
         self.peer_pool.start_peer(peer)
 
 
@@ -325,7 +388,6 @@ def _test() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action="store_true")
-    parser.add_argument('-address', type=str, required=True)
     parser.add_argument('-bootnodes', type=str, default=[])
     parser.add_argument('-nodekey', type=str)
 
@@ -343,7 +405,7 @@ def _test() -> None:
     headerdb = FakeAsyncHeaderDB(db)
     chaindb = FakeAsyncChainDB(db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-    chain = FakeAsyncRopstenChain(chaindb)
+    chain = FakeAsyncRopstenChain(db)
 
     # NOTE: Since we may create a different priv/pub key pair every time we run this, remote nodes
     # may try to establish a connection using the pubkey from one of our previous runs, which will
@@ -353,8 +415,7 @@ def _test() -> None:
     else:
         privkey = ecies.generate_privkey()
 
-    ip, port = args.address.split(':')
-    address = Address(ip, int(port))
+    port = 30303
     if args.bootnodes:
         bootstrap_nodes = args.bootnodes.split(',')
     else:
@@ -362,7 +423,7 @@ def _test() -> None:
 
     server = Server(
         privkey,
-        address,
+        port,
         chain,
         chaindb,
         headerdb,

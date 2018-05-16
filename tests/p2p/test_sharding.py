@@ -153,7 +153,7 @@ async def test_sending_collations(request, event_loop):
     # TODO: do something against time out because of long chunk root calculation time
     # (10, set(tuple(sorted(random.sample(range(10), 2))) for _ in range(10 * 4))),
 ])
-async def test_shard_syncer(n_peers, connections):
+async def test_shard_syncer(n_peers, connections, monkeypatch):
     cancel_token = CancelToken("canceltoken")
 
     PeerTuple = collections.namedtuple("PeerTuple", ["node", "server", "syncer"])
@@ -168,12 +168,20 @@ async def test_shard_syncer(n_peers, connections):
 
         server = ShardingServer(
             private_key,
-            address,
+            port,
+            chain=None,
+            chaindb=None,
+            headerdb=None,
+            base_db=None,
             network_id=9324090483,
             min_peers=0,
             peer_class=ShardingPeer
         )
+        monkeypatch.setattr(server, 'add_nat_portmap', mock_coroutine)
+        monkeypatch.setattr(server, '_discover_upnp_device', mock_coroutine)
         asyncio.ensure_future(server.run())
+        # Give the server a chance to start all its listeners and the syncer.
+        await asyncio.sleep(1)
 
         peer_tuples.append(PeerTuple(
             node=node,
@@ -205,3 +213,7 @@ async def test_shard_syncer(n_peers, connections):
     cancel_token.trigger()
     await asyncio.gather(*[peer_tuple.server.cancel() for peer_tuple in peer_tuples])
     await asyncio.gather(*[peer_tuple.syncer.cancel() for peer_tuple in peer_tuples])
+
+
+async def mock_coroutine():
+    pass

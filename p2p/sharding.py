@@ -5,10 +5,7 @@ from typing import (
     cast,
     List,
     Set,
-    Type,
 )
-
-from eth_keys import datatypes
 
 from eth_typing import (
     Hash32,
@@ -43,7 +40,6 @@ from p2p.cancel_token import (
 )
 from p2p.discovery import DiscoveryProtocol
 from p2p import protocol
-from p2p.kademlia import Address
 from p2p.server import Server
 from p2p.service import BaseService
 from p2p.protocol import (
@@ -228,33 +224,20 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
 
 class ShardingServer(Server):
 
-    def __init__(self,
-                 privkey: datatypes.PrivateKey,
-                 address: Address,
-                 network_id: int,
-                 min_peers: int = 0,
-                 peer_class: Type[BasePeer] = ShardingPeer,
-                 peer_pool_class: Type[PeerPool] = PeerPool,
-                 bootstrap_nodes: List[str] = [],
-                 ) -> None:
-        BaseService.__init__(self, CancelToken('ShardingServer'))
-        self.privkey = privkey
-        self.address = address
-        self.network_id = network_id
-        self.peer_class = peer_class
-        self.discovery = DiscoveryProtocol(
-            self.privkey, self.address, bootstrap_nodes=bootstrap_nodes)
+    def _make_peer_pool(self, discovery: DiscoveryProtocol) -> PeerPool:
         # XXX: This is not supposed to work and causes both the PeerPool and Server to crash, but
         # the tests in test_sharding.py don't seem to care
-        self.headerdb = None
-        self.peer_pool = peer_pool_class(
-            peer_class,
-            self.headerdb,
+        headerdb = None
+        return self.peer_pool_class(
+            self.peer_class,
+            headerdb,
             self.network_id,
             self.privkey,
-            self.discovery,
-            min_peers=min_peers,
+            discovery,
+            min_peers=self.min_peers,
         )
+
+    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
         shard_db = ShardDB(MemoryDB())
         shard = Shard(shard_db, 0)
-        self.syncer = ShardSyncer(shard, self.peer_pool, self.cancel_token)  # type: ignore
+        return ShardSyncer(shard, peer_pool, self.cancel_token)

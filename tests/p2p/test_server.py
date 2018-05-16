@@ -11,6 +11,7 @@ from evm.db.backends.memory import MemoryDB
 
 from p2p.peer import (
     ETHPeer,
+    PeerPool,
 )
 from p2p.kademlia import (
     Node,
@@ -51,7 +52,7 @@ def get_server(privkey, address, peer_class):
     chain = RopstenChain(base_db)
     server = Server(
         privkey,
-        address,
+        address.tcp_port,
         chain,
         chaindb,
         headerdb,
@@ -66,38 +67,31 @@ def get_server(privkey, address, peer_class):
 @pytest.fixture
 async def server():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)
-    await asyncio.wait_for(server._start(), timeout=1)
+    await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
     yield server
     server.cancel_token.trigger()
-    await asyncio.wait_for(server._close(), timeout=1)
+    await asyncio.wait_for(server._close_tcp_listener(), timeout=1)
 
 
 @pytest.fixture
 async def receiver_server_with_dumb_peer():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, DumbPeer)
-    await asyncio.wait_for(server._start(), timeout=1)
+    await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
     yield server
     server.cancel_token.trigger()
-    await asyncio.wait_for(server._close(), timeout=1)
-
-
-@pytest.fixture
-async def initiator_server_with_dumb_peer():
-    server = get_server(INITIATOR_PRIVKEY, INITIATOR_ADDRESS, DumbPeer)
-    await asyncio.wait_for(server._start(), timeout=1)
-    yield server
-    server.cancel_token.trigger()
-    await asyncio.wait_for(server._close(), timeout=1)
+    await asyncio.wait_for(server._close_tcp_listener(), timeout=1)
 
 
 @pytest.mark.asyncio
 async def test_server_authenticates_incoming_connections(monkeypatch, server, event_loop):
-    async def mock_do_handshake(self):
-        pass
+    connected_peer = None
+
+    async def mock_do_handshake(peer):
+        nonlocal connected_peer
+        connected_peer = peer
 
     # Only test the authentication in this test.
-    monkeypatch.setattr(ETHPeer, 'do_p2p_handshake', mock_do_handshake)
-    monkeypatch.setattr(ETHPeer, 'do_sub_proto_handshake', mock_do_handshake)
+    monkeypatch.setattr(server, 'do_handshake', mock_do_handshake)
 
     # Send auth init message to the server.
     reader, writer = await asyncio.wait_for(
@@ -112,27 +106,31 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
         timeout=1)
 
     # The sole connected node is our initiator.
-    assert len(server.peer_pool.connected_nodes) == 1
-    initiator_peer = server.peer_pool.connected_nodes[INITIATOR_REMOTE]
-    assert isinstance(initiator_peer, ETHPeer)
-    assert initiator_peer.privkey == RECEIVER_PRIVKEY
-
-    # Stop our peer to make sure its pending asyncio tasks are cancelled.
-    await initiator_peer.cancel()
+    assert connected_peer is not None
+    assert isinstance(connected_peer, ETHPeer)
+    assert connected_peer.privkey == RECEIVER_PRIVKEY
 
 
 @pytest.mark.asyncio
-async def test_two_servers(event_loop,
-                           receiver_server_with_dumb_peer,
-                           initiator_server_with_dumb_peer):
+async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_dumb_peer):
+    started_peers = []
+
+    def mock_start_peer(peer):
+        nonlocal started_peers
+        started_peers.append(peer)
+
+    monkeypatch.setattr(receiver_server_with_dumb_peer, '_start_peer', mock_start_peer)
+
+    network_id = 1
+    discovery = None
+    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), network_id, INITIATOR_PRIVKEY, discovery)
     nodes = [RECEIVER_REMOTE]
-    await initiator_server_with_dumb_peer.peer_pool._connect_to_nodes(nodes)
+    await pool._connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.
     await asyncio.sleep(0.1)
 
-    assert len(receiver_server_with_dumb_peer.peer_pool.connected_nodes) == 1
-    assert len(initiator_server_with_dumb_peer.peer_pool.connected_nodes) == 1
+    assert len(started_peers) == 1
+    assert len(pool.connected_nodes) == 1
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
-    peer = list(receiver_server_with_dumb_peer.peer_pool.connected_nodes.values())[0]
-    await peer.cancel()
+    await list(pool.connected_nodes.values())[0].cancel()
