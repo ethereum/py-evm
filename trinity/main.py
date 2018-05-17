@@ -124,7 +124,7 @@ def main() -> None:
     if args.sync_mode == SYNC_LIGHT:
         networking_process = ctx.Process(
             target=run_lightnode_process,
-            args=(chain_config),
+            args=(chain_config, ),
             kwargs=logging_kwargs,
         )
     else:
