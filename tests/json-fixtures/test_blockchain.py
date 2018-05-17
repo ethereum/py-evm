@@ -99,13 +99,17 @@ def test_blockchain_fixtures(fixture_data, fixture):
             assert not should_be_good_block
             continue
 
-        try:
+        if should_be_good_block:
             (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
-        except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
-            assert not should_be_good_block, "Block should be good: {0}".format(err)
-        else:
             assert_rlp_equal(block, mined_block)
-            assert should_be_good_block, "Block should have caused a validation error"
+        else:
+            try:
+                (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
+            except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
+                # failure is expected on this bad block
+                pass
+            else:
+                raise AssertionError("Block should have caused a validation error")
 
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     assert latest_block_hash == fixture['lastblockhash']
