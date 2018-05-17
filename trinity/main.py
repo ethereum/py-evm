@@ -70,9 +70,23 @@ from trinity.utils.logging import (
 from trinity.utils.mp import (
     ctx,
 )
+from trinity.utils.version import (
+    construct_trinity_client_identifier,
+)
 
 
 PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
+
+
+TRINITY_HEADER = (
+    "\n"
+    "  ______     _       _ __       \n"
+    " /_  __/____(_)___  (_) /___  __\n"
+    "  / / / ___/ / __ \/ / __/ / / /\n"
+    " / / / /  / / / / / / /_/ /_/ / \n"
+    "/_/ /_/  /_/_/ /_/_/\__/\__, /  \n"
+    "                       /____/   "
+)
 
 
 def main() -> None:
@@ -179,6 +193,16 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
 
 @with_queued_logging
 def run_lightnode_process(chain_config: ChainConfig) -> None:
+    logger = logging.getLogger('trinity')
+    logger.info(TRINITY_HEADER)
+    logger.info(construct_trinity_client_identifier())
+    logger.info(
+        "enode://%s@%s:%s",
+        chain_config.nodekey.to_hex()[2:],
+        "[:]",
+        chain_config.port,
+    )
+    logger.info('network: %s', chain_config.network_id)
 
     manager = create_dbmanager(chain_config.database_ipc_path)
     headerdb = manager.get_headerdb()  # type: ignore
@@ -219,6 +243,9 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
 
 @with_queued_logging
 def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
+    logger = logging.getLogger('trinity')
+    logger.info(TRINITY_HEADER)
+    logger.info(construct_trinity_client_identifier())
 
     manager = create_dbmanager(chain_config.database_ipc_path)
     db = manager.get_db()  # type: ignore

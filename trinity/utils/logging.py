@@ -46,7 +46,6 @@ def setup_queue_logging(log_queue: Queue, level: int) -> None:
 def with_queued_logging(fn: Callable) -> Callable:
     @functools.wraps(fn)
     def inner(*args, **kwargs):
-        print(args, kwargs)
         try:
             log_queue = kwargs['log_queue']
         except KeyError:

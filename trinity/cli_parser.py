@@ -7,7 +7,7 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
-from trinity.__version__ import __version__
+from trinity import __version__
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
