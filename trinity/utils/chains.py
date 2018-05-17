@@ -107,19 +107,23 @@ def load_nodekey(nodekey_path: str) -> PrivateKey:
 
 
 class ChainConfig:
-    _data_dir = None
-    _nodekey_path = None
+    _data_dir: str = None
+    _nodekey_path: str = None
     _nodekey = None
-    _network_id = None
+    _network_id: int = None
+
+    port: int = None
 
     def __init__(self,
                  network_id: int,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  nodekey: PrivateKey=None,
-                 sync_mode: str=SYNC_FULL) -> None:
+                 sync_mode: str=SYNC_FULL,
+                 port: int=30303) -> None:
         self.network_id = network_id
         self.sync_mode = sync_mode
+        self.port = port
 
         # validation
         if nodekey is not None and nodekey_path is not None:
@@ -232,3 +236,6 @@ def construct_chain_config_params(args):
 
     if args.sync_mode is not None:
         yield 'sync_mode', args.sync_mode
+
+    if args.port is not None:
+        yield 'port', args.port

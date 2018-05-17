@@ -263,6 +263,7 @@ class Server(BaseService):
             external_ip,
             self.port,
         )
+        self.logger.info('network: %s', self.network_id)
         addr = Address(external_ip, self.port, self.port)
         self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
         await self._start_udp_listener(self.discovery)
