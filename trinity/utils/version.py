@@ -13,5 +13,6 @@ def construct_trinity_client_identifier():
         __version__,
         platform=sys.platform,
         v=sys.version_info,
-        imp=sys.implementation,
+        # mypy Doesn't recognize the `sys` module as having an `implementation` attribute.
+        imp=sys.implementation,  # type: ignore
     )
