@@ -585,6 +585,9 @@ class Chain(BaseChain):
         access to the ancestor blocks, this validation must occur at the Chain
         level.
         """
+        vm = self.get_vm()
+        vm.validate_seal(block.header)
+
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 

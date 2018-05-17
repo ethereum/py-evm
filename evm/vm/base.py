@@ -660,8 +660,8 @@ class VM(BaseVM):
             )
 
         for uncle in block.uncles:
-            self.validate_uncle(block, uncle)
             self.validate_seal(uncle)
+            self.validate_uncle(block, uncle)
 
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
@@ -695,8 +695,6 @@ class VM(BaseVM):
         """
         Validate the given uncle in the context of the given block.
         """
-        self.validate_seal(block.header)
-
         if uncle.block_number >= block.number:
             raise ValidationError(
                 "Uncle number ({0}) is higher than block number ({1})".format(
