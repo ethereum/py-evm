@@ -1,5 +1,6 @@
 import asyncio
 import os
+from typing import List
 
 from eth_hash.auto import keccak
 
@@ -11,7 +12,7 @@ from p2p import constants
 from p2p import ecies
 from p2p import kademlia
 from p2p.cancel_token import CancelToken
-from p2p.peer import LESPeer
+from p2p.peer import BasePeer, LESPeer, PeerPool
 from p2p.server import decode_authentication
 
 from integration_test_helpers import FakeAsyncHeaderDB
@@ -128,10 +129,19 @@ async def get_directly_linked_peers(
     asyncio.ensure_future(peer2.run())
 
     def finalizer():
-        async def afinalizer():
-            await peer1.cancel()
-            await peer2.cancel()
-        event_loop.run_until_complete(afinalizer())
+        event_loop.run_until_complete(asyncio.gather(peer1.cancel(), peer2.cancel()))
     request.addfinalizer(finalizer)
 
     return peer1, peer2
+
+
+class MockPeerPoolWithConnectedPeers(PeerPool):
+
+    def __init__(self, peers: List[BasePeer]) -> None:
+        super().__init__(
+            peer_class=None, headerdb=None, network_id=None, privkey=None, discovery=None)
+        for peer in peers:
+            self.connected_nodes[peer.remote] = peer
+
+    async def _run(self) -> None:
+        raise NotImplementedError("This is a mock PeerPool implementation, you must not _run() it")
