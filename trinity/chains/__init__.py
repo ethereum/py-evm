@@ -1,4 +1,3 @@
-import logging
 # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
 # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
 from multiprocessing.managers import (  # type: ignore
@@ -162,9 +161,6 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
 
     manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
     server = manager.get_server()  # type: ignore
-
-    logger = logging.getLogger('trinity.db')
-    logger.info('database: %s', os.path.abspath(chain_config.database_ipc_path))
 
     server.serve_forever()  # type: ignore
 
