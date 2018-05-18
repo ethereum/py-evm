@@ -43,10 +43,10 @@ Then to initialize, you can start it up with an in-memory database:
   chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
 
 
-Using the LightChain object
+Using the LightPeerChain object
 ---------------------------
 
-The :class:`~p2p.lightchain.LightChain` is like a Chain but it will also
+The :class:`~p2p.lightchain.LightPeerChain` is like a Chain but it will also
 connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader`
 objects as they are announced on the network. As such, it must first be
 configured with a `vm_configuration` and a `network_id`:
@@ -55,11 +55,11 @@ configured with a `vm_configuration` and a `network_id`:
 
   from evm.chains.mainnet import MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID
   from p2p import ecies
-  from p2p.lightchain import LightChain
+  from p2p.lightchain import LightPeerChain
   from p2p.peer import LESPeer, PeerPool
 
-  DemoLightChain = LightChain.configure(
-      __name__='Demo LightChain',
+  DemoLightPeerChain = LightPeerChain.configure(
+      __name__='Demo LightPeerChain',
       vm_configuration=MAINNET_VM_CONFIGURATION,
       network_id=MAINNET_NETWORK_ID,
   )
@@ -82,7 +82,7 @@ its `run()` method:
 
   peer_pool = PeerPool(LESPeer, headerdb, MAINNET_NETWORK_ID, ecies.generate_privkey())
 
-  chain = DemoLightChain.from_genesis_header(base_db, MAINNET_GENESIS_HEADER, peer_pool)
+  chain = DemoLightPeerChain.from_genesis_header(base_db, MAINNET_GENESIS_HEADER, peer_pool)
   loop = asyncio.get_event_loop()
   loop.run_until_complete(chain.run())
 

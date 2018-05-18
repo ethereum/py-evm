@@ -39,8 +39,8 @@ if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
-class LightChain(PeerPoolSubscriber):
-    logger = logging.getLogger("p2p.lightchain.LightChain")
+class LightPeerChain(PeerPoolSubscriber):
+    logger = logging.getLogger("p2p.lightchain.LightPeerChain")
     max_consecutive_timeouts = 5
     headerdb: 'BaseAsyncHeaderDB' = None
 
@@ -49,7 +49,7 @@ class LightChain(PeerPoolSubscriber):
         self.peer_pool = peer_pool
         self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
         self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
-        self.cancel_token = CancelToken('LightChain')
+        self.cancel_token = CancelToken('LightPeerChain')
         self._running_peers = set()  # type: Set[LESPeer]
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -58,7 +58,7 @@ class LightChain(PeerPoolSubscriber):
     async def handle_peer(self, peer: LESPeer) -> None:
         """Handle the lifecycle of the given peer.
 
-        Returns when the peer is finished or when the LightChain is asked to stop.
+        Returns when the peer is finished or when the LightPeerChain is asked to stop.
         """
         self._running_peers.add(peer)
         try:
@@ -128,17 +128,17 @@ class LightChain(PeerPoolSubscriber):
         Returns a tuple containing the LESPeer on which the announcement was received and the
         announcement info.
 
-        Raises OperationCancelled when LightChain.stop() has been called.
+        Raises OperationCancelled when LightPeerChain.stop() has been called.
         """
         # Wait for either a new announcement or our cancel_token to be triggered.
         return await wait_with_token(self._announcement_queue.get(), token=self.cancel_token)
 
     async def run(self) -> None:
-        """Run the LightChain, ensuring headers are in sync with connected peers.
+        """Run the LightPeerChain, ensuring headers are in sync with connected peers.
 
         If .stop() is called, we'll disconnect from all peers and return.
         """
-        self.logger.info("Running LightChain...")
+        self.logger.info("Running LightPeerChain...")
         self.peer_pool.subscribe(self)
         while True:
             try:
@@ -225,8 +225,8 @@ class LightChain(PeerPoolSubscriber):
             self.logger.info("synced headers up to #%s", start_block)
 
     async def stop(self):
-        self.logger.info("Stopping LightChain...")
+        self.logger.info("Stopping LightPeerChain...")
         self.cancel_token.trigger()
         self.logger.debug("Waiting for all pending tasks to finish...")
         await self.wait_until_finished()
-        self.logger.debug("LightChain finished")
+        self.logger.debug("LightPeerChain finished")

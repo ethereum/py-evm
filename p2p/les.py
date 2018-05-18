@@ -214,7 +214,7 @@ class Proofs(Command):
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
         decoded = super().decode_payload(rlp_data)
         decoded = cast(Dict[str, Any], decoded)
-        # This is just to make Proofs messages compatible with ProofsV2, so that LightChain
+        # This is just to make Proofs messages compatible with ProofsV2, so that LightPeerChain
         # doesn't have to special-case them. Soon we should be able to drop support for LES/1
         # anyway, and then all this code will go away.
         if not decoded['proofs']:

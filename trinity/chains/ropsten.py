@@ -2,8 +2,8 @@ from evm.chains.ropsten import (
     BaseRopstenChain,
 )
 
-from p2p.lightchain import LightChain
+from p2p.lightchain import LightPeerChain
 
 
-class RopstenLightChain(BaseRopstenChain, LightChain):
+class RopstenLightPeerChain(BaseRopstenChain, LightPeerChain):
     pass

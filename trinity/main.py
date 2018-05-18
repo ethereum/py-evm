@@ -30,10 +30,10 @@ from trinity.chains import (
     serve_chaindb,
 )
 from trinity.chains.mainnet import (
-    MainnetLightChain,
+    MainnetLightPeerChain,
 )
 from trinity.chains.ropsten import (
-    RopstenLightChain,
+    RopstenLightPeerChain,
 )
 from trinity.chains.header import (
     AsyncHeaderChainProxy,
@@ -208,9 +208,9 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     headerdb = manager.get_headerdb()  # type: ignore
 
     if chain_config.network_id == MAINNET_NETWORK_ID:
-        chain_class = MainnetLightChain  # type: ignore
+        chain_class = MainnetLightPeerChain  # type: ignore
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        chain_class = RopstenLightChain  # type: ignore
+        chain_class = RopstenLightPeerChain  # type: ignore
     else:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
