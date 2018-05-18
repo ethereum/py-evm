@@ -179,7 +179,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self._downloaded_bodies,
             _body_key,
             'body')
-        self.logger.info("Got block bodies for chain segment")
+        self.logger.debug("Got block bodies for chain segment")
 
         missing_receipts = [header for header in headers if not _is_receipts_empty(header)]
         # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
@@ -192,7 +192,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self._downloaded_receipts,
             _receipts_key,
             'receipt')
-        self.logger.info("Got block receipts for chain segment")
+        self.logger.debug("Got block receipts for chain segment")
 
         # FIXME: Get the bodies returned by self._download_block_parts above and use persit_block
         # here.

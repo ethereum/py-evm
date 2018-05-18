@@ -568,7 +568,7 @@ class KademliaProtocol:
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        self.logger.info("lookup finished for %s: %s", node_id, closest)
+        self.logger.debug("lookup finished for %s: %s", node_id, closest)
         return closest
 
     async def lookup_random(self, cancel_token: CancelToken) -> List[Node]:
