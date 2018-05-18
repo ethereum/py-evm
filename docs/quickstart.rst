@@ -20,7 +20,7 @@ Sync and interact with the Ropsten chain
 
 Currently we only provide a light client that will sync only block headers,
 although it can fetch block bodies on demand. The easiest way to try it is by
-running the lightchain_shell, which will run the LightChain in the background
+running the lightchain_shell, which will run the LightPeerChain in the background
 and let you use the python interpreter to interact with it:
 
 .. code:: sh
@@ -36,7 +36,7 @@ can use even before it has finished syncing:
   >>> chain.get_canonical_head()
   <BlockHeader #2200794 e3f9c6bb>
 
-Some :class:`~p2p.lightchain.LightChain` methods (e.g. those that need data
+Some :class:`~p2p.lightchain.LightPeerChain` methods (e.g. those that need data
 from block bodies) are coroutines that need to be executed by asyncio's event
 loop, so for those we provide a helper that will schedule their execution and
 wait for the result:

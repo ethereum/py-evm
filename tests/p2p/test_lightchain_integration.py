@@ -15,13 +15,13 @@ from evm.db.backends.memory import MemoryDB
 from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from p2p import ecies
-from p2p.lightchain import LightChain
+from p2p.lightchain import LightPeerChain
 from p2p.peer import LESPeer
 
 from integration_test_helpers import FakeAsyncHeaderDB, LocalGethPeerPool
 
 
-class IntegrationTestLightChain(LightChain):
+class IntegrationTestLightPeerChain(LightPeerChain):
     vm_configuration = MAINNET_VM_CONFIGURATION
     network_id = ROPSTEN_NETWORK_ID
     max_consecutive_timeouts = 1
@@ -29,7 +29,7 @@ class IntegrationTestLightChain(LightChain):
 
 @pytest.mark.asyncio
 async def test_lightchain_integration(request, event_loop):
-    """Test LightChain against a local geth instance.
+    """Test LightPeerChain against a local geth instance.
 
     This test assumes a geth/ropsten instance is listening on 127.0.0.1:30303 and serving light
     clients. In order to achieve that, simply run it with the following command line:
@@ -48,11 +48,11 @@ async def test_lightchain_integration(request, event_loop):
     peer_pool = LocalGethPeerPool(
         LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(),
     )
-    chain = IntegrationTestLightChain(base_db, peer_pool)
+    chain = IntegrationTestLightPeerChain(base_db, peer_pool)
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(chain.run())
-    await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
+    await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 
     def finalizer():
         event_loop.run_until_complete(peer_pool.cancel())

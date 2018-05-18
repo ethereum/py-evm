@@ -25,7 +25,7 @@ from peer_helpers import (
     get_fresh_mainnet_headerdb,
 )
 
-from trinity.chains.mainnet import MainnetLightChain
+from trinity.chains.mainnet import MainnetLightPeerChain
 
 
 # A full header sync may involve several round trips, so we must be willing to wait a little bit
@@ -214,16 +214,16 @@ async def get_client_and_server_peer_pair(request, event_loop, client_headerdb, 
 
 
 async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
-    """Return a MainnetLightChain instance with a client/server peer pair.
+    """Return a MainnetLightPeerChain instance with a client/server peer pair.
 
     The server is a LESPeerServer instance that can be used to send Announce and BlockHeaders
-    messages, and the client will be registered with the LightChain so that a sync
-    request is added to the LightChain's queue every time a new Announce message is received.
+    messages, and the client will be registered with the LightPeerChain so that a sync
+    request is added to the LightPeerChain's queue every time a new Announce message is received.
     """
     headerdb = get_fresh_mainnet_headerdb()
-    light_chain = MainnetLightChain(headerdb, MockPeerPool())
+    light_chain = MainnetLightPeerChain(headerdb, MockPeerPool())
     asyncio.ensure_future(light_chain.run())
-    await asyncio.sleep(0)  # Yield control to give the LightChain a chance to start
+    await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 
     def finalizer():
         event_loop.run_until_complete(light_chain.stop())
