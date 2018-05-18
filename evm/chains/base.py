@@ -105,6 +105,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     """
     chaindb = None  # type: BaseChainDB
     chaindb_class = None  # type: Type[BaseChainDB]
+    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     #
     # Helpers
@@ -143,9 +144,20 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
         raise NotImplementedError("Chain classes must implement this method")
 
-    @abstractmethod
-    def get_vm_class_for_block_number(self, block_number: BlockNumber) -> Type['BaseVM']:
-        raise NotImplementedError("Chain classes must implement this method")
+    @classmethod
+    def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type['BaseVM']:
+        """
+        Returns the VM class for the given block number.
+        """
+        if cls.vm_configuration is None:
+            raise AttributeError("Chain classes must define the VMs in vm_configuration")
+
+        validate_block_number(block_number)
+        for start_block, vm_class in reversed(cls.vm_configuration):
+            if block_number >= start_block:
+                return vm_class
+        else:
+            raise VMNotFound("No vm available for block #{0}".format(block_number))
 
     #
     # Header API
@@ -254,7 +266,6 @@ class Chain(BaseChain):
     logger = logging.getLogger("evm.chain.chain.Chain")
     header = None  # type: BlockHeader
     network_id = None  # type: int
-    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     gas_estimator = None  # type: Callable
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
@@ -364,18 +375,6 @@ class Chain(BaseChain):
 
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         return vm_class(header=header, chaindb=self.chaindb)
-
-    @classmethod
-    def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type['BaseVM']:
-        """
-        Returns the VM class for the given block number.
-        """
-        validate_block_number(block_number)
-        for start_block, vm_class in reversed(cls.vm_configuration):
-            if block_number >= start_block:
-                return vm_class
-        else:
-            raise VMNotFound("No vm available for block #{0}".format(block_number))
 
     #
     # Header API
