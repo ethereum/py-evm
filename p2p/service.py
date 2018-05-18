@@ -37,7 +37,7 @@ class BaseService(ABC):
         except Exception:
             self.logger.exception("Unexpected error in %s, exiting", self)
         else:
-            self.logger.info("%s finished cleanly", self)
+            self.logger.debug("%s finished cleanly", self)
         finally:
             await self.cleanup()
             self.finished.set()

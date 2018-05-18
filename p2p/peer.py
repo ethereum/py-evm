@@ -298,7 +298,7 @@ class BasePeer(BaseService):
             try:
                 self.process_msg(cmd, msg)
             except RemoteDisconnected as e:
-                self.logger.info("%s disconnected: %s", self, e)
+                self.logger.debug("%s disconnected: %s", self, e)
                 return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
