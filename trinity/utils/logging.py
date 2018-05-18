@@ -20,7 +20,7 @@ def setup_trinity_logging(level: int) -> Tuple[Logger, Queue, handlers.QueueList
     handler = logging.StreamHandler(sys.stdout)
 
     formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)8s %(name)s - %(message)s',
+        fmt='%(levelname)8s  %(asctime)s  %(name)s  %(message)s',
         datefmt='%m-%d %H:%M:%S'
     )
     handler.setFormatter(formatter)
