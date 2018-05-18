@@ -10,8 +10,22 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from async_lru import alru_cache
+
+from eth_typing import (
+    Address,
+    Hash32,
+)
+
+from eth_utils import (
+    encode_hex,
+)
+
 from evm.constants import GENESIS_BLOCK_NUMBER
+from evm.rlp.accounts import Account
+from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
 
 from p2p.exceptions import (
     EmptyGetBlockHeadersReply,
@@ -150,6 +164,9 @@ class LightPeerChain(PeerPoolSubscriber):
                 except OperationCancelled:
                     self.logger.debug("Asked to stop, breaking out of run() loop")
                     break
+                except (EOFError, ConnectionResetError, BrokenPipeError) as e:
+                    self.logger.debug("I/O error processing announcement. Bailing out: %s" % e)
+                    break
                 except LESAnnouncementProcessingError as e:
                     self.logger.warning(repr(e))
                     await self.drop_peer(peer)
@@ -227,3 +244,36 @@ class LightPeerChain(PeerPoolSubscriber):
         self.logger.debug("Waiting for all pending tasks to finish...")
         await self.wait_until_finished()
         self.logger.debug("LightPeerChain finished")
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_block_header_by_hash(self, block_hash: Hash32) -> BaseBlock:
+        peer = await self.get_best_peer()
+        self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
+        return await peer.get_block_header_by_hash(block_hash, self.cancel_token)
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_block_body_by_hash(self, block_hash: Hash32) -> BaseBlock:
+        peer = await self.get_best_peer()
+        self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
+        return await peer.get_block_by_hash(block_hash, self.cancel_token)
+
+    # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+        peer = await self.get_best_peer()
+        self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
+        return await peer.get_receipts(block_hash, self.cancel_token)
+
+    # TODO implement AccountDB exceptions that provide the info needed to
+    # request accounts and code (and storage?)
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_account(self, block_hash: Hash32, address: Address) -> Account:
+        peer = await self.get_best_peer()
+        return await peer.get_account(block_hash, address, self.cancel_token)
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_contract_code(self, block_hash: Hash32, key: bytes) -> bytes:
+        peer = await self.get_best_peer()
+        return await peer.get_contract_code(block_hash, key, self.cancel_token)

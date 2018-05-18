@@ -132,7 +132,7 @@ class IPCServer:
             loop=loop,
             limit=MAXIMUM_REQUEST_BYTES,
         )
-        self.logger.info('ipc-path: %s', os.path.abspath(self.ipc_path))
+        self.logger.info('IPC started at: %s', os.path.abspath(self.ipc_path))
         await self.cancel_token.wait()
 
     async def stop(self):

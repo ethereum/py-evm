@@ -2,8 +2,8 @@ from evm.chains.mainnet import (
     BaseMainnetChain,
 )
 
-from p2p.lightchain import LightPeerChain
+from trinity.chains.light import LightDispatchChain
 
 
-class MainnetLightPeerChain(BaseMainnetChain, LightPeerChain):
+class MainnetLightDispatchChain(BaseMainnetChain, LightDispatchChain):
     pass

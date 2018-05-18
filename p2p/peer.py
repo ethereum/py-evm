@@ -710,7 +710,14 @@ class PeerPool(BaseService):
         if remote in self.connected_nodes:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
-        expected_exceptions = (UnreachablePeer, TimeoutError, PeerConnectionLost, HandshakeFailure)
+        expected_exceptions = (
+            UnreachablePeer,
+            TimeoutError,
+            PeerConnectionLost,
+            HandshakeFailure,
+            EOFError,
+            BrokenPipeError,
+        )
         try:
             self.logger.debug("Connecting to %s...", remote)
             peer = await handshake(

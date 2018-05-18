@@ -8,12 +8,14 @@ from p2p.exceptions import OperationCancelled
 
 
 class BaseService(ABC):
-    # Subclasses must define their own logger.
     logger: logging.Logger = None
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
     def __init__(self, token: CancelToken=None) -> None:
+        if self.logger is None:
+            self.logger = logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+
         self.finished = asyncio.Event()
 
         base_token = CancelToken(type(self).__name__)
@@ -76,3 +78,11 @@ class BaseService(ABC):
         Called after the service's _run() method returns.
         """
         raise NotImplementedError()
+
+
+class EmptyService(BaseService):
+    async def _run(self) -> None:
+        pass
+
+    async def _cleanup(self) -> None:
+        pass

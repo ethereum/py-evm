@@ -29,11 +29,11 @@ from trinity.chains import (
     is_data_dir_initialized,
     serve_chaindb,
 )
-from trinity.chains.mainnet import (
-    MainnetLightPeerChain,
+from trinity.nodes.mainnet import (
+    MainnetLightNode,
 )
-from trinity.chains.ropsten import (
-    RopstenLightPeerChain,
+from trinity.nodes.ropsten import (
+    RopstenLightNode,
 )
 from trinity.chains.header import (
     AsyncHeaderChainProxy,
@@ -49,12 +49,6 @@ from trinity.db.base import DBProxy
 from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
-)
-from trinity.rpc.main import (
-    RPCServer,
-)
-from trinity.rpc.ipc import (
-    IPCServer,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -212,9 +206,9 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     headerdb = manager.get_headerdb()  # type: ignore
 
     if chain_config.network_id == MAINNET_NETWORK_ID:
-        chain_class = MainnetLightPeerChain  # type: ignore
+        node_class = MainnetLightNode
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        chain_class = RopstenLightPeerChain  # type: ignore
+        node_class = RopstenLightNode
     else:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
@@ -222,26 +216,13 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     discovery = None
     peer_pool = HardCodedNodesPeerPool(
         LESPeer, headerdb, chain_config.network_id, chain_config.nodekey, discovery)
-    chain = chain_class(headerdb, peer_pool)
+    node = node_class(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
 
     loop = asyncio.get_event_loop()
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, chain.cancel_token.trigger)
+        loop.add_signal_handler(sig, node.cancel_token.trigger)
 
-    rpc = RPCServer(chain)
-    ipc_server = IPCServer(rpc, chain_config.jsonrpc_ipc_path)
-
-    async def run_chain(chain):
-        try:
-            asyncio.ensure_future(chain.peer_pool.run())
-            asyncio.ensure_future(ipc_server.run())
-            await chain.run()
-        finally:
-            await ipc_server.stop()
-            await chain.peer_pool.cancel()
-            await chain.stop()
-
-    loop.run_until_complete(run_chain(chain))
+    loop.run_until_complete(node.run())
     loop.close()
 
 
