@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 
 from cytoolz import curry
 
@@ -112,6 +113,8 @@ async def write_error(writer, message):
 
 
 class IPCServer:
+    logger = logging.getLogger('trinity.rpc.ipc.IPCServer')
+
     cancel_token = None
     ipc_path = None
     rpc = None
@@ -129,6 +132,7 @@ class IPCServer:
             loop=loop,
             limit=MAXIMUM_REQUEST_BYTES,
         )
+        self.logger.info('ipc-path: %s', os.path.abspath(self.ipc_path))
         await self.cancel_token.wait()
 
     async def stop(self):
