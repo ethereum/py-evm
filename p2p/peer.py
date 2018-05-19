@@ -584,7 +584,7 @@ class LESPeer(BasePeer):
         if not reply['headers']:
             raise EmptyGetBlockHeadersReply(
                 "No headers in reply. start_block=={}".format(start_block))
-        self.logger.info(
+        self.logger.debug(
             "fetched headers from %s to %s", reply['headers'][0].block_number,
             reply['headers'][-1].block_number)
         return reply['headers']
