@@ -1,5 +1,7 @@
 import os
 
+from pathlib import PurePath
+
 from eth_utils import (
     decode_hex,
     to_dict,
@@ -36,17 +38,17 @@ DATABASE_DIR_NAME = 'chain'
 #
 # Filesystem path utils
 #
-def get_local_data_dir(chain_name: str) -> str:
+def get_local_data_dir(chain_name: str) -> PurePath:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
-    return os.environ.get(
+    return PurePath(os.environ.get(
         'TRINITY_DATA_DIR',
         os.path.join(get_xdg_trinity_root(), chain_name),
-    )
+    ))
 
 
-def get_data_dir_for_network_id(network_id: int) -> str:
+def get_data_dir_for_network_id(network_id: int) -> PurePath:
     """
     Returns the data directory for the chain associated with the given network
     id.  If the network id is unknown, raises a KeyError.
@@ -60,55 +62,61 @@ def get_data_dir_for_network_id(network_id: int) -> str:
 NODEKEY_FILENAME = 'nodekey'
 
 
-def get_nodekey_path(data_dir: str) -> str:
+def get_nodekey_path(data_dir: PurePath) -> PurePath:
     """
     Returns the path to the private key used for devp2p connections.
     """
-    return os.environ.get(
+    return PurePath(os.environ.get(
         'TRINITY_NODEKEY',
-        os.path.join(data_dir, NODEKEY_FILENAME),
-    )
+        str(data_dir / NODEKEY_FILENAME),
+    ))
 
 
 DATABASE_SOCKET_FILENAME = 'db.ipc'
 
 
-def get_database_socket_path(data_dir: str) -> str:
+def get_database_socket_path(data_dir: PurePath) -> str:
     """
     Returns the path to the private key used for devp2p connections.
+
+    We're still returning 'str' here on ipc-related path because an issue with
+    multi-processing not being able to interpret 'PurePath' objects correctly.
     """
     return os.environ.get(
         'TRINITY_DATABASE_IPC',
-        os.path.join(data_dir, DATABASE_SOCKET_FILENAME),
+        os.path.join(str(data_dir), DATABASE_SOCKET_FILENAME),
     )
 
 
 JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
 
 
-def get_jsonrpc_socket_path(data_dir: str) -> str:
+def get_jsonrpc_socket_path(data_dir: PurePath) -> str:
     """
     Returns the path to the ipc socket for the JSON-RPC server.
+
+    We're still returning 'str' here on ipc-related path because an issue with
+    multi-processing not being able to interpret 'PurePath' objects correctly.
     """
     return os.environ.get(
         'TRINITY_JSONRPC_IPC',
-        os.path.join(data_dir, JSONRPC_SOCKET_FILENAME),
+        os.path.join(str(data_dir), JSONRPC_SOCKET_FILENAME),
     )
 
 
 #
 # Nodekey loading
 #
-def load_nodekey(nodekey_path: str) -> PrivateKey:
-    with open(nodekey_path, 'rb') as nodekey_file:
+def load_nodekey(nodekey_path: PurePath) -> PrivateKey:
+    with open(str(nodekey_path), 'rb') as nodekey_file:
         nodekey_raw = nodekey_file.read()
     nodekey = keys.PrivateKey(nodekey_raw)
     return nodekey
 
 
 class ChainConfig:
-    _data_dir: str = None
-    _nodekey_path: str = None
+    _data_dir: PurePath = None
+    _nodekey_path: PurePath = None
     _nodekey = None
     _network_id: int = None
 
@@ -141,7 +149,7 @@ class ChainConfig:
             self.nodekey = nodekey
 
     @property
-    def data_dir(self) -> str:
+    def data_dir(self) -> PurePath:
         """
         The data_dir is the base directory that all chain specific information
         for a given chain is stored.  All other chain directories are by
@@ -151,14 +159,14 @@ class ChainConfig:
 
     @data_dir.setter
     def data_dir(self, value: str) -> None:
-        self._data_dir = os.path.abspath(value)
+        self._data_dir = PurePath(os.path.abspath(value))
 
     @property
     def database_dir(self) -> str:
         if self.sync_mode == SYNC_FULL:
-            return os.path.join(self.data_dir, DATABASE_DIR_NAME, "full")
+            return str(self.data_dir / DATABASE_DIR_NAME / "full")
         elif self.sync_mode == SYNC_LIGHT:
-            return os.path.join(self.data_dir, DATABASE_DIR_NAME, "light")
+            return str(self.data_dir / DATABASE_DIR_NAME / "light")
         else:
             raise ValueError("Unknown sync mode: {}}".format(self.sync_mode))
 
@@ -171,7 +179,7 @@ class ChainConfig:
         return get_jsonrpc_socket_path(self.data_dir)
 
     @property
-    def nodekey_path(self) -> str:
+    def nodekey_path(self) -> PurePath:
         if self._nodekey_path is None:
             if self._nodekey is not None:
                 return None
@@ -182,7 +190,7 @@ class ChainConfig:
 
     @nodekey_path.setter
     def nodekey_path(self, value: str) -> None:
-        self._nodekey_path = os.path.abspath(value)
+        self._nodekey_path = PurePath(os.path.abspath(value))
 
     @property
     def nodekey(self) -> PrivateKey:
