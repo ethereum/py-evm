@@ -21,7 +21,7 @@ def setup_trinity_logging(level: int) -> Tuple[Logger, Queue, handlers.QueueList
 
     # TODO: allow configuring `detailed` logging
     formatter = logging.Formatter(
-        fmt='%(levelname)8s  %(asctime)s  %(module)9s  %(message)s',
+        fmt='%(levelname)8s  %(asctime)s  %(module)10s  %(message)s',
         datefmt='%m-%d %H:%M:%S'
     )
     handler.setFormatter(formatter)
