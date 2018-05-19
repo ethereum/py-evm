@@ -6,6 +6,8 @@ from typing import (
 
 from pathlib import PurePath
 
+from pathlib import PurePath
+
 from eth_utils import (
     decode_hex,
     to_dict,
