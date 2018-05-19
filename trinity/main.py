@@ -175,6 +175,10 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
 
 
 def create_dbmanager(ipc_path: str) -> BaseManager:
+    """
+    We're still using 'str' here on param ipc_path because an issue with
+    multi-processing not being able to interpret 'PurePath' objects correctly
+    """
     class DBManager(BaseManager):
         pass
 
