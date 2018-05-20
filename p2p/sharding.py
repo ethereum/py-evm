@@ -156,27 +156,27 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.start_time = time.time()
 
     async def _run(self) -> None:
-        self.peer_pool.subscribe(self)
-        while True:
-            collation = await wait_with_token(
-                self.incoming_collation_queue.get(),
-                token=self.cancel_token
-            )
+        with self.subscribe(self.peer_pool):
+            while True:
+                collation = await wait_with_token(
+                    self.incoming_collation_queue.get(),
+                    token=self.cancel_token
+                )
 
-            if collation.shard_id != self.shard.shard_id:
-                self.logger.debug("Ignoring received collation belonging to wrong shard")
-                continue
-            if self.shard.get_availability(collation.header) is Availability.AVAILABLE:
-                self.logger.debug("Ignoring already available collation")
-                continue
+                if collation.shard_id != self.shard.shard_id:
+                    self.logger.debug("Ignoring received collation belonging to wrong shard")
+                    continue
+                if self.shard.get_availability(collation.header) is Availability.AVAILABLE:
+                    self.logger.debug("Ignoring already available collation")
+                    continue
 
-            self.logger.debug("Adding collation {} to shard".format(collation))
-            self.shard.add_collation(collation)
-            for peer in self.peer_pool.peers:
-                cast(ShardingPeer, peer).send_collations([collation])
+                self.logger.debug("Adding collation {} to shard".format(collation))
+                self.shard.add_collation(collation)
+                for peer in self.peer_pool.peers:
+                    cast(ShardingPeer, peer).send_collations([collation])
 
-            self.collations_received_event.set()
-            self.collations_received_event.clear()
+                self.collations_received_event.set()
+                self.collations_received_event.clear()
 
     async def _cleanup(self) -> None:
         self.peer_pool.unsubscribe(self)
