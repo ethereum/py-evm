@@ -102,20 +102,20 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     async def _run(self) -> None:
-        self.peer_pool.subscribe(self)
-        while True:
-            peer_or_finished = await wait_with_token(
-                self._sync_requests.get(), self._sync_complete.wait(),
-                token=self.cancel_token)
+        with self.subscribe(self.peer_pool):
+            while True:
+                peer_or_finished = await wait_with_token(
+                    self._sync_requests.get(), self._sync_complete.wait(),
+                    token=self.cancel_token)
 
-            # In the case of a fast sync, we return once the sync is completed, and our caller
-            # must then run the StateDownloader.
-            if self._sync_complete.is_set():
-                return
+                # In the case of a fast sync, we return once the sync is completed, and our caller
+                # must then run the StateDownloader.
+                if self._sync_complete.is_set():
+                    return
 
-            # Since self._sync_complete is not set, peer_or_finished can only be a ETHPeer
-            # instance.
-            asyncio.ensure_future(self.sync(peer_or_finished))
+                # Since self._sync_complete is not set, peer_or_finished can only be a ETHPeer
+                # instance.
+                asyncio.ensure_future(self.sync(peer_or_finished))
 
     async def sync(self, peer: ETHPeer) -> None:
         if self._syncing:

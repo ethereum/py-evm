@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import operator
 import random
@@ -14,6 +15,7 @@ from typing import (  # noqa: F401
     Callable,
     Dict,
     Generator,
+    Iterator,
     List,
     Optional,
     Tuple,
@@ -626,6 +628,14 @@ class PeerPoolSubscriber(metaclass=ABCMeta):
     @abstractmethod
     def register_peer(self, peer: BasePeer) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
+
+    @contextlib.contextmanager
+    def subscribe(self, peer_pool: 'PeerPool') -> Iterator[None]:
+        peer_pool.subscribe(self)
+        try:
+            yield
+        finally:
+            peer_pool.unsubscribe(self)
 
 
 class PeerPool(BaseService):

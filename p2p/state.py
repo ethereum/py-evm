@@ -122,7 +122,6 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
 
     async def _cleanup(self):
-        self.peer_pool.unsubscribe(self)
         start_at = time.time()
         # Wait at most 1 second for pending peers to finish.
         self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
@@ -184,26 +183,26 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         """
         self._start_time = time.time()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
-        self.peer_pool.subscribe(self)
         asyncio.ensure_future(self._periodically_report_progress())
         asyncio.ensure_future(self._periodically_retry_timedout())
-        while self.scheduler.has_pending_requests:
-            # This ensures we yield control and give _handle_msg() a chance to process any nodes
-            # we may have received already, also ensuring we exit when our cancel token is
-            # triggered.
-            await wait_with_token(asyncio.sleep(0), token=self.cancel_token)
+        with self.subscribe(self.peer_pool):
+            while self.scheduler.has_pending_requests:
+                # This ensures we yield control and give _handle_msg() a chance to process any nodes
+                # we may have received already, also ensuring we exit when our cancel token is
+                # triggered.
+                await wait_with_token(asyncio.sleep(0), token=self.cancel_token)
 
-            requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
-            if not requests:
-                # Although we frequently yield control above, to let our msg handler process
-                # received nodes (scheduling new requests), there may be cases when the
-                # pending nodes take a while to arrive thus causing the scheduler to run out
-                # of new requests for a while.
-                self.logger.info("Scheduler queue is empty, sleeping a bit")
-                await wait_with_token(asyncio.sleep(0.5), token=self.cancel_token)
-                continue
+                requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
+                if not requests:
+                    # Although we frequently yield control above, to let our msg handler process
+                    # received nodes (scheduling new requests), there may be cases when the
+                    # pending nodes take a while to arrive thus causing the scheduler to run out
+                    # of new requests for a while.
+                    self.logger.info("Scheduler queue is empty, sleeping a bit")
+                    await wait_with_token(asyncio.sleep(0.5), token=self.cancel_token)
+                    continue
 
-            await self.request_nodes([request.node_key for request in requests])
+                await self.request_nodes([request.node_key for request in requests])
 
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 

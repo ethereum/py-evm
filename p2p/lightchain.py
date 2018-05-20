@@ -139,26 +139,26 @@ class LightPeerChain(PeerPoolSubscriber):
         If .stop() is called, we'll disconnect from all peers and return.
         """
         self.logger.info("Running LightPeerChain...")
-        self.peer_pool.subscribe(self)
-        while True:
-            try:
-                peer, head_info = await self.wait_for_announcement()
-            except OperationCancelled:
-                self.logger.debug("Asked to stop, breaking out of run() loop")
-                break
+        with self.subscribe(self.peer_pool):
+            while True:
+                try:
+                    peer, head_info = await self.wait_for_announcement()
+                except OperationCancelled:
+                    self.logger.debug("Asked to stop, breaking out of run() loop")
+                    break
 
-            try:
-                await self.process_announcement(peer, head_info)
-                self._last_processed_announcements[peer] = head_info
-            except OperationCancelled:
-                self.logger.debug("Asked to stop, breaking out of run() loop")
-                break
-            except LESAnnouncementProcessingError as e:
-                self.logger.warning(repr(e))
-                await self.drop_peer(peer)
-            except Exception as e:
-                self.logger.exception("Unexpected error when processing announcement")
-                await self.drop_peer(peer)
+                try:
+                    await self.process_announcement(peer, head_info)
+                    self._last_processed_announcements[peer] = head_info
+                except OperationCancelled:
+                    self.logger.debug("Asked to stop, breaking out of run() loop")
+                    break
+                except LESAnnouncementProcessingError as e:
+                    self.logger.warning(repr(e))
+                    await self.drop_peer(peer)
+                except Exception as e:
+                    self.logger.exception("Unexpected error when processing announcement")
+                    await self.drop_peer(peer)
 
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
         for i in range(self.max_consecutive_timeouts):
