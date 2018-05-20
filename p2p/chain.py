@@ -257,7 +257,13 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        length = math.ceil(len(headers) / len(self.peer_pool.peers))
+
+        try:
+            length = math.ceil(len(headers) / len(self.peer_pool.peers))
+        except ZeroDivisionError:
+            # all peers dropped from peer pool.
+            raise OperationCancelled("Empty peer pool while requesting headers. Cancelling sync")
+
         batches = list(partition_all(length, headers))
         for peer, batch in zip(self.peer_pool.peers, batches):
             request_func(cast(ETHPeer, peer), batch)
