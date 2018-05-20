@@ -3,8 +3,8 @@ import logging
 import math
 import operator
 import time
-from typing import (  # noqa: F401
-    Any, Awaitable, Callable, cast, Dict, Generator, List, Set, Tuple, Union)
+from typing import (
+    Any, Awaitable, Callable, cast, Dict, List, Set, Tuple, Union)
 
 from cytoolz.itertoolz import partition_all, unique
 
@@ -37,6 +37,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
     # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
     # the round-trip times from our download requests.
     _reply_timeout = 60
+    _running_peers: Set[ETHPeer] = None
 
     def __init__(self,
                  chaindb: AsyncChainDB,
@@ -45,7 +46,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self._running_peers = set()  # type: Set[ETHPeer]
+        self._running_peers = set()
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
@@ -218,7 +219,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
     async def _download_block_parts(
             self,
             headers: List[BlockHeader],
-            request_func: Callable[[List[BlockHeader]], int],
+            request_func: Callable[[List[BlockHeader]], Awaitable[int]],
             download_queue: 'asyncio.Queue[List[DownloadedBlockPart]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
             part_name: str) -> 'List[DownloadedBlockPart]':
@@ -226,11 +227,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # The ETH protocol doesn't guarantee that we'll get all body parts requested, so we need
         # to keep track of the number of pending replies and missing items to decide when to retry
         # them. See request_receipts() for more info.
-        pending_replies = request_func(missing)
+        pending_replies = await request_func(missing)
         parts = []  # type: List[DownloadedBlockPart]
         while missing:
             if pending_replies == 0:
-                pending_replies = request_func(missing)
+                pending_replies = await request_func(missing)
 
             try:
                 received = await wait_with_token(
@@ -238,7 +239,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
-                pending_replies = request_func(missing)
+                pending_replies = await request_func(missing)
                 continue
 
             parts.extend(received)
@@ -253,13 +254,14 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 if key_func(header) not in received_keys]
         return parts
 
-    def _request_block_parts(
+    async def _request_block_parts(
             self,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        length = math.ceil(len(headers) / len(self.peer_pool.peers))
+        peers = await self.peer_pool.wait_for_peers()
+        length = math.ceil(len(headers) / len(peers))
         batches = list(partition_all(length, headers))
-        for peer, batch in zip(self.peer_pool.peers, batches):
+        for peer, batch in zip(peers, batches):
             request_func(cast(ETHPeer, peer), batch)
         return len(batches)
 
@@ -271,14 +273,14 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.debug("Requesting %d block receipts to %s", len(headers), peer)
         peer.sub_proto.send_get_receipts([header.hash for header in headers])
 
-    def request_bodies(self, headers: List[BlockHeader]) -> int:
+    async def request_bodies(self, headers: List[BlockHeader]) -> int:
         """Ask our peers for bodies for the given headers.
 
         See request_receipts() for details of how this is done.
         """
-        return self._request_block_parts(headers, self._send_get_block_bodies)
+        return await self._request_block_parts(headers, self._send_get_block_bodies)
 
-    def request_receipts(self, headers: List[BlockHeader]) -> int:
+    async def request_receipts(self, headers: List[BlockHeader]) -> int:
         """Ask our peers for receipts for the given headers.
 
         We partition the given list of headers in batches and request each to one of our connected
@@ -289,7 +291,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
         Returns the number of requests made.
         """
-        return self._request_block_parts(headers, self._send_get_receipts)
+        return await self._request_block_parts(headers, self._send_get_receipts)
 
     async def wait_until_finished(self) -> None:
         start_at = time.time()

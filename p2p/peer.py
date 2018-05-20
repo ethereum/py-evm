@@ -783,7 +783,13 @@ class PeerPool(BaseService):
         while not self.peers:
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
-        return random.choice(self.peers)
+        return random.choice(await self.wait_for_peers())
+
+    async def wait_for_peers(self) -> List[BasePeer]:
+        while not self.peers:
+            self.logger.debug("No connected peers, sleeping a bit")
+            await asyncio.sleep(0.5)
+        return self.peers
 
 
 class HardCodedNodesPeerPool(PeerPool):
