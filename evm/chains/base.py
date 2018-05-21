@@ -4,6 +4,7 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+import operator
 from typing import (  # noqa: F401
     Any,
     Optional,
@@ -22,6 +23,7 @@ import logging
 
 from cytoolz import (
     assoc,
+    groupby,
 )
 
 from eth_typing import (
@@ -610,32 +612,64 @@ class Chain(BaseChain):
         """
         Validate the uncles for the given block.
         """
-        recent_ancestors = dict(
-            (ancestor.hash, ancestor)
-            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1),
-        )
-        recent_uncles = []
-        for ancestor in recent_ancestors.values():
-            recent_uncles.extend([uncle.hash for uncle in ancestor.uncles])
-        recent_ancestors[block.hash] = block
-        recent_uncles.append(block.hash)
+        # Check for duplicates
+        uncle_groups = groupby(operator.attrgetter('hash'), block.uncles)
+        duplicate_uncles = tuple(sorted(
+            hash for hash, twins in uncle_groups.items() if len(twins) > 1
+        ))
+        if duplicate_uncles:
+            raise ValidationError(
+                "Block contains duplicate uncles:\n"
+                " - {0}".format(' - '.join(duplicate_uncles))
+            )
+
+        recent_ancestors = {
+            ancestor.hash: ancestor
+            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1)
+        }
+        recent_uncles = {
+            uncle.hash
+            for ancestor in recent_ancestors.values()
+            for uncle in ancestor.uncles
+        }
 
         for uncle in block.uncles:
-            if uncle.hash in recent_ancestors:
-                raise ValidationError(
-                    "Duplicate uncle: {0}".format(encode_hex(uncle.hash)))
-            recent_uncles.append(uncle.hash)
+            if uncle.hash == block.hash:
+                raise ValidationError("Uncle has same hash as block")
 
+            # ensure the uncle has not already been included.
+            if uncle.hash in recent_uncles:
+                raise ValidationError(
+                    "Duplicate uncle: {0}".format(encode_hex(uncle.hash))
+                )
+
+            # ensure that the uncle is not one of the canonical chain blocks.
             if uncle.hash in recent_ancestors:
                 raise ValidationError(
                     "Uncle {0} cannot be an ancestor of {1}".format(
                         encode_hex(uncle.hash), encode_hex(block.hash)))
 
+            # ensure that the uncle was built off of one of the canonical chain
+            # blocks.
             if uncle.parent_hash not in recent_ancestors or (
                uncle.parent_hash == block.header.parent_hash):
                 raise ValidationError(
                     "Uncle's parent {0} is not an ancestor of {1}".format(
                         encode_hex(uncle.parent_hash), encode_hex(block.hash)))
+
+            # Now perform VM level validation of the uncle
+            uncle_vm = self.get_vm(uncle)
+
+            uncle_vm.validate_seal(uncle)
+
+            try:
+                uncle_parent = self.get_block_header_by_hash(uncle.parent_hash)
+            except HeaderNotFound:
+                raise ValidationError(
+                    "Uncle ancestor not found: {0}".format(uncle.parent_hash)
+                )
+
+            uncle_vm.validate_uncle(block, uncle, uncle_parent)
 
 
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
