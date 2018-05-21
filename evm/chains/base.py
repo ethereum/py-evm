@@ -34,6 +34,7 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
+    to_set,
 )
 
 from evm.db.backends.base import BaseDB
@@ -178,7 +179,7 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     # Block API
     #
-    def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -404,12 +405,14 @@ class Chain(BaseChain):
     # Block API
     #
     @to_tuple
-    def get_ancestors(self, limit: int) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
-        lower_limit = max(self.header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, self.header.block_number)):
+        if header is None:
+            header = self.header
+        lower_limit = max(header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, header.block_number)):
             yield self.get_canonical_block_by_number(BlockNumber(n))
 
     def get_block(self) -> BaseBlock:
@@ -623,35 +626,33 @@ class Chain(BaseChain):
                 " - {0}".format(' - '.join(duplicate_uncles))
             )
 
-        recent_ancestors = {
-            ancestor.hash: ancestor
-            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1)
-        }
-        recent_uncles = {
-            uncle.hash
-            for ancestor in recent_ancestors.values()
-            for uncle in ancestor.uncles
-        }
+        recent_ancestors = tuple(
+            ancestor
+            for ancestor
+            in self.get_ancestors(MAX_UNCLE_DEPTH + 1, header=block.header)
+        )
+        recent_ancestor_hashes = {ancestor.hash for ancestor in recent_ancestors}
+        recent_uncle_hashes = _extract_uncle_hashes(recent_ancestors)
 
         for uncle in block.uncles:
             if uncle.hash == block.hash:
                 raise ValidationError("Uncle has same hash as block")
 
             # ensure the uncle has not already been included.
-            if uncle.hash in recent_uncles:
+            if uncle.hash in recent_uncle_hashes:
                 raise ValidationError(
                     "Duplicate uncle: {0}".format(encode_hex(uncle.hash))
                 )
 
             # ensure that the uncle is not one of the canonical chain blocks.
-            if uncle.hash in recent_ancestors:
+            if uncle.hash in recent_ancestor_hashes:
                 raise ValidationError(
                     "Uncle {0} cannot be an ancestor of {1}".format(
                         encode_hex(uncle.hash), encode_hex(block.hash)))
 
             # ensure that the uncle was built off of one of the canonical chain
             # blocks.
-            if uncle.parent_hash not in recent_ancestors or (
+            if uncle.parent_hash not in recent_ancestor_hashes or (
                uncle.parent_hash == block.header.parent_hash):
                 raise ValidationError(
                     "Uncle's parent {0} is not an ancestor of {1}".format(
@@ -670,6 +671,13 @@ class Chain(BaseChain):
                 )
 
             uncle_vm.validate_uncle(block, uncle, uncle_parent)
+
+
+@to_set
+def _extract_uncle_hashes(blocks):
+    for block in blocks:
+        for uncle in block.uncles:
+            yield uncle.hash
 
 
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
