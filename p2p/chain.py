@@ -19,7 +19,7 @@ from evm.rlp.transactions import BaseTransaction  # noqa: F401
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import NoConnectedPeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
 
@@ -150,6 +150,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # find the common ancestor between our chain and the peer's.
         start_at = max(0, head.block_number - eth.MAX_HEADERS_FETCH)
         while not self._sync_complete.is_set():
+            if peer.is_finished:
+                self.logger.info("%s disconnected, aborting sync", peer)
+                break
+
             self.logger.info("Fetching chain segment starting at #%d", start_at)
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
@@ -169,7 +173,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.info("Got headers segment starting at #%d", start_at)
 
             # TODO: Process headers for consistency.
-            head_number = await self._process_headers(peer, headers)
+            try:
+                head_number = await self._process_headers(peer, headers)
+            except NoConnectedPeers:
+                self.logger.info("No connected peers, aborting sync")
+                break
             start_at = head_number + 1
 
     async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
@@ -222,6 +230,13 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             download_queue: 'asyncio.Queue[List[DownloadedBlockPart]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
             part_name: str) -> 'List[DownloadedBlockPart]':
+        """Download block parts for the given headers, using the given request_func.
+
+        Retry timed out parts until we have the parts for all headers.
+
+        Raises NoConnectedPeers if at any moment we have no connected peers to request the missing
+        parts to.
+        """
         missing = headers.copy()
         # The ETH protocol doesn't guarantee that we'll get all body parts requested, so we need
         # to keep track of the number of pending replies and missing items to decide when to retry
@@ -257,6 +272,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
+        if not self.peer_pool.peers:
+            raise NoConnectedPeers()
         length = math.ceil(len(headers) / len(self.peer_pool.peers))
         batches = list(partition_all(length, headers))
         for peer, batch in zip(self.peer_pool.peers, batches):
