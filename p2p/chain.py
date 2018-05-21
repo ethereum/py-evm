@@ -320,7 +320,6 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.info("Waited too long for peers to finish, exiting anyway")
 
     async def _cleanup(self) -> None:
-        self.peer_pool.unsubscribe(self)
         await self.wait_until_finished()
 
     async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
