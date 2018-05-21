@@ -3,8 +3,16 @@ import logging
 import math
 import operator
 import time
-from typing import (  # noqa: F401
-    Any, Awaitable, Callable, cast, Dict, Generator, List, Set, Tuple, Union)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from cytoolz.itertoolz import partition_all, unique
 
@@ -15,7 +23,7 @@ from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import HeaderNotFound
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction  # noqa: F401
+from evm.rlp.transactions import BaseTransaction
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
@@ -45,15 +53,15 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self._running_peers = set()  # type: Set[ETHPeer]
+        self._running_peers: Set[ETHPeer] = set()
         self._syncing = False
         self._sync_complete = asyncio.Event()
-        self._sync_requests = asyncio.Queue()  # type: asyncio.Queue[ETHPeer]
-        self._new_headers = asyncio.Queue()  # type: asyncio.Queue[List[BlockHeader]]
+        self._sync_requests: asyncio.Queue[ETHPeer] = asyncio.Queue()
+        self._new_headers: asyncio.Queue[List[BlockHeader]] = asyncio.Queue()
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
-        self._downloaded_receipts = asyncio.Queue()  # type: asyncio.Queue[List[DownloadedBlockPart]]  # noqa: E501
-        self._downloaded_bodies = asyncio.Queue()  # type: asyncio.Queue[List[DownloadedBlockPart]]
+        self._downloaded_receipts: asyncio.Queue[List[DownloadedBlockPart]] = asyncio.Queue()
+        self._downloaded_bodies: asyncio.Queue[List[DownloadedBlockPart]] = asyncio.Queue()
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -242,7 +250,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # to keep track of the number of pending replies and missing items to decide when to retry
         # them. See request_receipts() for more info.
         pending_replies = request_func(missing)
-        parts = []  # type: List[DownloadedBlockPart]
+        parts: List[DownloadedBlockPart] = []
         while missing:
             if pending_replies == 0:
                 pending_replies = request_func(missing)
@@ -360,7 +368,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         receipts_tries = await wait_with_token(
             loop.run_in_executor(None, list, iterator),
             token=self.cancel_token)
-        downloaded = []  # type: List[DownloadedBlockPart]
+        downloaded: List[DownloadedBlockPart] = []
         for (receipt, (receipt_root, trie_dict_data)) in zip(receipts, receipts_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
             downloaded.append(DownloadedBlockPart(receipt, receipt_root))
@@ -373,7 +381,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         transactions_tries = await wait_with_token(
             loop.run_in_executor(None, list, iterator),
             token=self.cancel_token)
-        downloaded = []  # type: List[DownloadedBlockPart]
+        downloaded: List[DownloadedBlockPart] = []
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
             uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
@@ -435,8 +443,8 @@ class RegularChainSyncer(FastChainSyncer):
             block_class = vm_class.get_block_class()
 
             if _is_body_empty(header):
-                transactions = []  # type: List[BaseTransaction]
-                uncles = []  # type: List[BlockHeader]
+                transactions: List[BaseTransaction] = []
+                uncles: List[BlockHeader] = []
             else:
                 body = cast(eth.BlockBody, parts_by_key[_body_key(header)])
                 tx_class = block_class.get_transaction_class()

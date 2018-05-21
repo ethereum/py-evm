@@ -1,15 +1,12 @@
 import asyncio
 import logging
 import time
-from typing import (  # noqa: F401
-    Any,
+from typing import (
     cast,
     Dict,
     List,
-    Optional,
     Set,
     Tuple,
-    Type,
     TYPE_CHECKING,
 )
 
@@ -47,10 +44,10 @@ class LightPeerChain(PeerPoolSubscriber):
     def __init__(self, headerdb: 'BaseAsyncHeaderDB', peer_pool: PeerPool) -> None:
         self.headerdb = headerdb
         self.peer_pool = peer_pool
-        self._announcement_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]]  # noqa: E501
-        self._last_processed_announcements = {}  # type: Dict[LESPeer, les.HeadInfo]
+        self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
+        self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
         self.cancel_token = CancelToken('LightPeerChain')
-        self._running_peers = set()  # type: Set[LESPeer]
+        self._running_peers: Set[LESPeer] = set()
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))

@@ -1,6 +1,6 @@
 import logging
 import struct
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Dict,
     List,
@@ -32,9 +32,9 @@ _DecodedMsgType = Union[
 
 
 class Command:
-    _cmd_id = None  # type: int
+    _cmd_id: int = None
     decode_strict = True
-    structure = []  # type: List[Tuple[str, Any]]
+    structure: List[Tuple[str, Any]] = []
 
     def __init__(self, cmd_id_offset: int) -> None:
         self.cmd_id_offset = cmd_id_offset
@@ -101,11 +101,11 @@ class Command:
 
 class Protocol:
     logger = logging.getLogger("p2p.protocol.Protocol")
-    name = None  # type: str
-    version = None  # type: int
-    cmd_length = None  # type: int
+    name: str = None
+    version: int = None
+    cmd_length: int = None
     # List of Command classes that this protocol supports.
-    _commands = []  # type: List[Type[Command]]
+    _commands: List[Type[Command]] = []
 
     def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
         self.peer = peer
