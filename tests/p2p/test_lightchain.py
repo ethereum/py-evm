@@ -248,6 +248,9 @@ class MockPeerPool:
     def subscribe(self, subscriber):
         pass
 
+    def unsubscribe(self, subscriber):
+        pass
+
     async def run(self):
         pass
 

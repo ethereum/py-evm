@@ -123,9 +123,9 @@ class IPCServer:
     def __init__(self, rpc, ipc_path):
         self.rpc = rpc
         self.ipc_path = ipc_path
-        self.cancel_token = CancelToken('IPCServer')
 
     async def run(self, loop=None):
+        self.cancel_token = CancelToken('IPCServer', loop=loop)
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
             self.ipc_path,
@@ -136,6 +136,7 @@ class IPCServer:
         await self.cancel_token.wait()
 
     async def stop(self):
-        self.cancel_token.trigger()
+        if self.cancel_token is not None:
+            self.cancel_token.trigger()
         self.server.close()
         await self.server.wait_closed()

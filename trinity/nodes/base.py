@@ -62,7 +62,7 @@ class Node(BaseService):
 
         try:
             asyncio.ensure_future(self._peer_pool.run())
-            asyncio.run_coroutine_threadsafe(ipc_server.run(), loop=ipc_loop)
+            asyncio.run_coroutine_threadsafe(ipc_server.run(loop=ipc_loop), loop=ipc_loop)
             await self._peer_chain.run()
         finally:
             await ipc_server.stop()
