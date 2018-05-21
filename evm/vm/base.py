@@ -266,7 +266,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
-    def validate_uncle(self, block, uncle):
+    def validate_uncle(self, block, uncle, uncle_parent):
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -659,10 +659,6 @@ class VM(BaseVM):
                 "{1}.".format(MAX_UNCLES, len(block.uncles))
             )
 
-        for uncle in block.uncles:
-            self.validate_seal(uncle)
-            self.validate_uncle(block, uncle)
-
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
@@ -691,7 +687,7 @@ class VM(BaseVM):
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
 
-    def validate_uncle(self, block, uncle):
+    def validate_uncle(self, block, uncle, uncle_parent):
         """
         Validate the given uncle in the context of the given block.
         """
@@ -699,19 +695,15 @@ class VM(BaseVM):
             raise ValidationError(
                 "Uncle number ({0}) is higher than block number ({1})".format(
                     uncle.block_number, block.number))
-        try:
-            parent_header = get_block_header_by_hash(uncle.parent_hash, self.chaindb)
-        except HeaderNotFound:
-            raise ValidationError(
-                "Uncle ancestor not found: {0}".format(uncle.parent_hash))
-        if uncle.block_number != parent_header.block_number + 1:
+
+        if uncle.block_number != uncle_parent.block_number + 1:
             raise ValidationError(
                 "Uncle number ({0}) is not one above ancestor's number ({1})".format(
-                    uncle.block_number, parent_header.block_number))
-        if uncle.timestamp < parent_header.timestamp:
+                    uncle.block_number, uncle_parent.block_number))
+        if uncle.timestamp < uncle_parent.timestamp:
             raise ValidationError(
                 "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
-                    uncle.timestamp, parent_header.timestamp))
+                    uncle.timestamp, uncle_parent.timestamp))
         if uncle.gas_used > uncle.gas_limit:
             raise ValidationError(
                 "Uncle's gas usage ({0}) is above the limit ({1})".format(
