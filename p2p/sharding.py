@@ -179,7 +179,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
                 self.collations_received_event.clear()
 
     async def _cleanup(self) -> None:
-        self.peer_pool.unsubscribe(self)
+        pass
 
     def propose(self) -> Collation:
         """Broadcast a new collation to the network, add it to the local shard, and return it."""
