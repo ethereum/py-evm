@@ -133,11 +133,11 @@ class HeaderDB(BaseHeaderDB):
 
     def get_score(self, block_hash: Hash32) -> int:
         try:
-            score = self.db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
+            encoded_score = self.db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
             raise HeaderNotFound("No header with hash {0} found".format(
                 encode_hex(block_hash)))
-        return rlp.decode(score, sedes=rlp.sedes.big_endian_int)
+        return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
     def header_exists(self, block_hash: Hash32) -> bool:
         validate_word(block_hash, title="Block Hash")

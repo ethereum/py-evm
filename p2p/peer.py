@@ -10,14 +10,13 @@ from abc import (
     abstractmethod
 )
 
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
     Dict,
     Generator,
     Iterator,
     List,
-    Optional,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -38,7 +37,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth_typing import BlockNumber, Hash32  # noqa: F401
+from eth_typing import BlockNumber, Hash32
 
 from eth_keys import (
     datatypes,
@@ -146,11 +145,11 @@ class BasePeer(BaseService):
     reply_timeout = REPLY_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    _supported_sub_protocols = []  # type: List[Type[protocol.Protocol]]
+    _supported_sub_protocols: List[Type[protocol.Protocol]] = []
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
-    sub_proto = None  # type: protocol.Protocol
+    sub_proto: protocol.Protocol = None
 
     def __init__(self,
                  remote: Node,
@@ -172,7 +171,7 @@ class BasePeer(BaseService):
         self.base_protocol = P2PProtocol(self)
         self.headerdb = headerdb
         self.network_id = network_id
-        self.sub_proto_msg_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]]  # noqa: E501
+        self.sub_proto_msg_queue: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]] = asyncio.Queue()  # noqa: E501
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -462,12 +461,12 @@ class BasePeer(BaseService):
 class LESPeer(BasePeer):
     max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
-    sub_proto = None  # type: les.LESProtocol
-    head_info = None  # type: les.HeadInfo
+    sub_proto: les.LESProtocol = None
+    head_info: les.HeadInfo = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._pending_replies = {}  # type: Dict[int, Callable[[protocol._DecodedMsgType], None]]
+        self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
 
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)
@@ -594,9 +593,9 @@ class LESPeer(BasePeer):
 
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
-    sub_proto = None  # type: eth.ETHProtocol
-    head_td = None  # type: int
-    head_hash = None  # type: Hash32
+    sub_proto: eth.ETHProtocol = None
+    head_td: int = None
+    head_hash: Hash32 = None
 
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)
@@ -642,8 +641,8 @@ class PeerPool(BaseService):
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
-    _last_lookup = 0  # type: float
-    _lookup_interval = 20  # type: int
+    _last_lookup: float = 0
+    _lookup_interval: int = 20
 
     def __init__(self,
                  peer_class: Type[BasePeer],
@@ -660,8 +659,8 @@ class PeerPool(BaseService):
         self.privkey = privkey
         self.discovery = discovery
         self.min_peers = min_peers
-        self.connected_nodes = {}  # type: Dict[Node, BasePeer]
-        self._subscribers = []  # type: List[PeerPoolSubscriber]
+        self.connected_nodes: Dict[Node, BasePeer] = {}
+        self._subscribers: List[PeerPoolSubscriber] = []
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         return self.discovery.get_random_nodes(self.min_peers)
@@ -711,12 +710,12 @@ class PeerPool(BaseService):
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
         expected_exceptions = (
-            UnreachablePeer,
-            TimeoutError,
-            PeerConnectionLost,
-            HandshakeFailure,
-            EOFError,
             BrokenPipeError,
+            EOFError,
+            HandshakeFailure,
+            PeerConnectionLost,
+            TimeoutError,
+            UnreachablePeer,
         )
         try:
             self.logger.debug("Connecting to %s...", remote)

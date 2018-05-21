@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Awaitable, cast, List  # noqa: F401
+from typing import Any, Awaitable, cast, List
 
 from p2p.exceptions import OperationCancelled
 
@@ -8,7 +8,7 @@ class CancelToken:
 
     def __init__(self, name: str, loop: asyncio.AbstractEventLoop = None) -> None:
         self.name = name
-        self._chain = []  # type: List['CancelToken']
+        self._chain: List['CancelToken'] = []
         self._triggered = asyncio.Event(loop=loop)
         self._loop = loop
 
