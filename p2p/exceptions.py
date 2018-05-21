@@ -87,3 +87,10 @@ class RemoteDisconnected(BaseP2PError):
     Raised when a remote disconnected.
     """
     pass
+
+
+class NoConnectedPeers(BaseP2PError):
+    """
+    Raised when an operation requires a peer connection but we have none.
+    """
+    pass
