@@ -104,7 +104,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
             assert_rlp_equal(block, mined_block)
         else:
             try:
-                (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
+                apply_fixture_block_to_chain(block_fixture, chain)
             except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
                 # failure is expected on this bad block
                 pass
