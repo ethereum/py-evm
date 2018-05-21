@@ -74,7 +74,7 @@ CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, C
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = logging.getLogger("p2p.discovery.DiscoveryProtocol")
-    transport = None  # type: asyncio.DatagramTransport
+    transport: asyncio.DatagramTransport = None
     _max_neighbours_per_packet_cache = None
 
     def __init__(self, privkey: datatypes.PrivateKey, address: kademlia.Address,

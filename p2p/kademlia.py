@@ -8,10 +8,8 @@ import struct
 import time
 from urllib import parse as urlparse
 from functools import total_ordering
-from typing import (  # noqa: F401
-    Any,
+from typing import (
     Callable,
-    cast,
     Dict,
     Generator,
     List,
@@ -141,8 +139,8 @@ class KBucket(Sized):
     def __init__(self, start: int, end: int) -> None:
         self.start = start
         self.end = end
-        self.nodes = []  # type: List[Node]
-        self.replacement_cache = []  # type: List[Node]
+        self.nodes: List[Node] = []
+        self.replacement_cache: List[Node] = []
         self.last_updated = time.time()
 
     @property
@@ -232,7 +230,7 @@ class RoutingTable:
             self.logger.warn(
                 "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
             count = len(self)
-        seen = []  # type: List[Node]
+        seen: List[Node] = []
         # This is a rather inneficient way of randomizing nodes from all buckets, but even if we
         # iterate over all nodes in the routing table, the time it takes would still be
         # insignificant compared to the time it takes for the network roundtrips when connecting
@@ -329,9 +327,9 @@ class KademliaProtocol:
         self.this_node = node
         self.wire = wire
         self.routing = RoutingTable(node)
-        self.pong_callbacks = {}  # type: Dict[bytes, Callable[[], None]]
-        self.ping_callbacks = {}  # type: Dict[Node, Callable[[], None]]
-        self.neighbours_callbacks = {}  # type: Dict[Node, Callable[[List[Node]], None]]
+        self.pong_callbacks: Dict[bytes, Callable[[], None]] = {}
+        self.ping_callbacks: Dict[Node, Callable[[], None]] = {}
+        self.neighbours_callbacks: Dict[Node, Callable[[List[Node]], None]] = {}
 
     def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
         """Process a neighbours response.
@@ -461,7 +459,7 @@ class KademliaProtocol:
                 "There's another coroutine waiting for a neighbours packet from {}".format(remote))
 
         event = asyncio.Event()
-        neighbours = []  # type: List[Node]
+        neighbours: List[Node] = []
 
         def process(response):
             neighbours.extend(response)
@@ -530,8 +528,8 @@ class KademliaProtocol:
         It approaches the target by querying nodes that are closer to it on each iteration.  The
         given target does not need to be an actual node identifier.
         """
-        nodes_asked = set()  # type: Set[Node]
-        nodes_seen = set()   # type: Set[Node]
+        nodes_asked: Set[Node] = set()
+        nodes_seen: Set[Node] = set()
 
         async def _find_node(node_id, remote):
             # Short-circuit in case our token has been triggered to avoid trying to send requests

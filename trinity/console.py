@@ -23,16 +23,14 @@ DEFAULT_BANNER = (
 def ipython_shell(namespace, banner):
     """Try to run IPython shell."""
     try:
-        import IPython  # noqa: F401
+        import IPython
     except ImportError:
         raise ImportError(
             "The IPython library is not available.  Make sure IPython is "
             "installed or re-run with --vanilla-shell"
         )
 
-    from IPython.terminal.embed import InteractiveShellEmbed
-
-    return InteractiveShellEmbed(user_ns=namespace, banner1=banner)
+    return IPython.terminal.embed.InteractiveShellEmbed(user_ns=namespace, banner1=banner)
 
 
 def python_shell(namespace, banner):

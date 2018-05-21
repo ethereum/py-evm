@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
-import logging  # noqa: F401
+import logging
 from typing import Callable, Optional
 
 from p2p.cancel_token import CancelToken

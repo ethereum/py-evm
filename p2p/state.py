@@ -2,7 +2,7 @@ import asyncio
 import logging
 import secrets
 import time
-from typing import (  # noqa: F401
+from typing import (
     Any,
     cast,
     Dict,
@@ -40,11 +40,11 @@ from p2p.service import BaseService
 
 class StateDownloader(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.state.StateDownloader")
-    _pending_nodes = {}  # type: Dict[Any, float]
+    _pending_nodes: Dict[Any, float] = {}
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
     _reply_timeout = 20  # seconds
-    _start_time = None  # type: float
+    _start_time: float = None
     _total_timeouts = 0
 
     def __init__(self,
@@ -56,8 +56,8 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.peer_pool = peer_pool
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
-        self._running_peers = set()  # type: Set[ETHPeer]
-        self._peers_with_pending_requests = {}  # type: Dict[ETHPeer, float]
+        self._running_peers: Set[ETHPeer] = set()
+        self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
