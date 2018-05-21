@@ -1,9 +1,6 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import logging
-from multiprocessing.managers import (
-    BaseManager,
-)
 import signal
 import sys
 from typing import Type
@@ -17,23 +14,13 @@ from evm.chains.ropsten import (
 from evm.db.backends.base import BaseDB
 from evm.db.backends.level import LevelDB
 
-from p2p.discovery import DiscoveryProtocol
-from p2p.kademlia import Address
-from p2p.peer import (
-    LESPeer,
-    PreferredNodePeerPool,
-)
 from p2p.server import Server
 from p2p.service import BaseService
 
 from trinity.chains import (
-    ChainProxy,
     initialize_data_dir,
     is_data_dir_initialized,
     serve_chaindb,
-)
-from trinity.chains.header import (
-    AsyncHeaderChainProxy,
 )
 from trinity.console import (
     console,
@@ -41,9 +28,6 @@ from trinity.console import (
 from trinity.constants import (
     SYNC_LIGHT,
 )
-from trinity.db.chain import ChainDBProxy
-from trinity.db.base import DBProxy
-from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
@@ -165,27 +149,6 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
     serve_chaindb(chain_config, base_db)
 
 
-def create_dbmanager(ipc_path: str) -> BaseManager:
-    """
-    We're still using 'str' here on param ipc_path because an issue with
-    multi-processing not being able to interpret 'Path' objects correctly
-    """
-    class DBManager(BaseManager):
-        pass
-
-    # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
-    # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-    DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
-    DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
-    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
-    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
-
-    manager = DBManager(address=ipc_path)  # type: ignore
-    manager.connect()  # type: ignore
-    return manager
-
-
 async def exit_on_signal(service_to_exit: BaseService) -> None:
     loop = asyncio.get_event_loop()
     sigint_received = asyncio.Event()
@@ -213,24 +176,8 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     )
     logger.info('network: %s', chain_config.network_id)
 
-    manager = create_dbmanager(chain_config.database_ipc_path)
-    headerdb = manager.get_headerdb()  # type: ignore
-
     NodeClass = chain_config.node_class
-    discovery = DiscoveryProtocol(
-        chain_config.nodekey,
-        Address('0.0.0.0', chain_config.port, chain_config.port),
-        bootstrap_nodes=chain_config.bootstrap_nodes,
-    )
-    peer_pool = PreferredNodePeerPool(
-        LESPeer,
-        headerdb,
-        chain_config.network_id,
-        chain_config.nodekey,
-        discovery,
-        preferred_nodes=chain_config.preferred_nodes,
-    )
-    node = NodeClass(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
+    node = NodeClass(chain_config)
 
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(loop.create_datagram_endpoint(
