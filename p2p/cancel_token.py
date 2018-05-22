@@ -1,7 +1,10 @@
 import asyncio
 from typing import Any, Awaitable, cast, List
 
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import (
+    EventLoopMismatch,
+    OperationCancelled,
+)
 
 
 class CancelToken:
@@ -19,6 +22,8 @@ class CancelToken:
         called on either of the chained tokens, but calling trigger() on the new token
         has no effect on either of the chained tokens.
         """
+        if self._loop != token._loop:
+            raise EventLoopMismatch("Chained CancelToken objects must be on the same event loop")
         chain_name = ":".join([self.name, token.name])
         chain = CancelToken(chain_name, loop=self._loop)
         chain._chain.extend([self, token])
