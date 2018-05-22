@@ -100,4 +100,10 @@ class EventLoopMismatch(BaseP2PError):
     """
     Raised when two different asyncio event loops are referenced, but must be equal
     """
+
+
+class NoEligibleNodes(BaseP2PError):
+    """
+    Raised when there are no nodes which meet some filter criteria
+    """
     pass

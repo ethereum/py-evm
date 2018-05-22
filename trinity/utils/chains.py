@@ -1,10 +1,9 @@
 import os
+from pathlib import PurePath
 from typing import (
     Tuple,
     Union,
 )
-
-from pathlib import PurePath
 
 from eth_utils import (
     decode_hex,
@@ -129,6 +128,7 @@ class ChainConfig:
     _network_id: int = None
 
     port: int = None
+    preferred_nodes: Tuple[Node, ...] = None
 
     bootstrap_nodes: Tuple[Node, ...] = None
 
@@ -139,10 +139,12 @@ class ChainConfig:
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
                  port: int=30303,
+                 preferred_nodes: Tuple[Node, ...]=None,
                  bootstrap_nodes: Tuple[Node, ...]=None) -> None:
         self.network_id = network_id
         self.sync_mode = sync_mode
         self.port = port
+        self.preferred_nodes = preferred_nodes
 
         if bootstrap_nodes is None:
             if self.network_id == MAINNET_NETWORK_ID:
@@ -270,3 +272,8 @@ def construct_chain_config_params(args):
 
     if args.port is not None:
         yield 'port', args.port
+
+    if args.preferred_nodes is None:
+        yield 'preferred_nodes', args.preferred_nodes
+    else:
+        yield 'preferred_nodes', tuple(args.preferred_nodes)

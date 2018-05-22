@@ -17,9 +17,11 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.discovery import DiscoveryProtocol
+from p2p.kademlia import Address
 from p2p.peer import (
     LESPeer,
-    HardCodedNodesPeerPool,
+    PreferredNodePeerPool,
 )
 from p2p.server import Server
 from p2p.service import BaseService
@@ -228,15 +230,31 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-    discovery = None
-    peer_pool = HardCodedNodesPeerPool(
-        LESPeer, headerdb, chain_config.network_id, chain_config.nodekey, discovery)
+    discovery = DiscoveryProtocol(
+        chain_config.nodekey,
+        Address('0.0.0.0', chain_config.port, chain_config.port),
+        bootstrap_nodes=chain_config.bootstrap_nodes,
+    )
+    peer_pool = PreferredNodePeerPool(
+        LESPeer,
+        headerdb,
+        chain_config.network_id,
+        chain_config.nodekey,
+        discovery,
+        preferred_nodes=chain_config.preferred_nodes,
+    )
     node = node_class(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
 
     loop = asyncio.get_event_loop()
+    asyncio.ensure_future(loop.create_datagram_endpoint(
+        lambda: discovery,
+        local_addr=('0.0.0.0', chain_config.port)
+    ))
+    asyncio.ensure_future(discovery.bootstrap())
     asyncio.ensure_future(exit_on_signal(node))
     asyncio.ensure_future(node.run())
     loop.run_forever()
+
     loop.close()
 
 
@@ -252,7 +270,7 @@ def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
     chaindb = manager.get_chaindb()  # type: ignore
     chain = manager.get_chain()  # type: ignore
 
-    peer_pool_class = HardCodedNodesPeerPool
+    peer_pool_class = PreferredNodePeerPool
     server = Server(
         chain_config.nodekey,
         port,
