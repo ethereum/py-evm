@@ -14,8 +14,11 @@ from evm.utils.numeric import (
     big_endian_to_int,
 )
 
-from eth_typing import Hash32
-from typing import List, Union
+from typing import (  # noqa: F401
+    List,
+    Union
+)
+from eth_typing import Hash32  # noqa: F401
 
 
 class Stack(object):
