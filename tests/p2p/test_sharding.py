@@ -6,11 +6,21 @@ from evm.chains.shard import Shard
 from evm.db.backends.memory import MemoryDB
 from evm.db.shard import ShardDB
 
+from evm.utils.blobs import (
+    calc_chunk_root,
+)
+from evm.utils.padding import (
+    zpad_right,
+)
+
 from p2p.sharding import (
     Collations,
     ShardingPeer,
     ShardingProtocol,
     ShardSyncer,
+)
+from p2p.cancel_token import (
+    CancelToken,
 )
 
 from p2p.exceptions import (
@@ -81,7 +91,8 @@ async def test_invalid_handshake():
 
 
 @pytest.mark.asyncio
-async def test_sending_collations(request, event_loop):
+async def test_collation_requests(request, event_loop):
+    # setup two peers
     sender, receiver = await get_directly_linked_peers(
         request,
         event_loop,
@@ -90,21 +101,66 @@ async def test_sending_collations(request, event_loop):
         ShardingPeer,
         None,
     )
+    receiver_peer_pool = MockPeerPoolWithConnectedPeers([receiver])
 
-    c1 = Collation(CollationHeader(0, b"\x11" * 32, 2, b"\x33" * 20), b"\x44" * COLLATION_SIZE)
-    c2 = Collation(CollationHeader(1, b"\x11" * 32, 2, b"\x33" * 20), b"\x44" * COLLATION_SIZE)
-    c3 = Collation(CollationHeader(2, b"\x11" * 32, 2, b"\x33" * 20), b"\x44" * COLLATION_SIZE)
+    # setup shard db for request receiving node
+    receiver_db = ShardDB(MemoryDB())
+    receiver_shard = Shard(receiver_db, 0)
 
-    sender.sub_proto.send_collations([c1])
-    received_c1 = await asyncio.wait_for(receiver.incoming_collation_queue.get(), timeout=1)
-    assert received_c1 == c1
-    assert receiver.known_collation_hashes == set([c1.hash])
+    # create three collations and add two to the shard of the receiver
+    # body is shared to avoid unnecessary chunk root calculation
+    body = zpad_right(b"body", COLLATION_SIZE)
+    chunk_root = calc_chunk_root(body)
+    c1 = Collation(CollationHeader(0, chunk_root, 0, zpad_right(b"proposer1", 20)), body)
+    c2 = Collation(CollationHeader(0, chunk_root, 1, zpad_right(b"proposer2", 20)), body)
+    c3 = Collation(CollationHeader(0, chunk_root, 2, zpad_right(b"proposer3", 20)), body)
+    for collation in [c1, c2]:
+        receiver_shard.add_collation(collation)
 
-    sender.sub_proto.send_collations([c2, c3])
-    received_c2 = await asyncio.wait_for(receiver.incoming_collation_queue.get(), timeout=1)
-    received_c3 = await asyncio.wait_for(receiver.incoming_collation_queue.get(), timeout=1)
-    assert set([received_c2, received_c3]) == set([c2, c3])
-    assert receiver.known_collation_hashes == set([c1.hash, c2.hash, c3.hash])
+    # start shard syncer
+    receiver_syncer = ShardSyncer(receiver_shard, receiver_peer_pool)
+    asyncio.ensure_future(receiver_syncer.run())
+
+    def finalizer():
+        event_loop.run_until_complete(receiver_syncer.cancel())
+    request.addfinalizer(finalizer)
+
+    cancel_token = CancelToken("test")
+
+    # request single collation
+    received_collations = await asyncio.wait_for(
+        sender.get_collations([c1.hash], cancel_token),
+        timeout=1,
+    )
+    assert received_collations == set([c1])
+
+    # request multiple collations
+    received_collations = await asyncio.wait_for(
+        sender.get_collations([c1.hash, c2.hash], cancel_token),
+        timeout=1,
+    )
+    assert received_collations == set([c1, c2])
+
+    # request no collations
+    received_collations = await asyncio.wait_for(
+        sender.get_collations([], cancel_token),
+        timeout=1,
+    )
+    assert received_collations == set()
+
+    # request unknown collation
+    received_collations = await asyncio.wait_for(
+        sender.get_collations([c3.hash], cancel_token),
+        timeout=1,
+    )
+    assert received_collations == set()
+
+    # request multiple collations, including unknown one
+    received_collations = await asyncio.wait_for(
+        sender.get_collations([c1.hash, c2.hash, c3.hash], cancel_token),
+        timeout=1,
+    )
+    assert received_collations == set([c1, c2])
 
 
 @pytest.mark.asyncio
