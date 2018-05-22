@@ -7,11 +7,26 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.kademlia import Node
+
 from trinity import __version__
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
+
+
+class ValidateAndStoreEnodes(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values is None:
+            return
+
+        enode = Node.from_uri(values)
+
+        if getattr(namespace, self.dest) is None:
+            setattr(namespace, self.dest, [])
+        enode_list = getattr(namespace, self.dest)
+        enode_list.append(enode)
 
 
 DEFAULT_LOG_LEVEL = 'info'
@@ -89,6 +104,16 @@ networkid_parser.add_argument(
     help=(
         "Ropsten network: pre configured proof-of-work test network.  Shortcut "
         "for `--networkid=3`"
+    ),
+)
+
+network_parser.add_argument(
+    '--preferred-node',
+    action=ValidateAndStoreEnodes,
+    dest="preferred_nodes",
+    help=(
+        "An enode address which will be 'preferred' above nodes found using the "
+        "discovery protocol"
     ),
 )
 
