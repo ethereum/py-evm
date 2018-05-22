@@ -5,15 +5,16 @@ from multiprocessing.managers import (
     BaseManager,
 )
 from threading import Thread
-from typing import Type
+from typing import List, Type
 
-from eth_keys.datatypes import PrivateKey
 from evm.chains.base import BaseChain
 from evm.db.header import BaseHeaderDB
-from p2p.peer import PeerPool
 from p2p.service import (
     BaseService,
     EmptyService,
+)
+from p2p.utils import (
+    RunningServices,
 )
 from trinity.chains import (
     ChainProxy,
@@ -38,11 +39,11 @@ from trinity.utils.chains import (
 class Node(BaseService):
     """
     Create usable nodes by adding subclasses that define the following
-    unset attributes...
+    unset attributes.
     """
-
     chain_class: Type[BaseChain] = None
-    peer_chain_class: Type[BaseService] = None
+
+    _peer_service: BaseService = None
 
     def __init__(self, chain_config: ChainConfig) -> None:
         super().__init__()
@@ -51,15 +52,18 @@ class Node(BaseService):
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = chain_config.jsonrpc_ipc_path
-        self._peer_pool = self.create_peer_pool(chain_config.network_id, chain_config.nodekey)
-        self._peer_chain = self.peer_chain_class(self._headerdb, self._peer_pool)
+        self._auxiliary_services: List[BaseService] = []
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
         raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
-    def create_peer_pool(self, network_id: int, node_key: PrivateKey) -> PeerPool:
+    def get_peer_service(self) -> BaseService:
+        """
+        This is the main service that will be run, when calling :meth:`run`.
+        It's typically responsible for syncing the chain, with peer connections.
+        """
         raise NotImplementedError("Node classes must implement this method")
 
     @property
@@ -69,6 +73,9 @@ class Node(BaseService):
     @property
     def headerdb(self) -> BaseHeaderDB:
         return self._headerdb
+
+    def add_service(self, service: BaseService) -> None:
+        self._auxiliary_services.append(service)
 
     def make_ipc_server(self) -> IPCServer:
         if self._jsonrpc_ipc_path:
@@ -89,15 +96,15 @@ class Node(BaseService):
         self._ipc_server, self._ipc_loop = ipc_server, ipc_loop
 
         try:
-            asyncio.ensure_future(self._peer_pool.run())
             asyncio.run_coroutine_threadsafe(ipc_server.run(loop=ipc_loop), loop=ipc_loop)
-            await self._peer_chain.run()
+
+            async with RunningServices(self._auxiliary_services):
+                await self.get_peer_service().run()
         finally:
             await ipc_server.stop()
-            await self._peer_pool.cancel()
 
     async def _cleanup(self):
-        await self._peer_chain.stop()
+        await self.get_peer_service().stop()
 
     def _make_new_loop_thread(self):
         new_loop = asyncio.new_event_loop()

@@ -9,30 +9,44 @@ from p2p.peer import (
     PeerPool,
     PreferredNodePeerPool,
 )
+from p2p.service import (
+    BaseService,
+)
 
 from trinity.chains.light import (
     LightDispatchChain,
 )
-
 from trinity.nodes.base import Node
+from trinity.utils.chains import (
+    ChainConfig,
+)
 
 
 class LightNode(Node):
-    peer_chain_class = LightPeerChain
     chain_class: Type[LightDispatchChain] = None
 
     _chain: LightDispatchChain = None
+
+    def __init__(self, chain_config: ChainConfig) -> None:
+        super().__init__(chain_config)
+
+        self._peer_pool = self._create_peer_pool(chain_config)
+        self.add_service(self._peer_pool)
 
     def get_chain(self) -> LightDispatchChain:
         if self._chain is None:
             if self.chain_class is None:
                 raise AttributeError("LightNode subclass must set chain_class")
-            peer_chain = self._peer_chain
-            self._chain = self.chain_class(self._headerdb, peer_chain=peer_chain)
+            self._chain = self.chain_class(self._headerdb, peer_chain=self.get_peer_service())
 
         return self._chain
 
-    def create_peer_pool(self, network_id: int, node_key: PrivateKey) -> PeerPool:
+    def get_peer_service(self) -> BaseService:
+        if self._peer_service is None:
+            self._peer_service = LightPeerChain(self.headerdb, self._peer_pool)
+        return self._peer_service
+
+    def _create_peer_pool(self, chain_config: ChainConfig) -> PeerPool:
         discovery = DiscoveryProtocol(
             chain_config.nodekey,
             Address('0.0.0.0', chain_config.port, chain_config.port),
@@ -41,8 +55,8 @@ class LightNode(Node):
         return PreferredNodePeerPool(
             LESPeer,
             self.headerdb,
-            network_id,
-            node_key,
+            chain_config.network_id,
+            chain_config.nodekey,
             discovery,
             preferred_nodes=chain_config.preferred_nodes,
         )

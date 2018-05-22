@@ -1,8 +1,12 @@
+import asyncio
 import os
+from typing import List
 
 import rlp
 
 from evm.utils.numeric import big_endian_to_int
+
+from p2p.service import BaseService
 
 
 def sxor(s1: bytes, s2: bytes) -> bytes:
@@ -30,3 +34,16 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     as an integer.
     """
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
+
+
+class RunningServices:
+    def __init__(self, services: List[BaseService]) -> None:
+        self.services = services
+
+    async def __aenter__(self):
+        for service in self.services:
+            asyncio.ensure_future(service.run())
+
+    async def __aexit__(self, exc_type, exc, tb):
+        service_cancellations = [service.cancel() for service in self.services]
+        await asyncio.gather(*service_cancellations, return_exceptions=True)
