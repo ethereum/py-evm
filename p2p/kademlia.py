@@ -321,7 +321,7 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
 
 
 class KademliaProtocol:
-    logger = logging.getLogger("p2p.discovery.KademliaProtocol")
+    logger = logging.getLogger("p2p.kademlia.KademliaProtocol")
 
     def __init__(self, node: Node, wire: 'DiscoveryProtocol') -> None:
         self.this_node = node
