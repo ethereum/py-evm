@@ -22,6 +22,7 @@ from p2p.peer import (
     HardCodedNodesPeerPool,
 )
 from p2p.server import Server
+from p2p.service import BaseService
 
 from trinity.chains import (
     ChainProxy,
@@ -29,11 +30,11 @@ from trinity.chains import (
     is_data_dir_initialized,
     serve_chaindb,
 )
-from trinity.chains.mainnet import (
-    MainnetLightPeerChain,
+from trinity.nodes.mainnet import (
+    MainnetLightNode,
 )
-from trinity.chains.ropsten import (
-    RopstenLightPeerChain,
+from trinity.nodes.ropsten import (
+    RopstenLightNode,
 )
 from trinity.chains.header import (
     AsyncHeaderChainProxy,
@@ -49,12 +50,6 @@ from trinity.db.base import DBProxy
 from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
-)
-from trinity.rpc.main import (
-    RPCServer,
-)
-from trinity.rpc.ipc import (
-    IPCServer,
 )
 from trinity.utils.chains import (
     ChainConfig,
@@ -195,6 +190,20 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     return manager
 
 
+async def exit_on_signal(service_to_exit: BaseService) -> None:
+    loop = asyncio.get_event_loop()
+    sigint_received = asyncio.Event()
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        # TODO replace with OS-independent solution:
+        loop.add_signal_handler(sig, sigint_received.set)
+
+    await sigint_received.wait()
+    try:
+        await service_to_exit.cancel()
+    finally:
+        loop.stop()
+
+
 @with_queued_logging
 def run_lightnode_process(chain_config: ChainConfig) -> None:
     logger = logging.getLogger('trinity')
@@ -212,9 +221,9 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     headerdb = manager.get_headerdb()  # type: ignore
 
     if chain_config.network_id == MAINNET_NETWORK_ID:
-        chain_class = MainnetLightPeerChain  # type: ignore
+        node_class = MainnetLightNode
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        chain_class = RopstenLightPeerChain  # type: ignore
+        node_class = RopstenLightNode
     else:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
@@ -222,26 +231,12 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     discovery = None
     peer_pool = HardCodedNodesPeerPool(
         LESPeer, headerdb, chain_config.network_id, chain_config.nodekey, discovery)
-    chain = chain_class(headerdb, peer_pool)
+    node = node_class(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
 
     loop = asyncio.get_event_loop()
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, chain.cancel_token.trigger)
-
-    rpc = RPCServer(chain)
-    ipc_server = IPCServer(rpc, chain_config.jsonrpc_ipc_path)
-
-    async def run_chain(chain):
-        try:
-            asyncio.ensure_future(chain.peer_pool.run())
-            asyncio.ensure_future(ipc_server.run())
-            await chain.run()
-        finally:
-            await ipc_server.stop()
-            await chain.peer_pool.cancel()
-            await chain.stop()
-
-    loop.run_until_complete(run_chain(chain))
+    asyncio.ensure_future(exit_on_signal(node))
+    asyncio.ensure_future(node.run())
+    loop.run_forever()
     loop.close()
 
 
@@ -274,16 +269,7 @@ def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
     # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the
     # main thread.
     loop.set_default_executor(ProcessPoolExecutor())
-    sigint_received = asyncio.Event()
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, sigint_received.set)
-
-    async def exit_on_sigint():
-        await sigint_received.wait()
-        await server.cancel()
-        loop.stop()
-
-    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(exit_on_signal(server))
     asyncio.ensure_future(server.run())
     loop.run_forever()
     loop.close()

@@ -58,7 +58,7 @@ def block_to_dict(block, chain, include_transactions):
 
     block_dict = dict(
         header_dict,
-        totalDifficulty=hex(chain.chaindb.get_score(block.hash)),
+        totalDifficulty=hex(chain.get_score(block.hash)),
         uncles=[encode_hex(uncle.hash) for uncle in block.uncles],
         size=hex(len(rlp.encode(block))),
     )

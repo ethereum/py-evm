@@ -42,6 +42,9 @@ from evm.db.chain import (
     BaseChainDB,
     ChainDB,
 )
+from evm.db.header import (
+    HeaderDB,
+)
 from evm.constants import (
     BLANK_ROOT_HASH,
     MAX_UNCLE_DEPTH,
@@ -176,6 +179,10 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     def get_canonical_head(self):
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
+    def get_score(self, block_hash):
+        raise NotImplementedError("Chain classes must implement this method")
+
     #
     # Block API
     #
@@ -275,6 +282,7 @@ class Chain(BaseChain):
             validate_vm_configuration(self.vm_configuration)
 
         self.chaindb = self.get_chaindb_class()(base_db)
+        self.headerdb = HeaderDB(base_db)
         self.header = header
         if self.header is None:
             self.header = self.create_header_from_parent(self.get_canonical_head())
@@ -400,6 +408,14 @@ class Chain(BaseChain):
         Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
         """
         return self.chaindb.get_canonical_head()
+
+    def get_score(self, block_hash):
+        """
+        Returns the difficulty score of the block with the given hash.
+
+        Raises HeaderNotFound if there is no matching black hash.
+        """
+        return self.headerdb.get_score(block_hash)
 
     #
     # Block API

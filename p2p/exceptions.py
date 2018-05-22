@@ -94,3 +94,10 @@ class NoConnectedPeers(BaseP2PError):
     Raised when an operation requires a peer connection but we have none.
     """
     pass
+
+
+class EventLoopMismatch(BaseP2PError):
+    """
+    Raised when two different asyncio event loops are referenced, but must be equal
+    """
+    pass

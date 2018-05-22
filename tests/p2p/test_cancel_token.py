@@ -4,7 +4,10 @@ import functools
 import pytest
 
 from p2p.cancel_token import CancelToken, wait_with_token
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import (
+    EventLoopMismatch,
+    OperationCancelled,
+)
 
 
 def test_token_single():
@@ -13,6 +16,13 @@ def test_token_single():
     token.trigger()
     assert token.triggered
     assert token.triggered_token == token
+
+
+def test_token_chain_event_loop_mismatch():
+    token = CancelToken('token')
+    token2 = CancelToken('token2', loop=asyncio.new_event_loop())
+    with pytest.raises(EventLoopMismatch):
+        token.chain(token2)
 
 
 def test_token_chain_trigger_chain():

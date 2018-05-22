@@ -6,9 +6,11 @@ import pytest
 import rlp
 from rlp import sedes
 
+from evm.chains.mainnet import BaseMainnetChain
 from evm.db.backends.memory import MemoryDB
 from evm.rlp.headers import BlockHeader
 
+from p2p.lightchain import LightPeerChain
 from p2p.les import (
     LESProtocol,
     Announce,
@@ -25,7 +27,9 @@ from peer_helpers import (
     get_fresh_mainnet_headerdb,
 )
 
-from trinity.chains.mainnet import MainnetLightPeerChain
+
+class MainnetLightPeerChain(BaseMainnetChain, LightPeerChain):
+    pass
 
 
 # A full header sync may involve several round trips, so we must be willing to wait a little bit
@@ -242,6 +246,9 @@ class MockPeerPool:
         pass
 
     def subscribe(self, subscriber):
+        pass
+
+    def unsubscribe(self, subscriber):
         pass
 
     async def run(self):

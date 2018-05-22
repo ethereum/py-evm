@@ -1,15 +1,19 @@
 import asyncio
-from typing import Any, Awaitable, cast, List  # noqa: F401
+from typing import Any, Awaitable, cast, List
 
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import (
+    EventLoopMismatch,
+    OperationCancelled,
+)
 
 
 class CancelToken:
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, loop: asyncio.AbstractEventLoop = None) -> None:
         self.name = name
-        self._chain = []  # type: List['CancelToken']
-        self._triggered = asyncio.Event()
+        self._chain: List['CancelToken'] = []
+        self._triggered = asyncio.Event(loop=loop)
+        self._loop = loop
 
     def chain(self, token: 'CancelToken') -> 'CancelToken':
         """Return a new CancelToken chaining this and the given token.
@@ -18,8 +22,10 @@ class CancelToken:
         called on either of the chained tokens, but calling trigger() on the new token
         has no effect on either of the chained tokens.
         """
+        if self._loop != token._loop:
+            raise EventLoopMismatch("Chained CancelToken objects must be on the same event loop")
         chain_name = ":".join([self.name, token.name])
-        chain = CancelToken(chain_name)
+        chain = CancelToken(chain_name, loop=self._loop)
         chain._chain.extend([self, token])
         return chain
 
@@ -52,16 +58,16 @@ class CancelToken:
         if self.triggered_token is not None:
             return
 
-        futures = [asyncio.ensure_future(self._triggered.wait())]
+        futures = [asyncio.ensure_future(self._triggered.wait(), loop=self._loop)]
         for token in self._chain:
-            futures.append(asyncio.ensure_future(token.wait()))
+            futures.append(asyncio.ensure_future(token.wait(), loop=self._loop))
 
         def cancel_pending(f):
             for future in futures:
                 if not future.done():
                     future.cancel()
 
-        fut = asyncio.ensure_future(_wait_for_first(futures))
+        fut = asyncio.ensure_future(_wait_for_first(futures), loop=self._loop)
         fut.add_done_callback(cancel_pending)
         await fut
 
