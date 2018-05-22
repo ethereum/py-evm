@@ -11,10 +11,6 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from .constants import (
-    CLIENT_VERSION_STRING,
-)
-
 
 class Hello(Command):
     _cmd_id = 0
@@ -80,8 +76,10 @@ class P2PProtocol(Protocol):
         super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
 
     def send_handshake(self):
+        # TODO: move import out once this is in the trinity codebase
+        from trinity.utils.version import construct_trinity_client_identifier
         data = dict(version=self.version,
-                    client_version_string=CLIENT_VERSION_STRING,
+                    client_version_string=construct_trinity_client_identifier(),
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
