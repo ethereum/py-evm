@@ -1,5 +1,3 @@
-CLIENT_VERSION_STRING = "Trinity"
-
 SUPPORTED_RLPX_VERSION = 4
 
 # Overhead added by ECIES encryption
