@@ -9,6 +9,7 @@ from evm.exceptions import (
 from trinity.rpc.modules import (
     Eth,
     EVM,
+    Personal,
     RPCModule,
 )
 
@@ -55,6 +56,7 @@ class RPCServer:
     module_classes = (
         Eth,
         EVM,
+        Personal,
     )
 
     def __init__(self, chain):
