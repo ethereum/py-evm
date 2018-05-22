@@ -17,8 +17,10 @@ class Message(object):
     """
     A message for VM computation.
     """
-    __slots__ = ['to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
-                'create_address', 'should_transfer_value', 'is_static', '_storage_address']
+    __slots__ = [
+        'to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
+        'create_address', 'should_transfer_value', 'is_static', '_storage_address'
+    ]
 
     logger = logging.getLogger('evm.vm.message.Message')
 
@@ -35,7 +37,7 @@ class Message(object):
                  should_transfer_value=True,
                  is_static=False):
         validate_uint256(gas, title="Message.gas")
-        self.gas = gas # type: int
+        self.gas = gas  # type: int
 
         if to != CREATE_CONTRACT_ADDRESS:
             validate_canonical_address(to, title="Message.to")
