@@ -259,8 +259,16 @@ def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
 
     peer_pool_class = HardCodedNodesPeerPool
     server = Server(
-        chain_config.nodekey, port, chain, chaindb, headerdb, db, chain_config.network_id,
-        peer_pool_class=peer_pool_class)
+        chain_config.nodekey,
+        port,
+        chain,
+        chaindb,
+        headerdb,
+        db,
+        chain_config.network_id,
+        peer_pool_class=peer_pool_class,
+        bootstrap_nodes=chain_config.bootstrap_nodes,
+    )
 
     loop = asyncio.get_event_loop()
     # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the

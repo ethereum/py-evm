@@ -6,7 +6,7 @@ import secrets
 import socket
 from typing import (
     cast,
-    List,
+    Tuple,
     Type,
     TYPE_CHECKING,
 )
@@ -20,12 +20,6 @@ from eth_keys import datatypes
 from eth_utils import big_endian_to_int
 
 from evm.chains import AsyncChain
-from evm.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-)
-from evm.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
-)
 from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
 
@@ -40,9 +34,7 @@ from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
     DEFAULT_MIN_PEERS,
     HASH_LEN,
-    MAINNET_BOOTNODES,
     REPLY_TIMEOUT,
-    ROPSTEN_BOOTNODES,
 )
 from p2p.discovery import DiscoveryProtocol
 from p2p.exceptions import (
@@ -85,7 +77,7 @@ class Server(BaseService):
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
                  peer_pool_class: Type[PeerPool] = PeerPool,
-                 bootstrap_nodes: List[str] = [],
+                 bootstrap_nodes: Tuple[Node, ...] = None,
                  ) -> None:
         super().__init__()
         self.headerdb = headerdb
@@ -98,14 +90,10 @@ class Server(BaseService):
         self.peer_class = peer_class
         self.peer_pool_class = peer_pool_class
         self.min_peers = min_peers
+        self.bootstrap_nodes = bootstrap_nodes
+
         if not bootstrap_nodes:
-            if self.network_id == MAINNET_NETWORK_ID:
-                self.bootstrap_nodes = MAINNET_BOOTNODES
-            elif self.network_id == ROPSTEN_NETWORK_ID:
-                self.bootstrap_nodes = ROPSTEN_BOOTNODES
-            else:
-                self.logger.warn("No bootstrap nodes for network id: {}".format(network_id))
-                self.bootstrap_nodes = []
+            self.logger.warn("Running with no bootstrap nodes")
 
     async def refresh_nat_portmap(self) -> None:
         """Run an infinite loop refreshing our NAT port mapping.

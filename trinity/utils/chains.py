@@ -1,4 +1,8 @@
 import os
+from typing import (
+    Tuple,
+    Union,
+)
 
 from pathlib import PurePath
 
@@ -17,6 +21,12 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.kademlia import Node
+from p2p.constants import (
+    MAINNET_BOOTNODES,
+    ROPSTEN_BOOTNODES,
+)
+
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
@@ -24,8 +34,6 @@ from trinity.constants import (
 from .xdg import (
     get_xdg_trinity_root,
 )
-
-from typing import Union
 
 
 DEFAULT_DATA_DIRS = {
@@ -122,16 +130,31 @@ class ChainConfig:
 
     port: int = None
 
+    bootstrap_nodes: Tuple[Node, ...] = None
+
     def __init__(self,
                  network_id: int,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
-                 port: int=30303) -> None:
+                 port: int=30303,
+                 bootstrap_nodes: Tuple[Node, ...]=None) -> None:
         self.network_id = network_id
         self.sync_mode = sync_mode
         self.port = port
+
+        if bootstrap_nodes is None:
+            if self.network_id == MAINNET_NETWORK_ID:
+                self.bootstrap_nodes = tuple(
+                    Node.from_uri(enode) for enode in MAINNET_BOOTNODES
+                )
+            elif self.network_id == ROPSTEN_NETWORK_ID:
+                self.bootstrap_nodes = tuple(
+                    Node.from_uri(enode) for enode in ROPSTEN_BOOTNODES
+                )
+        else:
+            self.bootstrap_nodes = bootstrap_nodes
 
         # validation
         if nodekey is not None and nodekey_path is not None:

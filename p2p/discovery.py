@@ -77,11 +77,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     transport: asyncio.DatagramTransport = None
     _max_neighbours_per_packet_cache = None
 
-    def __init__(self, privkey: datatypes.PrivateKey, address: kademlia.Address,
-                 bootstrap_nodes: List[str]) -> None:
+    def __init__(self,
+                 privkey: datatypes.PrivateKey,
+                 address: kademlia.Address,
+                 bootstrap_nodes: Tuple[kademlia.Node, ...]) -> None:
         self.privkey = privkey
         self.address = address
-        self.bootstrap_nodes = [kademlia.Node.from_uri(node) for node in bootstrap_nodes]
+        self.bootstrap_nodes = bootstrap_nodes
         self.this_node = kademlia.Node(self.pubkey, address)
         self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
         self.cancel_token = CancelToken('DiscoveryProtocol')
@@ -308,9 +310,12 @@ def _test():
     listen_port = 30303
     privkey = ecies.generate_privkey()
     addr = kademlia.Address(listen_host, listen_port, listen_port)
-    discovery = DiscoveryProtocol(privkey, addr, constants.ROPSTEN_BOOTNODES)
+    bootstrap_nodes = tuple(
+        kademlia.Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES
+    )
+    discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
     # local_bootnodes = [
-    #     'enode://0x3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30303']  # noqa: E501
+    #     kademlia.Node.from_uri('enode://0x3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30303')]  # noqa: E501
     # discovery = DiscoveryProtocol(privkey, addr, local_bootnodes)
     loop.run_until_complete(
         loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port)))
