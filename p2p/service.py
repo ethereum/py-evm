@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import asyncio
+from collections import UserList
 import logging
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
@@ -16,6 +17,7 @@ class BaseService(ABC):
         if self.logger is None:
             self.logger = logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
 
+        self._run_lock = asyncio.Lock()
         self.finished = asyncio.Event()
 
         base_token = CancelToken(type(self).__name__)
@@ -32,8 +34,14 @@ class BaseService(ABC):
         Once _run() returns, set the finished event, call cleanup() and
         finished_callback (if one was passed).
         """
+        if self.is_running:
+            raise RuntimeError("Cannot start the service while it's already running")
+        elif self.is_finished:
+            raise RuntimeError("Cannot restart a service after it has completed")
+
         try:
-            await self._run()
+            async with self._run_lock:
+                await self._run()
         except OperationCancelled as e:
             self.logger.info("%s finished: %s", self, e)
         except Exception:
@@ -41,19 +49,26 @@ class BaseService(ABC):
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:
-            # Set self.finished before anything else so that other coroutines started by this
-            # service exit while we wait for cleanup().
-            self.finished.set()
             await self.cleanup()
+
             if finished_callback is not None:
                 finished_callback(self)
 
     async def cleanup(self) -> None:
         """Run the service's _cleanup() coroutine."""
+        # Set self.finished before anything else so that other coroutines started by this
+        # service exit while we wait for cleanup().
+        self.finished.set()
+
         await self._cleanup()
 
     async def cancel(self):
         """Trigger the CancelToken and wait for the run() coroutine to finish."""
+        if self.is_finished:
+            self.logger.warning("Tried to cancel %s, but it was already finished", self)
+        elif not self.is_running:
+            raise RuntimeError("Cannot cancel a service that has not been started")
+
         self.logger.debug("Cancelling %s", self)
         self.cancel_token.trigger()
         try:
@@ -64,6 +79,10 @@ class BaseService(ABC):
     @property
     def is_finished(self) -> bool:
         return self.finished.is_set()
+
+    @property
+    def is_running(self) -> bool:
+        return self._run_lock.locked()
 
     @abstractmethod
     async def _run(self) -> None:
@@ -88,3 +107,26 @@ class EmptyService(BaseService):
 
     async def _cleanup(self) -> None:
         pass
+
+
+class ServiceContext(UserList):
+    """
+    Run a sequence of services in a context manager, closing them all cleanly on exit.
+    """
+
+    def __init__(self, services: List[BaseService] = None) -> None:
+        if services is None:
+            super().__init__()
+        else:
+            super().__init__(services)
+        self.started_services: List[BaseService] = []
+
+    async def __aenter__(self):
+        self.started_services = list(self.data)
+        for service in self.started_services:
+            asyncio.ensure_future(service.run())
+
+    async def __aexit__(self, exc_type, exc, tb):
+        service_cancellations = [service.cancel() for service in self.started_services]
+        await asyncio.gather(*service_cancellations, return_exceptions=True)
+        self.started_services = []

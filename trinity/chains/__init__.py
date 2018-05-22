@@ -21,14 +21,12 @@ from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
+from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import ChainDBProxy
 from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy,
-)
-from trinity.config import (
-    ChainConfig,
 )
 from trinity.utils.mp import (
     async_method,

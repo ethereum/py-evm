@@ -112,6 +112,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
     async def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
+        known_exceptions = (
+            BrokenPipeError,
+            ConnectionResetError,
+        )
         try:
             await self._handle_msg(peer, cmd, msg)
         except OperationCancelled:
@@ -119,6 +123,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
             # there it will be handled.
             pass
+        except known_exceptions:
+            self.logger.warn("Halted while handling message from %s", peer)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 

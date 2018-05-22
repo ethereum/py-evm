@@ -5,16 +5,14 @@ from multiprocessing.managers import (
     BaseManager,
 )
 from threading import Thread
-from typing import List, Type
+from typing import Type
 
 from evm.chains.base import BaseChain
 from evm.db.header import BaseHeaderDB
 from p2p.service import (
     BaseService,
     EmptyService,
-)
-from p2p.utils import (
-    RunningServices,
+    ServiceContext,
 )
 from trinity.chains import (
     ChainProxy,
@@ -31,7 +29,7 @@ from trinity.rpc.main import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
 
@@ -43,23 +41,22 @@ class Node(BaseService):
     """
     chain_class: Type[BaseChain] = None
 
-    _peer_service: BaseService = None
-
     def __init__(self, chain_config: ChainConfig) -> None:
         super().__init__()
 
         self._db_manager = create_db_manager(chain_config.database_ipc_path)
+        self._db_manager.connect()  # type: ignore
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = chain_config.jsonrpc_ipc_path
-        self._auxiliary_services: List[BaseService] = []
+        self._auxiliary_services = ServiceContext()
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
         raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
-    def get_peer_service(self) -> BaseService:
+    def get_p2p_server(self) -> BaseService:
         """
         This is the main service that will be run, when calling :meth:`run`.
         It's typically responsible for syncing the chain, with peer connections.
@@ -75,7 +72,10 @@ class Node(BaseService):
         return self._headerdb
 
     def add_service(self, service: BaseService) -> None:
-        self._auxiliary_services.append(service)
+        if self.is_running:
+            raise RuntimeError("Cannot add an auxiliary service while the node is running")
+        else:
+            self._auxiliary_services.append(service)
 
     def make_ipc_server(self) -> IPCServer:
         if self._jsonrpc_ipc_path:
@@ -98,13 +98,13 @@ class Node(BaseService):
         try:
             asyncio.run_coroutine_threadsafe(ipc_server.run(loop=ipc_loop), loop=ipc_loop)
 
-            async with RunningServices(self._auxiliary_services):
-                await self.get_peer_service().run()
+            async with self._auxiliary_services:
+                await self.get_p2p_server().run()
         finally:
             await ipc_server.stop()
 
     async def _cleanup(self):
-        await self.get_peer_service().stop()
+        await self.get_p2p_server().stop()
 
     def _make_new_loop_thread(self):
         new_loop = asyncio.new_event_loop()
@@ -136,5 +136,4 @@ def create_db_manager(ipc_path: str) -> BaseManager:
     DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 
     manager = DBManager(address=ipc_path)  # type: ignore
-    manager.connect()  # type: ignore
     return manager
