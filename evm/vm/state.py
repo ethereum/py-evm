@@ -49,8 +49,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
-    _db = None
-    execution_context = None
+    __slots__ = ['_db', 'execution_context', 'account_db']
 
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
