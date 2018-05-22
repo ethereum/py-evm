@@ -19,7 +19,7 @@ class Stack(object):
     """
     VM Stack
     """
-    values = None
+    __slots__ = ['values']
     logger = logging.getLogger('evm.vm.stack.Stack')
 
     def __init__(self):

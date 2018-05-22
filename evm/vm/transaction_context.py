@@ -11,9 +11,7 @@ class BaseTransactionContext:
     This immutable object houses information that remains constant for the entire context of the VM
     execution.
     """
-    _gas_price = None
-    _origin = None
-    _log_counter = None
+    __slots__ = ['_gas_price', '_origin', '_log_counter']
 
     def __init__(self, gas_price, origin):
         validate_uint256(gas_price, title="TransactionContext.gas_price")
