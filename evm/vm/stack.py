@@ -14,6 +14,9 @@ from evm.utils.numeric import (
     big_endian_to_int,
 )
 
+from eth_typing import Hash32
+from typing import List, Union
+
 
 class Stack(object):
     """
@@ -23,7 +26,7 @@ class Stack(object):
     logger = logging.getLogger('evm.vm.stack.Stack')
 
     def __init__(self):
-        self.values = []
+        self.values = []  # type: List[Union[int, Hash32]]
 
     def __len__(self):
         return len(self.values)
