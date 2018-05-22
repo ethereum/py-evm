@@ -22,6 +22,7 @@ from p2p.peer import (
     HardCodedNodesPeerPool,
 )
 from p2p.server import Server
+from p2p.service import BaseService
 
 from trinity.chains import (
     ChainProxy,
@@ -189,6 +190,20 @@ def create_dbmanager(ipc_path: str) -> BaseManager:
     return manager
 
 
+async def exit_on_signal(service_to_exit: BaseService) -> None:
+    loop = asyncio.get_event_loop()
+    sigint_received = asyncio.Event()
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        # TODO replace with OS-independent solution:
+        loop.add_signal_handler(sig, sigint_received.set)
+
+    await sigint_received.wait()
+    try:
+        await service_to_exit.cancel()
+    finally:
+        loop.stop()
+
+
 @with_queued_logging
 def run_lightnode_process(chain_config: ChainConfig) -> None:
     logger = logging.getLogger('trinity')
@@ -219,10 +234,9 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     node = node_class(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
 
     loop = asyncio.get_event_loop()
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, node.cancel_token.trigger)
-
-    loop.run_until_complete(node.run())
+    asyncio.ensure_future(exit_on_signal(node))
+    asyncio.ensure_future(node.run())
+    loop.run_forever()
     loop.close()
 
 
@@ -255,16 +269,7 @@ def run_fullnode_process(chain_config: ChainConfig, port: int) -> None:
     # Use a ProcessPoolExecutor as the default so that we can offload cpu-intensive tasks from the
     # main thread.
     loop.set_default_executor(ProcessPoolExecutor())
-    sigint_received = asyncio.Event()
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, sigint_received.set)
-
-    async def exit_on_sigint():
-        await sigint_received.wait()
-        await server.cancel()
-        loop.stop()
-
-    asyncio.ensure_future(exit_on_sigint())
+    asyncio.ensure_future(exit_on_signal(server))
     asyncio.ensure_future(server.run())
     loop.run_forever()
     loop.close()
