@@ -16,6 +16,10 @@ from typing import (
 
 from cytoolz.itertoolz import partition_all, unique
 
+from eth_utils import (
+    encode_hex,
+)
+
 from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH
 from evm.chains import AsyncChain
 from evm.db.chain import AsyncChainDB
@@ -24,6 +28,7 @@ from evm.exceptions import HeaderNotFound
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
+
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
@@ -162,7 +167,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
-            self.logger.info("Fetching chain segment starting at #%d", start_at)
+            self.logger.debug("Fetching chain segment starting at #%d", start_at)
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
                 headers = await wait_with_token(
@@ -178,7 +183,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
-            self.logger.info("Got headers segment starting at #%d", start_at)
+            self.logger.debug("Got headers segment starting at #%d", start_at)
 
             # TODO: Process headers for consistency.
             try:
@@ -216,7 +221,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self.chaindb.coro_persist_header(header)
 
         head = await self.chaindb.coro_get_canonical_head()
-        self.logger.info("Imported chain segment, new head: #%d", head.block_number)
+        self.logger.info(
+            "Imported chain segment, new head: #%d (%s)",
+            head.block_number,
+            encode_hex(head.hash)[2:6],
+        )
         # Quite often the header batch we receive here includes headers past the peer's reported
         # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
         # order to see if the sync is completed. Instead we just check that we have the peer's
