@@ -11,6 +11,8 @@ from eth_keys import keys
 from trinity.utils.chains import (
     get_local_data_dir,
     get_nodekey_path,
+)
+from trinity.config import (
     ChainConfig,
     DATABASE_DIR_NAME,
 )

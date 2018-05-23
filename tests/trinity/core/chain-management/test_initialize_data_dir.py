@@ -3,11 +3,9 @@ import pytest
 import os
 
 from trinity.chains import (
+    ChainConfig,
     is_data_dir_initialized,
     initialize_data_dir,
-)
-from trinity.utils.chains import (
-    ChainConfig,
 )
 
 
