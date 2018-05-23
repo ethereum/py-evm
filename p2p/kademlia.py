@@ -237,6 +237,8 @@ class RoutingTable:
         # to nodes.
         while len(seen) < count:
             bucket = random.choice(self.buckets)
+            if not bucket.nodes:
+                continue
             node = random.choice(bucket.nodes)
             if node not in seen:
                 yield node
@@ -419,8 +421,8 @@ class KademliaProtocol:
             self.logger.debug('got expected ping from %s', remote)
         except TimeoutError:
             self.logger.debug('timed out waiting for ping from %s', remote)
-        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
-        del self.ping_callbacks[remote]
+        finally:
+            del self.ping_callbacks[remote]
         return got_ping
 
     async def wait_pong(self, remote: Node, token: bytes, cancel_token: CancelToken) -> bool:
@@ -445,11 +447,11 @@ class KademliaProtocol:
         except TimeoutError:
             self.logger.debug(
                 'timed out waiting for pong from %s (token == %s)', remote, encode_hex(token))
-        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
-        del self.pong_callbacks[pingid]
+        finally:
+            del self.pong_callbacks[pingid]
         return got_pong
 
-    async def wait_neighbours(self, remote: Node, cancel_token: CancelToken) -> List[Node]:
+    async def wait_neighbours(self, remote: Node, cancel_token: CancelToken) -> Tuple[Node, ...]:
         """Wait for a neihgbours packet from the given node.
 
         Returns the list of neighbours received.
@@ -476,10 +478,9 @@ class KademliaProtocol:
             self.logger.debug('got expected neighbours response from %s', remote)
         except TimeoutError:
             self.logger.debug('timed out waiting for neighbours response from %s', remote)
-
-        # TODO: Use a contextmanager to ensure we always delete the callback from the list.
-        del self.neighbours_callbacks[remote]
-        return [n for n in neighbours if n != self.this_node]
+        finally:
+            del self.neighbours_callbacks[remote]
+        return tuple(n for n in neighbours if n != self.this_node)
 
     def ping(self, node: Node) -> bytes:
         if node == self.this_node:
@@ -513,7 +514,12 @@ class KademliaProtocol:
         return True
 
     async def bootstrap(self, bootstrap_nodes: List[Node], cancel_token: CancelToken) -> None:
-        bonded = await asyncio.gather(*[self.bond(n, cancel_token) for n in bootstrap_nodes])
+        bonded = await asyncio.gather(*(
+            self.bond(n, cancel_token)
+            for n
+            in bootstrap_nodes
+            if (n not in self.ping_callbacks and n not in self.pong_callbacks)
+        ))
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
             return
@@ -536,15 +542,19 @@ class KademliaProtocol:
             candidates = await self.wait_neighbours(remote, cancel_token)
             if not candidates:
                 self.logger.debug("got no candidates from %s, returning", remote)
-                return candidates
-            candidates = [c for c in candidates if c not in nodes_seen]
+                return tuple()
+            all_candidates = tuple(c for c in candidates if c not in nodes_seen)
+            candidates = tuple(
+                c for c in all_candidates
+                if (c not in self.ping_callbacks and c not in self.pong_callbacks)
+            )
             self.logger.debug("got %s new candidates", len(candidates))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
-            bonded = await asyncio.gather(*[self.bond(c, cancel_token) for c in candidates])
+            bonded = await asyncio.gather(*(self.bond(c, cancel_token) for c in candidates))
             self.logger.debug("bonded with %s candidates", bonded.count(True))
-            return [c for c in candidates if bonded[candidates.index(c)]]
+            return tuple(c for c in candidates if bonded[candidates.index(c)])
 
         def _exclude_if_asked(nodes):
             nodes_to_ask = list(set(nodes).difference(nodes_asked))
@@ -556,8 +566,12 @@ class KademliaProtocol:
         while nodes_to_ask:
             self.logger.debug("node lookup; querying %s", nodes_to_ask)
             nodes_asked.update(nodes_to_ask)
-            results = await asyncio.gather(
-                *[_find_node(node_id, n) for n in nodes_to_ask])
+            results = await asyncio.gather(*(
+                _find_node(node_id, n)
+                for n
+                in nodes_to_ask
+                if n not in self.neighbours_callbacks
+            ))
             for candidates in results:
                 closest.extend(candidates)
             closest = sort_by_distance(closest, node_id)[:k_bucket_size]
