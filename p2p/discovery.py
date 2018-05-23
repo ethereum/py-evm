@@ -24,6 +24,11 @@ from eth_utils import (
     to_list,
 )
 
+from eth_utils import (
+    int_to_big_endian,
+    big_endian_to_int,
+)
+
 from eth_keys import keys
 from eth_keys import datatypes
 
@@ -31,10 +36,6 @@ from eth_hash.auto import keccak
 
 from p2p.cancel_token import CancelToken
 from p2p import kademlia
-from evm.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
-)
 
 # UDP packet constants.
 MAC_SIZE = 256 // 8  # 32
