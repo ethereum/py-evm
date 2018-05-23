@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import asyncio
-from pathlib import PurePath
+from pathlib import Path
 from threading import Thread
 from typing import Type
 
@@ -31,7 +31,7 @@ class Node(BaseService):
             self,
             headerdb: BaseHeaderDB,
             peer_pool,
-            jsonrpc_ipc_path: PurePath = None):
+            jsonrpc_ipc_path: Path = None):
         super().__init__()
         self._headerdb = headerdb
         self._jsonrpc_ipc_path = jsonrpc_ipc_path

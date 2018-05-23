@@ -1,5 +1,7 @@
 import os
 
+from pathlib import Path
+
 from .filesystem import (
     is_under_path,
 )
@@ -31,8 +33,8 @@ def get_xdg_trinity_root() -> str:
     )
 
 
-def is_under_xdg_trinity_root(path: str) -> bool:
+def is_under_xdg_trinity_root(path: Path) -> bool:
     return is_under_path(
         get_xdg_trinity_root(),
-        path,
+        str(path),
     )
