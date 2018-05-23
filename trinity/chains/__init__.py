@@ -79,7 +79,7 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
-    if is_under_xdg_trinity_root(str(chain_config.data_dir)):
+    if is_under_xdg_trinity_root(chain_config.data_dir):
         os.makedirs(chain_config.data_dir, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
         # we don't lazily create the base dir for non-default base directories.

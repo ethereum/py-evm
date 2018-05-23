@@ -1,5 +1,4 @@
-import os
-from pathlib import PurePath
+from pathlib import Path
 from typing import (
     Tuple,
     Type,
@@ -46,8 +45,8 @@ DATABASE_DIR_NAME = 'chain'
 
 
 class ChainConfig:
-    _data_dir: PurePath = None
-    _nodekey_path: PurePath = None
+    _data_dir: Path = None
+    _nodekey_path: Path = None
     _nodekey = None
     _network_id: int = None
 
@@ -98,7 +97,7 @@ class ChainConfig:
             self.nodekey = nodekey
 
     @property
-    def data_dir(self) -> PurePath:
+    def data_dir(self) -> Path:
         """
         The data_dir is the base directory that all chain specific information
         for a given chain is stored.  All other chain directories are by
@@ -108,7 +107,7 @@ class ChainConfig:
 
     @data_dir.setter
     def data_dir(self, value: str) -> None:
-        self._data_dir = PurePath(os.path.abspath(value))
+        self._data_dir = Path(value).resolve()
 
     @property
     def database_dir(self) -> str:
@@ -128,7 +127,7 @@ class ChainConfig:
         return get_jsonrpc_socket_path(self.data_dir)
 
     @property
-    def nodekey_path(self) -> PurePath:
+    def nodekey_path(self) -> Path:
         if self._nodekey_path is None:
             if self._nodekey is not None:
                 return None
@@ -139,7 +138,7 @@ class ChainConfig:
 
     @nodekey_path.setter
     def nodekey_path(self, value: str) -> None:
-        self._nodekey_path = PurePath(os.path.abspath(value))
+        self._nodekey_path = Path(value).resolve()
 
     @property
     def nodekey(self) -> PrivateKey:

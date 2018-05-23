@@ -1,5 +1,5 @@
 import os
-from pathlib import PurePath
+from pathlib import Path
 
 from eth_utils import (
     decode_hex,
@@ -30,17 +30,17 @@ DEFAULT_DATA_DIRS = {
 #
 # Filesystem path utils
 #
-def get_local_data_dir(chain_name: str) -> PurePath:
+def get_local_data_dir(chain_name: str) -> Path:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
-    return PurePath(os.environ.get(
+    return Path(os.environ.get(
         'TRINITY_DATA_DIR',
         os.path.join(get_xdg_trinity_root(), chain_name),
     ))
 
 
-def get_data_dir_for_network_id(network_id: int) -> PurePath:
+def get_data_dir_for_network_id(network_id: int) -> Path:
     """
     Returns the data directory for the chain associated with the given network
     id.  If the network id is unknown, raises a KeyError.
@@ -54,11 +54,11 @@ def get_data_dir_for_network_id(network_id: int) -> PurePath:
 NODEKEY_FILENAME = 'nodekey'
 
 
-def get_nodekey_path(data_dir: PurePath) -> PurePath:
+def get_nodekey_path(data_dir: Path) -> Path:
     """
     Returns the path to the private key used for devp2p connections.
     """
-    return PurePath(os.environ.get(
+    return Path(os.environ.get(
         'TRINITY_NODEKEY',
         str(data_dir / NODEKEY_FILENAME),
     ))
@@ -67,40 +67,40 @@ def get_nodekey_path(data_dir: PurePath) -> PurePath:
 DATABASE_SOCKET_FILENAME = 'db.ipc'
 
 
-def get_database_socket_path(data_dir: PurePath) -> str:
+def get_database_socket_path(data_dir: Path) -> str:
     """
     Returns the path to the private key used for devp2p connections.
 
     We're still returning 'str' here on ipc-related path because an issue with
-    multi-processing not being able to interpret 'PurePath' objects correctly.
+    multi-processing not being able to interpret 'Path' objects correctly.
     """
     return os.environ.get(
         'TRINITY_DATABASE_IPC',
-        os.path.join(str(data_dir), DATABASE_SOCKET_FILENAME),
+        str(data_dir / DATABASE_SOCKET_FILENAME),
     )
 
 
 JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
 
 
-def get_jsonrpc_socket_path(data_dir: PurePath) -> str:
+def get_jsonrpc_socket_path(data_dir: Path) -> str:
     """
     Returns the path to the ipc socket for the JSON-RPC server.
 
     We're still returning 'str' here on ipc-related path because an issue with
-    multi-processing not being able to interpret 'PurePath' objects correctly.
+    multi-processing not being able to interpret 'Path' objects correctly.
     """
     return os.environ.get(
         'TRINITY_JSONRPC_IPC',
-        os.path.join(str(data_dir), JSONRPC_SOCKET_FILENAME),
+        str(data_dir / JSONRPC_SOCKET_FILENAME),
     )
 
 
 #
 # Nodekey loading
 #
-def load_nodekey(nodekey_path: PurePath) -> PrivateKey:
-    with open(str(nodekey_path), 'rb') as nodekey_file:
+def load_nodekey(nodekey_path: Path) -> PrivateKey:
+    with nodekey_path.open('rb') as nodekey_file:
         nodekey_raw = nodekey_file.read()
     nodekey = keys.PrivateKey(nodekey_raw)
     return nodekey
