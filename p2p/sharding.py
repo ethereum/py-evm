@@ -1,4 +1,7 @@
 import asyncio
+from collections import (
+    defaultdict,
+)
 import logging
 import time
 from typing import (
@@ -13,11 +16,7 @@ from eth_typing import (
     Hash32,
 )
 
-import rlp
 from rlp import sedes
-from rlp.sedes import (
-    big_endian_int,
-)
 
 from evm.rlp.collations import Collation
 from evm.rlp.headers import CollationHeader
@@ -26,9 +25,8 @@ from evm.rlp.sedes import (
 )
 from evm.chains.shard import Shard
 
-from evm.db.backends.memory import MemoryDB
 from evm.db.shard import (
-    ShardDB,
+    Availability,
 )
 
 from evm.utils.padding import (
@@ -50,9 +48,7 @@ from p2p.cancel_token import (
     CancelToken,
     wait_with_token,
 )
-from p2p.discovery import DiscoveryProtocol
 from p2p import protocol
-from p2p.server import Server
 from p2p.service import BaseService
 from p2p.protocol import (
     Command,
@@ -73,6 +69,10 @@ from p2p.exceptions import (
     HandshakeFailure,
     OperationCancelled,
     UnexpectedMessage,
+)
+
+from cytoolz import (
+    excepts,
 )
 
 
@@ -105,7 +105,11 @@ class NewCollationHashes(Command):
     _cmd_id = 3
 
     structure = [
-        ("collation_hashes_and_periods", rlp.sedes.List([hash32, big_endian_int]))
+        (
+            "collation_hashes_and_periods", sedes.CountableList(
+                sedes.List([hash32, sedes.big_endian_int])
+            )
+        ),
     ]
 
 
@@ -165,7 +169,10 @@ class ShardingPeer(BasePeer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.known_collation_hashes: Set[Hash32] = set()
-        self._pending_replies: Dict[int, asyncio.Event] = {}
+        self._pending_replies: Dict[
+            int,
+            asyncio.Future[Tuple[Command, protocol._DecodedMsgType]]
+        ] = {}
 
     #
     # Handshake
@@ -205,9 +212,9 @@ class ShardingPeer(BasePeer):
             return set()
 
         request_id = gen_request_id()
-        pending_reply = asyncio.Future()
+        pending_reply: asyncio.Future[Tuple[Command, protocol._DecodedMsgType]] = asyncio.Future()
         self._pending_replies[request_id] = pending_reply
-        self.sub_proto.send_get_collations(request_id, collation_hashes)
+        cast(ShardingProtocol, self.sub_proto).send_get_collations(request_id, collation_hashes)
         cmd, msg = await wait_with_token(pending_reply, token=cancel_token)
 
         if not isinstance(cmd, Collations):
@@ -228,7 +235,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.peer_pool = peer_pool
         self._running_peers: Set[ShardingPeer] = set()
 
-        self.collations_received_event = asyncio.Event()
+        self.collation_hashes_at_peer: Dict[ShardingPeer, Set[Hash32]] = defaultdict(set)
 
         self.start_time = time.time()
 
@@ -254,7 +261,9 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
 
         # broadcast collation
         for peer in self.peer_pool.peers:
-            peer.sub_proto.send_collations(gen_request_id(), [collation])
+            cast(ShardingProtocol, peer.sub_proto).send_new_collation_hashes(
+                [(collation.hash, collation.period)]
+            )
 
         return collation
 
@@ -281,47 +290,84 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
                 # out of the loop to stop attempting to sync with this peer.
                 break
 
-            if isinstance(cmd, GetCollations):  # respond to collation requests
-                # TODO: limit number of hashes
-                collations = []
-                for collation_hash in set(msg["collation_hashes"]):
-                    try:
-                        collation = self.shard.get_collation_by_hash(collation_hash)
-                    except (CollationHeaderNotFound, CollationBodyNotFound):
-                        continue
-                    else:
-                        collations.append(collation)
-                self.logger.info(
-                    "Responding to peer %s with %d collations",
-                    peer.remote,
-                    len(collations)
-                )
-                peer.sub_proto.send_collations(msg["request_id"], collations)
+            if isinstance(cmd, GetCollations):
+                await self._handle_get_collations(peer, msg)
+            elif isinstance(cmd, Collations):
+                await self._handle_collations(peer, msg)
+            elif isinstance(cmd, NewCollationHashes):
+                await self._handle_new_collation_hashes(peer, msg)
 
         await peer.cancel()
         self.logger.debug("%s finished", peer)
 
+    async def _handle_get_collations(self, peer, msg):
+        """Respond with all requested collations that we know about."""
+        collation_hashes = set(msg["collation_hashes"])
+        self.collation_hashes_at_peer[peer] |= collation_hashes
+
+        get_collation_or_none = excepts(
+            (CollationHeaderNotFound, CollationBodyNotFound),
+            self.shard.get_collation_by_hash
+        )
+        collations = [
+            collation for collation in [
+                get_collation_or_none(collation_hash) for collation_hash in collation_hashes
+            ]
+            if collation is not None
+        ]
+        self.logger.info(
+            "Responding to peer %s with %d collations",
+            peer.remote,
+            len(collations),
+        )
+        peer.sub_proto.send_collations(msg["request_id"], collations)
+
+    async def _handle_collations(self, peer, msg):
+        """Add collations to our shard and notify peers about new collations available here."""
+        collations_by_hash = {collation.hash: collation for collation in msg["collations"]}
+        self.collation_hashes_at_peer[peer] |= set(collations_by_hash.keys())
+
+        # add new collations to shard
+        new_collations_by_hash = {
+            collation.hash: collation for collation in collations_by_hash.values()
+            if self.shard.get_availability(collation.header) is not Availability.AVAILABLE
+        }
+        self.logger.info(
+            "Received %d collations, %d of which are new",
+            len(collations_by_hash),
+            len(new_collations_by_hash),
+        )
+        self.logger.info("%s %s", collations_by_hash, new_collations_by_hash)
+        for collation in new_collations_by_hash.values():
+            self.shard.add_collation(collation)
+
+        # inform peers about new collations they might not know about already
+        for peer in self.peer_pool.peers:
+            known_hashes = self.collation_hashes_at_peer[peer]
+            new_hashes = set(new_collations_by_hash.keys()) - known_hashes
+            self.collation_hashes_at_peer[peer] |= new_hashes
+
+            if new_hashes:
+                new_collations = [
+                    new_collations_by_hash[collation_hash] for collation_hash in new_hashes
+                ]
+                hashes_and_periods = [
+                    (collation.hash, collation.period) for collation in new_collations
+                ]
+                peer.sub_proto.send_new_collation_hashes(hashes_and_periods)
+
+    async def _handle_new_collation_hashes(self, peer, msg):
+        """Request those collations."""
+        # Request all collations for now, no matter if we now about them or not, as there's no way
+        # to header existence at the moment. In the future we won't transfer collations anyway but
+        # only collation bodies (headers are retrieved from the main chain), so there's no need to
+        # add this at the moment.
+        collation_hashes = set(
+            collation_hash for collation_hash, _ in msg["collation_hashes_and_periods"]
+        )
+        if collation_hashes:
+            peer.sub_proto.send_get_collations(gen_request_id(), list(collation_hashes))
+
     def get_current_period(self):
         # TODO: get this from main chain
         return int((time.time() - self.start_time) // COLLATION_PERIOD)
-
-
-class ShardingServer(Server):
-
-    def _make_peer_pool(self, discovery: DiscoveryProtocol) -> PeerPool:
-        # XXX: This is not supposed to work and causes both the PeerPool and Server to crash, but
-        # the tests in test_sharding.py don't seem to care
-        headerdb = None
-        return self.peer_pool_class(
-            self.peer_class,
-            headerdb,
-            self.network_id,
-            self.privkey,
-            discovery,
-            min_peers=self.min_peers,
-        )
-
-    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
-        shard_db = ShardDB(MemoryDB())
-        shard = Shard(shard_db, 0)
-        return ShardSyncer(shard, peer_pool, self.cancel_token)
