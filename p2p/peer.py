@@ -912,7 +912,7 @@ class PreferredNodePeerPool(PeerPool):
     @to_tuple
     def _get_eligible_preferred_nodes(self) -> Generator[Node, None, None]:
         """
-        Returns nodes from the preferred_nodes which have not been used within
+        Return nodes from the preferred_nodes which have not been used within
         the last preferred_node_recycle_time
         """
         for node in self.preferred_nodes:
@@ -922,7 +922,7 @@ class PreferredNodePeerPool(PeerPool):
 
     def _get_random_preferred_node(self) -> Node:
         """
-        Returns a random node from the preferred list.
+        Return a random node from the preferred list.
         """
         eligible_nodes = self._get_eligible_preferred_nodes()
         if not eligible_nodes:
@@ -932,7 +932,7 @@ class PreferredNodePeerPool(PeerPool):
 
     def _get_random_bootnode(self) -> Generator[Node, None, None]:
         """
-        Returns a single node to bootstrap, preferring nodes from the preferred list.
+        Return a single node to bootstrap, preferring nodes from the preferred list.
         """
         try:
             node = self._get_random_preferred_node()
@@ -943,7 +943,7 @@ class PreferredNodePeerPool(PeerPool):
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         """
-        Returns up to `min_peers` nodes, preferring nodes from the preferred list.
+        Return up to `min_peers` nodes, preferring nodes from the preferred list.
         """
         preferred_nodes = self._get_eligible_preferred_nodes()[:self.min_peers]
         for node in preferred_nodes:
