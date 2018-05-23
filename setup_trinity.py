@@ -9,7 +9,7 @@ setup(
     # NOT CURRENTLY APPLICABLE. VERSION BUMPS MANUAL FOR NOW
     version='0.1.0-alpha.2',
     description='The Trinity Ethereum Client',
-    author='Piper Merriam',
+    author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
