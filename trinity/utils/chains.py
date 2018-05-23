@@ -6,8 +6,6 @@ from typing import (
 
 from pathlib import PurePath
 
-from pathlib import PurePath
-
 from eth_utils import (
     decode_hex,
     to_dict,
@@ -94,7 +92,7 @@ def get_database_socket_path(data_dir: PurePath) -> str:
     """
     return os.environ.get(
         'TRINITY_DATABASE_IPC',
-        os.path.join(str(data_dir), DATABASE_SOCKET_FILENAME),
+        os.path.join(str(data_dir / DATABASE_SOCKET_FILENAME)),
     )
 
 
@@ -110,7 +108,7 @@ def get_jsonrpc_socket_path(data_dir: PurePath) -> str:
     """
     return os.environ.get(
         'TRINITY_JSONRPC_IPC',
-        os.path.join(str(data_dir), JSONRPC_SOCKET_FILENAME),
+        os.path.join(str(data_dir / JSONRPC_SOCKET_FILENAME)),
     )
 
 
@@ -118,7 +116,7 @@ def get_jsonrpc_socket_path(data_dir: PurePath) -> str:
 # Nodekey loading
 #
 def load_nodekey(nodekey_path: PurePath) -> PrivateKey:
-    with open(str(nodekey_path), 'rb') as nodekey_file:
+    with nodekey_path.open('rb') as nodekey_file:
         nodekey_raw = nodekey_file.read()
     nodekey = keys.PrivateKey(nodekey_raw)
     return nodekey
@@ -184,7 +182,7 @@ class ChainConfig:
 
     @data_dir.setter
     def data_dir(self, value: str) -> None:
-        self._data_dir = PurePath(os.path.abspath(value))
+        self._data_dir = PurePath(value).resolve()
 
     @property
     def database_dir(self) -> str:
@@ -215,7 +213,7 @@ class ChainConfig:
 
     @nodekey_path.setter
     def nodekey_path(self, value: str) -> None:
-        self._nodekey_path = PurePath(os.path.abspath(value))
+        self._nodekey_path = PurePath(value).resolve()
 
     @property
     def nodekey(self) -> PrivateKey:
