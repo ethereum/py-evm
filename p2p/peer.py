@@ -672,6 +672,14 @@ class PeerPool(BaseService):
         yield from self.discovery.get_random_nodes(self.min_peers)
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
+        if self._subscribers:
+            # XXX: This is a bit of a hack, needed because of #768. If we come to the conclusion
+            # we'll never need multiple simultaneous subscribers to a PeerPool, we can close that
+            # issue and redesign PeerPool in a way to make it clear it can only have one
+            # subscriber
+            raise Exception(
+                "We cannot handle multiple subscribers yet; "
+                "see https://github.com/ethereum/py-evm/issues/768 for details")
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():
             subscriber.register_peer(peer)
