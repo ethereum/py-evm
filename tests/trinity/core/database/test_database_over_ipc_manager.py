@@ -14,11 +14,11 @@ from evm.db.chain import (
 from trinity.chains import (
     serve_chaindb,
 )
-from trinity.db.chain import ChainDBProxy
-from trinity.db.base import DBProxy
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
+from trinity.db.chain import ChainDBProxy
+from trinity.db.base import DBProxy
 from trinity.utils.db import (
     MemoryDB,
 )

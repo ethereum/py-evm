@@ -27,7 +27,7 @@ from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy,
 )
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
 from trinity.utils.mp import (

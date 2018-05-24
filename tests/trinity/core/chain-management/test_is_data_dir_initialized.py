@@ -6,7 +6,7 @@ from eth_utils import decode_hex
 from trinity.chains import (
     is_data_dir_initialized,
 )
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
 

@@ -8,14 +8,14 @@ import signal
 import sys
 from typing import Type
 
-from evm.db.backends.base import BaseDB
-from evm.db.backends.level import LevelDB
 from evm.chains.mainnet import (
     MAINNET_NETWORK_ID,
 )
 from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
+from evm.db.backends.base import BaseDB
+from evm.db.backends.level import LevelDB
 
 from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address
@@ -32,12 +32,6 @@ from trinity.chains import (
     is_data_dir_initialized,
     serve_chaindb,
 )
-from trinity.nodes.mainnet import (
-    MainnetLightNode,
-)
-from trinity.nodes.ropsten import (
-    RopstenLightNode,
-)
 from trinity.chains.header import (
     AsyncHeaderChainProxy,
 )
@@ -53,7 +47,7 @@ from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
 from trinity.utils.ipc import (
@@ -222,14 +216,7 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
     manager = create_dbmanager(chain_config.database_ipc_path)
     headerdb = manager.get_headerdb()  # type: ignore
 
-    if chain_config.network_id == MAINNET_NETWORK_ID:
-        node_class = MainnetLightNode
-    elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        node_class = RopstenLightNode
-    else:
-        raise NotImplementedError(
-            "Only the mainnet and ropsten chains are currently supported"
-        )
+    NodeClass = chain_config.node_class
     discovery = DiscoveryProtocol(
         chain_config.nodekey,
         Address('0.0.0.0', chain_config.port, chain_config.port),
@@ -243,7 +230,7 @@ def run_lightnode_process(chain_config: ChainConfig) -> None:
         discovery,
         preferred_nodes=chain_config.preferred_nodes,
     )
-    node = node_class(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
+    node = NodeClass(headerdb, peer_pool, chain_config.jsonrpc_ipc_path)
 
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(loop.create_datagram_endpoint(

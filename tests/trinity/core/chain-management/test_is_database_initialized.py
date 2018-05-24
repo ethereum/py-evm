@@ -9,7 +9,7 @@ from trinity.chains import (
     initialize_data_dir,
     is_database_initialized,
 )
-from trinity.utils.chains import (
+from trinity.config import (
     ChainConfig,
 )
 
