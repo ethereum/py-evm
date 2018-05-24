@@ -65,3 +65,18 @@ def check_pow(block_number: int,
             encode_hex(mining_output[b'mix digest']), encode_hex(mix_hash)))
     result = big_endian_to_int(mining_output[b'result'])
     validate_lte(result, 2**256 // difficulty, title="POW Difficulty")
+
+
+MAX_TEST_MINE_ATTEMPTS = 1000
+
+
+def test_mine_pow_nonce(block_number, mining_hash, difficulty):
+    cache = get_cache(block_number)
+    for nonce in range(MAX_TEST_MINE_ATTEMPTS):
+        mining_output = hashimoto_light(block_number, cache, mining_hash, nonce)
+        result = big_endian_to_int(mining_output[b'result'])
+        result_cap = 2**256 // difficulty
+        if result <= result_cap:
+            return nonce.to_bytes(8, 'big'), mining_output[b'mix digest']
+
+    raise Exception("Too many attempts at POW mining, giving up")

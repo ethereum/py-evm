@@ -81,3 +81,15 @@ class FrontierVM(VM):
     @classmethod
     def get_nephew_reward(cls):
         return cls.get_block_reward() // 32
+
+
+# A VM that does POW mining as well. Should be used only in tests, when we need to programatically
+# populate a ChainDB.
+class _PoWMiningVM(FrontierVM):
+
+    def finalize_block(self, block):
+        from evm.consensus import pow
+        block = super().finalize_block(block)
+        nonce, mix_hash = pow.test_mine_pow_nonce(
+            block.number, block.header.mining_hash, block.header.difficulty)
+        return block.copy(header=block.header.copy(nonce=nonce, mix_hash=mix_hash))

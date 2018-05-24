@@ -212,7 +212,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def get_prev_hashes(cls, last_block_hash, db):
+    def get_prev_hashes(cls, last_block_hash, chaindb):
         raise NotImplementedError("VM classes must implement this method")
 
     @staticmethod
@@ -565,16 +565,16 @@ class VM(BaseVM):
     @classmethod
     @functools.lru_cache(maxsize=32)
     @to_tuple
-    def get_prev_hashes(cls, last_block_hash, db):
+    def get_prev_hashes(cls, last_block_hash, chaindb):
         if last_block_hash == GENESIS_PARENT_HASH:
             return
 
-        block_header = get_block_header_by_hash(last_block_hash, db)
+        block_header = get_block_header_by_hash(last_block_hash, chaindb)
 
         for _ in range(MAX_PREV_HEADER_DEPTH):
             yield block_header.hash
             try:
-                block_header = get_parent_header(block_header, db)
+                block_header = get_parent_header(block_header, chaindb)
             except (IndexError, HeaderNotFound):
                 break
 
