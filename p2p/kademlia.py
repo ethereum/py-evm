@@ -466,10 +466,6 @@ class KademliaProtocol:
         called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
         a ping was received from the given node.
         """
-        if remote in self.ping_callbacks:
-            raise AlreadyWaiting(
-                "There's another coroutine waiting for a ping packet from {}".format(remote))
-
         event = asyncio.Event()
 
         with self.ping_callbacks.acquire(remote, event.set):
@@ -491,12 +487,6 @@ class KademliaProtocol:
         a pong was received with the given pingid.
         """
         pingid = self._mkpingid(token, remote)
-        if pingid in self.pong_callbacks:
-            raise AlreadyWaiting(
-                "There's another coroutine waiting for a pong packet with id "
-                "{}".format(pingid)
-            )
-
         event = asyncio.Event()
 
         with self.pong_callbacks.acquire(pingid, event.set):
@@ -519,10 +509,6 @@ class KademliaProtocol:
 
         Returns the list of neighbours received.
         """
-        if remote in self.neighbours_callbacks:
-            raise AlreadyWaiting(
-                "There's another coroutine waiting for a neighbours packet from {}".format(remote))
-
         event = asyncio.Event()
         neighbours: List[Node] = []
 
