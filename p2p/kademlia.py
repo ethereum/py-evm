@@ -328,7 +328,7 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
 class CallbackLock:
     def __init__(self,
                  callback: Callable,
-                 timeout: int=300) -> None:
+                 timeout: int=2 * k_request_timeout) -> None:
         self.callback = callback
         self.timeout = timeout
         self.created_at = time.time()
