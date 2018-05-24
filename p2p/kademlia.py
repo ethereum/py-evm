@@ -237,6 +237,8 @@ class RoutingTable:
         # to nodes.
         while len(seen) < count:
             bucket = random.choice(self.buckets)
+            if not bucket.nodes:
+                continue
             node = random.choice(bucket.nodes)
             if node not in seen:
                 yield node
