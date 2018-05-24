@@ -1,5 +1,8 @@
 from collections import OrderedDict
-from typing import List  # noqa: F401
+from typing import (  # noqa: F401
+    List,
+    Tuple
+)
 
 from pyethash import (
     EPOCH_LENGTH,
@@ -70,7 +73,7 @@ def check_pow(block_number: int,
 MAX_TEST_MINE_ATTEMPTS = 1000
 
 
-def test_mine_pow_nonce(block_number, mining_hash, difficulty):
+def mine_pow_nonce(block_number: int, mining_hash: Hash32, difficulty: int) -> Tuple[bytes, bytes]:
     cache = get_cache(block_number)
     for nonce in range(MAX_TEST_MINE_ATTEMPTS):
         mining_output = hashimoto_light(block_number, cache, mining_hash, nonce)

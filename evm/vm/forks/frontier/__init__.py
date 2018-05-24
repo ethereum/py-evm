@@ -90,6 +90,6 @@ class _PoWMiningVM(FrontierVM):
     def finalize_block(self, block):
         from evm.consensus import pow
         block = super().finalize_block(block)
-        nonce, mix_hash = pow.test_mine_pow_nonce(
+        nonce, mix_hash = pow.mine_pow_nonce(
             block.number, block.header.mining_hash, block.header.difficulty)
         return block.copy(header=block.header.copy(nonce=nonce, mix_hash=mix_hash))
