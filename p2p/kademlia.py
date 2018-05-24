@@ -1,23 +1,26 @@
 import asyncio
+import bisect
+import collections
+import contextlib
+from functools import total_ordering
 import ipaddress
 import logging
-import bisect
 import operator
 import random
 import struct
 import time
-from urllib import parse as urlparse
-from functools import total_ordering
 from typing import (
+    Any,
     Callable,
-    Dict,
     Generator,
+    Hashable,
     List,
     Set,
     Sized,
     Tuple,
     TYPE_CHECKING,
 )
+from urllib import parse as urlparse
 
 from eth_utils import (
     big_endian_to_int,
@@ -322,6 +325,53 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
         raise ValueError("No bucket found for node with id {}".format(node.id))
 
 
+class CallbackLock:
+    def __init__(self,
+                 callback: Callable,
+                 timeout: int=300) -> None:
+        self.callback = callback
+        self.timeout = timeout
+        self.created_at = time.time()
+
+    @property
+    def is_expired(self):
+        return time.time() - self.created_at > self.timeout
+
+
+class CallbackManager(collections.UserDict):
+    @contextlib.contextmanager
+    def acquire(self,
+                key: Hashable,
+                callback: Callable[..., Any]) -> Generator[CallbackLock, None, None]:
+        if key in self:
+            if not self.locked(key):
+                del self[key]
+            else:
+                raise AlreadyWaiting("Already waiting on callback for: {0}".format(key))
+
+        lock = CallbackLock(callback)
+        self[key] = lock
+
+        try:
+            yield lock
+        finally:
+            del self[key]
+
+    def get_callback(self, key: Hashable) -> Callable[..., Any]:
+        return self[key].callback
+
+    def locked(self, key: Hashable) -> bool:
+        try:
+            lock = self[key]
+        except KeyError:
+            return False
+        else:
+            if lock.is_expired:
+                return False
+            else:
+                return True
+
+
 class KademliaProtocol:
     logger = logging.getLogger("p2p.kademlia.KademliaProtocol")
 
@@ -329,9 +379,10 @@ class KademliaProtocol:
         self.this_node = node
         self.wire = wire
         self.routing = RoutingTable(node)
-        self.pong_callbacks: Dict[bytes, Callable[[], None]] = {}
-        self.ping_callbacks: Dict[Node, Callable[[], None]] = {}
-        self.neighbours_callbacks: Dict[Node, Callable[[List[Node]], None]] = {}
+
+        self.pong_callbacks = CallbackManager()
+        self.ping_callbacks = CallbackManager()
+        self.neighbours_callbacks = CallbackManager()
 
     def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
         """Process a neighbours response.
@@ -342,12 +393,13 @@ class KademliaProtocol:
         wait_neighbours().
         """
         self.logger.debug('<<< neighbours from %s: %s', remote, neighbours)
-        callback = self.neighbours_callbacks.get(remote)
-        if callback is not None:
-            callback(neighbours)
-        else:
+        try:
+            callback = self.neighbours_callbacks.get_callback(remote)
+        except KeyError:
             self.logger.debug(
                 'unexpected neighbours from %s, probably came too late', remote)
+        else:
+            callback(neighbours)
 
     def recv_pong(self, remote: Node, token: bytes) -> None:
         """Process a pong packet.
@@ -358,11 +410,13 @@ class KademliaProtocol:
         """
         self.logger.debug('<<< pong from %s (token == %s)', remote, encode_hex(token))
         pingid = self._mkpingid(token, remote)
-        callback = self.pong_callbacks.get(pingid)
-        if callback is not None:
-            callback()
-        else:
+
+        try:
+            callback = self.pong_callbacks.get_callback(pingid)
+        except KeyError:
             self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+        else:
+            callback()
 
     def recv_ping(self, remote: Node, hash_: bytes) -> None:
         """Process a received ping packet.
@@ -374,10 +428,14 @@ class KademliaProtocol:
         self.logger.debug('<<< ping from %s', remote)
         self.update_routing_table(remote)
         self.wire.send_pong(remote, hash_)
-        # Sometimes a ping will be sent to us as part of the bond()ing performed the first time we
-        # see a node, and it is in those cases that a callback will exist.
-        callback = self.ping_callbacks.get(remote)
-        if callback is not None:
+        # Sometimes a ping will be sent to us as part of the bonding
+        # performed the first time we see a node, and it is in those cases that
+        # a callback will exist.
+        try:
+            callback = self.ping_callbacks.get_callback(remote)
+        except KeyError:
+            pass
+        else:
             callback()
 
     def recv_find_node(self, remote: Node, targetid: int) -> None:
@@ -413,16 +471,16 @@ class KademliaProtocol:
                 "There's another coroutine waiting for a ping packet from {}".format(remote))
 
         event = asyncio.Event()
-        self.ping_callbacks[remote] = event.set
-        got_ping = False
-        try:
-            got_ping = await wait_with_token(
-                event.wait(), token=cancel_token, timeout=k_request_timeout)
-            self.logger.debug('got expected ping from %s', remote)
-        except TimeoutError:
-            self.logger.debug('timed out waiting for ping from %s', remote)
-        finally:
-            del self.ping_callbacks[remote]
+
+        with self.ping_callbacks.acquire(remote, event.set):
+            got_ping = False
+            try:
+                got_ping = await wait_with_token(
+                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                self.logger.debug('got expected ping from %s', remote)
+            except TimeoutError:
+                self.logger.debug('timed out waiting for ping from %s', remote)
+
         return got_ping
 
     async def wait_pong(self, remote: Node, token: bytes, cancel_token: CancelToken) -> bool:
@@ -435,20 +493,25 @@ class KademliaProtocol:
         pingid = self._mkpingid(token, remote)
         if pingid in self.pong_callbacks:
             raise AlreadyWaiting(
-                "There's another coroutine waiting for a pong packet with id {}".format(pingid))
+                "There's another coroutine waiting for a pong packet with id "
+                "{}".format(pingid)
+            )
 
         event = asyncio.Event()
-        self.pong_callbacks[pingid] = event.set
-        got_pong = False
-        try:
-            got_pong = await wait_with_token(
-                event.wait(), token=cancel_token, timeout=k_request_timeout)
-            self.logger.debug('got expected pong with token %s', encode_hex(token))
-        except TimeoutError:
-            self.logger.debug(
-                'timed out waiting for pong from %s (token == %s)', remote, encode_hex(token))
-        finally:
-            del self.pong_callbacks[pingid]
+
+        with self.pong_callbacks.acquire(pingid, event.set):
+            got_pong = False
+            try:
+                got_pong = await wait_with_token(
+                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                self.logger.debug('got expected pong with token %s', encode_hex(token))
+            except TimeoutError:
+                self.logger.debug(
+                    'timed out waiting for pong from %s (token == %s)',
+                    remote,
+                    encode_hex(token),
+                )
+
         return got_pong
 
     async def wait_neighbours(self, remote: Node, cancel_token: CancelToken) -> Tuple[Node, ...]:
@@ -471,15 +534,14 @@ class KademliaProtocol:
             if len(neighbours) == k_bucket_size:
                 event.set()
 
-        self.neighbours_callbacks[remote] = process
-        try:
-            await wait_with_token(
-                event.wait(), token=cancel_token, timeout=k_request_timeout)
-            self.logger.debug('got expected neighbours response from %s', remote)
-        except TimeoutError:
-            self.logger.debug('timed out waiting for neighbours response from %s', remote)
-        finally:
-            del self.neighbours_callbacks[remote]
+        with self.neighbours_callbacks.acquire(remote, process):
+            try:
+                await wait_with_token(
+                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                self.logger.debug('got expected neighbours response from %s', remote)
+            except TimeoutError:
+                self.logger.debug('timed out waiting for neighbours response from %s', remote)
+
         return tuple(n for n in neighbours if n != self.this_node)
 
     def ping(self, node: Node) -> bytes:
@@ -518,7 +580,7 @@ class KademliaProtocol:
             self.bond(n, cancel_token)
             for n
             in bootstrap_nodes
-            if (n not in self.ping_callbacks and n not in self.pong_callbacks)
+            if (not self.ping_callbacks.locked(n) and not self.pong_callbacks.locked(n))
         ))
         if not any(bonded):
             self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
@@ -546,7 +608,7 @@ class KademliaProtocol:
             all_candidates = tuple(c for c in candidates if c not in nodes_seen)
             candidates = tuple(
                 c for c in all_candidates
-                if (c not in self.ping_callbacks and c not in self.pong_callbacks)
+                if (not self.ping_callbacks.locked(c) and not self.pong_callbacks.locked(c))
             )
             self.logger.debug("got %s new candidates", len(candidates))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
@@ -570,7 +632,7 @@ class KademliaProtocol:
                 _find_node(node_id, n)
                 for n
                 in nodes_to_ask
-                if n not in self.neighbours_callbacks
+                if not self.neighbours_callbacks.locked(n)
             ))
             for candidates in results:
                 closest.extend(candidates)
