@@ -546,7 +546,12 @@ class KademliaProtocol:
 
         token = self.ping(node)
 
-        got_pong = await self.wait_pong(node, token, cancel_token)
+        try:
+            got_pong = await self.wait_pong(node, token, cancel_token)
+        except AlreadyWaiting:
+            self.logger.debug("binding failed, already waiting for pong")
+            return False
+
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from %s", node)
             self.routing.remove_node(node)
