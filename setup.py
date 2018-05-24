@@ -50,6 +50,7 @@ deps = {
         "pytest-cov==2.5.1",
         "pytest-xdist==1.18.1",
         "pytest-watch>=4.1.0,<5",
+        "termcolor==1.1.*"
     ],
     'lint': [
         "flake8==3.5.0",
