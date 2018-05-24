@@ -647,8 +647,9 @@ class PeerPool(BaseService):
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
-    _last_lookup: float = 0
-    _lookup_interval: int = 20
+    _discovery_lookup_running = asyncio.Lock()
+    _discovery_last_lookup: float = 0
+    _discovery_lookup_interval: int = 30
 
     def __init__(self,
                  peer_class: Type[BasePeer],
@@ -746,14 +747,21 @@ class PeerPool(BaseService):
             self.logger.exception("Unexpected error during auth/p2p handshake with %s", remote)
         return None
 
-    async def lookup_random_node(self) -> None:
-        # This method runs in the background, so we must catch OperationCancelled here otherwise
-        # asyncio will warn that its exception was never retrieved.
-        try:
-            await self.discovery.lookup_random(self.cancel_token)
-        except OperationCancelled:
-            pass
-        self._last_lookup = time.time()
+    async def maybe_lookup_random_node(self) -> None:
+        if self._discovery_last_lookup + self._discovery_lookup_interval > time.time():
+            return
+        elif self._discovery_lookup_running.locked():
+            self.logger.debug("Node discovery lookup already in progress, not running another")
+            return
+        async with self._discovery_lookup_running:
+            # This method runs in the background, so we must catch OperationCancelled here
+            # otherwise asyncio will warn that its exception was never retrieved.
+            try:
+                await self.discovery.lookup_random(self.cancel_token)
+            except OperationCancelled:
+                pass
+            finally:
+                self._discovery_last_lookup = time.time()
 
     async def maybe_connect_to_more_peers(self) -> None:
         """Connect to more peers if we're not yet connected to at least self.min_peers."""
@@ -764,9 +772,7 @@ class PeerPool(BaseService):
                 [remote for remote in self.connected_nodes])
             return
 
-        if self._last_lookup + self._lookup_interval < time.time():
-            self.logger.debug("Last node discovery lookup too long ago, triggering another")
-            asyncio.ensure_future(self.lookup_random_node())
+        asyncio.ensure_future(self.maybe_lookup_random_node())
 
         await self._connect_to_nodes(self.get_nodes_to_connect())
 
@@ -871,7 +877,7 @@ class HardCodedNodesPeerPool(PeerPool):
         else:
             self.logger.warning('No bootnodes available')
 
-    async def lookup_random_node(self) -> None:
+    async def maybe_lookup_random_node(self) -> None:
         # Do nothing as we don't have a DiscoveryProtocol
         pass
 

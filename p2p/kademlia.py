@@ -500,10 +500,7 @@ class KademliaProtocol:
         got_pong = await self.wait_pong(node, token, cancel_token)
         if not got_pong:
             self.logger.debug("bonding failed, didn't receive pong from %s", node)
-            # Drop the failing node and schedule a populate_not_full_buckets() call to try and
-            # fill its spot.
             self.routing.remove_node(node)
-            asyncio.ensure_future(self.populate_not_full_buckets())
             return False
 
         # Give the remote node a chance to ping us before we move on and start sending find_node
