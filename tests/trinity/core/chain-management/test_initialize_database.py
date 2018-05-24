@@ -5,10 +5,12 @@ from evm.db.backends.level import LevelDB
 from evm.db.chain import ChainDB
 
 from trinity.chains import (
-    ChainConfig,
     initialize_data_dir,
     initialize_database,
     is_database_initialized,
+)
+from trinity.config import (
+    ChainConfig,
 )
 
 

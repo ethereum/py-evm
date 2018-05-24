@@ -12,8 +12,10 @@ from evm.db.chain import (
 )
 
 from trinity.chains import (
-    ChainConfig,
     serve_chaindb,
+)
+from trinity.config import (
+    ChainConfig,
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy

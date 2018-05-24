@@ -47,7 +47,7 @@ from trinity.db.header import AsyncHeaderDBProxy
 from trinity.cli_parser import (
     parser,
 )
-from trinity.chains import (
+from trinity.config import (
     ChainConfig,
 )
 from trinity.utils.ipc import (
