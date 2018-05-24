@@ -123,8 +123,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
             # there it will be handled.
             pass
-        except known_exceptions:
-            self.logger.warn("Halted while handling message from %s", peer)
+        except known_exceptions as exc:
+            self.logger.warn("Halted while handling message from %s with %r", peer, exc)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
@@ -160,6 +160,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self._sync(peer)
         except OperationCancelled:
             pass
+        except EOFError as exc:
+            logging.warn("Chain syncer halt, probably because of a dropped db connection, %r", exc)
         finally:
             self._syncing = False
 
@@ -340,6 +342,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         return self._request_block_parts(headers, self._send_get_receipts)
 
     async def wait_until_finished(self) -> None:
+        self.logger.info("Shutting down FastChainSyncer")
         start_at = time.time()
         # Wait at most 1 second for pending peers to finish.
         self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))

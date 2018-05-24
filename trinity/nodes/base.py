@@ -85,7 +85,7 @@ class Node(BaseService):
             return EmptyService()
 
     async def _run(self):
-        ipc_server = self.make_ipc_server()
+        self._ipc_server = self.make_ipc_server()
 
         # The RPC server needs its own thread, because it provides a synchcronous
         # API which might call into p2p async methods. These sync->async calls
@@ -93,18 +93,15 @@ class Node(BaseService):
         ipc_loop = self._make_new_loop_thread()
 
         # keep a copy on self, for debugging
-        self._ipc_server, self._ipc_loop = ipc_server, ipc_loop
+        self._ipc_loop = ipc_loop
 
-        try:
-            asyncio.run_coroutine_threadsafe(ipc_server.run(loop=ipc_loop), loop=ipc_loop)
+        asyncio.run_coroutine_threadsafe(self._ipc_server.run(loop=ipc_loop), loop=ipc_loop)
 
-            async with self._auxiliary_services:
-                await self.get_p2p_server().run()
-        finally:
-            await ipc_server.stop()
+        async with self._auxiliary_services:
+            await self.get_p2p_server().run()
 
     async def _cleanup(self):
-        await self.get_p2p_server().stop()
+        await self._ipc_server.stop()
 
     def _make_new_loop_thread(self):
         new_loop = asyncio.new_event_loop()

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import time
 from typing import (
     cast,
     Dict,
@@ -45,22 +44,25 @@ from p2p.peer import (
     PeerPool,
     PeerPoolSubscriber,
 )
+from p2p.service import (
+    BaseService,
+)
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
-class LightPeerChain(PeerPoolSubscriber):
+class LightPeerChain(BaseService, PeerPoolSubscriber):
     logger = logging.getLogger("p2p.lightchain.LightPeerChain")
     max_consecutive_timeouts = 5
     headerdb: 'BaseAsyncHeaderDB' = None
 
     def __init__(self, headerdb: 'BaseAsyncHeaderDB', peer_pool: PeerPool) -> None:
+        super().__init__()
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
         self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
-        self.cancel_token = CancelToken('LightPeerChain')
         self._running_peers: Set[LESPeer] = set()
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -72,18 +74,22 @@ class LightPeerChain(PeerPoolSubscriber):
         Returns when the peer is finished or when the LightPeerChain is asked to stop.
         """
         self._running_peers.add(peer)
+        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
+        # self.finished is set.
+        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
         try:
-            # FIXME: Once we're a BaseService subclass, fix this to look like
-            # ChainSyncer.handle_peer()
-            await self._handle_peer(peer)
+            await asyncio.wait(
+                [self._handle_peer(peer, peer_token), self.finished.wait()],
+                return_when=asyncio.FIRST_COMPLETED)
         finally:
+            peer_token.trigger()
             self._running_peers.remove(peer)
 
-    async def _handle_peer(self, peer: LESPeer) -> None:
+    async def _handle_peer(self, peer: LESPeer, cancel_token: CancelToken) -> None:
         self._announcement_queue.put_nowait((peer, peer.head_info))
-        while True:
+        while not self.is_finished:
             try:
-                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+                cmd, msg = await peer.read_sub_proto_msg(cancel_token)
             except OperationCancelled:
                 # Either the peer disconnected or our cancel_token has been triggered, so break
                 # out of the loop to stop attempting to sync with this peer.
@@ -105,15 +111,8 @@ class LightPeerChain(PeerPoolSubscriber):
         await peer.cancel()
 
     async def wait_until_finished(self):
-        start_at = time.time()
-        # Wait at most 5 seconds for pending peers to finish.
-        while time.time() < start_at + 5:
-            if not self._running_peers:
-                break
-            self.logger.debug("Waiting for %d running peers to finish", len(self._running_peers))
-            await asyncio.sleep(0.1)
-        else:
-            self.logger.info("Waited too long for peers to finish, exiting anyway")
+        peer_cleanups = [peer.cleaned_up.wait() for peer in self._running_peers]
+        await asyncio.gather(*peer_cleanups)
 
     async def get_best_peer(self) -> LESPeer:
         """
@@ -146,7 +145,7 @@ class LightPeerChain(PeerPoolSubscriber):
         # Wait for either a new announcement or our cancel_token to be triggered.
         return await wait_with_token(self._announcement_queue.get(), token=self.cancel_token)
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         """Run the LightPeerChain, ensuring headers are in sync with connected peers.
 
         If .stop() is called, we'll disconnect from all peers and return.
@@ -240,10 +239,8 @@ class LightPeerChain(PeerPoolSubscriber):
                 start_block = header.block_number
             self.logger.info("synced headers up to #%s", start_block)
 
-    async def stop(self):
+    async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
-        self.cancel_token.trigger()
-        self.logger.debug("Waiting for all pending tasks to finish...")
         await self.wait_until_finished()
         self.logger.debug("LightPeerChain finished")
 

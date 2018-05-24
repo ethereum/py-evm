@@ -28,6 +28,7 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.cancel_token import (
+    CancelToken,
     wait_with_token,
 )
 from p2p.constants import (
@@ -78,8 +79,9 @@ class Server(BaseService):
                  peer_class: Type[BasePeer] = ETHPeer,
                  peer_pool_class: Type[PeerPool] = PeerPool,
                  bootstrap_nodes: Tuple[Node, ...] = None,
+                 token: CancelToken = None,
                  ) -> None:
-        super().__init__()
+        super().__init__(token)
         self.headerdb = headerdb
         self.chaindb = chaindb
         self.chain = chain

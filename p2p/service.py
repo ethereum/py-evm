@@ -19,6 +19,7 @@ class BaseService(ABC):
 
         self._run_lock = asyncio.Lock()
         self.finished = asyncio.Event()
+        self.cleaned_up = asyncio.Event()
 
         base_token = CancelToken(type(self).__name__)
         if token is None:
@@ -49,7 +50,11 @@ class BaseService(ABC):
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:
-            await self.cleanup()
+            try:
+                await self.cleanup()
+            except Exception:
+                self.logger.exception("Unexepected error during cleanup in %s", self)
+                raise
 
             if finished_callback is not None:
                 finished_callback(self)
@@ -61,6 +66,8 @@ class BaseService(ABC):
         self.finished.set()
 
         await self._cleanup()
+
+        self.cleaned_up.set()
 
     async def cancel(self):
         """Trigger the CancelToken and wait for the run() coroutine to finish."""
@@ -113,6 +120,7 @@ class ServiceContext(UserList):
     """
     Run a sequence of services in a context manager, closing them all cleanly on exit.
     """
+    logger = logging.getLogger("p2p.service.ServiceContext")
 
     def __init__(self, services: List[BaseService] = None) -> None:
         if services is None:
@@ -120,13 +128,26 @@ class ServiceContext(UserList):
         else:
             super().__init__(services)
         self.started_services: List[BaseService] = []
+        self._run_lock = asyncio.Lock()
 
     async def __aenter__(self):
+        if self._run_lock.locked():
+            raise RuntimeError("Cannot enter ServiceContext while it is already running")
+        await self._run_lock.acquire()
+
         self.started_services = list(self.data)
         for service in self.started_services:
             asyncio.ensure_future(service.run())
 
     async def __aexit__(self, exc_type, exc, tb):
         service_cancellations = [service.cancel() for service in self.started_services]
-        await asyncio.gather(*service_cancellations, return_exceptions=True)
+        results = await asyncio.gather(*service_cancellations, return_exceptions=True)
+        for service, result in zip(self.started_services, results):
+            if isinstance(result, BaseException):
+                self.logger.warning(
+                    "Exception while cancelling service %r: %r",
+                    service,
+                    result,
+                )
         self.started_services = []
+        self._run_lock.release()

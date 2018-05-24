@@ -42,5 +42,6 @@ class FullNode(Node):
                 self._network_id,
                 peer_pool_class=PreferredNodePeerPool,
                 bootstrap_nodes=self._bootstrap_nodes,
+                token=self.cancel_token,
             )
         return self._p2p_server
