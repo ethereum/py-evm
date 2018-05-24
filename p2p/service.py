@@ -29,7 +29,7 @@ class BaseService(ABC):
             finished_callback: Optional[Callable[['BaseService'], None]] = None) -> None:
         """Await for the service's _run() coroutine.
 
-        Once _run() returns, call cleanup(), set the finished event and call
+        Once _run() returns, set the finished event, call cleanup() and
         finished_callback (if one was passed).
         """
         try:
@@ -41,8 +41,10 @@ class BaseService(ABC):
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:
-            await self.cleanup()
+            # Set self.finished before anything else so that other coroutines started by this
+            # service exit while we wait for cleanup().
             self.finished.set()
+            await self.cleanup()
             if finished_callback is not None:
                 finished_callback(self)
 

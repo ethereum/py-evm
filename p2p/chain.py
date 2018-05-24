@@ -16,6 +16,7 @@ from typing import (
 
 from cytoolz.itertoolz import partition_all, unique
 
+from eth_typing import BlockNumber, Hash32
 from eth_utils import (
     encode_hex,
 )
@@ -34,6 +35,7 @@ from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import NoConnectedPeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
 
 
@@ -78,15 +80,21 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
     async def handle_peer(self, peer: ETHPeer) -> None:
         """Handle the lifecycle of the given peer."""
         self._running_peers.add(peer)
+        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
+        # self.finished is set.
+        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
         try:
-            await self._handle_peer(peer)
+            await asyncio.wait(
+                [self._handle_peer(peer, peer_token), self.finished.wait()],
+                return_when=asyncio.FIRST_COMPLETED)
         finally:
+            peer_token.trigger()
             self._running_peers.remove(peer)
 
-    async def _handle_peer(self, peer: ETHPeer) -> None:
+    async def _handle_peer(self, peer: ETHPeer, token: CancelToken) -> None:
         while not self.is_finished:
             try:
-                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+                cmd, msg = await peer.read_sub_proto_msg(token)
             except OperationCancelled:
                 # Either our cancel token or the peer's has been triggered, so break out of the
                 # loop.
@@ -344,9 +352,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         if isinstance(cmd, eth.BlockHeaders):
             self._handle_block_headers(list(cast(Tuple[BlockHeader], msg)))
         elif isinstance(cmd, eth.BlockBodies):
-            await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
+            await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
         elif isinstance(cmd, eth.Receipts):
-            await self._handle_block_receipts(peer, cast(List[List[eth.Receipt]], msg))
+            await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         else:
@@ -421,8 +429,61 @@ class RegularChainSyncer(FastChainSyncer):
             await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.GetBlockHeaders):
+            self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.GetBlockBodies):
+            self._handle_get_block_bodies(peer, cast(List[Hash32], msg))
+        elif isinstance(cmd, eth.GetReceipts):
+            self._handle_get_receipts(peer, cast(List[Hash32], msg))
+        elif isinstance(cmd, eth.GetNodeData):
+            self._handle_get_node_data(peer, cast(List[Hash32], msg))
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
+
+    def _handle_get_block_headers(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
+        block_number_or_hash = msg['block_number_or_hash']
+        if isinstance(block_number_or_hash, bytes):
+            header = self.chaindb.get_block_header_by_hash(cast(Hash32, block_number_or_hash))
+            block_number = header.block_number
+        elif isinstance(block_number_or_hash, int):
+            block_number = block_number_or_hash
+        else:
+            raise TypeError(
+                "Unexpected type for 'block_number_or_hash': %s", type(block_number_or_hash))
+        limit = max(msg['max_headers'], eth.MAX_HEADERS_FETCH)
+        if msg['reverse']:
+            block_numbers = list(reversed(range(max(0, block_number - limit), block_number + 1)))
+        else:
+            head_number = self.chaindb.get_canonical_head().block_number
+            block_numbers = list(range(block_number, min(head_number + 1, block_number + limit)))
+        headers = [
+            self.chaindb.get_canonical_block_header_by_number(cast(BlockNumber, i))
+            for i in block_numbers
+        ]
+        peer.sub_proto.send_block_headers(headers)
+
+    def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+        bodies = []
+        for block_hash in msg:
+            header = self.chaindb.get_block_header_by_hash(block_hash)
+            transactions = self.chaindb.get_block_transactions(header, P2PTransaction)
+            uncles = self.chaindb.get_block_uncles(header.uncles_hash)
+            bodies.append(BlockBody(transactions, uncles))
+        peer.sub_proto.send_block_bodies(bodies)
+
+    def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+        receipts = []
+        for block_hash in msg:
+            header = self.chaindb.get_block_header_by_hash(block_hash)
+            receipts.append(self.chaindb.get_receipts(header, Receipt))
+        peer.sub_proto.send_receipts(receipts)
+
+    def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+        nodes = []
+        for node_hash in msg:
+            node = self.chaindb.db[node_hash]
+            nodes.append(node)
+        peer.sub_proto.send_node_data(nodes)
 
     async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
         # This is needed to ensure after a state sync we only start importing blocks on top of our

@@ -73,6 +73,8 @@ class LightPeerChain(PeerPoolSubscriber):
         """
         self._running_peers.add(peer)
         try:
+            # FIXME: Once we're a BaseService subclass, fix this to look like
+            # ChainSyncer.handle_peer()
             await self._handle_peer(peer)
         finally:
             self._running_peers.remove(peer)

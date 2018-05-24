@@ -1,7 +1,6 @@
 import logging
 from typing import List, Union
 
-import rlp
 from rlp import sedes
 
 from evm.rlp.headers import BlockHeader
@@ -125,6 +124,11 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(node_hashes)
         self.send(header, body)
 
+    def send_node_data(self, nodes: List[bytes]) -> None:
+        cmd = NodeData(self.cmd_id_offset)
+        header, body = cmd.encode(nodes)
+        self.send(header, body)
+
     def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
                                max_headers: int, reverse: bool = True
                                ) -> None:
@@ -151,7 +155,7 @@ class ETHProtocol(Protocol):
 
     def send_block_headers(self, headers: List[BlockHeader]) -> None:
         cmd = BlockHeaders(self.cmd_id_offset)
-        header, body = cmd.encode([rlp.encode(header) for header in headers])
+        header, body = cmd.encode(headers)
         self.send(header, body)
 
     def send_get_block_bodies(self, block_hashes: List[bytes]) -> None:
@@ -161,10 +165,15 @@ class ETHProtocol(Protocol):
 
     def send_block_bodies(self, blocks: List[BlockBody]) -> None:
         cmd = BlockBodies(self.cmd_id_offset)
-        header, body = cmd.encode([rlp.encode(block) for block in blocks])
+        header, body = cmd.encode(blocks)
         self.send(header, body)
 
     def send_get_receipts(self, block_hashes: List[bytes]) -> None:
         cmd = GetReceipts(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
+        self.send(header, body)
+
+    def send_receipts(self, receipts: List[Receipt]) -> None:
+        cmd = Receipts(self.cmd_id_offset)
+        header, body = cmd.encode(receipts)
         self.send(header, body)
