@@ -5,6 +5,7 @@ from eth_utils import decode_hex
 from eth_keys import datatypes, keys
 
 from evm import MainnetChain, RopstenChain
+from evm.chains.base import Chain
 from evm.db.chain import AsyncChainDB
 
 from p2p import kademlia
@@ -67,6 +68,10 @@ class FakeAsyncRopstenChain(RopstenChain):
 
 class FakeAsyncMainnetChain(MainnetChain):
     chaindb_class = FakeAsyncChainDB
+    coro_import_block = coro_import_block
+
+
+class FakeAsyncChain(Chain):
     coro_import_block = coro_import_block
 
 

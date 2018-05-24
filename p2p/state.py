@@ -76,15 +76,21 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
     async def handle_peer(self, peer: ETHPeer) -> None:
         """Handle the lifecycle of the given peer."""
         self._running_peers.add(peer)
+        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
+        # self.finished is set.
+        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
         try:
-            await self._handle_peer(peer)
+            await asyncio.wait(
+                [self._handle_peer(peer, peer_token), self.finished.wait()],
+                return_when=asyncio.FIRST_COMPLETED)
         finally:
+            peer_token.trigger()
             self._running_peers.remove(peer)
 
-    async def _handle_peer(self, peer: ETHPeer) -> None:
+    async def _handle_peer(self, peer: ETHPeer, token: CancelToken) -> None:
         while not self.is_finished:
             try:
-                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+                cmd, msg = await peer.read_sub_proto_msg(token)
             except OperationCancelled:
                 # Either our cancel token or the peer's has been triggered, so break out of the
                 # loop.
@@ -172,7 +178,10 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             now = time.time()
             sleep_duration = (oldest_request_time + self._reply_timeout) - now
             try:
-                await wait_with_token(asyncio.sleep(sleep_duration), token=self.cancel_token)
+                await wait_with_token(
+                    asyncio.sleep(sleep_duration),
+                    self.finished.wait(),
+                    token=self.cancel_token)
             except OperationCancelled:
                 break
 
@@ -220,7 +229,10 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                 "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
             self.logger.info("Total nodes timed out: %d", self._total_timeouts)
             try:
-                await wait_with_token(asyncio.sleep(self._report_interval), token=self.cancel_token)
+                await wait_with_token(
+                    asyncio.sleep(self._report_interval),
+                    self.finished.wait(),
+                    token=self.cancel_token)
             except OperationCancelled:
                 break
 
