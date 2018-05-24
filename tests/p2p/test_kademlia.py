@@ -112,7 +112,7 @@ async def test_wait_neighbours(cancel_token):
 
     # Schedule a call to proto.recv_neighbours() simulating a neighbours response from the node we
     # expect.
-    neighbours = [random_node(), random_node(), random_node()]
+    neighbours = (random_node(), random_node(), random_node())
     recv_neighbours_coroutine = asyncio.coroutine(lambda: proto.recv_neighbours(node, neighbours))
     asyncio.ensure_future(recv_neighbours_coroutine())
 
@@ -125,7 +125,7 @@ async def test_wait_neighbours(cancel_token):
     # If wait_neighbours() times out, we get an empty list of neighbours.
     received_neighbours = await proto.wait_neighbours(node, cancel_token)
 
-    assert received_neighbours == []
+    assert received_neighbours == tuple()
     assert node not in proto.neighbours_callbacks
 
 
