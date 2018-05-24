@@ -284,13 +284,20 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             parts.extend(received)
             received_keys = set([part.unique_key for part in received])
             pending_replies -= 1
-            unexpected = received_keys.difference(
-                [key_func(header) for header in missing])
-            if unexpected:
-                self.logger.warn("Got %d unexpected %s from %s", len(unexpected), part_name, peer)
+
+            unexpected = received_keys.difference(key_func(header) for header in headers)
+            duplicates = received_keys.intersection(part.unique_key for part in parts)
+
+            for item in unexpected:
+                self.logger.warn("Got unexpected %s from %s: %s", part_name, unexpected)
+            if duplicates:
+                self.logger.debug("Got %s duplicate %s", len(duplicates), part_name)
+
             missing = [
-                header for header in missing
-                if key_func(header) not in received_keys]
+                header
+                for header in missing
+                if key_func(header) not in received_keys
+            ]
         return parts
 
     def _request_block_parts(
