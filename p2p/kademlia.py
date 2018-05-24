@@ -562,10 +562,15 @@ class KademliaProtocol:
             asyncio.ensure_future(self.populate_not_full_buckets())
             return False
 
-        # Give the remote node a chance to ping us before we move on and start sending find_node
-        # requests. It is ok for wait_ping() to timeout and return false here as that just means
-        # the remote remembers us.
-        await self.wait_ping(node, cancel_token)
+        try:
+            # Give the remote node a chance to ping us before we move on and
+            # start sending find_node requests. It is ok for wait_ping() to
+            # timeout and return false here as that just means the remote
+            # remembers us.
+            await self.wait_ping(node, cancel_token)
+        except AlreadyWaiting:
+            self.logger.debug("binding failed, already waiting for ping")
+            return False
 
         self.logger.debug("bonding completed successfully with %s", node)
         self.update_routing_table(node)
