@@ -543,6 +543,8 @@ class KademliaProtocol:
         """
         if node in self.routing:
             return True
+        elif node == self.this_node:
+            return False
 
         token = self.ping(node)
 
