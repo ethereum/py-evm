@@ -7,22 +7,15 @@ import time
 from typing import (
     cast,
     Dict,
-    List,
     Set,
-    Tuple,
 )
 
 from eth_typing import (
     Hash32,
 )
 
-from rlp import sedes
-
 from evm.rlp.collations import Collation
 from evm.rlp.headers import CollationHeader
-from evm.rlp.sedes import (
-    hash32,
-)
 from evm.chains.shard import Shard
 
 from evm.db.shard import (
@@ -46,29 +39,29 @@ from evm.exceptions import (
 
 from p2p.cancel_token import (
     CancelToken,
-    wait_with_token,
 )
-from p2p import protocol
 from p2p.service import BaseService
-from p2p.protocol import (
-    Command,
-    Protocol,
-)
 from p2p.peer import (
     BasePeer,
     PeerPool,
     PeerPoolSubscriber,
 )
-from p2p.p2p_proto import (
-    DisconnectReason,
+
+from p2p.sharding_peer import (
+    ShardingPeer,
 )
+from p2p.sharding_protocol import (
+    ShardingProtocol,
+    Collations,
+    GetCollations,
+    NewCollationHashes,
+)
+
 from p2p.utils import (
     gen_request_id,
 )
 from p2p.exceptions import (
-    HandshakeFailure,
     OperationCancelled,
-    UnexpectedMessage,
 )
 
 from cytoolz import (
@@ -77,152 +70,6 @@ from cytoolz import (
 
 
 COLLATION_PERIOD = 1
-
-
-class Status(Command):
-    _cmd_id = 0
-
-
-class Collations(Command):
-    _cmd_id = 1
-
-    structure = [
-        ("request_id", sedes.big_endian_int),
-        ("collations", sedes.CountableList(Collation)),
-    ]
-
-
-class GetCollations(Command):
-    _cmd_id = 2
-
-    structure = [
-        ("request_id", sedes.big_endian_int),
-        ("collation_hashes", sedes.CountableList(hash32)),
-    ]
-
-
-class NewCollationHashes(Command):
-    _cmd_id = 3
-
-    structure = [
-        (
-            "collation_hashes_and_periods", sedes.CountableList(
-                sedes.List([hash32, sedes.big_endian_int])
-            )
-        ),
-    ]
-
-
-class ShardingProtocol(Protocol):
-    name = "sha"
-    version = 0
-    _commands = [Status, Collations, GetCollations, NewCollationHashes]
-    cmd_length = 4
-
-    logger = logging.getLogger("p2p.sharding.ShardingProtocol")
-
-    def send_handshake(self) -> None:
-        cmd = Status(self.cmd_id_offset)
-        self.logger.debug("Sending status msg")
-        self.send(*cmd.encode([]))
-
-    def send_collations(self, request_id: int, collations: List[Collation]) -> None:
-        cmd = Collations(self.cmd_id_offset)
-        self.logger.debug("Sending %d collations (request id %d)", len(collations), request_id)
-        data = {
-            "request_id": request_id,
-            "collations": collations,
-        }
-        self.send(*cmd.encode(data))
-
-    def send_get_collations(self, request_id: int, collation_hashes: List[Hash32]) -> None:
-        cmd = GetCollations(self.cmd_id_offset)
-        self.logger.debug(
-            "Requesting %d collations (request id %d)",
-            len(collation_hashes),
-            request_id,
-        )
-        data = {
-            "request_id": request_id,
-            "collation_hashes": collation_hashes,
-        }
-        self.send(*cmd.encode(data))
-
-    def send_new_collation_hashes(self,
-                                  collation_hashes_and_periods: List[Tuple[Hash32, int]]) -> None:
-        cmd = NewCollationHashes(self.cmd_id_offset)
-        self.logger.debug(
-            "Announcing %d new collations (period %d to %d)",
-            len(collation_hashes_and_periods),
-            min(period for _, period in collation_hashes_and_periods),
-            max(period for _, period in collation_hashes_and_periods)
-        )
-        data = {
-            "collation_hashes_and_periods": collation_hashes_and_periods
-        }
-        self.send(*cmd.encode(data))
-
-
-class ShardingPeer(BasePeer):
-    _supported_sub_protocols = [ShardingProtocol]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.known_collation_hashes: Set[Hash32] = set()
-        self._pending_replies: Dict[
-            int,
-            asyncio.Future[Tuple[Command, protocol._DecodedMsgType]]
-        ] = {}
-
-    #
-    # Handshake
-    #
-    async def send_sub_proto_handshake(self) -> None:
-        cast(ShardingProtocol, self.sub_proto).send_handshake()
-
-    async def process_sub_proto_handshake(self,
-                                          cmd: Command,
-                                          msg: protocol._DecodedMsgType) -> None:
-        if not isinstance(cmd, Status):
-            self.disconnect(DisconnectReason.other)
-            raise HandshakeFailure("Expected status msg, got {}, disconnecting".format(cmd))
-
-    #
-    # Message handling
-    #
-    def handle_sub_proto_msg(self, cmd: Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(msg, dict):
-            request_id = msg.get("request_id")
-            if request_id is not None and request_id in self._pending_replies:
-                # This is a reply we're waiting for, so we consume it by resolving the registered
-                # future
-                future = self._pending_replies.pop(request_id)
-                future.set_result((cmd, msg))
-                return
-        super().handle_sub_proto_msg(cmd, msg)
-
-    #
-    # Requests
-    #
-    async def get_collations(self,
-                             collation_hashes: List[Hash32],
-                             cancel_token: CancelToken) -> Set[Collation]:
-        # Don't send empty request
-        if len(collation_hashes) == 0:
-            return set()
-
-        request_id = gen_request_id()
-        pending_reply: asyncio.Future[Tuple[Command, protocol._DecodedMsgType]] = asyncio.Future()
-        self._pending_replies[request_id] = pending_reply
-        cast(ShardingProtocol, self.sub_proto).send_get_collations(request_id, collation_hashes)
-        cmd, msg = await wait_with_token(pending_reply, token=cancel_token)
-
-        if not isinstance(cmd, Collations):
-            raise UnexpectedMessage(
-                "Expected Collations as response to GetCollations, but got %s",
-                cmd.__class__.__name__
-            )
-        return set(msg["collations"])
 
 
 class ShardSyncer(BaseService, PeerPoolSubscriber):

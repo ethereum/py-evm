@@ -14,11 +14,15 @@ from evm.utils.padding import (
     zpad_right,
 )
 
-from p2p.sharding import (
+from p2p.sharding_protocol import (
+    ShardingProtocol,
     GetCollations,
     NewCollationHashes,
+)
+from p2p.sharding_peer import (
     ShardingPeer,
-    ShardingProtocol,
+)
+from p2p.shard_syncer import (
     ShardSyncer,
 )
 from p2p.cancel_token import (
