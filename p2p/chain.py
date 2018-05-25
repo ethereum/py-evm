@@ -8,13 +8,17 @@ from typing import (
     Callable,
     Dict,
     List,
+    NamedTuple,
     Set,
     Tuple,
     Union,
     cast,
 )
 
-from cytoolz.itertoolz import partition_all, unique
+from cytoolz import (
+    partition_all,
+    unique,
+)
 
 from eth_typing import BlockNumber, Hash32
 from eth_utils import (
@@ -281,17 +285,18 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 pending_replies = request_func(missing)
                 continue
 
-            parts.extend(received)
             received_keys = set([part.unique_key for part in received])
+
+            duplicates = received_keys.intersection(part.unique_key for part in parts)
+            unexpected = received_keys.difference(key_func(header) for header in headers)
+
+            parts.extend(received)
             pending_replies -= 1
 
-            unexpected = received_keys.difference(key_func(header) for header in headers)
-            duplicates = received_keys.intersection(part.unique_key for part in parts)
-
-            for item in unexpected:
-                self.logger.warn("Got unexpected %s from %s: %s", part_name, unexpected)
+            if unexpected:
+                self.logger.debug("Got unexpected %s from %s: %s", part_name, peer, unexpected)
             if duplicates:
-                self.logger.debug("Got %s duplicate %s", len(duplicates), part_name)
+                self.logger.debug("Got duplicate %s from %s: %s", part_name, peer, duplicates)
 
             missing = [
                 header
@@ -545,13 +550,9 @@ class RegularChainSyncer(FastChainSyncer):
         return head.block_number
 
 
-class DownloadedBlockPart:
-
-    def __init__(self,
-                 part: Union[eth.BlockBody, List[Receipt]],
-                 unique_key: Union[bytes, Tuple[bytes, bytes]]) -> None:
-        self.part = part
-        self.unique_key = unique_key
+class DownloadedBlockPart(NamedTuple):
+    part: Union[eth.BlockBody, List[Receipt]]
+    unique_key: Union[bytes, Tuple[bytes, bytes]]
 
 
 def _body_key(header: BlockHeader) -> Tuple[bytes, bytes]:
