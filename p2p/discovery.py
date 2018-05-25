@@ -167,7 +167,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # handler methods.
         expiration = rlp.sedes.big_endian_int.deserialize(payload[-1])
         if time.time() > expiration:
-            self.logger.error('received message already expired')
+            self.logger.debug('received message already expired')
             return
 
         cmd = CMD_ID_MAP[cmd_id]
