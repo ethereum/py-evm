@@ -1,15 +1,9 @@
 from eth_hash.auto import keccak
 
 from evm import constants
-from evm.exceptions import (
-    OutOfGas,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-from evm.vm.forks.frontier.computation import (
-    FrontierComputation,
-)
+from evm.exceptions import OutOfGas
+from evm.utils.hexadecimal import encode_hex
+from evm.vm.forks.frontier.computation import FrontierComputation
 
 from .opcodes import HOMESTEAD_OPCODES
 
@@ -37,8 +31,7 @@ class HomesteadComputation(FrontierComputation):
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
                     computation.consume_gas(
-                        contract_code_gas_cost,
-                        reason="Write contract code for CREATE",
+                        contract_code_gas_cost, reason="Write contract code for CREATE"
                     )
                 except OutOfGas as err:
                     # Different from Frontier: reverts state on gas failure while
@@ -51,10 +44,12 @@ class HomesteadComputation(FrontierComputation):
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(self.msg.storage_address),
                             len(contract_code),
-                            encode_hex(keccak(contract_code))
+                            encode_hex(keccak(contract_code)),
                         )
 
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(
+                        self.msg.storage_address, contract_code
+                    )
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

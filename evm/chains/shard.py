@@ -1,25 +1,12 @@
-from typing import (
-    Union,
-)
-from eth_typing import (
-    Hash32,
-)
+from typing import Union
+from eth_typing import Hash32
 
-from evm.db.shard import (
-    Availability,
-    ShardDB,
-)
+from evm.db.shard import Availability, ShardDB
 
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
-from evm.rlp.headers import (
-    CollationHeader,
-)
-from evm.rlp.collations import (
-    Collation,
-)
+from evm.rlp.headers import CollationHeader
+from evm.rlp.collations import Collation
 
 
 class Shard:
@@ -66,11 +53,12 @@ class Shard:
         self.shard_db.set_canonical(header)
 
 
-def check_shard_id(shard: Shard, header_or_collation: Union[CollationHeader, Collation]) -> None:
+def check_shard_id(
+    shard: Shard, header_or_collation: Union[CollationHeader, Collation]
+) -> None:
     if header_or_collation.shard_id != shard.shard_id:
         raise ValidationError(
             "Header or collation belongs to shard {} instead of shard {}".format(
-                header_or_collation.shard_id,
-                shard.shard_id,
+                header_or_collation.shard_id, shard.shard_id
             )
         )

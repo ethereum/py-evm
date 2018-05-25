@@ -1,6 +1,4 @@
-from abc import (
-    abstractmethod,
-)
+from abc import abstractmethod
 
 from evm.db.backends.base import BaseDB
 
@@ -10,6 +8,7 @@ class KeyMapDB(BaseDB):
     Modify keys when accessing the database, according to the
     abstract keymap function set in the subclass.
     """
+
     def __init__(self, db):
         self._db = db
 
@@ -38,7 +37,7 @@ class KeyMapDB(BaseDB):
         return getattr(self._db, attr)
 
     def __setattr__(self, attr, val):
-        if attr in ('_db', 'keymap'):
+        if attr in ("_db", "keymap"):
             super().__setattr__(attr, val)
         else:
             setattr(self._db, attr, val)

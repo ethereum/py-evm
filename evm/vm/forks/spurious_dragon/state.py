@@ -1,17 +1,13 @@
 
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-from evm.vm.forks.homestead.state import (
-    HomesteadState,
-    HomesteadTransactionExecutor,
-)
+from evm.utils.hexadecimal import encode_hex
+from evm.vm.forks.homestead.state import HomesteadState, HomesteadTransactionExecutor
 
 from .computation import SpuriousDragonComputation
 from .utils import collect_touched_accounts
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
+
     def finalize_computation(self, transaction, computation):
         computation = super().finalize_computation(transaction, computation)
 
@@ -21,14 +17,12 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
         touched_accounts = collect_touched_accounts(computation)
 
         for account in touched_accounts:
-            should_delete = (
-                self.vm_state.account_db.account_exists(account) and
-                self.vm_state.account_db.account_is_empty(account)
-            )
+            should_delete = self.vm_state.account_db.account_exists(
+                account
+            ) and self.vm_state.account_db.account_is_empty(account)
             if should_delete:
                 self.vm_state.logger.debug(
-                    "CLEARING EMPTY ACCOUNT: %s",
-                    encode_hex(account),
+                    "CLEARING EMPTY ACCOUNT: %s", encode_hex(account)
                 )
                 self.vm_state.account_db.delete_account(account)
 
@@ -38,4 +32,6 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 class SpuriousDragonState(HomesteadState):
     computation_class = SpuriousDragonComputation
     computation_class = SpuriousDragonComputation
-    transaction_executor = SpuriousDragonTransactionExecutor  # Type[BaseTransactionExecutor]
+    transaction_executor = (
+        SpuriousDragonTransactionExecutor
+    )  # Type[BaseTransactionExecutor]

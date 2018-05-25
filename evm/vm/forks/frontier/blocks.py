@@ -1,42 +1,26 @@
-from typing import (  # noqa: F401
-    List
-)
+from typing import List  # noqa: F401
 
 import rlp
-from rlp.sedes import (
-    CountableList,
-)
+from rlp.sedes import CountableList
 
-from eth_bloom import (
-    BloomFilter,
-)
+from eth_bloom import BloomFilter
 
 from eth_hash.auto import keccak
 
-from evm.constants import (
-    EMPTY_UNCLE_HASH,
-)
-from evm.rlp.receipts import (
-    Receipt,
-)
-from evm.rlp.blocks import (
-    BaseBlock,
-)
-from evm.rlp.headers import (
-    BlockHeader,
-)
+from evm.constants import EMPTY_UNCLE_HASH
+from evm.rlp.receipts import Receipt
+from evm.rlp.blocks import BaseBlock
+from evm.rlp.headers import BlockHeader
 
-from .transactions import (
-    FrontierTransaction,
-)
+from .transactions import FrontierTransaction
 
 
 class FrontierBlock(BaseBlock):
     transaction_class = FrontierTransaction
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_class)),
+        ("uncles", CountableList(BlockHeader)),
     ]
 
     bloom_filter = None
@@ -50,9 +34,7 @@ class FrontierBlock(BaseBlock):
         self.bloom_filter = BloomFilter(header.bloom)
 
         super(FrontierBlock, self).__init__(
-            header=header,
-            transactions=transactions,
-            uncles=uncles,
+            header=header, transactions=transactions, uncles=uncles
         )
         # TODO: should perform block validation at this point?
 
@@ -93,13 +75,11 @@ class FrontierBlock(BaseBlock):
         else:
             uncles = chaindb.get_block_uncles(header.uncles_hash)
 
-        transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
-
-        return cls(
-            header=header,
-            transactions=transactions,
-            uncles=uncles,
+        transactions = chaindb.get_block_transactions(
+            header, cls.get_transaction_class()
         )
+
+        return cls(header=header, transactions=transactions, uncles=uncles)
 
     #
     # Execution API

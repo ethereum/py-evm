@@ -2,17 +2,10 @@
 import rlp
 
 from eth_keys import keys
-from eth_keys.exceptions import (
-    BadSignature,
-)
+from eth_keys.exceptions import BadSignature
 
-from evm.exceptions import (
-    ValidationError,
-)
-from evm.utils.numeric import (
-    is_even,
-    int_to_big_endian,
-)
+from evm.exceptions import ValidationError
+from evm.utils.numeric import is_even, int_to_big_endian
 
 
 from evm.rlp.transactions import BaseTransaction
@@ -47,9 +40,11 @@ def create_transaction_signature(unsigned_txn, private_key, chain_id=None):
     transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 
     if chain_id:
-        transaction_parts_for_signature = (
-            transaction_parts + [int_to_big_endian(chain_id), b'', b'']
-        )
+        transaction_parts_for_signature = transaction_parts + [
+            int_to_big_endian(chain_id),
+            b"",
+            b"",
+        ]
     else:
         transaction_parts_for_signature = transaction_parts
 

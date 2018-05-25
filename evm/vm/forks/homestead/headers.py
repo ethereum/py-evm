@@ -1,11 +1,6 @@
-from eth_utils import (
-    decode_hex,
-)
+from eth_utils import decode_hex
 
-from evm.validation import (
-    validate_gt,
-    validate_header_params_for_configuration,
-)
+from evm.validation import validate_gt, validate_header_params_for_configuration
 
 from evm.constants import (
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
@@ -13,16 +8,10 @@ from evm.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
-from evm.utils.db import (
-    get_parent_header,
-)
-from evm.vm.forks.frontier.headers import (
-    create_frontier_header_from_parent,
-)
+from evm.utils.db import get_parent_header
+from evm.vm.forks.frontier.headers import create_frontier_header_from_parent
 
-from .constants import (
-    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF
-)
+from .constants import HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF
 
 
 def compute_homestead_difficulty(parent_header, timestamp):
@@ -33,28 +22,30 @@ def compute_homestead_difficulty(parent_header, timestamp):
     validate_gt(timestamp, parent_tstamp, title="Header.timestamp")
     offset = parent_header.difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
     sign = max(
-        1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
-        -99)
-    difficulty = int(max(
-        parent_header.difficulty + offset * sign,
-        min(parent_header.difficulty, DIFFICULTY_MINIMUM)))
+        1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF, -99
+    )
+    difficulty = int(
+        max(
+            parent_header.difficulty + offset * sign,
+            min(parent_header.difficulty, DIFFICULTY_MINIMUM),
+        )
+    )
     num_bomb_periods = (
         (parent_header.block_number + 1) // BOMB_EXPONENTIAL_PERIOD
     ) - BOMB_EXPONENTIAL_FREE_PERIODS
     if num_bomb_periods >= 0:
-        return max(difficulty + 2**num_bomb_periods, DIFFICULTY_MINIMUM)
+        return max(difficulty + 2 ** num_bomb_periods, DIFFICULTY_MINIMUM)
     else:
         return difficulty
 
 
 def create_homestead_header_from_parent(parent_header, **header_params):
-    if 'difficulty' not in header_params:
+    if "difficulty" not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its
         # difficulty.
-        header_params.setdefault('timestamp', parent_header.timestamp + 1)
-        header_params['difficulty'] = compute_homestead_difficulty(
-            parent_header,
-            header_params['timestamp'],
+        header_params.setdefault("timestamp", parent_header.timestamp + 1)
+        header_params["difficulty"] = compute_homestead_difficulty(
+            parent_header, header_params["timestamp"]
         )
     return create_frontier_header_from_parent(parent_header, **header_params)
 
@@ -63,11 +54,10 @@ def configure_homestead_header(vm, **header_params):
     validate_header_params_for_configuration(header_params)
 
     with vm.block.header.build_changeset(**header_params) as changeset:
-        if 'timestamp' in header_params and changeset.block_number > 0:
+        if "timestamp" in header_params and changeset.block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = compute_homestead_difficulty(
-                parent_header,
-                header_params['timestamp'],
+                parent_header, header_params["timestamp"]
             )
 
         # In geth the modification of the state in the DAO fork block is performed
@@ -94,7 +84,7 @@ def configure_homestead_header(vm, **header_params):
     return header
 
 
-dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')
+dao_refund_contract = decode_hex("0xbf4ed7b27f1d666546e30d74d50d173d20bca754")
 dao_drain_list = [
     "0xd4fe7bc31cedb7bfb8a345f31e668033056b2728",
     "0xb3fb0e5aba0e20e5c49d252dfd30e102b171a425",

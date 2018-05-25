@@ -2,11 +2,7 @@ import collections
 from typing import Dict, Union  # noqa: F401
 import uuid
 
-from cytoolz import (
-    first,
-    merge,
-    last,
-)
+from cytoolz import first, merge, last
 
 from evm.db.backends.base import BaseDB
 from evm.exceptions import ValidationError
@@ -32,7 +28,9 @@ class Journal(BaseDB):
         # contains a mapping from all of the `uuid4` changeset_ids
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
-        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
+        self.journal_data = (
+            collections.OrderedDict()
+        )  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
 
     @property
     def root_changeset_id(self) -> uuid.UUID:
@@ -93,11 +91,9 @@ class Journal(BaseDB):
         # we pull all of the changesets *after* the changeset we are
         # reverting to and collapse them to a single set of keys (giving
         # precedence to later changesets)
-        changeset_data = merge(*(
-            self.journal_data.pop(c_id)
-            for c_id
-            in changesets_to_pop
-        ))
+        changeset_data = merge(
+            *(self.journal_data.pop(c_id) for c_id in changesets_to_pop)
+        )
 
         return changeset_data
 
@@ -110,10 +106,7 @@ class Journal(BaseDB):
         if not self.is_empty():
             # we only have to merge the changes into the latest changeset if
             # there is one.
-            self.latest = merge(
-                self.latest,
-                changeset_data,
-            )
+            self.latest = merge(self.latest, changeset_data)
         return changeset_data
 
     #
@@ -203,9 +196,9 @@ class JournalDB(BaseDB):
         Checks to be sure the changeset is known by the journal
         """
         if not self.journal.has_changeset(changeset_id):
-            raise ValidationError("Changeset not found in journal: {0}".format(
-                str(changeset_id)
-            ))
+            raise ValidationError(
+                "Changeset not found in journal: {0}".format(str(changeset_id))
+            )
 
     def record(self) -> uuid.UUID:
         """

@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 import operator
 from typing import (  # noqa: F401
     Any,
@@ -21,37 +18,17 @@ from typing import (  # noqa: F401
 
 import logging
 
-from cytoolz import (
-    assoc,
-    groupby,
-)
+from cytoolz import assoc, groupby
 
-from eth_typing import (
-    Address,
-    BlockNumber,
-    Hash32,
-)
+from eth_typing import Address, BlockNumber, Hash32
 
-from eth_utils import (
-    to_tuple,
-    to_set,
-)
+from eth_utils import to_tuple, to_set
 
 from evm.db.backends.base import BaseDB
-from evm.db.chain import (
-    BaseChainDB,
-    ChainDB,
-)
-from evm.db.header import (
-    HeaderDB,
-)
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    MAX_UNCLE_DEPTH,
-)
-from evm.estimators import (
-    get_gas_estimator,
-)
+from evm.db.chain import BaseChainDB, ChainDB
+from evm.db.header import HeaderDB
+from evm.constants import BLANK_ROOT_HASH, MAX_UNCLE_DEPTH
+from evm.estimators import get_gas_estimator
 from evm.exceptions import (
     HeaderNotFound,
     TransactionNotFound,
@@ -64,32 +41,14 @@ from evm.validation import (
     validate_word,
     validate_vm_configuration,
 )
-from evm.rlp.blocks import (
-    BaseBlock,
-)
-from evm.rlp.headers import (
-    BlockHeader,
-    HeaderParams,
-)
-from evm.rlp.transactions import (
-    BaseTransaction,
-    BaseUnsignedTransaction,
-)
-from evm.utils.db import (
-    apply_state_dict,
-)
-from evm.utils.datatypes import (
-    Configurable,
-)
-from evm.utils.headers import (
-    compute_gas_limit_bounds,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-from evm.utils.rlp import (
-    ensure_imported_block_unchanged,
-)
+from evm.rlp.blocks import BaseBlock
+from evm.rlp.headers import BlockHeader, HeaderParams
+from evm.rlp.transactions import BaseTransaction, BaseUnsignedTransaction
+from evm.utils.db import apply_state_dict
+from evm.utils.datatypes import Configurable
+from evm.utils.headers import compute_gas_limit_bounds
+from evm.utils.hexadecimal import encode_hex
+from evm.utils.rlp import ensure_imported_block_unchanged
 
 if TYPE_CHECKING:
     from evm.vm.base import BaseVM  # noqa: F401
@@ -123,37 +82,41 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     @classmethod
     @abstractmethod
-    def from_genesis(cls,
-                     base_db: BaseDB,
-                     genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'BaseChain':
+    def from_genesis(
+        cls,
+        base_db: BaseDB,
+        genesis_params: Dict[str, HeaderParams],
+        genesis_state: AccountState = None,
+    ) -> "BaseChain":
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
     @abstractmethod
-    def from_genesis_header(cls,
-                            base_db: BaseDB,
-                            genesis_header: BlockHeader) -> 'BaseChain':
+    def from_genesis_header(
+        cls, base_db: BaseDB, genesis_header: BlockHeader
+    ) -> "BaseChain":
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def get_chain_at_block_parent(self, block: BaseBlock) -> 'BaseChain':
+    def get_chain_at_block_parent(self, block: BaseBlock) -> "BaseChain":
         raise NotImplementedError("Chain classes must implement this method")
 
     #
     # VM API
     #
     @abstractmethod
-    def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, header: BlockHeader = None) -> "BaseVM":
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
-    def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type['BaseVM']:
+    def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type["BaseVM"]:
         """
         Returns the VM class for the given block number.
         """
         if cls.vm_configuration is None:
-            raise AttributeError("Chain classes must define the VMs in vm_configuration")
+            raise AttributeError(
+                "Chain classes must define the VMs in vm_configuration"
+            )
 
         validate_block_number(block_number)
         for start_block, vm_class in reversed(cls.vm_configuration):
@@ -166,9 +129,9 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     # Header API
     #
     @abstractmethod
-    def create_header_from_parent(self,
-                                  parent_header: BlockHeader,
-                                  **header_params: HeaderParams) -> BlockHeader:
+    def create_header_from_parent(
+        self, parent_header: BlockHeader, **header_params: HeaderParams
+    ) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -186,7 +149,9 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     #
     # Block API
     #
-    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
+    def get_ancestors(
+        self, limit: int, header: BlockHeader = None
+    ) -> Iterator[BaseBlock]:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -215,9 +180,9 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def create_unsigned_transaction(self,
-                                    *args: Any,
-                                    **kwargs: Any) -> BaseUnsignedTransaction:
+    def create_unsigned_transaction(
+        self, *args: Any, **kwargs: Any
+    ) -> BaseUnsignedTransaction:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -232,11 +197,15 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
+    def estimate_gas(
+        self, transaction: BaseTransaction, at_header: BlockHeader = None
+    ) -> int:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+    def import_block(
+        self, block: BaseBlock, perform_validation: bool = True
+    ) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -273,7 +242,7 @@ class Chain(BaseChain):
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
-    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+    def __init__(self, base_db: BaseDB, header: BlockHeader = None) -> None:
         if not self.vm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vm_configuration`"
@@ -302,18 +271,19 @@ class Chain(BaseChain):
     # Chain API
     #
     @classmethod
-    def from_genesis(cls,
-                     base_db: BaseDB,
-                     genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'BaseChain':
+    def from_genesis(
+        cls,
+        base_db: BaseDB,
+        genesis_params: Dict[str, HeaderParams],
+        genesis_state: AccountState = None,
+    ) -> "BaseChain":
         """
         Initializes the Chain from a genesis state.
         """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         account_db = genesis_vm_class.get_state_class().get_account_db_class()(
-            base_db,
-            BLANK_ROOT_HASH,
+            base_db, BLANK_ROOT_HASH
         )
 
         if genesis_state is None:
@@ -323,18 +293,17 @@ class Chain(BaseChain):
         apply_state_dict(account_db, genesis_state)
         account_db.persist()
 
-        if 'state_root' not in genesis_params:
+        if "state_root" not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
-        elif genesis_params['state_root'] != account_db.state_root:
+            genesis_params = assoc(genesis_params, "state_root", account_db.state_root)
+        elif genesis_params["state_root"] != account_db.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    account_db.state_root,
-                    genesis_params['state_root'],
+                    account_db.state_root, genesis_params["state_root"]
                 )
             )
 
@@ -342,9 +311,9 @@ class Chain(BaseChain):
         return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod
-    def from_genesis_header(cls,
-                            base_db: BaseDB,
-                            genesis_header: BlockHeader) -> 'BaseChain':
+    def from_genesis_header(
+        cls, base_db: BaseDB, genesis_header: BlockHeader
+    ) -> "BaseChain":
         """
         Initializes the chain from the genesis header.
         """
@@ -359,10 +328,11 @@ class Chain(BaseChain):
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         except HeaderNotFound:
-            raise ValidationError("Parent ({0}) of block {1} not found".format(
-                block.header.parent_hash,
-                block.header.hash
-            ))
+            raise ValidationError(
+                "Parent ({0}) of block {1} not found".format(
+                    block.header.parent_hash, block.header.hash
+                )
+            )
 
         init_header = self.create_header_from_parent(parent_header)
         return type(self)(self.chaindb.db, init_header)
@@ -370,7 +340,7 @@ class Chain(BaseChain):
     #
     # VM API
     #
-    def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, header: BlockHeader = None) -> "BaseVM":
         """
         Returns the VM instance for the given block number.
         """
@@ -389,7 +359,7 @@ class Chain(BaseChain):
         given header.
         """
         return self.get_vm_class_for_block_number(
-            block_number=parent_header.block_number + 1,
+            block_number=parent_header.block_number + 1
         ).create_header_from_parent(parent_header, **header_params)
 
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
@@ -421,7 +391,9 @@ class Chain(BaseChain):
     # Block API
     #
     @to_tuple
-    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
+    def get_ancestors(
+        self, limit: int, header: BlockHeader = None
+    ) -> Iterator[BaseBlock]:
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
@@ -460,7 +432,9 @@ class Chain(BaseChain):
         canonical chain.
         """
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
+        return self.get_block_by_hash(
+            self.chaindb.get_canonical_block_hash(block_number)
+        )
 
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         """
@@ -486,20 +460,20 @@ class Chain(BaseChain):
         VM = self.get_vm_class_for_block_number(block_num)
 
         transaction = self.chaindb.get_transaction_by_index(
-            block_num,
-            index,
-            VM.get_transaction_class(),
+            block_num, index, VM.get_transaction_class()
         )
 
         if transaction.hash == transaction_hash:
             return transaction
         else:
-            raise TransactionNotFound("Found transaction {} instead of {} in block {} at {}".format(
-                encode_hex(transaction.hash),
-                encode_hex(transaction_hash),
-                block_num,
-                index,
-            ))
+            raise TransactionNotFound(
+                "Found transaction {} instead of {} in block {} at {}".format(
+                    encode_hex(transaction.hash),
+                    encode_hex(transaction_hash),
+                    block_num,
+                    index,
+                )
+            )
 
     def create_transaction(self, *args: Any, **kwargs: Any) -> BaseTransaction:
         """
@@ -507,9 +481,9 @@ class Chain(BaseChain):
         """
         return self.get_vm().create_transaction(*args, **kwargs)
 
-    def create_unsigned_transaction(self,
-                                    *args: Any,
-                                    **kwargs: Any) -> BaseUnsignedTransaction:
+    def create_unsigned_transaction(
+        self, *args: Any, **kwargs: Any
+    ) -> BaseUnsignedTransaction:
         """
         Passthrough helper to the current VM class.
         """
@@ -528,21 +502,27 @@ class Chain(BaseChain):
         vm = self.get_vm()
         base_block = vm.block
 
-        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
+        new_header, receipt, computation = vm.apply_transaction(
+            base_block.header, transaction
+        )
 
         # since we are building the block locally, we have to persist all the incremental state
         vm.state.account_db.persist()
 
-        transactions = base_block.transactions + (transaction, )
-        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
+        transactions = base_block.transactions + (transaction,)
+        receipts = base_block.get_receipts(self.chaindb) + (receipt,)
 
-        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+        new_block = vm.set_block_transactions(
+            base_block, new_header, transactions, receipts
+        )
 
         self.header = new_block.header
 
         return new_block, receipt, computation
 
-    def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
+    def estimate_gas(
+        self, transaction: BaseTransaction, at_header: BlockHeader = None
+    ) -> int:
         """
         Returns an estimation of the amount of gas the given transaction will
         use if executed on top of the block specified by the given header.
@@ -552,7 +532,9 @@ class Chain(BaseChain):
         with self.get_vm(at_header).state_in_temp_block() as state:
             return self.gas_estimator(state, transaction)
 
-    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+    def import_block(
+        self, block: BaseBlock, perform_validation: bool = True
+    ) -> BaseBlock:
         """
         Imports a complete block.
         """
@@ -560,8 +542,7 @@ class Chain(BaseChain):
             raise ValidationError(
                 "Attempt to import block #{0}.  Cannot import block with number "
                 "greater than current block #{1}.".format(
-                    block.number,
-                    self.header.block_number,
+                    block.number, self.header.block_number
                 )
             )
 
@@ -576,7 +557,7 @@ class Chain(BaseChain):
         self.chaindb.persist_block(imported_block)
         self.header = self.create_header_from_parent(self.get_canonical_head())
         self.logger.debug(
-            'IMPORTED_BLOCK: number %s | hash %s',
+            "IMPORTED_BLOCK: number %s | hash %s",
             imported_block.number,
             encode_hex(imported_block.hash),
         )
@@ -621,31 +602,34 @@ class Chain(BaseChain):
         if header.gas_limit < low_bound:
             raise ValidationError(
                 "The gas limit on block {0} is too low: {1}. It must be at least {2}".format(
-                    encode_hex(header.hash), header.gas_limit, low_bound))
+                    encode_hex(header.hash), header.gas_limit, low_bound
+                )
+            )
         elif header.gas_limit > high_bound:
             raise ValidationError(
                 "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
-                    encode_hex(header.hash), header.gas_limit, high_bound))
+                    encode_hex(header.hash), header.gas_limit, high_bound
+                )
+            )
 
     def validate_uncles(self, block: BaseBlock) -> None:
         """
         Validate the uncles for the given block.
         """
         # Check for duplicates
-        uncle_groups = groupby(operator.attrgetter('hash'), block.uncles)
-        duplicate_uncles = tuple(sorted(
-            hash for hash, twins in uncle_groups.items() if len(twins) > 1
-        ))
+        uncle_groups = groupby(operator.attrgetter("hash"), block.uncles)
+        duplicate_uncles = tuple(
+            sorted(hash for hash, twins in uncle_groups.items() if len(twins) > 1)
+        )
         if duplicate_uncles:
             raise ValidationError(
                 "Block contains duplicate uncles:\n"
-                " - {0}".format(' - '.join(duplicate_uncles))
+                " - {0}".format(" - ".join(duplicate_uncles))
             )
 
         recent_ancestors = tuple(
             ancestor
-            for ancestor
-            in self.get_ancestors(MAX_UNCLE_DEPTH + 1, header=block.header)
+            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1, header=block.header)
         )
         recent_ancestor_hashes = {ancestor.hash for ancestor in recent_ancestors}
         recent_uncle_hashes = _extract_uncle_hashes(recent_ancestors)
@@ -664,15 +648,20 @@ class Chain(BaseChain):
             if uncle.hash in recent_ancestor_hashes:
                 raise ValidationError(
                     "Uncle {0} cannot be an ancestor of {1}".format(
-                        encode_hex(uncle.hash), encode_hex(block.hash)))
+                        encode_hex(uncle.hash), encode_hex(block.hash)
+                    )
+                )
 
             # ensure that the uncle was built off of one of the canonical chain
             # blocks.
             if uncle.parent_hash not in recent_ancestor_hashes or (
-               uncle.parent_hash == block.header.parent_hash):
+                uncle.parent_hash == block.header.parent_hash
+            ):
                 raise ValidationError(
                     "Uncle's parent {0} is not an ancestor of {1}".format(
-                        encode_hex(uncle.parent_hash), encode_hex(block.hash)))
+                        encode_hex(uncle.parent_hash), encode_hex(block.hash)
+                    )
+                )
 
             # Now perform VM level validation of the uncle
             uncle_vm = self.get_vm(uncle)
@@ -700,7 +689,7 @@ def _extract_uncle_hashes(blocks):
 # Chain implementation.
 class AsyncChain(Chain):
 
-    async def coro_import_block(self,
-                                block: BlockHeader,
-                                perform_validation: bool=True) -> BaseBlock:
+    async def coro_import_block(
+        self, block: BlockHeader, perform_validation: bool = True
+    ) -> BaseBlock:
         raise NotImplementedError()

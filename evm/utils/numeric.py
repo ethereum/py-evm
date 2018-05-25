@@ -2,42 +2,26 @@ import functools
 import itertools
 import math
 
-from evm.constants import (
-    UINT_255_MAX,
-    UINT_256_MAX,
-    UINT_256_CEILING,
-)
+from evm.constants import UINT_255_MAX, UINT_256_MAX, UINT_256_CEILING
 
 
 def int_to_big_endian(value: int) -> bytes:
     byte_length = math.ceil(value.bit_length() / 8)
-    return (value).to_bytes(byte_length, byteorder='big')
+    return (value).to_bytes(byte_length, byteorder="big")
 
 
 def big_endian_to_int(value: bytes) -> int:
-    return int.from_bytes(value, byteorder='big')
+    return int.from_bytes(value, byteorder="big")
 
 
 def int_to_bytes32(value):
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ValueError(
-            "Value must be an integer: Got: {0}".format(
-                type(value),
-            )
-        )
+        raise ValueError("Value must be an integer: Got: {0}".format(type(value)))
     if value < 0:
-        raise ValueError(
-            "Value cannot be negative: Got: {0}".format(
-                value,
-            )
-        )
+        raise ValueError("Value cannot be negative: Got: {0}".format(value))
     if value > UINT_256_MAX:
-        raise ValueError(
-            "Value exeeds maximum UINT256 size.  Got: {0}".format(
-                value,
-            )
-        )
-    value_bytes = value.to_bytes(32, 'big')
+        raise ValueError("Value exeeds maximum UINT256 size.  Got: {0}".format(value))
+    value_bytes = value.to_bytes(32, "big")
     return value_bytes
 
 

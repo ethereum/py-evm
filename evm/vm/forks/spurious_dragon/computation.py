@@ -1,15 +1,9 @@
 from eth_hash.auto import keccak
 
 from evm import constants
-from evm.exceptions import (
-    OutOfGas,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-from evm.vm.forks.homestead.computation import (
-    HomesteadComputation,
-)
+from evm.exceptions import OutOfGas
+from evm.utils.hexadecimal import encode_hex
+from evm.vm.forks.homestead.computation import HomesteadComputation
 
 from .constants import EIP170_CODE_SIZE_LIMIT
 from .opcodes import SPURIOUS_DRAGON_OPCODES
@@ -40,18 +34,14 @@ class SpuriousDragonComputation(HomesteadComputation):
             if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
                 computation._error = OutOfGas(
                     "Contract code size exceeds EIP170 limit of {0}.  Got code of "
-                    "size: {1}".format(
-                        EIP170_CODE_SIZE_LIMIT,
-                        len(contract_code),
-                    )
+                    "size: {1}".format(EIP170_CODE_SIZE_LIMIT, len(contract_code))
                 )
                 self.state.revert(snapshot)
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
                     computation.consume_gas(
-                        contract_code_gas_cost,
-                        reason="Write contract code for CREATE",
+                        contract_code_gas_cost, reason="Write contract code for CREATE"
                     )
                 except OutOfGas as err:
                     # Different from Frontier: reverts state on gas failure while
@@ -64,10 +54,12 @@ class SpuriousDragonComputation(HomesteadComputation):
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(self.msg.storage_address),
                             len(contract_code),
-                            encode_hex(keccak(contract_code))
+                            encode_hex(keccak(contract_code)),
                         )
 
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(
+                        self.msg.storage_address, contract_code
+                    )
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

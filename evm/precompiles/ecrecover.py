@@ -1,25 +1,12 @@
 from eth_keys import keys
-from eth_keys.exceptions import (
-    BadSignature,
-)
+from eth_keys.exceptions import BadSignature
 
 from evm import constants
-from evm.exceptions import (
-    ValidationError,
-)
-from evm.validation import (
-    validate_lt_secpk1n,
-    validate_gte,
-    validate_lte,
-)
+from evm.exceptions import ValidationError
+from evm.validation import validate_lt_secpk1n, validate_gte, validate_lte
 
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
-from evm.utils.padding import (
-    pad32,
-    pad32r,
-)
+from evm.utils.numeric import big_endian_to_int
+from evm.utils.padding import pad32, pad32r
 
 
 def ecrecover(computation):

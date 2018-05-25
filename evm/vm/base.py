@@ -1,65 +1,30 @@
 from __future__ import absolute_import
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 import contextlib
 import functools
 import logging
-from typing import (  # noqa: F401
-    List,
-    Type,
-)
+from typing import List, Type  # noqa: F401
 
 import rlp
 
-from eth_bloom import (
-    BloomFilter,
-)
+from eth_bloom import BloomFilter
 
-from eth_utils import (
-    to_tuple,
-)
+from eth_utils import to_tuple
 
 from eth_hash.auto import keccak
-from evm.consensus.pow import (
-    check_pow,
-)
-from evm.constants import (
-    GENESIS_PARENT_HASH,
-    MAX_PREV_HEADER_DEPTH,
-    MAX_UNCLES,
-)
+from evm.consensus.pow import check_pow
+from evm.constants import GENESIS_PARENT_HASH, MAX_PREV_HEADER_DEPTH, MAX_UNCLES
 from evm.db.trie import make_trie_root_and_nodes
 from evm.db.chain import BaseChainDB  # noqa: F401
-from evm.exceptions import (
-    HeaderNotFound,
-    ValidationError,
-)
-from evm.rlp.blocks import (  # noqa: F401
-    BaseBlock,
-)
-from evm.rlp.headers import (
-    BlockHeader,
-)
+from evm.exceptions import HeaderNotFound, ValidationError
+from evm.rlp.blocks import BaseBlock  # noqa: F401
+from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt  # noqa: F401
-from evm.utils.datatypes import (
-    Configurable,
-)
-from evm.utils.db import (
-    get_parent_header,
-    get_block_header_by_hash,
-)
-from evm.utils.headers import (
-    generate_header_from_parent_header,
-)
-from evm.validation import (
-    validate_length_lte,
-    validate_gas_limit,
-)
-from evm.vm.message import (
-    Message,
-)
+from evm.utils.datatypes import Configurable
+from evm.utils.db import get_parent_header, get_block_header_by_hash
+from evm.utils.headers import generate_header_from_parent_header
+from evm.validation import validate_length_lte, validate_gas_limit
+from evm.vm.message import Message
 from evm.vm.state import BaseState  # noqa: F401
 
 
@@ -90,16 +55,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
-    def execute_bytecode(self,
-                         origin,
-                         gas_price,
-                         gas,
-                         to,
-                         sender,
-                         value,
-                         data,
-                         code,
-                         code_address=None):
+    def execute_bytecode(
+        self, origin, gas_price, gas, to, sender, value, data, code, code_address=None
+    ):
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -184,7 +142,7 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
+    def get_block_class(cls) -> Type["BaseBlock"]:
         raise NotImplementedError("VM classes must implement this method")
 
     @staticmethod
@@ -295,12 +253,17 @@ class VM(BaseVM):
         - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
         - ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
+
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
-        self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
+        self.block = self.get_block_class().from_header(
+            header=header, chaindb=self.chaindb
+        )
         self.state = self.get_state_class()(
             db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            execution_context=self.block.header.create_execution_context(
+                self.previous_hashes
+            ),
             state_root=self.block.header.state_root,
         )
 
@@ -309,7 +272,7 @@ class VM(BaseVM):
     #
     @property
     def logger(self):
-        return logging.getLogger('evm.vm.base.VM.{0}'.format(self.__class__.__name__))
+        return logging.getLogger("evm.vm.base.VM.{0}".format(self.__class__.__name__))
 
     #
     # Execution
@@ -334,17 +297,9 @@ class VM(BaseVM):
 
         return new_header, receipt, computation
 
-    def execute_bytecode(self,
-                         origin,
-                         gas_price,
-                         gas,
-                         to,
-                         sender,
-                         value,
-                         data,
-                         code,
-                         code_address=None,
-                         ):
+    def execute_bytecode(
+        self, origin, gas_price, gas, to, sender, value, data, code, code_address=None
+    ):
         """
         Execute raw bytecode in the context of the current state of
         the virtual machine.
@@ -365,16 +320,13 @@ class VM(BaseVM):
 
         # Construction a tx context
         transaction_context = self.state.get_transaction_context_class()(
-            gas_price=gas_price,
-            origin=origin,
+            gas_price=gas_price, origin=origin
         )
 
         # Execute it in the VM
-        return self.state.get_computation(message, transaction_context).apply_computation(
-            self.state,
-            message,
-            transaction_context,
-        )
+        return self.state.get_computation(
+            message, transaction_context
+        ).apply_computation(self.state, message, transaction_context)
 
     def _apply_all_transactions(self, transactions, base_header):
         receipts = []
@@ -382,7 +334,9 @@ class VM(BaseVM):
         result_header = base_header
 
         for transaction in transactions:
-            result_header, receipt, _ = self.apply_transaction(previous_header, transaction)
+            result_header, receipt, _ = self.apply_transaction(
+                previous_header, transaction
+            )
 
             previous_header = result_header
             receipts.append(receipt)
@@ -411,18 +365,19 @@ class VM(BaseVM):
         # we need to re-initialize the `state` to update the execution context.
         self.state = self.get_state_class()(
             db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
+            execution_context=self.block.header.create_execution_context(
+                self.previous_hashes
+            ),
             state_root=self.block.header.state_root,
         )
 
         # run all of the transactions.
-        last_header, receipts = self._apply_all_transactions(block.transactions, self.block.header)
+        last_header, receipts = self._apply_all_transactions(
+            block.transactions, self.block.header
+        )
 
         self.block = self.set_block_transactions(
-            self.block,
-            last_header,
-            block.transactions,
-            receipts,
+            self.block, last_header, block.transactions, receipts
         )
 
         return self.mine_block()
@@ -454,8 +409,7 @@ class VM(BaseVM):
         return base_block.copy(
             transactions=transactions,
             header=new_header.copy(
-                transaction_root=tx_root_hash,
-                receipt_root=receipt_root_hash,
+                transaction_root=tx_root_hash, receipt_root=receipt_root_hash
             ),
         )
 
@@ -471,19 +425,13 @@ class VM(BaseVM):
         )
 
         self.state.account_db.delta_balance(block.header.coinbase, block_reward)
-        self.logger.debug(
-            "BLOCK REWARD: %s -> %s",
-            block_reward,
-            block.header.coinbase,
-        )
+        self.logger.debug("BLOCK REWARD: %s -> %s", block_reward, block.header.coinbase)
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
             self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
             self.logger.debug(
-                "UNCLE REWARD REWARD: %s -> %s",
-                uncle_reward,
-                uncle.coinbase,
+                "UNCLE REWARD REWARD: %s -> %s", uncle_reward, uncle.coinbase
             )
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
@@ -507,9 +455,9 @@ class VM(BaseVM):
         :param bytes mix_hash: 32 bytes
         :param bytes nonce: 8 bytes
         """
-        if 'uncles' in kwargs:
-            uncles = kwargs.pop('uncles')
-            kwargs.setdefault('uncles_hash', keccak(rlp.encode(block.uncles)))
+        if "uncles" in kwargs:
+            uncles = kwargs.pop("uncles")
+            kwargs.setdefault("uncles_hash", keccak(rlp.encode(block.uncles)))
         else:
             uncles = block.uncles
 
@@ -521,8 +469,7 @@ class VM(BaseVM):
             raise AttributeError(
                 "Unable to set the field(s) {0} on the `BlockHeader` class. "
                 "Received the following unexpected fields: {1}.".format(
-                    ", ".join(known_fields),
-                    ", ".join(unknown_fields),
+                    ", ".join(known_fields), ", ".join(unknown_fields)
                 )
             )
 
@@ -545,15 +492,11 @@ class VM(BaseVM):
             coinbase,
             timestamp=parent_header.timestamp + 1,
         )
-        block = cls.get_block_class()(
-            block_header,
-            transactions=[],
-            uncles=[],
-        )
+        block = cls.get_block_class()(block_header, transactions=[], uncles=[])
         return block
 
     @classmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
+    def get_block_class(cls) -> Type["BaseBlock"]:
         """
         Return the :class:`~evm.rlp.blocks.Block` class that this VM uses for blocks.
         """
@@ -617,15 +560,16 @@ class VM(BaseVM):
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
                 "This vm ({0!r}) is not equipped to validate a block of type {1!r}".format(
-                    self,
-                    block,
+                    self, block
                 )
             )
         if not block.is_genesis:
             parent_header = get_parent_header(block.header, self.chaindb)
 
             validate_gas_limit(block.header.gas_limit, parent_header.gas_limit)
-            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+            validate_length_lte(
+                block.header.extra_data, 32, title="BlockHeader.extra_data"
+            )
 
             # timestamp
             if block.header.timestamp < parent_header.timestamp:
@@ -633,8 +577,7 @@ class VM(BaseVM):
                     "`timestamp` is before the parent block's timestamp.\n"
                     "- block  : {0}\n"
                     "- parent : {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
+                        block.header.timestamp, parent_header.timestamp
                     )
                 )
             elif block.header.timestamp == parent_header.timestamp:
@@ -642,8 +585,7 @@ class VM(BaseVM):
                     "`timestamp` is equal to the parent block's timestamp\n"
                     "- block : {0}\n"
                     "- parent: {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
+                        block.header.timestamp, parent_header.timestamp
                     )
                 )
 
@@ -651,7 +593,9 @@ class VM(BaseVM):
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
                 "Block's transaction_root ({0}) does not match expected value: {1}".format(
-                    block.header.transaction_root, tx_root_hash))
+                    block.header.transaction_root, tx_root_hash
+                )
+            )
 
         if len(block.uncles) > MAX_UNCLES:
             raise ValidationError(
@@ -662,9 +606,7 @@ class VM(BaseVM):
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
-                "- state_root: {0}".format(
-                    block.header.state_root,
-                )
+                "- state_root: {0}".format(block.header.state_root)
             )
         local_uncle_hash = keccak(rlp.encode(block.uncles))
         if local_uncle_hash != block.header.uncles_hash:
@@ -673,9 +615,7 @@ class VM(BaseVM):
                 " - num_uncles       : {0}\n"
                 " - block uncle_hash : {1}\n"
                 " - header uncle_hash: {2}".format(
-                    len(block.uncles),
-                    local_uncle_hash,
-                    block.header.uncle_hash,
+                    len(block.uncles), local_uncle_hash, block.header.uncle_hash
                 )
             )
 
@@ -684,8 +624,12 @@ class VM(BaseVM):
         Validate the seal on the given header.
         """
         check_pow(
-            header.block_number, header.mining_hash,
-            header.mix_hash, header.nonce, header.difficulty)
+            header.block_number,
+            header.mining_hash,
+            header.mix_hash,
+            header.nonce,
+            header.difficulty,
+        )
 
     def validate_uncle(self, block, uncle, uncle_parent):
         """
@@ -694,20 +638,28 @@ class VM(BaseVM):
         if uncle.block_number >= block.number:
             raise ValidationError(
                 "Uncle number ({0}) is higher than block number ({1})".format(
-                    uncle.block_number, block.number))
+                    uncle.block_number, block.number
+                )
+            )
 
         if uncle.block_number != uncle_parent.block_number + 1:
             raise ValidationError(
                 "Uncle number ({0}) is not one above ancestor's number ({1})".format(
-                    uncle.block_number, uncle_parent.block_number))
+                    uncle.block_number, uncle_parent.block_number
+                )
+            )
         if uncle.timestamp < uncle_parent.timestamp:
             raise ValidationError(
                 "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
-                    uncle.timestamp, uncle_parent.timestamp))
+                    uncle.timestamp, uncle_parent.timestamp
+                )
+            )
         if uncle.gas_used > uncle.gas_limit:
             raise ValidationError(
                 "Uncle's gas usage ({0}) is above the limit ({1})".format(
-                    uncle.gas_used, uncle.gas_limit))
+                    uncle.gas_used, uncle.gas_limit
+                )
+            )
 
     #
     # State
@@ -725,8 +677,10 @@ class VM(BaseVM):
     @contextlib.contextmanager
     def state_in_temp_block(self):
         header = self.block.header
-        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = (header.hash, ) + self.previous_hashes
+        temp_block = self.generate_block_from_parent_header_and_coinbase(
+            header, header.coinbase
+        )
+        prev_hashes = (header.hash,) + self.previous_hashes
 
         state = self.get_state_class()(
             db=self.chaindb.db,

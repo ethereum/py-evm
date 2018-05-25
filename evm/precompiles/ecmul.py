@@ -1,27 +1,14 @@
-from py_ecc import (
-    optimized_bn128 as bn128,
-)
+from py_ecc import optimized_bn128 as bn128
 
 from evm import constants
-from evm.exceptions import (
-    ValidationError,
-    VMError,
-)
-from evm.utils.bn128 import (
-    validate_point,
-)
-from evm.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
-)
-from evm.utils.padding import (
-    pad32,
-    pad32r,
-)
+from evm.exceptions import ValidationError, VMError
+from evm.utils.bn128 import validate_point
+from evm.utils.numeric import big_endian_to_int, int_to_big_endian
+from evm.utils.padding import pad32, pad32r
 
 
 def ecmul(computation):
-    computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
+    computation.consume_gas(constants.GAS_ECMUL, reason="ECMUL Precompile")
 
     try:
         result = _ecmull(computation.msg.data)
@@ -29,10 +16,9 @@ def ecmul(computation):
         raise VMError("Invalid ECMUL parameters")
 
     result_x, result_y = result
-    result_bytes = b''.join((
-        pad32(int_to_big_endian(result_x.n)),
-        pad32(int_to_big_endian(result_y.n)),
-    ))
+    result_bytes = b"".join(
+        (pad32(int_to_big_endian(result_x.n)), pad32(int_to_big_endian(result_y.n)))
+    )
     computation.output = result_bytes
     return computation
 

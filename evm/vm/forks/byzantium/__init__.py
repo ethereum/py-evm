@@ -1,14 +1,8 @@
-from typing import (  # noqa: F401
-    Type,
-)
+from typing import Type  # noqa: F401
 
-from evm.constants import (
-    MAX_UNCLE_DEPTH,
-)
+from evm.constants import MAX_UNCLE_DEPTH
 from evm.rlp.blocks import BaseBlock  # noqa: F401
-from evm.validation import (
-    validate_lte,
-)
+from evm.validation import validate_lte
 from evm.vm.forks.spurious_dragon import SpuriousDragonVM
 from evm.vm.forks.frontier import make_frontier_receipt
 from evm.vm.state import BaseState  # noqa: F401
@@ -28,7 +22,9 @@ from .state import ByzantiumState
 
 
 def make_byzantium_receipt(base_header, transaction, computation, state):
-    frontier_receipt = make_frontier_receipt(base_header, transaction, computation, state)
+    frontier_receipt = make_frontier_receipt(
+        base_header, transaction, computation, state
+    )
 
     if computation.is_error:
         status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
@@ -40,7 +36,7 @@ def make_byzantium_receipt(base_header, transaction, computation, state):
 
 class ByzantiumVM(SpuriousDragonVM):
     # fork name
-    fork = 'byzantium'
+    fork = "byzantium"
 
     # classes
     block_class = ByzantiumBlock  # type: Type[BaseBlock]

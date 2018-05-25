@@ -1,12 +1,10 @@
 from eth_utils import to_set
 
 from evm import constants
-from evm.utils.address import (
-    force_bytes_to_address,
-)
+from evm.utils.address import force_bytes_to_address
 
 
-THREE = force_bytes_to_address(b'\x03')
+THREE = force_bytes_to_address(b"\x03")
 
 
 @to_set
@@ -18,7 +16,10 @@ def collect_touched_accounts(computation):
 
     also see: https://github.com/ethereum/EIPs/issues/716
     """
-    if computation.is_origin_computation and computation.transaction_context.gas_price == 0:
+    if (
+        computation.is_origin_computation
+        and computation.transaction_context.gas_price == 0
+    ):
         yield computation.state.coinbase
 
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):

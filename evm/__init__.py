@@ -1,9 +1,7 @@
 import pkg_resources
 import sys
 
-from evm.utils.logging import (
-    setup_trace_logging
-)
+from evm.utils.logging import setup_trace_logging
 
 #
 #  Setup TRACE level logging.

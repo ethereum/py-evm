@@ -1,9 +1,7 @@
 import time
 from typing import Callable, Tuple, Optional
 
-from eth_typing import (
-    Address
-)
+from eth_typing import Address
 from evm.constants import (
     GENESIS_GAS_LIMIT,
     GAS_LIMIT_EMA_DENOMINATOR,
@@ -12,9 +10,7 @@ from evm.constants import (
     GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
 )
-from evm.rlp.headers import (
-    BlockHeader,
-)
+from evm.rlp.headers import BlockHeader
 
 
 def compute_gas_limit_bounds(parent: BlockHeader) -> Tuple[int, int]:
@@ -55,19 +51,14 @@ def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
 
     if parent_header.gas_used:
         usage_increase = (
-            parent_header.gas_used * GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR
-        ) // (
-            GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR
-        ) // (
-            GAS_LIMIT_EMA_DENOMINATOR
+            (parent_header.gas_used * GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR)
+            // (GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR)
+            // (GAS_LIMIT_EMA_DENOMINATOR)
         )
     else:
         usage_increase = 0
 
-    gas_limit = max(
-        GAS_LIMIT_MINIMUM,
-        parent_header.gas_limit - decay + usage_increase
-    )
+    gas_limit = max(GAS_LIMIT_MINIMUM, parent_header.gas_limit - decay + usage_increase)
 
     if gas_limit < GAS_LIMIT_MINIMUM:
         return GAS_LIMIT_MINIMUM
@@ -78,11 +69,12 @@ def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
 
 
 def generate_header_from_parent_header(
-        compute_difficulty_fn: Callable[[BlockHeader, int], int],
-        parent_header: BlockHeader,
-        coinbase: Address,
-        timestamp: Optional[int] = None,
-        extra_data: bytes = b'') -> BlockHeader:
+    compute_difficulty_fn: Callable[[BlockHeader, int], int],
+    parent_header: BlockHeader,
+    coinbase: Address,
+    timestamp: Optional[int] = None,
+    extra_data: bytes = b"",
+) -> BlockHeader:
     """
     Generate BlockHeader from state_root and parent_header
     """
@@ -91,18 +83,12 @@ def generate_header_from_parent_header(
     elif timestamp <= parent_header.timestamp:
         raise ValueError(
             "header.timestamp ({}) should be higher than"
-            "parent_header.timestamp ({})".format(
-                timestamp,
-                parent_header.timestamp,
-            )
+            "parent_header.timestamp ({})".format(timestamp, parent_header.timestamp)
         )
     header = BlockHeader(
         difficulty=compute_difficulty_fn(parent_header, timestamp),
         block_number=(parent_header.block_number + 1),
-        gas_limit=compute_gas_limit(
-            parent_header,
-            gas_limit_floor=GENESIS_GAS_LIMIT,
-        ),
+        gas_limit=compute_gas_limit(parent_header, gas_limit_floor=GENESIS_GAS_LIMIT),
         timestamp=timestamp,
         parent_hash=parent_header.hash,
         state_root=parent_header.state_root,

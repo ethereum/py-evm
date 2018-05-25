@@ -1,16 +1,8 @@
 import functools
 
-from cytoolz.dicttoolz import (
-    valfilter,
-)
-from cytoolz.functoolz import (
-    partial,
-    pipe,
-)
-from cytoolz.itertoolz import (
-    isdistinct,
-    frequencies,
-)
+from cytoolz.dicttoolz import valfilter
+from cytoolz.functoolz import partial, pipe
+from cytoolz.itertoolz import isdistinct, frequencies
 
 from evm.constants import (
     GAS_LIMIT_ADJUSTMENT_FACTOR,
@@ -19,9 +11,7 @@ from evm.constants import (
     SECPK1_N,
     UINT_256_MAX,
 )
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
 
 def validate_is_bytes(value, title="Value"):
@@ -42,10 +32,7 @@ def validate_length(value, length, title="Value"):
     if not len(value) == length:
         raise ValidationError(
             "{title} must be of length {0}.  Got {1} of length {2}".format(
-                length,
-                value,
-                len(value),
-                title=title,
+                length, value, len(value), title=title
             )
         )
 
@@ -55,10 +42,7 @@ def validate_length_lte(value, maximum_length, title="Value"):
         raise ValidationError(
             "{title} must be of length less than or equal to {0}.  "
             "Got {1} of length {2}".format(
-                maximum_length,
-                value,
-                len(value),
-                title=title,
+                maximum_length, value, len(value), title=title
             )
         )
 
@@ -67,9 +51,7 @@ def validate_gte(value, minimum, title="Value"):
     if value < minimum:
         raise ValidationError(
             "{title} {0} is not greater than or equal to {1}".format(
-                value,
-                minimum,
-                title=title,
+                value, minimum, title=title
             )
         )
     validate_is_integer(value)
@@ -87,9 +69,7 @@ def validate_lte(value, maximum, title="Value"):
     if value > maximum:
         raise ValidationError(
             "{title} {0} is not less than or equal to {1}".format(
-                value,
-                maximum,
-                title=title,
+                value, maximum, title=title
             )
         )
     validate_is_integer(value, title=title)
@@ -113,14 +93,18 @@ def validate_canonical_address(value, title="Value"):
 def validate_multiple_of(value, multiple_of, title="Value"):
     if not value % multiple_of == 0:
         raise ValidationError(
-            "{title} {0} is not a multiple of {1}".format(value, multiple_of, title=title)
+            "{title} {0} is not a multiple of {1}".format(
+                value, multiple_of, title=title
+            )
         )
 
 
 def validate_is_boolean(value, title="Value"):
     if not isinstance(value, bool):
         raise ValidationError(
-            "{title} must be an boolean.  Got type: {0}".format(type(value), title=title)
+            "{title} must be an boolean.  Got type: {0}".format(
+                type(value), title=title
+            )
         )
 
 
@@ -128,15 +112,13 @@ def validate_word(value, title="Value"):
     if not isinstance(value, bytes):
         raise ValidationError(
             "{title} is not a valid word. Must be of bytes type: Got: {0}".format(
-                type(value),
-                title=title,
+                type(value), title=title
             )
         )
     elif not len(value) == 32:
         raise ValidationError(
             "{title} is not a valid word. Must be 32 bytes in length: Got: {0}".format(
-                len(value),
-                title=title,
+                len(value), title=title
             )
         )
 
@@ -144,24 +126,15 @@ def validate_word(value, title="Value"):
 def validate_uint256(value, title="Value"):
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError(
-            "{title} must be an integer: Got: {0}".format(
-                type(value),
-                title=title,
-            )
+            "{title} must be an integer: Got: {0}".format(type(value), title=title)
         )
     if value < 0:
         raise ValidationError(
-            "{title} cannot be negative: Got: {0}".format(
-                value,
-                title=title,
-            )
+            "{title} cannot be negative: Got: {0}".format(value, title=title)
         )
     if value > UINT_256_MAX:
         raise ValidationError(
-            "{title} exeeds maximum UINT256 size.  Got: {0}".format(
-                value,
-                title=title,
-            )
+            "{title} exeeds maximum UINT256 size.  Got: {0}".format(value, title=title)
         )
 
 
@@ -191,8 +164,7 @@ def validate_unique(values, title="Value"):
         )
         raise ValidationError(
             "{title} does not contain unique items.  Duplicates: {0}".format(
-                ', '.join((str(value) for value in duplicates)),
-                title=title,
+                ", ".join((str(value) for value in duplicates)), title=title
             )
         )
 
@@ -210,37 +182,39 @@ def validate_vm_block_numbers(vm_block_numbers):
 
 
 def validate_vm_configuration(vm_configuration):
-    validate_vm_block_numbers(tuple(
-        block_number
-        for block_number, _
-        in vm_configuration
-    ))
+    validate_vm_block_numbers(
+        tuple(block_number for block_number, _ in vm_configuration)
+    )
 
 
 def validate_gas_limit(gas_limit, parent_gas_limit):
     if gas_limit < GAS_LIMIT_MINIMUM:
-        raise ValidationError("Gas limit {0} is below minimum {1}".format(
-            gas_limit, GAS_LIMIT_MINIMUM))
+        raise ValidationError(
+            "Gas limit {0} is below minimum {1}".format(gas_limit, GAS_LIMIT_MINIMUM)
+        )
     if gas_limit > GAS_LIMIT_MAXIMUM:
-        raise ValidationError("Gas limit {0} is above maximum {1}".format(
-            gas_limit, GAS_LIMIT_MAXIMUM))
+        raise ValidationError(
+            "Gas limit {0} is above maximum {1}".format(gas_limit, GAS_LIMIT_MAXIMUM)
+        )
     diff = gas_limit - parent_gas_limit
     if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
         raise ValidationError(
             "Gas limit {0} difference to parent {1} is too big {2}".format(
-                gas_limit, parent_gas_limit, diff))
+                gas_limit, parent_gas_limit, diff
+            )
+        )
 
 
 ALLOWED_HEADER_FIELDS = {
-    'coinbase',
-    'gas_limit',
-    'timestamp',
-    'extra_data',
-    'mix_hash',
-    'nonce',
-    'uncles_hash',
-    'transaction_root',
-    'receipt_root',
+    "coinbase",
+    "gas_limit",
+    "timestamp",
+    "extra_data",
+    "mix_hash",
+    "nonce",
+    "uncles_hash",
+    "transaction_root",
+    "receipt_root",
 }
 
 

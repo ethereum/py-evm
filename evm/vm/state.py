@@ -1,33 +1,15 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 import logging
-from typing import (  # noqa: F401
-    Type,
-    TYPE_CHECKING
-)
+from typing import Type, TYPE_CHECKING  # noqa: F401
 
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    MAX_PREV_HEADER_DEPTH,
-)
+from evm.constants import BLANK_ROOT_HASH, MAX_PREV_HEADER_DEPTH
 from evm.exceptions import StateRootNotFound
-from evm.db.account import (  # noqa: F401
-    BaseAccountDB,
-    AccountDB,
-)
-from evm.utils.datatypes import (
-    Configurable,
-)
+from evm.db.account import BaseAccountDB, AccountDB  # noqa: F401
+from evm.utils.datatypes import Configurable
 
 if TYPE_CHECKING:
-    from evm.computation import (  # noqa: F401
-        BaseComputation,
-    )
-    from evm.vm.transaction_context import (  # noqa: F401
-        BaseTransactionContext,
-    )
+    from evm.computation import BaseComputation  # noqa: F401
+    from evm.vm.transaction_context import BaseTransactionContext  # noqa: F401
 
 
 class BaseState(Configurable, metaclass=ABCMeta):
@@ -49,7 +31,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     # Set from __init__
     #
-    __slots__ = ['_db', 'execution_context', 'account_db']
+    __slots__ = ["_db", "execution_context", "account_db"]
 
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
@@ -66,7 +48,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
     #
     @property
     def logger(self):
-        return logging.getLogger('evm.vm.state.{0}'.format(self.__class__.__name__))
+        return logging.getLogger("evm.vm.state.{0}".format(self.__class__.__name__))
 
     #
     # Block Object Properties (in opcodes)
@@ -169,12 +151,12 @@ class BaseState(Configurable, metaclass=ABCMeta):
         """
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
-            ancestor_depth >= MAX_PREV_HEADER_DEPTH or
-            ancestor_depth < 0 or
-            ancestor_depth >= len(self.execution_context.prev_hashes)
+            ancestor_depth >= MAX_PREV_HEADER_DEPTH
+            or ancestor_depth < 0
+            or ancestor_depth >= len(self.execution_context.prev_hashes)
         )
         if is_ancestor_depth_out_of_range:
-            return b''
+            return b""
         ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
         return ancestor_hash
 
@@ -201,7 +183,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
         state class uses.
         """
         if cls.transaction_context_class is None:
-            raise AttributeError("No `transaction_context_class` has been set for this State")
+            raise AttributeError(
+                "No `transaction_context_class` has been set for this State"
+            )
         return cls.transaction_context_class
 
     #
@@ -214,7 +198,9 @@ class BaseState(Configurable, metaclass=ABCMeta):
         :param transaction: the transaction to apply
         :return: the new state root, and the computation
         """
-        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
+        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(
+            self.state_root
+        ):
             raise StateRootNotFound(self.state_root)
         computation = self.execute_transaction(transaction)
         state_root = self.account_db.make_state_root()
@@ -229,20 +215,22 @@ class BaseState(Configurable, metaclass=ABCMeta):
 
 
 class BaseTransactionExecutor(metaclass=ABCMeta):
+
     def __init__(self, vm_state):
         self.vm_state = vm_state
 
     def get_transaction_context(self, transaction):
         return self.vm_state.get_transaction_context_class()(
-            gas_price=transaction.gas_price,
-            origin=transaction.sender,
+            gas_price=transaction.gas_price, origin=transaction.sender
         )
 
     def __call__(self, transaction):
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
         computation = self.build_computation(message, valid_transaction)
-        finalized_computation = self.finalize_computation(valid_transaction, computation)
+        finalized_computation = self.finalize_computation(
+            valid_transaction, computation
+        )
         return finalized_computation
 
     @abstractmethod

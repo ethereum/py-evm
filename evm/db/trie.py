@@ -2,19 +2,16 @@ import functools
 from typing import Dict, List, Tuple, Union
 
 import rlp
-from trie import (
-    HexaryTrie,
-)
+from trie import HexaryTrie
 
-from evm.constants import (
-    BLANK_ROOT_HASH,
-)
+from evm.constants import BLANK_ROOT_HASH
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
 
 
 def make_trie_root_and_nodes(
-        items: Union[List[Receipt], List[BaseTransaction]]) -> Tuple[bytes, Dict[bytes, bytes]]:
+    items: Union[List[Receipt], List[BaseTransaction]]
+) -> Tuple[bytes, Dict[bytes, bytes]]:
     return _make_trie_root_and_nodes(tuple(rlp.encode(item) for item in items))
 
 
@@ -23,7 +20,9 @@ def make_trie_root_and_nodes(
 # as it's common for them to have duplicate receipt_roots. Given that, it probably makes sense to
 # use a relatively small cache size here.
 @functools.lru_cache(128)
-def _make_trie_root_and_nodes(items: Tuple[bytes, ...]) -> Tuple[bytes, Dict[bytes, bytes]]:
+def _make_trie_root_and_nodes(
+    items: Tuple[bytes, ...]
+) -> Tuple[bytes, Dict[bytes, bytes]]:
     kv_store = {}  # type: Dict[bytes, bytes]
     trie = HexaryTrie(kv_store, BLANK_ROOT_HASH)
     with trie.squash_changes() as memory_trie:

@@ -1,10 +1,6 @@
-from py_ecc import (
-    optimized_bn128 as bn128,
-)
+from py_ecc import optimized_bn128 as bn128
 
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
 from typing import Tuple
 

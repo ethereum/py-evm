@@ -16,4 +16,4 @@ class TraceLogger(Logger):
 
 def setup_trace_logging() -> None:
     logging.setLoggerClass(TraceLogger)
-    logging.addLevelName(TRACE_LEVEL_NUM, 'TRACE')
+    logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")

@@ -1,13 +1,7 @@
-from evm.constants import (
-    SECPK1_N,
-)
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.constants import SECPK1_N
+from evm.exceptions import ValidationError
 
-from evm.vm.forks.frontier.validation import (
-    validate_frontier_transaction,
-)
+from evm.vm.forks.frontier.validation import validate_frontier_transaction
 
 
 def validate_homestead_transaction(account_db, transaction):

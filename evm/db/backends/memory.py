@@ -1,10 +1,6 @@
-from typing import (
-    Dict
-)
+from typing import Dict
 
-from .base import (
-    BaseDB,
-)
+from .base import BaseDB
 
 
 class MemoryDB(BaseDB):

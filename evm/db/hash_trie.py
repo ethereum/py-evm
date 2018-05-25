@@ -1,8 +1,6 @@
 from eth_hash.auto import keccak
 
-from evm.db.keymap import (
-    KeyMapDB,
-)
+from evm.db.keymap import KeyMapDB
 
 
 class HashTrie(KeyMapDB):

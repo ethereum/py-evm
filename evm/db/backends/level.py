@@ -1,6 +1,4 @@
-from .base import (
-    BaseDB,
-)
+from .base import BaseDB
 
 
 class LevelDB(BaseDB):
@@ -12,8 +10,10 @@ class LevelDB(BaseDB):
         try:
             import plyvel
         except ImportError:
-            raise ImportError("LevelDB requires the plyvel \
-                               library which is not available for import.")
+            raise ImportError(
+                "LevelDB requires the plyvel \
+                               library which is not available for import."
+            )
         self.db_path = db_path
         self.db = plyvel.DB(db_path, create_if_missing=True, error_if_exists=False)
 

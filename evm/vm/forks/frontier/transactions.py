@@ -16,10 +16,7 @@ from evm.validation import (
     validate_canonical_address,
 )
 
-from evm.rlp.transactions import (
-    BaseTransaction,
-    BaseUnsignedTransaction,
-)
+from evm.rlp.transactions import BaseTransaction, BaseUnsignedTransaction
 
 from evm.utils.transactions import (
     create_transaction_signature,
@@ -66,14 +63,16 @@ class FrontierTransaction(BaseTransaction):
         return _get_frontier_intrinsic_gas(self.data)
 
     def get_message_for_signing(self):
-        return rlp.encode(FrontierUnsignedTransaction(
-            nonce=self.nonce,
-            gas_price=self.gas_price,
-            gas=self.gas,
-            to=self.to,
-            value=self.value,
-            data=self.data,
-        ))
+        return rlp.encode(
+            FrontierUnsignedTransaction(
+                nonce=self.nonce,
+                gas_price=self.gas_price,
+                gas=self.gas,
+                to=self.to,
+                value=self.value,
+                data=self.data,
+            )
+        )
 
     @classmethod
     def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
@@ -111,10 +110,10 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
 
 
 def _get_frontier_intrinsic_gas(transaction_data):
-    num_zero_bytes = transaction_data.count(b'\x00')
+    num_zero_bytes = transaction_data.count(b"\x00")
     num_non_zero_bytes = len(transaction_data) - num_zero_bytes
     return (
-        GAS_TX +
-        num_zero_bytes * GAS_TXDATAZERO +
-        num_non_zero_bytes * GAS_TXDATANONZERO
+        GAS_TX
+        + num_zero_bytes * GAS_TXDATAZERO
+        + num_non_zero_bytes * GAS_TXDATANONZERO
     )

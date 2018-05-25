@@ -1,9 +1,6 @@
 import itertools
 
-from evm.validation import (
-    validate_canonical_address,
-    validate_uint256,
-)
+from evm.validation import validate_canonical_address, validate_uint256
 
 
 class BaseTransactionContext:
@@ -11,7 +8,7 @@ class BaseTransactionContext:
     This immutable object houses information that remains constant for the entire context of the VM
     execution.
     """
-    __slots__ = ['_gas_price', '_origin', '_log_counter']
+    __slots__ = ["_gas_price", "_origin", "_log_counter"]
 
     def __init__(self, gas_price, origin):
         validate_uint256(gas_price, title="TransactionContext.gas_price")

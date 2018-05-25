@@ -1,55 +1,40 @@
 import collections
 import operator
-from typing import (
-    Any,
-    Generator,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Generator, Sequence, Tuple, Type, Union
 
-from cytoolz import (
-    assoc,
-    last,
-)
+from cytoolz import assoc, last
 
-from eth_utils import (
-    to_tuple,
-)
+from eth_utils import to_tuple
 
 from evm.chains.base import Chain
 from evm.chains.mainnet import MainnetChain
 from evm.exceptions import ValidationError
-from evm.rlp.headers import (
-    BlockHeader
-)
-from evm.validation import (
-    validate_gte,
-)
+from evm.rlp.headers import BlockHeader
+from evm.validation import validate_gte
 from evm.vm.base import BaseVM
 from evm.vm.forks.homestead import HomesteadVM
 
 
 class MaintainGasLimitMixin(object):
+
     @classmethod
-    def create_header_from_parent(cls,
-                                  parent_header: BlockHeader,
-                                  **header_params: Any) -> 'MaintainGasLimitMixin':
+    def create_header_from_parent(
+        cls, parent_header: BlockHeader, **header_params: Any
+    ) -> "MaintainGasLimitMixin":
         """
         Call the parent class method maintaining the same gas_limit as the
         previous block.
         """
-        return super(MaintainGasLimitMixin, cls).create_header_from_parent(  # type: ignore
-            parent_header,
-            **assoc(header_params, 'gas_limit', parent_header.gas_limit)
+        return super(
+            MaintainGasLimitMixin, cls
+        ).create_header_from_parent(  # type: ignore
+            parent_header, **assoc(header_params, "gas_limit", parent_header.gas_limit)
         )
 
 
 MAINNET_VMS = collections.OrderedDict(
     (vm_class.fork, type(vm_class.__name__, (MaintainGasLimitMixin, vm_class), {}))
-    for _, vm_class
-    in MainnetChain.vm_configuration
+    for _, vm_class in MainnetChain.vm_configuration
 )
 
 ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[BaseVM]]]]
@@ -57,8 +42,9 @@ VMStartBlock = Tuple[int, Type[BaseVM]]
 
 
 @to_tuple
-def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
-                               dao_start_block: Union[int, bool]=None) -> Generator[VMStartBlock, None, None]:  # noqa: E501
+def _generate_vm_configuration(
+    *fork_start_blocks: ForkStartBlocks, dao_start_block: Union[int, bool] = None
+) -> Generator[VMStartBlock, None, None]:  # noqa: E501
     """
     fork_start_blocks should be 2-tuples of (start_block, fork_name_or_vm_class)
 
@@ -79,20 +65,17 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # Validate that there are no fork names which are not represented in the
     # mainnet chain.
     fork_names = set(
-        fork_name for
-        _, fork_name
-        in fork_start_blocks
-        if isinstance(fork_name, str)
+        fork_name for _, fork_name in fork_start_blocks if isinstance(fork_name, str)
     )
-    unknown_forks = sorted(fork_names.difference(
-        MAINNET_VMS.keys()
-    ))
+    unknown_forks = sorted(fork_names.difference(MAINNET_VMS.keys()))
     if unknown_forks:
-        raise ValidationError("Configuration contains unknown forks: {0}".format(unknown_forks))
+        raise ValidationError(
+            "Configuration contains unknown forks: {0}".format(unknown_forks)
+        )
 
     # Validate that *if* an explicit value was passed in for dao_start_block
     # that the Homestead fork rules are part of the VM configuration.
-    if dao_start_block is not None and 'homestead' not in fork_names:
+    if dao_start_block is not None and "homestead" not in fork_names:
         raise ValidationError(
             "The `dao_start_block` parameter is only valid for the 'homestead' "
             "fork rules.  The 'homestead' VM was not included in the provided "
@@ -102,7 +85,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # If no VM is set to start at block 0, default to the frontier VM
     start_blocks = set(start_block for start_block, _ in fork_start_blocks)
     if 0 not in start_blocks:
-        yield 0, MAINNET_VMS['frontier']
+        yield 0, MAINNET_VMS["frontier"]
 
     ordered_fork_start_blocks = sorted(fork_start_blocks, key=operator.itemgetter(0))
 
@@ -120,10 +103,16 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             if dao_start_block is False:
                 yield (start_block, vm_class.configure(support_dao_fork=False))
             elif dao_start_block is None:
-                yield (start_block, vm_class.configure(dao_fork_block_number=start_block))
+                yield (
+                    start_block,
+                    vm_class.configure(dao_fork_block_number=start_block),
+                )
             elif isinstance(dao_start_block, int):
                 validate_gte(dao_start_block, start_block)
-                yield (start_block, vm_class.configure(dao_fork_block_number=dao_start_block))
+                yield (
+                    start_block,
+                    vm_class.configure(dao_fork_block_number=dao_start_block),
+                )
             else:
                 raise Exception("Invariant: unreachable code path")
         else:
@@ -131,10 +120,12 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
 
 class BaseMainnetTesterChain(Chain):
-    vm_configuration = _generate_vm_configuration()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    vm_configuration = (
+        _generate_vm_configuration()
+    )  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
 
-class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
+class MainnetTesterChain(BaseMainnetTesterChain):  # type: ignore
     """
     This class is intended to be used for in-memory test chains.  It
     explicitely bypasses the proof of work validation to allow for instant
@@ -143,15 +134,18 @@ class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
     It exposes one additional API `configure_forks` to allow for in-flight
     configuration of fork rules.
     """
+
     def validate_seal(self, block):
         """
         We don't validate the proof of work seal on the tester chain.
         """
         pass
 
-    def configure_forks(self,
-                        *fork_start_blocks: ForkStartBlocks,
-                        dao_start_block: Union[int, bool]=None) -> None:
+    def configure_forks(
+        self,
+        *fork_start_blocks: ForkStartBlocks,
+        dao_start_block: Union[int, bool] = None,
+    ) -> None:
         """
         On demand configuration of fork rules.  This is a foot gun that if used
         incorrectly could cause weird VM errors.
@@ -161,6 +155,5 @@ class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
         existing blocks could result in a broken chain.
         """
         self.vm_configuration = _generate_vm_configuration(
-            *fork_start_blocks,
-            dao_start_block=dao_start_block,
+            *fork_start_blocks, dao_start_block=dao_start_block
         )

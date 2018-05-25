@@ -6,14 +6,14 @@ if TYPE_CHECKING:
     from evm.db.chain import BaseChainDB  # noqa: F401
 
 
-def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
+def get_parent_header(block_header: BlockHeader, db: "BaseChainDB") -> BlockHeader:
     """
     Returns the header for the parent block.
     """
     return db.get_block_header_by_hash(block_header.parent_hash)
 
 
-def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
+def get_block_header_by_hash(block_hash: BlockHeader, db: "BaseChainDB") -> BlockHeader:
     """
     Returns the header for the parent block.
     """

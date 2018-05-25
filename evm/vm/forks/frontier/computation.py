@@ -2,28 +2,18 @@ from eth_hash.auto import keccak
 
 from evm import constants
 from evm import precompiles
-from evm.vm.computation import (
-    BaseComputation
-)
-from evm.exceptions import (
-    OutOfGas,
-    InsufficientFunds,
-    StackDepthLimit,
-)
-from evm.utils.address import (
-    force_bytes_to_address,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
+from evm.vm.computation import BaseComputation
+from evm.exceptions import OutOfGas, InsufficientFunds, StackDepthLimit
+from evm.utils.address import force_bytes_to_address
+from evm.utils.hexadecimal import encode_hex
 
 from .opcodes import FRONTIER_OPCODES
 
 FRONTIER_PRECOMPILES = {
-    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
-    force_bytes_to_address(b'\x02'): precompiles.sha256,
-    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
-    force_bytes_to_address(b'\x04'): precompiles.identity,
+    force_bytes_to_address(b"\x01"): precompiles.ecrecover,
+    force_bytes_to_address(b"\x02"): precompiles.sha256,
+    force_bytes_to_address(b"\x03"): precompiles.ripemd160,
+    force_bytes_to_address(b"\x04"): precompiles.identity,
 }
 
 
@@ -47,11 +37,15 @@ class FrontierComputation(BaseComputation):
 
             if sender_balance < self.msg.value:
                 raise InsufficientFunds(
-                    "Insufficient funds: {0} < {1}".format(sender_balance, self.msg.value)
+                    "Insufficient funds: {0} < {1}".format(
+                        sender_balance, self.msg.value
+                    )
                 )
 
             self.state.account_db.delta_balance(self.msg.sender, -1 * self.msg.value)
-            self.state.account_db.delta_balance(self.msg.storage_address, self.msg.value)
+            self.state.account_db.delta_balance(
+                self.msg.storage_address, self.msg.value
+            )
 
             self.logger.debug(
                 "TRANSFERRED: %s from %s -> %s",
@@ -63,9 +57,7 @@ class FrontierComputation(BaseComputation):
         self.state.account_db.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
-            self.state,
-            self.msg,
-            self.transaction_context,
+            self.state, self.msg, self.transaction_context
         )
 
         if computation.is_error:
@@ -87,17 +79,18 @@ class FrontierComputation(BaseComputation):
                 contract_code_gas_fee = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
                     computation.consume_gas(
-                        contract_code_gas_fee,
-                        reason="Write contract code for CREATE",
+                        contract_code_gas_fee, reason="Write contract code for CREATE"
                     )
                 except OutOfGas:
-                    computation.output = b''
+                    computation.output = b""
                 else:
                     self.logger.debug(
                         "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(self.msg.storage_address),
                         len(contract_code),
-                        encode_hex(keccak(contract_code))
+                        encode_hex(keccak(contract_code)),
                     )
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.account_db.set_code(
+                        self.msg.storage_address, contract_code
+                    )
             return computation

@@ -1,16 +1,10 @@
 from evm import constants
-from evm.exceptions import (
-    InvalidJumpDestination,
-    InvalidInstruction,
-    Halt,
-)
-from evm.vm.opcode_values import (
-    JUMPDEST,
-)
+from evm.exceptions import InvalidJumpDestination, InvalidInstruction, Halt
+from evm.vm.opcode_values import JUMPDEST
 
 
 def stop(computation):
-    raise Halt('STOP')
+    raise Halt("STOP")
 
 
 def jump(computation):
@@ -28,7 +22,9 @@ def jump(computation):
 
 
 def jumpi(computation):
-    jump_dest, check_value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    jump_dest, check_value = computation.stack_pop(
+        num_items=2, type_hint=constants.UINT256
+    )
 
     if check_value:
         computation.code.pc = jump_dest

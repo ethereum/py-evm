@@ -1,9 +1,7 @@
-from cytoolz import (
-    curry,
-)
+from cytoolz import curry
 
 
-ZERO_BYTE = b'\x00'
+ZERO_BYTE = b"\x00"
 
 
 @curry

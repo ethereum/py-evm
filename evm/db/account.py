@@ -1,7 +1,4 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 from uuid import UUID
 import logging
 from lru import LRU
@@ -11,41 +8,24 @@ from eth_typing import Hash32
 
 import rlp
 
-from trie import (
-    HexaryTrie,
-)
+from trie import HexaryTrie
 
 from eth_hash.auto import keccak
 from eth_utils import encode_hex
 
-from evm.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_SHA3,
-)
-from evm.db.batch import (
-    BatchDB,
-)
-from evm.db.cache import (
-    CacheDB,
-)
-from evm.db.journal import (
-    JournalDB,
-)
-from evm.rlp.accounts import (
-    Account,
-)
+from evm.constants import BLANK_ROOT_HASH, EMPTY_SHA3
+from evm.db.batch import BatchDB
+from evm.db.cache import CacheDB
+from evm.db.journal import JournalDB
+from evm.rlp.accounts import Account
 from evm.validation import (
     validate_is_bytes,
     validate_uint256,
     validate_canonical_address,
 )
 
-from evm.utils.numeric import (
-    int_to_big_endian,
-)
-from evm.utils.padding import (
-    pad32,
-)
+from evm.utils.numeric import int_to_big_endian
+from evm.utils.padding import pad32
 
 from .hash_trie import HashTrie
 
@@ -60,9 +40,7 @@ class BaseAccountDB(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self) -> None:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        raise NotImplementedError("Must be implemented by subclasses")
 
     # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
     @property  # tyoe: ignore
@@ -160,7 +138,7 @@ class BaseAccountDB(metaclass=ABCMeta):
 
 class AccountDB(BaseAccountDB):
 
-    logger = logging.getLogger('evm.db.account.AccountDB')
+    logger = logging.getLogger("evm.db.account.AccountDB")
 
     def __init__(self, db, state_root=BLANK_ROOT_HASH):
         r"""
@@ -346,7 +324,7 @@ class AccountDB(BaseAccountDB):
     def account_exists(self, address):
         validate_canonical_address(address, title="Storage Address")
 
-        return self._journaltrie.get(address, b'') != b''
+        return self._journaltrie.get(address, b"") != b""
 
     def touch_account(self, address):
         validate_canonical_address(address, title="Storage Address")
@@ -355,13 +333,16 @@ class AccountDB(BaseAccountDB):
         self._set_account(address, account)
 
     def account_is_empty(self, address):
-        return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
+        return (
+            not self.account_has_code_or_nonce(address)
+            and self.get_balance(address) == 0
+        )
 
     #
     # Internal
     #
     def _get_account(self, address):
-        rlp_account = self._journaltrie.get(address, b'')
+        rlp_account = self._journaltrie.get(address, b"")
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
         else:

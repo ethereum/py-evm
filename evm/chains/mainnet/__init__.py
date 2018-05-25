@@ -34,7 +34,9 @@ MAINNET_NETWORK_ID = 1
 
 
 class BaseMainnetChain:
-    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
+    vm_configuration = (
+        MAINNET_VM_CONFIGURATION
+    )  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
     network_id = MAINNET_NETWORK_ID  # type: int
 
 
@@ -44,7 +46,9 @@ class MainnetChain(BaseMainnetChain, Chain):
 
 MAINNET_GENESIS_HEADER = BlockHeader(
     difficulty=17179869184,
-    extra_data=decode_hex("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+    extra_data=decode_hex(
+        "0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"
+    ),
     gas_limit=5000,
     gas_used=0,
     bloom=0,
@@ -54,7 +58,9 @@ MAINNET_GENESIS_HEADER = BlockHeader(
     parent_hash=constants.ZERO_HASH32,
     receipt_root=constants.BLANK_ROOT_HASH,
     uncles_hash=constants.EMPTY_UNCLE_HASH,
-    state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
+    state_root=decode_hex(
+        "0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"
+    ),
     timestamp=0,
     transaction_root=constants.BLANK_ROOT_HASH,
 )

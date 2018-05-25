@@ -1,14 +1,9 @@
 import contextlib
 import io
 import logging
-from typing import (  # noqa: F401
-    Iterator,
-    Set
-)
+from typing import Iterator, Set  # noqa: F401
 
-from evm.validation import (
-    validate_is_bytes,
-)
+from evm.validation import validate_is_bytes
 from evm.vm import opcode_values
 
 
@@ -16,7 +11,7 @@ class CodeStream(object):
     stream = None
     depth_processed = None
 
-    logger = logging.getLogger('evm.vm.CodeStream')
+    logger = logging.getLogger("evm.vm.CodeStream")
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
@@ -30,7 +25,7 @@ class CodeStream(object):
     def __len__(self) -> int:
         return len(self.stream.getvalue())
 
-    def __iter__(self) -> 'CodeStream':
+    def __iter__(self) -> "CodeStream":
         return self
 
     def __next__(self) -> int:
@@ -62,7 +57,7 @@ class CodeStream(object):
         self.stream.seek(min(value, len(self)))
 
     @contextlib.contextmanager
-    def seek(self, pc: int) -> Iterator['CodeStream']:
+    def seek(self, pc: int) -> Iterator["CodeStream"]:
         anchor_pc = self.pc
         self.pc = pc
         try:
@@ -84,7 +79,7 @@ class CodeStream(object):
             while i <= position:
                 opcode = self.__getitem__(i)
                 if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
-                    left_bound = (i + 1)
+                    left_bound = i + 1
                     right_bound = left_bound + (opcode - 95)
                     invalid_range = range(left_bound, right_bound)
                     self.invalid_positions.update(invalid_range)

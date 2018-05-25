@@ -11,7 +11,6 @@ class InvalidOpcode(Opcode):
         super(InvalidOpcode, self).__init__()
 
     def __call__(self, computation):
-        raise InvalidInstruction("Invalid opcode 0x{0:x} @ {1}".format(
-            self.value,
-            computation.code.pc - 1,
-        ))
+        raise InvalidInstruction(
+            "Invalid opcode 0x{0:x} @ {1}".format(self.value, computation.code.pc - 1)
+        )

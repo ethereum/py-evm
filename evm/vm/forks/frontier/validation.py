@@ -1,6 +1,4 @@
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
 
 def validate_frontier_transaction(account_db, transaction):
@@ -9,7 +7,9 @@ def validate_frontier_transaction(account_db, transaction):
 
     if sender_balance < gas_cost:
         raise ValidationError(
-            "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
+            "Sender account balance cannot afford txn gas: `{0}`".format(
+                transaction.sender
+            )
         )
 
     total_cost = transaction.value + gas_cost

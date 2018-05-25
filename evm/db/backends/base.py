@@ -1,10 +1,5 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
-from collections.abc import (
-    MutableMapping,
-)
+from abc import ABCMeta, abstractmethod
+from collections.abc import MutableMapping
 
 
 class BaseDB(MutableMapping, metaclass=ABCMeta):
@@ -36,7 +31,7 @@ class BaseDB(MutableMapping, metaclass=ABCMeta):
         return self.__contains__(key)
 
     def __contains__(self, key):
-        if hasattr(self, '_exists'):
+        if hasattr(self, "_exists"):
             return self._exists(key)
         else:
             return super().__contains__(key)
@@ -51,4 +46,6 @@ class BaseDB(MutableMapping, metaclass=ABCMeta):
         raise NotImplementedError("By default, DB classes cannot by iterated.")
 
     def __len__(self):
-        raise NotImplementedError("By default, DB classes cannot return the total number of keys.")
+        raise NotImplementedError(
+            "By default, DB classes cannot return the total number of keys."
+        )

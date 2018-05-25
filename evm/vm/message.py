@@ -1,8 +1,6 @@
 import logging
 
-from evm.constants import (
-    CREATE_CONTRACT_ADDRESS,
-)
+from evm.constants import CREATE_CONTRACT_ADDRESS
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -18,24 +16,36 @@ class Message(object):
     A message for VM computation.
     """
     __slots__ = [
-        'to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
-        'create_address', 'should_transfer_value', 'is_static', '_storage_address'
+        "to",
+        "sender",
+        "value",
+        "data",
+        "depth",
+        "gas",
+        "code",
+        "_code_address",
+        "create_address",
+        "should_transfer_value",
+        "is_static",
+        "_storage_address",
     ]
 
-    logger = logging.getLogger('evm.vm.message.Message')
+    logger = logging.getLogger("evm.vm.message.Message")
 
-    def __init__(self,
-                 gas,
-                 to,
-                 sender,
-                 value,
-                 data,
-                 code,
-                 depth=0,
-                 create_address=None,
-                 code_address=None,
-                 should_transfer_value=True,
-                 is_static=False):
+    def __init__(
+        self,
+        gas,
+        to,
+        sender,
+        value,
+        data,
+        code,
+        depth=0,
+        create_address=None,
+        code_address=None,
+        should_transfer_value=True,
+        is_static=False,
+    ):
         validate_uint256(gas, title="Message.gas")
         self.gas = gas  # type: int
 
@@ -67,7 +77,9 @@ class Message(object):
             validate_canonical_address(code_address, title="Message.code_address")
         self.code_address = code_address
 
-        validate_is_boolean(should_transfer_value, title="Message.should_transfer_value")
+        validate_is_boolean(
+            should_transfer_value, title="Message.should_transfer_value"
+        )
         self.should_transfer_value = should_transfer_value
 
         validate_is_boolean(is_static, title="Message.is_static")
