@@ -28,6 +28,7 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.cancel_token import (
+    CancelToken,
     wait_with_token,
 )
 from p2p.constants import (
@@ -54,6 +55,7 @@ from p2p.peer import (
 )
 from p2p.service import BaseService
 from p2p.sync import FullNodeSyncer
+from p2p.utils import unclean_close_exceptions
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
@@ -78,8 +80,9 @@ class Server(BaseService):
                  peer_class: Type[BasePeer] = ETHPeer,
                  peer_pool_class: Type[PeerPool] = PeerPool,
                  bootstrap_nodes: Tuple[Node, ...] = None,
+                 token: CancelToken = None,
                  ) -> None:
-        super().__init__()
+        super().__init__(token)
         self.headerdb = headerdb
         self.chaindb = chaindb
         self.chain = chain
@@ -271,12 +274,17 @@ class Server(BaseService):
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         expected_exceptions = (
-            TimeoutError, PeerConnectionLost, HandshakeFailure, asyncio.IncompleteReadError,
-            ConnectionResetError, BrokenPipeError)
+            TimeoutError,
+            PeerConnectionLost,
+            HandshakeFailure,
+            asyncio.IncompleteReadError,
+        )
         try:
             await self._receive_handshake(reader, writer)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake", exc_info=True)
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit while receiving handshake")
         except OperationCancelled:
             pass
         except Exception as e:

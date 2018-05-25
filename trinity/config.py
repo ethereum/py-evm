@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Tuple,
     Type,
     Union,
@@ -23,15 +24,6 @@ from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
-from trinity.nodes.base import (
-    Node,
-)
-from trinity.nodes.mainnet import (
-    MainnetLightNode,
-)
-from trinity.nodes.ropsten import (
-    RopstenLightNode,
-)
 from trinity.utils.chains import (
     construct_chain_config_params,
     get_data_dir_for_network_id,
@@ -40,6 +32,10 @@ from trinity.utils.chains import (
     get_nodekey_path,
     load_nodekey,
 )
+
+if TYPE_CHECKING:
+    # avoid circular import
+    from trinity.nodes.base import Node  # noqa: F401
 
 DATABASE_DIR_NAME = 'chain'
 
@@ -173,7 +169,15 @@ class ChainConfig:
         return cls(**constructor_kwargs)
 
     @property
-    def node_class(self) -> Type[Node]:
+    def node_class(self) -> Type['Node']:
+        from trinity.nodes.mainnet import (
+            MainnetFullNode,
+            MainnetLightNode,
+        )
+        from trinity.nodes.ropsten import (
+            RopstenFullNode,
+            RopstenLightNode,
+        )
         if self.sync_mode == SYNC_LIGHT:
             if self.network_id == MAINNET_NETWORK_ID:
                 return MainnetLightNode
@@ -184,9 +188,14 @@ class ChainConfig:
                     "Only the mainnet and ropsten chains are currently supported"
                 )
         elif self.sync_mode == SYNC_FULL:
-            raise NotImplementedError(
-                "Full sync mode from ChainConfig is not yet supported"
-            )
+            if self.network_id == MAINNET_NETWORK_ID:
+                return MainnetFullNode
+            elif self.network_id == ROPSTEN_NETWORK_ID:
+                return RopstenFullNode
+            else:
+                raise NotImplementedError(
+                    "Only the mainnet and ropsten chains are currently supported"
+                )
         else:
             raise NotImplementedError(
                 "Only full and light sync modes are supported"

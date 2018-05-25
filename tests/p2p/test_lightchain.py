@@ -230,7 +230,7 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
     await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 
     def finalizer():
-        event_loop.run_until_complete(light_chain.stop())
+        event_loop.run_until_complete(light_chain.cancel())
 
     request.addfinalizer(finalizer)
 

@@ -41,6 +41,7 @@ from p2p.exceptions import NoConnectedPeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
+from p2p.utils import unclean_close_exceptions
 
 
 class FastChainSyncer(BaseService, PeerPoolSubscriber):
@@ -123,6 +124,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
             # there it will be handled.
             pass
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit while handling message from %s", peer)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
@@ -158,6 +161,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self._sync(peer)
         except OperationCancelled:
             pass
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit while syncing")
         finally:
             self._syncing = False
 
@@ -346,6 +351,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         return self._request_block_parts(headers, self._send_get_receipts)
 
     async def wait_until_finished(self) -> None:
+        self.logger.info("Shutting down FastChainSyncer")
         start_at = time.time()
         # Wait at most 1 second for pending peers to finish.
         self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
