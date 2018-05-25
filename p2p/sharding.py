@@ -274,21 +274,32 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         asyncio.ensure_future(self.handle_peer(cast(ShardingPeer, peer)))
 
     async def handle_peer(self, peer: ShardingPeer) -> None:
+        """Handle the lifecycle of the given peer."""
         self._running_peers.add(peer)
+        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
+        # self.finished is set.
+        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
         try:
-            await self._handle_peer(peer)
+            await asyncio.wait(
+                [self._handle_peer(peer, peer_token), self.finished.wait()],
+                return_when=asyncio.FIRST_COMPLETED)
         finally:
+            peer_token.trigger()
             self._running_peers.remove(peer)
 
-    async def _handle_peer(self, peer: ShardingPeer) -> None:
+    async def _handle_peer(self, peer: ShardingPeer, token: CancelToken) -> None:
         while not self.is_finished:
             try:
-                self.logger.info("%s waiting for message", peer.remote)
-                cmd, msg = await peer.read_sub_proto_msg(self.cancel_token)
+                cmd, msg = await peer.read_sub_proto_msg(token)
             except OperationCancelled:
-                # Either the peer disconnected or our cancel_token has been triggered, so break
-                # out of the loop to stop attempting to sync with this peer.
+                # Either our cancel token or the peer's has been triggered, so break out of the
+                # loop.
                 break
+
+            pending_msgs = peer.sub_proto_msg_queue.qsize()
+            if pending_msgs:
+                self.logger.debug(
+                    "Read %s msg from %s's queue; %d msgs pending", cmd, peer, pending_msgs)
 
             if isinstance(cmd, GetCollations):
                 await self._handle_get_collations(peer, msg)
@@ -296,9 +307,6 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
                 await self._handle_collations(peer, msg)
             elif isinstance(cmd, NewCollationHashes):
                 await self._handle_new_collation_hashes(peer, msg)
-
-        await peer.cancel()
-        self.logger.debug("%s finished", peer)
 
     async def _handle_get_collations(self, peer, msg):
         """Respond with all requested collations that we know about."""
