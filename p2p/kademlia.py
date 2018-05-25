@@ -426,7 +426,11 @@ class KademliaProtocol:
         reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
         """
         self.logger.debug('<<< ping from %s', remote)
-        self.update_routing_table(remote)
+        if remote == self.this_node:
+            self.logger.debug('Received ping from this_node: %s', remote)
+            return
+        else:
+            self.update_routing_table(remote)
         self.wire.send_pong(remote, hash_)
         # Sometimes a ping will be sent to us as part of the bonding
         # performed the first time we see a node, and it is in those cases that
