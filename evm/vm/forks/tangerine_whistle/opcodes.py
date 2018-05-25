@@ -7,12 +7,7 @@ from evm.constants import GAS_CREATE
 from evm.vm import opcode_values
 from evm.vm import mnemonics
 from evm.vm.forks.homestead.opcodes import HOMESTEAD_OPCODES
-from evm.vm.logic import (
-    call,
-    context,
-    storage,
-    system,
-)
+from evm.vm.logic import call, context, storage, system
 from evm.vm.opcode import as_opcode
 
 
@@ -43,29 +38,24 @@ UPDATED_OPCODES = {
         gas_cost=constants.GAS_SELFDESTRUCT_EIP150,
     ),
     opcode_values.CREATE: system.CreateEIP150.configure(
-        __name__='opcode:CREATE',
-        mnemonic=mnemonics.CREATE,
-        gas_cost=GAS_CREATE,
+        __name__="opcode:CREATE", mnemonic=mnemonics.CREATE, gas_cost=GAS_CREATE
     )(),
     opcode_values.CALL: call.CallEIP150.configure(
-        __name__='opcode:CALL',
+        __name__="opcode:CALL",
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),
     opcode_values.CALLCODE: call.CallCodeEIP150.configure(
-        __name__='opcode:CALLCODE',
+        __name__="opcode:CALLCODE",
         mnemonic=mnemonics.CALLCODE,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),
     opcode_values.DELEGATECALL: call.DelegateCallEIP150.configure(
-        __name__='opcode:DELEGATECALL',
+        __name__="opcode:DELEGATECALL",
         mnemonic=mnemonics.DELEGATECALL,
         gas_cost=constants.GAS_CALL_EIP150,
     )(),
 }
 
 
-TANGERINE_WHISTLE_OPCODES = merge(
-    copy.deepcopy(HOMESTEAD_OPCODES),
-    UPDATED_OPCODES,
-)
+TANGERINE_WHISTLE_OPCODES = merge(copy.deepcopy(HOMESTEAD_OPCODES), UPDATED_OPCODES)

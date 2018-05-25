@@ -1,27 +1,17 @@
 import rlp
 
-from evm.utils.datatypes import (
-    Configurable,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
+from evm.utils.datatypes import Configurable
+from evm.utils.hexadecimal import encode_hex
 
 from .headers import CollationHeader
 from .sedes import collation_body
 
-from eth_typing import (
-    Address,
-    Hash32,
-)
+from eth_typing import Address, Hash32
 
 
 class Collation(rlp.Serializable, Configurable):
 
-    fields = [
-        ("header", CollationHeader),
-        ("body", collation_body),
-    ]
+    fields = [("header", CollationHeader), ("body", collation_body)]
 
     @property
     def hash(self) -> Hash32:
@@ -45,7 +35,5 @@ class Collation(rlp.Serializable, Configurable):
 
     def __repr__(self) -> str:
         return "<Collation shard={} period={} hash={}>".format(
-            self.shard_id,
-            self.period,
-            encode_hex(self.hash)[2:10],
+            self.shard_id, self.period, encode_hex(self.hash)[2:10]
         )

@@ -1,8 +1,6 @@
-from eth_typing import (
-    Address
-)
+from eth_typing import Address
 
-CREATE_CONTRACT_ADDRESS = Address(b'')
+CREATE_CONTRACT_ADDRESS = Address(b"")
 
 
 #

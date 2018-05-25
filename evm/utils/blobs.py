@@ -1,53 +1,29 @@
 import itertools
 import math
-from io import (
-    BytesIO,
-)
+from io import BytesIO
 
-from typing import (
-    Iterable,
-    Iterator,
-)
+from typing import Iterable, Iterator
 
-from eth_utils import (
-    apply_to_return_value,
-    int_to_big_endian,
-)
+from eth_utils import apply_to_return_value, int_to_big_endian
 
 from eth_hash.auto import keccak
 
-from evm.utils.padding import (
-    zpad_right,
-)
+from evm.utils.padding import zpad_right
 
-from evm.constants import (
-    CHUNK_SIZE,
-    CHUNK_DATA_SIZE,
-    COLLATION_SIZE,
-    MAX_BLOB_SIZE,
-)
+from evm.constants import CHUNK_SIZE, CHUNK_DATA_SIZE, COLLATION_SIZE, MAX_BLOB_SIZE
 
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
-from cytoolz import (
-    partition,
-    pipe,
-)
+from cytoolz import partition, pipe
 
-from typing import (
-    cast,
-)
-from eth_typing import (
-    Hash32,
-)
+from typing import cast
+from eth_typing import Hash32
 
 
 def iterate_chunks(collation_body: bytes) -> Iterator[Hash32]:
     check_body_size(collation_body)
     for chunk_start in range(0, len(collation_body), CHUNK_SIZE):
-        yield cast(Hash32, collation_body[chunk_start:chunk_start + CHUNK_SIZE])
+        yield cast(Hash32, collation_body[chunk_start : chunk_start + CHUNK_SIZE])
 
 
 def hash_layer(layer: Iterable[Hash32]) -> Iterator[Hash32]:
@@ -80,9 +56,9 @@ def calc_chunk_root(collation_body: bytes) -> Hash32:
 
 def check_body_size(body):
     if len(body) != COLLATION_SIZE:
-        raise ValidationError("{} byte collation body exceeds maximum allowed size".format(
-            len(body)
-        ))
+        raise ValidationError(
+            "{} byte collation body exceeds maximum allowed size".format(len(body))
+        )
     return body
 
 
@@ -95,7 +71,9 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
         if len(blob) == 0:
             raise ValidationError("Cannot serialize blob {} of length 0".format(i))
         if len(blob) > MAX_BLOB_SIZE:
-            raise ValidationError("Cannot serialize blob {} of size {}".format(i, len(blob)))
+            raise ValidationError(
+                "Cannot serialize blob {} of size {}".format(i, len(blob))
+            )
 
         for blob_index in range(0, len(blob), CHUNK_DATA_SIZE):
             remaining_blob_bytes = len(blob) - blob_index
@@ -111,7 +89,7 @@ def serialize_blobs(blobs: Iterable[bytes]) -> Iterator[bytes]:
                 raise Exception("Invariant: indicator is not a single byte")
 
             yield indicator_byte
-            yield blob[blob_index:blob_index + CHUNK_DATA_SIZE]
+            yield blob[blob_index : blob_index + CHUNK_DATA_SIZE]
 
         # end of range(0, N, k) is given by the largest multiple of k smaller than N, i.e.,
         # (ceil(N / k) - 1) * k where ceil(N / k) == -(-N // k)
@@ -127,7 +105,9 @@ def deserialize_blobs(body: bytes) -> Iterator[bytes]:
     blob = BytesIO()
     for chunk in iterate_chunks(body):
         indicator_byte = chunk[0]
-        flag_bits = indicator_byte & 0b11100000  # TODO: yield, filter, ...?  # noqa: F841
+        flag_bits = (
+            indicator_byte & 0b11100000
+        )  # TODO: yield, filter, ...?  # noqa: F841
         length_bits = indicator_byte & 0b00011111
 
         if length_bits == 0:
@@ -137,7 +117,7 @@ def deserialize_blobs(body: bytes) -> Iterator[bytes]:
             length = length_bits
             terminal = True
 
-        blob.write(chunk[1:length + 1])
+        blob.write(chunk[1 : length + 1])
         if terminal:
             yield blob.getvalue()
             blob = BytesIO()

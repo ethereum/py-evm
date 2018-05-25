@@ -1,20 +1,13 @@
 import itertools
 
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-    CountableList,
-    binary,
-)
+from rlp.sedes import big_endian_int, CountableList, binary
 
 from eth_bloom import BloomFilter
 
 from evm.exceptions import ValidationError
 
-from .sedes import (
-    int256,
-    int32,
-)
+from .sedes import int256, int32
 
 from .logs import Log
 
@@ -24,27 +17,22 @@ from typing import Iterable
 class Receipt(rlp.Serializable):
 
     fields = [
-        ('state_root', binary),
-        ('gas_used', big_endian_int),
-        ('bloom', int256),
-        ('logs', CountableList(Log))
+        ("state_root", binary),
+        ("gas_used", big_endian_int),
+        ("bloom", int256),
+        ("logs", CountableList(Log)),
     ]
 
-    def __init__(self,
-                 state_root: bytes,
-                 gas_used: int,
-                 logs: Iterable[Log],
-                 bloom: int=None) -> None:
+    def __init__(
+        self, state_root: bytes, gas_used: int, logs: Iterable[Log], bloom: int = None
+    ) -> None:
 
         if bloom is None:
             bloomables = itertools.chain.from_iterable(log.bloomables for log in logs)
             bloom = int(BloomFilter.from_iterable(bloomables))
 
         super(Receipt, self).__init__(
-            state_root=state_root,
-            gas_used=gas_used,
-            bloom=bloom,
-            logs=logs,
+            state_root=state_root, gas_used=gas_used, bloom=bloom, logs=logs
         )
 
         for log_idx, log in enumerate(self.logs):

@@ -1,14 +1,8 @@
-from cytoolz import (
-    curry,
-)
+from cytoolz import curry
 
 from evm import constants
 
-from evm.utils.numeric import (
-    unsigned_to_signed,
-    signed_to_unsigned,
-    ceil8,
-)
+from evm.utils.numeric import unsigned_to_signed, signed_to_unsigned, ceil8
 
 
 def add(computation):
@@ -108,7 +102,9 @@ def div(computation):
     """
     Division
     """
-    numerator, denominator = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    numerator, denominator = computation.stack_pop(
+        num_items=2, type_hint=constants.UINT256
+    )
 
     if denominator == 0:
         result = 0
@@ -132,7 +128,7 @@ def sdiv(computation):
     if denominator == 0:
         result = 0
     else:
-        result = (pos_or_neg * (abs(numerator) // abs(denominator)))
+        result = pos_or_neg * (abs(numerator) // abs(denominator))
 
     computation.stack_push(signed_to_unsigned(result))
 
@@ -152,10 +148,7 @@ def exp(computation, gas_per_byte):
     else:
         result = pow(base, exponent, constants.UINT_256_CEILING)
 
-    computation.consume_gas(
-        gas_per_byte * byte_size,
-        reason="EXP: exponent bytes",
-    )
+    computation.consume_gas(gas_per_byte * byte_size, reason="EXP: exponent bytes")
 
     computation.stack_push(result)
 
@@ -168,7 +161,7 @@ def signextend(computation):
 
     if bits <= 31:
         testbit = bits * 8 + 7
-        sign_bit = (1 << testbit)
+        sign_bit = 1 << testbit
         if value & sign_bit:
             result = value | (constants.UINT_256_CEILING - sign_bit)
         else:

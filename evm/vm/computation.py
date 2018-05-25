@@ -1,75 +1,30 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 import itertools
 import logging
-from typing import (  # noqa: F401
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Iterator,
-    List,
-    Tuple,
-)
+from typing import Any, Callable, cast, Dict, Iterator, List, Tuple  # noqa: F401
 
-from eth_typing import (
-    Address
-)
+from eth_typing import Address
 
-from evm.constants import (
-    GAS_MEMORY,
-    GAS_MEMORY_QUADRATIC_DENOMINATOR,
-)
-from evm.exceptions import (
-    Halt,
-    VMError,
-)
-from evm.utils.datatypes import (
-    Configurable,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
-from evm.utils.numeric import (
-    ceil32,
-)
-from evm.utils.logging import (
-    TraceLogger
-)
+from evm.constants import GAS_MEMORY, GAS_MEMORY_QUADRATIC_DENOMINATOR
+from evm.exceptions import Halt, VMError
+from evm.utils.datatypes import Configurable
+from evm.utils.hexadecimal import encode_hex
+from evm.utils.numeric import ceil32
+from evm.utils.logging import TraceLogger
 from evm.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_uint256,
 )
-from evm.vm.code_stream import (
-    CodeStream,
-)
-from evm.vm.gas_meter import (
-    GasMeter,
-)
-from evm.vm.logic.invalid import (
-    InvalidOpcode,
-)
-from evm.vm.memory import (
-    Memory,
-)
-from evm.vm.message import (
-    Message,
-)
-from evm.vm.opcode import (  # noqa: F401
-    Opcode
-)
-from evm.vm.stack import (
-    Stack,
-)
-from evm.vm.state import (
-    BaseState,
-)
-from evm.vm.transaction_context import (
-    BaseTransactionContext
-)
+from evm.vm.code_stream import CodeStream
+from evm.vm.gas_meter import GasMeter
+from evm.vm.logic.invalid import InvalidOpcode
+from evm.vm.memory import Memory
+from evm.vm.message import Message
+from evm.vm.opcode import Opcode  # noqa: F401
+from evm.vm.stack import Stack
+from evm.vm.state import BaseState
+from evm.vm.transaction_context import BaseTransactionContext
 
 
 def memory_gas_cost(size_in_bytes: int) -> int:
@@ -106,8 +61,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
 
     children = None  # type: List[BaseComputation]
 
-    _output = b''
-    return_data = b''
+    _output = b""
+    return_data = b""
     _error = None  # type: VMError
 
     _log_entries = None  # type: List[Tuple[int, bytes, List[int], bytes]]
@@ -117,12 +72,14 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     opcodes = None  # type: Dict[int, Opcode]
     _precompiles = None  # type: Dict[bytes, Callable[['BaseComputation'], Any]]
 
-    logger = cast(TraceLogger, logging.getLogger('evm.vm.computation.Computation'))
+    logger = cast(TraceLogger, logging.getLogger("evm.vm.computation.Computation"))
 
-    def __init__(self,
-                 state: BaseState,
-                 message: Message,
-                 transaction_context: BaseTransactionContext) -> None:
+    def __init__(
+        self,
+        state: BaseState,
+        message: Message,
+        transaction_context: BaseTransactionContext,
+    ) -> None:
 
         self.state = state
         self.msg = message
@@ -187,17 +144,13 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     # Execution
     #
-    def prepare_child_message(self,
-                              gas: int,
-                              to: bytes,
-                              value: int,
-                              data: bytes,
-                              code: bytes,
-                              **kwargs: Any) -> Message:
+    def prepare_child_message(
+        self, gas: int, to: bytes, value: int, data: bytes, code: bytes, **kwargs: Any
+    ) -> Message:
         """
         Helper method for creating a child computation.
         """
-        kwargs.setdefault('sender', self.msg.storage_address)
+        kwargs.setdefault("sender", self.msg.storage_address)
 
         child_message = Message(
             gas=gas,
@@ -241,12 +194,9 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
                 gas_fee = after_cost - before_cost
                 self._gas_meter.consume_gas(
                     gas_fee,
-                    reason=" ".join((
-                        "Expanding memory",
-                        str(before_size),
-                        "->",
-                        str(after_size),
-                    ))
+                    reason=" ".join(
+                        ("Expanding memory", str(before_size), "->", str(after_size))
+                    ),
                 )
 
             self._memory.extend(start_position, size)
@@ -323,7 +273,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         Get the return value of the computation.
         """
         if self.should_erase_return_data:
-            return b''
+            return b""
         else:
             return self._output
 
@@ -338,7 +288,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     # Runtime operations
     #
-    def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
+    def apply_child_computation(self, child_msg: Message) -> "BaseComputation":
         """
         Apply the vm message ``child_msg`` as a child computation.
         """
@@ -346,38 +296,36 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         self.add_child_computation(child_computation)
         return child_computation
 
-    def generate_child_computation(self, child_msg: Message) -> 'BaseComputation':
+    def generate_child_computation(self, child_msg: Message) -> "BaseComputation":
         if child_msg.is_create:
             child_computation = self.__class__(
-                self.state,
-                child_msg,
-                self.transaction_context,
+                self.state, child_msg, self.transaction_context
             ).apply_create_message()
         else:
             child_computation = self.__class__(
-                self.state,
-                child_msg,
-                self.transaction_context,
+                self.state, child_msg, self.transaction_context
             ).apply_message()
         return child_computation
 
-    def add_child_computation(self, child_computation: 'BaseComputation') -> None:
+    def add_child_computation(self, child_computation: "BaseComputation") -> None:
         if child_computation.is_error:
             if child_computation.msg.is_create:
                 self.return_data = child_computation.output
             elif child_computation.should_burn_gas:
-                self.return_data = b''
+                self.return_data = b""
             else:
                 self.return_data = child_computation.output
         else:
             if child_computation.msg.is_create:
-                self.return_data = b''
+                self.return_data = b""
             else:
                 self.return_data = child_computation.output
         self.children.append(child_computation)
 
     def register_account_for_deletion(self, beneficiary: Address) -> None:
-        validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
+        validate_canonical_address(
+            beneficiary, title="Self destruct beneficiary address"
+        )
 
         if self.msg.storage_address in self.accounts_to_delete:
             raise ValueError(
@@ -392,7 +340,8 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             validate_uint256(topic, title="Log entry topic")
         validate_is_bytes(data, title="Log entry data")
         self._log_entries.append(
-            (self.transaction_context.get_next_log_counter(), account, topics, data))
+            (self.transaction_context.get_next_log_counter(), account, topics, data)
+        )
 
     #
     # Getters
@@ -401,10 +350,14 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         if self.is_error:
             return tuple()
         else:
-            return tuple(dict(itertools.chain(
-                self.accounts_to_delete.items(),
-                *(child.get_accounts_for_deletion() for child in self.children)
-            )).items())
+            return tuple(
+                dict(
+                    itertools.chain(
+                        self.accounts_to_delete.items(),
+                        *(child.get_accounts_for_deletion() for child in self.children)
+                    )
+                ).items()
+            )
 
     def _get_log_entries(self) -> List[Tuple[int, bytes, List[int], bytes]]:
         """
@@ -416,10 +369,12 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         if self.is_error:
             return []
         else:
-            return sorted(itertools.chain(
-                self._log_entries,
-                *(child._get_log_entries() for child in self.children)
-            ))
+            return sorted(
+                itertools.chain(
+                    self._log_entries,
+                    *(child._get_log_entries() for child in self.children)
+                )
+            )
 
     def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
         return tuple(log[1:] for log in self._get_log_entries())
@@ -428,16 +383,15 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
         if self.is_error:
             return 0
         else:
-            return self._gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
+            return self._gas_meter.gas_refunded + sum(
+                c.get_gas_refund() for c in self.children
+            )
 
     def get_gas_used(self) -> int:
         if self.should_burn_gas:
             return self.msg.gas
         else:
-            return max(
-                0,
-                self.msg.gas - self._gas_meter.gas_remaining,
-            )
+            return max(0, self.msg.gas - self._gas_meter.gas_remaining)
 
     def get_gas_remaining(self) -> int:
         if self.should_burn_gas:
@@ -448,7 +402,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     #
     # Context Manager API
     #
-    def __enter__(self) -> 'BaseComputation':
+    def __enter__(self) -> "BaseComputation":
         self.logger.debug(
             (
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
@@ -483,10 +437,9 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
             if self.should_burn_gas:
                 self.consume_gas(
                     self._gas_meter.gas_remaining,
-                    reason=" ".join((
-                        "Zeroing gas due to VM Exception:",
-                        str(exc_value),
-                    )),
+                    reason=" ".join(
+                        ("Zeroing gas due to VM Exception:", str(exc_value))
+                    ),
                 )
 
             # suppress VM exceptions
@@ -510,24 +463,26 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # State Transition
     #
     @abstractmethod
-    def apply_message(self) -> 'BaseComputation':
+    def apply_message(self) -> "BaseComputation":
         """
         Execution of an VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def apply_create_message(self) -> 'BaseComputation':
+    def apply_create_message(self) -> "BaseComputation":
         """
         Execution of an VM message to create a new contract.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
-    def apply_computation(cls,
-                          state: BaseState,
-                          message: Message,
-                          transaction_context: BaseTransactionContext) -> 'BaseComputation':
+    def apply_computation(
+        cls,
+        state: BaseState,
+        message: Message,
+        transaction_context: BaseTransactionContext,
+    ) -> "BaseComputation":
         """
         Perform the computation that would be triggered by the VM message.
         """
@@ -557,7 +512,7 @@ class BaseComputation(Configurable, metaclass=ABCMeta):
     # Opcode API
     #
     @property
-    def precompiles(self) -> Dict[bytes, Callable[['BaseComputation'], Any]]:
+    def precompiles(self) -> Dict[bytes, Callable[["BaseComputation"], Any]]:
         if self._precompiles is None:
             return dict()
         else:

@@ -1,11 +1,6 @@
-from rlp.sedes import (
-    BigEndianInt,
-    Binary,
-)
+from rlp.sedes import BigEndianInt, Binary
 
-from evm.constants import (
-    COLLATION_SIZE,
-)
+from evm.constants import COLLATION_SIZE
 
 
 address = Binary.fixed_length(20, allow_empty=True)

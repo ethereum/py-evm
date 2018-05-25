@@ -1,18 +1,9 @@
 import logging
-from typing import (
-    cast
-)
+from typing import cast
 
-from evm.exceptions import (
-    ValidationError,
-    OutOfGas,
-)
-from evm.validation import (
-    validate_uint256,
-)
-from evm.utils.logging import (
-    TraceLogger
-)
+from evm.exceptions import ValidationError, OutOfGas
+from evm.validation import validate_uint256
+from evm.utils.logging import TraceLogger
 
 
 class GasMeter(object):
@@ -21,7 +12,7 @@ class GasMeter(object):
     gas_refunded = None  # type: int
     gas_remaining = None  # type: int
 
-    logger = cast(TraceLogger, logging.getLogger('evm.gas.GasMeter'))
+    logger = cast(TraceLogger, logging.getLogger("evm.gas.GasMeter"))
 
     def __init__(self, start_gas: int) -> None:
         validate_uint256(start_gas, title="Start Gas")
@@ -39,16 +30,16 @@ class GasMeter(object):
             raise ValidationError("Gas consumption amount must be positive")
 
         if amount > self.gas_remaining:
-            raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
-                amount,
-                self.gas_remaining,
-                reason,
-            ))
+            raise OutOfGas(
+                "Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
+                    amount, self.gas_remaining, reason
+                )
+            )
 
         self.gas_remaining -= amount
 
         self.logger.trace(
-            'GAS CONSUMPTION: %s - %s -> %s (%s)',
+            "GAS CONSUMPTION: %s - %s -> %s (%s)",
             self.gas_remaining + amount,
             amount,
             self.gas_remaining,
@@ -62,7 +53,7 @@ class GasMeter(object):
         self.gas_remaining += amount
 
         self.logger.trace(
-            'GAS RETURNED: %s + %s -> %s',
+            "GAS RETURNED: %s + %s -> %s",
             self.gas_remaining - amount,
             amount,
             self.gas_remaining,
@@ -75,7 +66,7 @@ class GasMeter(object):
         self.gas_refunded += amount
 
         self.logger.trace(
-            'GAS REFUND: %s + %s -> %s',
+            "GAS REFUND: %s + %s -> %s",
             self.gas_refunded - amount,
             amount,
             self.gas_refunded,

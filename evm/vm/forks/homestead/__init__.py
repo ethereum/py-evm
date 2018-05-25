@@ -2,9 +2,7 @@ from typing import Type  # noqa: F401
 from evm.rlp.blocks import BaseBlock  # noqa: F401
 from evm.vm.state import BaseState  # noqa: F401
 
-from evm.chains.mainnet.constants import (
-    DAO_FORK_MAINNET_BLOCK
-)
+from evm.chains.mainnet.constants import DAO_FORK_MAINNET_BLOCK
 from evm.vm.forks.frontier import FrontierVM
 
 from .blocks import HomesteadBlock
@@ -23,7 +21,7 @@ class MetaHomesteadVM(FrontierVM):
 
 class HomesteadVM(MetaHomesteadVM):
     # fork name
-    fork = 'homestead'  # type: str
+    fork = "homestead"  # type: str
 
     # classes
     block_class = HomesteadBlock  # type: Type[BaseBlock]

@@ -1,14 +1,8 @@
 from evm import constants
-from evm.exceptions import (
-    OutOfBoundsRead,
-)
+from evm.exceptions import OutOfBoundsRead
 
-from evm.utils.address import (
-    force_bytes_to_address,
-)
-from evm.utils.numeric import (
-    ceil32,
-)
+from evm.utils.address import force_bytes_to_address
+from evm.utils.numeric import ceil32
 
 
 def balance(computation):
@@ -39,9 +33,9 @@ def calldataload(computation):
     """
     start_position = computation.stack_pop(type_hint=constants.UINT256)
 
-    value = computation.msg.data[start_position:start_position + 32]
-    padded_value = value.ljust(32, b'\x00')
-    normalized_value = padded_value.lstrip(b'\x00')
+    value = computation.msg.data[start_position : start_position + 32]
+    padded_value = value.ljust(32, b"\x00")
+    normalized_value = padded_value.lstrip(b"\x00")
 
     computation.stack_push(normalized_value)
 
@@ -52,11 +46,9 @@ def calldatasize(computation):
 
 
 def calldatacopy(computation):
-    (
-        mem_start_position,
-        calldata_start_position,
-        size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    (mem_start_position, calldata_start_position, size) = computation.stack_pop(
+        num_items=3, type_hint=constants.UINT256
+    )
 
     computation.extend_memory(mem_start_position, size)
 
@@ -65,8 +57,10 @@ def calldatacopy(computation):
 
     computation.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
-    value = computation.msg.data[calldata_start_position: calldata_start_position + size]
-    padded_value = value.ljust(size, b'\x00')
+    value = computation.msg.data[
+        calldata_start_position : calldata_start_position + size
+    ]
+    padded_value = value.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_value)
 
@@ -77,26 +71,21 @@ def codesize(computation):
 
 
 def codecopy(computation):
-    (
-        mem_start_position,
-        code_start_position,
-        size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    (mem_start_position, code_start_position, size) = computation.stack_pop(
+        num_items=3, type_hint=constants.UINT256
+    )
 
     computation.extend_memory(mem_start_position, size)
 
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.consume_gas(
-        copy_gas_cost,
-        reason="CODECOPY: word gas cost",
-    )
+    computation.consume_gas(copy_gas_cost, reason="CODECOPY: word gas cost")
 
     with computation.code.seek(code_start_position):
         code_bytes = computation.code.read(size)
 
-    padded_code_bytes = code_bytes.ljust(size, b'\x00')
+    padded_code_bytes = code_bytes.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
@@ -114,26 +103,21 @@ def extcodesize(computation):
 
 def extcodecopy(computation):
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    (
-        mem_start_position,
-        code_start_position,
-        size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    (mem_start_position, code_start_position, size) = computation.stack_pop(
+        num_items=3, type_hint=constants.UINT256
+    )
 
     computation.extend_memory(mem_start_position, size)
 
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
 
-    computation.consume_gas(
-        copy_gas_cost,
-        reason='EXTCODECOPY: word gas cost',
-    )
+    computation.consume_gas(copy_gas_cost, reason="EXTCODECOPY: word gas cost")
 
     code = computation.state.account_db.get_code(account)
 
-    code_bytes = code[code_start_position:code_start_position + size]
-    padded_code_bytes = code_bytes.ljust(size, b'\x00')
+    code_bytes = code[code_start_position : code_start_position + size]
+    padded_code_bytes = code_bytes.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
@@ -144,11 +128,9 @@ def returndatasize(computation):
 
 
 def returndatacopy(computation):
-    (
-        mem_start_position,
-        returndata_start_position,
-        size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    (mem_start_position, returndata_start_position, size) = computation.stack_pop(
+        num_items=3, type_hint=constants.UINT256
+    )
 
     if returndata_start_position + size > len(computation.return_data):
         raise OutOfBoundsRead(
@@ -168,6 +150,8 @@ def returndatacopy(computation):
 
     computation.consume_gas(copy_gas_cost, reason="RETURNDATACOPY fee")
 
-    value = computation.return_data[returndata_start_position: returndata_start_position + size]
+    value = computation.return_data[
+        returndata_start_position : returndata_start_position + size
+    ]
 
     computation.memory_write(mem_start_position, size, value)

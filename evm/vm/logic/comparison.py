@@ -1,9 +1,6 @@
 from evm import constants
 
-from evm.utils.numeric import (
-    signed_to_unsigned,
-    unsigned_to_signed,
-)
+from evm.utils.numeric import signed_to_unsigned, unsigned_to_signed
 
 
 def lt(computation):

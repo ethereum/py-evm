@@ -1,29 +1,11 @@
-from collections import (
-    defaultdict,
-    namedtuple,
-)
-from functools import (
-    partial,
-)
-from typing import (  # noqa: F401
-    Any,
-    Dict,
-    List,
-)
+from collections import defaultdict, namedtuple
+from functools import partial
+from typing import Any, Dict, List  # noqa: F401
 
-from evm.db.account import (
-    AccountDB,
-)
-from evm.tools.fixture_tests import (
-    hash_log_entries,
-)
+from evm.db.account import AccountDB
+from evm.tools.fixture_tests import hash_log_entries
 
-from cytoolz import (
-    assoc,
-    assoc_in,
-    curry,
-    merge,
-)
+from cytoolz import assoc, assoc_in, curry, merge
 from eth_utils import (
     apply_formatters_to_dict,
     decode_hex,
@@ -52,10 +34,7 @@ from .builder_utils import (
     deep_merge,
     wrap_in_list,
 )
-from .formatters import (
-    filled_state_test_formatter,
-    filled_vm_test_formatter,
-)
+from .formatters import filled_state_test_formatter, filled_vm_test_formatter
 
 
 #
@@ -63,7 +42,9 @@ from .formatters import (
 #
 
 DEFAULT_MAIN_ENVIRONMENT = {
-    "currentCoinbase": to_canonical_address("0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"),
+    "currentCoinbase": to_canonical_address(
+        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"
+    ),
     "currentDifficulty": 131072,
     "currentGasLimit": 1000000,
     "currentNumber": 1,
@@ -79,9 +60,11 @@ DEFAULT_MAIN_TRANSACTION = {
     "gasLimit": 100000,
     "gasPrice": 0,
     "nonce": 0,
-    "secretKey": decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"),
+    "secretKey": decode_hex(
+        "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+    ),
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
-    "value": 0
+    "value": 0,
 }
 
 
@@ -96,16 +79,10 @@ DEFAULT_EXECUTION = {
     "value": 1000000000000000000,
     "data": b"",
     "gasPrice": 1,
-    "gas": 100000
+    "gas": 100000,
 }
 
-ALL_NETWORKS = [
-    "Frontier",
-    "Homestead",
-    "EIP150",
-    "EIP158",
-    "Byzantium",
-]
+ALL_NETWORKS = ["Frontier", "Homestead", "EIP150", "EIP158", "Byzantium"]
 
 ACCOUNT_STATE_DB_CLASSES = {
     "Frontier": AccountDB,
@@ -128,12 +105,10 @@ Test.__new__.__defaults__ = (None,)  # type: ignore
 # Filler Generation
 #
 
+
 def setup_filler(name, environment=None):
     environment = normalize_environment(environment or {})
-    return {name: {
-        "env": environment,
-        "pre": {},
-    }}
+    return {name: {"env": environment, "pre": {}}}
 
 
 def setup_main_filler(name, environment=None):
@@ -146,12 +121,10 @@ def pre_state(pre_state, filler):
 
     old_pre_state = filler[test_name].get("pre_state", {})
     pre_state = normalize_state(pre_state)
-    defaults = {address: {
-        "balance": 0,
-        "nonce": 0,
-        "code": b"",
-        "storage": {},
-    } for address in pre_state}
+    defaults = {
+        address: {"balance": 0, "nonce": 0, "code": b"", "storage": {}}
+        for address in pre_state
+    }
     new_pre_state = deep_merge(defaults, old_pre_state, pre_state)
 
     return assoc_in(filler, [test_name, "pre"], new_pre_state)
@@ -164,12 +137,10 @@ def _expect(post_state, networks, transaction, filler):
 
     pre_state = test.get("pre", {})
     post_state = normalize_state(post_state or {})
-    defaults = {address: {
-        "balance": 0,
-        "nonce": 0,
-        "code": b"",
-        "storage": {},
-    } for address in post_state}
+    defaults = {
+        address: {"balance": 0, "nonce": 0, "code": b"", "storage": {}}
+        for address in post_state
+    }
     result = deep_merge(defaults, pre_state, normalize_state(post_state))
     new_expect = {"result": result}
 
@@ -178,11 +149,10 @@ def _expect(post_state, networks, transaction, filler):
             merge(get_default_transaction(networks), transaction)
         )
         if "transaction" not in test:
-            transaction_group = apply_formatters_to_dict({
-                "data": wrap_in_list,
-                "gasLimit": wrap_in_list,
-                "value": wrap_in_list,
-            }, transaction)
+            transaction_group = apply_formatters_to_dict(
+                {"data": wrap_in_list, "gasLimit": wrap_in_list, "value": wrap_in_list},
+                transaction,
+            )
             indexes = {
                 index_key: 0
                 for transaction_key, index_key in [
@@ -197,7 +167,9 @@ def _expect(post_state, networks, transaction, filler):
                 test["transaction"], transaction
             )
         new_expect = assoc(new_expect, "indexes", indexes)
-        test_update = assoc_in(test_update, [test_name, "transaction"], transaction_group)
+        test_update = assoc_in(
+            test_update, [test_name, "transaction"], transaction_group
+        )
 
     if networks is not None:
         networks = normalize_networks(networks)
@@ -232,19 +204,13 @@ def execution(execution, filler):
     execution = merge(DEFAULT_EXECUTION, execution)
 
     test_name = get_test_name(filler)
-    return deep_merge(
-        filler,
-        {
-            test_name: {
-                "exec": execution,
-            }
-        }
-    )
+    return deep_merge(filler, {test_name: {"exec": execution}})
 
 
 #
 # Test Filling
 #
+
 
 def fill_test(filler, info=None, apply_formatter=True, **kwargs):
     test_name = get_test_name(filler)
@@ -261,7 +227,7 @@ def fill_test(filler, info=None, apply_formatter=True, **kwargs):
 
     info = merge(
         {"filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git())},
-        info if info else {}
+        info if info else {},
     )
     filled = assoc_in(filled, [test_name, "_info"], info)
 
@@ -288,29 +254,22 @@ def fill_state_test(filler):
         for network in networks:
             account_db_class = ACCOUNT_STATE_DB_CLASSES[network]
             post_state_root = calc_state_root(post_state, account_db_class)
-            post[network].append({
-                "hash": encode_hex(post_state_root),
-                "indexes": indexes,
-            })
+            post[network].append(
+                {"hash": encode_hex(post_state_root), "indexes": indexes}
+            )
 
     return {
         test_name: {
             "env": environment,
             "pre": pre_state,
             "transaction": transaction_group,
-            "post": post
+            "post": post,
         }
     }
 
 
 def fill_vm_test(
-    filler,
-    *,
-    call_creates=None,
-    gas_price=None,
-    gas_remaining=0,
-    logs=None,
-    output=b""
+    filler, *, call_creates=None, gas_price=None, gas_remaining=0, logs=None, output=b""
 ):
     test_name = get_test_name(filler)
     test = filler[test_name]

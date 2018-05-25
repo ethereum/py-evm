@@ -1,26 +1,23 @@
-from eth_typing import (
-    Address,
-    Hash32
-)
+from eth_typing import Address, Hash32
 from eth_utils import denoms
 
 
-ANY = 'any'
-UINT256 = 'uint256'
-BYTES = 'bytes'
+ANY = "any"
+UINT256 = "uint256"
+BYTES = "bytes"
 
-UINT_256_MAX = 2**256 - 1
-UINT_256_CEILING = 2**256
-UINT_255_MAX = 2**255 - 1
-UINT_255_CEILING = 2**255
-NULL_BYTE = b'\x00'
+UINT_256_MAX = 2 ** 256 - 1
+UINT_256_CEILING = 2 ** 256
+UINT_255_MAX = 2 ** 255 - 1
+UINT_255_CEILING = 2 ** 255
+NULL_BYTE = b"\x00"
 EMPTY_WORD = NULL_BYTE * 32
 
-UINT_160_CEILING = 2**160
+UINT_160_CEILING = 2 ** 160
 
-CREATE_CONTRACT_ADDRESS = Address(b'')
-ZERO_ADDRESS = Address(20 * b'\x00')
-ZERO_HASH32 = Hash32(32 * b'\x00')
+CREATE_CONTRACT_ADDRESS = Address(b"")
+ZERO_ADDRESS = Address(20 * b"\x00")
+ZERO_HASH32 = Hash32(32 * b"\x00")
 
 
 #
@@ -128,12 +125,18 @@ MAX_UNCLES = 2
 #
 # SECPK1N
 #
-SECPK1_P = 2**256 - 2**32 - 977
-SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+SECPK1_P = 2 ** 256 - 2 ** 32 - 977
+SECPK1_N = (
+    115792089237316195423570985008687907852837564279074904382605163141518161494337
+)
 SECPK1_A = 0
 SECPK1_B = 7
-SECPK1_Gx = 55066263022277343669578718895168534326250603453777594175500187360389116729240
-SECPK1_Gy = 32670510020758816978083085130507043184471273380659243275938904335757337482424
+SECPK1_Gx = (
+    55066263022277343669578718895168534326250603453777594175500187360389116729240
+)
+SECPK1_Gy = (
+    32670510020758816978083085130507043184471273380659243275938904335757337482424
+)
 SECPK1_G = (SECPK1_Gx, SECPK1_Gy)
 
 
@@ -141,7 +144,9 @@ SECPK1_G = (SECPK1_Gx, SECPK1_Gy)
 # Block and Header
 #
 # keccak(rlp.encode([]))
-EMPTY_UNCLE_HASH = Hash32(b'\x1d\xccM\xe8\xde\xc7]z\xab\x85\xb5g\xb6\xcc\xd4\x1a\xd3\x12E\x1b\x94\x8at\x13\xf0\xa1B\xfd@\xd4\x93G')  # noqa: E501
+EMPTY_UNCLE_HASH = Hash32(
+    b"\x1d\xccM\xe8\xde\xc7]z\xab\x85\xb5g\xb6\xcc\xd4\x1a\xd3\x12E\x1b\x94\x8at\x13\xf0\xa1B\xfd@\xd4\x93G"
+)  # noqa: E501
 
 
 #
@@ -152,14 +157,18 @@ GENESIS_DIFFICULTY = 131072
 GENESIS_GAS_LIMIT = 3141592
 GENESIS_PARENT_HASH = ZERO_HASH32
 GENESIS_COINBASE = ZERO_ADDRESS
-GENESIS_NONCE = b'\x00\x00\x00\x00\x00\x00\x00B'  # 0x42 encoded as big-endian-integer
+GENESIS_NONCE = b"\x00\x00\x00\x00\x00\x00\x00B"  # 0x42 encoded as big-endian-integer
 GENESIS_MIX_HASH = ZERO_HASH32
-GENESIS_EXTRA_DATA = b''
+GENESIS_EXTRA_DATA = b""
 #
 # Sha3 Keccak
 #
-EMPTY_SHA3 = Hash32(b"\xc5\xd2F\x01\x86\xf7#<\x92~}\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6S\xca\x82';\x7b\xfa\xd8\x04]\x85\xa4p")  # noqa: E501
-BLANK_ROOT_HASH = Hash32(b'V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n\x5bH\xe0\x1b\x99l\xad\xc0\x01b/\xb5\xe3c\xb4!')  # noqa: E501
+EMPTY_SHA3 = Hash32(
+    b"\xc5\xd2F\x01\x86\xf7#<\x92~}\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6S\xca\x82';\x7b\xfa\xd8\x04]\x85\xa4p"
+)  # noqa: E501
+BLANK_ROOT_HASH = Hash32(
+    b"V\xe8\x1f\x17\x1b\xccU\xa6\xff\x83E\xe6\x92\xc0\xf8n\x5bH\xe0\x1b\x99l\xad\xc0\x01b/\xb5\xe3c\xb4!"
+)  # noqa: E501
 
 
 GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
@@ -175,7 +184,7 @@ MAX_PREV_HEADER_DEPTH = 256
 #
 CHUNK_SIZE = 32
 CHUNK_DATA_SIZE = CHUNK_SIZE - 1  # size of chunk excluding the indicator byte
-COLLATION_SIZE = 2**17
+COLLATION_SIZE = 2 ** 17
 assert COLLATION_SIZE % CHUNK_SIZE == 0
 # size of a blob filling a full collation
 MAX_BLOB_SIZE = COLLATION_SIZE // CHUNK_SIZE * CHUNK_DATA_SIZE

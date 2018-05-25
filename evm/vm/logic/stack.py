@@ -10,10 +10,10 @@ def pop(computation):
 def push_XX(computation, size):
     raw_value = computation.code.read(size)
 
-    if not raw_value.strip(b'\x00'):
+    if not raw_value.strip(b"\x00"):
         computation.stack_push(0)
     else:
-        padded_value = raw_value.ljust(size, b'\x00')
+        padded_value = raw_value.ljust(size, b"\x00")
         computation.stack_push(padded_value)
 
 

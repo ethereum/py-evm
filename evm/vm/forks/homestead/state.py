@@ -1,7 +1,4 @@
-from evm.vm.forks.frontier.state import (
-    FrontierState,
-    FrontierTransactionExecutor,
-)
+from evm.vm.forks.frontier.state import FrontierState, FrontierTransactionExecutor
 
 from .computation import HomesteadComputation
 from .validation import validate_homestead_transaction

@@ -4,33 +4,19 @@ from typing import Type  # noqa: F401
 from eth_hash.auto import keccak
 
 from evm import constants
-from evm.db.account import (
-    AccountDB,
-)
-from evm.exceptions import (
-    ContractCreationCollision,
-    ValidationError,
-)
-from evm.vm.message import (
-    Message,
-)
-from evm.vm.state import (
-    BaseState,
-    BaseTransactionExecutor,
-)
+from evm.db.account import AccountDB
+from evm.exceptions import ContractCreationCollision, ValidationError
+from evm.vm.message import Message
+from evm.vm.state import BaseState, BaseTransactionExecutor
 
-from evm.utils.address import (
-    generate_contract_address,
-)
-from evm.utils.hexadecimal import (
-    encode_hex,
-)
+from evm.utils.address import generate_contract_address
+from evm.utils.hexadecimal import encode_hex
 
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
 from .transaction_context import (  # noqa: F401
     BaseTransactionContext,
-    FrontierTransactionContext
+    FrontierTransactionContext,
 )
 from .validation import validate_frontier_transaction
 
@@ -68,7 +54,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 transaction.sender,
                 self.vm_state.account_db.get_nonce(transaction.sender) - 1,
             )
-            data = b''
+            data = b""
             code = transaction.data
         else:
             contract_address = None
@@ -113,10 +99,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             if is_collision:
                 # The address of the newly created contract has *somehow* collided
                 # with an existing contract address.
-                computation = self.vm_state.get_computation(message, transaction_context)
+                computation = self.vm_state.get_computation(
+                    message, transaction_context
+                )
                 computation._error = ContractCreationCollision(
                     "Address collision while creating contract: {0}".format(
-                        encode_hex(message.storage_address),
+                        encode_hex(message.storage_address)
                     )
                 )
                 self.vm_state.logger.debug(
@@ -125,13 +113,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 )
             else:
                 computation = self.vm_state.get_computation(
-                    message,
-                    transaction_context,
+                    message, transaction_context
                 ).apply_create_message()
         else:
             computation = self.vm_state.get_computation(
-                message,
-                transaction_context).apply_message()
+                message, transaction_context
+            ).apply_message()
 
         return computation
 
@@ -150,18 +137,21 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         if gas_refund_amount:
             self.vm_state.logger.debug(
-                'TRANSACTION REFUND: %s -> %s',
+                "TRANSACTION REFUND: %s -> %s",
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
             )
 
-            self.vm_state.account_db.delta_balance(computation.msg.sender, gas_refund_amount)
+            self.vm_state.account_db.delta_balance(
+                computation.msg.sender, gas_refund_amount
+            )
 
         # Miner Fees
-        transaction_fee = \
-            (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        transaction_fee = (
+            transaction.gas - gas_remaining - gas_refund
+        ) * transaction.gas_price
         self.vm_state.logger.debug(
-            'TRANSACTION FEE: %s -> %s',
+            "TRANSACTION FEE: %s -> %s",
             transaction_fee,
             encode_hex(self.vm_state.coinbase),
         )
@@ -171,7 +161,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
-            self.vm_state.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+            self.vm_state.logger.debug("DELETING ACCOUNT: %s", encode_hex(account))
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.
@@ -183,7 +173,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 class FrontierState(BaseState):
     computation_class = FrontierComputation
-    transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
+    transaction_context_class = (
+        FrontierTransactionContext
+    )  # type: Type[BaseTransactionContext]
     account_db_class = AccountDB  # Type[BaseAccountDB]
     transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 

@@ -10,7 +10,7 @@ from .state import SpuriousDragonState
 
 class SpuriousDragonVM(TangerineWhistleVM):
     # fork name
-    fork = 'spurious-dragon'  # type: str
+    fork = "spurious-dragon"  # type: str
 
     # classes
     block_class = SpuriousDragonBlock  # type: Type[BaseBlock]

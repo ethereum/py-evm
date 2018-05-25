@@ -1,37 +1,22 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
-from typing import (
-    Any,
-)
+from abc import ABCMeta, abstractmethod
+from typing import Any
 
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-    binary,
-)
+from rlp.sedes import big_endian_int, binary
 
-from eth_typing import (
-    Address
-)
+from eth_typing import Address
 
 from eth_hash.auto import keccak
 
-from evm.exceptions import (
-    ValidationError,
-)
+from evm.exceptions import ValidationError
 
-from evm.rlp.sedes import (
-    address,
-)
+from evm.rlp.sedes import address
 
-from evm.vm.computation import (
-    BaseComputation
-)
+from evm.vm.computation import BaseComputation
 
 
 class BaseTransactionCommonMethods:
+
     def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
@@ -66,19 +51,19 @@ class BaseTransactionCommonMethods:
 
 class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
     fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('v', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
+        ("nonce", big_endian_int),
+        ("gas_price", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
+        ("v", big_endian_int),
+        ("r", big_endian_int),
+        ("s", big_endian_int),
     ]
 
     @classmethod
-    def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
+    def from_base_transaction(cls, transaction: "BaseTransaction") -> "BaseTransaction":
         return rlp.decode(rlp.encode(transaction), sedes=cls)
 
     @property
@@ -147,28 +132,32 @@ class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
 
     @classmethod
     @abstractmethod
-    def create_unsigned_transaction(self, *args: Any, **kwargs: Any) -> 'BaseTransaction':
+    def create_unsigned_transaction(
+        self, *args: Any, **kwargs: Any
+    ) -> "BaseTransaction":
         """
         Create an unsigned transaction.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionCommonMethods, metaclass=ABCMeta):
+class BaseUnsignedTransaction(
+    rlp.Serializable, BaseTransactionCommonMethods, metaclass=ABCMeta
+):
     fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
+        ("nonce", big_endian_int),
+        ("gas_price", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
     ]
 
     #
     # API that must be implemented by all Transaction subclasses.
     #
     @abstractmethod
-    def as_signed_transaction(self, private_key: bytes) -> 'BaseTransaction':
+    def as_signed_transaction(self, private_key: bytes) -> "BaseTransaction":
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`

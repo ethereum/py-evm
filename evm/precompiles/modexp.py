@@ -5,11 +5,7 @@ from evm.utils.numeric import (
     get_highest_bit_index,
     int_to_big_endian,
 )
-from evm.utils.padding import (
-    pad32r,
-    zpad_right,
-    zpad_left,
-)
+from evm.utils.padding import pad32r, zpad_right, zpad_left
 
 
 def _compute_adjusted_exponent_length(exponent_length, first_32_exponent_bytes):
@@ -21,19 +17,14 @@ def _compute_adjusted_exponent_length(exponent_length, first_32_exponent_bytes):
         return get_highest_bit_index(exponent)
     else:
         first_32_bytes_as_int = big_endian_to_int(first_32_exponent_bytes)
-        return (
-            8 * (exponent_length - 32) +
-            get_highest_bit_index(first_32_bytes_as_int)
-        )
+        return 8 * (exponent_length - 32) + get_highest_bit_index(first_32_bytes_as_int)
 
 
 def _compute_complexity(length):
     if length <= 64:
         return length ** 2
     elif length <= 1024:
-        return (
-            length ** 2 // 4 + 96 * length - 3072
-        )
+        return length ** 2 // 4 + 96 * length - 3072
     else:
         return 2 ** 2 // 16 + 480 * length - 199680
 
@@ -56,19 +47,18 @@ def _compute_modexp_gas_fee(data):
     base_length, exponent_length, modulus_length = _extract_lengths(data)
 
     first_32_exponent_bytes = zpad_right(
-        data[96 + base_length:96 + base_length + exponent_length],
+        data[96 + base_length : 96 + base_length + exponent_length],
         to_size=min(exponent_length, 32),
     )[:32]
     adjusted_exponent_length = _compute_adjusted_exponent_length(
-        exponent_length,
-        first_32_exponent_bytes,
+        exponent_length, first_32_exponent_bytes
     )
     complexity = _compute_complexity(max(modulus_length, base_length))
 
     gas_fee = (
-        complexity *
-        max(adjusted_exponent_length, 1) //
-        constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR
+        complexity
+        * max(adjusted_exponent_length, 1)
+        // constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR
     )
     return gas_fee
 
@@ -88,8 +78,7 @@ def _modexp(data):
 
     # extract arguments
     modulus_bytes = zpad_right(
-        data[exponent_end_idx:modulus_end_dx],
-        to_size=modulus_length,
+        data[exponent_end_idx:modulus_end_dx], to_size=modulus_length
     )
     modulus = big_endian_to_int(modulus_bytes)
     if modulus == 0:
@@ -99,11 +88,10 @@ def _modexp(data):
     base = big_endian_to_int(base_bytes)
 
     exponent_bytes = zpad_right(
-        data[base_end_idx:exponent_end_idx],
-        to_size=exponent_length,
+        data[base_end_idx:exponent_end_idx], to_size=exponent_length
     )
     exponent = big_endian_to_int(exponent_bytes)
-    print('base', base, 'exponent', exponent, 'modulus', modulus)
+    print("base", base, "exponent", exponent, "modulus", modulus)
 
     result = pow(base, exponent, modulus)
 
@@ -115,7 +103,7 @@ def modexp(computation):
     https://github.com/ethereum/EIPs/pull/198
     """
     gas_fee = _compute_modexp_gas_fee(computation.msg.data)
-    computation.consume_gas(gas_fee, reason='MODEXP Precompile')
+    computation.consume_gas(gas_fee, reason="MODEXP Precompile")
 
     result = _modexp(computation.msg.data)
 

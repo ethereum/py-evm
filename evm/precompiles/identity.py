@@ -1,7 +1,5 @@
 from evm import constants
-from evm.utils.numeric import (
-    ceil32,
-)
+from evm.utils.numeric import ceil32
 
 
 def identity(computation):

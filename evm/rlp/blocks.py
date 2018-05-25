@@ -1,20 +1,11 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
-from typing import (  # noqa: F401
-    Type
-)
+from abc import ABCMeta, abstractmethod
+from typing import Type  # noqa: F401
 
 import rlp
 
-from eth_typing import (
-    Hash32
-)
+from eth_typing import Hash32
 
-from evm.utils.datatypes import (
-    Configurable,
-)
+from evm.utils.datatypes import Configurable
 
 from evm.db.chain import BaseChainDB
 
@@ -33,7 +24,7 @@ class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def from_header(cls, header: BlockHeader, chaindb: BaseChainDB) -> 'BaseBlock':
+    def from_header(cls, header: BlockHeader, chaindb: BaseChainDB) -> "BaseBlock":
         """
         Returns the block denoted by the given block header.
         """
@@ -54,9 +45,8 @@ class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
         return self.number == 0
 
     def __repr__(self) -> str:
-        return '<{class_name}(#{b})>'.format(
-            class_name=self.__class__.__name__,
-            b=str(self),
+        return "<{class_name}(#{b})>".format(
+            class_name=self.__class__.__name__, b=str(self)
         )
 
     def __str__(self) -> str:

@@ -1,15 +1,9 @@
-from collections.abc import (
-    Mapping,
-    MutableMapping,
-)
-from typing import (  # noqa: F401
-    Dict,
-    Iterable,
-    Union,
-)
+from collections.abc import Mapping, MutableMapping
+from typing import Dict, Iterable, Union  # noqa: F401
 
 
 class MissingReason:
+
     def __init__(self, reason):
         self.reason = reason
 
@@ -29,6 +23,7 @@ class DiffMissingError(KeyError):
     Use :attr:`is_deleted` to check if the value is missing because it was
     deleted, or simply because it was never updated.
     """
+
     def __init__(self, missing_key: bytes, reason: MissingReason) -> None:
         self.reason = reason
         super().__init__(missing_key, reason)
@@ -53,6 +48,7 @@ class DBDiffTracker(MutableMapping):
     When it's time to take the tracked changes and write them to your database,
     get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
     """
+
     def __init__(self):
         self._changes = {}  # type: Dict[bytes, Union[bytes, DiffMissingError]]
 
@@ -97,7 +93,9 @@ class DBDiff(Mapping):
     """
     _changes = None  # type: Dict[bytes, Union[bytes, DiffMissingError]]
 
-    def __init__(self, changes: Dict[bytes, Union[bytes, DiffMissingError]] = None) -> None:
+    def __init__(
+        self, changes: Dict[bytes, Union[bytes, DiffMissingError]] = None
+    ) -> None:
         if changes is None:
             self._changes = {}
         else:
@@ -139,7 +137,7 @@ class DBDiff(Mapping):
                 db[key] = value
 
     @classmethod
-    def join(cls, diffs: Iterable['DBDiff']) -> 'DBDiff':
+    def join(cls, diffs: Iterable["DBDiff"]) -> "DBDiff":
         """
         Join several DBDiff objects into a single DBDiff object.
 

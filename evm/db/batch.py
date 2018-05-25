@@ -1,11 +1,7 @@
 import logging
 from typing import Type, Dict  # noqa: F401
 
-from evm.db.diff import (
-    DBDiff,
-    DBDiffTracker,
-    DiffMissingError,
-)
+from evm.db.diff import DBDiff, DBDiffTracker, DiffMissingError
 from evm.db.backends.base import BaseDB
 
 
@@ -27,7 +23,7 @@ class BatchDB(BaseDB):
         self.wrapped_db = wrapped_db
         self._track_diff = DBDiffTracker()
 
-    def __enter__(self) -> 'BatchDB':
+    def __enter__(self) -> "BatchDB":
         return self
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:

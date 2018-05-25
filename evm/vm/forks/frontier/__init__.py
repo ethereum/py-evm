@@ -3,17 +3,10 @@ from evm.rlp.blocks import BaseBlock  # noqa: F401
 from evm.vm.state import BaseState  # noqa: F401
 
 
-from evm.constants import (
-    BLOCK_REWARD,
-    UNCLE_DEPTH_PENALTY_FACTOR,
-)
+from evm.constants import BLOCK_REWARD, UNCLE_DEPTH_PENALTY_FACTOR
 from evm.vm.base import VM
-from evm.rlp.receipts import (
-    Receipt,
-)
-from evm.rlp.logs import (
-    Log,
-)
+from evm.rlp.receipts import Receipt
+from evm.rlp.logs import Log
 
 from .blocks import FrontierBlock
 from .state import FrontierState
@@ -30,32 +23,24 @@ def make_frontier_receipt(base_header, transaction, computation, state):
 
     logs = [
         Log(address, topics, data)
-        for address, topics, data
-        in computation.get_log_entries()
+        for address, topics, data in computation.get_log_entries()
     ]
 
     gas_remaining = computation.get_gas_remaining()
     gas_refund = computation.get_gas_refund()
-    tx_gas_used = (
-        transaction.gas - gas_remaining
-    ) - min(
-        gas_refund,
-        (transaction.gas - gas_remaining) // 2,
+    tx_gas_used = (transaction.gas - gas_remaining) - min(
+        gas_refund, (transaction.gas - gas_remaining) // 2
     )
     gas_used = base_header.gas_used + tx_gas_used
 
-    receipt = Receipt(
-        state_root=state.state_root,
-        gas_used=gas_used,
-        logs=logs,
-    )
+    receipt = Receipt(state_root=state.state_root, gas_used=gas_used, logs=logs)
 
     return receipt
 
 
 class FrontierVM(VM):
     # fork name
-    fork = 'frontier'  # type: str
+    fork = "frontier"  # type: str
 
     # classes
     block_class = FrontierBlock  # type: Type[BaseBlock]
@@ -74,9 +59,11 @@ class FrontierVM(VM):
 
     @staticmethod
     def get_uncle_reward(block_number, uncle):
-        return BLOCK_REWARD * (
-            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
-        ) // UNCLE_DEPTH_PENALTY_FACTOR
+        return (
+            BLOCK_REWARD
+            * (UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number)
+            // UNCLE_DEPTH_PENALTY_FACTOR
+        )
 
     @classmethod
     def get_nephew_reward(cls):
@@ -89,7 +76,9 @@ class _PoWMiningVM(FrontierVM):
 
     def finalize_block(self, block):
         from evm.consensus import pow
+
         block = super().finalize_block(block)
         nonce, mix_hash = pow.mine_pow_nonce(
-            block.number, block.header.mining_hash, block.header.difficulty)
+            block.number, block.header.mining_hash, block.header.difficulty
+        )
         return block.copy(header=block.header.copy(nonce=nonce, mix_hash=mix_hash))

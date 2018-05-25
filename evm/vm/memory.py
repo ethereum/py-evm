@@ -8,17 +8,15 @@ from evm.validation import (
     validate_uint256,
 )
 
-from evm.utils.numeric import (
-    ceil32,
-)
+from evm.utils.numeric import ceil32
 
 
 class Memory(object):
     """
     VM Memory
     """
-    __slots__ = ['_bytes']
-    logger = logging.getLogger('evm.vm.memory.Memory')
+    __slots__ = ["_bytes"]
+    logger = logging.getLogger("evm.vm.memory.Memory")
 
     def __init__(self):
         self._bytes = bytearray()
@@ -49,10 +47,9 @@ class Memory(object):
             validate_lte(start_position + size, maximum=len(self))
 
             if len(self._bytes) < start_position + size:
-                self._bytes.extend(itertools.repeat(
-                    0,
-                    len(self._bytes) - (start_position + size),
-                ))
+                self._bytes.extend(
+                    itertools.repeat(0, len(self._bytes) - (start_position + size))
+                )
 
             for idx, v in enumerate(value):
                 self._bytes[start_position + idx] = v
@@ -61,4 +58,4 @@ class Memory(object):
         """
         Read a value from memory.
         """
-        return bytes(self._bytes[start_position:start_position + size])
+        return bytes(self._bytes[start_position : start_position + size])

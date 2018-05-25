@@ -1,20 +1,12 @@
 from enum import Enum
 
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-)
+from rlp.sedes import big_endian_int
 
-from evm.rlp.headers import (
-    CollationHeader,
-)
-from evm.rlp.collations import (
-    Collation,
-)
+from evm.rlp.headers import CollationHeader
+from evm.rlp.collations import Collation
 
-from evm.utils.blobs import (
-    calc_chunk_root,
-)
+from evm.utils.blobs import calc_chunk_root
 
 from evm.exceptions import (
     CanonicalCollationNotFound,
@@ -22,9 +14,7 @@ from evm.exceptions import (
     CollationHeaderNotFound,
 )
 
-from eth_typing import (
-    Hash32,
-)
+from eth_typing import Hash32
 
 
 class Availability(Enum):
@@ -54,14 +44,18 @@ class ShardDB:
         try:
             header = self.db[collation_hash]
         except KeyError:
-            raise CollationHeaderNotFound("No header with hash {} found".format(collation_hash))
+            raise CollationHeaderNotFound(
+                "No header with hash {} found".format(collation_hash)
+            )
         return rlp.decode(header, sedes=CollationHeader)
 
     def get_body_by_chunk_root(self, chunk_root: Hash32) -> bytes:
         try:
             body = self.db[chunk_root]
         except KeyError:
-            raise CollationBodyNotFound("No body with chunk root {} found".format(chunk_root))
+            raise CollationBodyNotFound(
+                "No body with chunk root {} found".format(chunk_root)
+            )
         return body
 
     def get_collation_by_hash(self, collation_hash: Hash32) -> Collation:
@@ -76,9 +70,9 @@ class ShardDB:
         try:
             self.get_header_by_hash(header.hash)
         except CollationHeaderNotFound:
-            raise ValueError("Cannot set unknown header as canonical: {}".format(
-                header.hash
-            ))
+            raise ValueError(
+                "Cannot set unknown header as canonical: {}".format(header.hash)
+            )
         key = make_canonical_hash_lookup_key(header.shard_id, header.period)
         self.db.set(key, header.hash)
 
@@ -89,8 +83,7 @@ class ShardDB:
         except KeyError:
             raise CanonicalCollationNotFound(
                 "No collation set as canonical for shard {} and period {}".format(
-                    shard_id,
-                    period,
+                    shard_id, period
                 )
             )
         else:

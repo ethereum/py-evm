@@ -1,11 +1,7 @@
-from cytoolz import (
-    curry,
-)
+from cytoolz import curry
 
 
-from evm.utils.spoof import (
-    SpoofTransaction,
-)
+from evm.utils.spoof import SpoofTransaction
 
 
 def _get_computation_error(state, transaction):
@@ -40,25 +36,22 @@ def binary_gas_search(state, transaction, tolerance=1):
         subject to tolerance. If OutOfGas is thrown at block limit, return block limit.
     :raises VMError: if the computation fails even when given the block gas_limit to complete
     """
-    if not hasattr(transaction, 'sender'):
+    if not hasattr(transaction, "sender"):
         raise TypeError(
             "Transaction is missing attribute sender.",
             "If sending an unsigned transaction, use SpoofTransaction and provide the",
-            "sender using the 'from' parameter")
+            "sender using the 'from' parameter",
+        )
 
     minimum_transaction = SpoofTransaction(
-        transaction,
-        gas=transaction.intrinsic_gas,
-        gas_price=0,
+        transaction, gas=transaction.intrinsic_gas, gas_price=0
     )
 
     if _get_computation_error(state, minimum_transaction) is None:
         return transaction.intrinsic_gas
 
     maximum_transaction = SpoofTransaction(
-        transaction,
-        gas=state.gas_limit,
-        gas_price=0,
+        transaction, gas=state.gas_limit, gas_price=0
     )
     error = _get_computation_error(state, maximum_transaction)
     if error is not None:

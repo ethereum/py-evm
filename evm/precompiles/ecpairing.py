@@ -1,25 +1,11 @@
-from cytoolz import (
-    curry,
-    pipe,
-)
-from py_ecc import (
-    optimized_bn128 as bn128,
-)
+from cytoolz import curry, pipe
+from py_ecc import optimized_bn128 as bn128
 
 from evm import constants
-from evm.exceptions import (
-    ValidationError,
-    VMError,
-)
-from evm.utils.bn128 import (
-    validate_point,
-)
-from evm.utils.numeric import (
-    big_endian_to_int,
-)
-from evm.utils.padding import (
-    pad32,
-)
+from evm.exceptions import ValidationError, VMError
+from evm.utils.bn128 import validate_point
+from evm.utils.numeric import big_endian_to_int
+from evm.utils.padding import pad32
 
 
 ZERO = (bn128.FQ2.one(), bn128.FQ2.one(), bn128.FQ2.zero())
@@ -32,9 +18,11 @@ def ecpairing(computation):
         raise VMError("Invalid ECPAIRING parameters")
 
     num_points = len(computation.msg.data) // 192
-    gas_fee = constants.GAS_ECPAIRING_BASE + num_points * constants.GAS_ECPAIRING_PER_POINT
+    gas_fee = (
+        constants.GAS_ECPAIRING_BASE + num_points * constants.GAS_ECPAIRING_PER_POINT
+    )
 
-    computation.consume_gas(gas_fee, reason='ECPAIRING Precompile')
+    computation.consume_gas(gas_fee, reason="ECPAIRING Precompile")
 
     try:
         result = _ecpairing(computation.msg.data)
@@ -42,9 +30,9 @@ def ecpairing(computation):
         raise VMError("Invalid ECPAIRING parameters")
 
     if result is True:
-        computation.output = pad32(b'\x01')
+        computation.output = pad32(b"\x01")
     elif result is False:
-        computation.output = pad32(b'\x00')
+        computation.output = pad32(b"\x00")
     else:
         raise Exception("Invariant: unreachable code path")
     return computation
@@ -54,9 +42,8 @@ def _ecpairing(data):
     exponent = bn128.FQ12.one()
 
     processing_pipeline = (
-        _process_point(data[start_idx:start_idx + 192])
-        for start_idx
-        in range(0, len(data), 192)
+        _process_point(data[start_idx : start_idx + 192])
+        for start_idx in range(0, len(data), 192)
     )
     exponent = pipe(bn128.FQ12.one(), *processing_pipeline)
 

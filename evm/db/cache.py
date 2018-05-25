@@ -8,6 +8,7 @@ class CacheDB(BaseDB):
     Set and get decoded RLP objects, where the underlying db stores
     encoded objects.
     """
+
     def __init__(self, db, cache_size=2048):
         self._db = db
         self._cache_size = cache_size
