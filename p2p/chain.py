@@ -67,8 +67,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self._new_headers: asyncio.Queue[List[BlockHeader]] = asyncio.Queue()
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
-        self._downloaded_receipts: asyncio.Queue[List[DownloadedBlockPart]] = asyncio.Queue()
-        self._downloaded_bodies: asyncio.Queue[List[DownloadedBlockPart]] = asyncio.Queue()
+        self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
+        self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -252,7 +252,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self,
             headers: List[BlockHeader],
             request_func: Callable[[List[BlockHeader]], int],
-            download_queue: 'asyncio.Queue[List[DownloadedBlockPart]]',
+            download_queue: 'asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
             part_name: str) -> 'List[DownloadedBlockPart]':
         """Download block parts for the given headers, using the given request_func.
@@ -273,7 +273,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 pending_replies = request_func(missing)
 
             try:
-                received = await wait_with_token(
+                peer, received = await wait_with_token(
                     download_queue.get(),
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
@@ -286,8 +286,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             pending_replies -= 1
             unexpected = received_keys.difference(
                 [key_func(header) for header in missing])
-            for item in unexpected:
-                self.logger.warn("Got unexpected %s: %s", part_name, unexpected)
+            if unexpected:
+                self.logger.warn("Got %d unexpected %s from %s", len(unexpected), part_name, peer)
             missing = [
                 header for header in missing
                 if key_func(header) not in received_keys]
@@ -389,7 +389,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         for (receipt, (receipt_root, trie_dict_data)) in zip(receipts, receipts_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
             downloaded.append(DownloadedBlockPart(receipt, receipt_root))
-        self._downloaded_receipts.put_nowait(downloaded)
+        self._downloaded_receipts.put_nowait((peer, downloaded))
 
     async def _handle_block_bodies(self, peer: ETHPeer, bodies: List[eth.BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
@@ -403,7 +403,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
             uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
-        self._downloaded_bodies.put_nowait(downloaded)
+        self._downloaded_bodies.put_nowait((peer, downloaded))
 
 
 class RegularChainSyncer(FastChainSyncer):
