@@ -37,6 +37,7 @@ from p2p.exceptions import NoConnectedPeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
+from p2p.utils import unclean_close_exceptions
 
 
 class FastChainSyncer(BaseService, PeerPoolSubscriber):
@@ -112,10 +113,6 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
     async def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
-        known_exceptions = (
-            BrokenPipeError,
-            ConnectionResetError,
-        )
         try:
             await self._handle_msg(peer, cmd, msg)
         except OperationCancelled:
@@ -123,8 +120,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
             # there it will be handled.
             pass
-        except known_exceptions as exc:
-            self.logger.warn("Halted while handling message from %s with %r", peer, exc)
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit while handling message from %s", peer)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
@@ -160,8 +157,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self._sync(peer)
         except OperationCancelled:
             pass
-        except EOFError as exc:
-            logging.warn("Chain syncer halt, probably because of a dropped db connection, %r", exc)
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit while syncing")
         finally:
             self._syncing = False
 

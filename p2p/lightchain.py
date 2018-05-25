@@ -47,12 +47,13 @@ from p2p.peer import (
 from p2p.service import (
     BaseService,
 )
+from p2p.utils import unclean_close_exceptions
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
-class LightPeerChain(BaseService, PeerPoolSubscriber):
+class LightPeerChain(PeerPoolSubscriber, BaseService):
     logger = logging.getLogger("p2p.lightchain.LightPeerChain")
     max_consecutive_timeouts = 5
     headerdb: 'BaseAsyncHeaderDB' = None
@@ -165,8 +166,8 @@ class LightPeerChain(BaseService, PeerPoolSubscriber):
                 except OperationCancelled:
                     self.logger.debug("Asked to stop, breaking out of run() loop")
                     break
-                except (EOFError, ConnectionResetError, BrokenPipeError) as e:
-                    self.logger.debug("I/O error processing announcement. Bailing out: %s" % e)
+                except unclean_close_exceptions:
+                    self.logger.exception("Unclean exit from LightPeerChain")
                     break
                 except LESAnnouncementProcessingError as e:
                     self.logger.warning(repr(e))

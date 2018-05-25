@@ -9,9 +9,9 @@ from evm.db.chain import AsyncChainDB
 from p2p.cancel_token import CancelToken
 from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
-from p2p.exceptions import OperationCancelled
 from p2p.service import BaseService
 from p2p.state import StateDownloader
+from p2p.utils import unclean_close_exceptions
 
 
 # How old (in seconds) must our local head be to cause us to start with a fast-sync before we
@@ -42,10 +42,8 @@ class FullNodeSyncer(BaseService):
     async def _run(self) -> None:
         try:
             await self._sync()
-        except OperationCancelled:
-            pass
-        except BrokenPipeError as exc:
-            self.logger.warning("FullNodeSyncer exited because of a dropped connection %r", exc)
+        except unclean_close_exceptions:
+            self.logger.exception("Unclean exit from FullNodeSyncer")
 
     async def _sync(self) -> None:
         head = await self.chaindb.coro_get_canonical_head()

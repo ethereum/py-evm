@@ -137,9 +137,6 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
 
 async def exit_on_signal(service_to_exit: BaseService) -> None:
     loop = asyncio.get_event_loop()
-    # TODO Use a ProcessPoolExecutor explicitly when we need to offload cpu-intensive tasks from the
-    # main thread. See: https://groups.google.com/d/msg/python-tulip/91NCCqV4SFs/9McZnfea_VcJ
-    # GvR: "Setting the default executor to a ProcessPoolExecutor feels like a bad idea"
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
         # TODO also support Windows

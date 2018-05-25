@@ -50,6 +50,10 @@ class BaseService(ABC):
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:
+            # Set self.finished before anything else so that other coroutines started by this
+            # service exit while we wait for cleanup().
+            self.finished.set()
+
             try:
                 await self.cleanup()
             except Exception:
@@ -61,10 +65,6 @@ class BaseService(ABC):
 
     async def cleanup(self) -> None:
         """Run the service's _cleanup() coroutine."""
-        # Set self.finished before anything else so that other coroutines started by this
-        # service exit while we wait for cleanup().
-        self.finished.set()
-
         await self._cleanup()
 
         self.cleaned_up.set()

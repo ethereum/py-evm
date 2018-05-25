@@ -116,7 +116,7 @@ class Node(BaseService):
         return new_loop
 
 
-def create_db_manager(ipc_path: str) -> BaseManager:
+def create_db_manager(ipc_path: Path) -> BaseManager:
     """
     We're still using 'str' here on param ipc_path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly
@@ -132,5 +132,5 @@ def create_db_manager(ipc_path: str) -> BaseManager:
     DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
     DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
 
-    manager = DBManager(address=ipc_path)  # type: ignore
+    manager = DBManager(address=str(ipc_path))  # type: ignore
     return manager
