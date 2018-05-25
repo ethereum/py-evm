@@ -1,48 +1,79 @@
 import functools
 import logging
-from logging import handlers, Logger
+from logging import Logger
+from logging.handlers import (
+    QueueListener,
+    QueueHandler,
+    RotatingFileHandler,
+)
 from multiprocessing import Queue
+import os
 import sys
 
 from cytoolz import dissoc
 
 from typing import Tuple, Callable
 
+from trinity.config import (
+    ChainConfig,
+)
 
-def setup_trinity_logging(level: int) -> Tuple[Logger, Queue, handlers.QueueListener]:
+LOG_BACKUP_COUNT = 10
+LOG_MAX_MB = 5
+
+
+def setup_trinity_logging(
+        chain_config: ChainConfig,
+        level: int) -> Tuple[Logger, Queue, QueueListener]:
     from .mp import ctx
 
     log_queue = ctx.Queue()
 
-    logging.basicConfig(level=level)
     logger = logging.getLogger('trinity')
+    logger.setLevel(logging.DEBUG)
 
-    handler = logging.StreamHandler(sys.stdout)
+    handler_stream = logging.StreamHandler(sys.stdout)
+    handler_file = RotatingFileHandler(
+        str(chain_config.logfile_path),
+        maxBytes=(10000000 * LOG_MAX_MB),
+        backupCount=LOG_BACKUP_COUNT
+    )
+
+    handler_stream.setLevel(level)
+    handler_file.setLevel(logging.DEBUG)
 
     # TODO: allow configuring `detailed` logging
     formatter = logging.Formatter(
         fmt='%(levelname)8s  %(asctime)s  %(module)10s  %(message)s',
         datefmt='%m-%d %H:%M:%S'
     )
-    handler.setFormatter(formatter)
+    handler_stream.setFormatter(formatter)
+    handler_file.setFormatter(formatter)
 
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
+    logger.addHandler(handler_stream)
+    logger.addHandler(handler_file)
 
-    listener = handlers.QueueListener(log_queue, handler)
+    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
+    logger.debug('Logging initialized: PID=%s', os.getpid())
+
+    listener = QueueListener(
+        log_queue,
+        handler_stream,
+        handler_file,
+        respect_handler_level=True,
+    )
 
     return logger, log_queue, listener
 
 
 def setup_queue_logging(log_queue: Queue, level: int) -> None:
-    queue_handler = handlers.QueueHandler(log_queue)
-    logging.basicConfig(
-        level=level,
-        handlers=[queue_handler],
-    )
+    queue_handler = QueueHandler(log_queue)
+    queue_handler.setLevel(logging.DEBUG)
 
     logger = logging.getLogger()
-    logger.debug('Logging initialized')
+    logger.addHandler(queue_handler)
+    logger.setLevel(logging.DEBUG)
+    logger.debug('Logging initialized: PID=%s', os.getpid())
 
 
 def with_queued_logging(fn: Callable) -> Callable:

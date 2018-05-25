@@ -54,6 +54,11 @@ def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
     if not os.path.exists(chain_config.database_dir):
         return False
 
+    if not chain_config.logfile_path.parent.exists():
+        return False
+    elif not chain_config.logfile_path.exists():
+        return False
+
     if chain_config.nodekey_path is None:
         # has an explicitely defined nodekey
         pass
@@ -78,7 +83,7 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
     if is_under_xdg_trinity_root(chain_config.data_dir):
-        os.makedirs(chain_config.data_dir, exist_ok=True)
+        chain_config.data_dir.mkdir(parents=True, exist_ok=True)
     elif not os.path.exists(chain_config.data_dir):
         # we don't lazily create the base dir for non-default base directories.
         raise ValueError(
@@ -86,6 +91,20 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
                 chain_config.data_dir,
             )
         )
+
+    # Logfile
+    if is_under_xdg_trinity_root(chain_config.logfile_path):
+        chain_config.logfile_path.parent.mkdir(parents=True, exist_ok=True)
+    elif not os.path.exists(chain_config.data_dir):
+        # we don't lazily create the base dir for non-default base directories.
+        raise ValueError(
+            "The base logging directory provided does not exist: `{0}`".format(
+                chain_config.logfile_path,
+            )
+        )
+
+    if not chain_config.logfile_path.exists():
+        chain_config.logfile_path.touch()
 
     # Chain data-dir
     os.makedirs(chain_config.database_dir, exist_ok=True)

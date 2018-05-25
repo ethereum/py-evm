@@ -24,6 +24,18 @@ def data_dir(chain_config):
 
 
 @pytest.fixture
+def logfile_dir(chain_config):
+    chain_config.logfile_path.parent.mkdir(parents=True)
+    return chain_config.logfile_path.parent
+
+
+@pytest.fixture
+def logfile_path(chain_config, logfile_dir):
+    chain_config.logfile_path.touch()
+    return chain_config.logfile_path
+
+
+@pytest.fixture
 def database_dir(chain_config, data_dir):
     os.makedirs(chain_config.database_dir, exist_ok=True)
     assert os.path.exists(chain_config.database_dir)
@@ -52,11 +64,28 @@ def test_not_initialized_without_nodekey_file(chain_config, data_dir, database_d
     assert not is_data_dir_initialized(chain_config)
 
 
-def test_full_initialized_data_dir(chain_config, data_dir, database_dir, nodekey):
-    assert os.path.exists(chain_config.data_dir)
-    assert os.path.exists(chain_config.database_dir)
-    assert chain_config.nodekey is not None
+def test_not_initialized_without_logfile_dir(chain_config, data_dir, database_dir, nodekey):
+    assert not os.path.exists(chain_config.logfile_path.parent)
+    assert not is_data_dir_initialized(chain_config)
 
+
+def test_not_initialized_without_logfile_path(
+        chain_config,
+        data_dir,
+        database_dir,
+        nodekey,
+        logfile_dir):
+    assert not os.path.exists(chain_config.logfile_path)
+    assert not is_data_dir_initialized(chain_config)
+
+
+def test_full_initialized_data_dir(
+        chain_config,
+        data_dir,
+        database_dir,
+        nodekey,
+        logfile_dir,
+        logfile_path):
     assert is_data_dir_initialized(chain_config)
 
 
@@ -68,6 +97,8 @@ def test_full_initialized_data_dir_with_custom_nodekey():
 
     os.makedirs(chain_config.data_dir, exist_ok=True)
     os.makedirs(chain_config.database_dir, exist_ok=True)
+    os.makedirs(chain_config.logfile_path, exist_ok=True)
+    chain_config.logfile_path.touch()
 
     assert chain_config.nodekey_path is None
     assert chain_config.nodekey is not None
