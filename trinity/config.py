@@ -29,6 +29,7 @@ from trinity.utils.chains import (
     get_data_dir_for_network_id,
     get_database_socket_path,
     get_jsonrpc_socket_path,
+    get_logfile_path,
     get_nodekey_path,
     load_nodekey,
 )
@@ -43,6 +44,7 @@ DATABASE_DIR_NAME = 'chain'
 class ChainConfig:
     _data_dir: Path = None
     _nodekey_path: Path = None
+    _logfile_path: Path = None
     _nodekey = None
     _network_id: int = None
 
@@ -55,6 +57,7 @@ class ChainConfig:
                  network_id: int,
                  data_dir: str=None,
                  nodekey_path: str=None,
+                 logfile_path: str=None,
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
                  port: int=30303,
@@ -91,6 +94,22 @@ class ChainConfig:
             self.nodekey_path = nodekey_path
         elif nodekey is not None:
             self.nodekey = nodekey
+
+        if logfile_path is not None:
+            self.logfile_path = logfile_path
+        else:
+            self.logfile_path = get_logfile_path(self.data_dir)
+
+    @property
+    def logfile_path(self) -> Path:
+        """
+        The logfile_path is the base directory where all log files are stored.
+        """
+        return self._logfile_path
+
+    @logfile_path.setter
+    def logfile_path(self, value: Path) -> None:
+        self._logfile_path = value
 
     @property
     def data_dir(self) -> Path:

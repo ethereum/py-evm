@@ -63,7 +63,6 @@ def main() -> None:
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
-    logger, log_queue, listener = setup_trinity_logging(log_level)
 
     if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
@@ -78,6 +77,8 @@ def main() -> None:
         # parameters.  Need to flesh out how genesis parameters for custom
         # chains are defined and passed around.
         initialize_data_dir(chain_config)
+
+    logger, log_queue, listener = setup_trinity_logging(chain_config, log_level)
 
     # if console command, run the trinity CLI
     if args.subcommand == 'attach':
