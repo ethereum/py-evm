@@ -389,21 +389,24 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             peer.head_td = actual_td
             self._sync_requests.put_nowait(peer)
 
-    async def _handle_block_receipts(
-            self, peer: ETHPeer, receipts: List[List[eth.Receipt]]) -> None:
-        self.logger.debug("Got Receipts for %d blocks from %s", len(receipts), peer)
+    async def _handle_block_receipts(self,
+                                     peer: ETHPeer,
+                                     receipts_by_block: List[List[eth.Receipt]]) -> None:
+        self.logger.debug("Got Receipts for %d blocks from %s", len(receipts_by_block), peer)
         loop = asyncio.get_event_loop()
-        iterator = map(make_trie_root_and_nodes, receipts)
+        iterator = map(make_trie_root_and_nodes, receipts_by_block)
         receipts_tries = await wait_with_token(
             loop.run_in_executor(None, list, iterator),
             token=self.cancel_token)
         downloaded: List[DownloadedBlockPart] = []
-        for (receipt, (receipt_root, trie_dict_data)) in zip(receipts, receipts_tries):
+        for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-            downloaded.append(DownloadedBlockPart(receipt, receipt_root))
+            downloaded.append(DownloadedBlockPart(receipts, receipt_root))
         self._downloaded_receipts.put_nowait((peer, downloaded))
 
-    async def _handle_block_bodies(self, peer: ETHPeer, bodies: List[eth.BlockBody]) -> None:
+    async def _handle_block_bodies(self,
+                                   peer: ETHPeer,
+                                   bodies: List[eth.BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
