@@ -153,6 +153,7 @@ class HandshakeBase:
 
 
 class HandshakeInitiator(HandshakeBase):
+    logger = logging.getLogger("p2p.peer.HandshakeInitiator")
     _is_initiator = True
 
     def encrypt_auth_message(self, auth_message: bytes) -> bytes:
@@ -176,6 +177,7 @@ class HandshakeInitiator(HandshakeBase):
 
     def decode_auth_ack_message(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
+            self.logger.debug("Ciphertext %s, with length: %s", ciphertext, len(ciphertext))
             raise ValueError("Auth ack msg too short: {}".format(len(ciphertext)))
         elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
             eph_pubkey, nonce, _ = decode_ack_plain(ciphertext, self.privkey)
