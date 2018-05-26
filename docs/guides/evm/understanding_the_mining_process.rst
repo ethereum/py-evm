@@ -211,3 +211,168 @@ information that we need to calculate the ``nonce`` and the ``mix_hash``.
   The code above will essentially perform ``finalize_block`` twice.
   Keep in mind this code is for demonstration purpose only and that Py-EVM will provide a pluggable
   system in the future to allow PoW mining among other things.
+
+Mining a block with transactions
+--------------------------------
+
+Now that we've learned the basics of how the mining process works, let's revisited our example and
+add a transaction before we mine another block. There are a couple of concepts we need to dive into in
+order to accomplish that goal.
+
+Every transaction goes from a sender :class:`~eth_typing.misc.Address` to a receiver
+:class:`~eth_typing.misc.Address`. Each transaction takes some computational power to get processed
+that is measured in a unit called ``gas``.
+
+
+In practice, we have to pay the miners to put our transaction in a block. However, there is no
+*technical* reason why we have to pay for the computing power, but only an economical, i.e. in reality
+we'll usually have trouble finding a miner who's willing to include a transaction that doesn't pay
+for its computational costs.
+
+In this example, however, **we are the miner** which means we are free to include any transactions
+we like. In the spirit of this guide, let's start simple and create a transaction that sends zero
+ether from one address to another address. Keep in mind that even if the value being transferred
+is zero, there's still a computational cost for the processing but since we are the miner, we'll
+mine it anyway even if no one is willing to pay for it!
+
+Let's first setup the sender and receiver.
+
+::
+
+    from eth_keys import keys
+    from eth_utils import decode_hex
+    from eth_typing import Address
+
+    SENDER_PRIVATE_KEY = keys.PrivateKey(
+      decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+    )
+
+    SENDER = Address(SENDER_PRIVATE_KEY.public_key.to_canonical_address())
+
+    RECEIVER = Address(b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02')
+
+One thing that strikes out here is that we only need the plain address for the receiver whereas for
+the sender we are obtaining an address derived from the ``SENDER_PRIVATE_KEY``. That's because we
+obviously can not send transactions from an address that we don't have the private key to sign it
+for.
+
+With sender and receiver prepared, let's create the actual transaction.
+
+::
+
+    vm = chain.get_vm()
+    nonce = vm.state.account_db.get_nonce(SENDER)
+
+    tx = vm.create_unsigned_transaction(
+        nonce=nonce,
+        gas_price=0,
+        gas=100000,
+        to=RECEIVER,
+        value=0,
+        data=b'',
+    )
+
+Every transaction needs a ``nonce`` not to be confused with the ``nonce`` that we previously
+mined as part of the PoW algorithm. The *transaction nonce* serves as a counter to ensure
+all transactions from one address are processed in order. We retrieve the current ``nonce``
+by calling :func:`~evm.vm.base.VM.state.account_db.get_nonce(sender)`.
+
+Once we have the ``nonce`` we can call :func:`~evm.vm.base.VM.create_unsigned_transaction` and
+pass the ``nonce`` among the rest of the transaction attributes as key-value pairs.
+
+* ``nonce`` - Number of transactions sent by the sender
+* ``gas_price`` - Number of ``Wei`` to pay per unit of gas
+* ``gas`` - Maximum amount of ``gas`` the transaction is allowed to consume before it gets rejected
+* ``to`` - Address of transaction recipient
+* ``value`` - Number of ``Wei`` to be transferred to the recipient
+
+The last step we need to do before we can add the transaction to a block is to sign it with the
+private key which is as simple as calling
+:func:`~evm.rlp.transactions.BaseUnsignedTransaction.as_signed_transaction` with the
+``SENDER_PRIVATE_KEY``.
+
+::
+
+    signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
+
+Finally, we can call :func:`~evm.chains.base.Chain.apply_transaction` and pass along the
+``signed_tx``.
+
+::
+
+    chain.apply_transaction(signed_tx)
+
+What follows is the complete script that demonstrates how to mine a single block with one simple
+zero value transfer transaction.
+
+::
+
+    from eth_keys import keys
+    from eth_utils import decode_hex
+    from eth_typing import Address
+
+    from evm.consensus.pow import mine_pow_nonce
+    from evm import constants, Chain
+    from evm.vm.forks.byzantium import ByzantiumVM
+    from evm.db.backends.memory import MemoryDB
+
+
+    GENESIS_PARAMS = {
+        'parent_hash': constants.GENESIS_PARENT_HASH,
+        'uncles_hash': constants.EMPTY_UNCLE_HASH,
+        'coinbase': constants.ZERO_ADDRESS,
+        'transaction_root': constants.BLANK_ROOT_HASH,
+        'receipt_root': constants.BLANK_ROOT_HASH,
+        'difficulty': 1,
+        'block_number': constants.GENESIS_BLOCK_NUMBER,
+        'gas_limit': constants.GENESIS_GAS_LIMIT,
+        'timestamp': 1514764800,
+        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'nonce': constants.GENESIS_NONCE
+    }
+
+    SENDER_PRIVATE_KEY = keys.PrivateKey(
+      decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+    )
+
+    SENDER = Address(SENDER_PRIVATE_KEY.public_key.to_canonical_address())
+
+    RECEIVER = Address(b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02')
+
+    klass = Chain.configure(
+        __name__='TestChain',
+        vm_configuration=(
+            (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
+        ))
+
+    chain = klass.from_genesis(MemoryDB(), GENESIS_PARAMS)
+    vm = chain.get_vm()
+
+    nonce = vm.get_transaction_nonce(SENDER)
+
+    tx = vm.create_unsigned_transaction(
+        nonce=nonce,
+        gas_price=0,
+        gas=100000,
+        to=RECEIVER,
+        value=0,
+        data=b'',
+    )
+
+    signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
+
+    chain.apply_transaction(signed_tx)
+
+    # We have to finalize the block first in order to be able read the
+    # attributes that are important for the PoW algorithm
+    block = chain.get_vm().finalize_block(chain.get_block())
+
+    # based on mining_hash, block number and difficulty we can perform
+    # the actual Proof of Work (PoW) mechanism to mine the correct
+    # nonce and mix_hash for this block
+    nonce, mix_hash = mine_pow_nonce(
+        block.number,
+        block.header.mining_hash,
+        block.header.difficulty)
+
+    block = chain.mine_block(mix_hash=mix_hash, nonce=nonce)
