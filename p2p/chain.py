@@ -211,6 +211,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             start_at = head_number + 1
 
     async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
+        start = time.time()
         await self._download_block_parts(
             [header for header in headers if not _is_body_empty(header)],
             self.request_bodies,
@@ -239,7 +240,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
         head = await self.chaindb.coro_get_canonical_head()
         self.logger.info(
-            "Imported chain segment, new head: #%d (%s)",
+            "Imported chain segment in %d seconds, new head: #%d (%s)",
+            time.time() - start,
             head.block_number,
             encode_hex(head.hash)[2:6],
         )
