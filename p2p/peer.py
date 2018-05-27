@@ -65,6 +65,7 @@ from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address, Node
 from p2p import protocol
 from p2p.exceptions import (
+    BadAckMessage,
     DecryptionError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
@@ -745,6 +746,11 @@ class PeerPool(BaseService):
         except OperationCancelled:
             # Pass it on to instruct our main loop to stop.
             raise
+        except BadAckMessage:
+            # TODO: This is kept separate from the `expected_exceptions` to be
+            # sure that we aren't silencing an error in our authentication
+            # code.
+            self.logger.debug('Got bad Ack during peer connection', exc_info=True)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %s: %s", remote, repr(e))
         except unclean_close_exceptions:
