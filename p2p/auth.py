@@ -23,7 +23,7 @@ from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.constants import REPLY_TIMEOUT
 from p2p.exceptions import (
     DecryptionError,
-    HandshakeFailure,
+    BadAckMessage,
 )
 from p2p.utils import (
     sxor,
@@ -179,7 +179,7 @@ class HandshakeInitiator(HandshakeBase):
 
     def decode_auth_ack_message(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
-            raise HandshakeFailure("Auth ack msg too short: {}".format(len(ciphertext)))
+            raise BadAckMessage("Auth ack msg too short: {}".format(len(ciphertext)))
         elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
             eph_pubkey, nonce, _ = decode_ack_plain(ciphertext, self.privkey)
         else:
@@ -239,7 +239,7 @@ def decode_ack_plain(
     """
     message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_ACK_LEN:
-        raise HandshakeFailure("Unexpected size for ack message: {}".format(len(message)))
+        raise BadAckMessage("Unexpected size for ack message: {}".format(len(message)))
     eph_pubkey = keys.PublicKey(message[:PUBKEY_LEN])
     nonce = message[PUBKEY_LEN: PUBKEY_LEN + HASH_LEN]
     return eph_pubkey, nonce, SUPPORTED_RLPX_VERSION
@@ -265,7 +265,7 @@ def decode_auth_plain(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple
     """Decode legacy pre-EIP-8 auth message format"""
     message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_MSG_LEN:
-        raise HandshakeFailure("Unexpected size for auth message: {}".format(len(message)))
+        raise BadAckMessage("Unexpected size for auth message: {}".format(len(message)))
     signature = keys.Signature(signature_bytes=message[:SIGNATURE_LEN])
     pubkey_start = SIGNATURE_LEN + HASH_LEN
     pubkey = keys.PublicKey(message[pubkey_start: pubkey_start + PUBKEY_LEN])
