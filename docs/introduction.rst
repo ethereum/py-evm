@@ -28,13 +28,16 @@ The main focus is to enrich the Ethereum ecosystem with a Python implementation 
 
 .. note::
 
-  This project is still in an alpha state and not yet meant to be used by regular consumers to connect to the main Ethereum network. We are quickly progressing forward and shoot for an MVP in a matter of weeks rather than months.
+  Trinity is currently in **public alpha** and can connect and sync to the main ethereum network.
+  While it isn't meant for production use yet, we encourage the adventurous to try it out.
+  Follow along the :doc:`Trinity Quickstart </guides/trinity/quickstart>` to get things going.
 
 Further reading
 ---------------
 
-Follow along the `Quickstart <quickstart>`_ to get things going. Here are a couple more useful links to check out.
+Here are a couple more useful links to check out.
 
+* :doc:`Trinity Quickstart </guides/trinity/quickstart>`
 * `Source Code on GitHub <https://github.com/ethereum/py-evm>`_
 * `Public Gitter Chat <https://gitter.im/ethereum/py-evm>`_
-* `Get involved </contributing>`_
+* :doc:`Get involved </contributing>`
