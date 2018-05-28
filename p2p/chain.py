@@ -37,7 +37,7 @@ from evm.rlp.transactions import BaseTransaction
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken, wait_with_token
-from p2p.exceptions import NoConnectedPeers, OperationCancelled
+from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
@@ -125,6 +125,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # there it will be handled.
             pass
         except unclean_close_exceptions:
+            # FIXME: These exceptions come from AsyncChain[DB] methods; instead of catching them
+            # here we should do so in our coro_* wrappers, and have them re-raise something
+            # meaningful. Or something like that.
             self.logger.exception("Unclean exit while handling message from %s", peer)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
@@ -205,8 +208,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # TODO: Process headers for consistency.
             try:
                 head_number = await self._process_headers(peer, headers)
-            except NoConnectedPeers:
-                self.logger.info("No connected peers, aborting sync")
+            except NoEligiblePeers:
+                self.logger.info("No peers have the blocks we want, aborting sync")
                 break
             start_at = head_number + 1
 
@@ -270,8 +273,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
         Retry timed out parts until we have the parts for all headers.
 
-        Raises NoConnectedPeers if at any moment we have no connected peers to request the missing
-        parts to.
+        Raises NoEligiblePeers if at any moment we have no connected peers that have the blocks
+        we want.
         """
         missing = headers.copy()
         # The ETH protocol doesn't guarantee that we'll get all body parts requested, so we need
@@ -310,17 +313,25 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 for header in missing
                 if key_func(header) not in received_keys
             ]
+
         return parts
 
     def _request_block_parts(
             self,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        if not self.peer_pool.peers:
-            raise NoConnectedPeers()
-        length = math.ceil(len(headers) / len(self.peer_pool.peers))
+        # Need to do this to calculate the TD of the latest header in the batch because at this
+        # point we haven't persisted them to our DB yet.
+        target_td = self.chaindb.get_score(headers[0].parent_hash)
+        for header in headers:
+            target_td += header.difficulty
+        eligible_peers = [
+            peer for peer in self.peer_pool.peers if cast(ETHPeer, peer).head_td >= target_td]
+        if not eligible_peers:
+            raise NoEligiblePeers()
+        length = math.ceil(len(headers) / len(eligible_peers))
         batches = list(partition_all(length, headers))
-        for peer, batch in zip(self.peer_pool.peers, batches):
+        for peer, batch in zip(eligible_peers, batches):
             request_func(cast(ETHPeer, peer), batch)
         return len(batches)
 
@@ -378,7 +389,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         else:
-            self.logger.debug("Ignoring %s msg during fast sync", cmd)
+            # FIXME: Should log, but using a lower level otherwise there's too much noise.
+            # self.logger.debug("Ignoring %s msg during fast sync", cmd)
+            pass
 
     def _handle_block_headers(self, headers: List[BlockHeader]) -> None:
         if not headers:
