@@ -157,7 +157,7 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
         proxytype=AsyncHeaderChainProxy,
     )
 
-    manager = DBManager(address=chain_config.database_ipc_path)  # type: ignore
+    manager = DBManager(address=str(chain_config.database_ipc_path))  # type: ignore
     server = manager.get_server()  # type: ignore
 
     server.serve_forever()  # type: ignore
