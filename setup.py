@@ -47,7 +47,6 @@ deps = {
         "pytest~=3.2",
         "pytest-asyncio==0.8.0",
         "pytest-cov==2.5.1",
-        "pytest-logging>=2015.11.4",
         "pytest-xdist==1.18.1",
         "pytest-watch>=4.1.0,<5",
     ],
