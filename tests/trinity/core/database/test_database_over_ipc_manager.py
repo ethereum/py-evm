@@ -62,7 +62,7 @@ def manager(database_server_ipc_path):
     DBManager.register('get_db', proxytype=DBProxy)
     DBManager.register('get_chaindb', proxytype=ChainDBProxy)
 
-    _manager = DBManager(address=database_server_ipc_path)
+    _manager = DBManager(address=str(database_server_ipc_path))
     _manager.connect()
     return _manager
 
