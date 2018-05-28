@@ -9,9 +9,6 @@ from p2p.peer import (
     PeerPool,
     PreferredNodePeerPool,
 )
-from p2p.service import (
-    BaseService,
-)
 
 from trinity.chains.light import (
     LightDispatchChain,
@@ -26,7 +23,7 @@ class LightNode(Node):
     chain_class: Type[LightDispatchChain] = None
 
     _chain: LightDispatchChain = None
-    _p2p_server: BaseService = None
+    _p2p_server: LightPeerChain = None
 
     def __init__(self, chain_config: ChainConfig) -> None:
         super().__init__(chain_config)
@@ -60,7 +57,7 @@ class LightNode(Node):
 
         return self._chain
 
-    def get_p2p_server(self) -> BaseService:
+    def get_p2p_server(self) -> LightPeerChain:
         if self._p2p_server is None:
             self._p2p_server = LightPeerChain(self.headerdb, self._peer_pool)
         return self._p2p_server
