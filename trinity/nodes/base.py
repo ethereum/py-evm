@@ -5,10 +5,13 @@ from multiprocessing.managers import (
     BaseManager,
 )
 from threading import Thread
-from typing import Type
+from typing import (
+    Type,
+    Union
+)
 
 from evm.chains.base import BaseChain
-from evm.db.header import BaseHeaderDB
+
 from p2p.service import (
     BaseService,
     EmptyService,
@@ -22,7 +25,10 @@ from trinity.chains.header import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
-from trinity.db.header import AsyncHeaderDBProxy
+from trinity.db.header import (
+    BaseAsyncHeaderDB,
+    AsyncHeaderDBProxy
+)
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -68,7 +74,7 @@ class Node(BaseService):
         return self._db_manager
 
     @property
-    def headerdb(self) -> BaseHeaderDB:
+    def headerdb(self) -> BaseAsyncHeaderDB:
         return self._headerdb
 
     def add_service(self, service: BaseService) -> None:
@@ -77,7 +83,7 @@ class Node(BaseService):
         else:
             self._auxiliary_services.append(service)
 
-    def make_ipc_server(self) -> IPCServer:
+    def make_ipc_server(self) -> Union[IPCServer, BaseService]:
         if self._jsonrpc_ipc_path:
             rpc = RPCServer(self.get_chain())
             return IPCServer(rpc, self._jsonrpc_ipc_path)
