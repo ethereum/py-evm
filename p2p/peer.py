@@ -169,6 +169,7 @@ class BasePeer(BaseService):
                  ingress_mac: sha3.keccak_256,
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
+                 inbound: bool = False,
                  ) -> None:
         super().__init__()
         self.remote = remote
@@ -178,6 +179,7 @@ class BasePeer(BaseService):
         self.base_protocol = P2PProtocol(self)
         self.headerdb = headerdb
         self.network_id = network_id
+        self.inbound = inbound
         self.sub_proto_msg_queue: asyncio.Queue[Tuple[protocol.Command, protocol._DecodedMsgType]] = asyncio.Queue()  # noqa: E501
 
         self.egress_mac = egress_mac
@@ -648,6 +650,7 @@ class PeerPool(BaseService):
     """PeerPool attempts to keep connections to at least min_peers on the given network."""
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
+    _report_interval = 60
     _discovery_lookup_running = asyncio.Lock()
     _discovery_last_lookup: float = 0
     _discovery_lookup_interval: int = 30
@@ -703,6 +706,7 @@ class PeerPool(BaseService):
 
     async def _run(self) -> None:
         self.logger.info("Running PeerPool...")
+        asyncio.ensure_future(self._periodically_report_stats())
         while not self.cancel_token.triggered:
             await self.maybe_connect_to_more_peers()
             # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
@@ -821,6 +825,20 @@ class PeerPool(BaseService):
             self.logger.debug("No connected peers, sleeping a bit")
             await asyncio.sleep(0.5)
         return random.choice(self.peers)
+
+    async def _periodically_report_stats(self):
+        while not self.is_finished:
+            inbound_peers = len(
+                [peer for peer in self.connected_nodes.values() if peer.inbound])
+            self.logger.info("Connected peers: %d inbound, %d outbound",
+                             inbound_peers, (len(self.connected_nodes) - inbound_peers))
+            try:
+                await wait_with_token(
+                    asyncio.sleep(self._report_interval),
+                    self.finished.wait(),
+                    token=self.cancel_token)
+            except OperationCancelled:
+                break
 
 
 DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {

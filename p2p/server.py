@@ -353,7 +353,8 @@ class Server(BaseService):
             egress_mac=egress_mac,
             ingress_mac=ingress_mac,
             headerdb=self.headerdb,
-            network_id=self.network_id
+            network_id=self.network_id,
+            inbound=True,
         )
 
         await self.do_handshake(peer)
