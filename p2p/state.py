@@ -1,5 +1,7 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import logging
+import os
 import secrets
 import time
 from typing import (
@@ -58,6 +60,14 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._running_peers: Set[ETHPeer] = set()
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
+        # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
+        # asyncio's event loop.
+        if os.cpu_count() is None:
+            # Need this because os.cpu_count() returns None when the # of CPUs is indeterminable.
+            cpu_count = 1
+        else:
+            cpu_count = os.cpu_count() - 1
+        self._executor = ProcessPoolExecutor(cpu_count)
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -112,7 +122,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             if peer in self._peers_with_pending_requests:
                 self._peers_with_pending_requests.pop(peer)
 
-            node_keys = await loop.run_in_executor(None, list, map(keccak, msg))
+            node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
             for node_key, node in zip(node_keys, msg):
                 self._total_processed_nodes += 1
                 try:
@@ -254,7 +264,6 @@ class StateSync(HexaryTrieSync):
 
 def _test():
     import argparse
-    from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
     from p2p.peer import HardCodedNodesPeerPool
@@ -283,7 +292,6 @@ def _test():
     head = chaindb.get_canonical_head()
     downloader = StateDownloader(db, head.state_root, peer_pool)
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(ProcessPoolExecutor())
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:

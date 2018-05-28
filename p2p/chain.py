@@ -1,7 +1,9 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import logging
 import math
 import operator
+import os
 import time
 from typing import (
     Any,
@@ -74,6 +76,14 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
         self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
+        # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
+        # asyncio's event loop.
+        if os.cpu_count() is None:
+            # Need this because os.cpu_count() returns None when the # of CPUs is indeterminable.
+            cpu_count = 1
+        else:
+            cpu_count = os.cpu_count() - 1
+        self._executor = ProcessPoolExecutor(cpu_count)
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
@@ -417,7 +427,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, receipts_by_block)
         receipts_tries = await wait_with_token(
-            loop.run_in_executor(None, list, iterator),
+            loop.run_in_executor(self._executor, list, iterator),
             token=self.cancel_token)
         downloaded: List[DownloadedBlockPart] = []
         for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):
@@ -432,7 +442,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
         transactions_tries = await wait_with_token(
-            loop.run_in_executor(None, list, iterator),
+            loop.run_in_executor(self._executor, list, iterator),
             token=self.cancel_token)
         downloaded: List[DownloadedBlockPart] = []
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
@@ -605,7 +615,6 @@ def _is_receipts_empty(header: BlockHeader) -> bool:
 
 def _test() -> None:
     import argparse
-    from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
@@ -628,15 +637,10 @@ def _test() -> None:
     logging.getLogger('p2p.chain.ChainSyncer').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
-    # Use a ProcessPoolExecutor as the default because the tasks we want to offload from the main
-    # thread are cpu intensive.
-    loop.set_default_executor(ProcessPoolExecutor())
 
     base_db = LevelDB(args.db)
-
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-
     headerdb = FakeAsyncHeaderDB(base_db)
 
     privkey = ecies.generate_privkey()

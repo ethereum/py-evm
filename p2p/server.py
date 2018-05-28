@@ -1,5 +1,4 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import logging
 import secrets
@@ -176,10 +175,9 @@ class Server(BaseService):
         # UPnP discovery can take a long time, so use a loooong timeout here.
         discover_timeout = 10 * REPLY_TIMEOUT
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
-        # while to complete. We must use a ThreadPoolExecutor() because the
-        # response from upnpclient.discover() can't be pickled.
+        # while to complete.
         devices = await wait_with_token(
-            loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
+            loop.run_in_executor(None, upnpclient.discover),
             token=self.cancel_token,
             timeout=discover_timeout)
 

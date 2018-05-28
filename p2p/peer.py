@@ -321,10 +321,11 @@ class BasePeer(BaseService):
         frame_data = await self.read(read_size + MAC_LEN)
         msg = self.decrypt_body(frame_data, frame_size)
         cmd = self.get_protocol_command_for(msg)
-        loop = asyncio.get_event_loop()
-        decoded_msg = await wait_with_token(
-            loop.run_in_executor(None, cmd.decode, msg),
-            token=self.cancel_token)
+        # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
+        # too much time is being spent on this again, we need to consider running this in a
+        # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
+        # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
+        decoded_msg = cmd.decode(msg)
         self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
         return cmd, decoded_msg
 
