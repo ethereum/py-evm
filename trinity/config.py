@@ -106,20 +106,20 @@ class ChainConfig:
         self._data_dir = Path(value).resolve()
 
     @property
-    def database_dir(self) -> str:
+    def database_dir(self) -> Path:
         if self.sync_mode == SYNC_FULL:
-            return str(self.data_dir / DATABASE_DIR_NAME / "full")
+            return self.data_dir / DATABASE_DIR_NAME / "full"
         elif self.sync_mode == SYNC_LIGHT:
-            return str(self.data_dir / DATABASE_DIR_NAME / "light")
+            return self.data_dir / DATABASE_DIR_NAME / "light"
         else:
             raise ValueError("Unknown sync mode: {}}".format(self.sync_mode))
 
     @property
-    def database_ipc_path(self) -> str:
+    def database_ipc_path(self) -> Path:
         return get_database_socket_path(self.data_dir)
 
     @property
-    def jsonrpc_ipc_path(self) -> str:
+    def jsonrpc_ipc_path(self) -> Path:
         return get_jsonrpc_socket_path(self.data_dir)
 
     @property

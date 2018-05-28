@@ -67,33 +67,33 @@ def get_nodekey_path(data_dir: Path) -> Path:
 DATABASE_SOCKET_FILENAME = 'db.ipc'
 
 
-def get_database_socket_path(data_dir: Path) -> str:
+def get_database_socket_path(data_dir: Path) -> Path:
     """
     Returns the path to the private key used for devp2p connections.
 
     We're still returning 'str' here on ipc-related path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly.
     """
-    return os.environ.get(
+    return Path(os.environ.get(
         'TRINITY_DATABASE_IPC',
-        str(data_dir / DATABASE_SOCKET_FILENAME),
-    )
+        data_dir / DATABASE_SOCKET_FILENAME,
+    ))
 
 
 JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
 
 
-def get_jsonrpc_socket_path(data_dir: Path) -> str:
+def get_jsonrpc_socket_path(data_dir: Path) -> Path:
     """
     Returns the path to the ipc socket for the JSON-RPC server.
 
     We're still returning 'str' here on ipc-related path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly.
     """
-    return os.environ.get(
+    return Path(os.environ.get(
         'TRINITY_JSONRPC_IPC',
-        str(data_dir / JSONRPC_SOCKET_FILENAME),
-    )
+        data_dir / JSONRPC_SOCKET_FILENAME,
+    ))
 
 
 #

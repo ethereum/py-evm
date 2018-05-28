@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from eth_utils import (
@@ -27,7 +25,7 @@ def test_chain_config_computed_properties():
 
     assert chain_config.network_id == 1234
     assert chain_config.data_dir == data_dir
-    assert chain_config.database_dir == os.path.join(data_dir, DATABASE_DIR_NAME, "full")
+    assert chain_config.database_dir == data_dir / DATABASE_DIR_NAME / "full"
     assert chain_config.nodekey_path == get_nodekey_path(data_dir)
 
 
