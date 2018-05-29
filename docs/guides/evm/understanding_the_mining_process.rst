@@ -1,7 +1,7 @@
 Understanding the mining process
 ================================
 
-In the `Building Chains Guide <building_chains>`_ we already learned how to use the
+In the :doc:`Building Chains Guide <building_chains>` we already learned how to use the
 :class:`~evm.chains.base.Chain` class to create a single blockchain as a combination of different
 virtual machines for different spans of blocks.
 
