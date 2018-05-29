@@ -32,6 +32,21 @@ Finally, we can install the ``trinity`` package via pip.
 
   pip3 install trinity
 
+Installing on macOS
+-------------------
+
+First, install LevelDB and the latest Python 3 with brew:
+
+.. code:: sh
+
+  brew install python3 leveldb
+
+Then, install the ``trinity`` package via pip:
+
+.. code:: sh
+
+  pip3 install trinity
+
 Running Trinity
 ~~~~~~~~~~~~~~~
 
