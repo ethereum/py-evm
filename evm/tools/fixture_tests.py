@@ -7,7 +7,6 @@ import os
 
 import rlp
 
-import pytest
 
 from cytoolz import (
     curry,
@@ -71,6 +70,18 @@ def find_fixture_files(fixtures_base_dir):
     return all_fixture_paths
 
 
+def import_pytest():
+    try:
+        import pytest
+    except ImportError:
+        raise ImportError(
+            'pytest is required to use the fixture_tests.  Please ensure '
+            'it is installed.'
+        )
+    else:
+        return pytest
+
+
 @to_tuple
 def find_fixtures(fixtures_base_dir):
     """
@@ -108,6 +119,7 @@ def filter_fixtures(all_fixtures, fixtures_base_dir, mark_fn=None, ignore_fn=Non
         if mark_fn is not None:
             mark = mark_fn(fixture_relpath, *fixture_data[1:])
             if mark:
+                pytest = import_pytest()
                 yield pytest.param(
                     (fixture_path, *fixture_data[1:]),
                     marks=mark,
