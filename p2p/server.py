@@ -280,7 +280,7 @@ class Server(BaseService):
         try:
             await self._receive_handshake(reader, writer)
         except expected_exceptions as e:
-            self.logger.debug("Could not complete handshake", exc_info=True)
+            self.logger.debug("Could not complete handshake: %s", e)
         except unclean_close_exceptions:
             self.logger.exception("Unclean exit while receiving handshake")
         except OperationCancelled:
@@ -315,7 +315,7 @@ class Server(BaseService):
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
             except DecryptionError as e:
-                self.logger.debug("Failed to decrypt handshake", exc_info=True)
+                self.logger.debug("Failed to decrypt handshake: %s", e)
                 return
 
         # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
