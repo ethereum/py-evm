@@ -27,7 +27,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH
+from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_PARENT_HASH
 from evm.chains import AsyncChain
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
@@ -223,9 +223,27 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 break
             start_at = head_number + 1
 
+    async def _calculate_td(self, headers: List[BlockHeader]) -> int:
+        """Return the score (total difficulty) of the last header in the given list.
+
+        Assumes the first header's parent is already present in our DB.
+
+        Used when we have a batch of headers that has not been persisted to the DB yet, and we
+        need to know the score for the last one of them.
+        """
+        if headers[0].parent_hash == GENESIS_PARENT_HASH:
+            td = 0
+        else:
+            td = await self.chaindb.coro_get_score(headers[0].parent_hash)
+        for header in headers:
+            td += header.difficulty
+        return td
+
     async def _process_headers(self, peer: ETHPeer, headers: List[BlockHeader]) -> int:
         start = time.time()
+        target_td = await self._calculate_td(headers)
         await self._download_block_parts(
+            target_td,
             [header for header in headers if not _is_body_empty(header)],
             self.request_bodies,
             self._downloaded_bodies,
@@ -239,6 +257,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # so we do this to avoid requesting the same receipts multiple times.
         missing_receipts = list(unique(missing_receipts, key=_receipts_key))
         await self._download_block_parts(
+            target_td,
             missing_receipts,
             self.request_receipts,
             self._downloaded_receipts,
@@ -274,8 +293,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
     async def _download_block_parts(
             self,
+            target_td: int,
             headers: List[BlockHeader],
-            request_func: Callable[[List[BlockHeader]], int],
+            request_func: Callable[[int, List[BlockHeader]], int],
             download_queue: 'asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
             part_name: str) -> 'List[DownloadedBlockPart]':
@@ -290,11 +310,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # The ETH protocol doesn't guarantee that we'll get all body parts requested, so we need
         # to keep track of the number of pending replies and missing items to decide when to retry
         # them. See request_receipts() for more info.
-        pending_replies = request_func(missing)
+        pending_replies = request_func(target_td, missing)
         parts: List[DownloadedBlockPart] = []
         while missing:
             if pending_replies == 0:
-                pending_replies = request_func(missing)
+                pending_replies = request_func(target_td, missing)
 
             try:
                 peer, received = await wait_with_token(
@@ -302,7 +322,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                     token=self.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
-                pending_replies = request_func(missing)
+                pending_replies = request_func(target_td, missing)
                 continue
 
             received_keys = set([part.unique_key for part in received])
@@ -328,13 +348,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
     def _request_block_parts(
             self,
+            target_td: int,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        # Need to do this to calculate the TD of the latest header in the batch because at this
-        # point we haven't persisted them to our DB yet.
-        target_td = self.chaindb.get_score(headers[0].parent_hash)
-        for header in headers:
-            target_td += header.difficulty
         eligible_peers = [
             peer for peer in self.peer_pool.peers if cast(ETHPeer, peer).head_td >= target_td]
         if not eligible_peers:
@@ -353,14 +369,14 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.debug("Requesting %d block receipts to %s", len(headers), peer)
         peer.sub_proto.send_get_receipts([header.hash for header in headers])
 
-    def request_bodies(self, headers: List[BlockHeader]) -> int:
+    def request_bodies(self, target_td: int, headers: List[BlockHeader]) -> int:
         """Ask our peers for bodies for the given headers.
 
         See request_receipts() for details of how this is done.
         """
-        return self._request_block_parts(headers, self._send_get_block_bodies)
+        return self._request_block_parts(target_td, headers, self._send_get_block_bodies)
 
-    def request_receipts(self, headers: List[BlockHeader]) -> int:
+    def request_receipts(self, target_td: int, headers: List[BlockHeader]) -> int:
         """Ask our peers for receipts for the given headers.
 
         We partition the given list of headers in batches and request each to one of our connected
@@ -371,7 +387,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
         Returns the number of requests made.
         """
-        return self._request_block_parts(headers, self._send_get_receipts)
+        return self._request_block_parts(target_td, headers, self._send_get_receipts)
 
     async def wait_until_finished(self) -> None:
         self.logger.info("Shutting down FastChainSyncer")
@@ -510,7 +526,9 @@ class RegularChainSyncer(FastChainSyncer):
 
     def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         bodies = []
-        for block_hash in msg:
+        # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+        hashes = msg[:eth.MAX_BODIES_FETCH]
+        for block_hash in hashes:
             header = self.chaindb.get_block_header_by_hash(block_hash)
             transactions = self.chaindb.get_block_transactions(header, P2PTransaction)
             uncles = self.chaindb.get_block_uncles(header.uncles_hash)
@@ -519,7 +537,9 @@ class RegularChainSyncer(FastChainSyncer):
 
     def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         receipts = []
-        for block_hash in msg:
+        # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+        hashes = msg[:eth.MAX_RECEIPTS_FETCH]
+        for block_hash in hashes:
             header = self.chaindb.get_block_header_by_hash(block_hash)
             receipts.append(self.chaindb.get_receipts(header, Receipt))
         peer.sub_proto.send_receipts(receipts)
@@ -545,7 +565,9 @@ class RegularChainSyncer(FastChainSyncer):
             head = await self.chaindb.coro_get_canonical_head()
             return head.block_number
 
+        target_td = await self._calculate_td(headers)
         downloaded_parts = await self._download_block_parts(
+            target_td,
             [header for header in headers if not _is_body_empty(header)],
             self.request_bodies,
             self._downloaded_bodies,
