@@ -131,6 +131,17 @@ latest block by calling ``w3.eth.getBlock('latest')``.
   'size': 544,
   'transactions': []})
 
+You can attach to an existing trinity process using the ``attach`` comand.
+
+.. code:: sh
+
+  trinity attach
+
+For a list of JSON-RPC endpoints which are expected to work, see this issue: https://github.com/ethereum/py-evm/issues/178
+
+
+
+
 .. warning::
 
   Trinity is currently in public alpha. **Keep in mind**:
