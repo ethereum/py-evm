@@ -63,7 +63,6 @@ def main() -> None:
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
-    logger, log_queue, listener = setup_trinity_logging(log_level)
 
     if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
@@ -72,6 +71,9 @@ def main() -> None:
         )
 
     chain_config = ChainConfig.from_parser_args(args)
+    logger, log_queue, listener_stream, listener_file = (
+        setup_trinity_logging(chain_config, log_level)
+    )
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -86,7 +88,8 @@ def main() -> None:
 
     # start the listener thread to handle logs produced by other processes in
     # the local logger.
-    listener.start()
+    listener_stream.start()
+    listener_file.start()
 
     logging_kwargs = {
         'log_queue': log_queue,

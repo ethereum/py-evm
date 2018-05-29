@@ -96,6 +96,9 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         with open(chain_config.nodekey_path, 'wb') as nodekey_file:
             nodekey_file.write(nodekey.to_bytes())
 
+    # Logfile
+    os.makedirs(chain_config.logfile_path, exist_ok=True)
+
 
 def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> None:
     try:
