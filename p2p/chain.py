@@ -272,10 +272,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
 
         head = await self.chaindb.coro_get_canonical_head()
         self.logger.info(
-            "Imported chain segment in %d seconds, new head: #%d (%s)",
+            "Imported %d headers in %0.2f seconds, new head: #%d (%s)",
+            len(headers),
             time.time() - start,
             head.block_number,
-            encode_hex(head.hash)[2:6],
+            encode_hex(head.hash)[2:8],
         )
         # Quite often the header batch we receive here includes headers past the peer's reported
         # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
