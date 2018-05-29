@@ -33,6 +33,7 @@ deps = {
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
+        "eth-hash>=0.1.4,<1",
     ],
     'trinity': [
         "ipython>=6.2.1,<7.0.0",
