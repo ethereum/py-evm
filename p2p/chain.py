@@ -332,7 +332,13 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
         # Need to do this to calculate the TD of the latest header in the batch because at this
         # point we haven't persisted them to our DB yet.
-        target_td = self.chaindb.get_score(headers[0].parent_hash)
+        while True:
+            try:
+                target_td = self.chaindb.get_score(headers[0].parent_hash)
+            except HeaderNotFound:
+                asyncio.sleep(0.1)
+            else:
+                break
         for header in headers:
             target_td += header.difficulty
         eligible_peers = [
