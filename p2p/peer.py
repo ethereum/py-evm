@@ -750,6 +750,10 @@ class PeerPool(BaseService):
             # TODO: This is kept separate from the `expected_exceptions` to be
             # sure that we aren't silencing an error in our authentication
             # code.
+            self.logger.info('Got bad Ack during peer connection')
+            # We intentionally log this twice, once in INFO to be sure we don't
+            # forget about this and once in DEBUG which includes the stack
+            # trace.
             self.logger.debug('Got bad Ack during peer connection', exc_info=True)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %s: %s", remote, repr(e))
