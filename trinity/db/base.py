@@ -7,20 +7,36 @@ from multiprocessing.managers import (  # type: ignore
 
 class DBProxy(BaseProxy):
     _exposed_ = (
-        'get',
-        'set',
+        '__contains__',
+        '__delitem__',
+        '__getitem__',
+        '__setitem__',
         'delete',
         'exists',
+        'get',
+        'set',
     )
 
-    def __getitem__(self, key):
+    def get(self, key):
         return self._callmethod('get', (key,))
 
-    def __setitem__(self, key, value):
+    def __getitem__(self, key):
+        return self._callmethod('__getitem__', (key,))
+
+    def set(self, key, value):
         return self._callmethod('set', (key, value))
 
-    def __delitem__(self, key):
+    def __setitem__(self, key, value):
+        return self._callmethod('__setitem__', (key, value))
+
+    def delete(self, key):
         return self._callmethod('delete', (key,))
 
-    def __contains__(self, key):
+    def __delitem__(self, key):
+        return self._callmethod('__delitem__', (key,))
+
+    def exists(self, key):
         return self._callmethod('exists', (key,))
+
+    def __contains__(self, key):
+        return self._callmethod('__contains__', (key,))
