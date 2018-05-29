@@ -284,6 +284,8 @@ class BaseVM(Configurable, metaclass=ABCMeta):
 
 
 class VM(BaseVM):
+    _state = None
+
     """
     The :class:`~evm.vm.base.BaseVM` class represents the Chain rules for a
     specific protocol definition such as the Frontier or Homestead network.
@@ -298,11 +300,16 @@ class VM(BaseVM):
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
-        self.state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
-            state_root=self.block.header.state_root,
-        )
+
+    @property
+    def state(self):
+        if self._state is None:
+            self._state = self.get_state_class()(
+                db=self.chaindb.db,
+                execution_context=self.block.header.create_execution_context(self.previous_hashes),
+                state_root=self.block.header.state_root,
+            )
+        return self._state
 
     #
     # Logging
@@ -409,7 +416,7 @@ class VM(BaseVM):
             uncles=block.uncles,
         )
         # we need to re-initialize the `state` to update the execution context.
-        self.state = self.get_state_class()(
+        self._state = self.get_state_class()(
             db=self.chaindb.db,
             execution_context=self.block.header.create_execution_context(self.previous_hashes),
             state_root=self.block.header.state_root,
