@@ -30,7 +30,7 @@ Finally, we can install the ``trinity`` package via pip.
 
 .. code:: sh
 
-  pip3 install trinity
+  pip3 install -U trinity
 
 Installing on macOS
 -------------------
@@ -45,7 +45,7 @@ Then, install the ``trinity`` package via pip:
 
 .. code:: sh
 
-  pip3 install trinity
+  pip3 install -U trinity
 
 Running Trinity
 ~~~~~~~~~~~~~~~
