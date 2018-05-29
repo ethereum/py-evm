@@ -164,13 +164,6 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
     logger = logging.getLogger('trinity')
     logger.info(TRINITY_HEADER)
     logger.info(construct_trinity_client_identifier())
-    logger.info(
-        "enode://%s@%s:%s",
-        chain_config.nodekey.to_hex()[2:],
-        "[:]",
-        chain_config.port,
-    )
-    logger.info('network: %s', chain_config.network_id)
 
 
 def run_service_until_quit(service: BaseService) -> None:
