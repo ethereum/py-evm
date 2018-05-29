@@ -8,6 +8,7 @@ This section aims to provide hands-on guides to demonstrate how to use Py-EVM. I
    :name: toc-evm-guides
    :caption: Guides
 
+   quickstart
    architecture
    building_chains
    understanding_the_mining_process
