@@ -223,6 +223,13 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                     self.logger.warn("No common ancestry found from %s, aborting sync", peer)
                     break
                 start_at = max(0, start_at - eth.MAX_HEADERS_FETCH)
+                if start_at < head.block_number - 10000:
+                    self.logger.warn(
+                        "No common ancestor found with %s within 10,000 blocks, "
+                        "aborting sync",
+                        peer,
+                    )
+                    break
                 continue
             except NoEligiblePeers:
                 self.logger.info("No peers have the blocks we want, aborting sync")
