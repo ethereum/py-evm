@@ -7,7 +7,7 @@ setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
     # NOT CURRENTLY APPLICABLE. VERSION BUMPS MANUAL FOR NOW
-    version='0.1.0-alpha.3',
+    version='0.1.0-alpha.4',
     description='The Trinity Ethereum Client',
     author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
