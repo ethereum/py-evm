@@ -13,15 +13,8 @@ First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of t
     $ git clone --recursive https://github.com/ethereum/py-evm.git
 
 
-Py-EVM requires Python 3. Often, the best way to guarantee a clean Python 3 environment is with `virtualenv <https://virtualenv.pypa.io/en/stable/>`_, like:
 
-.. code:: sh
-
-    # once:
-    $ virtualenv -p python3 venv
-
-    # each session:
-    $ . venv/bin/activate
+.. include:: /fragments/virtualenv_explainer.rst
 
 After we have activated our virtual environment, installing all dependencies that are needed to run, develop and test all code in this repository is as easy as:
 
