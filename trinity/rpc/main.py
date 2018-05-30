@@ -9,6 +9,7 @@ from evm.exceptions import (
 from trinity.rpc.modules import (
     Eth,
     EVM,
+    Net,
     RPCModule,
     Web3,
 )
@@ -56,6 +57,7 @@ class RPCServer:
     module_classes = (
         Eth,
         EVM,
+        Net,
         Web3,
     )
 
