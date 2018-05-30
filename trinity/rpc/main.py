@@ -10,6 +10,7 @@ from trinity.rpc.modules import (
     Eth,
     EVM,
     RPCModule,
+    Web3,
 )
 
 REQUIRED_REQUEST_KEYS = {
@@ -55,6 +56,7 @@ class RPCServer:
     module_classes = (
         Eth,
         EVM,
+        Web3,
     )
 
     def __init__(self, chain):

@@ -4,6 +4,8 @@ import os
 import pytest
 import time
 
+from trinity.utils.version import construct_trinity_client_identifier
+
 
 def wait_for(path):
     for _ in range(100):
@@ -39,8 +41,12 @@ def build_request(method, params=[]):
             build_request('eth_mining'),
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
+        (
+            build_request('web3_clientVersion'),
+            {'result': construct_trinity_client_identifier(), 'id': 3, 'jsonrpc': '2.0'},
+        ),
     ),
-    ids=['empty', 'notamethod', 'eth_mining'],
+    ids=['empty', 'notamethod', 'eth_mining', 'web3_clientVersion'],
 )
 async def test_ipc_requests(jsonrpc_ipc_pipe_path,
                             request_msg,
