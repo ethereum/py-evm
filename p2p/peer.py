@@ -223,7 +223,12 @@ class BasePeer(BaseService):
         Raises HandshakeFailure if the handshake is not successful.
         """
         self.base_protocol.send_handshake()
-        cmd, msg = await self.read_msg()
+
+        try:
+            cmd, msg = await self.read_msg()
+        except rlp.DecodingError:
+            raise HandshakeFailure("Got invalid rlp data during handshake")
+
         if isinstance(cmd, Disconnect):
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
             raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
