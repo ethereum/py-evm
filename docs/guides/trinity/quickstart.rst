@@ -70,12 +70,10 @@ to help us getting that bug fixed.
   / / / /  / / / / / / /_/ /_/ / 
   /_/ /_/  /_/_/ /_/_/\__/\__, /  
                         /____/   
-      INFO  05-29 01:57:02        main  Trinity/0.2.0a18/linux/cpython3.6.5
-      INFO  05-29 01:57:02        main  enode://781245c14c5885cf79df99e233733ec7a8fcdf8a9e3bfeef50aedd43b3e42d03@[:]:30303
+      INFO  05-29 01:57:02        main  Trinity/0.1.0a4/linux/cpython3.6.5
       INFO  05-29 01:57:02        main  network: 1
       INFO  05-29 01:57:02         ipc  IPC started at: /root/.local/share/trinity/mainnet/jsonrpc.ipc
       INFO  05-29 01:57:02      server  Running server...
-      INFO  05-29 01:57:07      server  No UPNP-enabled devices found
       INFO  05-29 01:57:07      server  enode://09d34ecb0de1806ab0e68cb2d822b967292dc021df06aab9a55aa4d2e1b2e04ae73560137407a48073286026e12dd60d265a1b1ae0505e44e60d55cea9c7b100@0.0.0.0:30303
       INFO  05-29 01:57:07      server  network: 1
       INFO  05-29 01:57:07        peer  Running PeerPool...
@@ -92,6 +90,29 @@ Once Trinity successfully connected to other peers we should see it starting to 
   INFO  05-29 02:23:17       chain  Imported chain segment in 0 seconds, new head: #767 (aeb6)
 
 
+Running as a light client
+-------------------------
+
+.. warning:: 
+
+    It may take a **very** long time for Trinity to find an LES node with open
+    slots.  This is not a bug with trinity, but rather a shortage of nodes
+    serving LES.  Please consider running your own LES server to help improve
+    the health of the network.
+
+Use the ``--light`` flag to instruct Trinity to run as a light node.
+
+
+Ropsten vs Mainnet
+------------------
+
+Trinity currently only supports running against either the Ethereum Mainnet or
+Ropsten testnet.  Use ``--ropsten`` to run against Ropsten.
+
+
+.. code:: sh
+
+  trinity --ropsten
 
 
 
