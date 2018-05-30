@@ -16,6 +16,7 @@ from evm.chains.ropsten import (
 )
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
+    DEFAULT_MAX_PEERS,
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
 )
@@ -55,6 +56,7 @@ class ChainConfig:
 
     def __init__(self,
                  network_id: int,
+                 max_peers: int=DEFAULT_MAX_PEERS,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  logfile_path: str=None,
@@ -64,6 +66,7 @@ class ChainConfig:
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
                  bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
         self.network_id = network_id
+        self.max_peers = max_peers
         self.sync_mode = sync_mode
         self.port = port
         self.preferred_nodes = preferred_nodes

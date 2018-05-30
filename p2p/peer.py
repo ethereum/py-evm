@@ -103,6 +103,7 @@ from p2p.p2p_proto import (
 from .constants import (
     CONN_IDLE_TIMEOUT,
     DEFAULT_MIN_PEERS,
+    DEFAULT_MAX_PEERS,
     HEADER_LEN,
     MAC_LEN,
     REPLY_TIMEOUT,
@@ -670,6 +671,7 @@ class PeerPool(BaseService):
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
                  min_peers: int = DEFAULT_MIN_PEERS,
+                 max_peers: int = DEFAULT_MAX_PEERS
                  ) -> None:
         super().__init__()
         self.peer_class = peer_class
@@ -678,6 +680,7 @@ class PeerPool(BaseService):
         self.privkey = privkey
         self.discovery = discovery
         self.min_peers = min_peers
+        self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
 
@@ -693,6 +696,7 @@ class PeerPool(BaseService):
             raise Exception(
                 "We cannot handle multiple subscribers yet; "
                 "see https://github.com/ethereum/py-evm/issues/768 for details")
+
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():
             subscriber.register_peer(peer)
@@ -749,6 +753,15 @@ class PeerPool(BaseService):
             peer = await handshake(
                 remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
                 self.cancel_token)
+
+            """
+            There is max_peers defined from CLI.
+            We drop the subscriber if it's already maxed out.
+            """
+            if len(self.connected_nodes) >= self.max_peers:
+                peer.disconnect(DisconnectReason.too_many_peers)
+                return None
+
             return peer
         except OperationCancelled:
             # Pass it on to instruct our main loop to stop.
@@ -787,11 +800,12 @@ class PeerPool(BaseService):
                 self._discovery_last_lookup = time.time()
 
     async def maybe_connect_to_more_peers(self) -> None:
-        """Connect to more peers if we're not yet connected to at least self.min_peers."""
-        if len(self.connected_nodes) >= self.min_peers:
+        """Connect to more peers if we're not yet maxed out to max_peers"""
+        num_connected_nodes = len(self.connected_nodes)
+        if num_connected_nodes >= self.max_peers:
             self.logger.debug(
                 "Already connected to %s peers: %s; sleeping",
-                len(self.connected_nodes),
+                num_connected_nodes,
                 [remote for remote in self.connected_nodes])
             return
 
@@ -946,6 +960,7 @@ class PreferredNodePeerPool(PeerPool):
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
                  min_peers: int = DEFAULT_MIN_PEERS,
+                 max_peers: int = DEFAULT_MAX_PEERS,
                  preferred_nodes: Sequence[Node] = None,
                  ) -> None:
         super().__init__(peer_class, headerdb, network_id, privkey, discovery, min_peers)

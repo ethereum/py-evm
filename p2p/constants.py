@@ -59,3 +59,6 @@ ROPSTEN_BOOTNODES = (
 # Default configuration
 # Minimum peers number, we'll try to keep open connections to at least this number of peers
 DEFAULT_MIN_PEERS = 5
+
+# Maximum peers number, we'll try to keep open connections up to this number of peers
+DEFAULT_MAX_PEERS = 25

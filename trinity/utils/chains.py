@@ -137,6 +137,9 @@ def construct_chain_config_params(args):
     if args.sync_mode is not None:
         yield 'sync_mode', args.sync_mode
 
+    if args.max_peers is not None:
+        yield 'max_peers', args.max_peers
+
     if args.port is not None:
         yield 'port', args.port
 
