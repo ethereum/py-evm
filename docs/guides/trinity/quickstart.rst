@@ -91,6 +91,27 @@ Once Trinity successfully connected to other peers we should see it starting to 
   INFO  05-29 02:23:16       chain  Imported chain segment in 0 seconds, new head: #575 (a1d0)
   INFO  05-29 02:23:17       chain  Imported chain segment in 0 seconds, new head: #767 (aeb6)
 
+
+
+
+
+Connecting to preferred nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you would like to have Trinity prioritize connecting to specific nodes, you
+can use the ``--preferred-node`` command line flag.  This flag takes an enode
+URI as a single argument and will instruct Trinity to prioritize connecting to
+this node.
+
+.. code:: sh
+
+  trinity --preferred-node enode://a41defa74e8d9d4152699cb9a0d195377da95833769ad6b386092ac3b16c184eb4ef4b4f02889e0b5097ff50fb5847ba99694d40b61f911cdea07b444b00e676@127.0.0.1:30304
+
+
+Using ``--preferred-node`` is a good way to ensure Trinity running in
+``--light`` mode connects to known peers who serve LES.
+
+
 Retrieving Chain information via web3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -131,7 +152,7 @@ latest block by calling ``w3.eth.getBlock('latest')``.
   'size': 544,
   'transactions': []})
 
-You can attach to an existing trinity process using the ``attach`` comand.
+You can attach to an existing Trinity process using the ``attach`` comand.
 
 .. code:: sh
 
