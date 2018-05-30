@@ -26,6 +26,9 @@ we need to install the ``python3-pip`` package through the following command.
 
   apt-get python3-pip
 
+.. note::
+  .. include:: /fragments/virtualenv_explainer.rst
+
 Finally, we can install the ``trinity`` package via pip.
 
 .. code:: sh
@@ -40,6 +43,9 @@ First, install LevelDB and the latest Python 3 with brew:
 .. code:: sh
 
   brew install python3 leveldb
+
+.. note::
+  .. include:: /fragments/virtualenv_explainer.rst
 
 Then, install the ``trinity`` package via pip:
 
