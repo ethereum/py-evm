@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from typing import (
+    Any,
+    Callable,
     cast,
     Dict,
     List,
@@ -11,22 +13,29 @@ from typing import (
 
 from async_lru import alru_cache
 
+import rlp
+
 from eth_typing import (
     Address,
     Hash32,
 )
 
+from eth_hash.auto import keccak
+
 from eth_utils import (
     encode_hex,
 )
 
+from trie import HexaryTrie
+
 from evm.constants import GENESIS_BLOCK_NUMBER
+from evm.exceptions import BlockNotFound, HeaderNotFound
 from evm.rlp.accounts import Account
-from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 
 from p2p.exceptions import (
+    BadLESResponse,
     EmptyGetBlockHeadersReply,
     LESAnnouncementProcessingError,
     OperationCancelled,
@@ -34,20 +43,23 @@ from p2p.exceptions import (
     UnexpectedMessage,
 )
 from p2p import les
+from p2p import protocol
 from p2p.cancel_token import (
     CancelToken,
     wait_with_token,
 )
+from p2p.constants import REPLY_TIMEOUT
 from p2p.peer import (
     BasePeer,
     LESPeer,
     PeerPool,
     PeerPoolSubscriber,
 )
+from p2p.rlp import BlockBody
 from p2p.service import (
     BaseService,
 )
-from p2p.utils import unclean_close_exceptions
+from p2p.utils import gen_request_id, unclean_close_exceptions
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
@@ -56,6 +68,7 @@ if TYPE_CHECKING:
 class LightPeerChain(PeerPoolSubscriber, BaseService):
     logger = logging.getLogger("p2p.lightchain.LightPeerChain")
     max_consecutive_timeouts = 5
+    reply_timeout = REPLY_TIMEOUT
     headerdb: 'BaseAsyncHeaderDB' = None
 
     def __init__(self, headerdb: 'BaseAsyncHeaderDB', peer_pool: PeerPool) -> None:
@@ -65,6 +78,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
         self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
         self._running_peers: Set[LESPeer] = set()
+        self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
 
     def register_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))
@@ -95,12 +109,19 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 # Either the peer disconnected or our cancel_token has been triggered, so break
                 # out of the loop to stop attempting to sync with this peer.
                 break
-            # We currently implement only the LES commands for retrieving data (apart from
-            # Announce), and those should always come as a response to requests we make so will be
-            # handled by LESPeer.handle_sub_proto_msg().
+
             if isinstance(cmd, les.Announce):
                 peer.head_info = cmd.as_head_info(msg)
                 self._announcement_queue.put_nowait((peer, peer.head_info))
+            elif isinstance(msg, dict):
+                request_id = msg.get('request_id')
+                # request_id can be None here because not all LES messages include one. For
+                # instance, the Announce msg doesn't.
+                if request_id is not None and request_id in self._pending_replies:
+                    # This is a reply we're waiting for, so we consume it by passing it to the
+                    # registered callback.
+                    callback = self._pending_replies.pop(request_id)
+                    callback(msg)
             else:
                 raise UnexpectedMessage("Unexpected msg from {}: {}".format(peer, msg))
 
@@ -179,7 +200,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
         for i in range(self.max_consecutive_timeouts):
             try:
-                return await peer.fetch_headers_starting_at(start_block, self.cancel_token)
+                return await self._fetch_headers_starting_at(peer, start_block)
             except TimeoutError:
                 self.logger.info(
                     "Timeout when fetching headers from %s (attempt %d of %d)",
@@ -245,17 +266,34 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         await self.wait_until_finished()
         self.logger.debug("LightPeerChain finished")
 
-    @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_block_header_by_hash(self, block_hash: Hash32) -> BaseBlock:
-        peer = await self.get_best_peer()
-        self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
-        return await peer.get_block_header_by_hash(block_hash, self.cancel_token)
+    async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
+        reply = None
+        got_reply = asyncio.Event()
+
+        def callback(r):
+            nonlocal reply
+            reply = r
+            got_reply.set()
+
+        self._pending_replies[request_id] = callback
+        await wait_with_token(got_reply.wait(), token=self.cancel_token, timeout=self.reply_timeout)
+        return reply
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_block_body_by_hash(self, block_hash: Hash32) -> BaseBlock:
+    async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        peer = await self.get_best_peer()
+        return await self._get_block_header_by_hash(peer, block_hash)
+
+    @alru_cache(maxsize=1024, cache_exceptions=False)
+    async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = await self.get_best_peer()
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        return await peer.get_block_by_hash(block_hash, self.cancel_token)
+        request_id = gen_request_id()
+        peer.sub_proto.send_get_block_bodies([block_hash], request_id)
+        reply = await self._wait_for_reply(request_id)
+        if not reply['bodies']:
+            raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
+        return reply['bodies'][0]
 
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
 
@@ -263,7 +301,12 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = await self.get_best_peer()
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
-        return await peer.get_receipts(block_hash, self.cancel_token)
+        request_id = gen_request_id()
+        peer.sub_proto.send_get_receipts(block_hash, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if not reply['receipts']:
+            raise BlockNotFound("No block with hash {} found".format(block_hash))
+        return reply['receipts'][0]
 
     # TODO implement AccountDB exceptions that provide the info needed to
     # request accounts and code (and storage?)
@@ -271,9 +314,62 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: Hash32, address: Address) -> Account:
         peer = await self.get_best_peer()
-        return await peer.get_account(block_hash, address, self.cancel_token)
+        key = keccak(address)
+        proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
+        header = await self._get_block_header_by_hash(peer, block_hash)
+        rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
+        return rlp.decode(rlp_account, sedes=Account)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: Hash32, key: bytes) -> bytes:
         peer = await self.get_best_peer()
-        return await peer.get_contract_code(block_hash, key, self.cancel_token)
+        request_id = gen_request_id()
+        peer.sub_proto.send_get_contract_code(block_hash, key, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if not reply['codes']:
+            return b''
+        return reply['codes'][0]
+
+    async def _get_block_header_by_hash(self, peer: LESPeer, block_hash: Hash32) -> BlockHeader:
+        self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
+        request_id = gen_request_id()
+        max_headers = 1
+        peer.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
+        reply = await self._wait_for_reply(request_id)
+        if not reply['headers']:
+            raise HeaderNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
+        header = reply['headers'][0]
+        if header.hash != block_hash:
+            raise BadLESResponse(
+                "Received header hash (%s) does not match what we requested (%s)",
+                header.hex_hash, encode_hex(block_hash))
+        return header
+
+    async def _get_proof(self,
+                         peer: LESPeer,
+                         block_hash: bytes,
+                         account_key: bytes,
+                         key: bytes,
+                         from_level: int = 0) -> List[bytes]:
+        request_id = gen_request_id()
+        peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
+        reply = await self._wait_for_reply(request_id)
+        return reply['proof']
+
+    async def _fetch_headers_starting_at(
+            self, peer: LESPeer, start_block: int) -> List[BlockHeader]:
+        """Fetches up to self.max_headers_fetch starting at start_block.
+
+        Returns a list containing those headers in ascending order of block number.
+        """
+        request_id = gen_request_id()
+        peer.sub_proto.send_get_block_headers(
+            start_block, peer.max_headers_fetch, request_id, reverse=False)
+        reply = await self._wait_for_reply(request_id)
+        if not reply['headers']:
+            raise EmptyGetBlockHeadersReply(
+                "No headers in reply. start_block=={}".format(start_block))
+        self.logger.debug(
+            "fetched headers from %s to %s", reply['headers'][0].block_number,
+            reply['headers'][-1].block_number)
+        return reply['headers']

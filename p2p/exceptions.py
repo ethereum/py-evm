@@ -115,3 +115,10 @@ class BadAckMessage(BaseP2PError):
     Raised when the ack message during a peer handshake is malformed
     """
     pass
+
+
+class BadLESResponse(BaseP2PError):
+    """
+    Raised when the response to a LES request doesn't contain the data we asked for.
+    """
+    pass
