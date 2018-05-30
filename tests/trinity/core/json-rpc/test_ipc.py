@@ -61,8 +61,15 @@ def build_request(method, params=[]):
                 'jsonrpc': '2.0',
             },
         ),
+        (
+            build_request('net_version'),
+            {'result': '1337', 'id': 3, 'jsonrpc': '2.0'},
+        ),
     ),
-    ids=['empty', 'notamethod', 'eth_mining', 'web3_clientVersion', 'web3_sha3_1', 'web3_sha3_2'],
+    ids=[
+        'empty', 'notamethod', 'eth_mining', 'web3_clientVersion',
+        'web3_sha3_1', 'web3_sha3_2', 'net_version',
+    ],
 )
 async def test_ipc_requests(jsonrpc_ipc_pipe_path,
                             request_msg,

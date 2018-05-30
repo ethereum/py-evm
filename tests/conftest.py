@@ -5,6 +5,20 @@ import sys
 
 import pytest
 
+from eth_utils import (
+    decode_hex,
+    to_canonical_address,
+    to_wei,
+)
+from eth_keys import keys
+
+from evm import Chain
+from evm import constants
+from evm.db.backends.memory import MemoryDB
+# TODO: tests should not be locked into one set of VM rules.  Look at expanding
+# to all mainnet vms.
+from evm.vm.forks.spurious_dragon import SpuriousDragonVM
+
 
 @pytest.fixture(autouse=True, scope="session")
 def vm_logger():
@@ -59,3 +73,73 @@ def vm_file_logger(request):
         finally:
             logger.removeHandler(handler)
 """
+
+
+@pytest.fixture
+def base_db():
+    return MemoryDB()
+
+
+@pytest.fixture
+def funded_address_private_key():
+    return keys.PrivateKey(
+        decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+    )
+
+
+@pytest.fixture
+def funded_address(funded_address_private_key):
+    return funded_address_private_key.public_key.to_canonical_address()
+
+
+@pytest.fixture
+def funded_address_initial_balance():
+    return to_wei(1000, 'ether')
+
+
+@pytest.fixture
+def chain_with_block_validation(base_db, funded_address, funded_address_initial_balance):
+    """
+    Return a Chain object containing just the genesis block.
+
+    The Chain's state includes one funded account, which can be found in the
+    funded_address in the chain itself.
+
+    This Chain will perform all validations when importing new blocks, so only
+    valid and finalized blocks can be used with it. If you want to test
+    importing arbitrarily constructe, not finalized blocks, use the
+    chain_without_block_validation fixture instead.
+    """
+    genesis_params = {
+        "bloom": 0,
+        "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
+        "difficulty": 131072,
+        "extra_data": b"B",
+        "gas_limit": 3141592,
+        "gas_used": 0,
+        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+        "nonce": decode_hex("0102030405060708"),
+        "block_number": 0,
+        "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
+        "receipt_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+        "timestamp": 1422494849,
+        "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+        "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
+    }
+    genesis_state = {
+        funded_address: {
+            "balance": funded_address_initial_balance,
+            "nonce": 0,
+            "code": b"",
+            "storage": {}
+        }
+    }
+    klass = Chain.configure(
+        __name__='TestChain',
+        vm_configuration=(
+            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
+        ),
+        network_id=1337,
+    )
+    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
+    return chain

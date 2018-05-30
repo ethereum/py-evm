@@ -52,14 +52,14 @@ def jsonrpc_ipc_pipe_path():
                 os.remove(ipc_path)
 
 
-@pytest.fixture(scope='session')
-def ipc_server(jsonrpc_ipc_pipe_path, event_loop):
+@pytest.fixture
+def ipc_server(jsonrpc_ipc_pipe_path, event_loop, chain_with_block_validation):
     '''
     This fixture runs a single RPC server over IPC over
     the course of all tests. It never needs to be actually
     used as a fixture, so it doesn't return (yield) a value.
     '''
-    rpc = RPCServer(None)
+    rpc = RPCServer(chain_with_block_validation)
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path)
 
     asyncio.ensure_future(ipc_server.run(loop=event_loop), loop=event_loop)
