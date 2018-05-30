@@ -41,6 +41,10 @@ class Command:
         self.cmd_id = cmd_id_offset + self._cmd_id
 
     @property
+    def logger(self):
+        return logging.getLogger("p2p.protocol.{0}".format(self.__class__.__name__))
+
+    @property
     def is_base_protocol(self) -> bool:
         return self.cmd_id_offset == 0
 

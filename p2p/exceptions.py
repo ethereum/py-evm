@@ -26,6 +26,12 @@ class HandshakeFailure(BaseP2PError):
     pass
 
 
+class MalformedMessage(BaseP2PError):
+    """
+    Raised when a p2p command is received with a malformed message
+    """
+
+
 class UnknownProtocolCommand(BaseP2PError):
     """
     Raised when the received protocal command isn't known.
