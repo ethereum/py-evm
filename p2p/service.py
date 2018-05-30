@@ -53,6 +53,9 @@ class BaseService(ABC):
             # Set self.finished before anything else so that other coroutines started by this
             # service exit while we wait for cleanup().
             self.finished.set()
+            # Also trigger our cancel token to ensure all pending asyncio tasks started by this
+            # service exit cleanly.
+            self.cancel_token.trigger()
 
             try:
                 await self.cleanup()
