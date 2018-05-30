@@ -219,6 +219,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             try:
                 head_number = await self._process_headers(peer, headers)
             except HeaderNotFound:
+                # This is comes from when we attempt to compute the difficulty
+                # of a header whos parent is not in our database.
                 if start_at == 0:
                     self.logger.warn("No common ancestry found from %s, aborting sync", peer)
                     break
@@ -230,6 +232,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                         peer,
                     )
                     break
+                self.logger.info(
+                    "Missing ancestor header.  Trying earlier header at #%s", start_at
+                )
                 continue
             except NoEligiblePeers:
                 self.logger.info("No peers have the blocks we want, aborting sync")
