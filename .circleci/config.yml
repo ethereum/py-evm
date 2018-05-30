@@ -231,18 +231,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - lint-py35
-      - lint-py36
-      - py35-native-state-byzantium
-      - py35-native-state-frontier
-      - py35-native-state-homestead
-      - py35-native-state-eip150
-      - py35-native-state-eip158
-      - py35-native-blockchain
-      - py35-vm
-      - py35-core
-      - py35-transactions
-      - py35-database
       - py36-native-state-byzantium
       - py36-native-state-frontier
       - py36-native-state-homestead
@@ -262,3 +250,15 @@ workflows:
       - py36-p2p
       - py36-database
       - py36-rpc-state-quadratic
+      - py35-native-state-byzantium
+      - py35-native-state-frontier
+      - py35-native-state-homestead
+      - py35-native-state-eip150
+      - py35-native-state-eip158
+      - py35-native-blockchain
+      - py35-vm
+      - py35-core
+      - py35-transactions
+      - py35-database
+      - lint-py35
+      - lint-py36
