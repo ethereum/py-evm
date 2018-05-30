@@ -69,6 +69,7 @@ from p2p.exceptions import (
     DecryptionError,
     EmptyGetBlockHeadersReply,
     HandshakeFailure,
+    MalformedMessage,
     NoEligibleNodes,
     NoMatchingPeerCapabilities,
     OperationCancelled,
@@ -736,6 +737,7 @@ class PeerPool(BaseService):
             PeerConnectionLost,
             TimeoutError,
             UnreachablePeer,
+            MalformedMessage,
         )
         try:
             self.logger.debug("Connecting to %s...", remote)

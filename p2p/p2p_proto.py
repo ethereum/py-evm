@@ -3,8 +3,10 @@ from typing import cast, Dict
 
 from cytoolz import assoc
 
+import rlp
 from rlp import sedes
 
+from p2p.exceptions import MalformedMessage
 from p2p.protocol import (
     Command,
     Protocol,
@@ -53,7 +55,11 @@ class Disconnect(Command):
             return "unknown reason"
 
     def decode(self, data: bytes) -> _DecodedMsgType:
-        raw_decoded = cast(Dict[str, int], super(Disconnect, self).decode(data))
+        try:
+            raw_decoded = cast(Dict[str, int], super(Disconnect, self).decode(data))
+        except rlp.exceptions.ListDeserializationError:
+            self.logger.warn("Malformed Disconnect message: %s", data)
+            raise MalformedMessage("Malformed Disconnect message: {0}".format(data))
         return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
 
 
