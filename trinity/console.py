@@ -1,18 +1,17 @@
-import asyncio
-import logging
+import code
+from functools import partial
+from pathlib import Path
+from typing import (
+    Any,
+    Dict,
+)
 
 from cytoolz import merge
 
 import web3
 
 
-LOGFILE = '/tmp/trinity-shell.log'
-LOGLEVEL = logging.INFO
-
-loop = asyncio.get_event_loop()
-
-
-DEFAULT_BANNER = (
+DEFAULT_BANNER: str = (
     "Trinity Console\n"
     "---------------\n"
     "An instance of Web3 connected to the running chain is available as the "
@@ -20,7 +19,7 @@ DEFAULT_BANNER = (
 )
 
 
-def ipython_shell(namespace, banner):
+def ipython_shell(namespace: Dict[str, Any], banner: str) -> Any:
     """Try to run IPython shell."""
     try:
         import IPython
@@ -30,14 +29,14 @@ def ipython_shell(namespace, banner):
             "installed or re-run with --vanilla-shell"
         )
 
-    return IPython.terminal.embed.InteractiveShellEmbed(user_ns=namespace, banner1=banner)
+    return IPython.terminal.embed.InteractiveShellEmbed(
+        user_ns=namespace,
+        banner1=banner,
+    )
 
 
-def python_shell(namespace, banner):
+def python_shell(namespace: Dict[str, Any], banner: str) -> Any:
     """Start a vanilla Python REPL shell."""
-    import code
-    from functools import partial
-
     try:
         import readline, rlcompleter  # noqa: F401, E401
     except ImportError:
@@ -49,10 +48,10 @@ def python_shell(namespace, banner):
     return partial(shell.interact, banner=banner)
 
 
-def console(ipc_path,
-            use_ipython=True,
-            env=None,
-            banner=DEFAULT_BANNER):
+def console(ipc_path: Path,
+            use_ipython: bool=True,
+            env: Dict[str, Any]=None,
+            banner: str=DEFAULT_BANNER) -> Any:
     """
     Method that starts the chain, setups the trinity CLI and register the
     cleanup function.
@@ -60,13 +59,12 @@ def console(ipc_path,
     if env is None:
         env = {}
 
-    w3 = web3.Web3(web3.IPCProvider(ipc_path))
+    # cast needed until https://github.com/ethereum/web3.py/issues/867 is fixed
+    w3 = web3.Web3(web3.IPCProvider(str(ipc_path)))
 
     namespace = merge({'w3': w3}, env)
 
     if use_ipython:
-        shell = ipython_shell(namespace, banner)
+        ipython_shell(namespace, banner)()
     else:
-        shell = python_shell(namespace, banner)
-
-    shell()
+        python_shell(namespace, banner)()
