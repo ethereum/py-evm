@@ -32,6 +32,7 @@ from p2p.cancel_token import (
 from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
     DEFAULT_MIN_PEERS,
+    DEFAULT_MAX_PEERS,
     HASH_LEN,
     REPLY_TIMEOUT,
 )
@@ -75,6 +76,7 @@ class Server(BaseService):
                  headerdb: 'BaseAsyncHeaderDB',
                  base_db: BaseDB,
                  network_id: int,
+                 max_peers: int = DEFAULT_MAX_PEERS,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
                  peer_pool_class: Type[PeerPool] = PreferredNodePeerPool,
@@ -91,8 +93,12 @@ class Server(BaseService):
         self.network_id = network_id
         self.peer_class = peer_class
         self.peer_pool_class = peer_pool_class
+        self.max_peers = max_peers
         self.min_peers = min_peers
         self.bootstrap_nodes = bootstrap_nodes
+
+        if self.max_peers < self.min_peers:
+            raise ValueError("The maximum peers must be greater than min peers.")
 
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
@@ -234,6 +240,7 @@ class Server(BaseService):
             self.privkey,
             discovery,
             min_peers=self.min_peers,
+            max_peers=self.max_peers,
         )
 
     async def _run(self) -> None:

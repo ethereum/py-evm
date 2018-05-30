@@ -118,6 +118,14 @@ network_parser.add_argument(
     ),
 )
 
+network_parser.add_argument(
+    '--max-peers',
+    help=(
+        "Maximum number of network peers"
+    ),
+    type=int,
+)
+
 
 #
 # Sync Mode
