@@ -22,7 +22,6 @@ from evm.exceptions import CanonicalHeadNotFound
 from p2p import ecies
 
 from trinity.exceptions import (
-    AmbigiousFileSystem,
     MissingPath,
 )
 from trinity.config import ChainConfig
@@ -98,7 +97,9 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         )
 
     # Logfile
-    if not chain_config.logfile_path.exists() and is_under_xdg_trinity_root(chain_config.logfile_path):
+    if (not chain_config.logfile_path.exists() and
+            is_under_xdg_trinity_root(chain_config.logfile_path)):
+
         chain_config.logfile_path.parent.mkdir(parents=True, exist_ok=True)
         chain_config.logfile_path.touch()
     elif not chain_config.logfile_path.exists():

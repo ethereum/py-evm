@@ -110,10 +110,9 @@ def main() -> None:
                 "Trinity does not attempt to create directories outside of its root path\n"
                 "Either manually create the path or ensure you are using a data directory\n"
                 "inside the XDG_TRINITY_ROOT path"
-                ).format(e.path)
+            ).format(e.path)
             logger.error(msg)
             sys.exit(1)
-
 
     logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         logger,

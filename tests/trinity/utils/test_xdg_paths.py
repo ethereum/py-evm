@@ -22,13 +22,16 @@ AFFECTED_ENVS = [
     'XDG_CACHE_HOME'
 ]
 
+
 def clear_envs(monkeypatch):
     for env in AFFECTED_ENVS:
         monkeypatch.delenv(env, raising=False)
 
+
 def set_envs(monkeypatch, envs):
     for pair in envs:
         monkeypatch.setenv(pair[0], pair[1])
+
 
 @pytest.mark.parametrize(
     'envs, resolver, expected',
@@ -36,7 +39,7 @@ def set_envs(monkeypatch, envs):
         # get_xdg_data_home()
         ([('HOME', 'home'), ('XDG_DATA_HOME', 'test')], get_xdg_data_home, 'test'),
         ([('XDG_DATA_HOME', 'test')], get_xdg_data_home, 'test'),
-        ([('HOME', 'test')], get_xdg_data_home,'test/.local/share'),
+        ([('HOME', 'test')], get_xdg_data_home, 'test/.local/share'),
         ([], get_xdg_data_home, AmbigiousFileSystem),
         # get_xdg_trinity_root()
         ([('HOME', 'home'), ('XDG_TRINITY_ROOT', 'test')], get_xdg_trinity_root, 'test'),
@@ -64,5 +67,3 @@ def test_xdg_path_handling(monkeypatch, envs, resolver, expected):
             resolver()
     else:
         assert resolver() == expected
-
-
