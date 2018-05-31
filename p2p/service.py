@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 import asyncio
 from collections import UserList
 import logging
-from typing import Callable, List, Optional
+from typing import Any, Awaitable, Callable, List, Optional
 
-from p2p.cancel_token import CancelToken
+from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 
 
@@ -18,7 +18,6 @@ class BaseService(ABC):
             self.logger = logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
 
         self._run_lock = asyncio.Lock()
-        self.finished = asyncio.Event()
         self.cleaned_up = asyncio.Event()
 
         base_token = CancelToken(type(self).__name__)
@@ -27,18 +26,35 @@ class BaseService(ABC):
         else:
             self.cancel_token = base_token.chain(token)
 
+    async def wait_first(
+            self, *futures: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
+        """Wait for the first future to complete, unless we timeout or the token chain is triggered.
+
+        The given token is chained with this service's token, so triggering either will cancel
+        this.
+
+        Returns the result of the first future to complete.
+
+        Raises TimeoutError if we timeout or OperationCancelled if the token chain is triggered.
+
+        All pending futures are cancelled before returning.
+        """
+        if token is None:
+            token_chain = self.cancel_token
+        else:
+            token_chain = token.chain(self.cancel_token)
+        return await wait_with_token(*futures, token=token_chain, timeout=timeout)
+
     async def run(
             self,
             finished_callback: Optional[Callable[['BaseService'], None]] = None) -> None:
         """Await for the service's _run() coroutine.
 
-        Once _run() returns, set the finished event, call cleanup() and
+        Once _run() returns, triggers the cancel token, call cleanup() and
         finished_callback (if one was passed).
         """
         if self.is_running:
             raise RuntimeError("Cannot start the service while it's already running")
-        elif self.is_finished:
-            raise RuntimeError("Cannot restart a service after it has completed")
 
         try:
             async with self._run_lock:
@@ -50,45 +66,32 @@ class BaseService(ABC):
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:
-            # Set self.finished before anything else so that other coroutines started by this
-            # service exit while we wait for cleanup().
-            self.finished.set()
-            # Also trigger our cancel token to ensure all pending asyncio tasks started by this
-            # service exit cleanly.
+            # Trigger our cancel token to ensure all pending asyncio tasks and background
+            # coroutines started by this service exit cleanly.
             self.cancel_token.trigger()
 
-            try:
-                await self.cleanup()
-            except Exception:
-                self.logger.exception("Unexepected error during cleanup in %s", self)
-                raise
+            await self.cleanup()
 
             if finished_callback is not None:
                 finished_callback(self)
 
     async def cleanup(self) -> None:
-        """Run the service's _cleanup() coroutine."""
+        """Run the service's _cleanup() coroutine and sets the cleaned_up event."""
         await self._cleanup()
-
         self.cleaned_up.set()
 
     async def cancel(self):
-        """Trigger the CancelToken and wait for the run() coroutine to finish."""
-        if self.is_finished:
-            self.logger.warning("Tried to cancel %s, but it was already finished", self)
-        elif not self.is_running:
+        """Trigger the CancelToken and wait for the cleaned_up event to be set."""
+        if not self.is_running:
             raise RuntimeError("Cannot cancel a service that has not been started")
 
         self.logger.debug("Cancelling %s", self)
         self.cancel_token.trigger()
         try:
-            await asyncio.wait_for(self.finished.wait(), timeout=self._wait_until_finished_timeout)
+            await asyncio.wait_for(
+                self.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
         except asyncio.futures.TimeoutError:
-            self.logger.info("Timed out waiting for %s to finish, exiting anyway", self)
-
-    @property
-    def is_finished(self) -> bool:
-        return self.finished.is_set()
+            self.logger.info("Timed out waiting for %s to finish its cleanup, exiting anyway", self)
 
     @property
     def is_running(self) -> bool:

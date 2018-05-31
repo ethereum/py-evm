@@ -35,6 +35,7 @@ from eth_keys import datatypes
 from eth_hash.auto import keccak
 
 from p2p.cancel_token import CancelToken
+from p2p.exceptions import OperationCancelled
 from p2p import kademlia
 
 # UDP packet constants.
@@ -121,12 +122,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.transport = transport
 
     async def bootstrap(self):
-        while self.transport is None:
-            # FIXME: Instead of sleeping here to wait until connection_made() is called to set
-            # .transport we should instead only call it after we know it's been set.
-            await asyncio.sleep(1)
         self.logger.debug("boostrapping with %s", self.bootstrap_nodes)
-        await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
+        try:
+            await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
+        except OperationCancelled as e:
+            self.logger.info("Bootstrapping cancelled: %s", e)
 
     # FIXME: Enable type checking here once we have a mypy version that
     # includes the fix for https://github.com/python/typeshed/pull/1740
@@ -153,7 +153,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.transport.close()
         # We run lots of asyncio tasks so this is to make sure they all get a chance to execute
         # and exit cleanly when they notice the cancel token has been triggered.
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
     def receive(self, address: kademlia.Address, message: bytes) -> None:
         try:
@@ -298,7 +298,6 @@ def _test():
     import signal
     from p2p import constants
     from p2p import ecies
-    from p2p.exceptions import OperationCancelled
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 

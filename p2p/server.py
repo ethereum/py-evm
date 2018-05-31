@@ -28,7 +28,6 @@ from p2p.auth import (
 )
 from p2p.cancel_token import (
     CancelToken,
-    wait_with_token,
 )
 from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,
@@ -51,6 +50,7 @@ from p2p.peer import (
     BasePeer,
     ETHPeer,
     PeerPool,
+    PreferredNodePeerPool,
 )
 from p2p.service import BaseService
 from p2p.sync import FullNodeSyncer
@@ -77,7 +77,7 @@ class Server(BaseService):
                  network_id: int,
                  min_peers: int = DEFAULT_MIN_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
-                 peer_pool_class: Type[PeerPool] = PeerPool,
+                 peer_pool_class: Type[PeerPool] = PreferredNodePeerPool,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  token: CancelToken = None,
                  ) -> None:
@@ -103,11 +103,10 @@ class Server(BaseService):
         On every iteration we configure the port mapping with a lifetime of 30 minutes and then
         sleep for that long as well.
         """
-        while not self.is_finished:
+        while self.is_running:
             try:
                 # We start with a sleep because our _run() method will setup the initial portmap.
-                await wait_with_token(
-                    asyncio.sleep(self._nat_portmap_lifetime), token=self.cancel_token)
+                await self.wait_first(asyncio.sleep(self._nat_portmap_lifetime))
                 await self.add_nat_portmap()
             except OperationCancelled:
                 break
@@ -176,9 +175,8 @@ class Server(BaseService):
         discover_timeout = 10 * REPLY_TIMEOUT
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
         # while to complete.
-        devices = await wait_with_token(
+        devices = await self.wait_first(
             loop.run_in_executor(None, upnpclient.discover),
-            token=self.cancel_token,
             timeout=discover_timeout)
 
         # If there are no UPNP devices we can exit early
@@ -265,8 +263,7 @@ class Server(BaseService):
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await self.peer_pool.cancel()
-        await self.discovery.stop()
+        await asyncio.gather(self.peer_pool.cancel(), self.discovery.stop())
         await self._close()
 
     async def receive_handshake(
@@ -290,11 +287,9 @@ class Server(BaseService):
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        msg = await wait_with_token(
+        msg = await self.wait_first(
             reader.read(ENCRYPTED_AUTH_MSG_LEN),
-            token=self.cancel_token,
-            timeout=REPLY_TIMEOUT,
-        )
+            timeout=REPLY_TIMEOUT)
 
         ip, socket, *_ = writer.get_extra_info("peername")
         remote_address = Address(ip, socket)
@@ -306,11 +301,9 @@ class Server(BaseService):
             # Try to decode as EIP8
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
-            msg += await wait_with_token(
+            msg += await self.wait_first(
                 reader.read(remaining_bytes),
-                token=self.cancel_token,
-                timeout=REPLY_TIMEOUT,
-            )
+                timeout=REPLY_TIMEOUT)
             try:
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
@@ -369,12 +362,14 @@ class Server(BaseService):
 
 def _test() -> None:
     import argparse
+    from pathlib import Path
     import signal
 
-    from evm.db.backends.memory import MemoryDB
+    from evm.db.backends.level import LevelDB
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
     from p2p import ecies
+    from p2p.constants import ROPSTEN_BOOTNODES
     from p2p.peer import ETHPeer
 
     from trinity.utils.chains import load_nodekey
@@ -383,6 +378,7 @@ def _test() -> None:
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, FakeAsyncRopstenChain
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-debug', action="store_true")
     parser.add_argument('-bootnodes', type=str, default=[])
     parser.add_argument('-nodekey', type=str)
@@ -397,7 +393,7 @@ def _test() -> None:
     logging.getLogger('p2p.server.Server').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
-    db = MemoryDB()
+    db = LevelDB(args.db)
     headerdb = FakeAsyncHeaderDB(db)
     chaindb = FakeAsyncChainDB(db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
@@ -407,7 +403,7 @@ def _test() -> None:
     # may try to establish a connection using the pubkey from one of our previous runs, which will
     # result in lots of DecryptionErrors in receive_handshake().
     if args.nodekey:
-        privkey = load_nodekey(args.nodekey)
+        privkey = load_nodekey(Path(args.nodekey))
     else:
         privkey = ecies.generate_privkey()
 
@@ -415,7 +411,8 @@ def _test() -> None:
     if args.bootnodes:
         bootstrap_nodes = args.bootnodes.split(',')
     else:
-        bootstrap_nodes = []
+        bootstrap_nodes = ROPSTEN_BOOTNODES
+    bootstrap_nodes = [Node.from_uri(enode) for enode in bootstrap_nodes]
 
     server = Server(
         privkey,
