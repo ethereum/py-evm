@@ -26,14 +26,19 @@ class BaseService(ABC):
         else:
             self.cancel_token = base_token.chain(token)
 
+    async def wait(
+            self, awaitable: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
+        """See wait_first()"""
+        return await self.wait_first(awaitable, token=token, timeout=timeout)
+
     async def wait_first(
-            self, *futures: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
-        """Wait for the first future to complete, unless we timeout or the token chain is triggered.
+            self, *awaitables: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
+        """Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
 
         The given token is chained with this service's token, so triggering either will cancel
         this.
 
-        Returns the result of the first future to complete.
+        Returns the result of the first one to complete.
 
         Raises TimeoutError if we timeout or OperationCancelled if the token chain is triggered.
 
@@ -43,7 +48,7 @@ class BaseService(ABC):
             token_chain = self.cancel_token
         else:
             token_chain = token.chain(self.cancel_token)
-        return await wait_with_token(*futures, token=token_chain, timeout=timeout)
+        return await wait_with_token(*awaitables, token=token_chain, timeout=timeout)
 
     async def run(
             self,
