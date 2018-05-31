@@ -12,85 +12,57 @@ from trinity.utils.xdg import (
 )
 
 
-def test_data_home_discovery(monkeypatch):
+# These envs may all exist and we need to ensure to monkeypatch kill them
+# for each test run, and then only set the ones that are parameterized
+AFFECTED_ENVS = [
+    'HOME',
+    'XDG_DATA_HOME',
+    'XDG_TRINITY_ROOT',
+    'XDG_CONFIG_HOME',
+    'XDG_CACHE_HOME'
+]
 
-    # Only XDG_DATA_HOME is set but HOME isn't
-    monkeypatch.setenv('XDG_DATA_HOME', 'test')
-    monkeypatch.delenv('HOME')
+def clear_envs(monkeypatch):
+    for env in AFFECTED_ENVS:
+        monkeypatch.delenv(env, raising=False)
 
-    assert get_xdg_data_home() == 'test'
+def set_envs(monkeypatch, envs):
+    for pair in envs:
+        monkeypatch.setenv(pair[0], pair[1])
 
-    # Only HOME is set
-    monkeypatch.delenv('XDG_DATA_HOME')
-    monkeypatch.setenv('HOME', 'test2')
+@pytest.mark.parametrize(
+    'envs, resolver, expected',
+    (
+        # get_xdg_data_home()
+        ([('HOME', 'home'), ('XDG_DATA_HOME', 'test')], get_xdg_data_home, 'test'),
+        ([('XDG_DATA_HOME', 'test')], get_xdg_data_home, 'test'),
+        ([('HOME', 'test')], get_xdg_data_home,'test/.local/share'),
+        ([], get_xdg_data_home, AmbigiousFileSystem),
+        # get_xdg_trinity_root()
+        ([('HOME', 'home'), ('XDG_TRINITY_ROOT', 'test')], get_xdg_trinity_root, 'test'),
+        ([('XDG_TRINITY_ROOT', 'test')], get_xdg_trinity_root, 'test'),
+        ([('HOME', 'test')], get_xdg_trinity_root, 'test/.local/share/trinity'),
+        ([], get_xdg_trinity_root, AmbigiousFileSystem),
+        # get_xdg_config_home()
+        ([('HOME', 'home'), ('XDG_CONFIG_HOME', 'test')], get_xdg_config_home, 'test'),
+        ([('XDG_CONFIG_HOME', 'test')], get_xdg_config_home, 'test'),
+        ([('HOME', 'test')], get_xdg_config_home, 'test/.config'),
+        ([], get_xdg_config_home, AmbigiousFileSystem),
+        # get_xdg_cache_home()
+        ([('HOME', 'home'), ('XDG_CACHE_HOME', 'test')], get_xdg_cache_home, 'test'),
+        ([('XDG_CACHE_HOME', 'test')], get_xdg_cache_home, 'test'),
+        ([('HOME', 'test')], get_xdg_cache_home, 'test/.cache'),
+        ([], get_xdg_cache_home, AmbigiousFileSystem)
+    )
+)
+def test_xdg_path_handling(monkeypatch, envs, resolver, expected):
+    clear_envs(monkeypatch)
+    set_envs(monkeypatch, envs)
 
-    assert get_xdg_data_home() == 'test2/.local/share'
-
-    # Nothing is set
-    monkeypatch.delenv('HOME')
-
-    with pytest.raises(AmbigiousFileSystem):
-        get_xdg_data_home()
-
-
-def test_trinity_root_discovery(monkeypatch):
-
-    # Only XDG_TRINITY_ROOT is set but HOME isn't
-    monkeypatch.setenv('XDG_TRINITY_ROOT', 'test')
-    monkeypatch.delenv('HOME')
-
-    assert get_xdg_trinity_root() == 'test'
-
-    # Only HOME is set
-    monkeypatch.delenv('XDG_TRINITY_ROOT')
-    monkeypatch.setenv('HOME', 'test2')
-
-    assert get_xdg_trinity_root() == 'test2/.local/share/trinity'
-
-    # Nothing is set
-    monkeypatch.delenv('HOME')
-
-    with pytest.raises(AmbigiousFileSystem):
-        get_xdg_trinity_root()
-
-
-def test_config_home_discovery(monkeypatch):
-
-    # Only XDG_CONFIG_HOME is set but HOME isn't
-    monkeypatch.setenv('XDG_CONFIG_HOME', 'test')
-    monkeypatch.delenv('HOME')
-
-    assert get_xdg_config_home() == 'test'
-
-    # Only HOME is set
-    monkeypatch.delenv('XDG_CONFIG_HOME')
-    monkeypatch.setenv('HOME', 'test2')
-
-    assert get_xdg_config_home() == 'test2/.config'
-
-    # Nothing is set
-    monkeypatch.delenv('HOME')
-
-    with pytest.raises(AmbigiousFileSystem):
-        get_xdg_config_home()
+    if expected is AmbigiousFileSystem:
+        with pytest.raises(AmbigiousFileSystem):
+            resolver()
+    else:
+        assert resolver() == expected
 
 
-def test_cache_home_discovery(monkeypatch):
-
-    # Only XDG_CACHE_HOME is set but HOME isn't
-    monkeypatch.setenv('XDG_CACHE_HOME', 'test')
-    monkeypatch.delenv('HOME')
-
-    assert get_xdg_cache_home() == 'test'
-
-    # Only HOME is set
-    monkeypatch.delenv('XDG_CACHE_HOME')
-    monkeypatch.setenv('HOME', 'test2')
-
-    assert get_xdg_cache_home() == 'test2/.cache'
-
-    # Nothing is set
-    monkeypatch.delenv('HOME')
-
-    with pytest.raises(AmbigiousFileSystem):
-        get_xdg_cache_home()
