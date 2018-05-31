@@ -1,6 +1,10 @@
 import functools
 import logging
-from logging import Logger
+from logging import (
+    Logger,
+    Formatter,
+    StreamHandler
+)
 from logging.handlers import (
     QueueListener,
     QueueHandler,
@@ -9,10 +13,12 @@ from logging.handlers import (
 from multiprocessing import Queue
 import os
 import sys
+from typing import (
+    Tuple,
+    Callable
+)
 
 from cytoolz import dissoc
-
-from typing import Tuple, Callable
 
 from trinity.config import (
     ChainConfig,
@@ -22,39 +28,49 @@ LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
 
 
-def setup_trinity_logging(
-        chain_config: ChainConfig,
-        level: int) -> Tuple[Logger, Queue, QueueListener]:
-    from .mp import ctx
-
-    log_queue = ctx.Queue()
-
+def setup_trinity_stdout_logging(level: int) -> Tuple[Logger, Formatter, StreamHandler]:
     logger = logging.getLogger('trinity')
     logger.setLevel(logging.DEBUG)
 
     handler_stream = logging.StreamHandler(sys.stdout)
-    handler_file = RotatingFileHandler(
-        str(chain_config.logfile_path),
-        maxBytes=(10000000 * LOG_MAX_MB),
-        backupCount=LOG_BACKUP_COUNT
-    )
-
     handler_stream.setLevel(level)
-    handler_file.setLevel(logging.DEBUG)
 
     # TODO: allow configuring `detailed` logging
     formatter = logging.Formatter(
         fmt='%(levelname)8s  %(asctime)s  %(module)10s  %(message)s',
         datefmt='%m-%d %H:%M:%S'
     )
+
     handler_stream.setFormatter(formatter)
-    handler_file.setFormatter(formatter)
 
     logger.addHandler(handler_stream)
-    logger.addHandler(handler_file)
 
-    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
     logger.debug('Logging initialized: PID=%s', os.getpid())
+
+    return logger, formatter, handler_stream
+
+
+def setup_trinity_file_and_queue_logging(
+        logger: Logger,
+        formatter: Formatter,
+        handler_stream: StreamHandler,
+        chain_config: ChainConfig,
+        level: int) -> Tuple[Logger, Queue, QueueListener]:
+    from .mp import ctx
+
+    log_queue = ctx.Queue()
+
+    handler_file = RotatingFileHandler(
+        str(chain_config.logfile_path),
+        maxBytes=(10000000 * LOG_MAX_MB),
+        backupCount=LOG_BACKUP_COUNT
+    )
+
+    handler_file.setLevel(logging.DEBUG)
+    handler_file.setFormatter(formatter)
+
+    logger.addHandler(handler_file)
+    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
 
     listener = QueueListener(
         log_queue,

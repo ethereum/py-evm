@@ -34,10 +34,10 @@ def get_local_data_dir(chain_name: str) -> Path:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
-    return Path(os.environ.get(
-        'TRINITY_DATA_DIR',
-        os.path.join(get_xdg_trinity_root(), chain_name),
-    ))
+    try:
+        return Path(os.environ['TRINITY_DATA_DIR'])
+    except KeyError:
+        return Path(os.path.join(get_xdg_trinity_root(), chain_name))
 
 
 def get_data_dir_for_network_id(network_id: int) -> Path:

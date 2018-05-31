@@ -15,6 +15,10 @@ from evm.db.backends.level import LevelDB
 
 from p2p.service import BaseService
 
+from trinity.exceptions import (
+    AmbigiousFileSystem,
+    MissingPath,
+)
 from trinity.chains import (
     initialize_data_dir,
     is_data_dir_initialized,
@@ -34,7 +38,8 @@ from trinity.utils.ipc import (
     kill_process_gracefully,
 )
 from trinity.utils.logging import (
-    setup_trinity_logging,
+    setup_trinity_stdout_logging,
+    setup_trinity_file_and_queue_logging,
     with_queued_logging,
 )
 from trinity.utils.mp import (
@@ -58,6 +63,19 @@ TRINITY_HEADER = (
     "                       /____/   "
 )
 
+TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
+    "Could not initialize data directory\n\n"
+    "   One of these conditions must be met:\n"
+    "   * HOME environment variable set\n"
+    "   * XDG_TRINITY_ROOT environment variable set\n"
+    "   * TRINITY_DATA_DIR environment variable set\n"
+    "   * --data-dir command line argument is passed\n"
+    "\n"
+    "   In case the data directory is outside of the trinity root directory\n"
+    "   Make sure all paths are pre-initialized as Trinity won't attempt\n"
+    "   to create directories outside of the trinity root directory\n"
+)
+
 
 def main() -> None:
     args = parser.parse_args()
@@ -70,15 +88,39 @@ def main() -> None:
             "networks are supported.".format(args.network_id)
         )
 
-    chain_config = ChainConfig.from_parser_args(args)
+    logger, formatter, handler_stream = setup_trinity_stdout_logging(log_level)
+
+    try:
+        chain_config = ChainConfig.from_parser_args(args)
+    except AmbigiousFileSystem:
+        exit_because_ambigious_filesystem(logger)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
         # parameters.  Need to flesh out how genesis parameters for custom
         # chains are defined and passed around.
-        initialize_data_dir(chain_config)
+        try:
+            initialize_data_dir(chain_config)
+        except AmbigiousFileSystem:
+            exit_because_ambigious_filesystem(logger)
+        except MissingPath as e:
+            msg = (
+                "\n"
+                "It appears that {} does not exist.\n"
+                "Trinity does not attempt to create directories outside of its root path\n"
+                "Either manually create the path or ensure you are using a data directory\n"
+                "inside the XDG_TRINITY_ROOT path"
+            ).format(e.path)
+            logger.error(msg)
+            sys.exit(1)
 
-    logger, log_queue, listener = setup_trinity_logging(chain_config, log_level)
+    logger, log_queue, listener = setup_trinity_file_and_queue_logging(
+        logger,
+        formatter,
+        handler_stream,
+        chain_config,
+        log_level
+    )
 
     # if console command, run the trinity CLI
     if args.subcommand == 'attach':
@@ -134,6 +176,11 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
     base_db = db_class(db_path=chain_config.database_dir)
 
     serve_chaindb(chain_config, base_db)
+
+
+def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
+    logger.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
+    sys.exit(1)
 
 
 async def exit_on_signal(service_to_exit: BaseService) -> None:

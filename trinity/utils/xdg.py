@@ -2,35 +2,51 @@ import os
 
 from pathlib import Path
 
+from trinity.exceptions import (
+    AmbigiousFileSystem
+)
+
 from .filesystem import (
     is_under_path,
 )
 
 
-XDG_CACHE_HOME = os.environ.get(
-    'XDG_CACHE_HOME',
-    os.path.expandvars(os.path.join('$HOME', '.cache'))
-)
+def get_home():
+    try:
+        return os.environ['HOME']
+    except KeyError:
+        raise AmbigiousFileSystem('$HOME environment variable not set')
 
-XDG_CONFIG_HOME = os.environ.get(
-    'XDG_CONFIG_HOME',
-    os.path.expandvars(os.path.join('$HOME', '.config')),
-)
 
-XDG_DATA_HOME = os.environ.get(
-    'XDG_DATA_HOME',
-    os.path.expandvars(os.path.join('$HOME', '.local', 'share')),
-)
+def get_xdg_cache_home():
+    try:
+        return os.environ['XDG_CACHE_HOME']
+    except KeyError:
+        return os.path.join(get_home(), '.cache')
+
+
+def get_xdg_config_home():
+    try:
+        return os.environ['XDG_CONFIG_HOME']
+    except KeyError:
+        return os.path.join(get_home(), '.config')
+
+
+def get_xdg_data_home():
+    try:
+        return os.environ['XDG_DATA_HOME']
+    except KeyError:
+        return os.path.join(get_home(), '.local', 'share')
 
 
 def get_xdg_trinity_root() -> str:
     """
     Returns the base directory under which trinity will store all data.
     """
-    return os.environ.get(
-        'XDG_TRINITY_ROOT',
-        os.path.join(XDG_DATA_HOME, 'trinity'),
-    )
+    try:
+        return os.environ['XDG_TRINITY_ROOT']
+    except KeyError:
+        return os.path.join(get_xdg_data_home(), 'trinity')
 
 
 def is_under_xdg_trinity_root(path: Path) -> bool:

@@ -21,6 +21,9 @@ from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
+from trinity.exceptions import (
+    MissingPath,
+)
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import ChainDBProxy
@@ -82,29 +85,31 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
-    if is_under_xdg_trinity_root(chain_config.data_dir):
+    if not chain_config.data_dir.exists() and is_under_xdg_trinity_root(chain_config.data_dir):
         chain_config.data_dir.mkdir(parents=True, exist_ok=True)
-    elif not os.path.exists(chain_config.data_dir):
+    elif not chain_config.data_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
-        raise ValueError(
+        raise MissingPath(
             "The base chain directory provided does not exist: `{0}`".format(
                 chain_config.data_dir,
-            )
+            ),
+            chain_config.data_dir
         )
 
     # Logfile
-    if is_under_xdg_trinity_root(chain_config.logfile_path):
+    if (not chain_config.logfile_path.exists() and
+            is_under_xdg_trinity_root(chain_config.logfile_path)):
+
         chain_config.logfile_path.parent.mkdir(parents=True, exist_ok=True)
-    elif not os.path.exists(chain_config.data_dir):
+        chain_config.logfile_path.touch()
+    elif not chain_config.logfile_path.exists():
         # we don't lazily create the base dir for non-default base directories.
-        raise ValueError(
+        raise MissingPath(
             "The base logging directory provided does not exist: `{0}`".format(
                 chain_config.logfile_path,
-            )
+            ),
+            chain_config.logfile_path
         )
-
-    if not chain_config.logfile_path.exists():
-        chain_config.logfile_path.touch()
 
     # Chain data-dir
     os.makedirs(chain_config.database_dir, exist_ok=True)
