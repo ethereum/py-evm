@@ -92,7 +92,7 @@ def main() -> None:
     try:
         chain_config = ChainConfig.from_parser_args(args)
     except AmbigiousFileSystem:
-            exit_because_ambigious_filesystem(logger)
+        exit_because_ambigious_filesystem(logger)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis

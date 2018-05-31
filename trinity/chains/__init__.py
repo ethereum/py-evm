@@ -85,11 +85,9 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
-    if (not os.path.exists(chain_config.data_dir) and
-            is_under_xdg_trinity_root(chain_config.data_dir)):
-
+    if not chain_config.data_dir.exists() and is_under_xdg_trinity_root(chain_config.data_dir):
         chain_config.data_dir.mkdir(parents=True, exist_ok=True)
-    elif not os.path.exists(chain_config.data_dir):
+    elif not chain_config.data_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
         raise AmbigiousFileSystem(
             "The base chain directory provided does not exist: `{0}`".format(
@@ -98,12 +96,10 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         )
 
     # Logfile
-    if (not os.path.exists(chain_config.logfile_path) and
-            is_under_xdg_trinity_root(chain_config.logfile_path)):
-
+    if not chain_config.logfile_path.exists() and is_under_xdg_trinity_root(chain_config.logfile_path):
         chain_config.logfile_path.parent.mkdir(parents=True, exist_ok=True)
         chain_config.logfile_path.touch()
-    elif not os.path.exists(chain_config.logfile_path):
+    elif not chain_config.logfile_path.exists():
         # we don't lazily create the base dir for non-default base directories.
         raise AmbigiousFileSystem(
             "The base logging directory provided does not exist: `{0}`".format(
