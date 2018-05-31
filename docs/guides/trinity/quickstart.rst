@@ -197,3 +197,19 @@ For a list of JSON-RPC endpoints which are expected to work, see this issue: htt
   - It is expected to have bugs and is not meant to be used in production
   - Things may be ridiculously slow or not work at all
   - Only a subset of JSON-RPC API calls are currently supported
+
+
+Release Notes
+~~~~~~~~~~~~~
+
+
+0.1.0-alpha.6
+-------------
+
+- Respond to ``GetBlockHeaders`` message during fast sync to prevent being disconnected as a *useless peer*.
+- Add ``--profile`` CLI flag to Trinity to enable profiling via ``cProfile``
+- Better error messaging with Trinity cannot determine the appropriate location for the data directory.
+- Handle ``ListDeserializationError`` during handshake.
+- Add ``net_version`` JSON-RPC endpoint.
+- Add ``web3_clientVersion`` JSON-RPC endpoint.
+- Handle ``rlp.DecodingError`` during handshake.
