@@ -40,6 +40,9 @@ from trinity.utils.logging import (
 from trinity.utils.mp import (
     ctx,
 )
+from trinity.utils.profiling import (
+    setup_cprofiler,
+)
 from trinity.utils.version import (
     construct_trinity_client_identifier,
 )
@@ -89,9 +92,10 @@ def main() -> None:
     # the local logger.
     listener.start()
 
-    logging_kwargs = {
+    extra_kwargs = {
         'log_queue': log_queue,
         'log_level': log_level,
+        'profile': args.profile,
     }
 
     # First initialize the database process.
@@ -101,13 +105,13 @@ def main() -> None:
             chain_config,
             LevelDB,
         ),
-        kwargs=logging_kwargs,
+        kwargs=extra_kwargs,
     )
 
     networking_process = ctx.Process(
         target=launch_node,
         args=(chain_config, ),
-        kwargs=logging_kwargs,
+        kwargs=extra_kwargs,
     )
 
     # start the processes
@@ -129,6 +133,7 @@ def main() -> None:
         logger.info('KILLED database_server_process')
 
 
+@setup_cprofiler('run_database_process')
 @with_queued_logging
 def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
     base_db = db_class(db_path=chain_config.database_dir)
@@ -150,6 +155,7 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
         loop.stop()
 
 
+@setup_cprofiler('launch_node')
 @with_queued_logging
 def launch_node(chain_config: ChainConfig) -> None:
     display_launch_logs(chain_config)
