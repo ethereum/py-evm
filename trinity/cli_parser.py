@@ -51,6 +51,7 @@ logging_parser = parser.add_argument_group('logging')
 network_parser = parser.add_argument_group('network')
 syncing_parser = parser.add_argument_group('sync mode')
 chain_parser = parser.add_argument_group('chain')
+debug_parser = parser.add_argument_group('debug')
 
 
 #
@@ -156,6 +157,18 @@ chain_parser.add_argument(
     help=(
         "The filesystem path to the file which contains the nodekey"
     )
+)
+
+
+#
+# Debug configuration
+#
+debug_parser.add_argument(
+    '--profile',
+    action='store_true',
+    help=(
+        "Enables profiling via cProfile."
+    ),
 )
 
 
