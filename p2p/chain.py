@@ -218,10 +218,29 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # TODO: Process headers for consistency.
             try:
                 head_number = await self._process_headers(peer, headers)
+            except HeaderNotFound:
+                # This is comes from when we attempt to compute the difficulty
+                # of a header whos parent is not in our database.
+                if start_at == 0:
+                    self.logger.warn("No common ancestry found from %s, aborting sync", peer)
+                    break
+                start_at = max(0, start_at - eth.MAX_HEADERS_FETCH)
+                if start_at < head.block_number - 10000:
+                    self.logger.warn(
+                        "No common ancestor found with %s within 10,000 blocks, "
+                        "aborting sync",
+                        peer,
+                    )
+                    break
+                self.logger.info(
+                    "Missing ancestor header.  Trying earlier header at #%s", start_at
+                )
+                continue
             except NoEligiblePeers:
                 self.logger.info("No peers have the blocks we want, aborting sync")
                 break
-            start_at = head_number + 1
+            else:
+                start_at = head_number + 1
 
     async def _calculate_td(self, headers: List[BlockHeader]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
