@@ -16,7 +16,8 @@ from evm.db.backends.level import LevelDB
 from p2p.service import BaseService
 
 from trinity.exceptions import (
-    AmbigiousFileSystem
+    AmbigiousFileSystem,
+    MissingPath,
 )
 from trinity.chains import (
     initialize_data_dir,
@@ -102,6 +103,17 @@ def main() -> None:
             initialize_data_dir(chain_config)
         except AmbigiousFileSystem:
             exit_because_ambigious_filesystem(logger)
+        except MissingPath as e:
+            msg = (
+                "\n"
+                "It appears that {} does not exist.\n"
+                "Trinity does not attempt to create directories outside of its root path\n"
+                "Either manually create the path or ensure you are using a data directory\n"
+                "inside the XDG_TRINITY_ROOT path"
+                ).format(e.path)
+            logger.error(msg)
+            sys.exit(1)
+
 
     logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         logger,

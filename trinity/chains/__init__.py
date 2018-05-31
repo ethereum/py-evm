@@ -22,7 +22,8 @@ from evm.exceptions import CanonicalHeadNotFound
 from p2p import ecies
 
 from trinity.exceptions import (
-    AmbigiousFileSystem
+    AmbigiousFileSystem,
+    MissingPath,
 )
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
@@ -89,10 +90,11 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         chain_config.data_dir.mkdir(parents=True, exist_ok=True)
     elif not chain_config.data_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
-        raise AmbigiousFileSystem(
+        raise MissingPath(
             "The base chain directory provided does not exist: `{0}`".format(
                 chain_config.data_dir,
-            )
+            ),
+            chain_config.data_dir
         )
 
     # Logfile
@@ -101,10 +103,11 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         chain_config.logfile_path.touch()
     elif not chain_config.logfile_path.exists():
         # we don't lazily create the base dir for non-default base directories.
-        raise AmbigiousFileSystem(
+        raise MissingPath(
             "The base logging directory provided does not exist: `{0}`".format(
                 chain_config.logfile_path,
-            )
+            ),
+            chain_config.logfile_path
         )
 
     # Chain data-dir
