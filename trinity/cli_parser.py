@@ -163,7 +163,7 @@ chain_parser.add_argument(
 #
 # Debug configuration
 #
-chain_parser.add_argument(
+debug_parser.add_argument(
     '--profile',
     action='store_true',
     help=(
