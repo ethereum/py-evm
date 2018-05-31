@@ -415,9 +415,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.GetBlockHeaders):
+            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         else:
-            # FIXME: Should log, but using a lower level otherwise there's too much noise.
-            # self.logger.debug("Ignoring %s msg during fast sync", cmd)
+            self.logger.debug("Ignoring %s message from %s: msg %r", cmd, peer, msg)
             pass
 
     def _handle_block_headers(self, headers: List[BlockHeader]) -> None:
@@ -467,6 +468,14 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
         self._downloaded_bodies.put_nowait((peer, downloaded))
+
+    async def _handle_get_block_headers(self,
+                                        peer: ETHPeer,
+                                        header_request: Dict[str, Any]) -> None:
+        self.logger.debug("Peer %s made header request: %s", peer, header_request)
+        # TODO: We should *try* to return the requested headers as they *may*
+        # have already been synced into our chain database.
+        peer.sub_proto.send_block_headers([])
 
 
 class RegularChainSyncer(FastChainSyncer):
