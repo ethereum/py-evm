@@ -36,13 +36,19 @@ class Command:
     decode_strict = True
     structure: List[Tuple[str, Any]] = []
 
+    _logger: logging.Logger = None
+
     def __init__(self, cmd_id_offset: int) -> None:
         self.cmd_id_offset = cmd_id_offset
         self.cmd_id = cmd_id_offset + self._cmd_id
 
     @property
     def logger(self):
-        return logging.getLogger("p2p.protocol.{0}".format(self.__class__.__name__))
+        if self._logger is None:
+            self._logger = logging.getLogger(
+                "p2p.protocol.{0}".format(self.__class__.__name__)
+            )
+        return self._logger
 
     @property
     def is_base_protocol(self) -> bool:
