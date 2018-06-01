@@ -106,7 +106,8 @@ def _test():
     else:
         discovery = None
         peer_pool = HardCodedNodesPeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery, min_peers=5)
+            ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery,
+        )
     asyncio.ensure_future(peer_pool.run())
 
     loop = asyncio.get_event_loop()

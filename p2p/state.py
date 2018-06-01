@@ -257,7 +257,7 @@ def _test():
     chaindb = FakeAsyncChainDB(db)
     discovery = None
     peer_pool = HardCodedNodesPeerPool(
-        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), discovery, min_peers=5)
+        ETHPeer, chaindb, RopstenChain.network_id, ecies.generate_privkey(), discovery)
     asyncio.ensure_future(peer_pool.run())
 
     head = chaindb.get_canonical_head()

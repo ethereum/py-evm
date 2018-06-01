@@ -642,14 +642,12 @@ def _test() -> None:
     else:
         from p2p.peer import HardCodedNodesPeerPool
         discovery = None
-        min_peers = 5
         peer_pool = HardCodedNodesPeerPool(
             peer_class=ETHPeer,
             headerdb=headerdb,
             network_id=RopstenChain.network_id,
             privkey=privkey,
             discovery=discovery,
-            min_peers=min_peers,
         )
 
     asyncio.ensure_future(peer_pool.run())
