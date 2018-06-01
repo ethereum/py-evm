@@ -25,6 +25,7 @@ from integration_test_helpers import FakeAsyncChainDB
 from peer_helpers import (
     get_directly_linked_peers,
     get_fresh_mainnet_headerdb,
+    MockPeerPoolWithConnectedPeers,
 )
 
 
@@ -121,7 +122,7 @@ async def test_header_sync_with_multi_peers(request, event_loop, headerdb_mainne
         client_headerdb=light_chain.headerdb,
         server_headerdb=server2_headerdb)
 
-    light_chain.register_peer(client2)
+    light_chain.peer_pool.add_peer(client2)
     await wait_for_head(light_chain.headerdb, new_head)
     assert_canonical_chains_are_equal(light_chain.headerdb, server2.headerdb, new_head.block_number)
 
@@ -225,7 +226,10 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
     request is added to the LightPeerChain's queue every time a new Announce message is received.
     """
     headerdb = get_fresh_mainnet_headerdb()
-    light_chain = MainnetLightPeerChain(headerdb, MockPeerPool())
+    client, server = await get_client_and_server_peer_pair(
+        request, event_loop, headerdb, server_peer_headerdb)
+
+    light_chain = MainnetLightPeerChain(headerdb, MockPeerPoolWithConnectedPeers([client]))
     asyncio.ensure_future(light_chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 
@@ -233,29 +237,7 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
         event_loop.run_until_complete(light_chain.cancel())
 
     request.addfinalizer(finalizer)
-
-    client, server = await get_client_and_server_peer_pair(
-        request, event_loop, headerdb, server_peer_headerdb)
-    light_chain.register_peer(client)
     return light_chain, client, server
-
-
-class MockPeerPool:
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def subscribe(self, subscriber):
-        pass
-
-    def unsubscribe(self, subscriber):
-        pass
-
-    async def run(self):
-        pass
-
-    async def cancel(self):
-        pass
 
 
 def assert_canonical_chains_are_equal(headerdb1, headerdb2, block_number=None):

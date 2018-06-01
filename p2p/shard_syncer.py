@@ -1,4 +1,3 @@
-import asyncio
 from collections import (
     defaultdict,
 )
@@ -39,6 +38,7 @@ from evm.exceptions import (
 
 from p2p.cancel_token import (
     CancelToken,
+    wait_with_token,
 )
 from p2p.service import BaseService
 from p2p.peer import (
@@ -60,9 +60,6 @@ from p2p.sharding_protocol import (
 from p2p.utils import (
     gen_request_id,
 )
-from p2p.exceptions import (
-    OperationCancelled,
-)
 
 from cytoolz import (
     excepts,
@@ -80,15 +77,10 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
 
         self.shard = shard
         self.peer_pool = peer_pool
-        self._running_peers: Set[ShardingPeer] = set()
 
         self.collation_hashes_at_peer: Dict[ShardingPeer, Set[Hash32]] = defaultdict(set)
 
         self.start_time = time.time()
-
-    async def _run(self) -> None:
-        with self.subscribe(self.peer_pool):
-            await self.cancel_token.wait()
 
     async def _cleanup(self) -> None:
         pass
@@ -118,42 +110,20 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     # Peer handling
     #
     def register_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(self.handle_peer(cast(ShardingPeer, peer)))
+        pass
 
-    async def handle_peer(self, peer: ShardingPeer) -> None:
-        """Handle the lifecycle of the given peer."""
-        self._running_peers.add(peer)
-        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
-        # self.finished is set.
-        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
-        try:
-            await asyncio.wait(
-                [self._handle_peer(peer, peer_token), self.finished.wait()],
-                return_when=asyncio.FIRST_COMPLETED)
-        finally:
-            peer_token.trigger()
-            self._running_peers.remove(peer)
+    async def _run(self) -> None:
+        with self.subscribe(self.peer_pool):
+            while True:
+                peer, cmd, msg = await wait_with_token(
+                    self.msg_queue.get(), token=self.cancel_token)
 
-    async def _handle_peer(self, peer: ShardingPeer, token: CancelToken) -> None:
-        while not self.is_finished:
-            try:
-                cmd, msg = await peer.read_sub_proto_msg(token)
-            except OperationCancelled:
-                # Either our cancel token or the peer's has been triggered, so break out of the
-                # loop.
-                break
-
-            pending_msgs = peer.sub_proto_msg_queue.qsize()
-            if pending_msgs:
-                self.logger.debug(
-                    "Read %s msg from %s's queue; %d msgs pending", cmd, peer, pending_msgs)
-
-            if isinstance(cmd, GetCollations):
-                await self._handle_get_collations(peer, msg)
-            elif isinstance(cmd, Collations):
-                await self._handle_collations(peer, msg)
-            elif isinstance(cmd, NewCollationHashes):
-                await self._handle_new_collation_hashes(peer, msg)
+                if isinstance(cmd, GetCollations):
+                    await self._handle_get_collations(peer, msg)
+                elif isinstance(cmd, Collations):
+                    await self._handle_collations(peer, msg)
+                elif isinstance(cmd, NewCollationHashes):
+                    await self._handle_new_collation_hashes(peer, msg)
 
     async def _handle_get_collations(self, peer, msg):
         """Respond with all requested collations that we know about."""

@@ -6,7 +6,6 @@ from typing import (
     cast,
     Dict,
     List,
-    Set,
     Tuple,
     TYPE_CHECKING,
 )
@@ -40,14 +39,9 @@ from p2p.exceptions import (
     LESAnnouncementProcessingError,
     OperationCancelled,
     TooManyTimeouts,
-    UnexpectedMessage,
 )
 from p2p import les
 from p2p import protocol
-from p2p.cancel_token import (
-    CancelToken,
-    wait_with_token,
-)
 from p2p.constants import REPLY_TIMEOUT
 from p2p.peer import (
     BasePeer,
@@ -77,64 +71,15 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         self.peer_pool = peer_pool
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
         self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
-        self._running_peers: Set[LESPeer] = set()
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
 
     def register_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(self.handle_peer(cast(LESPeer, peer)))
-
-    async def handle_peer(self, peer: LESPeer) -> None:
-        """Handle the lifecycle of the given peer.
-
-        Returns when the peer is finished or when the LightPeerChain is asked to stop.
-        """
-        self._running_peers.add(peer)
-        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
-        # self.finished is set.
-        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
-        try:
-            await asyncio.wait(
-                [self._handle_peer(peer, peer_token), self.finished.wait()],
-                return_when=asyncio.FIRST_COMPLETED)
-        finally:
-            peer_token.trigger()
-            self._running_peers.remove(peer)
-
-    async def _handle_peer(self, peer: LESPeer, cancel_token: CancelToken) -> None:
+        peer = cast(LESPeer, peer)
         self._announcement_queue.put_nowait((peer, peer.head_info))
-        while not self.is_finished:
-            try:
-                cmd, msg = await peer.read_sub_proto_msg(cancel_token)
-            except OperationCancelled:
-                # Either the peer disconnected or our cancel_token has been triggered, so break
-                # out of the loop to stop attempting to sync with this peer.
-                break
-
-            if isinstance(cmd, les.Announce):
-                peer.head_info = cmd.as_head_info(msg)
-                self._announcement_queue.put_nowait((peer, peer.head_info))
-            elif isinstance(msg, dict):
-                request_id = msg.get('request_id')
-                # request_id can be None here because not all LES messages include one. For
-                # instance, the Announce msg doesn't.
-                if request_id is not None and request_id in self._pending_replies:
-                    # This is a reply we're waiting for, so we consume it by passing it to the
-                    # registered callback.
-                    callback = self._pending_replies.pop(request_id)
-                    callback(msg)
-            else:
-                raise UnexpectedMessage("Unexpected msg from {}: {}".format(peer, msg))
-
-        await self.drop_peer(peer)
-        self.logger.debug("%s finished", peer)
 
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
         await peer.cancel()
-
-    async def wait_until_finished(self):
-        peer_cleanups = [peer.cleaned_up.wait() for peer in self._running_peers]
-        await asyncio.gather(*peer_cleanups)
 
     async def get_best_peer(self) -> LESPeer:
         """
@@ -165,7 +110,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         Raises OperationCancelled when LightPeerChain.stop() has been called.
         """
         # Wait for either a new announcement or our cancel_token to be triggered.
-        return await wait_with_token(self._announcement_queue.get(), token=self.cancel_token)
+        return await self.wait_first(self._announcement_queue.get())
 
     async def _run(self) -> None:
         """Run the LightPeerChain, ensuring headers are in sync with connected peers.
@@ -174,28 +119,48 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         """
         self.logger.info("Running LightPeerChain...")
         with self.subscribe(self.peer_pool):
+            asyncio.ensure_future(self._process_announcements())
             while True:
-                try:
-                    peer, head_info = await self.wait_for_announcement()
-                except OperationCancelled:
-                    self.logger.debug("Asked to stop, breaking out of run() loop")
-                    break
+                peer, cmd, msg = await self.wait_first(self.msg_queue.get())
 
-                try:
-                    await self.process_announcement(peer, head_info)
-                    self._last_processed_announcements[peer] = head_info
-                except OperationCancelled:
-                    self.logger.debug("Asked to stop, breaking out of run() loop")
-                    break
-                except unclean_close_exceptions:
-                    self.logger.exception("Unclean exit from LightPeerChain")
-                    break
-                except LESAnnouncementProcessingError as e:
-                    self.logger.warning(repr(e))
-                    await self.drop_peer(peer)
-                except Exception as e:
-                    self.logger.exception("Unexpected error when processing announcement")
-                    await self.drop_peer(peer)
+                if isinstance(cmd, les.Announce):
+                    peer.head_info = cmd.as_head_info(msg)
+                    self._announcement_queue.put_nowait((peer, peer.head_info))
+                elif isinstance(msg, dict):
+                    request_id = msg.get('request_id')
+                    # request_id can be None here because not all LES messages include one. For
+                    # instance, the Announce msg doesn't.
+                    if request_id is not None and request_id in self._pending_replies:
+                        # This is a reply we're waiting for, so we consume it by passing it to the
+                        # registered callback.
+                        callback = self._pending_replies.pop(request_id)
+                        callback(msg)
+                else:
+                    self.logger.warn("Unexpected msg from %s: %s (%s)", peer, cmd, msg)
+
+    async def _process_announcements(self) -> None:
+        while self.is_running:
+            try:
+                peer, head_info = await self.wait_for_announcement()
+            except OperationCancelled:
+                self.logger.debug("Asked to stop, breaking out of run() loop")
+                break
+
+            try:
+                await self.process_announcement(peer, head_info)
+                self._last_processed_announcements[peer] = head_info
+            except OperationCancelled:
+                self.logger.debug("Asked to stop, breaking out of run() loop")
+                break
+            except unclean_close_exceptions:
+                self.logger.exception("Unclean exit from LightPeerChain")
+                break
+            except LESAnnouncementProcessingError as e:
+                self.logger.warning(repr(e))
+                await self.drop_peer(peer)
+            except Exception as e:
+                self.logger.exception("Unexpected error when processing announcement")
+                await self.drop_peer(peer)
 
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
         for i in range(self.max_consecutive_timeouts):
@@ -263,8 +228,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
-        await self.wait_until_finished()
-        self.logger.debug("LightPeerChain finished")
 
     async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
         reply = None
@@ -276,7 +239,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             got_reply.set()
 
         self._pending_replies[request_id] = callback
-        await wait_with_token(got_reply.wait(), token=self.cancel_token, timeout=self.reply_timeout)
+        await self.wait_first(got_reply.wait(), timeout=self.reply_timeout)
         return reply
 
     @alru_cache(maxsize=1024, cache_exceptions=False)

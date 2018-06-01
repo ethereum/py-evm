@@ -9,7 +9,6 @@ from typing import (
     cast,
     Dict,
     List,
-    Set,
 )
 
 from cytoolz.itertoolz import partition_all
@@ -34,7 +33,7 @@ from evm.rlp.accounts import Account
 
 from p2p import eth
 from p2p import protocol
-from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
@@ -58,7 +57,6 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.peer_pool = peer_pool
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
-        self._running_peers: Set[ETHPeer] = set()
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
         # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
         # asyncio's event loop.
@@ -70,7 +68,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self._executor = ProcessPoolExecutor(cpu_count)
 
     def register_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
+        pass
 
     @property
     def idle_peers(self) -> List[ETHPeer]:
@@ -80,30 +78,14 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
     async def get_idle_peer(self) -> ETHPeer:
         while not self.idle_peers:
             self.logger.debug("Waiting for an idle peer...")
-            await wait_with_token(asyncio.sleep(0.02), token=self.cancel_token)
+            await self.wait_first(asyncio.sleep(0.02))
         return secrets.choice(self.idle_peers)
 
-    async def handle_peer(self, peer: ETHPeer) -> None:
-        """Handle the lifecycle of the given peer."""
-        self._running_peers.add(peer)
-        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
-        # self.finished is set.
-        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
-        try:
-            await asyncio.wait(
-                [self._handle_peer(peer, peer_token), self.finished.wait()],
-                return_when=asyncio.FIRST_COMPLETED)
-        finally:
-            peer_token.trigger()
-            self._running_peers.remove(peer)
-
-    async def _handle_peer(self, peer: ETHPeer, token: CancelToken) -> None:
-        while not self.is_finished:
+    async def _handle_msg_loop(self) -> None:
+        while self.is_running:
             try:
-                cmd, msg = await peer.read_sub_proto_msg(token)
+                peer, cmd, msg = await self.wait_first(self.msg_queue.get())
             except OperationCancelled:
-                # Either our cancel token or the peer's has been triggered, so break out of the
-                # loop.
                 break
 
             # Run self._handle_msg() with ensure_future() instead of awaiting for it so that we
@@ -138,15 +120,9 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
 
     async def _cleanup(self):
-        start_at = time.time()
-        # Wait at most 1 second for pending peers to finish.
-        self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
-        while time.time() < start_at + 1:
-            if not self._running_peers:
-                break
-            await asyncio.sleep(0.1)
-        else:
-            self.logger.info("Waited too long for peers to finish, exiting anyway")
+        # We don't need to cancel() anything, but we yield control just so that the coroutines we
+        # run in the background notice the cancel token has been triggered and return.
+        await asyncio.sleep(0)
 
     async def request_nodes(self, node_keys: List[bytes]) -> None:
         batches = list(partition_all(eth.MAX_STATE_FETCH, node_keys))
@@ -160,7 +136,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             self._peers_with_pending_requests[peer] = now
 
     async def _periodically_retry_timedout(self):
-        while not self.is_finished:
+        while self.is_running:
             now = time.time()
             # First, update our list of peers with pending requests by removing those for which a
             # request timed out. This loop mutates the dict, so we iterate on a copy of it.
@@ -188,10 +164,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             now = time.time()
             sleep_duration = (oldest_request_time + self._reply_timeout) - now
             try:
-                await wait_with_token(
-                    asyncio.sleep(sleep_duration),
-                    self.finished.wait(),
-                    token=self.cancel_token)
+                await self.wait_first(asyncio.sleep(sleep_duration))
             except OperationCancelled:
                 break
 
@@ -202,6 +175,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         """
         self._start_time = time.time()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
+        asyncio.ensure_future(self._handle_msg_loop())
         asyncio.ensure_future(self._periodically_report_progress())
         asyncio.ensure_future(self._periodically_retry_timedout())
         with self.subscribe(self.peer_pool):
@@ -209,7 +183,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                 # This ensures we yield control and give _handle_msg() a chance to process any nodes
                 # we may have received already, also ensuring we exit when our cancel token is
                 # triggered.
-                await wait_with_token(asyncio.sleep(0), token=self.cancel_token)
+                await self.wait_first(asyncio.sleep(0))
 
                 requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
                 if not requests:
@@ -218,7 +192,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                     # pending nodes take a while to arrive thus causing the scheduler to run out
                     # of new requests for a while.
                     self.logger.info("Scheduler queue is empty, sleeping a bit")
-                    await wait_with_token(asyncio.sleep(0.5), token=self.cancel_token)
+                    await self.wait_first(asyncio.sleep(0.5))
                     continue
 
                 await self.request_nodes([request.node_key for request in requests])
@@ -226,7 +200,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
     async def _periodically_report_progress(self):
-        while not self.is_finished:
+        while self.is_running:
             now = time.time()
             self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
@@ -239,10 +213,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                 "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
             self.logger.info("Total nodes timed out: %d", self._total_timeouts)
             try:
-                await wait_with_token(
-                    asyncio.sleep(self._report_interval),
-                    self.finished.wait(),
-                    token=self.cancel_token)
+                await self.wait_first(asyncio.sleep(self._report_interval))
             except OperationCancelled:
                 break
 

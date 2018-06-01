@@ -11,7 +11,6 @@ from typing import (
     Dict,
     List,
     NamedTuple,
-    Set,
     Tuple,
     Union,
     cast,
@@ -38,7 +37,7 @@ from evm.rlp.transactions import BaseTransaction
 
 from p2p import protocol
 from p2p import eth
-from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.cancel_token import CancelToken
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
@@ -67,7 +66,6 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self._running_peers: Set[ETHPeer] = set()
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[ETHPeer] = asyncio.Queue()
@@ -86,39 +84,17 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self._executor = ProcessPoolExecutor(cpu_count)
 
     def register_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(self.handle_peer(cast(ETHPeer, peer)))
         highest_td_peer = max(
             [cast(ETHPeer, peer) for peer in self.peer_pool.peers],
             key=operator.attrgetter('head_td'))
         self._sync_requests.put_nowait(highest_td_peer)
 
-    async def handle_peer(self, peer: ETHPeer) -> None:
-        """Handle the lifecycle of the given peer."""
-        self._running_peers.add(peer)
-        # Use a local token that we'll trigger to cleanly cancel the _handle_peer() sub-tasks when
-        # self.finished is set.
-        peer_token = self.cancel_token.chain(CancelToken("HandlePeer"))
-        try:
-            await asyncio.wait(
-                [self._handle_peer(peer, peer_token), self.finished.wait()],
-                return_when=asyncio.FIRST_COMPLETED)
-        finally:
-            peer_token.trigger()
-            self._running_peers.remove(peer)
-
-    async def _handle_peer(self, peer: ETHPeer, token: CancelToken) -> None:
-        while not self.is_finished:
+    async def _handle_msg_loop(self) -> None:
+        while self.is_running:
             try:
-                cmd, msg = await peer.read_sub_proto_msg(token)
+                peer, cmd, msg = await self.wait_first(self.msg_queue.get())
             except OperationCancelled:
-                # Either our cancel token or the peer's has been triggered, so break out of the
-                # loop.
                 break
-
-            pending_msgs = peer.sub_proto_msg_queue.qsize()
-            if pending_msgs:
-                self.logger.debug(
-                    "Read %s msg from %s's queue; %d msgs pending", cmd, peer, pending_msgs)
 
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
             # loop can keep processing msgs, and that's why we use ensure_future() instead of
@@ -143,11 +119,11 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     async def _run(self) -> None:
+        asyncio.ensure_future(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
             while True:
-                peer_or_finished = await wait_with_token(
-                    self._sync_requests.get(), self._sync_complete.wait(),
-                    token=self.cancel_token)
+                peer_or_finished = await self.wait_first(
+                    self._sync_requests.get(), self._sync_complete.wait())
 
                 # In the case of a fast sync, we return once the sync is completed, and our caller
                 # must then run the StateDownloader.
@@ -163,17 +139,17 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug(
                 "Got a NewBlock or a new peer, but already syncing so doing nothing")
             return
-        elif len(self._running_peers) < self.min_peers_to_sync:
+        elif len(self.peer_pool.peers) < self.min_peers_to_sync:
             self.logger.info(
                 "Connected to less peers (%d) than the minimum (%d) required to sync, "
-                "doing nothing", len(self._running_peers), self.min_peers_to_sync)
+                "doing nothing", len(self.peer_pool.peers), self.min_peers_to_sync)
             return
 
         self._syncing = True
         try:
             await self._sync(peer)
-        except OperationCancelled:
-            pass
+        except OperationCancelled as e:
+            self.logger.info("Sync with %s aborted: %s", peer, e)
         except unclean_close_exceptions:
             self.logger.exception("Unclean exit while syncing")
         finally:
@@ -193,28 +169,25 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # find the common ancestor between our chain and the peer's.
         start_at = max(0, head.block_number - eth.MAX_HEADERS_FETCH)
         while not self._sync_complete.is_set():
-            if peer.is_finished:
+            if not peer.is_running:
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
             self.logger.debug("Fetching chain segment starting at #%d", start_at)
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
-                headers = await wait_with_token(
-                    self._new_headers.get(), peer.finished.wait(),
-                    token=self.cancel_token,
+                # Pass the peer's token to self.wait_first() because we want to abort if either we
+                # or the peer terminates.
+                headers = await self.wait_first(
+                    self._new_headers.get(),
+                    token=peer.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.cancel()
                 break
 
-            if peer.is_finished:
-                self.logger.info("%s disconnected, aborting sync", peer)
-                break
-
             self.logger.debug("Got headers segment starting at #%d", start_at)
-
             # TODO: Process headers for consistency.
             try:
                 head_number = await self._process_headers(peer, headers)
@@ -318,9 +291,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 pending_replies = request_func(target_td, missing)
 
             try:
-                peer, received = await wait_with_token(
+                peer, received = await self.wait_first(
                     download_queue.get(),
-                    token=self.cancel_token,
                     timeout=self._reply_timeout)
             except TimeoutError:
                 pending_replies = request_func(target_td, missing)
@@ -390,20 +362,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         """
         return self._request_block_parts(target_td, headers, self._send_get_receipts)
 
-    async def wait_until_finished(self) -> None:
-        self.logger.info("Shutting down FastChainSyncer")
-        start_at = time.time()
-        # Wait at most 1 second for pending peers to finish.
-        self.logger.info("Waiting for %d running peers to finish", len(self._running_peers))
-        while time.time() < start_at + 1:
-            if not self._running_peers:
-                break
-            await asyncio.sleep(0.1)
-        else:
-            self.logger.info("Waited too long for peers to finish, exiting anyway")
-
     async def _cleanup(self) -> None:
-        await self.wait_until_finished()
+        # We don't need to cancel() anything, but we yield control just so that the coroutines we
+        # run in the background notice the cancel token has been triggered and return.
+        await asyncio.sleep(0)
 
     async def _handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -444,9 +406,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.debug("Got Receipts for %d blocks from %s", len(receipts_by_block), peer)
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, receipts_by_block)
-        receipts_tries = await wait_with_token(
-            loop.run_in_executor(self._executor, list, iterator),
-            token=self.cancel_token)
+        # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
+        # the executor when the list() is applied to it.
+        receipts_tries = await self.wait_first(loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
         for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
@@ -459,9 +421,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
-        transactions_tries = await wait_with_token(
-            loop.run_in_executor(self._executor, list, iterator),
-            token=self.cancel_token)
+        # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
+        # the executor when the list() is applied to it.
+        transactions_tries = await self.wait_first(
+            loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
             await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
@@ -602,12 +565,10 @@ class RegularChainSyncer(FastChainSyncer):
 
             block = block_class(header, transactions, uncles)
             t = time.time()
-            # FIXME: Instead of using wait_with_token() here we should pass our cancel_token to
+            # FIXME: Instead of using self.wait_first() here we should pass our cancel_token to
             # coro_import_block() so that it can cancel the actual import-block task. See
             # https://github.com/ethereum/py-evm/issues/665 for details.
-            await wait_with_token(
-                self.chain.coro_import_block(block, perform_validation=True),
-                token=self.cancel_token)
+            await self.wait_first(self.chain.coro_import_block(block, perform_validation=True))
             self.logger.info("Imported block %d (%d txs) in %f seconds",
                              block.number, len(transactions), time.time() - t)
 
@@ -705,8 +666,8 @@ def _test() -> None:
 
     async def exit_on_sigint():
         await sigint_received.wait()
-        await syncer.cancel()
         await peer_pool.cancel()
+        await syncer.cancel()
         loop.stop()
 
     loop.set_debug(True)

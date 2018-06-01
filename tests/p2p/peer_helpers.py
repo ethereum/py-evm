@@ -145,3 +145,16 @@ class MockPeerPoolWithConnectedPeers(PeerPool):
 
     async def _run(self) -> None:
         raise NotImplementedError("This is a mock PeerPool implementation, you must not _run() it")
+
+
+class MockPeerPoolSubscriber:
+
+    def __init__(self):
+        self._msg_queue = asyncio.Queue()
+
+    @property
+    def msg_queue(self) -> 'asyncio.Queue[Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]]':  # noqa: E501
+        return self._msg_queue
+
+    def register_peer(self, peer: BasePeer) -> None:
+        pass
