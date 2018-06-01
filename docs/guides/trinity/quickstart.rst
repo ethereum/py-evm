@@ -203,6 +203,12 @@ Release Notes
 ~~~~~~~~~~~~~
 
 
+0.1.0-alpha.10
+--------------
+
+- More bugfixes to enforce ``--max-peers`` in ``PeerPool._connect_to_nodes``
+
+
 0.1.0-alpha.9
 -------------
 
