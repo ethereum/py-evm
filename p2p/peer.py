@@ -726,6 +726,11 @@ class PeerPool(BaseService):
             # as discussed in
             # https://github.com/ethereum/py-evm/pull/139#discussion_r152067425
             peer = await self.connect(node)
+            if self.is_full:
+                self.logger.debug("Peer pool is full: disconnecting from %s", peer)
+                peer.disconnect(DisconnectReason.other)
+                break
+
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
                 self.start_peer(peer)
