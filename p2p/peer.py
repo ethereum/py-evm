@@ -731,7 +731,7 @@ class PeerPool(BaseService):
                 continue
             elif self.is_full:
                 self.logger.debug("Peer pool is full: disconnecting from %s", peer)
-                peer.disconnect(DisconnectReason.other)
+                peer.disconnect(DisconnectReason.too_many_peers)
                 break
             else:
                 self.logger.info("Successfully connected to %s", peer)
@@ -860,7 +860,14 @@ class PreferredNodePeerPool(PeerPool):
                  max_peers: int = DEFAULT_MAX_PEERS,
                  preferred_nodes: Sequence[Node] = None,
                  ) -> None:
-        super().__init__(peer_class, headerdb, network_id, privkey, discovery)
+        super().__init__(
+            peer_class,
+            headerdb,
+            network_id,
+            privkey,
+            discovery,
+            max_peers=max_peers,
+        )
 
         if preferred_nodes is not None:
             self.preferred_nodes = preferred_nodes
