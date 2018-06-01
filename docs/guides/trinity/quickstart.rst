@@ -203,7 +203,7 @@ Release Notes
 ~~~~~~~~~~~~~
 
 
-0.1.0-alpha.8
+0.1.0-alpha.9
 -------------
 
 - Bugfix to enforce ``--max-peers`` for incoming connections.
