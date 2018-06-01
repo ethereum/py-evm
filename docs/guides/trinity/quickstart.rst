@@ -203,6 +203,12 @@ Release Notes
 ~~~~~~~~~~~~~
 
 
+0.1.0-alpha.11
+--------------
+
+- Bugfix for ``PreferredNodePeerPool`` to respect ``max_peers``
+
+
 0.1.0-alpha.10
 --------------
 
