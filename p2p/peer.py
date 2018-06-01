@@ -13,7 +13,6 @@ from abc import (
 
 from typing import (
     Any,
-    Callable,
     Dict,
     Generator,
     Iterator,
@@ -47,17 +46,10 @@ from eth_keys import (
     keys,
 )
 
-from eth_hash.auto import keccak
-
-from trie import HexaryTrie
-
 from evm.chains.mainnet import MAINNET_NETWORK_ID
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.exceptions import BlockNotFound
-from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
 
 from p2p import auth
 from p2p import ecies
@@ -67,7 +59,6 @@ from p2p import protocol
 from p2p.exceptions import (
     BadAckMessage,
     DecryptionError,
-    EmptyGetBlockHeadersReply,
     HandshakeFailure,
     MalformedMessage,
     NoEligibleNodes,
@@ -80,10 +71,8 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.cancel_token import CancelToken, wait_with_token
-from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
-    gen_request_id,
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
@@ -105,7 +94,6 @@ from .constants import (
     DEFAULT_MIN_PEERS,
     HEADER_LEN,
     MAC_LEN,
-    REPLY_TIMEOUT,
 )
 
 if TYPE_CHECKING:
@@ -151,7 +139,6 @@ async def handshake(remote: Node,
 class BasePeer(BaseService):
     logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
-    reply_timeout = REPLY_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
     _supported_sub_protocols: List[Type[protocol.Protocol]] = []
@@ -481,10 +468,6 @@ class LESPeer(BasePeer):
     sub_proto: les.LESProtocol = None
     head_info: les.HeadInfo = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
-
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)
 
@@ -508,104 +491,6 @@ class LESPeer(BasePeer):
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
         self.head_info = cmd.as_head_info(msg)
-
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(msg, dict):
-            request_id = msg.get('request_id')
-            if request_id is not None and request_id in self._pending_replies:
-                # This is a reply we're waiting for, so we consume it by passing it to the
-                # registered callback.
-                callback = self._pending_replies.pop(request_id)
-                callback(msg)
-                return
-        super().handle_sub_proto_msg(cmd, msg)
-
-    async def _wait_for_reply(self, request_id: int, cancel_token: CancelToken) -> Dict[str, Any]:
-        reply = None
-        got_reply = asyncio.Event()
-
-        def callback(r):
-            nonlocal reply
-            reply = r
-            got_reply.set()
-
-        self._pending_replies[request_id] = callback
-        combined_token = self.cancel_token.chain(cancel_token)
-        await wait_with_token(got_reply.wait(), token=combined_token, timeout=self.reply_timeout)
-        return reply
-
-    async def get_block_header_by_hash(
-            self, block_hash: bytes, cancel_token: CancelToken) -> BlockHeader:
-        request_id = gen_request_id()
-        max_headers = 1
-        self.sub_proto.send_get_block_headers(block_hash, max_headers, request_id)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['headers']:
-            raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
-        return reply['headers'][0]
-
-    async def get_block_by_hash(
-            self, block_hash: bytes, cancel_token: CancelToken) -> BlockBody:
-        request_id = gen_request_id()
-        self.sub_proto.send_get_block_bodies([block_hash], request_id)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['bodies']:
-            raise BlockNotFound("Peer {} has no block with hash {}".format(self, block_hash))
-        return reply['bodies'][0]
-
-    async def get_receipts(self, block_hash: bytes, cancel_token: CancelToken) -> List[Receipt]:
-        request_id = gen_request_id()
-        self.sub_proto.send_get_receipts(block_hash, request_id)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['receipts']:
-            raise BlockNotFound("No block with hash {} found".format(block_hash))
-        return reply['receipts'][0]
-
-    async def get_account(
-            self, block_hash: bytes, address: bytes, cancel_token: CancelToken) -> Account:
-        key = keccak(address)
-        proof = await self._get_proof(cancel_token, block_hash, account_key=b'', key=key)
-        header = await self.get_block_header_by_hash(block_hash, cancel_token)
-        rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
-        return rlp.decode(rlp_account, sedes=Account)
-
-    async def _get_proof(self,
-                         cancel_token: CancelToken,
-                         block_hash: bytes,
-                         account_key: bytes,
-                         key: bytes,
-                         from_level: int = 0) -> List[bytes]:
-        request_id = gen_request_id()
-        self.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        return reply['proof']
-
-    async def get_contract_code(
-            self, block_hash: bytes, key: bytes, cancel_token: CancelToken) -> bytes:
-        request_id = gen_request_id()
-        self.sub_proto.send_get_contract_code(block_hash, key, request_id)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['codes']:
-            return b''
-        return reply['codes'][0]
-
-    async def fetch_headers_starting_at(
-            self, start_block: int, cancel_token: CancelToken) -> List[BlockHeader]:
-        """Fetches up to self.max_headers_fetch starting at start_block.
-
-        Returns a list containing those headers in ascending order of block number.
-        """
-        request_id = gen_request_id()
-        self.sub_proto.send_get_block_headers(
-            start_block, self.max_headers_fetch, request_id, reverse=False)
-        reply = await self._wait_for_reply(request_id, cancel_token)
-        if not reply['headers']:
-            raise EmptyGetBlockHeadersReply(
-                "No headers in reply. start_block=={}".format(start_block))
-        self.logger.debug(
-            "fetched headers from %s to %s", reply['headers'][0].block_number,
-            reply['headers'][-1].block_number)
-        return reply['headers']
 
 
 class ETHPeer(BasePeer):

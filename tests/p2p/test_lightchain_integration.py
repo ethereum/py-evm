@@ -12,7 +12,6 @@ from eth_hash.auto import keccak
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
-from evm.vm.forks.frontier.blocks import FrontierBlock
 
 from p2p import ecies
 from p2p.lightchain import LightPeerChain
@@ -42,13 +41,12 @@ async def test_lightchain_integration(request, event_loop):
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
-    base_db = MemoryDB()
     headerdb = FakeAsyncHeaderDB(MemoryDB())
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     peer_pool = LocalGethPeerPool(
         LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(),
     )
-    chain = IntegrationTestLightPeerChain(base_db, peer_pool)
+    chain = IntegrationTestLightPeerChain(headerdb, peer_pool)
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(chain.run())
@@ -56,7 +54,7 @@ async def test_lightchain_integration(request, event_loop):
 
     def finalizer():
         event_loop.run_until_complete(peer_pool.cancel())
-        event_loop.run_until_complete(chain.stop())
+        event_loop.run_until_complete(chain.cancel())
 
     request.addfinalizer(finalizer)
 
@@ -69,23 +67,19 @@ async def test_lightchain_integration(request, event_loop):
     await asyncio.wait_for(wait_for_header_sync(n), 2)
 
     # https://ropsten.etherscan.io/block/11
-    b = await chain.get_canonical_block_by_number(n)
-    assert isinstance(b, FrontierBlock)
-    assert b.number == 11
-    assert encode_hex(b.hash) == (
-        '0xda882aeff30f59eda9da2b3ace3023366ab9d4219b5a83cdd589347baae8678e')
-    assert len(b.transactions) == 15
-    assert isinstance(b.transactions[0], b.transaction_class)
+    header = headerdb.get_canonical_block_header_by_number(n)
+    body = await chain.get_block_body_by_hash(header.hash)
+    assert len(body['transactions']) == 15
 
-    receipts = await chain.get_receipts(b.hash)
+    receipts = await chain.get_receipts(header.hash)
     assert len(receipts) == 15
     assert encode_hex(keccak(rlp.encode(receipts[0]))) == (
         '0xf709ed2c57efc18a1675e8c740f3294c9e2cb36ba7bb3b89d3ab4c8fef9d8860')
 
     assert len(chain.peer_pool.peers) == 1
     head_info = chain.peer_pool.peers[0].head_info
-    head = await chain.get_block_by_hash(head_info.block_hash)
-    assert head.number == head_info.block_number
+    head = await chain.get_block_header_by_hash(head_info.block_hash)
+    assert head.block_number == head_info.block_number
 
     # In order to answer queries for contract code, geth needs the state trie entry for the block
     # we specify in the query, but because of fast sync we can only assume it has that for recent

@@ -19,7 +19,7 @@ def roundup_16(x):
     return x
 
 
-def gen_request_id():
+def gen_request_id() -> int:
     return big_endian_to_int(os.urandom(8))
 
 
