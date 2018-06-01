@@ -203,6 +203,14 @@ Release Notes
 ~~~~~~~~~~~~~
 
 
+0.1.0-alpha.7
+-------------
+
+- Remove ``min_peers`` concept from ``PeerPool``
+- Add ``--max-peers`` and enforcement of maximum peer connections maintained by
+  the ``PeerPool``.
+
+
 0.1.0-alpha.6
 -------------
 
