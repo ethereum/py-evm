@@ -580,6 +580,10 @@ class PeerPool(BaseService):
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
 
+    @property
+    def is_full(self) -> bool:
+        return len(self.connected_nodes) >= self.max_peers
+
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         yield from self.discovery.get_random_nodes(self.max_peers)
 
@@ -653,14 +657,6 @@ class PeerPool(BaseService):
                 remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
                 self.cancel_token)
 
-            """
-            There is max_peers defined from CLI.
-            We drop the subscriber if it's already maxed out.
-            """
-            if len(self.connected_nodes) >= self.max_peers:
-                peer.disconnect(DisconnectReason.too_many_peers)
-                return None
-
             return peer
         except OperationCancelled:
             # Pass it on to instruct our main loop to stop.
@@ -701,11 +697,12 @@ class PeerPool(BaseService):
     async def maybe_connect_to_more_peers(self) -> None:
         """Connect to more peers if we're not yet maxed out to max_peers"""
         num_connected_nodes = len(self.connected_nodes)
-        if num_connected_nodes >= self.max_peers:
+        if self.is_full:
             self.logger.debug(
                 "Already connected to %s peers: %s; sleeping",
                 num_connected_nodes,
-                [remote for remote in self.connected_nodes])
+                [remote for remote in self.connected_nodes],
+            )
             return
 
         asyncio.ensure_future(self.maybe_lookup_random_node())
