@@ -91,7 +91,6 @@ from p2p.p2p_proto import (
 
 from .constants import (
     CONN_IDLE_TIMEOUT,
-    DEFAULT_MIN_PEERS,
     DEFAULT_MAX_PEERS,
     HEADER_LEN,
     MAC_LEN,
@@ -553,7 +552,9 @@ class PeerPoolSubscriber(ABC):
 
 
 class PeerPool(BaseService):
-    """PeerPool attempts to keep connections to at least min_peers on the given network."""
+    """
+    PeerPool maintains connections to up-to max_peers on a given network.
+    """
     logger = logging.getLogger("p2p.peer.PeerPool")
     _connect_loop_sleep = 2
     _report_interval = 60
@@ -567,7 +568,6 @@ class PeerPool(BaseService):
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
-                 min_peers: int = DEFAULT_MIN_PEERS,
                  max_peers: int = DEFAULT_MAX_PEERS
                  ) -> None:
         super().__init__()
@@ -576,13 +576,12 @@ class PeerPool(BaseService):
         self.network_id = network_id
         self.privkey = privkey
         self.discovery = discovery
-        self.min_peers = min_peers
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
-        yield from self.discovery.get_random_nodes(self.min_peers)
+        yield from self.discovery.get_random_nodes(self.max_peers)
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
         if self._subscribers:
@@ -733,7 +732,7 @@ class PeerPool(BaseService):
             if peer is not None:
                 self.logger.info("Successfully connected to %s", peer)
                 self.start_peer(peer)
-                if len(self.connected_nodes) >= self.min_peers:
+                if len(self.connected_nodes) >= self.max_peers:
                     return
 
     def _peer_finished(self, peer: BaseService) -> None:
@@ -856,11 +855,10 @@ class PreferredNodePeerPool(PeerPool):
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  discovery: DiscoveryProtocol,
-                 min_peers: int = DEFAULT_MIN_PEERS,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  preferred_nodes: Sequence[Node] = None,
                  ) -> None:
-        super().__init__(peer_class, headerdb, network_id, privkey, discovery, min_peers)
+        super().__init__(peer_class, headerdb, network_id, privkey, discovery)
 
         if preferred_nodes is not None:
             self.preferred_nodes = preferred_nodes
@@ -906,14 +904,14 @@ class PreferredNodePeerPool(PeerPool):
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         """
-        Return up to `min_peers` nodes, preferring nodes from the preferred list.
+        Return up to `max_peers` nodes, preferring nodes from the preferred list.
         """
-        preferred_nodes = self._get_eligible_preferred_nodes()[:self.min_peers]
+        preferred_nodes = self._get_eligible_preferred_nodes()[:self.max_peers]
         for node in preferred_nodes:
             self._preferred_node_tracker[node] = time.time()
             yield node
 
-        num_nodes_needed = max(0, self.min_peers - len(preferred_nodes))
+        num_nodes_needed = max(0, self.max_peers - len(preferred_nodes))
         yield from self.discovery.get_random_nodes(num_nodes_needed)
 
 

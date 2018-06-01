@@ -56,9 +56,5 @@ ROPSTEN_BOOTNODES = (
     # 'enode://94c15d1b9e2fe7ce56e458b9a3b672ef11894ddedd0c6f247e0f1d3487f52b66208fb4aeb8179fce6e3a749ea93ed147c37976d67af557508d199d9594c35f09@192.81.208.223:30303',  # noqa: E501
 )
 
-# Default configuration
-# Minimum peers number, we'll try to keep open connections to at least this number of peers
-DEFAULT_MIN_PEERS = 5
-
 # Maximum peers number, we'll try to keep open connections up to this number of peers
 DEFAULT_MAX_PEERS = 25

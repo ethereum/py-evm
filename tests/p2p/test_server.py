@@ -58,7 +58,6 @@ def get_server(privkey, address, peer_class):
         headerdb,
         base_db,
         network_id=1,
-        min_peers=1,
         peer_class=peer_class,
     )
     return server
