@@ -46,6 +46,9 @@ from p2p.kademlia import (
     Address,
     Node,
 )
+from p2p.p2p_proto import (
+    DisconnectReason,
+)
 from p2p.peer import (
     BasePeer,
     ETHPeer,
@@ -66,6 +69,8 @@ class Server(BaseService):
     _tcp_listener = None
     _udp_listener = None
     _nat_portmap_lifetime = 30 * 60
+
+    peer_pool: PeerPool = None
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -251,6 +256,7 @@ class Server(BaseService):
             self.port,
         )
         self.logger.info('network: %s', self.network_id)
+        self.logger.info('peers: max_peers=%s', self.max_peers)
         addr = Address(external_ip, self.port, self.port)
         self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
         await self._start_udp_listener(self.discovery)
@@ -348,7 +354,10 @@ class Server(BaseService):
             inbound=True,
         )
 
-        await self.do_handshake(peer)
+        if self.peer_pool.is_full:
+            peer.disconnect(DisconnectReason.too_many_peers)
+        else:
+            await self.do_handshake(peer)
 
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake(),

@@ -54,6 +54,7 @@ class LightNode(Node):
             self._port,
         )
         self.logger.info('network: %s', self.network_id)
+        self.logger.info('peers: max_peers=%s', self._peer_pool.max_peers)
         transport, _ = await asyncio.get_event_loop().create_datagram_endpoint(
             lambda: self._discovery,
             local_addr=('0.0.0.0', self._port)

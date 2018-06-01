@@ -44,6 +44,10 @@ INITIATOR_ADDRESS = Address('127.0.0.1', get_open_port() + 1)
 INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
+class MockPeerPool:
+    is_full = False
+
+
 def get_server(privkey, address, peer_class):
     base_db = MemoryDB()
     headerdb = HeaderDB(base_db)
@@ -91,6 +95,9 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
 
     # Only test the authentication in this test.
     monkeypatch.setattr(server, 'do_handshake', mock_do_handshake)
+    # We need this to ensure the server can check if the peer pool is full for
+    # incoming connections.
+    monkeypatch.setattr(server, 'peer_pool', MockPeerPool())
 
     # Send auth init message to the server.
     reader, writer = await asyncio.wait_for(
@@ -119,6 +126,9 @@ async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_d
         started_peers.append(peer)
 
     monkeypatch.setattr(receiver_server_with_dumb_peer, '_start_peer', mock_start_peer)
+    # We need this to ensure the server can check if the peer pool is full for
+    # incoming connections.
+    monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
 
     network_id = 1
     discovery = None
