@@ -92,7 +92,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
             try:
-                peer, cmd, msg = await self.wait_first(self.msg_queue.get())
+                peer, cmd, msg = await self.wait(self.msg_queue.get())
             except OperationCancelled:
                 break
 
@@ -156,8 +156,8 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self._syncing = False
 
     async def _sync(self, peer: ETHPeer) -> None:
-        head = await self.chaindb.coro_get_canonical_head()
-        head_td = await self.chaindb.coro_get_score(head.hash)
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
+        head_td = await self.wait(self.chaindb.coro_get_score(head.hash))
         if peer.head_td <= head_td:
             self.logger.info(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
@@ -176,9 +176,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug("Fetching chain segment starting at #%d", start_at)
             peer.sub_proto.send_get_block_headers(start_at, eth.MAX_HEADERS_FETCH, reverse=False)
             try:
-                # Pass the peer's token to self.wait_first() because we want to abort if either we
+                # Pass the peer's token to self.wait() because we want to abort if either we
                 # or the peer terminates.
-                headers = await self.wait_first(
+                headers = await self.wait(
                     self._new_headers.get(),
                     token=peer.cancel_token,
                     timeout=self._reply_timeout)
@@ -207,7 +207,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         if headers[0].parent_hash == GENESIS_PARENT_HASH:
             td = 0
         else:
-            td = await self.chaindb.coro_get_score(headers[0].parent_hash)
+            td = await self.wait(self.chaindb.coro_get_score(headers[0].parent_hash))
         for header in headers:
             td += header.difficulty
         return td
@@ -241,9 +241,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # FIXME: Get the bodies returned by self._download_block_parts above and use persit_block
         # here.
         for header in headers:
-            await self.chaindb.coro_persist_header(header)
+            await self.wait(self.chaindb.coro_persist_header(header))
 
-        head = await self.chaindb.coro_get_canonical_head()
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
         self.logger.info(
             "Imported %d headers in %0.2f seconds, new head: #%d (%s)",
             len(headers),
@@ -256,7 +256,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # order to see if the sync is completed. Instead we just check that we have the peer's
         # head_hash in our chain.
         try:
-            await self.chaindb.coro_get_block_header_by_hash(peer.head_hash)
+            await self.wait(self.chaindb.coro_get_block_header_by_hash(peer.head_hash))
         except HeaderNotFound:
             pass
         else:
@@ -291,7 +291,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
                 pending_replies = request_func(target_td, missing)
 
             try:
-                peer, received = await self.wait_first(
+                peer, received = await self.wait(
                     download_queue.get(),
                     timeout=self._reply_timeout)
             except TimeoutError:
@@ -408,10 +408,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         iterator = map(make_trie_root_and_nodes, receipts_by_block)
         # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
         # the executor when the list() is applied to it.
-        receipts_tries = await self.wait_first(loop.run_in_executor(self._executor, list, iterator))
+        receipts_tries = await self.wait(loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
         for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):
-            await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
+            await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
             downloaded.append(DownloadedBlockPart(receipts, receipt_root))
         self._downloaded_receipts.put_nowait((peer, downloaded))
 
@@ -423,12 +423,12 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
         # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
         # the executor when the list() is applied to it.
-        transactions_tries = await self.wait_first(
+        transactions_tries = await self.wait(
             loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
-            await self.chaindb.coro_persist_trie_data_dict(trie_dict_data)
-            uncles_hash = await self.chaindb.coro_persist_uncles(body.uncles)
+            await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
+            uncles_hash = await self.wait(self.chaindb.coro_persist_uncles(body.uncles))
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
         self._downloaded_bodies.put_nowait((peer, downloaded))
 
@@ -465,20 +465,21 @@ class RegularChainSyncer(FastChainSyncer):
         elif isinstance(cmd, eth.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockHeaders):
-            self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockBodies):
-            self._handle_get_block_bodies(peer, cast(List[Hash32], msg))
+            await self._handle_get_block_bodies(peer, cast(List[Hash32], msg))
         elif isinstance(cmd, eth.GetReceipts):
-            self._handle_get_receipts(peer, cast(List[Hash32], msg))
+            await self._handle_get_receipts(peer, cast(List[Hash32], msg))
         elif isinstance(cmd, eth.GetNodeData):
             self._handle_get_node_data(peer, cast(List[Hash32], msg))
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
-    def _handle_get_block_headers(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
+    async def _handle_get_block_headers(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
         block_number_or_hash = msg['block_number_or_hash']
         if isinstance(block_number_or_hash, bytes):
-            header = self.chaindb.get_block_header_by_hash(cast(Hash32, block_number_or_hash))
+            header = await self.wait(
+                self.chaindb.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
             block_number = header.block_number
         elif isinstance(block_number_or_hash, int):
             block_number = block_number_or_hash
@@ -489,37 +490,41 @@ class RegularChainSyncer(FastChainSyncer):
         if msg['reverse']:
             block_numbers = list(reversed(range(max(0, block_number - limit), block_number + 1)))
         else:
-            head_number = self.chaindb.get_canonical_head().block_number
+            head = await self.wait(self.chaindb.coro_get_canonical_head())
+            head_number = head.block_number
             block_numbers = list(range(block_number, min(head_number + 1, block_number + limit)))
         headers = [
-            self.chaindb.get_canonical_block_header_by_number(cast(BlockNumber, i))
+            await self.wait(
+                self.chaindb.coro_get_canonical_block_header_by_number(cast(BlockNumber, i)))
             for i in block_numbers
         ]
         peer.sub_proto.send_block_headers(headers)
 
-    def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+    async def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         bodies = []
         # Only serve up to eth.MAX_BODIES_FETCH items in every request.
         hashes = msg[:eth.MAX_BODIES_FETCH]
         for block_hash in hashes:
-            header = self.chaindb.get_block_header_by_hash(block_hash)
-            transactions = self.chaindb.get_block_transactions(header, P2PTransaction)
-            uncles = self.chaindb.get_block_uncles(header.uncles_hash)
+            header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            transactions = await self.wait(
+                self.chaindb.coro_get_block_transactions(header, P2PTransaction))
+            uncles = await self.wait(self.chaindb.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
         peer.sub_proto.send_block_bodies(bodies)
 
-    def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+    async def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         receipts = []
         # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
         hashes = msg[:eth.MAX_RECEIPTS_FETCH]
         for block_hash in hashes:
-            header = self.chaindb.get_block_header_by_hash(block_hash)
-            receipts.append(self.chaindb.get_receipts(header, Receipt))
+            header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            receipts.append(await self.wait(self.chaindb.coro_get_receipts(header, Receipt)))
         peer.sub_proto.send_receipts(receipts)
 
     def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         nodes = []
         for node_hash in msg:
+            # FIXME: Need to use an async API here as well? chaindb.coro_get()?
             node = self.chaindb.db[node_hash]
             nodes.append(node)
         peer.sub_proto.send_node_data(nodes)
@@ -529,13 +534,13 @@ class RegularChainSyncer(FastChainSyncer):
         # current head, as that's the only one whose state root is present in our DB.
         for header in headers.copy():
             try:
-                await self.chaindb.coro_get_block_header_by_hash(header.hash)
+                await self.wait(self.chaindb.coro_get_block_header_by_hash(header.hash))
             except HeaderNotFound:
                 break
             else:
                 headers.remove(header)
         else:
-            head = await self.chaindb.coro_get_canonical_head()
+            head = await self.wait(self.chaindb.coro_get_canonical_head())
             return head.block_number
 
         target_td = await self._calculate_td(headers)
@@ -565,14 +570,14 @@ class RegularChainSyncer(FastChainSyncer):
 
             block = block_class(header, transactions, uncles)
             t = time.time()
-            # FIXME: Instead of using self.wait_first() here we should pass our cancel_token to
+            # FIXME: Instead of using self.wait() here we should pass our cancel_token to
             # coro_import_block() so that it can cancel the actual import-block task. See
             # https://github.com/ethereum/py-evm/issues/665 for details.
-            await self.wait_first(self.chain.coro_import_block(block, perform_validation=True))
+            await self.wait(self.chain.coro_import_block(block, perform_validation=True))
             self.logger.info("Imported block %d (%d txs) in %f seconds",
                              block.number, len(transactions), time.time() - t)
 
-        head = await self.chaindb.coro_get_canonical_head()
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
         return head.block_number
 
