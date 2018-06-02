@@ -1,7 +1,5 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import logging
-import os
 import secrets
 import time
 from typing import (
@@ -37,6 +35,7 @@ from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
+from p2p.utils import get_process_pool_executor
 
 
 class StateDownloader(BaseService, PeerPoolSubscriber):
@@ -58,14 +57,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
-        # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
-        # asyncio's event loop.
-        if os.cpu_count() is None:
-            # Need this because os.cpu_count() returns None when the # of CPUs is indeterminable.
-            cpu_count = 1
-        else:
-            cpu_count = os.cpu_count() - 1
-        self._executor = ProcessPoolExecutor(cpu_count)
+        self._executor = get_process_pool_executor()
 
     def register_peer(self, peer: BasePeer) -> None:
         pass
