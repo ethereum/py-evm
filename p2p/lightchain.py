@@ -53,7 +53,7 @@ from p2p.rlp import BlockBody
 from p2p.service import (
     BaseService,
 )
-from p2p.utils import gen_request_id, unclean_close_exceptions
+from p2p.utils import gen_request_id
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
@@ -151,9 +151,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 self._last_processed_announcements[peer] = head_info
             except OperationCancelled:
                 self.logger.debug("Asked to stop, breaking out of run() loop")
-                break
-            except unclean_close_exceptions:
-                self.logger.exception("Unclean exit from LightPeerChain")
                 break
             except LESAnnouncementProcessingError as e:
                 self.logger.warning(repr(e))

@@ -57,7 +57,6 @@ from p2p.peer import (
 )
 from p2p.service import BaseService
 from p2p.sync import FullNodeSyncer
-from p2p.utils import unclean_close_exceptions
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
@@ -284,8 +283,6 @@ class Server(BaseService):
             await self._receive_handshake(reader, writer)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake: %s", e)
-        except unclean_close_exceptions:
-            self.logger.exception("Unclean exit while receiving handshake")
         except OperationCancelled:
             pass
         except Exception as e:

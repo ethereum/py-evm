@@ -158,9 +158,11 @@ def main() -> None:
 
     # start the processes
     database_server_process.start()
+    logger.info("Started DB server process (pid=%d)", database_server_process.pid)
     wait_for_ipc(chain_config.database_ipc_path)
 
     networking_process.start()
+    logger.info("Started networking process (pid=%d)", networking_process.pid)
 
     try:
         if args.subcommand == 'console':
@@ -168,11 +170,21 @@ def main() -> None:
         else:
             networking_process.join()
     except KeyboardInterrupt:
+        # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
+        # foreground *process group*, so both our networking and database processes will terminate
+        # at the same time and not sequentially as we'd like. That shouldn't be a problem but if
+        # we keep getting unhandled BrokenPipeErrors/ConnectionResetErrors like reported in
+        # https://github.com/ethereum/py-evm/issues/827, we might want to change the networking
+        # process' signal handler to wait until the DB process has terminated before doing its
+        # thing.
+        # Notice that we still need the kill_process_gracefully() calls here, for when the user
+        # simply uses 'kill' to send a signal to the main process, but also because they will
+        # perform a non-gracefull shutdown if the process takes too long to terminate.
         logger.info('Keyboard Interrupt: Stopping')
-        kill_process_gracefully(networking_process)
-        logger.info('KILLED networking_process')
-        kill_process_gracefully(database_server_process)
-        logger.info('KILLED database_server_process')
+        kill_process_gracefully(database_server_process, logger)
+        logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
+        kill_process_gracefully(networking_process, logger)
+        logger.info('Networking process (pid=%d) terminated', networking_process.pid)
 
 
 @setup_cprofiler('run_database_process')

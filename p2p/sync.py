@@ -11,7 +11,6 @@ from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
 from p2p.service import BaseService
 from p2p.state import StateDownloader
-from p2p.utils import unclean_close_exceptions
 
 
 # How old (in seconds) must our local head be to cause us to start with a fast-sync before we
@@ -40,12 +39,6 @@ class FullNodeSyncer(BaseService):
         self.peer_pool = peer_pool
 
     async def _run(self) -> None:
-        try:
-            await self._sync()
-        except unclean_close_exceptions:
-            self.logger.exception("Unclean exit from FullNodeSyncer")
-
-    async def _sync(self) -> None:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.

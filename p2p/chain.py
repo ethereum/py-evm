@@ -42,7 +42,6 @@ from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
-from p2p.utils import unclean_close_exceptions
 
 
 class FastChainSyncer(BaseService, PeerPoolSubscriber):
@@ -110,11 +109,6 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
             # there it will be handled.
             pass
-        except unclean_close_exceptions:
-            # FIXME: These exceptions come from AsyncChain[DB] methods; instead of catching them
-            # here we should do so in our coro_* wrappers, and have them re-raise something
-            # meaningful. Or something like that.
-            self.logger.exception("Unclean exit while handling message from %s", peer)
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
@@ -150,8 +144,6 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             await self._sync(peer)
         except OperationCancelled as e:
             self.logger.info("Sync with %s aborted: %s", peer, e)
-        except unclean_close_exceptions:
-            self.logger.exception("Unclean exit while syncing")
         finally:
             self._syncing = False
 
