@@ -633,6 +633,10 @@ class AsyncChainDB(ChainDB):
     async def coro_get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError()
 
+    async def coro_get_canonical_block_header_by_number(
+            self, block_number: BlockNumber) -> BlockHeader:
+        raise NotImplementedError()
+
     async def coro_header_exists(self, block_hash: Hash32) -> bool:
         raise NotImplementedError()
 
@@ -646,4 +650,17 @@ class AsyncChainDB(ChainDB):
         raise NotImplementedError()
 
     async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
+        raise NotImplementedError()
+
+    async def coro_get_block_transactions(
+            self,
+            header: BlockHeader,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+        raise NotImplementedError()
+
+    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
+        raise NotImplementedError()
+
+    async def coro_get_receipts(
+            self, header: BlockHeader, receipt_class: Type[Receipt]) -> Iterable[Receipt]:
         raise NotImplementedError()

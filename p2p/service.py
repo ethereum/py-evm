@@ -60,6 +60,8 @@ class BaseService(ABC):
         """
         if self.is_running:
             raise RuntimeError("Cannot start the service while it's already running")
+        elif self.cancel_token.triggered:
+            raise RuntimeError("Cannot restart a service that has already been cancelled")
 
         try:
             async with self._run_lock:
@@ -89,6 +91,8 @@ class BaseService(ABC):
         """Trigger the CancelToken and wait for the cleaned_up event to be set."""
         if not self.is_running:
             raise RuntimeError("Cannot cancel a service that has not been started")
+        elif self.cancel_token.triggered:
+            self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
 
         self.logger.debug("Cancelling %s", self)
         self.cancel_token.trigger()

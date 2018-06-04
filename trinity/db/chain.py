@@ -16,9 +16,13 @@ class ChainDBProxy(BaseProxy):
     coro_get_score = async_method('get_score')
     coro_header_exists = async_method('header_exists')
     coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
+    coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')
     coro_persist_header = async_method('persist_header')
     coro_persist_uncles = async_method('persist_uncles')
     coro_persist_trie_data_dict = async_method('persist_trie_data_dict')
+    coro_get_block_transactions = async_method('get_block_transactions')
+    coro_get_block_uncles = async_method('get_block_uncles')
+    coro_get_receipts = async_method('get_receipts')
 
     get_block_header_by_hash = sync_method('get_block_header_by_hash')
     get_canonical_head = sync_method('get_canonical_head')

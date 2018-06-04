@@ -46,7 +46,7 @@ class FullNodeSyncer(BaseService):
             self.logger.exception("Unclean exit from FullNodeSyncer")
 
     async def _sync(self) -> None:
-        head = await self.chaindb.coro_get_canonical_head()
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.
         # See https://github.com/ethereum/py-evm/issues/654 for more details
@@ -57,7 +57,7 @@ class FullNodeSyncer(BaseService):
             await chain_syncer.run()
 
         # Ensure we have the state for our current head.
-        head = await self.chaindb.coro_get_canonical_head()
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
         if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
             self.logger.info(
                 "Missing state for current head (#%d), downloading it", head.block_number)

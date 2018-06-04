@@ -236,15 +236,14 @@ class BasePeer(BaseService):
 
     @property
     async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.headerdb.coro_get_canonical_block_hash(
-            BlockNumber(GENESIS_BLOCK_NUMBER),
-        )
-        return await self.headerdb.coro_get_block_header_by_hash(genesis_hash)
+        genesis_hash = await self.wait(
+            self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER)))
+        return await self.wait(self.headerdb.coro_get_block_header_by_hash(genesis_hash))
 
     @property
     async def _local_chain_info(self) -> 'ChainInfo':
         genesis = await self.genesis
-        head = await self.headerdb.coro_get_canonical_head()
+        head = await self.wait(self.headerdb.coro_get_canonical_head())
         total_difficulty = await self.headerdb.coro_get_score(head.hash)
         return ChainInfo(
             block_number=head.block_number,

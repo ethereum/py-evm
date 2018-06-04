@@ -53,6 +53,11 @@ class FakeAsyncChainDB(AsyncChainDB):
     coro_persist_header = async_passthrough('persist_header')
     coro_persist_uncles = async_passthrough('persist_uncles')
     coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')
+    coro_get_canonical_block_header_by_number = async_passthrough(
+        'get_canonical_block_header_by_number')
+    coro_get_block_transactions = async_passthrough('get_block_transactions')
+    coro_get_block_uncles = async_passthrough('get_block_uncles')
+    coro_get_receipts = async_passthrough('get_receipts')
 
 
 async def coro_import_block(chain, block, perform_validation=True):
