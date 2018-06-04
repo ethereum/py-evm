@@ -87,7 +87,7 @@ async def test_wait_cancel_pending_tasks_on_completion(event_loop):
     token = CancelToken('token')
     token2 = CancelToken('token2')
     chain = token.chain(token2)
-    token2.trigger()
+    event_loop.call_soon(token2.trigger)
     await chain.wait()
     await assert_only_current_task_not_done()
 
@@ -123,6 +123,21 @@ async def test_wait_with_token_future_exception(event_loop):
     event_loop.call_soon(functools.partial(fut.set_exception, Exception()))
     with pytest.raises(Exception):
         await wait_with_token(fut, token=CancelToken('token'), timeout=1)
+    await assert_only_current_task_not_done()
+
+
+@pytest.mark.asyncio
+async def test_wait_with_token_cancels_subtasks_when_cancelled(event_loop):
+    token = CancelToken('')
+    future = asyncio.ensure_future(wait_with_token(asyncio.sleep(2), token=token))
+    with pytest.raises(asyncio.TimeoutError):
+        # wait_for() will timeout and then cancel our wait_with_token() future, but
+        # Task.cancel() doesn't immediately cancels the task
+        # (https://docs.python.org/3/library/asyncio-task.html#asyncio.Task.cancel), so we need
+        # the sleep below before we check that the task is actually cancelled.
+        await asyncio.wait_for(future, timeout=0.01)
+    await asyncio.sleep(0)
+    assert future.cancelled()
     await assert_only_current_task_not_done()
 
 
