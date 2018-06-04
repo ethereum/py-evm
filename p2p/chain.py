@@ -1,9 +1,7 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import logging
 import math
 import operator
-import os
 import time
 from typing import (
     Any,
@@ -42,6 +40,9 @@ from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody, P2PTransaction
 from p2p.service import BaseService
+from p2p.utils import (
+    get_process_pool_executor,
+)
 
 
 class FastChainSyncer(BaseService, PeerPoolSubscriber):
@@ -73,14 +74,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
         self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
-        # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
-        # asyncio's event loop.
-        if os.cpu_count() is None:
-            # Need this because os.cpu_count() returns None when the # of CPUs is indeterminable.
-            cpu_count = 1
-        else:
-            cpu_count = os.cpu_count() - 1
-        self._executor = ProcessPoolExecutor(cpu_count)
+        self._executor = get_process_pool_executor()
 
     def register_peer(self, peer: BasePeer) -> None:
         highest_td_peer = max(
