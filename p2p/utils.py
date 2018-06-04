@@ -30,10 +30,3 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     as an integer.
     """
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
-
-
-unclean_close_exceptions = (
-    BrokenPipeError,
-    ConnectionResetError,
-    EOFError,
-)

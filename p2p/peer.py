@@ -76,7 +76,6 @@ from p2p.utils import (
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
-    unclean_close_exceptions,
 )
 from p2p import eth
 from p2p import les
@@ -671,8 +670,6 @@ class PeerPool(BaseService):
             self.logger.debug('Got bad Ack during peer connection', exc_info=True)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %s: %s", remote, repr(e))
-        except unclean_close_exceptions:
-            self.logger.exception("Unclean exit while connecting to %s", remote)
         except Exception:
             self.logger.exception("Unexpected error during auth/p2p handshake with %s", remote)
         return None

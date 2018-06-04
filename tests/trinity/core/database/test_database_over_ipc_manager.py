@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 from multiprocessing.managers import (
     BaseManager,
@@ -51,7 +52,7 @@ def database_server_ipc_path():
         try:
             yield chain_config.database_ipc_path
         finally:
-            kill_process_gracefully(chaindb_server_process)
+            kill_process_gracefully(chaindb_server_process, logging.getLogger())
 
 
 @pytest.fixture
