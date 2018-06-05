@@ -81,7 +81,7 @@ def _test():
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import ETHPeer, DEFAULT_PREFERRED_NODES
-    from evm.chains.ropsten import RopstenChain
+    from evm.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
@@ -96,7 +96,7 @@ def _test():
     chain = FakeAsyncRopstenChain(chaindb)
     network_id = RopstenChain.network_id
     privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey)
+    peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey, ROPSTEN_VM_CONFIGURATION)
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:

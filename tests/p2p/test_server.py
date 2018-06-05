@@ -33,6 +33,7 @@ def get_open_port():
 
 
 port = get_open_port()
+NETWORK_ID = 99
 SERVER_ADDRESS = Address('127.0.0.1', udp_port=port, tcp_port=port)
 RECEIVER_PRIVKEY = keys.PrivateKey(eip8_values['receiver_private_key'])
 RECEIVER_PUBKEY = RECEIVER_PRIVKEY.public_key
@@ -68,7 +69,7 @@ def get_server(privkey, address, peer_class):
         chaindb,
         headerdb,
         base_db,
-        network_id=1,
+        network_id=NETWORK_ID,
         peer_class=peer_class,
     )
     return server
@@ -137,8 +138,7 @@ async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_d
     # incoming connections.
     monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
 
-    network_id = 1
-    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), network_id, INITIATOR_PRIVKEY)
+    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), NETWORK_ID, INITIATOR_PRIVKEY, tuple())
     nodes = [RECEIVER_REMOTE]
     await pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.

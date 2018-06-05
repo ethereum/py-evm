@@ -46,7 +46,10 @@ from eth_keys import (
 from evm.chains.mainnet import MAINNET_NETWORK_ID
 from evm.chains.ropsten import ROPSTEN_NETWORK_ID
 from evm.constants import GENESIS_BLOCK_NUMBER
+from evm.exceptions import ValidationError
 from evm.rlp.headers import BlockHeader
+from evm.vm.base import BaseVM
+from evm.vm.forks import HomesteadVM
 
 from p2p import auth
 from p2p import ecies
@@ -69,6 +72,7 @@ from p2p.exceptions import (
 from p2p.cancel_token import CancelToken
 from p2p.service import BaseService
 from p2p.utils import (
+    gen_request_id,
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
@@ -85,6 +89,7 @@ from p2p.p2p_proto import (
 )
 
 from .constants import (
+    CHAIN_SPLIT_CHECK_TIMEOUT,
     CONN_IDLE_TIMEOUT,
     DEFAULT_MAX_PEERS,
     HEADER_LEN,
@@ -100,6 +105,7 @@ async def handshake(remote: Node,
                     peer_class: 'Type[BasePeer]',
                     headerdb: 'BaseAsyncHeaderDB',
                     network_id: int,
+                    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
                     token: CancelToken,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -130,6 +136,7 @@ async def handshake(remote: Node,
         ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
+    await peer.ensure_same_side_on_dao_fork(vm_configuration)
     return peer
 
 
@@ -187,6 +194,41 @@ class BasePeer(BaseService):
     @abstractmethod
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    async def ensure_same_side_on_dao_fork(
+            self, vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...]) -> None:
+        for start_block, vm_class in vm_configuration:
+            if not issubclass(vm_class, HomesteadVM):
+                continue
+            elif start_block > vm_class.dao_fork_block_number:
+                continue
+
+            fork_block = vm_class.dao_fork_block_number
+            try:
+                header, parent = await self.wait(
+                    self._get_headers_at_chain_split(fork_block),
+                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT)
+            except TimeoutError:
+                # Logging as INFO because if we start seeing this too often we might need to
+                # increase the timeout used here.
+                self.logger.info("Timed out waiting for DAO fork header from %s", self)
+                raise
+            except ValidationError as e:
+                raise HandshakeFailure("Peer failed DAO fork check: {}".format(e))
+
+            try:
+                vm_class.validate_header(header, parent)
+            except ValidationError as e:
+                raise HandshakeFailure("Peer failed DAO fork check: {}".format(e))
+
+    @abstractmethod
+    async def _get_headers_at_chain_split(
+            self, number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
+        """Fetch and return the header with the given number and its parent.
+
+        Must raise HeaderNotFound if the peer doesn't have them.
+        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
@@ -271,8 +313,7 @@ class BasePeer(BaseService):
     async def read(self, n: int) -> bytes:
         self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
         try:
-            return await self.wait_first(
-                self.reader.readexactly(n), timeout=self.conn_idle_timeout)
+            return await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
             raise PeerConnectionLost(repr(e))
 
@@ -505,6 +546,45 @@ class LESPeer(BasePeer):
         self.head_td = self.head_info.total_difficulty
         self.head_hash = self.head_info.block_hash
 
+    async def _get_headers_at_chain_split(
+            self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
+        start_block = block_number - 1
+        max_headers = 2
+        reverse = False
+        request_id = gen_request_id()
+        self.sub_proto.send_get_block_headers(start_block, max_headers, request_id, reverse)
+        while True:
+            cmd, msg = await self.read_msg()
+            msg = cast(Dict[str, Any], msg)
+            if not isinstance(cmd, les.BlockHeaders):
+                self.logger.debug(
+                    "Ignoring %s msg from %s as we haven't performed the chain-split check yet",
+                    cmd, self)
+                continue
+            elif msg['request_id'] != request_id:
+                self.logger.debug(
+                    "Got a BlockHeaders msg with the wrong request_id (%d) from %s, ignoring",
+                    msg['request_id'], self)
+                continue
+            headers = msg['headers']
+            validate_header_response(start_block, max_headers, reverse, headers)
+            parent, header = headers
+            return header, parent
+
+
+def validate_header_response(
+        start_number: int, count: int, reverse: bool, headers: List[BlockHeader]) -> None:
+    if len(headers) != count:
+        raise ValidationError("Expected {} headers, got: {}".format(count, headers))
+    if reverse:
+        headers = list(reversed(headers))
+    if headers[0].block_number != start_number:
+        raise ValidationError("Expected {} as first header's number, got: {}".format(
+            start_number, headers[0].block_number))
+    for i, header in enumerate(headers):
+        if header.block_number != start_number + i:
+            raise ValidationError("Header numbers are not sequential: {}".format(headers))
+
 
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
@@ -533,6 +613,24 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
+
+    async def _get_headers_at_chain_split(
+            self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
+        start_block = block_number - 1
+        max_headers = 2
+        reverse = False
+        self.sub_proto.send_get_block_headers(start_block, max_headers, reverse)
+        while True:
+            cmd, msg = await self.read_msg()
+            if not isinstance(cmd, eth.BlockHeaders):
+                self.logger.debug(
+                    "Ignoring %s msg from %s as we haven't performed the chain-split check yet",
+                    cmd, self)
+                continue
+            headers = cast(List[BlockHeader], msg)
+            validate_header_response(start_block, max_headers, reverse, headers)
+            parent, header = headers
+            return header, parent
 
 
 class PeerPoolSubscriber(ABC):
@@ -576,13 +674,15 @@ class PeerPool(BaseService):
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
-                 max_peers: int = DEFAULT_MAX_PEERS
+                 vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
+                 max_peers: int = DEFAULT_MAX_PEERS,
                  ) -> None:
         super().__init__()
         self.peer_class = peer_class
         self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
+        self.vm_configuration = vm_configuration
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
@@ -664,7 +764,7 @@ class PeerPool(BaseService):
             peer = await self.wait(
                 handshake(
                     remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
-                    self.cancel_token))
+                    self.vm_configuration, self.cancel_token))
 
             return peer
         except OperationCancelled:
@@ -800,7 +900,7 @@ def _test():
     """
     import argparse
     import signal
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from evm.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -818,7 +918,8 @@ def _test():
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     nodes = [Node.from_uri(args.enode)]
-    peer_pool = PeerPool(peer_class, headerdb, network_id, ecies.generate_privkey())
+    peer_pool = PeerPool(
+        peer_class, headerdb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     async def request_stuff():

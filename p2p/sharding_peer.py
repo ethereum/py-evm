@@ -8,10 +8,12 @@ from typing import (
 )
 
 from eth_typing import (
+    BlockNumber,
     Hash32,
 )
 
 from evm.rlp.collations import Collation
+from evm.rlp.headers import BlockHeader
 
 from p2p.cancel_token import (
     CancelToken,
@@ -66,6 +68,10 @@ class ShardingPeer(BasePeer):
         if not isinstance(cmd, Status):
             self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure("Expected status msg, got {}, disconnecting".format(cmd))
+
+    async def _get_headers_at_chain_split(
+            self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
+        pass
 
     #
     # Message handling

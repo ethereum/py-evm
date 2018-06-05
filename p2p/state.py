@@ -229,7 +229,7 @@ def _test():
     import signal
     from p2p import ecies
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from evm.chains.ropsten import RopstenChain
+    from evm.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, connect_to_peers_loop
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -248,7 +248,8 @@ def _test():
     chaindb = FakeAsyncChainDB(db)
     network_id = RopstenChain.network_id
     nodes = DEFAULT_PREFERRED_NODES[network_id]
-    peer_pool = PeerPool(ETHPeer, chaindb, network_id, ecies.generate_privkey())
+    peer_pool = PeerPool(
+        ETHPeer, chaindb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 

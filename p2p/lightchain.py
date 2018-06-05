@@ -108,7 +108,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         Raises OperationCancelled when LightPeerChain.stop() has been called.
         """
         # Wait for either a new announcement or our cancel_token to be triggered.
-        return await self.wait_first(self._announcement_queue.get())
+        return await self.wait(self._announcement_queue.get())
 
     async def _run(self) -> None:
         """Run the LightPeerChain, ensuring headers are in sync with connected peers.
@@ -119,7 +119,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         with self.subscribe(self.peer_pool):
             asyncio.ensure_future(self._process_announcements())
             while True:
-                peer, cmd, msg = await self.wait_first(self.msg_queue.get())
+                peer, cmd, msg = await self.wait(self.msg_queue.get())
 
                 if isinstance(cmd, les.Announce):
                     peer.head_info = cmd.as_head_info(msg)
@@ -270,7 +270,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             got_reply.set()
 
         self._pending_replies[request_id] = callback
-        await self.wait_first(got_reply.wait(), timeout=self.reply_timeout)
+        await self.wait(got_reply.wait(), timeout=self.reply_timeout)
         return reply
 
     @alru_cache(maxsize=1024, cache_exceptions=False)

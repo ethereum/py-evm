@@ -16,21 +16,14 @@ from p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
-from p2p.peer import BasePeer
 from p2p.server import decode_authentication
 
 from auth_constants import (
     eip8_values,
     test_values,
 )
-
-
-class DummyPeer(BasePeer):
-    def process_sub_proto_handshake(self):
-        pass
-
-    def send_sub_proto_handshake(self):
-        pass
+from dumb_peer import DumbPeer
+from peer_helpers import MockStreamWriter
 
 
 @pytest.mark.asyncio
@@ -111,23 +104,15 @@ async def test_handshake():
     initiator_reader = asyncio.StreamReader()
     # Link the initiator's writer to the responder's reader, and the responder's writer to the
     # initiator's reader.
-    responder_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": initiator_reader.feed_data}
-    )
-    initiator_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": responder_reader.feed_data}
-    )
-    initiator_peer = DummyPeer(
+    responder_writer = MockStreamWriter(initiator_reader.feed_data)
+    initiator_writer = MockStreamWriter(responder_reader.feed_data)
+    initiator_peer = DumbPeer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
         egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
         network_id=1)
     initiator_peer.base_protocol.send_handshake()
-    responder_peer = DummyPeer(
+    responder_peer = DumbPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
@@ -211,23 +196,15 @@ async def test_handshake_eip8():
     initiator_reader = asyncio.StreamReader()
     # Link the initiator's writer to the responder's reader, and the responder's writer to the
     # initiator's reader.
-    responder_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": initiator_reader.feed_data}
-    )
-    initiator_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": responder_reader.feed_data}
-    )
-    initiator_peer = DummyPeer(
+    responder_writer = MockStreamWriter(initiator_reader.feed_data)
+    initiator_writer = MockStreamWriter(responder_reader.feed_data)
+    initiator_peer = DumbPeer(
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
         egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
         network_id=1)
     initiator_peer.base_protocol.send_handshake()
-    responder_peer = DummyPeer(
+    responder_peer = DumbPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
