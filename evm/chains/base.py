@@ -251,6 +251,10 @@ class BaseChain(Configurable, metaclass=ABCMeta):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
+    def validate_seal(self, header: BlockHeader) -> None:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
     def validate_gaslimit(self, header: BlockHeader) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -606,11 +610,16 @@ class Chain(BaseChain):
         access to the ancestor blocks, this validation must occur at the Chain
         level.
         """
-        vm = self.get_vm()
-        vm.validate_seal(block.header)
-
+        self.validate_seal(block.header)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
+
+    def validate_seal(self, header: BlockHeader) -> None:
+        """
+        Validate the seal on the given header.
+        """
+        vm = self.get_vm()
+        vm.validate_seal(header)
 
     def validate_gaslimit(self, header: BlockHeader) -> None:
         """
@@ -675,9 +684,7 @@ class Chain(BaseChain):
                         encode_hex(uncle.parent_hash), encode_hex(block.hash)))
 
             # Now perform VM level validation of the uncle
-            uncle_vm = self.get_vm(uncle)
-
-            uncle_vm.validate_seal(uncle)
+            self.validate_seal(uncle)
 
             try:
                 uncle_parent = self.get_block_header_by_hash(uncle.parent_hash)
@@ -686,6 +693,7 @@ class Chain(BaseChain):
                     "Uncle ancestor not found: {0}".format(uncle.parent_hash)
                 )
 
+            uncle_vm = self.get_vm(uncle)
             uncle_vm.validate_uncle(block, uncle, uncle_parent)
 
 
