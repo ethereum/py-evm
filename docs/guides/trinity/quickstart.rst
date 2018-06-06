@@ -17,14 +17,14 @@ Trinity requires Python 3.6 as well as some tools to compile its dependencies. O
 
 .. code:: sh
 
-  apt-get python3.6-dev
+  apt-get install python3.6-dev
 
 Trinity is installed through the pip package manager, if pip isn't available on the system already,
 we need to install the ``python3-pip`` package through the following command.
 
 .. code:: sh
 
-  apt-get python3-pip
+  apt-get install python3-pip
 
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
