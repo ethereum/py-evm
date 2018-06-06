@@ -179,9 +179,13 @@ class Server(BaseService):
         discover_timeout = 10 * REPLY_TIMEOUT
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
         # while to complete.
-        devices = await self.wait_first(
-            loop.run_in_executor(None, upnpclient.discover),
-            timeout=discover_timeout)
+        try:
+            devices = await self.wait_first(
+                loop.run_in_executor(None, upnpclient.discover),
+                timeout=discover_timeout)
+        except TimeoutError:
+            self.logger.info("Timeout waiting for UPNP-enabled devices")
+            return None
 
         # If there are no UPNP devices we can exit early
         if not devices:
