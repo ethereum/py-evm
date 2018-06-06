@@ -654,9 +654,12 @@ class PeerPool(BaseService):
         )
         try:
             self.logger.debug("Connecting to %s...", remote)
-            peer = await handshake(
-                remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
-                self.cancel_token)
+            # We use self.wait() as well as passing our CancelToken to handshake() as a workaround
+            # for https://github.com/ethereum/py-evm/issues/670.
+            peer = await self.wait(
+                handshake(
+                    remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
+                    self.cancel_token))
 
             return peer
         except OperationCancelled:
