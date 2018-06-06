@@ -85,7 +85,7 @@ class Node(BaseService):
 
     def make_ipc_server(self) -> Union[IPCServer, BaseService]:
         if self._jsonrpc_ipc_path:
-            rpc = RPCServer(self.get_chain())
+            rpc = RPCServer(self.get_chain(), self.get_p2p_server())
             return IPCServer(rpc, self._jsonrpc_ipc_path)
         else:
             return EmptyService()
