@@ -578,9 +578,12 @@ class PeerPool(BaseService):
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
 
+    def __len__(self):
+        return len(self.connected_nodes)
+
     @property
     def is_full(self) -> bool:
-        return len(self.connected_nodes) >= self.max_peers
+        return len(self) >= self.max_peers
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         yield from self.discovery.get_random_nodes(self.max_peers)

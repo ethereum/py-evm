@@ -4,6 +4,10 @@ import pytest
 import tempfile
 import uuid
 
+from p2p.server import (
+    Server
+)
+
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -52,13 +56,24 @@ def jsonrpc_ipc_pipe_path():
 
 
 @pytest.fixture
-def ipc_server(jsonrpc_ipc_pipe_path, event_loop, chain_with_block_validation):
+def p2p_server(jsonrpc_ipc_pipe_path):
+    return Server(None, None, None, None, None, None, None)
+
+
+@pytest.fixture
+def ipc_server(
+        monkeypatch,
+        p2p_server,
+        jsonrpc_ipc_pipe_path,
+        event_loop,
+        chain_with_block_validation):
     '''
     This fixture runs a single RPC server over IPC over
     the course of all tests. It never needs to be actually
     used as a fixture, so it doesn't return (yield) a value.
     '''
-    rpc = RPCServer(chain_with_block_validation)
+
+    rpc = RPCServer(chain_with_block_validation, p2p_server)
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path)
 
     asyncio.ensure_future(ipc_server.run(loop=event_loop), loop=event_loop)
