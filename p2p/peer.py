@@ -13,6 +13,7 @@ from abc import (
 
 from typing import (
     Any,
+    cast,
     Dict,
     Generator,
     Iterator,
@@ -21,7 +22,6 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     Type,
-    cast,
 )
 
 import sha3
@@ -138,7 +138,6 @@ async def handshake(remote: Node,
 class BasePeer(BaseService):
     logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
-    subscriber: 'PeerPoolSubscriber' = None
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
     _supported_sub_protocols: List[Type[protocol.Protocol]] = []
@@ -169,6 +168,7 @@ class BasePeer(BaseService):
         self.headerdb = headerdb
         self.network_id = network_id
         self.inbound = inbound
+        self._subscribers: List['asyncio.Queue[PEER_MSG_TYPE]'] = []
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -189,16 +189,12 @@ class BasePeer(BaseService):
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def add_subscriber(self, subscriber: 'PeerPoolSubscriber') -> None:
-        # TODO: Support multiple subscribers: https://github.com/ethereum/py-evm/issues/768
-        if self.subscriber is not None:
-            raise Exception(
-                "We cannot handle multiple subscribers yet; "
-                "see https://github.com/ethereum/py-evm/issues/768 for details")
-        self.subscriber = subscriber
+    def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
+        self._subscribers.append(subscriber)
 
-    def remove_subscriber(self, subscriber: 'PeerPoolSubscriber') -> None:
-        self.subscriber = None
+    def remove_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
+        if subscriber in self._subscribers:
+            self._subscribers.remove(subscriber)
 
     async def do_sub_proto_handshake(self):
         """Perform the handshake for the sub-protocol agreed with the remote peer.
@@ -338,10 +334,11 @@ class BasePeer(BaseService):
             raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if self.subscriber is not None:
-            self.subscriber.msg_queue.put_nowait((self, cmd, msg))
+        if self._subscribers:
+            for subscriber in self._subscribers:
+                subscriber.put_nowait((self, cmd, msg))
         else:
-            self.logger.warn("Peer %s has no subscriber, discarding %s msg", self, cmd)
+            self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if cmd.is_base_protocol:
@@ -528,16 +525,16 @@ class ETHPeer(BasePeer):
 
 
 class PeerPoolSubscriber(ABC):
-    _msg_queue: 'asyncio.Queue[Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]]' = None  # noqa: E501
+    _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
 
     @abstractmethod
     def register_peer(self, peer: BasePeer) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
-    def msg_queue(self) -> 'asyncio.Queue[Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]]':  # noqa: E501
+    def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
         if self._msg_queue is None:
-            self._msg_queue = asyncio.Queue()
+            self._msg_queue = asyncio.Queue(maxsize=10000)
         return self._msg_queue
 
     @contextlib.contextmanager
@@ -589,25 +586,16 @@ class PeerPool(BaseService):
         yield from self.discovery.get_random_nodes(self.max_peers)
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
-        if self._subscribers:
-            # XXX: This is a bit of a hack, needed because of #768. If we come to the conclusion
-            # we'll never need multiple simultaneous subscribers to a PeerPool, we can close that
-            # issue and redesign PeerPool in a way to make it clear it can only have one
-            # subscriber
-            raise Exception(
-                "We cannot handle multiple subscribers yet; "
-                "see https://github.com/ethereum/py-evm/issues/768 for details")
-
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():
             subscriber.register_peer(peer)
-            peer.add_subscriber(subscriber)
+            peer.add_subscriber(subscriber.msg_queue)
 
     def unsubscribe(self, subscriber: PeerPoolSubscriber) -> None:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
         for peer in self.connected_nodes.values():
-            peer.remove_subscriber(subscriber)
+            peer.remove_subscriber(subscriber.msg_queue)
 
     def start_peer(self, peer):
         asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
@@ -619,7 +607,7 @@ class PeerPool(BaseService):
         self.logger.debug('Number of peers: %d', len(self.connected_nodes))
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
-            peer.add_subscriber(subscriber)
+            peer.add_subscriber(subscriber.msg_queue)
 
     async def _run(self) -> None:
         self.logger.info("Running PeerPool...")
@@ -764,8 +752,18 @@ class PeerPool(BaseService):
                 [peer for peer in self.connected_nodes.values() if peer.inbound])
             self.logger.info("Connected peers: %d inbound, %d outbound",
                              inbound_peers, (len(self.connected_nodes) - inbound_peers))
+            self.logger.debug("== Peer details == ")
+            for peer in self.connected_nodes.values():
+                subscribers = len(peer._subscribers)
+                longest_queue = 0
+                if subscribers:
+                    longest_queue = max(queue.qsize() for queue in peer._subscribers)
+                self.logger.debug(
+                    "%s: running=%s, subscribers=%d, longest_subscriber_queue=%s",
+                    peer, peer.is_running, subscribers, longest_queue)
+            self.logger.debug("== End peer details == ")
             try:
-                await self.wait_first(asyncio.sleep(self._report_interval))
+                await self.wait(asyncio.sleep(self._report_interval))
             except OperationCancelled:
                 break
 
@@ -929,6 +927,9 @@ class ChainInfo:
         self.block_hash = block_hash
         self.total_difficulty = total_difficulty
         self.genesis_hash = genesis_hash
+
+
+PEER_MSG_TYPE = Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]
 
 
 def _test():
