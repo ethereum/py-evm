@@ -82,7 +82,7 @@ def chain_without_pow(
         genesis_params: Any,
         genesis_state: Any) -> Chain:
 
-    vm_without_pow = vm.configure(validate_seal=lambda self, block: None)
+    vm_without_pow = vm.configure(validate_seal=lambda block: None)
 
     klass = Chain.configure(
         __name__='TestChain',

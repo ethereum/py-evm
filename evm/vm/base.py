@@ -249,6 +249,11 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     def validate_block(self, block):
         raise NotImplementedError("VM classes must implement this method")
 
+    @classmethod
+    @abstractmethod
+    def validate_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
+        raise NotImplementedError("VM classes must implement this method")
+
     @abstractmethod
     def validate_transaction_against_header(self, base_header, transaction):
         """
@@ -261,8 +266,9 @@ class BaseVM(Configurable, metaclass=ABCMeta):
         """
         raise NotImplementedError("VM classes must implement this method")
 
+    @classmethod
     @abstractmethod
-    def validate_seal(self, header: BlockHeader) -> None:
+    def validate_seal(cls, header: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -628,31 +634,12 @@ class VM(BaseVM):
                     block,
                 )
             )
-        if not block.is_genesis:
+
+        if block.is_genesis:
+            parent_header = None
+        else:
             parent_header = get_parent_header(block.header, self.chaindb)
-
-            validate_gas_limit(block.header.gas_limit, parent_header.gas_limit)
-            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
-
-            # timestamp
-            if block.header.timestamp < parent_header.timestamp:
-                raise ValidationError(
-                    "`timestamp` is before the parent block's timestamp.\n"
-                    "- block  : {0}\n"
-                    "- parent : {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
-                    )
-                )
-            elif block.header.timestamp == parent_header.timestamp:
-                raise ValidationError(
-                    "`timestamp` is equal to the parent block's timestamp\n"
-                    "- block : {0}\n"
-                    "- parent: {1}. ".format(
-                        block.header.timestamp,
-                        parent_header.timestamp,
-                    )
-                )
+        self.validate_header(block.header, parent_header)
 
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
@@ -686,7 +673,41 @@ class VM(BaseVM):
                 )
             )
 
-    def validate_seal(self, header: BlockHeader) -> None:
+    @classmethod
+    def validate_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
+        """
+        :raise evm.exceptions.ValidationError: if the header is not valid
+        """
+        validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
+
+        # validations that require the parent block
+        if header.block_number == 0:
+            if parent_header is None:
+                pass
+            else:
+                raise ValidationError("Must not set parent header when validating genesis block")
+        else:
+            if parent_header is None:
+                raise ValidationError("Must set parent header if block is not genesis block")
+            else:
+                validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+
+                # timestamp
+                if header.timestamp <= parent_header.timestamp:
+                    raise ValidationError(
+                        "timestamp must be strictly later than parent, but is {} seconds before.\n"
+                        "- child  : {}\n"
+                        "- parent : {}. ".format(
+                            parent_header.timestamp - header.timestamp,
+                            header.timestamp,
+                            parent_header.timestamp,
+                        )
+                    )
+
+        cls.validate_seal(header)
+
+    @classmethod
+    def validate_seal(cls, header: BlockHeader) -> None:
         """
         Validate the seal on the given header.
         """
