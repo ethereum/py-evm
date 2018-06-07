@@ -38,13 +38,22 @@ class MainnetLightPeerChain(BaseMainnetChain, LightPeerChain):
 HEADER_SYNC_TIMEOUT = 3
 
 
+@pytest.fixture
+def chain(chain_without_block_validation):
+    return chain_without_block_validation
+
+
 @pytest.mark.asyncio
-async def test_incremental_header_sync(request, event_loop, headerdb_mainnet_100):
+async def test_incremental_header_sync(request, event_loop, headerdb_mainnet_100, chain):
     # Here, server will be a peer with a pre-populated headerdb, and we'll use it to send Announce
     # msgs to the client, which will then ask the server for any headers it's missing until their
     # headerdbs are in sync.
     light_chain, _, server = await get_lightchain_with_peers(
-        request, event_loop, get_fresh_mainnet_headerdb())
+        request,
+        event_loop,
+        get_fresh_mainnet_headerdb(),
+        chain,
+    )
 
     # We start the client/server with fresh headerdbs above because we don't want them to start
     # syncing straight away -- instead we want to manually trigger incremental syncs by having the
@@ -70,11 +79,15 @@ async def test_incremental_header_sync(request, event_loop, headerdb_mainnet_100
 
 
 @pytest.mark.asyncio
-async def test_full_header_sync_and_reorg(request, event_loop, headerdb_mainnet_100):
+async def test_full_header_sync_and_reorg(request, event_loop, headerdb_mainnet_100, chain):
     # Here we create our server with a populated headerdb, so upon startup it will announce its
     # chain head and the client will fetch all headers
     light_chain, _, server = await get_lightchain_with_peers(
-        request, event_loop, headerdb_mainnet_100)
+        request,
+        event_loop,
+        headerdb_mainnet_100,
+        chain,
+    )
 
     # ... and our client should then fetch all headers.
     head = server.headerdb.get_canonical_head()
@@ -95,11 +108,15 @@ async def test_full_header_sync_and_reorg(request, event_loop, headerdb_mainnet_
 
 
 @pytest.mark.asyncio
-async def test_header_sync_with_multi_peers(request, event_loop, headerdb_mainnet_100):
+async def test_header_sync_with_multi_peers(request, event_loop, headerdb_mainnet_100, chain):
     # In this test we start with one of our peers announcing block #100, and we sync all
     # headers up to that...
     light_chain, _, server = await get_lightchain_with_peers(
-        request, event_loop, headerdb_mainnet_100)
+        request,
+        event_loop,
+        headerdb_mainnet_100,
+        chain,
+    )
 
     head = server.headerdb.get_canonical_head()
     await wait_for_head(light_chain.headerdb, head)
@@ -218,7 +235,7 @@ async def get_client_and_server_peer_pair(request, event_loop, client_headerdb, 
         LESPeerServer, server_headerdb)
 
 
-async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
+async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb, chain):
     """Return a MainnetLightPeerChain instance with a client/server peer pair.
 
     The server is a LESPeerServer instance that can be used to send Announce and BlockHeaders
@@ -229,7 +246,11 @@ async def get_lightchain_with_peers(request, event_loop, server_peer_headerdb):
     client, server = await get_client_and_server_peer_pair(
         request, event_loop, headerdb, server_peer_headerdb)
 
-    light_chain = MainnetLightPeerChain(headerdb, MockPeerPoolWithConnectedPeers([client]))
+    light_chain = MainnetLightPeerChain(
+        headerdb,
+        MockPeerPoolWithConnectedPeers([client]),
+        type(chain),
+    )
     asyncio.ensure_future(light_chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 

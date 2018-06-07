@@ -680,9 +680,16 @@ class VM(BaseVM):
         """
         validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
 
-        # validations that require the parent block
-        if header.block_number == 0:
+        # Some validations are different for the genesis block
+        if header.is_genesis:
             if parent_header is None:
+                # TODO validate a variety of things about the genesis block, like a matching:
+                # - mix_hash
+                # - difficulty
+                # - timestamp
+                # - coinbase
+                # - extra_data
+                # - gas_limit
                 pass
             else:
                 raise ValidationError("Must not set parent header when validating genesis block")
@@ -690,19 +697,23 @@ class VM(BaseVM):
             if parent_header is None:
                 raise ValidationError("Must set parent header if block is not genesis block")
             else:
-                validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+                cls._validate_post_genesis_header(header, parent_header)
 
-                # timestamp
-                if header.timestamp <= parent_header.timestamp:
-                    raise ValidationError(
-                        "timestamp must be strictly later than parent, but is {} seconds before.\n"
-                        "- child  : {}\n"
-                        "- parent : {}. ".format(
-                            parent_header.timestamp - header.timestamp,
-                            header.timestamp,
-                            parent_header.timestamp,
-                        )
-                    )
+    @classmethod
+    def _validate_post_genesis_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
+        validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+
+        # timestamp
+        if header.timestamp <= parent_header.timestamp:
+            raise ValidationError(
+                "timestamp must be strictly later than parent, but is {} seconds before.\n"
+                "- child  : {}\n"
+                "- parent : {}. ".format(
+                    parent_header.timestamp - header.timestamp,
+                    header.timestamp,
+                    parent_header.timestamp,
+                )
+            )
 
         cls.validate_seal(header)
 

@@ -24,6 +24,17 @@ def get_fresh_mainnet_headerdb():
     return headerdb
 
 
+class MockStreamWriter:
+    def __init__(self, write_target):
+        self._target = write_target
+
+    def write(self, *args, **kwargs):
+        self._target(*args, **kwargs)
+
+    def close(self):
+        pass
+
+
 async def get_directly_linked_peers_without_handshake(
         peer1_class=LESPeer, peer1_headerdb=None,
         peer2_class=LESPeer, peer2_headerdb=None):
@@ -47,18 +58,8 @@ async def get_directly_linked_peers_without_handshake(
     peer1_reader = asyncio.StreamReader()
     # Link the peer1's writer to the peer2's reader, and the peer2's writer to the
     # peer1's reader.
-    peer2_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": peer1_reader.feed_data,
-         "close": lambda: None}
-    )
-    peer1_writer = type(
-        "mock-streamwriter",
-        (object,),
-        {"write": peer2_reader.feed_data,
-         "close": lambda: None}
-    )
+    peer2_writer = MockStreamWriter(peer1_reader.feed_data)
+    peer1_writer = MockStreamWriter(peer2_reader.feed_data)
 
     peer1, peer2 = None, None
     handshake_finished = asyncio.Event()

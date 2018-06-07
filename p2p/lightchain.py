@@ -7,6 +7,7 @@ from typing import (
     Dict,
     List,
     Tuple,
+    Type,
     TYPE_CHECKING,
 )
 
@@ -27,8 +28,13 @@ from eth_utils import (
 
 from trie import HexaryTrie
 
+from evm.chains.base import BaseChain
 from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.exceptions import BlockNotFound, HeaderNotFound
+from evm.exceptions import (
+    BlockNotFound,
+    HeaderNotFound,
+    ValidationError,
+)
 from evm.rlp.accounts import Account
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
@@ -43,6 +49,9 @@ from p2p.exceptions import (
 from p2p import les
 from p2p import protocol
 from p2p.constants import REPLY_TIMEOUT
+from p2p.p2p_proto import (
+    DisconnectReason,
+)
 from p2p.peer import (
     BasePeer,
     LESPeer,
@@ -65,13 +74,18 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     reply_timeout = REPLY_TIMEOUT
     headerdb: 'BaseAsyncHeaderDB' = None
 
-    def __init__(self, headerdb: 'BaseAsyncHeaderDB', peer_pool: PeerPool) -> None:
+    def __init__(
+            self,
+            headerdb: 'BaseAsyncHeaderDB',
+            peer_pool: PeerPool,
+            Chain: Type[BaseChain]) -> None:
         super().__init__()
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
         self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
+        self.Chain = Chain
 
     def register_peer(self, peer: BasePeer) -> None:
         peer = cast(LESPeer, peer)
@@ -210,7 +224,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             return
 
         start_block = await self.get_sync_start_block(peer, head_info)
-        while start_block < head_info.block_number:
+        while start_block < head_info.block_number and peer.connected:
             try:
                 # We should use "start_block + 1" here, but we always re-fetch the last synced
                 # block to work around https://github.com/ethereum/go-ethereum/issues/15447
@@ -218,10 +232,53 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             except TooManyTimeouts:
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
-            for header in batch:
-                await self.headerdb.coro_persist_header(header)
-                start_block = header.block_number
+            new_tip = await self._import_headers_from_peer(batch, peer)
+            if new_tip is not None:
+                start_block = new_tip
             self.logger.info("synced headers up to #%s", start_block)
+
+    async def _import_headers_from_peer(self, headers, peer):
+        """
+        :return: the block number of the new tip after importing the header
+        """
+        new_tip = None
+        for header in headers:
+            try:
+                await self._validate_header(header)
+            except ValidationError as exc:
+                self.logger.info(
+                    "Dropping Peer %s for sending invalid header %s: %s",
+                    peer,
+                    header,
+                    exc,
+                )
+                # TODO self.peer_pool.blacklist_peer(peer)
+                peer.disconnect(DisconnectReason.bad_protocol)
+                break
+            else:
+                await self.headerdb.coro_persist_header(header)
+                new_tip = header.block_number
+        return new_tip
+
+    async def _validate_header(self, header):
+        if header.is_genesis:
+            parent_header = None
+        else:
+            parent_header = await self._get_parent_header(header)
+        VM = self.Chain.get_vm_class_for_block_number(header.block_number)
+        # TODO push validation into process pool executor
+        VM.validate_header(header, parent_header)
+
+    async def _get_parent_header(self, header):
+        parent_hash = header.parent_hash
+        # TODO extract 500 to constant
+        for attempt in range(500):
+            try:
+                return await self.headerdb.coro_get_block_header_by_hash(parent_hash)
+            except KeyError:
+                self.wait(asyncio.sleep(0.05))
+        else:
+            raise TimeoutError("Could not get parent header for validation, after {} attempts", 500)
 
     async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
