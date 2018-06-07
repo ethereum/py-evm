@@ -22,6 +22,7 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     Type,
+    Union,
 )
 
 import sha3
@@ -578,7 +579,7 @@ class PeerPool(BaseService):
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
-                 discovery: DiscoveryProtocol,
+                 discovery: Union[DiscoveryProtocol, 'asyncio.Future[DiscoveryProtocol]'],
                  max_peers: int = DEFAULT_MAX_PEERS
                  ) -> None:
         super().__init__()
@@ -586,10 +587,17 @@ class PeerPool(BaseService):
         self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
-        self.discovery = discovery
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
+
+        if isinstance(discovery, DiscoveryProtocol):
+            self._assign_discovery(discovery)
+        elif isinstance(discovery, asyncio.Future):
+            discovery.add_done_callback(lambda fut: self._assign_discovery(fut.result()))
+
+    def _assign_discovery(self, discovery: DiscoveryProtocol) -> None:
+        self.discovery = discovery
 
     def __len__(self):
         return len(self.connected_nodes)
