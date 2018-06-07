@@ -110,7 +110,7 @@ class Server(BaseService):
         while self.is_running:
             try:
                 # We start with a sleep because our _run() method will setup the initial portmap.
-                await self.wait_first(asyncio.sleep(self._nat_portmap_lifetime))
+                await self.wait(asyncio.sleep(self._nat_portmap_lifetime))
                 await self.add_nat_portmap()
             except OperationCancelled:
                 break
@@ -180,7 +180,7 @@ class Server(BaseService):
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
         # while to complete.
         try:
-            devices = await self.wait_first(
+            devices = await self.wait(
                 loop.run_in_executor(None, upnpclient.discover),
                 timeout=discover_timeout)
         except TimeoutError:
@@ -294,7 +294,7 @@ class Server(BaseService):
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        msg = await self.wait_first(
+        msg = await self.wait(
             reader.read(ENCRYPTED_AUTH_MSG_LEN),
             timeout=REPLY_TIMEOUT)
 
@@ -308,7 +308,7 @@ class Server(BaseService):
             # Try to decode as EIP8
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
-            msg += await self.wait_first(
+            msg += await self.wait(
                 reader.read(remaining_bytes),
                 timeout=REPLY_TIMEOUT)
             try:
@@ -329,7 +329,7 @@ class Server(BaseService):
 
         # Use the `writer` to send the reply to the remote
         writer.write(auth_ack_ciphertext)
-        await writer.drain()
+        await self.wait(writer.drain())
 
         # Call `HandshakeResponder.derive_shared_secrets()` and use return values to create `Peer`
         aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
@@ -358,7 +358,9 @@ class Server(BaseService):
         if self.peer_pool.is_full:
             peer.disconnect(DisconnectReason.too_many_peers)
         else:
-            await self.do_handshake(peer)
+            # We use self.wait() here as a workaround for
+            # https://github.com/ethereum/py-evm/issues/670.
+            await self.wait(self.do_handshake(peer))
 
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake(),
