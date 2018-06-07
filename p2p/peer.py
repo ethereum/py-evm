@@ -783,8 +783,8 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("13.93.211.84", 30303, 30303)),
     ),
     ROPSTEN_NETWORK_ID: (
-        Node(keys.PublicKey(decode_hex("60ce95dc5b6873e1c53897815496c28132fa50a1227935c58fbffc30a25bf9df68594f7bdc63b1d33c2911c96013b5b058dcfc9184a78082e9af5ace05fe5486")),  # noqa: E501
-             Address("79.98.29.93", 30303, 30303)),
+        Node(keys.PublicKey(decode_hex("053d2f57829e5785d10697fa6c5333e4d98cc564dbadd87805fd4fedeb09cbcb642306e3a73bd4191b27f821fb442fcf964317d6a520b29651e7dd09d1beb0ec")),  # noqa: E501
+             Address("79.98.29.154", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("a147a3adde1daddc0d86f44f1a76404914e44cee018c26d49248142d4dc8a9fb0e7dd14b5153df7e60f23b037922ae1f33b8f318844ef8d2b0453b9ab614d70d")),  # noqa: E501
              Address("72.36.89.11", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("d8714127db3c10560a2463c557bbe509c99969078159c69f9ce4f71c2cd1837bcd33db3b9c3c3e88c971b4604bbffa390a0a7f53fc37f122e2e6e0022c059dfd")),  # noqa: E501
