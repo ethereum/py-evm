@@ -9,3 +9,4 @@ This section aims to provide hands-on guides to demonstrate how to use Trinity. 
    :caption: Guides
 
    quickstart
+   architecture
