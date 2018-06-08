@@ -43,6 +43,10 @@ deps = {
         # required for rlp>=1.0.0
         "eth-account>=0.2.1,<1",
     ],
+    'sharding': [
+        "eth-tester==0.1.0-beta.26",
+        "sharding==0.0.2a2",
+    ],
     'test': [
         "hypothesis==3.44.26",
         "pytest~=3.2",
@@ -76,6 +80,7 @@ deps['dev'] = (
     deps['evm-extra'] +
     deps['p2p'] +
     deps['trinity'] +
+    deps['sharding'] +
     deps['test'] +
     deps['doc'] +
     deps['lint']
