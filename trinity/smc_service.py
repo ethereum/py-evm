@@ -13,15 +13,12 @@ from evm.rlp.headers import (
     CollationHeader,
 )
 
-from evm.exceptions import (
-    ValidationError,
-)
 from eth_typing import (
     Address,
     Hash32,
 )
 from eth_utils import (
-    to_checksum_address,
+    to_canonical_address,
 )
 from eth_keys import (
     datatypes,
@@ -49,8 +46,15 @@ from sharding.handler.shard_tracker import (
 )
 
 
-class SMCService(BaseService):
+ShardSubscription = collections.namedtuple("ShardSubscription", [
+    "shard_id",
+    "added_header_queue",
+])
 
+SubscriptionsDictType = DefaultDict[int, List[ShardSubscription]]
+
+
+class SMCService(BaseService):
     polling_interval = 1
 
     def __init__(self,
@@ -75,11 +79,10 @@ class SMCService(BaseService):
 
         self._log_handler = LogHandler(self.w3, self.sharding_config["PERIOD_LENGTH"])
 
+        self._latest_complete_period = -1  # not even period 0 is complete yet
+
         self._shard_trackers: Dict[int, ShardTracker] = {}
-        self._added_header_queues: DefaultDict[
-            int,
-            List[asyncio.Queue[CollationHeader]]
-        ] = collections.defaultdict(list)
+        self._subscriptions: SubscriptionsDictType = collections.defaultdict(list)
 
         self._processed_header_hashes: Set[Hash32] = set()
 
@@ -87,32 +90,35 @@ class SMCService(BaseService):
     def add_header_gas_price(self) -> int:
         return 11 * 1000 * 1000 * 1000
 
-    def start_watching_shard(self, key: Any, shard_id: int) -> "asyncio.Queue[CollationHeader]":
-        if key in self._added_header_queues[shard_id]:
-            raise ValueError("{} is already watching shard {}".format(key, shard_id))
-
+    def subscribe(self, shard_id: int) -> ShardSubscription:
         if shard_id not in self._shard_trackers:
-            self.logger.debug("{} starts watching shard {}".format(key, shard_id))
+            if len(self._subscriptions[shard_id]) > 0:
+                raise Exception("Invariant: No shard tracker => no subscribers")
+
+            self.logger.info("Start watching shard %d", shard_id)
             shard_tracker = ShardTracker(
                 self.sharding_config,
                 shard_id,
                 self._log_handler,
-                self.smc_address
+                self.smc_address,
             )
             self._shard_trackers[shard_id] = shard_tracker
+        else:
+            if len(self._subscriptions[shard_id]) == 0:
+                raise Exception("Invariant: Shard tracker => subscribers")
 
-        queue: asyncio.Queue[CollationHeader] = asyncio.Queue()
-        self._added_header_queues[shard_id][key] = queue
-        return queue
+        subscription = ShardSubscription(
+            shard_id=shard_id,
+            added_header_queue=asyncio.Queue(),
+        )
+        self._subscriptions[shard_id].append(subscription)
+        return subscription
 
-    def stop_watching_shard(self, key: Any, shard_id: int) -> None:
-        if key not in self._added_header_queues[shard_id]:
-            raise ValueError("{} is not watching shard {}".format(key, shard_id))
-
-        self.logger.debug("{} stops watching shard {}".format(key, shard_id))
-        self._added_header_queues[shard_id].pop(key)
-        if len(self._added_header_queues[shard_id]) == 0:
-            self._shard_trackers.pop(shard_id)
+    def unsubscribe(self, subscription: ShardSubscription) -> None:
+        self._subscriptions[subscription.shard_id].remove(subscription)
+        if len(self._subscriptions[subscription.shard_id]) == 0:
+            self.logger.info("Stop watching shard %d", subscription.shard_id)
+            self._shard_trackers.pop(subscription.shard_id)
 
     async def _run(self) -> None:
         while True:
@@ -121,14 +127,19 @@ class SMCService(BaseService):
 
     async def _check_logs(self) -> None:
         for shard_id, shard_tracker in self._shard_trackers.items():
-            added_header_logs = await shard_tracker.get_add_header_logs()
+            added_header_logs = shard_tracker.get_add_header_logs(
+                from_period=self._latest_complete_period + 1
+            )
+
             for log in added_header_logs:
-                proposer = self._smc_handler.get_collation_proposer(log.period, log.shard_id)
+                proposer = to_canonical_address(
+                    self._smc_handler.get_collation_proposer(log.shard_id, log.period)
+                )
                 header = CollationHeader(
                     shard_id=log.shard_id,
                     period=log.period,
                     chunk_root=log.chunk_root,
-                    propser_address=proposer,
+                    proposer_address=proposer,
                 )
 
                 if header.hash in self._processed_header_hashes:
@@ -136,30 +147,35 @@ class SMCService(BaseService):
 
                 self.logger.debug("Got AddHeader log for header %s", header)
                 self._processed_header_hashes.add(header.hash)
-                for added_header_queue in self._added_header_queues[shard_id]:
-                    await self.wait(added_header_queue.put(header))
+                for subscription in self._subscriptions[shard_id]:
+                    await subscription.added_header_queue.put(header)
+
+        self._latest_complete_period = self.current_period - 1
 
     async def _cleanup(self) -> None:
         pass
 
-    def add_header(self, collation_header: CollationHeader) -> None:
+    def add_header(self, shard_id: int, chunk_root: bytes) -> None:
         if self.private_key is None:
             raise ValueError("No private key has been configured")
 
         address = self.private_key.public_key.to_canonical_address()
-        if collation_header.proposer_address != address:
-            raise ValidationError(
-                "Collation proposer address {} is different from our address {}".format(
-                    to_checksum_address(collation_header.proposer_address),
-                    to_checksum_address(address),
-                )
-            )
+        header = CollationHeader(
+            shard_id=shard_id,
+            period=self.current_period,
+            chunk_root=chunk_root,
+            proposer_address=address,
+        )
 
-        self.logger.info("Sending tx to add header %s", collation_header)
-        self._smc_handler.add_header(
-            period=collation_header.period,
-            shard_id=collation_header.shard_id,
-            chunk_root=collation_header.chunk_root,
+        tx_hash = self._smc_handler.add_header(
+            period=header.period,
+            shard_id=header.shard_id,
+            chunk_root=header.chunk_root,
             private_key=self.private_key,
             gas_price=self.add_header_gas_price,
         )
+        self.logger.info("Sent tx with hash %s to add header %s", tx_hash, header)
+
+    @property
+    def current_period(self) -> int:
+        return self.w3.eth.blockNumber // self.sharding_config["PERIOD_LENGTH"]
