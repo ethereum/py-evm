@@ -203,6 +203,11 @@ class BasePeer(BaseService):
         """
         await self.send_sub_proto_handshake()
         cmd, msg = await self.read_msg()
+        if isinstance(cmd, Ping):
+            # Parity sends a Ping before the sub-proto handshake, so respond to that and read the
+            # next one, which hopefully will be the actual handshake.
+            self.base_protocol.send_pong()
+            cmd, msg = await self.read_msg()
         if isinstance(cmd, Disconnect):
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
@@ -785,6 +790,10 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
     ROPSTEN_NETWORK_ID: (
         Node(keys.PublicKey(decode_hex("053d2f57829e5785d10697fa6c5333e4d98cc564dbadd87805fd4fedeb09cbcb642306e3a73bd4191b27f821fb442fcf964317d6a520b29651e7dd09d1beb0ec")),  # noqa: E501
              Address("79.98.29.154", 30303, 30303)),
+        Node(keys.PublicKey(decode_hex("94c15d1b9e2fe7ce56e458b9a3b672ef11894ddedd0c6f247e0f1d3487f52b66208fb4aeb8179fce6e3a749ea93ed147c37976d67af557508d199d9594c35f09")),  # noqa: E501
+             Address("192.81.208.223", 30303, 30303)),
+        Node(keys.PublicKey(decode_hex("865a63255b3bb68023b6bffd5095118fcc13e79dcf014fe4e47e065c350c7cc72af2e53eff895f11ba1bbb6a2b33271c1116ee870f266618eadfc2e78aa7349c")),  # noqa: E501
+             Address("52.176.100.77", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("a147a3adde1daddc0d86f44f1a76404914e44cee018c26d49248142d4dc8a9fb0e7dd14b5153df7e60f23b037922ae1f33b8f318844ef8d2b0453b9ab614d70d")),  # noqa: E501
              Address("72.36.89.11", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("d8714127db3c10560a2463c557bbe509c99969078159c69f9ce4f71c2cd1837bcd33db3b9c3c3e88c971b4604bbffa390a0a7f53fc37f122e2e6e0022c059dfd")),  # noqa: E501
