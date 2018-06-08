@@ -176,4 +176,5 @@ texinfo_documents = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.5', None),
+    'eth-typing': ('https://eth-typing.readthedocs.io/en/latest', None),
 }
