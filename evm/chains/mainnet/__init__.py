@@ -1,15 +1,21 @@
 from typing import Tuple, Type  # noqa: F401
-from eth_utils import decode_hex
+
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+)
 
 from .constants import (
     BYZANTIUM_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
+    DAO_FORK_MAINNET_EXTRA_DATA,
 )
 from evm import constants
 
 from evm.chains.base import Chain
+from evm.exceptions import ValidationError
 from evm.rlp.headers import BlockHeader
 from evm.vm.base import BaseVM  # noqa: F401
 from evm.vm.forks import (
@@ -21,9 +27,37 @@ from evm.vm.forks import (
 )
 
 
+class MainnetDAOValidatorVM:
+
+    @classmethod
+    def validate_header(cls, header, previous_header):
+        # ignore mypy warnings, because super's validate_header is defined by mixing w/ other class
+        super().validate_header(header, previous_header)  # type: ignore
+
+        # Only on mainnet, TheDAO fork is accompanied by special extra data
+        if cls.support_dao_fork:
+
+            # The special extra_data is set on the ten headers starting at the fork
+            extra_data_block_nums = range(cls.dao_fork_block_number, cls.dao_fork_block_number + 10)
+
+            if header.block_number in extra_data_block_nums:
+                if header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
+                    raise ValidationError(
+                        "Block {!r} must have extra data {} not {} when supporting DAO fork".format(
+                            header,
+                            encode_hex(DAO_FORK_MAINNET_EXTRA_DATA),
+                            encode_hex(header.extra_data),
+                        )
+                    )
+
+
+class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):
+    pass
+
+
 MAINNET_VM_CONFIGURATION = (
     (0, FrontierVM),
-    (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+    (HOMESTEAD_MAINNET_BLOCK, MainnetHomesteadVM),
     (TANGERINE_WHISTLE_MAINNET_BLOCK, TangerineWhistleVM),
     (SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
@@ -34,7 +68,7 @@ MAINNET_NETWORK_ID = 1
 
 
 class BaseMainnetChain:
-    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
+    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
     network_id = MAINNET_NETWORK_ID  # type: int
 
 

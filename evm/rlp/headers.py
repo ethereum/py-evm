@@ -34,6 +34,7 @@ from evm.constants import (
     ZERO_HASH32,
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
+    GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
 )
 from evm.exceptions import (
@@ -231,6 +232,13 @@ class BlockHeader(rlp.Serializable):
             gas_limit=self.gas_limit,
             prev_hashes=prev_hashes,
         )
+
+    @property
+    def is_genesis(self) -> bool:
+        # if removing the block_number == 0 test, consider the validation consequences.
+        # validate_header stops trying to check the current header against a parent header.
+        # Can someone trick us into following a high difficulty header with genesis parent hash?
+        return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
 
 class CollationHeader(rlp.Serializable):

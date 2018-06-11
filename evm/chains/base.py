@@ -606,11 +606,13 @@ class Chain(BaseChain):
         """
         Performs validation on a block that is either being mined or imported.
 
-        Since block validation (specifically the uncle validation must have
+        Since block validation (specifically the uncle validation) must have
         access to the ancestor blocks, this validation must occur at the Chain
         level.
         """
-        self.validate_seal(block.header)
+        VM = self.get_vm_class_for_block_number(BlockNumber(block.number))
+        parent_block = self.get_block_by_hash(block.header.parent_hash)
+        VM.validate_header(block.header, parent_block.header)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -618,8 +620,8 @@ class Chain(BaseChain):
         """
         Validate the seal on the given header.
         """
-        vm = self.get_vm()
-        vm.validate_seal(header)
+        VM = self.get_vm_class_for_block_number(BlockNumber(header.block_number))
+        VM.validate_seal(header)
 
     def validate_gaslimit(self, header: BlockHeader) -> None:
         """

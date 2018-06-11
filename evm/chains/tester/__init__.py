@@ -143,7 +143,8 @@ class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
     It exposes one additional API `configure_forks` to allow for in-flight
     configuration of fork rules.
     """
-    def validate_seal(self, block):
+    @classmethod
+    def validate_seal(cls, block):
         """
         We don't validate the proof of work seal on the tester chain.
         """

@@ -75,7 +75,9 @@ class LightNode(Node):
 
     def get_p2p_server(self) -> LightPeerChain:
         if self._p2p_server is None:
-            self._p2p_server = LightPeerChain(self.headerdb, self._peer_pool)
+            if self.chain_class is None:
+                raise AttributeError("LightNode subclass must set chain_class")
+            self._p2p_server = LightPeerChain(self.headerdb, self._peer_pool, self.chain_class)
         return self._p2p_server
 
     def _create_peer_pool(self, chain_config: ChainConfig) -> PeerPool:
