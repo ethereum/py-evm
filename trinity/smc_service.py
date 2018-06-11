@@ -19,6 +19,7 @@ from eth_typing import (
 )
 from eth_utils import (
     to_canonical_address,
+    denoms,
 )
 from eth_keys import (
     datatypes,
@@ -35,14 +36,10 @@ from web3 import (
     Web3,
 )
 
-from sharding.handler.smc_handler import (
-    SMCHandler,
-)
-from sharding.handler.log_handler import (
+from sharding import (
     LogHandler,
-)
-from sharding.handler.shard_tracker import (
     ShardTracker,
+    SMCHandler,
 )
 
 
@@ -52,6 +49,9 @@ ShardSubscription = collections.namedtuple("ShardSubscription", [
 ])
 
 SubscriptionsDictType = DefaultDict[int, List[ShardSubscription]]
+
+
+ADD_HEADER_GAS_PRICE = 11 * denoms.gwei
 
 
 class SMCService(BaseService):
@@ -88,7 +88,7 @@ class SMCService(BaseService):
 
     @property
     def add_header_gas_price(self) -> int:
-        return 11 * 1000 * 1000 * 1000
+        return ADD_HEADER_GAS_PRICE
 
     def subscribe(self, shard_id: int) -> ShardSubscription:
         if shard_id not in self._shard_trackers:
