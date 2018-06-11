@@ -609,6 +609,8 @@ class Chain(BaseChain):
         Since block validation (specifically the uncle validation) must have
         access to the ancestor blocks, this validation must occur at the Chain
         level.
+
+        Cannot be used to validate genesis block.
         """
         VM = self.get_vm_class_for_block_number(BlockNumber(block.number))
         parent_block = self.get_block_by_hash(block.header.parent_hash)

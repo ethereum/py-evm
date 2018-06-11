@@ -257,13 +257,19 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     async def _validate_header(self, header):
         if header.is_genesis:
-            parent_header = None
+            genesis_header = await self.headerdb.coro_get_canonical_block_header_by_number(0)
+            if header != genesis_header:
+                raise ValidationError("Peer's genesis header {} doesn't match ours {}".format(
+                    header,
+                    genesis_header,
+                ))
         else:
             async_header = self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
             parent_header = await self.wait(async_header)
-        VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
-        # TODO push validation into process pool executor
-        VM.validate_header(header, parent_header)
+
+            VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
+            # TODO push validation into process pool executor
+            VM.validate_header(header, parent_header)
 
     async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
