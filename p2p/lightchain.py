@@ -49,9 +49,6 @@ from p2p.exceptions import (
 from p2p import les
 from p2p import protocol
 from p2p.constants import REPLY_TIMEOUT
-from p2p.p2p_proto import (
-    DisconnectReason,
-)
 from p2p.peer import (
     BasePeer,
     LESPeer,
@@ -224,7 +221,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             return
 
         start_block = await self.get_sync_start_block(peer, head_info)
-        while start_block < head_info.block_number and peer.connected:
+        while start_block < head_info.block_number:
             try:
                 # We should use "start_block + 1" here, but we always re-fetch the last synced
                 # block to work around https://github.com/ethereum/go-ethereum/issues/15447
@@ -232,9 +229,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             except TooManyTimeouts:
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
-            new_tip = await self._import_headers_from_peer(batch, peer)
-            if new_tip is not None:
-                start_block = new_tip
+            start_block = await self._import_headers_from_peer(batch, peer)
             self.logger.info("synced headers up to #%s", start_block)
 
     async def _import_headers_from_peer(self, headers, peer):
@@ -246,15 +241,11 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             try:
                 await self._validate_header(header)
             except ValidationError as exc:
-                self.logger.info(
-                    "Dropping Peer %s for sending invalid header %s: %s",
+                raise LESAnnouncementProcessingError("Peer {} sent invalid header {}: {}".format(
                     peer,
                     header,
                     exc,
-                )
-                # TODO self.peer_pool.blacklist_peer(peer)
-                peer.disconnect(DisconnectReason.bad_protocol)
-                break
+                ))
             else:
                 await self.headerdb.coro_persist_header(header)
                 new_tip = header.block_number
@@ -264,21 +255,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         if header.is_genesis:
             parent_header = None
         else:
-            parent_header = await self._get_parent_header(header)
+            parent_header = await self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
         VM = self.Chain.get_vm_class_for_block_number(header.block_number)
         # TODO push validation into process pool executor
         VM.validate_header(header, parent_header)
-
-    async def _get_parent_header(self, header):
-        parent_hash = header.parent_hash
-        # TODO extract 500 to constant
-        for attempt in range(500):
-            try:
-                return await self.headerdb.coro_get_block_header_by_hash(parent_hash)
-            except KeyError:
-                self.wait(asyncio.sleep(0.05))
-        else:
-            raise TimeoutError("Could not get parent header for validation, after {} attempts", 500)
 
     async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
@@ -377,7 +357,9 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             self, peer: LESPeer, start_block: int) -> List[BlockHeader]:
         """Fetches up to self.max_headers_fetch starting at start_block.
 
-        Returns a list containing those headers in ascending order of block number.
+        :return: a list containing those headers in ascending order of block number.
+
+        :raise EmptyGetBlockHeadersReply: if no headers are returned
         """
         request_id = gen_request_id()
         peer.sub_proto.send_get_block_headers(

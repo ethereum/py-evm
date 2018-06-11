@@ -283,10 +283,6 @@ class BasePeer(BaseService):
         self.reader.feed_eof()
         self.writer.close()
 
-    @property
-    def connected(self):
-        return not self.reader.at_eof()
-
     async def _cleanup(self):
         self.close()
 
