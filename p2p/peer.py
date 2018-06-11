@@ -354,7 +354,7 @@ class BasePeer(BaseService):
     def process_p2p_handshake(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.bad_protocol)
             raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
         remote_capabilities = msg['capabilities']
         try:
@@ -479,18 +479,18 @@ class LESPeer(BasePeer):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, (les.Status, les.StatusV2)):
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(
                 "Expected a LES Status msg, got {}, disconnecting".format(cmd))
         msg = cast(Dict[str, Any], msg)
         if msg['networkId'] != self.network_id:
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['networkId'], self.network_id))
         genesis = await self.genesis
         if msg['genesisHash'] != genesis.hash:
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
@@ -510,18 +510,18 @@ class ETHPeer(BasePeer):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, eth.Status):
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(
                 "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
         msg = cast(Dict[str, Any], msg)
         if msg['network_id'] != self.network_id:
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['network_id'], self.network_id))
         genesis = await self.genesis
         if msg['genesis_hash'] != genesis.hash:
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
