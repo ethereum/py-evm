@@ -52,7 +52,8 @@ async def handshake(
     Returns the established secrets and the StreamReader/StreamWriter pair already connected to
     the remote.
     """
-    initiator = HandshakeInitiator(remote, privkey, token)
+    use_eip8 = False
+    initiator = HandshakeInitiator(remote, privkey, use_eip8, token)
     reader, writer = await initiator.connect()
     aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
         initiator, reader, writer, token)
@@ -91,14 +92,15 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
 
 class HandshakeBase:
     logger = logging.getLogger("p2p.peer.Handshake")
-    got_eip8_auth = False
     _is_initiator = False
 
     def __init__(
-            self, remote: kademlia.Node, privkey: datatypes.PrivateKey, token: CancelToken) -> None:
+            self, remote: kademlia.Node, privkey: datatypes.PrivateKey,
+            use_eip8: bool, token: CancelToken) -> None:
         self.remote = remote
         self.privkey = privkey
         self.ephemeral_privkey = ecies.generate_privkey()
+        self.use_eip8 = use_eip8
         self.cancel_token = token
 
     @property
@@ -159,23 +161,34 @@ class HandshakeInitiator(HandshakeBase):
     _is_initiator = True
 
     def encrypt_auth_message(self, auth_message: bytes) -> bytes:
-        return ecies.encrypt(auth_message, self.remote.pubkey)
+        if self.use_eip8:
+            auth_msg = encrypt_eip8_msg(auth_message, self.remote.pubkey)
+        else:
+            auth_msg = ecies.encrypt(auth_message, self.remote.pubkey)
+        return auth_msg
 
     def create_auth_message(self, nonce: bytes) -> bytes:
         ecdh_shared_secret = ecies.ecdh_agree(self.privkey, self.remote.pubkey)
         secret_xor_nonce = sxor(ecdh_shared_secret, nonce)
-
-        # S(ephemeral-privk, ecdh-shared-secret ^ nonce)
         S = self.ephemeral_privkey.sign_msg_hash(secret_xor_nonce).to_bytes()
 
-        # S || H(ephemeral-pubk) || pubk || nonce || 0x0
-        return (
-            S +
-            keccak(self.ephemeral_pubkey.to_bytes()) +
-            self.pubkey.to_bytes() +
-            nonce +
-            b'\x00'
-        )
+        if self.use_eip8:
+            data = rlp.encode(
+                [S, self.pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION], sedes=eip8_auth_sedes)
+            # Pad with random amount of data, as per
+            # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
+            # "Adding a random amount in range [100, 300] is recommended to vary the size of the
+            # packet"
+            return data + os.urandom(random.randint(100, 300))
+        else:
+            # S || H(ephemeral-pubk) || pubk || nonce || 0x0
+            return (
+                S +
+                keccak(self.ephemeral_pubkey.to_bytes()) +
+                self.pubkey.to_bytes() +
+                nonce +
+                b'\x00'
+            )
 
     def decode_auth_ack_message(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
@@ -184,20 +197,21 @@ class HandshakeInitiator(HandshakeBase):
             eph_pubkey, nonce, _ = decode_ack_plain(ciphertext, self.privkey)
         else:
             eph_pubkey, nonce, _ = decode_ack_eip8(ciphertext, self.privkey)
-            self.got_eip8_auth = True
         return eph_pubkey, nonce
 
 
 class HandshakeResponder(HandshakeBase):
 
     def create_auth_ack_message(self, nonce: bytes) -> bytes:
-        if self.got_eip8_auth:
+        if self.use_eip8:
             data = rlp.encode(
                 (self.ephemeral_pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION),
                 sedes=eip8_ack_sedes)
-            # Pad with random amount of data. The amount needs to be at least 100 bytes to make
-            # the message distinguishable from pre-EIP-8 handshakes.
-            msg = data + os.urandom(random.randint(100, 250))
+            # Pad with random amount of data, as per
+            # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
+            # "Adding a random amount in range [100, 300] is recommended to vary the size of the
+            # packet"
+            msg = data + os.urandom(random.randint(100, 300))
         else:
             # Unused, according to EIP-8, but must be included nevertheless.
             token_flag = b'\x00'
@@ -205,12 +219,8 @@ class HandshakeResponder(HandshakeBase):
         return msg
 
     def encrypt_auth_ack_message(self, ack_message: bytes) -> bytes:
-        if self.got_eip8_auth:
-            # The EIP-8 version has an authenticated length prefix.
-            prefix = struct.pack('>H', len(ack_message) + ENCRYPT_OVERHEAD_LENGTH)
-            suffix = ecies.encrypt(
-                ack_message, self.remote.pubkey, shared_mac_data=prefix)
-            auth_ack = prefix + suffix
+        if self.use_eip8:
+            auth_ack = encrypt_eip8_msg(ack_message, self.remote.pubkey)
         else:
             auth_ack = ecies.encrypt(ack_message, self.remote.pubkey)
         return auth_ack
@@ -229,6 +239,12 @@ eip8_auth_sedes = sedes.List(
         sedes.Binary(min_length=32, max_length=32),  # nonce
         sedes.BigEndianInt()                         # version
     ], strict=False)
+
+
+def encrypt_eip8_msg(msg: bytes, pubkey: datatypes.PublicKey) -> bytes:
+    prefix = struct.pack('>H', len(msg) + ENCRYPT_OVERHEAD_LENGTH)
+    suffix = ecies.encrypt(msg, pubkey, shared_mac_data=prefix)
+    return prefix + suffix
 
 
 def decode_ack_plain(

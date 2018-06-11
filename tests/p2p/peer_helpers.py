@@ -53,7 +53,8 @@ async def get_directly_linked_peers_without_handshake(
         peer2_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
     peer2_remote = kademlia.Node(
         peer1_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
-    initiator = auth.HandshakeInitiator(peer1_remote, peer1_private_key, cancel_token)
+    use_eip8 = False
+    initiator = auth.HandshakeInitiator(peer1_remote, peer1_private_key, use_eip8, cancel_token)
     peer2_reader = asyncio.StreamReader()
     peer1_reader = asyncio.StreamReader()
     # Link the peer1's writer to the peer2's reader, and the peer2's writer to the
@@ -79,7 +80,8 @@ async def get_directly_linked_peers_without_handshake(
 
     asyncio.ensure_future(do_handshake())
 
-    responder = auth.HandshakeResponder(peer2_remote, peer2_private_key, cancel_token)
+    use_eip8 = False
+    responder = auth.HandshakeResponder(peer2_remote, peer2_private_key, use_eip8, cancel_token)
     auth_cipher = await peer2_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
 
     initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(
