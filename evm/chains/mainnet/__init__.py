@@ -28,27 +28,32 @@ from evm.vm.forks import (
 
 
 class MainnetDAOValidatorVM:
+    """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
 
     @classmethod
     def validate_header(cls, header, previous_header):
         # ignore mypy warnings, because super's validate_header is defined by mixing w/ other class
         super().validate_header(header, previous_header)  # type: ignore
 
-        # Only on mainnet, TheDAO fork is accompanied by special extra data
-        if cls.support_dao_fork:
+        # The special extra_data is set on the ten headers starting at the fork
+        extra_data_block_nums = range(cls.dao_fork_block_number, cls.dao_fork_block_number + 10)
 
-            # The special extra_data is set on the ten headers starting at the fork
-            extra_data_block_nums = range(cls.dao_fork_block_number, cls.dao_fork_block_number + 10)
-
-            if header.block_number in extra_data_block_nums:
-                if header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
-                    raise ValidationError(
-                        "Block {!r} must have extra data {} not {} when supporting DAO fork".format(
-                            header,
-                            encode_hex(DAO_FORK_MAINNET_EXTRA_DATA),
-                            encode_hex(header.extra_data),
-                        )
+        if header.block_number in extra_data_block_nums:
+            if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
+                raise ValidationError(
+                    "Block {!r} must have extra data {} not {} when supporting DAO fork".format(
+                        header,
+                        encode_hex(DAO_FORK_MAINNET_EXTRA_DATA),
+                        encode_hex(header.extra_data),
                     )
+                )
+            elif not cls.support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
+                raise ValidationError(
+                    "Block {!r} must not have extra data {} when declining the DAO fork".format(
+                        header,
+                        encode_hex(DAO_FORK_MAINNET_EXTRA_DATA),
+                    )
+                )
 
 
 class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):

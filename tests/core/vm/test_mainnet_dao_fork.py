@@ -273,9 +273,12 @@ def header_pairs(VM, headers, valid):
     'VM, header, previous_header, valid',
     header_pairs(MainnetHomesteadVM, ETH_HEADERS_NEAR_FORK, valid=True) + (
         (MainnetHomesteadVM, ETC_HEADER_AT_FORK, ETH_HEADERS_NEAR_FORK[1], False),
+        # ETC VM should accept the header right before the DAO fork
+        (ETC_VM, ETH_HEADERS_NEAR_FORK[1], ETH_HEADERS_NEAR_FORK[0], True),
+        # ... and accept its own non-fork header at the fork block
         (ETC_VM, ETC_HEADER_AT_FORK, ETH_HEADERS_NEAR_FORK[1], True),
-        # This block is not valid on ETC chain, but header-only validation cannot confirm that:
-        (ETC_VM, ETH_HEADERS_NEAR_FORK[2], ETH_HEADERS_NEAR_FORK[1], True),
+        # ... and reject the DAO-fork header at the fork
+        (ETC_VM, ETH_HEADERS_NEAR_FORK[2], ETH_HEADERS_NEAR_FORK[1], False),
     ),
 )
 def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
