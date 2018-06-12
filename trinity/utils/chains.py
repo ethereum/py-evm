@@ -57,7 +57,7 @@ LOG_FILENAME = 'trinity.log'
 
 def get_logfile_path(data_dir: Path) -> Path:
     """
-    Returns the path to the log files.
+    Return the path to the log file.
     """
     return data_dir / LOG_DIRNAME / LOG_FILENAME
 

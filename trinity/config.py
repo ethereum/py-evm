@@ -106,13 +106,20 @@ class ChainConfig:
     @property
     def logfile_path(self) -> Path:
         """
-        The logfile_path is the base directory where all log files are stored.
+        Return the path to the log file.
         """
         return self._logfile_path
 
     @logfile_path.setter
     def logfile_path(self, value: Path) -> None:
         self._logfile_path = value
+
+    @property
+    def logdir_path(self) -> Path:
+        """
+        Return the path of the directory where all log files are stored.
+        """
+        return self.logfile_path.parent
 
     @property
     def data_dir(self) -> Path:
