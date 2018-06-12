@@ -18,6 +18,7 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     Type,
+    Union,
 )
 
 import sha3
@@ -185,6 +186,11 @@ class BasePeer(BaseService):
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
 
+    @property
+    @abstractmethod
+    def max_headers_fetch(self) -> int:
+        raise NotImplementedError("Must be implemented by subclasses")
+
     @abstractmethod
     async def send_sub_proto_handshake(self) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
@@ -227,6 +233,11 @@ class BasePeer(BaseService):
 
         Must raise HeaderNotFound if the peer doesn't have them.
         """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @abstractmethod
+    def request_block_headers(self, block_number_or_hash: Union[int, bytes],
+                              max_headers: int, reverse: bool = True) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
@@ -515,11 +526,21 @@ class BasePeer(BaseService):
 
 
 class LESPeer(BasePeer):
-    max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
     sub_proto: les.LESProtocol = None
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: les.HeadInfo = None
+
+    @property
+    def max_headers_fetch(self) -> int:
+        return les.MAX_HEADERS_FETCH
+
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+        if isinstance(cmd, les.Announce):
+            self.head_info = cmd.as_head_info(msg)
+            self.head_td = self.head_info.total_difficulty
+            self.head_hash = self.head_info.block_hash
+        super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
         self.sub_proto.send_handshake(await self._local_chain_info)
@@ -546,6 +567,12 @@ class LESPeer(BasePeer):
         self.head_info = cmd.as_head_info(msg)
         self.head_td = self.head_info.total_difficulty
         self.head_hash = self.head_info.block_hash
+
+    def request_block_headers(self, block_number_or_hash: Union[int, bytes],
+                              max_headers: int, reverse: bool = True) -> None:
+        request_id = gen_request_id()
+        self.sub_proto.send_get_block_headers(
+            block_number_or_hash, max_headers, request_id, reverse)
 
     async def _get_headers_at_chain_split(
             self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
@@ -591,6 +618,21 @@ class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto: eth.ETHProtocol = None
 
+    @property
+    def max_headers_fetch(self) -> int:
+        return eth.MAX_HEADERS_FETCH
+
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+        if isinstance(cmd, eth.NewBlock):
+            msg = cast(Dict[str, Any], msg)
+            header, _, _ = msg['block']
+            actual_head = header.parent_hash
+            actual_td = msg['total_difficulty'] - header.difficulty
+            if actual_td > self.head_td:
+                self.head_hash = actual_head
+                self.head_td = actual_td
+        super().handle_sub_proto_msg(cmd, msg)
+
     async def send_sub_proto_handshake(self) -> None:
         self.sub_proto.send_handshake(await self._local_chain_info)
 
@@ -614,6 +656,10 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
+
+    def request_block_headers(self, block_number_or_hash: Union[int, bytes],
+                              max_headers: int, reverse: bool = True) -> None:
+        self.sub_proto.send_get_block_headers(block_number_or_hash, max_headers, reverse)
 
     async def _get_headers_at_chain_split(
             self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
