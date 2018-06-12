@@ -175,11 +175,7 @@ class HandshakeInitiator(HandshakeBase):
         if self.use_eip8:
             data = rlp.encode(
                 [S, self.pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION], sedes=eip8_auth_sedes)
-            # Pad with random amount of data, as per
-            # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
-            # "Adding a random amount in range [100, 300] is recommended to vary the size of the
-            # packet"
-            return data + os.urandom(random.randint(100, 300))
+            return _pad_eip8_data(data)
         else:
             # S || H(ephemeral-pubk) || pubk || nonce || 0x0
             return (
@@ -207,11 +203,7 @@ class HandshakeResponder(HandshakeBase):
             data = rlp.encode(
                 (self.ephemeral_pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION),
                 sedes=eip8_ack_sedes)
-            # Pad with random amount of data, as per
-            # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
-            # "Adding a random amount in range [100, 300] is recommended to vary the size of the
-            # packet"
-            msg = data + os.urandom(random.randint(100, 300))
+            msg = _pad_eip8_data(data)
         else:
             # Unused, according to EIP-8, but must be included nevertheless.
             token_flag = b'\x00'
@@ -240,6 +232,12 @@ eip8_auth_sedes = sedes.List(
         sedes.BigEndianInt()                         # version
     ], strict=False)
 
+def _pad_eip8_data(data: bytes) -> bytes:
+    # Pad with random amount of data, as per
+    # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
+    # "Adding a random amount in range [100, 300] is recommended to vary the size of the
+    # packet"
+    return data + os.urandom(random.randint(100, 300))
 
 def encrypt_eip8_msg(msg: bytes, pubkey: datatypes.PublicKey) -> bytes:
     prefix = struct.pack('>H', len(msg) + ENCRYPT_OVERHEAD_LENGTH)
