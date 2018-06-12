@@ -211,9 +211,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             except EmptyGetBlockHeadersReply:
                 raise LESAnnouncementProcessingError(
                     "No common ancestors found between us and {}".format(peer))
-            except TooManyTimeouts:
-                self.logger.debug("Too many timeouts when getting common ancestors from %s", peer)
-                raise
             for header in headers:
                 await self.headerdb.coro_persist_header(header)
             start_block = chain_head.block_number
@@ -232,13 +229,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
         start_block = await self.get_sync_start_block(peer, head_info)
         while start_block < head_info.block_number:
-            try:
-                # We should use "start_block + 1" here, but we always re-fetch the last synced
-                # block to work around https://github.com/ethereum/go-ethereum/issues/15447
-                batch = await self.fetch_headers(start_block, peer)
-            except TooManyTimeouts:
-                self.logger.debug("Too many timeouts when fetching headers from %s", peer)
-                raise
+            # We should use "start_block + 1" here, but we always re-fetch the last synced
+            # block to work around https://github.com/ethereum/go-ethereum/issues/15447
+            batch = await self.fetch_headers(start_block, peer)
+
             start_block = await self._import_headers_from_peer(batch, peer)
             self.logger.info("synced headers up to #%s", start_block)
 
