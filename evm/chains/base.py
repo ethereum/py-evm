@@ -612,6 +612,8 @@ class Chain(BaseChain):
 
         Cannot be used to validate genesis block.
         """
+        if block.is_genesis:
+            raise ValidationError("Cannot validate genesis block this way")
         VM = self.get_vm_class_for_block_number(BlockNumber(block.number))
         parent_block = self.get_block_by_hash(block.header.parent_hash)
         VM.validate_header(block.header, parent_block.header)
