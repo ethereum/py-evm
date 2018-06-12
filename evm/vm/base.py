@@ -636,10 +636,10 @@ class VM(BaseVM):
             )
 
         if block.is_genesis:
-            parent_header = None
+            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
         else:
             parent_header = get_parent_header(block.header, self.chaindb)
-        self.validate_header(block.header, parent_header)
+            self.validate_header(block.header, parent_header)
 
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
@@ -678,44 +678,27 @@ class VM(BaseVM):
         """
         :raise evm.exceptions.ValidationError: if the header is not valid
         """
-        validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
-
-        # Some validations are different for the genesis block
-        if header.is_genesis:
-            if parent_header is None:
-                # TODO validate a variety of things about the genesis block, like a matching:
-                # - mix_hash
-                # - difficulty
-                # - timestamp
-                # - coinbase
-                # - extra_data
-                # - gas_limit
-                pass
-            else:
-                raise ValidationError("Must not set parent header when validating genesis block")
+        if parent_header is None:
+            # to validate genesis header, check if it equals canonical header at block number 0
+            raise ValidationError("Must have access to parent header to validate current header")
         else:
-            if parent_header is None:
-                raise ValidationError("Must set parent header if block is not genesis block")
-            else:
-                cls._validate_post_genesis_header(header, parent_header)
+            validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
 
-    @classmethod
-    def _validate_post_genesis_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
-        validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+            validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
-        # timestamp
-        if header.timestamp <= parent_header.timestamp:
-            raise ValidationError(
-                "timestamp must be strictly later than parent, but is {} seconds before.\n"
-                "- child  : {}\n"
-                "- parent : {}. ".format(
-                    parent_header.timestamp - header.timestamp,
-                    header.timestamp,
-                    parent_header.timestamp,
+            # timestamp
+            if header.timestamp <= parent_header.timestamp:
+                raise ValidationError(
+                    "timestamp must be strictly later than parent, but is {} seconds before.\n"
+                    "- child  : {}\n"
+                    "- parent : {}. ".format(
+                        parent_header.timestamp - header.timestamp,
+                        header.timestamp,
+                        parent_header.timestamp,
+                    )
                 )
-            )
 
-        cls.validate_seal(header)
+            cls.validate_seal(header)
 
     @classmethod
     def validate_seal(cls, header: BlockHeader) -> None:

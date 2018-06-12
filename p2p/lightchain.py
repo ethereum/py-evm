@@ -181,6 +181,9 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 await self.drop_peer(peer)
 
     async def fetch_headers(self, start_block: int, peer: LESPeer) -> List[BlockHeader]:
+        if start_block == GENESIS_BLOCK_NUMBER:
+            raise ValidationError("Must not attempt to download genesis header")
+
         for i in range(self.max_consecutive_timeouts):
             try:
                 return await self._fetch_headers_starting_at(peer, start_block)
@@ -196,7 +199,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         chain_head = await self.wait(self.headerdb.coro_get_canonical_head())
         last_peer_announcement = self._last_processed_announcements.get(peer)
         if chain_head.block_number == GENESIS_BLOCK_NUMBER:
-            start_block = GENESIS_BLOCK_NUMBER
+            start_block = GENESIS_BLOCK_NUMBER + 1
         elif last_peer_announcement is None:
             # It's the first time we hear from this peer, need to figure out which headers to
             # get from it.  We can't simply fetch headers starting from our current head
@@ -205,7 +208,9 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             # making our canonical chain identical to the peer's up to
             # chain_head.block_number.
             oldest_ancestor_to_consider = max(
-                0, chain_head.block_number - peer.max_headers_fetch + 1)
+                GENESIS_BLOCK_NUMBER + 1,
+                chain_head.block_number - peer.max_headers_fetch + 1,
+            )
             try:
                 headers = await self.fetch_headers(oldest_ancestor_to_consider, peer)
             except EmptyGetBlockHeadersReply:
@@ -216,7 +221,9 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             start_block = chain_head.block_number
         else:
             start_block = last_peer_announcement.block_number - head_info.reorg_depth
-        return start_block
+
+        # The genesis block must already be formed before syncing, always start at next block
+        return max(start_block, GENESIS_BLOCK_NUMBER + 1)
 
     # TODO: Distribute requests among our peers, ensuring the selected peer has the info we want
     # and respecting the flow control rules.
@@ -257,13 +264,16 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     async def _validate_header(self, header):
         if header.is_genesis:
-            parent_header = None
+            raise ValidationError("Peer sent a genesis header {} that we didn't ask for".format(
+                header,
+            ))
         else:
             async_header = self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
             parent_header = await self.wait(async_header)
-        VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
-        # TODO push validation into process pool executor
-        VM.validate_header(header, parent_header)
+
+            VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
+            # TODO push validation into process pool executor
+            VM.validate_header(header, parent_header)
 
     async def _cleanup(self):
         self.logger.info("Stopping LightPeerChain...")
