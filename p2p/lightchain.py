@@ -169,7 +169,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 self._last_processed_announcements[peer] = head_info
             except OperationCancelled:
                 self.logger.debug("Asked to stop, breaking out of run() loop")
-                await self.disconnect_peer(peer, DisconnectReason.client_quitting)
                 break
             except LESAnnouncementProcessingError as e:
                 self.logger.warning(repr(e))
