@@ -602,9 +602,8 @@ class PeerPool(BaseService):
         self.add_peer(peer)
 
     def add_peer(self, peer):
-        self.logger.debug('Adding peer (%s) ...', str(peer))
+        self.logger.info('Adding peer: %s', peer)
         self.connected_nodes[peer.remote] = peer
-        self.logger.debug('Number of peers: %d', len(self.connected_nodes))
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber.msg_queue)
@@ -712,19 +711,14 @@ class PeerPool(BaseService):
 
     async def _connect_to_nodes(self, nodes: Generator[Node, None, None]) -> None:
         for node in nodes:
+            if self.is_full:
+                return
+
             # TODO: Consider changing connect() to raise an exception instead of returning None,
             # as discussed in
             # https://github.com/ethereum/py-evm/pull/139#discussion_r152067425
             peer = await self.connect(node)
-
-            if peer is None:
-                continue
-            elif self.is_full:
-                self.logger.debug("Peer pool is full: disconnecting from %s", peer)
-                peer.disconnect(DisconnectReason.too_many_peers)
-                break
-            else:
-                self.logger.info("Successfully connected to %s", peer)
+            if peer is not None:
                 self.start_peer(peer)
 
     def _peer_finished(self, peer: BaseService) -> None:

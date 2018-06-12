@@ -301,11 +301,13 @@ class Server(BaseService):
         ip, socket, *_ = writer.get_extra_info("peername")
         remote_address = Address(ip, socket)
         self.logger.debug("Receiving handshake from %s", remote_address)
+        got_eip8 = False
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
         except DecryptionError:
             # Try to decode as EIP8
+            got_eip8 = True
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
             msg += await self.wait(
@@ -318,13 +320,11 @@ class Server(BaseService):
                 self.logger.debug("Failed to decrypt handshake: %s", e)
                 return
 
-        # Create `HandshakeResponder(remote: kademlia.Node, privkey: datatypes.PrivateKey)` instance
         initiator_remote = Node(initiator_pubkey, remote_address)
-        responder = HandshakeResponder(initiator_remote, self.privkey, self.cancel_token)
+        responder = HandshakeResponder(initiator_remote, self.privkey, got_eip8, self.cancel_token)
 
-        # Call `HandshakeResponder.create_auth_ack_message(nonce: bytes)` to create the reply
         responder_nonce = secrets.token_bytes(HASH_LEN)
-        auth_ack_msg = responder.create_auth_ack_message(nonce=responder_nonce)
+        auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
         auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
 
         # Use the `writer` to send the reply to the remote
