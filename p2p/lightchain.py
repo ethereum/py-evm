@@ -183,7 +183,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         raise TooManyTimeouts()
 
     async def get_sync_start_block(self, peer: LESPeer, head_info: les.HeadInfo) -> int:
-        chain_head = await self.headerdb.coro_get_canonical_head()
+        chain_head = await self.wait(self.headerdb.coro_get_canonical_head())
         last_peer_announcement = self._last_processed_announcements.get(peer)
         if chain_head.block_number == GENESIS_BLOCK_NUMBER:
             start_block = GENESIS_BLOCK_NUMBER
@@ -205,7 +205,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 raise LESAnnouncementProcessingError(
                     "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
-                await self.headerdb.coro_persist_header(header)
+                await self.wait(self.headerdb.coro_persist_header(header))
             start_block = chain_head.block_number
         else:
             start_block = last_peer_announcement.block_number - head_info.reorg_depth
@@ -214,7 +214,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     # TODO: Distribute requests among our peers, ensuring the selected peer has the info we want
     # and respecting the flow control rules.
     async def process_announcement(self, peer: LESPeer, head_info: les.HeadInfo) -> None:
-        if await self.headerdb.coro_header_exists(head_info.block_hash):
+        if await self.wait(self.headerdb.coro_header_exists(head_info.block_hash)):
             self.logger.debug(
                 "Skipping processing of %s from %s as head has already been fetched",
                 head_info, peer)
@@ -247,7 +247,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                     exc,
                 ))
             else:
-                await self.headerdb.coro_persist_header(header)
+                await self.wait(self.headerdb.coro_persist_header(header))
                 new_tip = header.block_number
         return new_tip
 
@@ -255,7 +255,8 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         if header.is_genesis:
             parent_header = None
         else:
-            parent_header = await self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
+            async_header = self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
+            parent_header = await self.wait(async_header)
         VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
         # TODO push validation into process pool executor
         VM.validate_header(header, parent_header)
