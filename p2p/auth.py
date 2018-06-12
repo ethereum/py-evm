@@ -232,12 +232,14 @@ eip8_auth_sedes = sedes.List(
         sedes.BigEndianInt()                         # version
     ], strict=False)
 
+
 def _pad_eip8_data(data: bytes) -> bytes:
     # Pad with random amount of data, as per
     # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md:
     # "Adding a random amount in range [100, 300] is recommended to vary the size of the
     # packet"
     return data + os.urandom(random.randint(100, 300))
+
 
 def encrypt_eip8_msg(msg: bytes, pubkey: datatypes.PublicKey) -> bytes:
     prefix = struct.pack('>H', len(msg) + ENCRYPT_OVERHEAD_LENGTH)
