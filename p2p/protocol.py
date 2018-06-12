@@ -103,6 +103,11 @@ class Command:
 
         # Drop the first byte as, per the spec, frame_size must be a 3-byte int.
         header = struct.pack('>I', frame_size)[1:]
+        # All clients seem to ignore frame header data, so we do the same, although I'm not sure
+        # why geth uses the following value:
+        # https://github.com/ethereum/go-ethereum/blob/master/p2p/rlpx.go#L556
+        zero_header = b'\xc2\x80\x80'
+        header += zero_header
         header = _pad_to_16_byte_boundary(header)
 
         body = _pad_to_16_byte_boundary(enc_cmd_id + payload)

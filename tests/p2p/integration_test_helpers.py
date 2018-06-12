@@ -37,11 +37,13 @@ class LocalGethPeerPool(HardCodedNodesPeerPool):
         )
 
     def get_nodes_to_connect(self):
-        nodekey = keys.PrivateKey(decode_hex(
-            "45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"))
-        remoteid = nodekey.public_key.to_hex()
-        yield kademlia.Node(keys.PublicKey(decode_hex(remoteid)),
+        # local-geth's pubkey
+        # pubkey_hex = "3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3"  # noqa: E501
+        # local-parity's pubkey
+        pubkey_hex = "2b8d5ad2d96607d5b9e66ea93bcf26e106f8502d9dab855aaa31d94b8a9f17fec2659dbcfb8b752b641154368f079dcf85e402ea5699cfd205136417a06dc4e2"  # noqa: E501
+        yield kademlia.Node(keys.PublicKey(decode_hex(pubkey_hex)),
                             kademlia.Address('127.0.0.1', 30303, 30303))
+        return
 
 
 class FakeAsyncChainDB(AsyncChainDB):
