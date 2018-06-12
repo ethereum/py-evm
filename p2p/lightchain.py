@@ -75,14 +75,14 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             self,
             headerdb: 'BaseAsyncHeaderDB',
             peer_pool: PeerPool,
-            Chain: Type[BaseChain]) -> None:
+            chain_class: Type[BaseChain]) -> None:
         super().__init__()
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
         self._last_processed_announcements: Dict[LESPeer, les.HeadInfo] = {}
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
-        self.Chain = Chain
+        self.chain_class = chain_class
 
     def register_peer(self, peer: BasePeer) -> None:
         peer = cast(LESPeer, peer)
@@ -256,7 +256,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             parent_header = None
         else:
             parent_header = await self.headerdb.coro_get_block_header_by_hash(header.parent_hash)
-        VM = self.Chain.get_vm_class_for_block_number(header.block_number)
+        VM = self.chain_class.get_vm_class_for_block_number(header.block_number)
         # TODO push validation into process pool executor
         VM.validate_header(header, parent_header)
 
