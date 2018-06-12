@@ -51,7 +51,7 @@ class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
 
     @property
     def is_genesis(self) -> bool:
-        return self.number == 0
+        return self.header.is_genesis
 
     def __repr__(self) -> str:
         return '<{class_name}(#{b})>'.format(
