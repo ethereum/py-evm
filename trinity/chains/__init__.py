@@ -97,18 +97,18 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         )
 
     # Logfile
-    if (not chain_config.logfile_path.exists() and
-            is_under_xdg_trinity_root(chain_config.logfile_path)):
+    if (not chain_config.logdir_path.exists() and
+            is_under_xdg_trinity_root(chain_config.logdir_path)):
 
-        chain_config.logfile_path.parent.mkdir(parents=True, exist_ok=True)
+        chain_config.logdir_path.mkdir(parents=True, exist_ok=True)
         chain_config.logfile_path.touch()
-    elif not chain_config.logfile_path.exists():
+    elif not chain_config.logdir_path.exists():
         # we don't lazily create the base dir for non-default base directories.
         raise MissingPath(
             "The base logging directory provided does not exist: `{0}`".format(
-                chain_config.logfile_path,
+                chain_config.logdir_path,
             ),
-            chain_config.logfile_path
+            chain_config.logdir_path
         )
 
     # Chain data-dir
