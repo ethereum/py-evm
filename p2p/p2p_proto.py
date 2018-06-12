@@ -28,6 +28,7 @@ class Hello(Command):
 
 @enum.unique
 class DisconnectReason(enum.Enum):
+    """More details at https://github.com/ethereum/wiki/wiki/%C3%90%CE%9EVp2p-Wire-Protocol#p2p"""
     disconnect_requested = 0
     tcp_sub_system_error = 1
     bad_protocol = 2
@@ -40,8 +41,7 @@ class DisconnectReason(enum.Enum):
     unexpected_identity = 9
     connected_to_self = 10
     timeout = 11
-    subprotocol_error = 12
-    other = 16
+    subprotocol_error = 16
 
 
 class Disconnect(Command):

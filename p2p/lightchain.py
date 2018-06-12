@@ -49,6 +49,9 @@ from p2p.exceptions import (
 from p2p import les
 from p2p import protocol
 from p2p.constants import REPLY_TIMEOUT
+from p2p.p2p_proto import (
+    DisconnectReason,
+)
 from p2p.peer import (
     BasePeer,
     LESPeer,
@@ -87,6 +90,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     def register_peer(self, peer: BasePeer) -> None:
         peer = cast(LESPeer, peer)
         self._announcement_queue.put_nowait((peer, peer.head_info))
+
+    async def disconnect_peer(self, peer: LESPeer, reason: DisconnectReason) -> None:
+        peer.disconnect(reason)
+        await self.drop_peer(peer)
 
     async def drop_peer(self, peer: LESPeer) -> None:
         self._last_processed_announcements.pop(peer, None)
@@ -165,7 +172,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 break
             except LESAnnouncementProcessingError as e:
                 self.logger.warning(repr(e))
-                await self.drop_peer(peer)
+                await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
+            except TooManyTimeouts as e:
+                self.logger.warning(repr(e))
+                await self.disconnect_peer(peer, DisconnectReason.timeout)
             except Exception as e:
                 self.logger.exception("Unexpected error when processing announcement")
                 await self.drop_peer(peer)
@@ -201,9 +211,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             except EmptyGetBlockHeadersReply:
                 raise LESAnnouncementProcessingError(
                     "No common ancestors found between us and {}".format(peer))
-            except TooManyTimeouts:
-                raise LESAnnouncementProcessingError(
-                    "Too many timeouts when fetching headers from {}".format(peer))
             for header in headers:
                 await self.headerdb.coro_persist_header(header)
             start_block = chain_head.block_number
@@ -222,13 +229,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
         start_block = await self.get_sync_start_block(peer, head_info)
         while start_block < head_info.block_number:
-            try:
-                # We should use "start_block + 1" here, but we always re-fetch the last synced
-                # block to work around https://github.com/ethereum/go-ethereum/issues/15447
-                batch = await self.fetch_headers(start_block, peer)
-            except TooManyTimeouts:
-                raise LESAnnouncementProcessingError(
-                    "Too many timeouts when fetching headers from {}".format(peer))
+            # We should use "start_block + 1" here, but we always re-fetch the last synced
+            # block to work around https://github.com/ethereum/go-ethereum/issues/15447
+            batch = await self.fetch_headers(start_block, peer)
+
             start_block = await self._import_headers_from_peer(batch, peer)
             self.logger.info("synced headers up to #%s", start_block)
 

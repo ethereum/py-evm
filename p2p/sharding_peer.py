@@ -64,7 +64,7 @@ class ShardingPeer(BasePeer):
                                           cmd: Command,
                                           msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
-            self.disconnect(DisconnectReason.other)
+            self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure("Expected status msg, got {}, disconnecting".format(cmd))
 
     #
