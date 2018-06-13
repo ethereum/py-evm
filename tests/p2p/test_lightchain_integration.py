@@ -89,7 +89,7 @@ async def test_lightchain_integration(request, event_loop):
     # blocks, so we use the current head to lookup the code for the contract below.
     # https://ropsten.etherscan.io/address/0x95a48dca999c89e4e284930d9b9af973a7481287
     contract_addr = decode_hex('95a48dca999c89e4e284930d9b9af973a7481287')
-    contract_code = await peer_chain.get_contract_code(head.hash, keccak(contract_addr))
+    contract_code = await peer_chain.get_contract_code(head.hash, contract_addr)
     assert encode_hex(keccak(contract_code)) == (
         '0x1e0b2ad970b365a217c40bcf3582cbb4fcc1642d7a5dd7a82ae1e278e010123e')
 

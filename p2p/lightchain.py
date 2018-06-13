@@ -144,14 +144,33 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         return rlp.decode(rlp_account, sedes=Account)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
-    async def get_contract_code(self, block_hash: Hash32, key: bytes) -> bytes:
+    async def get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+        """
+        :param block_hash: find code as of the block with block_hash
+        :param address: which contract to look up
+
+        :return: bytecode of the contract, ``b''`` if no code is set
+        """
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         request_id = gen_request_id()
-        peer.sub_proto.send_get_contract_code(block_hash, key, request_id)
+        peer.sub_proto.send_get_contract_code(block_hash, keccak(address), request_id)
         reply = await self._wait_for_reply(request_id)
+
         if not reply['codes']:
-            return b''
-        return reply['codes'][0]
+            bytecode = b''
+        else:
+            bytecode = reply['codes'][0]
+
+        # validate bytecode against a proven account
+        account = await self.get_account(block_hash, address)
+
+        if account.code_hash == keccak(bytecode):
+            return bytecode
+        else:
+            # disconnect from this bad peer
+            await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
+            # try again with another peer
+            return await self.get_contract_code(block_hash, address)
 
     async def _get_block_header_by_hash(self, peer: LESPeer, block_hash: Hash32) -> BlockHeader:
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
