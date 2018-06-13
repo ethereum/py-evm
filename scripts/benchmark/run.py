@@ -12,6 +12,10 @@ from checks import (
     SimpleValueTransferBenchmark,
 )
 
+from checks.deploy_erc20 import (
+    DeployErc20
+)
+
 from checks.simple_value_transfers import (
     TO_EXISTING_ADDRESS_CONFIG,
     TO_NON_EXISTING_ADDRESS_CONFIG
@@ -49,6 +53,7 @@ def run() -> None:
         ImportEmptyBlocksBenchmark(),
         SimpleValueTransferBenchmark(TO_EXISTING_ADDRESS_CONFIG),
         SimpleValueTransferBenchmark(TO_NON_EXISTING_ADDRESS_CONFIG),
+        DeployErc20(),
     ]
 
     for benchmark in benchmarks:
