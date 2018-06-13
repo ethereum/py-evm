@@ -604,12 +604,12 @@ def _test() -> None:
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
-        FakeAsyncChainDB, FakeAsyncRopstenChain, LocalGethPeerPool, FakeAsyncHeaderDB)
+        FakeAsyncChainDB, FakeAsyncRopstenChain, SingleNodePeerPool, FakeAsyncHeaderDB)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-fast', action="store_true")
-    parser.add_argument('-local-geth', action="store_true")
+    parser.add_argument('-enode', type=str, required=False, help="The enode we should connect to")
     parser.add_argument('-debug', action="store_true")
     args = parser.parse_args()
 
@@ -628,8 +628,9 @@ def _test() -> None:
     headerdb = FakeAsyncHeaderDB(base_db)
 
     privkey = ecies.generate_privkey()
-    if args.local_geth:
-        peer_pool = LocalGethPeerPool(ETHPeer, headerdb, RopstenChain.network_id, privkey)
+    if args.enode:
+        peer_pool = SingleNodePeerPool(
+            ETHPeer, headerdb, RopstenChain.network_id, privkey, args.enode)
     else:
         from p2p.peer import HardCodedNodesPeerPool
         discovery = None

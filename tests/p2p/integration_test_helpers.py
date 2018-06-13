@@ -1,8 +1,7 @@
 import asyncio
 from typing import Type
 
-from eth_utils import decode_hex
-from eth_keys import datatypes, keys
+from eth_keys import datatypes
 
 from evm import MainnetChain, RopstenChain
 from evm.chains.base import Chain
@@ -23,27 +22,24 @@ def async_passthrough(base_name):
     return passthrough_method
 
 
-class LocalGethPeerPool(HardCodedNodesPeerPool):
+class SingleNodePeerPool(HardCodedNodesPeerPool):
+    """A PeerPool that will only attempt to connect to the enode passed to its __init__()"""
 
     def __init__(self,
                  peer_class: Type[BasePeer],
                  chaindb: AsyncChainDB,
                  network_id: int,
                  privkey: datatypes.PrivateKey,
+                 enode: str,
                  ) -> None:
         discovery = None
+        self._node = kademlia.Node.from_uri(enode)
         super().__init__(
             peer_class, chaindb, network_id, privkey, discovery, max_peers=1,
         )
 
     def get_nodes_to_connect(self):
-        # local-geth's pubkey
-        # pubkey_hex = "3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3"  # noqa: E501
-        # local-parity's pubkey
-        pubkey_hex = "2b8d5ad2d96607d5b9e66ea93bcf26e106f8502d9dab855aaa31d94b8a9f17fec2659dbcfb8b752b641154368f079dcf85e402ea5699cfd205136417a06dc4e2"  # noqa: E501
-        yield kademlia.Node(keys.PublicKey(decode_hex(pubkey_hex)),
-                            kademlia.Address('127.0.0.1', 30303, 30303))
-        return
+        yield self._node
 
 
 class FakeAsyncChainDB(AsyncChainDB):

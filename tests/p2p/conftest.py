@@ -1,4 +1,5 @@
 def pytest_addoption(parser):
+    parser.addoption("--enode", type=str, required=False)
     parser.addoption("--integration", action="store_true", default=False)
 
 
