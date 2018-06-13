@@ -23,6 +23,11 @@ from p2p.service import BaseService
 import upnpclient
 
 
+class NoInternalAddressMatchesDevice(Exception):
+    def __init__(self, *args, device_hostname=None, **kwargs):
+        self.device_hostname = device_hostname
+
+
 def find_internal_ip_on_device_network(upnp_dev: upnpclient.upnp.Device) -> str:
     """
     For a given UPnP device, return the internal IP address of this host machine that can
@@ -39,7 +44,7 @@ def find_internal_ip_on_device_network(upnp_dev: upnpclient.upnp.Device) -> str:
             for item in addresses:
                 if ipaddress.ip_address(item['addr']) in upnp_dev_net:
                     return item['addr']
-    return None
+    raise NoInternalAddressMatchesDevice(device_hostname=parsed_url.hostname)
 
 
 class UPnPService(BaseService):
@@ -85,11 +90,17 @@ class UPnPService(BaseService):
         :return: the IP address of the new mapping (or None if failed)
         """
         self.logger.info("Setting up NAT portmap...")
-        # This is experimental and it's OK if it fails, hence the bare except.
         try:
             async for upnp_dev in self._discover_upnp_devices():
-                external_ip = await self._add_nat_portmap(upnp_dev)
-                if external_ip is not None:
+                try:
+                    external_ip = await self._add_nat_portmap(upnp_dev)
+                except NoInternalAddressMatchesDevice as exc:
+                    self.logger.info(
+                        "No internal addresses were managed by the UPnP device at %s",
+                        exc.device_hostname,
+                    )
+                    continue
+                else:
                     return external_ip
         except upnpclient.soap.SOAPError as e:
             if e.args == (718, 'ConflictInMappingEntry'):
@@ -110,14 +121,8 @@ class UPnPService(BaseService):
             return self._mapping
 
     async def _add_nat_portmap(self, upnp_dev: upnpclient.upnp.Device) -> str:
-        # Detect our internal IP address (or abort if we can't determine
-        # the internal IP address
+        # Detect our internal IP address (which raises if there are no matches)
         internal_ip = find_internal_ip_on_device_network(upnp_dev)
-        if internal_ip is None:
-            self.logger.warn(
-                "Unable to detect internal IP address in order to setup NAT portmap"
-            )
-            return None
 
         external_ip = upnp_dev.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress']
         for protocol, description in [('TCP', 'ethereum p2p'), ('UDP', 'ethereum discovery')]:
