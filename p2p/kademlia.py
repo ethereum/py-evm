@@ -107,8 +107,11 @@ class Node:
         pubkey = keys.PublicKey(decode_hex(parsed.username))
         return cls(pubkey, Address(parsed.hostname, parsed.port))
 
-    def __repr__(self):
+    def __str__(self) -> str:
         return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
+
+    def __repr__(self) -> str:
+        return '<Node(%s@%s:%d)>' % (self.pubkey.to_hex(), self.address.ip, self.address.tcp_port)
 
     def distance_to(self, id):
         return self.id ^ id
