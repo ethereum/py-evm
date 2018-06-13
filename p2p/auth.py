@@ -22,8 +22,9 @@ from p2p import kademlia
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.constants import REPLY_TIMEOUT
 from p2p.exceptions import (
-    DecryptionError,
     BadAckMessage,
+    DecryptionError,
+    HandshakeFailure,
 )
 from p2p.utils import (
     sxor,
@@ -77,6 +78,11 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
         reader.read(ENCRYPTED_AUTH_ACK_LEN),
         token=token,
         timeout=REPLY_TIMEOUT)
+
+    if reader.at_eof():
+        # This is what happens when Parity nodes have blacklisted us
+        # (https://github.com/ethereum/py-evm/issues/901).
+        raise HandshakeFailure("%s disconnected before sending auth ack", repr(initiator.remote))
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
