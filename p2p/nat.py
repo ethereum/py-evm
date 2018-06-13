@@ -16,11 +16,12 @@ from p2p.exceptions import (
     OperationCancelled,
 )
 import netifaces
-from p2p.constants import (
-    REPLY_TIMEOUT,
-)
 from p2p.service import BaseService
 import upnpclient
+
+
+# UPnP discovery can take a long time, so use a loooong timeout here.
+UPNP_DISCOVER_TIMEOUT_SECONDS = 30
 
 
 class NoInternalAddressMatchesDevice(Exception):
@@ -145,15 +146,13 @@ class UPnPService(BaseService):
 
     async def _discover_upnp_devices(self) -> AsyncGenerator[upnpclient.upnp.Device, None]:
         loop = asyncio.get_event_loop()
-        # UPnP discovery can take a long time, so use a loooong timeout here.
-        discover_timeout = 10 * REPLY_TIMEOUT
         # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
         # while to complete. We must use a ThreadPoolExecutor() because the
         # response from upnpclient.discover() can't be pickled.
         try:
             devices = await self.wait(
                 loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
-                timeout=discover_timeout,
+                timeout=UPNP_DISCOVER_TIMEOUT_SECONDS,
             )
         except TimeoutError:
             self.logger.info("Timeout waiting for UPNP-enabled devices")
