@@ -5,7 +5,7 @@ from concurrent.futures import (
 import ipaddress
 from typing import (
     AsyncGenerator,
-    Tuple,
+    NamedTuple,
 )
 from urllib.parse import urlparse
 
@@ -22,6 +22,11 @@ import upnpclient
 
 # UPnP discovery can take a long time, so use a loooong timeout here.
 UPNP_DISCOVER_TIMEOUT_SECONDS = 30
+
+
+class PortMapping(NamedTuple):
+    internal: str  # of the form "192.2.3.4:56"
+    external: str  # of the form "192.2.3.4:56"
 
 
 class NoInternalAddressMatchesDevice(Exception):
@@ -63,7 +68,7 @@ class UPnPService(BaseService):
         """
         super().__init__(token)
         self.port = port
-        self._mapping: Tuple[str, str] = None  # internal, external: ('192.2.3.4:56', '18.2.3.4:56')
+        self._mapping: PortMapping = None  # when called externally, this never returns None
 
     async def _run(self):
         """Run an infinite loop refreshing our NAT port mapping.
@@ -115,9 +120,10 @@ class UPnPService(BaseService):
 
         self._mapping = None
 
-    def current_mapping(self) -> Tuple[str, str]:
+    def current_mapping(self) -> PortMapping:
         if self._mapping is None:
-            return None
+            unbound = ':%d' % self.port
+            return PortMapping(unbound, unbound)
         else:
             return self._mapping
 
@@ -137,7 +143,7 @@ class UPnPService(BaseService):
                 NewPortMappingDescription=description,
                 NewLeaseDuration=self._nat_portmap_lifetime,
             )
-        self._mapping = (
+        self._mapping = PortMapping(
             '%s:%d' % (internal_ip, self.port),
             '%s:%d' % (external_ip, self.port),
         )
