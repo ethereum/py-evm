@@ -9,7 +9,7 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
-from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
+from evm.chains.ropsten import RopstenChain, ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER
 from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
 
@@ -17,7 +17,7 @@ from p2p import ecies
 from p2p.lightchain import LightPeerChain
 from p2p.peer import LESPeer
 
-from integration_test_helpers import FakeAsyncHeaderDB, LocalGethPeerPool
+from integration_test_helpers import FakeAsyncHeaderDB, SingleNodePeerPool
 
 
 class IntegrationTestLightPeerChain(LightPeerChain):
@@ -28,25 +28,23 @@ class IntegrationTestLightPeerChain(LightPeerChain):
 
 @pytest.mark.asyncio
 async def test_lightchain_integration(request, event_loop):
-    """Test LightPeerChain against a local geth instance.
+    """Test LightPeerChain against a running geth instance.
 
-    This test assumes a geth/ropsten instance is listening on 127.0.0.1:30303 and serving light
-    clients. In order to achieve that, simply run it with the following command line:
+    In order to run this you need to pass the following to pytest:
 
-        $ geth -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
-               -testnet -lightserv 90
+        pytest --integration --enode=...
     """
     # TODO: Implement a pytest fixture that runs geth as above, so that we don't need to run it
     # manually.
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
+    enode = pytest.config.getoption("--enode")
     headerdb = FakeAsyncHeaderDB(MemoryDB())
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
-    peer_pool = LocalGethPeerPool(
-        LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(),
-    )
-    chain = IntegrationTestLightPeerChain(headerdb, peer_pool)
+    peer_pool = SingleNodePeerPool(
+        LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(), enode)
+    chain = IntegrationTestLightPeerChain(headerdb, peer_pool, RopstenChain)
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(chain.run())

@@ -956,10 +956,11 @@ def _test():
     import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
-    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, LocalGethPeerPool
+    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, SingleNodePeerPool
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-enode', type=str, help="The enode we should connect to")
     parser.add_argument('-light', action='store_true', help="Connect as a light node")
     args = parser.parse_args()
 
@@ -970,7 +971,8 @@ def _test():
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
-    peer_pool = LocalGethPeerPool(peer_class, headerdb, network_id, ecies.generate_privkey())
+    peer_pool = SingleNodePeerPool(
+        peer_class, headerdb, network_id, ecies.generate_privkey(), args.enode)
 
     async def request_stuff():
         # Request some stuff from ropsten's block 2440319
