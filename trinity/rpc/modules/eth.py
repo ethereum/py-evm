@@ -45,7 +45,7 @@ from trinity.rpc.modules import (
 
 def get_header(chain: BaseChain, at_block: Union[str, int]) -> BlockHeader:
     if at_block == 'pending':
-        at_header = chain.header
+        raise NotImplementedError("RPC interface does not support the 'pending' block at this time")
     elif at_block == 'latest':
         at_header = chain.get_canonical_head()
     elif at_block == 'earliest':

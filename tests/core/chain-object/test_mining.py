@@ -2,12 +2,14 @@ from eth_keys import keys
 from eth_utils import decode_hex
 
 from evm import constants
-from evm.chains.base import Chain
+from evm.chains.base import (
+    MiningChain,
+)
 from evm.db.backends.memory import MemoryDB
 from evm.vm.forks.frontier import _PoWMiningVM
 
 
-class PowMiningChain(Chain):
+class PowMiningChain(MiningChain):
     vm_configuration = ((0, _PoWMiningVM),)
     network_id = 999
 

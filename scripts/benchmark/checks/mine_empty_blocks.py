@@ -1,7 +1,7 @@
 import logging
 
 from evm.chains.base import (
-    Chain
+    MiningChain
 )
 
 from .base_benchmark import (
@@ -44,7 +44,7 @@ class MineEmptyBlocksBenchmark(BaseBenchmark):
 
         return total_stat
 
-    def mine_empty_blocks(self, chain: Chain, number_blocks: int) -> None:
+    def mine_empty_blocks(self, chain: MiningChain, number_blocks: int) -> None:
 
         for _ in range(1, number_blocks + 1):
             block = chain.mine_block()

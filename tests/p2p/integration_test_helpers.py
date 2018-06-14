@@ -1,7 +1,9 @@
 import asyncio
 
 from evm import MainnetChain, RopstenChain
-from evm.chains.base import Chain
+from evm.chains.base import (
+    MiningChain,
+)
 from evm.db.chain import AsyncChainDB
 
 from p2p.exceptions import OperationCancelled
@@ -62,7 +64,7 @@ class FakeAsyncMainnetChain(MainnetChain):
     coro_import_block = coro_import_block
 
 
-class FakeAsyncChain(Chain):
+class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
 
 

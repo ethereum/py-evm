@@ -18,7 +18,7 @@ from evm.constants import (
     CREATE_CONTRACT_ADDRESS
 )
 from evm.chains.base import (
-    Chain,
+    MiningChain,
 )
 from evm.rlp.blocks import (
     BaseBlock,
@@ -95,7 +95,7 @@ class DeployErc20(BaseBenchmark):
 
         return total_stat
 
-    def mine_blocks(self, chain: Chain, num_blocks: int, num_tx: int) -> Tuple[int, int]:
+    def mine_blocks(self, chain: MiningChain, num_blocks: int, num_tx: int) -> Tuple[int, int]:
         total_gas_used = 0
         total_num_tx = 0
 
@@ -107,7 +107,7 @@ class DeployErc20(BaseBenchmark):
         return total_gas_used, total_num_tx
 
     def mine_block(self,
-                   chain: Chain,
+                   chain: MiningChain,
                    block_number: int,
                    num_tx: int) -> BaseBlock:
 
@@ -116,7 +116,7 @@ class DeployErc20(BaseBenchmark):
 
         return chain.mine_block()
 
-    def apply_transaction(self, chain: Chain) -> None:
+    def apply_transaction(self, chain: MiningChain) -> None:
 
         # Instantiate the contract
         SimpleToken = self.w3.eth.contract(

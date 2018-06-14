@@ -109,7 +109,6 @@ class BaseChain(Configurable, ABC):
     chaindb = None  # type: BaseChainDB
     chaindb_class = None  # type: Type[BaseChainDB]
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
-    header = None  # type: BlockHeader
     network_id = None  # type: int
 
     @abstractmethod
@@ -140,10 +139,6 @@ class BaseChain(Configurable, ABC):
     def from_genesis_header(cls,
                             base_db: BaseDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
-    def get_chain_at_block_parent(self, block: BaseBlock) -> 'BaseChain':
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -234,19 +229,11 @@ class BaseChain(Configurable, ABC):
     # Execution API
     #
     @abstractmethod
-    def apply_transaction(self, transaction):
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
     def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
-        raise NotImplementedError("Chain classes must implement this method")
-
-    @abstractmethod
-    def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -281,7 +268,7 @@ class Chain(BaseChain):
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
-    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+    def __init__(self, base_db: BaseDB) -> None:
         if not self.vm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vm_configuration`"
@@ -291,9 +278,6 @@ class Chain(BaseChain):
 
         self.chaindb = self.get_chaindb_class()(base_db)
         self.headerdb = HeaderDB(base_db)
-        self.header = header
-        if self.header is None:
-            self.header = self.create_header_from_parent(self.get_canonical_head())
         if self.gas_estimator is None:
             self.gas_estimator = get_gas_estimator()  # type: ignore
 
@@ -309,6 +293,12 @@ class Chain(BaseChain):
     @classmethod
     def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
         return cls.vm_configuration
+
+    def default_header(self, header: BlockHeader=None) -> BlockHeader:
+        if header is None:
+            return self.get_canonical_head()
+        else:
+            return header
 
     #
     # Chain API
@@ -364,30 +354,18 @@ class Chain(BaseChain):
         chaindb.persist_header(genesis_header)
         return cls(base_db)
 
-    def get_chain_at_block_parent(self, block: BaseBlock) -> BaseChain:
-        """
-        Returns a `Chain` instance with the given block's parent at the chain head.
-        """
-        try:
-            parent_header = self.get_block_header_by_hash(block.header.parent_hash)
-        except HeaderNotFound:
-            raise ValidationError("Parent ({0}) of block {1} not found".format(
-                block.header.parent_hash,
-                block.header.hash
-            ))
-
-        init_header = self.create_header_from_parent(parent_header)
-        return type(self)(self.chaindb.db, init_header)
-
     #
     # VM API
     #
-    def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         """
         Returns the VM instance for the given block number.
         """
-        if header is None:
-            header = self.header
+        if at_header is None:
+            head = self.get_canonical_head()
+            header = self.create_header_from_parent(head)
+        else:
+            header = at_header
 
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         return vm_class(header=header, chaindb=self.chaindb)
@@ -437,10 +415,9 @@ class Chain(BaseChain):
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
-        if header is None:
-            header = self.header
-        lower_limit = max(header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, header.block_number)):
+        at_header = self.default_header(header)
+        lower_limit = max(at_header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, at_header.block_number)):
             yield self.get_canonical_block_by_number(BlockNumber(n))
 
     def get_block(self) -> BaseBlock:
@@ -530,30 +507,6 @@ class Chain(BaseChain):
     #
     # Execution API
     #
-    def apply_transaction(self, transaction):
-        """
-        Applies the transaction to the current tip block.
-
-        WARNING: Receipt and Transaction trie generation is computationally
-        heavy and incurs significant perferomance overhead.
-        """
-        vm = self.get_vm()
-        base_block = vm.block
-
-        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
-
-        # since we are building the block locally, we have to persist all the incremental state
-        vm.state.account_db.persist()
-
-        transactions = base_block.transactions + (transaction, )
-        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
-
-        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
-
-        self.header = new_block.header
-
-        return new_block, receipt, computation
-
     def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
         """
         Returns an estimation of the amount of gas the given transaction will
@@ -568,17 +521,20 @@ class Chain(BaseChain):
         """
         Imports a complete block.
         """
-        if block.number > self.header.block_number:
+        try:
+            parent_header = self.get_block_header_by_hash(block.header.parent_hash)
+        except HeaderNotFound:
             raise ValidationError(
-                "Attempt to import block #{0}.  Cannot import block with number "
-                "greater than current block #{1}.".format(
+                "Attempt to import block #{}.  Cannot import block {} before importing "
+                "its parent block at {}".format(
                     block.number,
-                    self.header.block_number,
+                    block.hash,
+                    block.header.parent_hash,
                 )
             )
 
-        parent_chain = self.get_chain_at_block_parent(block)
-        imported_block = parent_chain.get_vm().import_block(block)
+        base_header_for_import = self.create_header_from_parent(parent_header)
+        imported_block = self.get_vm(base_header_for_import).import_block(block)
 
         # Validate the imported block.
         if perform_validation:
@@ -586,26 +542,12 @@ class Chain(BaseChain):
             self.validate_block(imported_block)
 
         self.chaindb.persist_block(imported_block)
-        self.header = self.create_header_from_parent(self.get_canonical_head())
         self.logger.debug(
             'IMPORTED_BLOCK: number %s | hash %s',
             imported_block.number,
             encode_hex(imported_block.hash),
         )
         return imported_block
-
-    def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
-        """
-        Mines the current block. Proxies to the current Virtual Machine.
-        See VM. :meth:`~evm.vm.base.VM.mine_block`
-        """
-        mined_block = self.get_vm().mine_block(*args, **kwargs)
-
-        self.validate_block(mined_block)
-
-        self.chaindb.persist_block(mined_block)
-        self.header = self.create_header_from_parent(self.get_canonical_head())
-        return mined_block
 
     #
     # Validation API
@@ -716,6 +658,71 @@ def _extract_uncle_hashes(blocks):
     for block in blocks:
         for uncle in block.uncles:
             yield uncle.hash
+
+
+class MiningChain(Chain):
+    header = None  # type: BlockHeader
+
+    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+        super().__init__(base_db)
+        if self.header is None:
+            self.header = self.create_header_from_parent(self.get_canonical_head())
+        else:
+            self.header = header
+
+    def apply_transaction(self, transaction):
+        """
+        Applies the transaction to the current tip block.
+
+        WARNING: Receipt and Transaction trie generation is computationally
+        heavy and incurs significant perferomance overhead.
+        """
+        vm = self.get_vm(self.header)
+        base_block = vm.block
+
+        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
+
+        # since we are building the block locally, we have to persist all the incremental state
+        vm.state.account_db.persist()
+
+        transactions = base_block.transactions + (transaction, )
+        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
+
+        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+
+        self.header = new_block.header
+
+        return new_block, receipt, computation
+
+    def default_header(self, header: BlockHeader=None) -> BlockHeader:
+        if header is None:
+            return self.header
+        else:
+            return header
+
+    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+        result_block = super().import_block(block, perform_validation)
+        self.header = self.create_header_from_parent(self.get_canonical_head())
+        return result_block
+
+    def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
+        """
+        Mines the current block. Proxies to the current Virtual Machine.
+        See VM. :meth:`~evm.vm.base.VM.mine_block`
+        """
+        mined_block = self.get_vm(self.header).mine_block(*args, **kwargs)
+
+        self.validate_block(mined_block)
+
+        self.chaindb.persist_block(mined_block)
+        self.header = self.create_header_from_parent(self.get_canonical_head())
+        return mined_block
+
+    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
+        if at_header is None:
+            return super().get_vm(self.header)
+        else:
+            return super().get_vm(at_header)
 
 
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible

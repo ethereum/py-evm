@@ -12,8 +12,11 @@ from eth_utils import (
 )
 from eth_keys import keys
 
-from evm import Chain
 from evm import constants
+from evm.chains.base import (
+    Chain,
+    MiningChain,
+)
 from evm.db.backends.memory import MemoryDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
@@ -146,11 +149,15 @@ def chain_with_block_validation(base_db, funded_address, funded_address_initial_
 
 
 def import_block_without_validation(chain, block):
-    return Chain.import_block(chain, block, perform_validation=False)
+    return super(type(chain), chain).import_block(block, perform_validation=False)
 
 
-@pytest.fixture
-def chain_without_block_validation(base_db, funded_address, funded_address_initial_balance):
+@pytest.fixture(params=[Chain, MiningChain])
+def chain_without_block_validation(
+        request,
+        base_db,
+        funded_address,
+        funded_address_initial_balance):
     """
     Return a Chain object containing just the genesis block.
 
@@ -166,7 +173,8 @@ def chain_without_block_validation(base_db, funded_address, funded_address_initi
         'validate_block': lambda self, block: None,
     }
     SpuriousDragonVMForTesting = SpuriousDragonVM.configure(validate_seal=lambda block: None)
-    klass = Chain.configure(
+    chain_class = request.param
+    klass = chain_class.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),

@@ -1,7 +1,9 @@
 from cytoolz import curry
 
 from eth_utils import decode_hex
+import pytest
 
+from evm.chains.base import MiningChain
 from evm.exceptions import (
     ValidationError,
 )
@@ -36,6 +38,10 @@ def new_transaction(
 
 
 def fill_block(chain, from_, key, gas, data):
+    if not isinstance(chain, MiningChain):
+        pytest.skip("Cannot fill block automatically unless using a MiningChain")
+        return
+
     recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
     amount = 100
 

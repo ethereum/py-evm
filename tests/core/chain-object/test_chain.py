@@ -55,8 +55,22 @@ def test_import_block_validation(valid_chain, funded_address, funded_address_ini
 
 
 def test_import_block(chain, tx):
-    new_block, _, computation = chain.apply_transaction(tx)
-    assert computation.is_success
+    if hasattr(chain, 'apply_transaction'):
+        # working on a Mining chain which can directly apply transactions
+        new_block, _, computation = chain.apply_transaction(tx)
+        assert computation.is_success
+    else:
+        # working on a non-mining chain, so we have to build the block to apply manually
+        base_header = chain.create_header_from_parent(chain.get_canonical_head())
+        vm = chain.get_vm(base_header)
+
+        new_header, receipt, computation = vm.apply_transaction(base_header, tx)
+        assert computation.is_success
+
+        transactions = (tx, )
+        receipts = (receipt, )
+
+        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
 
     block = chain.import_block(new_block)
     assert block.transactions == (tx,)

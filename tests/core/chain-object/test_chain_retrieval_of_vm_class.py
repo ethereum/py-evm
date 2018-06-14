@@ -1,7 +1,10 @@
 import pytest
 
 
-from evm import Chain
+from evm.chains.base import (
+    Chain,
+    MiningChain,
+)
 from evm.constants import (
     GENESIS_BLOCK_NUMBER,
     GENESIS_DIFFICULTY,
@@ -73,7 +76,7 @@ def test_header_chain_get_vm_class_for_block_number(base_db, genesis_header):
 
 
 def test_header_chain_invalid_if_no_vm_configuration(base_db, genesis_header):
-    chain_class = Chain.configure('ChainNoEmptyConfiguration', vm_configuration=())
+    chain_class = MiningChain.configure('ChainNoEmptyConfiguration', vm_configuration=())
     with pytest.raises(ValueError):
         chain_class(base_db, genesis_header)
 

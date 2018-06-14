@@ -1,5 +1,6 @@
 import pytest
 
+from evm.chains.base import MiningChain
 from evm.utils.address import force_bytes_to_address
 
 from tests.core.helpers import (
@@ -12,7 +13,10 @@ ADDRESS_1010 = force_bytes_to_address(b'\x10\x10')
 
 @pytest.fixture
 def chain(chain_without_block_validation):
-    return chain_without_block_validation
+    if not isinstance(chain_without_block_validation, MiningChain):
+        pytest.skip("these tests require a mining chain implementation")
+    else:
+        return chain_without_block_validation
 
 
 def test_building_block_incrementally_with_single_transaction(

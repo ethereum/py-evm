@@ -414,6 +414,14 @@ class VM(BaseVM):
         """
         Import the given block to the chain.
         """
+        if self.block.number != block.number:
+            raise ValidationError(
+                "This VM can only import blocks at number #{}, the attempted block was #{}".format(
+                    self.block.number,
+                    block.number,
+                )
+            )
+
         self.block = self.block.copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
@@ -690,6 +698,14 @@ class VM(BaseVM):
             validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
 
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+
+            if header.block_number != parent_header.block_number + 1:
+                raise ValidationError(
+                    "Blocks must be numbered consecutively. Block number #{} has parent #{}".format(
+                        header.block_number,
+                        parent_header.block_number,
+                    )
+                )
 
             # timestamp
             if header.timestamp <= parent_header.timestamp:
