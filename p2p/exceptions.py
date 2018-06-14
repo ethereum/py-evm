@@ -95,6 +95,13 @@ class RemoteDisconnected(BaseP2PError):
     pass
 
 
+class NoConnectedPeers(BaseP2PError):
+    """
+    Raised when we are not connected to any peers.
+    """
+    pass
+
+
 class NoEligiblePeers(BaseP2PError):
     """
     Raised when none of our peers have the blocks we want.

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import math
-import operator
 import time
 from typing import (
     Any,
@@ -77,10 +76,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         self._executor = get_process_pool_executor()
 
     def register_peer(self, peer: BasePeer) -> None:
-        highest_td_peer = max(
-            [cast(ETHPeer, peer) for peer in self.peer_pool.peers],
-            key=operator.attrgetter('head_td'))
-        self._sync_requests.put_nowait(highest_td_peer)
+        self._sync_requests.put_nowait(cast(ETHPeer, self.peer_pool.highest_td_peer))
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
@@ -127,10 +123,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug(
                 "Got a NewBlock or a new peer, but already syncing so doing nothing")
             return
-        elif len(self.peer_pool.peers) < self.min_peers_to_sync:
+        elif len(self.peer_pool) < self.min_peers_to_sync:
             self.logger.info(
                 "Connected to less peers (%d) than the minimum (%d) required to sync, "
-                "doing nothing", len(self.peer_pool.peers), self.min_peers_to_sync)
+                "doing nothing", len(self.peer_pool), self.min_peers_to_sync)
             return
 
         self._syncing = True
@@ -321,13 +317,12 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             target_td: int,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        eligible_peers = [
-            peer for peer in self.peer_pool.peers if cast(ETHPeer, peer).head_td >= target_td]
-        if not eligible_peers:
+        peers = self.peer_pool.get_peers(target_td)
+        if not peers:
             raise NoEligiblePeers()
-        length = math.ceil(len(headers) / len(eligible_peers))
+        length = math.ceil(len(headers) / len(peers))
         batches = list(partition_all(length, headers))
-        for peer, batch in zip(eligible_peers, batches):
+        for peer, batch in zip(peers, batches):
             request_func(cast(ETHPeer, peer), batch)
         return len(batches)
 

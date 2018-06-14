@@ -69,7 +69,7 @@ class BaseService(ABC):
         except OperationCancelled as e:
             self.logger.info("%s finished: %s", self, e)
         except Exception:
-            self.logger.exception("Unexpected error in %s, exiting", self)
+            self.logger.exception("Unexpected error in %r, exiting", self)
         else:
             self.logger.debug("%s finished cleanly", self)
         finally:

@@ -64,6 +64,8 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
 
     @property
     def idle_peers(self) -> List[ETHPeer]:
+        # FIXME: Should probably use get_peers() and pass the TD of our head? It's not really
+        # necessary because peers that are behind us may very well have the trie nodes we want.
         peers = set([cast(ETHPeer, peer) for peer in self.peer_pool.peers])
         return list(peers.difference(self._peers_with_pending_requests))
 
