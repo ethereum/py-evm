@@ -51,11 +51,14 @@ deps = {
         "pytest-cov==2.5.1",
         "pytest-xdist==1.18.1",
         "pytest-watch>=4.1.0,<5",
-        "termcolor==1.1.*"
     ],
     'lint': [
         "flake8==3.5.0",
         "mypy<0.600",
+    ],
+    'benchmark': [
+        "termcolor==1.1.*",
+        "web3>=4.1.0,<5.0.0",
     ],
     'doc': [
         "py-evm>=0.2.0-alpha.14",

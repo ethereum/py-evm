@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import sys
 
 from evm.utils.version import (
     construct_evm_runtime_identifier
@@ -12,17 +13,29 @@ from checks import (
     SimpleValueTransferBenchmark,
 )
 
+from checks.deploy_erc20 import (
+    DeployErc20
+)
+
 from checks.simple_value_transfers import (
     TO_EXISTING_ADDRESS_CONFIG,
     TO_NON_EXISTING_ADDRESS_CONFIG
 )
 
+from contract_data import (
+    get_contracts
+)
+
+from utils.compile import (
+    compile_contracts
+)
 from utils.reporting import (
     DefaultStat,
     print_final_benchmark_total_line
 )
 from utils.shellart import (
-    bold_green
+    bold_green,
+    bold_red,
 )
 
 HEADER = (
@@ -42,6 +55,14 @@ def run() -> None:
     logging.info(bold_green(HEADER))
     logging.info(construct_evm_runtime_identifier() + "\n")
 
+    if "--compile-contracts" in sys.argv:
+        logging.info('Precompiling contracts')
+        try:
+            compile_contracts(get_contracts())
+        except OSError:
+            logging.error(bold_red('Compiling contracts requires "solc" system dependency'))
+            sys.exit(1)
+
     total_stat = DefaultStat()
 
     benchmarks = [
@@ -49,6 +70,7 @@ def run() -> None:
         ImportEmptyBlocksBenchmark(),
         SimpleValueTransferBenchmark(TO_EXISTING_ADDRESS_CONFIG),
         SimpleValueTransferBenchmark(TO_NON_EXISTING_ADDRESS_CONFIG),
+        DeployErc20(),
     ]
 
     for benchmark in benchmarks:
