@@ -63,6 +63,9 @@ if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
+DIAL_IN_OUT_RATIO = 0.75
+
+
 class Server(BaseService):
     """Server listening for incoming connections"""
     logger = logging.getLogger("p2p.server.Server")
@@ -264,6 +267,19 @@ class Server(BaseService):
 
         if self.peer_pool.is_full:
             peer.disconnect(DisconnectReason.too_many_peers)
+        elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
+            peer.disconnect(DisconnectReason.too_many_peers)
+
+        total_peers = len(self.peer_pool.connected_nodes)
+        inbound_peer_count = len([
+            peer
+            for peer
+            in self.peer_pool.connected_nodes.values()
+            if peer.inbound
+        ])
+        if total_peers > 1 and inbound_peer_count / total_peers > DIAL_IN_OUT_RATIO:
+            # make sure to have at least 1/4 outbound connections
+            peer.disconnect(DisconnectReason.useless_peer)
         else:
             # We use self.wait() here as a workaround for
             # https://github.com/ethereum/py-evm/issues/670.

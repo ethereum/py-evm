@@ -585,6 +585,15 @@ class PeerPool(BaseService):
     def is_full(self) -> bool:
         return len(self) >= self.max_peers
 
+    def is_valid_connection_candidate(self, candidate: Node) -> bool:
+        # connect to no more then 2 nodes with the same IP
+        nodes_by_ip = groupby(
+            operator.attrgetter('remote.address.ip'),
+            self.connected_nodes.values(),
+        )
+        matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
+        return len(matching_ip_nodes) <= 2
+
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():

@@ -44,8 +44,15 @@ INITIATOR_ADDRESS = Address('127.0.0.1', get_open_port() + 1)
 INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
-class MockPeerPool:
+class MockPeerPool():
     is_full = False
+    connected_nodes = {}
+
+    def is_valid_connection_candidate(self, node):
+        return True
+
+    def __len__(self):
+        return len(self.connected_nodes)
 
 
 def get_server(privkey, address, peer_class):
