@@ -26,6 +26,8 @@ from typing import (
 
 import sha3
 
+from cytoolz import groupby
+
 import rlp
 from rlp import sedes
 
@@ -61,6 +63,7 @@ from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
+    NoConnectedPeers,
     NoEligibleNodes,
     NoMatchingPeerCapabilities,
     OperationCancelled,
@@ -145,6 +148,8 @@ class BasePeer(BaseService):
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
     sub_proto: protocol.Protocol = None
+    head_td: int = None
+    head_hash: Hash32 = None
 
     def __init__(self,
                  remote: Node,
@@ -296,7 +301,7 @@ class BasePeer(BaseService):
             try:
                 cmd, msg = await self.read_msg()
             except (PeerConnectionLost, TimeoutError) as e:
-                self.logger.info(
+                self.logger.debug(
                     "%s stopped responding (%s), disconnecting", self.remote, repr(e))
                 return
 
@@ -398,7 +403,8 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise DecryptionError('Invalid header mac')
+            raise DecryptionError('Invalid header mac: expected %s, got %s'.format(
+                expected_header_mac, header_mac))
         return self.aes_dec.update(header_ciphertext)
 
     def decrypt_body(self, data: bytes, body_size: int) -> bytes:
@@ -415,7 +421,8 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise DecryptionError('Invalid frame mac')
+            raise DecryptionError('Invalid frame mac: expected %s, got %s'.format(
+                expected_frame_mac, frame_mac))
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
     def get_frame_size(self, header: bytes) -> int:
@@ -466,11 +473,15 @@ class BasePeer(BaseService):
     def __str__(self):
         return "{} {}".format(self.__class__.__name__, self.remote)
 
+    def __repr__(self):
+        return "{} {}".format(self.__class__.__name__, repr(self.remote))
+
 
 class LESPeer(BasePeer):
     max_headers_fetch = les.MAX_HEADERS_FETCH
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
     sub_proto: les.LESProtocol = None
+    # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: les.HeadInfo = None
 
     async def send_sub_proto_handshake(self):
@@ -496,13 +507,13 @@ class LESPeer(BasePeer):
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
         self.head_info = cmd.as_head_info(msg)
+        self.head_td = self.head_info.total_difficulty
+        self.head_hash = self.head_info.block_hash
 
 
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto: eth.ETHProtocol = None
-    head_td: int = None
-    head_hash: Hash32 = None
 
     async def send_sub_proto_handshake(self):
         self.sub_proto.send_handshake(await self._local_chain_info)
@@ -735,17 +746,20 @@ class PeerPool(BaseService):
 
     @property
     def peers(self) -> List[BasePeer]:
-        peers = list(self.connected_nodes.values())
-        # Shuffle the list of peers so that dumb callsites are less likely to send all requests to
-        # a single peer even if they always pick the first one from the list.
-        random.shuffle(peers)
-        return peers
+        return list(self.connected_nodes.values())
 
-    async def get_random_peer(self) -> BasePeer:
-        while not self.peers:
-            self.logger.debug("No connected peers, sleeping a bit")
-            await asyncio.sleep(0.5)
-        return random.choice(self.peers)
+    @property
+    def highest_td_peer(self) -> BasePeer:
+        if not self.connected_nodes:
+            raise NoConnectedPeers()
+        peers_by_td = groupby(operator.attrgetter('head_td'), self.peers)
+        max_td = max(peers_by_td.keys())
+        return random.choice(peers_by_td[max_td])
+
+    def get_peers(self, min_td: int) -> List[BasePeer]:
+        if not self.connected_nodes:
+            raise NoConnectedPeers()
+        return [peer for peer in self.peers if peer.head_td >= min_td]
 
     async def _periodically_report_stats(self):
         while self.is_running:

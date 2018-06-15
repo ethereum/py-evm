@@ -99,26 +99,6 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         self._last_processed_announcements.pop(peer, None)
         await peer.cancel()
 
-    async def get_best_peer(self) -> LESPeer:
-        """
-        Return the peer with the highest announced block height.
-        """
-        while not self.peer_pool.peers:
-            self.logger.debug("No connected peers, sleeping a bit")
-            await asyncio.sleep(0.5)
-
-        def peer_block_height(peer: LESPeer) -> int:
-            last_announced = self._last_processed_announcements.get(peer)
-            if last_announced is None:
-                return -1
-            return last_announced.block_number
-
-        # TODO: Should pick a random one in case there are multiple peers with the same block
-        # height.
-        return max(
-            [cast(LESPeer, peer) for peer in self.peer_pool.peers],
-            key=peer_block_height)
-
     async def wait_for_announcement(self) -> Tuple[LESPeer, les.HeadInfo]:
         """Wait for a new announcement from any of our connected peers.
 
@@ -143,6 +123,8 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
                 if isinstance(cmd, les.Announce):
                     peer.head_info = cmd.as_head_info(msg)
+                    peer.head_td = peer.head_info.total_difficulty
+                    peer.head_hash = peer.head_info.block_hash
                     self._announcement_queue.put_nowait((peer, peer.head_info))
                 elif isinstance(msg, dict):
                     request_id = msg.get('request_id')
@@ -293,12 +275,12 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        peer = await self.get_best_peer()
+        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         return await self._get_block_header_by_hash(peer, block_hash)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
-        peer = await self.get_best_peer()
+        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
         peer.sub_proto.send_get_block_bodies([block_hash], request_id)
@@ -311,7 +293,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
-        peer = await self.get_best_peer()
+        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
         peer.sub_proto.send_get_receipts(block_hash, request_id)
@@ -325,7 +307,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: Hash32, address: Address) -> Account:
-        peer = await self.get_best_peer()
+        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         key = keccak(address)
         proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
         header = await self._get_block_header_by_hash(peer, block_hash)
@@ -334,7 +316,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_contract_code(self, block_hash: Hash32, key: bytes) -> bytes:
-        peer = await self.get_best_peer()
+        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         request_id = gen_request_id()
         peer.sub_proto.send_get_contract_code(block_hash, key, request_id)
         reply = await self._wait_for_reply(request_id)
