@@ -47,6 +47,7 @@ INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 class MockPeerPool():
     is_full = False
     connected_nodes = {}
+    
     def is_valid_connection_candidate(self, node):
         return True
 
