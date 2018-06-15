@@ -586,8 +586,8 @@ class PeerPool(BaseService):
         return len(self) >= self.max_peers
 
     def is_valid_connection_candidate(self, candidate: Node) -> bool:
-        max_matching_ip = 2;
-        matching_ip = 0;
+        max_matching_ip = 2
+        matching_ip = 0
         for peer in self.connected_nodes.values():
             if candidate.address.ip == peer.remote.address.ip:
                 matching_ip += 1

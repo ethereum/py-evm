@@ -263,17 +263,16 @@ class Server(BaseService):
         )
 
         total_peers_inbound = 0.0
-        total_peers= 0.0
+        total_peers = 0.0
 
         for current_peers in self.peer_pool.connected_nodes.values():
             total_peers += 1
-            if current_peers.inbound == True:
-                 total_peers_inbound += 1
+            if current_peers.inbound:
+                total_peers_inbound += 1
         # make sure to have atleast 1/4 outbound connections
 
         if self.peer_pool.is_full:
             peer.disconnect(DisconnectReason.too_many_peers)
-        #import ipdb; ipdb.set_trace()
         elif total_peers > 1 and total_peers_inbound // total_peers > 0.75:
             peer.disconnect(DisconnectReason.useless_peer)
         elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
