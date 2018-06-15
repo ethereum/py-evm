@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from typing import (
     Tuple
 )
@@ -12,8 +13,6 @@ from eth_utils import (
     decode_hex,
     to_int,
 )
-
-import solc
 
 from evm.constants import (
     CREATE_CONTRACT_ADDRESS
@@ -33,6 +32,9 @@ from utils.chain_plumbing import (
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
 )
+from utils.compile import (
+    get_compiled_contract
+)
 from utils.reporting import (
     DefaultStat,
 )
@@ -45,7 +47,8 @@ EXPECTED_TOTAL_SUPPLY = 10000000000000000000000
 FIRST_TX_GAS_LIMIT = 1400000
 SECOND_TX_GAS_LIMIT = 22000
 
-SOLIDITY_SRC_FILE = './scripts/benchmark/contract_data/erc20.sol'
+CONTRACT_FILE = 'scripts/benchmark/contract_data/erc20.sol'
+CONTRACT_NAME = 'SimpleToken'
 
 W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
@@ -58,8 +61,10 @@ class DeployErc20(BaseBenchmark):
         self.num_blocks = num_blocks
         self.num_tx = num_tx
 
-        compiled_sol = solc.compile_files([SOLIDITY_SRC_FILE])
-        self.contract_interface = compiled_sol['{}:SimpleToken'.format(SOLIDITY_SRC_FILE)]
+        self.contract_interface = get_compiled_contract(
+            pathlib.Path(CONTRACT_FILE),
+            CONTRACT_NAME
+        )
 
         self.w3 = Web3()
 

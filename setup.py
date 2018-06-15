@@ -57,7 +57,6 @@ deps = {
         "mypy<0.600",
     ],
     'benchmark': [
-        "py-solc==3.1.*",
         "termcolor==1.1.*",
         "web3>=4.1.0,<5.0.0",
     ],

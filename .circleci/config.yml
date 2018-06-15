@@ -28,9 +28,6 @@ common: &common
         name: install dependencies
         command: pip install --user tox
     - run:
-         name: install benchmark system dependencies
-         command: if [ "$CIRCLE_JOB" == "py36-benchmark" ]; then ./.circleci/install_benchmark_sys_deps.sh; fi
-    - run:
         name: run tox
         command: ~/.local/bin/tox
     - save_cache:
