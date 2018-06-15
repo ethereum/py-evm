@@ -598,8 +598,20 @@ class PeerPool(BaseService):
     def is_full(self) -> bool:
         return len(self) >= self.max_peers
 
+    def is_valid_connection_candidate(self, candidate: Node) -> bool:
+        max_matching_ip = 2;
+        matching_ip = 0;
+        for peer in self.connected_nodes.values():
+            if candidate.address.ip == peer.remote.address.ip:
+                matching_ip += 1
+            if (matching_ip > max_matching_ip):
+                return False
+        return True
+
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
-        yield from self.discovery.get_random_nodes(self.max_peers)
+        for node in self.discovery.get_random_nodes(self.max_peers):
+            if self.is_valid_connection_candidate(node):
+                yield node
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
         self._subscribers.append(subscriber)
