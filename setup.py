@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import platform
 from setuptools import setup, find_packages
 
 
@@ -26,7 +27,8 @@ deps = {
     'evm-extra': [
         "coincurve>=7.0.0,<8.0.0",
         "plyvel==1.0.4",
-        "eth-hash[pycryptodome]",
+        "eth-hash[pysha3];implementation_name=='cpython'",
+        "eth-hash[pycryptodome];implementation_name=='pypy'",
     ],
     'p2p': [
         "aiohttp>=2.3.1,<3.0.0",
@@ -73,6 +75,7 @@ deps = {
         "tox==2.7.0",
     ],
 }
+
 
 deps['dev'] = (
     deps['dev'] +
