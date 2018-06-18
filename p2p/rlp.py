@@ -1,3 +1,7 @@
+from eth_hash.auto import (
+    keccak
+)
+
 import rlp
 from rlp import sedes
 
@@ -9,6 +13,10 @@ from evm.rlp.transactions import BaseTransaction
 # instantiated.
 class P2PTransaction(rlp.Serializable):
     fields = BaseTransaction._meta.fields
+
+    @property
+    def hash(self) -> bytes:
+        return keccak(rlp.encode(self))
 
 
 class BlockBody(rlp.Serializable):

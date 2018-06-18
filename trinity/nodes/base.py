@@ -41,6 +41,9 @@ from trinity.rpc.ipc import (
 from trinity.config import (
     ChainConfig,
 )
+from trinity.tx_pool.pool import (
+    TxPool
+)
 
 
 class Node(BaseService):
@@ -66,6 +69,9 @@ class Node(BaseService):
 
     @abstractmethod
     def get_peer_pool(self) -> PeerPool:
+        """
+        Return the PeerPool instance of the node
+        """
         raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
@@ -89,6 +95,10 @@ class Node(BaseService):
             raise RuntimeError("Cannot add an auxiliary service while the node is running")
         else:
             self._auxiliary_services.append(service)
+
+    def create_and_add_tx_pool(self) -> None:
+        self.tx_pool = TxPool(self.get_peer_pool())
+        self.add_service(self.tx_pool)
 
     def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
         if self._jsonrpc_ipc_path:

@@ -177,3 +177,8 @@ class ETHProtocol(Protocol):
         cmd = Receipts(self.cmd_id_offset)
         header, body = cmd.encode(receipts)
         self.send(header, body)
+
+    def send_transactions(self, transactions: List[P2PTransaction]) -> None:
+        cmd = Transactions(self.cmd_id_offset)
+        header, body = cmd.encode(transactions)
+        self.send(header, body)
