@@ -43,7 +43,7 @@ def get_root(tree: MerkleTree) -> Hash32:
 
 def get_branch_indices(node_index: int, depth: int) -> Sequence[int]:
     """Get the indices of all ancestors up until the root for a node with a given depth."""
-    return list(take(depth, iterate(lambda index: index // 2, node_index)))
+    return tuple(take(depth, iterate(lambda index: index // 2, node_index)))
 
 
 def get_merkle_proof(tree: MerkleTree, item_index: int) -> Sequence[Hash32]:
@@ -53,15 +53,15 @@ def get_merkle_proof(tree: MerkleTree, item_index: int) -> Sequence[Hash32]:
 
     # special case of tree consisting of only root
     if len(tree) == 1:
-        return []
+        return ()
 
     branch_indices = get_branch_indices(item_index, len(tree))
     proof_indices = [i ^ 1 for i in branch_indices][:-1]  # get sibling by flipping rightmost bit
-    return [
+    return tuple(
         layer[proof_index]
         for layer, proof_index
         in zip(reversed(tree), proof_indices)
-    ]
+    )
 
 
 def _calc_parent_hash(left_node: Hash32, right_node: Hash32) -> Hash32:
@@ -90,7 +90,7 @@ def verify_merkle_proof(root: Hash32,
 
 def _hash_layer(layer: Sequence[Hash32]) -> Sequence[Hash32]:
     """Calculate the layer on top of another one."""
-    return [_calc_parent_hash(left, right) for left, right in partition(2, layer)]
+    return tuple(_calc_parent_hash(left, right) for left, right in partition(2, layer))
 
 
 def calc_merkle_tree(items: Sequence[Hashable]) -> MerkleTree:
@@ -102,8 +102,8 @@ def calc_merkle_tree(items: Sequence[Hashable]) -> MerkleTree:
         raise ValidationError("Item number is not a power of two")
     n_layers = int(n_layers)
 
-    leaves = [keccak(item) for item in items]
-    tree = cast(MerkleTree, list(take(n_layers, iterate(_hash_layer, leaves)))[::-1])
+    leaves = tuple(keccak(item) for item in items)
+    tree = cast(MerkleTree, tuple(take(n_layers, iterate(_hash_layer, leaves)))[::-1])
     if len(tree[0]) != 1:
         raise Exception("Invariant: There must only be one root")
 
