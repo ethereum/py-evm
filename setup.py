@@ -38,6 +38,7 @@ deps = {
         "eth-hash>=0.1.4,<1",
     ],
     'trinity': [
+        "bloom-filter==1.3",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.4",
         "coincurve>=7.0.0,<8.0.0",
