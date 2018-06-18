@@ -31,7 +31,7 @@ from evm.vm.computation import (
 )
 
 
-class BaseTransactionCommonMethods:
+class BaseTransactionMethods:
     def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
@@ -83,7 +83,7 @@ class BaseTransactionFields(rlp.Serializable):
         return keccak(rlp.encode(self))
 
 
-class BaseTransaction(BaseTransactionFields, BaseTransactionCommonMethods):
+class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
 
     @classmethod
     def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
@@ -158,7 +158,7 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionCommonMethods):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionCommonMethods, ABC):
+class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionMethods, ABC):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
