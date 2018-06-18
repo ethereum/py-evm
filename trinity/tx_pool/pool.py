@@ -10,6 +10,9 @@ from bloom_filter import (
     BloomFilter
 )
 
+from evm.rlp.transactions import (
+    BaseTransactionFields
+)
 from p2p.eth import (
     Transactions
 )
@@ -18,9 +21,6 @@ from p2p.peer import (
     ETHPeer,
     PeerPool,
     PeerPoolSubscriber,
-)
-from p2p.rlp import (
-    P2PTransaction
 )
 from p2p.service import (
     BaseService
@@ -63,7 +63,7 @@ class TxPool(BaseService, PeerPoolSubscriber):
                 if isinstance(cmd, Transactions):
                     await self._handle_tx(peer, msg)
 
-    async def _handle_tx(self, peer: ETHPeer, txs: List[P2PTransaction]) -> None:
+    async def _handle_tx(self, peer: ETHPeer, txs: List[BaseTransactionFields]) -> None:
 
         self.logger.debug('Received transactions from %r: %r', peer, txs)
 
@@ -90,17 +90,17 @@ class TxPool(BaseService, PeerPoolSubscriber):
     def _filter_tx_for_peer(
             self,
             peer: BasePeer,
-            txs: List[P2PTransaction]) -> List[P2PTransaction]:
+            txs: List[BaseTransactionFields]) -> List[BaseTransactionFields]:
 
         return [
             val for val in txs
             if self._construct_bloom_entry(peer, val) not in self._bloom
         ]
 
-    def _construct_bloom_entry(self, peer: BasePeer, tx: P2PTransaction) -> bytes:
+    def _construct_bloom_entry(self, peer: BasePeer, tx: BaseTransactionFields) -> bytes:
         return "{!r}-{}-{}".format(peer.remote, tx.hash, self._bloom_salt).encode()
 
-    def _add_txs_to_bloom(self, peer: BasePeer, txs: Iterable[P2PTransaction]) -> None:
+    def _add_txs_to_bloom(self, peer: BasePeer, txs: Iterable[BaseTransactionFields]) -> None:
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(peer, val))
 

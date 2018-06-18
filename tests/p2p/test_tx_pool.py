@@ -8,8 +8,8 @@ from p2p.peer import (
 from p2p.eth import (
     Transactions
 )
-from p2p.rlp import (
-    P2PTransaction
+from evm.rlp.transactions import (
+    BaseTransactionFields
 )
 
 from trinity.tx_pool.pool import (
@@ -140,7 +140,7 @@ def create_tx_recorder(monkeypatch, peer):
 
 
 def create_random_tx():
-    return P2PTransaction(
+    return BaseTransactionFields(
         nonce=0,
         gas_price=1,
         gas=21000,
