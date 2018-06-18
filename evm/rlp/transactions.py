@@ -64,7 +64,8 @@ class BaseTransactionCommonMethods:
         return self.get_intrinsic_gas() + computation.get_gas_used()
 
 
-class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
+class BaseTransactionFields(rlp.Serializable):
+
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -77,13 +78,16 @@ class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
         ('s', big_endian_int),
     ]
 
-    @classmethod
-    def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
-        return rlp.decode(rlp.encode(transaction), sedes=cls)
-
     @property
     def hash(self) -> bytes:
         return keccak(rlp.encode(self))
+
+
+class BaseTransaction(BaseTransactionFields, BaseTransactionCommonMethods):
+
+    @classmethod
+    def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
+        return rlp.decode(rlp.encode(transaction), sedes=cls)
 
     @property
     def sender(self) -> Address:

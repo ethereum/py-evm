@@ -31,14 +31,14 @@ from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import HeaderNotFound
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction
+from evm.rlp.transactions import BaseTransaction, BaseTransactionFields
 
 from p2p import protocol
 from p2p import eth
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
-from p2p.rlp import BlockBody, P2PTransaction
+from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
     get_process_pool_executor,
@@ -541,7 +541,7 @@ class RegularChainSyncer(FastChainSyncer):
         for block_hash in hashes:
             header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
             transactions = await self.wait(
-                self.chaindb.coro_get_block_transactions(header, P2PTransaction))
+                self.chaindb.coro_get_block_transactions(header, BaseTransactionFields))
             uncles = await self.wait(self.chaindb.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
         peer.sub_proto.send_block_bodies(bodies)
