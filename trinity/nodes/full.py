@@ -1,4 +1,7 @@
-from evm.chains.base import BaseChain
+from evm.chains.base import (
+    BaseChain
+)
+
 from p2p.server import Server
 from p2p.service import BaseService
 
@@ -22,9 +25,9 @@ class FullNode(Node):
         self._node_port = chain_config.port
         self._max_peers = chain_config.max_peers
 
-    def get_chain(self):
+    def get_chain(self) -> BaseChain:
         if self._chain is None:
-            self._chain = self.chain_class(self.db_manager.get_db())
+            self._chain = self.chain_class(self.db_manager.get_db())  # type: ignore
 
         return self._chain
 

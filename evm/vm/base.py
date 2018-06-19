@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from abc import (
     ABCMeta,
-    abstractmethod
+    abstractmethod,
 )
 import contextlib
 import functools
@@ -69,6 +69,11 @@ class BaseVM(Configurable, metaclass=ABCMeta):
     fork = None  # type: str
     chaindb = None  # type: BaseChainDB
     _state_class = None  # type: Type[BaseState]
+
+    @property
+    @abstractmethod
+    def state(self):
+        raise NotImplementedError("VM classes must implement this property")
 
     @abstractmethod
     def __init__(self, header, chaindb):

@@ -4,12 +4,14 @@ from typing import (  # noqa: F401
     Any,
     Optional,
     Callable,
+    Coroutine,
     cast,
     Dict,
     Generator,
     Iterator,
     Tuple,
     Type,
+    TypeVar,
     TYPE_CHECKING,
     Union,
 )
@@ -37,9 +39,15 @@ from evm.rlp.headers import (
     BlockHeader,
     HeaderParams,
 )
+from evm.rlp.receipts import (
+    Receipt
+)
 from evm.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
+)
+from evm.vm.computation import (
+    BaseComputation
 )
 
 from p2p.lightchain import (
@@ -108,7 +116,7 @@ class LightDispatchChain(BaseChain):
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         return self._headerdb.get_block_header_by_hash(block_hash)
 
-    def get_canonical_head(self):
+    def get_canonical_head(self) -> BlockHeader:
         return self._headerdb.get_canonical_head()
 
     def get_score(self, block_hash: Hash32) -> int:
@@ -152,7 +160,7 @@ class LightDispatchChain(BaseChain):
         header = self._headerdb.get_canonical_block_header_by_number(block_number)
         return self.get_block_by_header(header)
 
-    def get_canonical_block_hash(self, block_number):
+    def get_canonical_block_hash(self, block_number: int) -> Hash32:
         return self._headerdb.get_canonical_block_hash(block_number)
 
     #
@@ -172,7 +180,9 @@ class LightDispatchChain(BaseChain):
     #
     # Execution API
     #
-    def apply_transaction(self, transaction):
+    def apply_transaction(
+            self,
+            transaction: BaseTransaction) -> Tuple[BaseBlock, Receipt, BaseComputation]:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
@@ -202,7 +212,8 @@ class LightDispatchChain(BaseChain):
     #
     # Async utils
     #
+    T = TypeVar('T')
 
-    def _run_async(self, async_method):
+    def _run_async(self, async_method: Coroutine[T, Any, Any]) -> T:
         future = asyncio.run_coroutine_threadsafe(async_method, loop=self._peer_chain_loop)
         return future.result(self.ASYNC_TIMEOUT_SECONDS)

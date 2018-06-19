@@ -7,7 +7,10 @@ import logging
 from lru import LRU
 from typing import Set, Tuple  # noqa: F401
 
-from eth_typing import Hash32
+from eth_typing import (
+    Address,
+    Hash32
+)
 
 import rlp
 
@@ -83,6 +86,17 @@ class BaseAccountDB(metaclass=ABCMeta):
 
     @abstractmethod
     def set_storage(self, address, slot, value):
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    #
+    # Nonce
+    #
+    @abstractmethod
+    def get_nonce(self, address: Address) -> int:
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @abstractmethod
+    def set_nonce(self, address: Address, nonce: int) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     #

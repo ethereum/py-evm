@@ -1,7 +1,6 @@
 from abc import (
     ABCMeta,
     abstractmethod,
-    abstractproperty
 )
 import logging
 from typing import (
@@ -32,7 +31,8 @@ class BaseBenchmark(metaclass=ABCMeta):
             "Must be implemented by subclasses"
         )
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def name(self) -> DefaultStat:
         raise NotImplementedError(
             "Must be implemented by subclasses"

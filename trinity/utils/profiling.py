@@ -1,11 +1,15 @@
 import contextlib
 import cProfile
 import functools
-from typing import Callable
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+)
 
 
 @contextlib.contextmanager
-def profiler(filename):
+def profiler(filename: str) -> Iterator[None]:
     pr = cProfile.Profile()
     pr.enable()
     try:
@@ -15,10 +19,10 @@ def profiler(filename):
         pr.dump_stats(filename)
 
 
-def setup_cprofiler(filename):
-    def outer(fn: Callable) -> Callable:
+def setup_cprofiler(filename: str) -> Callable[..., Any]:
+    def outer(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
-        def inner(*args, **kwargs):
+        def inner(*args: Any, **kwargs: Any) -> None:
             should_profile = kwargs.pop('profile', False)
             if should_profile:
                 with profiler(filename):

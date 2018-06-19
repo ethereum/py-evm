@@ -5,8 +5,14 @@ from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
 import os
+from typing import (
+    Type
+)
 
 from evm import MainnetChain, RopstenChain
+from evm.chains.base import (
+    BaseChain
+)
 from evm.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
     MAINNET_NETWORK_ID,
@@ -140,18 +146,18 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
 
 def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     chaindb = AsyncChainDB(base_db)
-
+    chain_class: Type[BaseChain]
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
-        chain_class = MainnetChain  # type: ignore
+        chain_class = MainnetChain
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
-        chain_class = RopstenChain  # type: ignore
+        chain_class = RopstenChain
     else:
         raise NotImplementedError(
             "Only the mainnet and ropsten chains are currently supported"
         )
-    chain = chain_class(base_db)  # type: ignore
+    chain = chain_class(base_db)
 
     headerdb = AsyncHeaderDB(base_db)
     header_chain = AsyncHeaderChain(base_db)
@@ -184,7 +190,7 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     manager = DBManager(address=str(chain_config.database_ipc_path))  # type: ignore
     server = manager.get_server()  # type: ignore
 
-    server.serve_forever()  # type: ignore
+    server.serve_forever()
 
 
 class ChainProxy(BaseProxy):

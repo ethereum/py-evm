@@ -17,26 +17,26 @@ class DBProxy(BaseProxy):
         'set',
     )
 
-    def get(self, key):
+    def get(self, key: bytes) -> bytes:
         return self._callmethod('get', (key,))
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: bytes) -> bytes:
         return self._callmethod('__getitem__', (key,))
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes) -> None:
         return self._callmethod('set', (key, value))
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         return self._callmethod('__setitem__', (key, value))
 
-    def delete(self, key):
+    def delete(self, key: bytes) -> None:
         return self._callmethod('delete', (key,))
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: bytes) -> None:
         return self._callmethod('__delitem__', (key,))
 
-    def exists(self, key):
+    def exists(self, key: bytes) -> bool:
         return self._callmethod('exists', (key,))
 
-    def __contains__(self, key):
+    def __contains__(self, key: bytes) -> bool:
         return self._callmethod('__contains__', (key,))

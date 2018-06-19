@@ -1,4 +1,7 @@
 import argparse
+from typing import (
+    Any,
+)
 
 from evm.chains.mainnet import (
     MAINNET_NETWORK_ID,
@@ -17,7 +20,11 @@ from trinity.constants import (
 
 
 class ValidateAndStoreEnodes(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self,
+                 parser: argparse.ArgumentParser,
+                 namespace: argparse.Namespace,
+                 values: Any,
+                 option_string: str=None) -> None:
         if values is None:
             return
 

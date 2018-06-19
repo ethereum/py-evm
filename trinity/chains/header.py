@@ -25,7 +25,7 @@ from trinity.utils.mp import (
 
 class BaseAsyncHeaderChain(BaseHeaderChain):
     @abstractmethod
-    async def coro_get_canonical_head(self):
+    async def coro_get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -36,7 +36,7 @@ class BaseAsyncHeaderChain(BaseHeaderChain):
 class AsyncHeaderChain(HeaderChain, BaseAsyncHeaderChain):
     _headerdb_class: Type[BaseAsyncHeaderDB] = AsyncHeaderDB
 
-    async def coro_get_canonical_head(self):
+    async def coro_get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")
 
     async def coro_import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
@@ -51,7 +51,7 @@ class AsyncHeaderChainProxy(BaseProxy, BaseAsyncHeaderChain, BaseHeaderChain):
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
-    def get_headerdb_class(cls):
+    def get_headerdb_class(cls) -> BaseDB:
         raise NotImplementedError("Chain classes must implement this method")
 
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
