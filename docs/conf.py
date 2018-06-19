@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = about['__name__']
-copyright = '2017, Piper Merriam, Jason Carver'
+copyright = '2017-2018 Ethereum Foundation'
 author = about['__author__']
 
 # The version info for the project you're documenting, acts as replacement for
