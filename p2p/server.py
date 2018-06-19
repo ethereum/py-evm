@@ -39,6 +39,7 @@ from p2p.discovery import (
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
+    MalformedMessage,
     OperationCancelled,
     PeerConnectionLost,
 )
@@ -267,7 +268,10 @@ class Server(BaseService):
         else:
             # We use self.wait() here as a workaround for
             # https://github.com/ethereum/py-evm/issues/670.
-            await self.wait(self.do_handshake(peer))
+            try:
+                await self.wait(self.do_handshake(peer))
+            except MalformedMessage as e:
+                self.logger.debug("Could not complete handshake with %r: %s", peer.remote, repr(e))
 
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake(),
