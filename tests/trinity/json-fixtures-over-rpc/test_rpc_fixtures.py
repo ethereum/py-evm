@@ -4,10 +4,12 @@ import pytest
 
 from cytoolz import (
     dissoc,
+    identity,
     get_in,
 )
 
 from eth_utils import (
+    add_0x_prefix,
     is_hex,
     is_integer,
     is_string,
@@ -22,10 +24,10 @@ from evm.tools.fixture_tests import (
 
 from trinity.rpc import RPCServer
 from trinity.rpc.format import (
-    fixture_block_in_rpc_format,
-    fixture_state_in_rpc_format,
-    fixture_transaction_in_rpc_format,
+    empty_to_0x,
+    remove_leading_zeros,
 )
+
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -85,6 +87,68 @@ SLOW_TESTS = (
     'DelegateCallSpam_Byzantium',
     'DelegateCallSpam_EIP150',
 )
+
+RPC_STATE_NORMALIZERS = {
+    'balance': remove_leading_zeros,
+    'code': empty_to_0x,
+    'nonce': remove_leading_zeros,
+}
+
+RPC_BLOCK_REMAPPERS = {
+    'bloom': 'logsBloom',
+    'coinbase': 'miner',
+    'transactionsTrie': 'transactionsRoot',
+    'uncleHash': 'sha3Uncles',
+    'receiptTrie': 'receiptsRoot',
+}
+
+RPC_BLOCK_NORMALIZERS = {
+    'difficulty': remove_leading_zeros,
+    'extraData': empty_to_0x,
+    'gasLimit': remove_leading_zeros,
+    'gasUsed': remove_leading_zeros,
+    'number': remove_leading_zeros,
+    'timestamp': remove_leading_zeros,
+}
+
+RPC_TRANSACTION_REMAPPERS = {
+    'data': 'input',
+}
+
+RPC_TRANSACTION_NORMALIZERS = {
+    'nonce': remove_leading_zeros,
+    'gasLimit': remove_leading_zeros,
+    'gasPrice': remove_leading_zeros,
+    'value': remove_leading_zeros,
+    'data': empty_to_0x,
+    'to': add_0x_prefix,
+    'r': remove_leading_zeros,
+    's': remove_leading_zeros,
+    'v': remove_leading_zeros,
+}
+
+
+def fixture_block_in_rpc_format(state):
+    return {
+        RPC_BLOCK_REMAPPERS.get(key, key):
+        RPC_BLOCK_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }
+
+
+def fixture_state_in_rpc_format(state):
+    return {
+        key: RPC_STATE_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }
+
+
+def fixture_transaction_in_rpc_format(state):
+    return {
+        RPC_TRANSACTION_REMAPPERS.get(key, key):
+        RPC_TRANSACTION_NORMALIZERS.get(key, identity)(value)
+        for key, value in state.items()
+    }
 
 
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):
