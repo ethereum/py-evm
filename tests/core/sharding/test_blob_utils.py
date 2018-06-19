@@ -4,8 +4,6 @@ from itertools import (
     zip_longest,
 )
 
-from eth_hash.auto import keccak
-
 from evm.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
@@ -165,30 +163,6 @@ def test_chunk_iteration():
     body = b"".join(chunks)
     with pytest.raises(ValidationError):
         next(iterate_chunks(body))
-
-
-@pytest.mark.parametrize("leaves,root", [
-    ([b"single leaf"], keccak(b"single leaf")),
-    ([b"left", b"right"], keccak(keccak(b"left") + keccak(b"right"))),
-    (
-        [b"1", b"2", b"3", b"4"],
-        keccak(
-            keccak(
-                keccak(b"1") + keccak(b"2")
-            ) + keccak(
-                keccak(b"3") + keccak(b"4")
-            )
-        )
-    )
-])
-def test_merkle_root_calculation(leaves, root):
-    assert calc_merkle_root(leaves) == root
-
-
-@pytest.mark.parametrize("leave_number", [0, 3, 5, 6, 7, 9])
-def test_invalid_merkle_root_calculation(leave_number):
-    with pytest.raises(ValidationError):
-        calc_merkle_root([b""] * leave_number)
 
 
 def test_chunk_root_calculation():
