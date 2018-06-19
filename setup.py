@@ -96,7 +96,7 @@ setup(
     version='0.2.0-alpha.26',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
-    author='Piper Merriam',
+    author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
