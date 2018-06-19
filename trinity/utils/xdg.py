@@ -11,28 +11,28 @@ from .filesystem import (
 )
 
 
-def get_home():
+def get_home() -> str:
     try:
         return os.environ['HOME']
     except KeyError:
         raise AmbigiousFileSystem('$HOME environment variable not set')
 
 
-def get_xdg_cache_home():
+def get_xdg_cache_home() -> str:
     try:
         return os.environ['XDG_CACHE_HOME']
     except KeyError:
         return os.path.join(get_home(), '.cache')
 
 
-def get_xdg_config_home():
+def get_xdg_config_home() -> str:
     try:
         return os.environ['XDG_CONFIG_HOME']
     except KeyError:
         return os.path.join(get_home(), '.config')
 
 
-def get_xdg_data_home():
+def get_xdg_data_home() -> str:
     try:
         return os.environ['XDG_DATA_HOME']
     except KeyError:

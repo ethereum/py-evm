@@ -2,6 +2,12 @@ import asyncio
 import json
 import logging
 import os
+import pathlib
+from typing import (
+    Any,
+    Callable,
+    Tuple,
+)
 
 from cytoolz import curry
 
@@ -13,12 +19,18 @@ from p2p.exceptions import (
     OperationCancelled,
 )
 
+from trinity.rpc.main import (
+    RPCServer
+)
 
 MAXIMUM_REQUEST_BYTES = 10000
 
 
 @curry
-async def connection_handler(execute_rpc, cancel_token, reader, writer):
+async def connection_handler(execute_rpc: Callable[[Any], Any],
+                             cancel_token: CancelToken,
+                             reader: asyncio.StreamReader,
+                             writer: asyncio.StreamWriter) -> None:
     '''
     Catch fatal errors, log them, and close the connection
     '''
@@ -36,7 +48,11 @@ async def connection_handler(execute_rpc, cancel_token, reader, writer):
         writer.close()
 
 
-async def connection_loop(execute_rpc, reader, writer, logger, cancel_token):
+async def connection_loop(execute_rpc: Callable[[Any], Any],
+                          reader: asyncio.StreamReader,
+                          writer: asyncio.StreamWriter,
+                          logger: logging.Logger,
+                          cancel_token: CancelToken) -> None:
     # TODO: we should look into using an io.StrinIO here for more efficient
     # writing to the end of the string.
     raw_request = ''
@@ -98,7 +114,7 @@ async def connection_loop(execute_rpc, reader, writer, logger, cancel_token):
         await wait_with_token(writer.drain(), token=cancel_token)
 
 
-def strip_non_json_prefix(raw_request):
+def strip_non_json_prefix(raw_request: str) -> Tuple[str, str]:
     if raw_request and raw_request[0] != '{':
         prefix, bracket, rest = raw_request.partition('{')
         return prefix.strip(), bracket + rest
@@ -106,7 +122,7 @@ def strip_non_json_prefix(raw_request):
         return '', raw_request
 
 
-async def write_error(writer, message):
+async def write_error(writer: asyncio.StreamWriter, message: str) -> None:
     json_error = json.dumps({'error': message}) + '\n'
     writer.write(json_error.encode())
     await writer.drain()
@@ -120,22 +136,23 @@ class IPCServer:
     rpc = None
     server = None
 
-    def __init__(self, rpc, ipc_path):
+    def __init__(self, rpc: RPCServer, ipc_path: pathlib.Path) -> None:
         self.rpc = rpc
         self.ipc_path = ipc_path
 
-    async def run(self, loop=None):
+    async def run(self, loop: asyncio.AbstractEventLoop=None) -> None:
+        ipc_path = str(self.ipc_path)
         self.cancel_token = CancelToken('IPCServer', loop=loop)
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
-            self.ipc_path,
+            ipc_path,
             loop=loop,
             limit=MAXIMUM_REQUEST_BYTES,
         )
-        self.logger.info('IPC started at: %s', os.path.abspath(self.ipc_path))
+        self.logger.info('IPC started at: %s', os.path.abspath(ipc_path))
         await self.cancel_token.wait()
 
-    async def stop(self):
+    async def stop(self) -> None:
         if self.cancel_token is not None:
             self.cancel_token.trigger()
         self.server.close()

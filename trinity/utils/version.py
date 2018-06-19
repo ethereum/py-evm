@@ -3,7 +3,7 @@ import sys
 from trinity import __version__
 
 
-def construct_trinity_client_identifier():
+def construct_trinity_client_identifier() -> str:
     """
     Constructs the client identifier string
 

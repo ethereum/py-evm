@@ -1,5 +1,11 @@
 import functools
-
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Union,
+)
 from cytoolz import (
     compose,
 )
@@ -11,8 +17,21 @@ from eth_utils import (
 
 import rlp
 
+from evm.chains.base import (
+    BaseChain
+)
+from evm.rlp.blocks import (
+    BaseBlock
+)
+from evm.rlp.headers import (
+    BlockHeader
+)
+from evm.rlp.transactions import (
+    BaseTransaction
+)
 
-def transaction_to_dict(transaction):
+
+def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
     return dict(
         hash=encode_hex(transaction.hash),
         nonce=hex(transaction.nonce),
@@ -27,7 +46,7 @@ def transaction_to_dict(transaction):
     )
 
 
-def header_to_dict(header):
+def header_to_dict(header: BlockHeader) -> Dict[str, str]:
     logs_bloom = encode_hex(int_to_big_endian(header.bloom))[2:]
     logs_bloom = '0x' + logs_bloom.rjust(512, '0')
     header_dict = {
@@ -51,10 +70,13 @@ def header_to_dict(header):
     return header_dict
 
 
-def block_to_dict(block, chain, include_transactions):
+def block_to_dict(block: BaseBlock,
+                  chain: BaseChain,
+                  include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
+
     header_dict = header_to_dict(block.header)
 
-    block_dict = dict(
+    block_dict: Dict[str, Union[str, List[str]]] = dict(
         header_dict,
         totalDifficulty=hex(chain.get_score(block.hash)),
         uncles=[encode_hex(uncle.hash) for uncle in block.uncles],
@@ -70,10 +92,10 @@ def block_to_dict(block, chain, include_transactions):
     return block_dict
 
 
-def format_params(*formatters):
-    def decorator(func):
+def format_params(*formatters: Any) -> Callable[..., Any]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def formatted_func(self, *args):
+        def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
             if len(formatters) != len(args):
                 raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
             formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
@@ -82,14 +104,14 @@ def format_params(*formatters):
     return decorator
 
 
-def to_int_if_hex(value):
+def to_int_if_hex(value: Any) -> Any:
     if isinstance(value, str) and value.startswith('0x'):
         return int(value, 16)
     else:
         return value
 
 
-def empty_to_0x(val):
+def empty_to_0x(val: str) -> str:
     if val:
         return val
     else:

@@ -46,7 +46,7 @@ class LightNode(Node):
         self._discovery = DiscoveryService(self._discovery_proto, self._peer_pool)
         self.add_service(self._peer_pool)
 
-    async def _run(self):
+    async def _run(self) -> None:
         # TODO add a datagram endpoint service that can be added with self.add_service
         self.logger.info(
             "enode://%s@%s:%s",

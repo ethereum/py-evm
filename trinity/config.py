@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -193,7 +194,7 @@ class ChainConfig:
             )
 
     @classmethod
-    def from_parser_args(cls, parser_args):
+    def from_parser_args(cls, parser_args: argparse.Namespace) -> 'ChainConfig':
         constructor_kwargs = construct_chain_config_params(parser_args)
         return cls(**constructor_kwargs)
 

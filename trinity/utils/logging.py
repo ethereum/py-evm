@@ -10,11 +10,13 @@ from logging.handlers import (
     QueueHandler,
     RotatingFileHandler,
 )
-from multiprocessing import Queue
+
 import os
 import sys
 from typing import (
+    Any,
     Tuple,
+    TYPE_CHECKING,
     Callable
 )
 
@@ -23,6 +25,9 @@ from cytoolz import dissoc
 from trinity.config import (
     ChainConfig,
 )
+
+if TYPE_CHECKING:
+    from multiprocessing import Queue  # noqa: F401
 
 LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
@@ -55,7 +60,7 @@ def setup_trinity_file_and_queue_logging(
         formatter: Formatter,
         handler_stream: StreamHandler,
         chain_config: ChainConfig,
-        level: int) -> Tuple[Logger, Queue, QueueListener]:
+        level: int) -> Tuple[Logger, 'Queue[str]', QueueListener]:
     from .mp import ctx
 
     log_queue = ctx.Queue()
@@ -82,7 +87,7 @@ def setup_trinity_file_and_queue_logging(
     return logger, log_queue, listener
 
 
-def setup_queue_logging(log_queue: Queue, level: int) -> None:
+def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     queue_handler = QueueHandler(log_queue)
     queue_handler.setLevel(logging.DEBUG)
 
@@ -97,9 +102,9 @@ def setup_queue_logging(log_queue: Queue, level: int) -> None:
     logger.debug('Logging initialized: PID=%s', os.getpid())
 
 
-def with_queued_logging(fn: Callable) -> Callable:
+def with_queued_logging(fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(fn)
-    def inner(*args, **kwargs):
+    def inner(*args: Any, **kwargs: Any) -> Any:
         try:
             log_queue = kwargs['log_queue']
         except KeyError:

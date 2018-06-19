@@ -109,6 +109,12 @@ class BaseChain(Configurable, metaclass=ABCMeta):
     chaindb = None  # type: BaseChainDB
     chaindb_class = None  # type: Type[BaseChainDB]
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    header = None  # type: BlockHeader
+    network_id = None  # type: int
+
+    @abstractmethod
+    def __init__(self) -> None:
+        raise NotImplementedError("Chain classes must implement this method")
 
     #
     # Helpers
@@ -271,8 +277,6 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("evm.chain.chain.Chain")
-    header = None  # type: BlockHeader
-    network_id = None  # type: int
     gas_estimator = None  # type: Callable
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
