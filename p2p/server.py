@@ -1,5 +1,4 @@
 import asyncio
-import ipaddress
 import logging
 import secrets
 import socket
@@ -9,10 +8,6 @@ from typing import (
     Type,
     TYPE_CHECKING,
 )
-from urllib.parse import urlparse
-
-import netifaces
-import upnpclient
 
 from eth_keys import datatypes
 
@@ -46,6 +41,7 @@ from p2p.kademlia import (
     Address,
     Node,
 )
+from p2p.nat import UPnPService
 from p2p.p2p_proto import (
     DisconnectReason,
 )
@@ -67,7 +63,6 @@ class Server(BaseService):
     logger = logging.getLogger("p2p.server.Server")
     _tcp_listener = None
     _udp_listener = None
-    _nat_portmap_lifetime = 30 * 60
 
     peer_pool: PeerPool = None
 
@@ -97,109 +92,10 @@ class Server(BaseService):
         self.peer_pool_class = peer_pool_class
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
+        self.upnp_service = UPnPService(port, token=self.cancel_token)
 
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
-
-    async def refresh_nat_portmap(self) -> None:
-        """Run an infinite loop refreshing our NAT port mapping.
-
-        On every iteration we configure the port mapping with a lifetime of 30 minutes and then
-        sleep for that long as well.
-        """
-        while self.is_running:
-            try:
-                # We start with a sleep because our _run() method will setup the initial portmap.
-                await self.wait(asyncio.sleep(self._nat_portmap_lifetime))
-                await self.add_nat_portmap()
-            except OperationCancelled:
-                break
-
-    async def add_nat_portmap(self) -> None:
-        self.logger.info("Setting up NAT portmap...")
-        # This is experimental and it's OK if it fails, hence the bare except.
-        try:
-            upnp_dev = await self._discover_upnp_device()
-            if upnp_dev is None:
-                return
-            await self._add_nat_portmap(upnp_dev)
-        except upnpclient.soap.SOAPError as e:
-            if e.args == (718, 'ConflictInMappingEntry'):
-                # An entry already exists with the parameters we specified. Maybe the router
-                # didn't clean it up after it expired or it has been configured by other piece
-                # of software, either way we should not override it.
-                # https://tools.ietf.org/id/draft-ietf-pcp-upnp-igd-interworking-07.html#errors
-                self.logger.info("NAT port mapping already configured, not overriding it")
-            else:
-                self.logger.exception("Failed to setup NAT portmap")
-        except Exception:
-            self.logger.exception("Failed to setup NAT portmap")
-
-    def _find_internal_ip_on_device_network(self, upnp_dev: upnpclient.upnp.Device) -> str:
-        parsed_url = urlparse(upnp_dev.location)
-        # Get an ipaddress.IPv4Network instance for the upnp device's network.
-        upnp_dev_net = ipaddress.ip_network(parsed_url.hostname + '/24', strict=False)
-        for iface in netifaces.interfaces():
-            for family, addresses in netifaces.ifaddresses(iface).items():
-                # TODO: Support IPv6 addresses as well.
-                if family != netifaces.AF_INET:
-                    continue
-                for item in addresses:
-                    if ipaddress.ip_address(item['addr']) in upnp_dev_net:
-                        return item['addr']
-        return None
-
-    async def _add_nat_portmap(self, upnp_dev: upnpclient.upnp.Device) -> None:
-        # Detect our internal IP address (or abort if we can't determine
-        # the internal IP address
-        internal_ip = self._find_internal_ip_on_device_network(upnp_dev)
-        if internal_ip is None:
-            self.logger.warn(
-                "Unable to detect internal IP address in order to setup NAT portmap"
-            )
-            return
-
-        external_ip = upnp_dev.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress']
-        for protocol, description in [('TCP', 'ethereum p2p'), ('UDP', 'ethereum discovery')]:
-            upnp_dev.WANIPConn1.AddPortMapping(
-                NewRemoteHost=external_ip,
-                NewExternalPort=self.port,
-                NewProtocol=protocol,
-                NewInternalPort=self.port,
-                NewInternalClient=internal_ip,
-                NewEnabled='1',
-                NewPortMappingDescription=description,
-                NewLeaseDuration=self._nat_portmap_lifetime,
-            )
-        self.logger.info("NAT port forwarding successfully setup")
-
-    async def _discover_upnp_device(self) -> upnpclient.upnp.Device:
-        loop = asyncio.get_event_loop()
-        # UPnP discovery can take a long time, so use a loooong timeout here.
-        discover_timeout = 10 * REPLY_TIMEOUT
-        # Use loop.run_in_executor() because upnpclient.discover() is blocking and may take a
-        # while to complete.
-        try:
-            devices = await self.wait(
-                loop.run_in_executor(None, upnpclient.discover),
-                timeout=discover_timeout)
-        except TimeoutError:
-            self.logger.info("Timeout waiting for UPNP-enabled devices")
-            return None
-
-        # If there are no UPNP devices we can exit early
-        if not devices:
-            self.logger.info("No UPNP-enabled devices found")
-            return None
-
-        # Now we loop over all of the devices until we find one that we can use.
-        for device in devices:
-            try:
-                device.WANIPConn1
-            except AttributeError:
-                continue
-            return device
-        return None
 
     async def _start_tcp_listener(self) -> None:
         # TODO: Support IPv6 addresses as well.
@@ -246,11 +142,11 @@ class Server(BaseService):
 
     async def _run(self) -> None:
         self.logger.info("Running server...")
-        upnp_dev = await self._discover_upnp_device()
-        external_ip = '0.0.0.0'
-        if upnp_dev is not None:
-            external_ip = upnp_dev.WANIPConn1.GetExternalIPAddress()['NewExternalIPAddress']
-            await self._add_nat_portmap(upnp_dev)
+        mapped_external_ip = await self.upnp_service.add_nat_portmap()
+        if mapped_external_ip is None:
+            external_ip = '0.0.0.0'
+        else:
+            external_ip = mapped_external_ip
         await self._start_tcp_listener()
         self.logger.info(
             "enode://%s@%s:%s",
@@ -264,15 +160,18 @@ class Server(BaseService):
         self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
         await self._start_udp_listener(self.discovery)
         self.peer_pool = self._make_peer_pool(self.discovery)
-        asyncio.ensure_future(self.refresh_nat_portmap())
         asyncio.ensure_future(self.discovery.bootstrap())
         asyncio.ensure_future(self.peer_pool.run())
+        asyncio.ensure_future(self.upnp_service.run())
         self.syncer = self._make_syncer(self.peer_pool)
         await self.syncer.run()
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await asyncio.gather(self.peer_pool.cancel(), self.discovery.stop())
+        await asyncio.gather(
+            self.peer_pool.cancel(),
+            self.discovery.stop(),
+        )
         await self._close()
 
     async def receive_handshake(

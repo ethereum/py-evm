@@ -26,7 +26,8 @@ deps = {
     'evm-extra': [
         "coincurve>=7.0.0,<8.0.0",
         "plyvel==1.0.4",
-        "eth-hash[pycryptodome]",
+        "eth-hash[pysha3];implementation_name=='cpython'",
+        "eth-hash[pycryptodome];implementation_name=='pypy'",
     ],
     'p2p': [
         "aiohttp>=2.3.1,<3.0.0",
@@ -74,6 +75,7 @@ deps = {
     ],
 }
 
+
 deps['dev'] = (
     deps['dev'] +
     deps['evm'] +
@@ -96,7 +98,7 @@ setup(
     version='0.2.0-alpha.26',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
-    author='Piper Merriam',
+    author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,

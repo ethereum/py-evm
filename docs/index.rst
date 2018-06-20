@@ -10,6 +10,7 @@ Table of contents
 
    introduction
    quickstart
+   release_notes/index
 
 .. toctree::
    :maxdepth: 1

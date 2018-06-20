@@ -1,5 +1,3 @@
-import itertools
-import math
 from io import (
     BytesIO,
 )
@@ -14,10 +12,11 @@ from eth_utils import (
     int_to_big_endian,
 )
 
-from eth_hash.auto import keccak
-
 from evm.utils.padding import (
     zpad_right,
+)
+from evm.utils.merkle import (
+    calc_merkle_root,
 )
 
 from evm.constants import (
@@ -29,11 +28,6 @@ from evm.constants import (
 
 from evm.exceptions import (
     ValidationError,
-)
-
-from cytoolz import (
-    partition,
-    pipe,
 )
 
 from typing import (
@@ -50,31 +44,9 @@ def iterate_chunks(collation_body: bytes) -> Iterator[Hash32]:
         yield cast(Hash32, collation_body[chunk_start:chunk_start + CHUNK_SIZE])
 
 
-def hash_layer(layer: Iterable[Hash32]) -> Iterator[Hash32]:
-    for left, right in partition(2, layer):
-        yield keccak(left + right)
-
-
-def calc_merkle_root(leaves: Iterable[Hash32]) -> Hash32:
-    leaves = list(leaves)  # convert potential iterator to list
-    if len(leaves) == 0:
-        raise ValidationError("No leaves given")
-
-    n_layers = math.log2(len(leaves))
-    if not n_layers.is_integer():
-        raise ValidationError("Leave number is not a power of two")
-    n_layers = int(n_layers)
-
-    first_layer = (keccak(leaf) for leaf in leaves)
-
-    root, *extras = pipe(first_layer, *itertools.repeat(hash_layer, n_layers))
-    assert not extras, "Invariant: should only be a single value"
-    return root
-
-
 def calc_chunk_root(collation_body: bytes) -> Hash32:
     check_body_size(collation_body)
-    chunks = iterate_chunks(collation_body)
+    chunks = list(iterate_chunks(collation_body))
     return calc_merkle_root(chunks)
 
 

@@ -135,3 +135,12 @@ class BadLESResponse(BaseP2PError):
     Raised when the response to a LES request doesn't contain the data we asked for.
     """
     pass
+
+
+class NoInternalAddressMatchesDevice(BaseP2PError):
+    """
+    Raised when no internal IP address matches the UPnP device that is being configured.
+    """
+    def __init__(self, *args, device_hostname=None, **kwargs):
+        super.__init__(*args, **kwargs)
+        self.device_hostname = device_hostname

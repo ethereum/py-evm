@@ -1,14 +1,15 @@
 import os
+import pathlib
 import signal
 import time
 from multiprocessing import Process
 from logging import Logger
 
 
-def wait_for_ipc(ipc_path: str, timeout: int=1) -> None:
+def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=1) -> None:
     start_at = time.time()
     while time.time() - start_at < timeout:
-        if os.path.exists(ipc_path):
+        if ipc_path.exists():
             break
         time.sleep(0.05)
 
