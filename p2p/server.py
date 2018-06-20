@@ -93,6 +93,8 @@ class Server(BaseService):
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
         self.upnp_service = UPnPService(port, token=self.cancel_token)
+        self.fut_discovery: asyncio.Future = asyncio.Future()
+        self.peer_pool = self._make_peer_pool(self.fut_discovery)
 
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
@@ -129,35 +131,41 @@ class Server(BaseService):
         return FullNodeSyncer(
             self.chain, self.chaindb, self.base_db, peer_pool, self.cancel_token)
 
-    def _make_peer_pool(self, discovery: DiscoveryProtocol) -> PeerPool:
+    def _make_peer_pool(self, fut_discovery: 'asyncio.Future[DiscoveryProtocol]') -> PeerPool:
         # This method exists only so that ShardSyncer can provide a different implementation.
         return self.peer_pool_class(
             self.peer_class,
             self.headerdb,
             self.network_id,
             self.privkey,
-            discovery,
+            fut_discovery,
             max_peers=self.max_peers,
         )
 
-    async def _run(self) -> None:
-        self.logger.info("Running server...")
+    async def _make_discovery(self):
         mapped_external_ip = await self.upnp_service.add_nat_portmap()
         if mapped_external_ip is None:
             external_ip = '0.0.0.0'
         else:
             external_ip = mapped_external_ip
         await self._start_tcp_listener()
+        addr = Address(external_ip, self.port, self.port)
+        discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
+        self.fut_discovery.set_result(discovery)
+        return discovery
+
+    async def _run(self) -> None:
+        self.logger.info("Running server...")
+        self.discovery = await self._make_discovery()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
-            external_ip,
+            self.discovery.address.ip,
             self.port,
         )
         self.logger.info('network: %s', self.network_id)
         self.logger.info('peers: max_peers=%s', self.max_peers)
-        addr = Address(external_ip, self.port, self.port)
-        self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
+
         await self._start_udp_listener(self.discovery)
         self.peer_pool = self._make_peer_pool(self.discovery)
         asyncio.ensure_future(self.discovery.bootstrap())
