@@ -599,14 +599,11 @@ class PeerPool(BaseService):
         return len(self) >= self.max_peers
 
     def is_valid_connection_candidate(self, candidate: Node) -> bool:
-        max_matching_ip = 2
-        matching_ip = 0
-        for peer in self.connected_nodes.values():
-            if candidate.address.ip == peer.remote.address.ip:
-                matching_ip += 1
-            if (matching_ip > max_matching_ip):
-                return False
-        return True
+        # connect to no more then 2 nodes with the same IP
+        nodes_by_ip = groupby(
+            operator.attrgetter('remote.address.ip'), self.connected_nodes.values())
+        matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
+        return len(matching_ip_nodes) <= 2
 
     def get_nodes_to_connect(self) -> Generator[Node, None, None]:
         for node in self.discovery.get_random_nodes(self.max_peers):

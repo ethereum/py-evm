@@ -51,6 +51,9 @@ class MockPeerPool():
     def is_valid_connection_candidate(self, node):
         return True
 
+    def __len__(self):
+        return len(self.connected_nodes)
+
 
 def get_server(privkey, address, peer_class):
     base_db = MemoryDB()
