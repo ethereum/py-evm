@@ -35,6 +35,7 @@ from evm.rlp.receipts import Receipt
 
 from p2p.exceptions import (
     BadLESResponse,
+    NoEligiblePeers,
 )
 from p2p.cancel_token import CancelToken
 from p2p import protocol
@@ -160,6 +161,15 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         :return: bytecode of the contract, ``b''`` if no code is set
         """
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
+
+        # get account for later verification, and
+        # to confirm that our highest total difficulty peer has the info
+        try:
+            account = await self.get_account(block_hash, address)
+        except HeaderNotFound as exc:
+            raise NoEligiblePeers("Our best peer does not have header %s" % block_hash) from exc
+
+        # request contract code
         request_id = gen_request_id()
         peer.sub_proto.send_get_contract_code(block_hash, keccak(address), request_id)
         reply = await self._wait_for_reply(request_id)
@@ -170,12 +180,15 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             bytecode = reply['codes'][0]
 
         # validate bytecode against a proven account
-        account = await self.get_account(block_hash, address)
-
         if account.code_hash == keccak(bytecode):
             return bytecode
+        elif bytecode == b'':
+            # TODO disambiguate failure types here, and raise the appropriate exception
+            # An (incorrectly) empty bytecode might indicate a bad-acting peer, or it might not
+            raise NoEligiblePeers("Our best peer incorrectly responded with an empty code value")
         else:
-            # disconnect from this bad peer
+            # a bad-acting peer sent an invalid non-empty bytecode
+            # disconnect from the peer
             await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
             # try again with another peer
             return await self.get_contract_code(block_hash, address)
