@@ -99,26 +99,15 @@ def p2p_server(monkeypatch, p2p_server, mock_peer_pool):
             {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
-            build_request('net_peerCount'),
-            None,
-            {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
-        ),
-        (
             build_request('net_listening'),
             MockPeerPool(),
             {'result': True, 'id': 3, 'jsonrpc': '2.0'},
-        ),
-        (
-            build_request('net_listening'),
-            None,
-            {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
     ),
     ids=[
         'empty', 'notamethod', 'eth_mining', 'web3_clientVersion',
         'web3_sha3_1', 'web3_sha3_2', 'net_version', 'net_peerCount_1',
-        'net_peerCount_0', 'net_peerCount_no_peer_pool', 'net_listening_true',
-        'net_listening_false'
+        'net_peerCount_0', 'net_listening_true',
     ],
 )
 async def test_ipc_requests(jsonrpc_ipc_pipe_path,

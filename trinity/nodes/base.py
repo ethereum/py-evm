@@ -12,6 +12,9 @@ from typing import (
 
 from evm.chains.base import BaseChain
 
+from p2p.peer import (
+    PeerPool
+)
 from p2p.service import (
     BaseService,
     EmptyService,
@@ -62,6 +65,10 @@ class Node(BaseService):
         raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
+    def get_peer_pool(self) -> PeerPool:
+        raise NotImplementedError("Node classes must implement this method")
+
+    @abstractmethod
     def get_p2p_server(self) -> BaseService:
         """
         This is the main service that will be run, when calling :meth:`run`.
@@ -85,7 +92,7 @@ class Node(BaseService):
 
     def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
         if self._jsonrpc_ipc_path:
-            rpc = RPCServer(self.get_chain(), self.get_p2p_server())
+            rpc = RPCServer(self.get_chain(), self.get_peer_pool())
             return IPCServer(rpc, self._jsonrpc_ipc_path)
         else:
             return EmptyService()
