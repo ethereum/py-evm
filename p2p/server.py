@@ -262,25 +262,21 @@ class Server(BaseService):
             inbound=True,
         )
 
-        total_peers_inbound = 0.0
-        total_peers = 0.0
-
-        for current_peers in self.peer_pool.connected_nodes.values():
-            total_peers += 1
-            if current_peers.inbound:
-                total_peers_inbound += 1
-        # make sure to have atleast 1/4 outbound connections
-
         if self.peer_pool.is_full:
             peer.disconnect(DisconnectReason.too_many_peers)
-        elif total_peers > 1 and total_peers_inbound // total_peers > 0.75:
-            peer.disconnect(DisconnectReason.useless_peer)
-        elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
-            peer.disconnect(DisconnectReason.useless_peer)
         else:
-            # We use self.wait() here as a workaround for
-            # https://github.com/ethereum/py-evm/issues/670.
-            await self.wait(self.do_handshake(peer))
+            total_peers = len(self.peer_pool.connected_nodes)
+            inbound_peers = len(
+                [peer for peer in self.peer_pool.connected_nodes.values() if peer.inbound])
+            if total_peers > 1 and inbound_peers / total_peers > 0.75:
+                # make sure to have at least 1/4 outbound connections
+                peer.disconnect(DisconnectReason.useless_peer)
+            elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
+                peer.disconnect(DisconnectReason.useless_peer)
+            else:
+                # We use self.wait() here as a workaround for
+                # https://github.com/ethereum/py-evm/issues/670.
+                await self.wait(self.do_handshake(peer))
 
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake(),
