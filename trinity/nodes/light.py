@@ -81,6 +81,9 @@ class LightNode(Node):
             self._p2p_server = LightPeerChain(self.headerdb, self._peer_pool, self.chain_class)
         return self._p2p_server
 
+    def get_peer_pool(self) -> PeerPool:
+        return self._peer_pool
+
     def _create_peer_pool(self, chain_config: ChainConfig) -> PeerPool:
         return PeerPool(
             LESPeer,

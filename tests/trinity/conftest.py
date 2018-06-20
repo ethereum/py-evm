@@ -73,7 +73,7 @@ def ipc_server(
     used as a fixture, so it doesn't return (yield) a value.
     '''
 
-    rpc = RPCServer(chain_with_block_validation, p2p_server)
+    rpc = RPCServer(chain_with_block_validation, p2p_server.peer_pool)
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path)
 
     asyncio.ensure_future(ipc_server.run(loop=event_loop), loop=event_loop)

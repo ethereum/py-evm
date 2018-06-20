@@ -14,6 +14,10 @@ from evm.exceptions import (
     ValidationError,
 )
 
+from p2p.peer import (
+    PeerPool
+)
+
 from trinity.rpc.modules import (
     Eth,
     EVM,
@@ -69,11 +73,11 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: BaseChain, p2p_server: Any=None) -> None:
+    def __init__(self, chain: BaseChain=None, peer_pool: PeerPool=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
-            self.modules[M.__name__.lower()] = M(chain, p2p_server)
+            self.modules[M.__name__.lower()] = M(chain, peer_pool)
         if len(self.modules) != len(self.module_classes):
             raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
 

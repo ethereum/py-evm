@@ -2,8 +2,12 @@ from evm.chains.base import (
     BaseChain
 )
 
-from p2p.server import Server
-from p2p.service import BaseService
+from p2p.peer import (
+    PeerPool,
+)
+from p2p.server import (
+    Server
+)
 
 from trinity.nodes.base import Node
 from trinity.config import (
@@ -13,7 +17,7 @@ from trinity.config import (
 
 class FullNode(Node):
     _chain: BaseChain = None
-    _p2p_server: BaseService = None
+    _p2p_server: Server = None
 
     def __init__(self, chain_config: ChainConfig) -> None:
         super().__init__(chain_config)
@@ -31,7 +35,7 @@ class FullNode(Node):
 
         return self._chain
 
-    def get_p2p_server(self) -> BaseService:
+    def get_p2p_server(self) -> Server:
         if self._p2p_server is None:
             manager = self.db_manager
             self._p2p_server = Server(
@@ -48,3 +52,6 @@ class FullNode(Node):
                 token=self.cancel_token,
             )
         return self._p2p_server
+
+    def get_peer_pool(self) -> PeerPool:
+        return self.get_p2p_server().peer_pool
