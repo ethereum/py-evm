@@ -89,10 +89,10 @@ class BaseService(ABC):
 
     async def cancel(self):
         """Trigger the CancelToken and wait for the cleaned_up event to be set."""
-        if not self.is_running:
-            raise RuntimeError("Cannot cancel a service that has not been started")
-        elif self.cancel_token.triggered:
+        if self.cancel_token.triggered:
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
+        elif not self.is_running:
+            raise RuntimeError("Cannot cancel a service that has not been started")
 
         self.logger.debug("Cancelling %s", self)
         self.cancel_token.trigger()
