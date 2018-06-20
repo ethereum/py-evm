@@ -676,8 +676,9 @@ class PeerPool(BaseService):
                  privkey: datatypes.PrivateKey,
                  vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
                  max_peers: int = DEFAULT_MAX_PEERS,
+                 token: CancelToken = None,
                  ) -> None:
-        super().__init__()
+        super().__init__(token)
         self.peer_class = peer_class
         self.headerdb = headerdb
         self.network_id = network_id

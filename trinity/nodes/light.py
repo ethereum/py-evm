@@ -43,7 +43,9 @@ class LightNode(Node):
             preferred_nodes=chain_config.preferred_nodes,
         )
         self._peer_pool = self._create_peer_pool(chain_config)
-        self._discovery = DiscoveryService(self._discovery_proto, self._peer_pool)
+        self._discovery = DiscoveryService(
+            self._discovery_proto, self._peer_pool, self.cancel_token)
+        self.add_service(self._discovery)
         self.add_service(self._peer_pool)
         self.create_and_add_tx_pool()
 
@@ -61,11 +63,7 @@ class LightNode(Node):
             lambda: self._discovery_proto,
             local_addr=('0.0.0.0', self._port)
         )
-        asyncio.ensure_future(self._discovery.run())
-        try:
-            await super()._run()
-        finally:
-            await self._discovery.cancel()
+        await super()._run()
 
     def get_chain(self) -> LightDispatchChain:
         if self._chain is None:
@@ -79,7 +77,8 @@ class LightNode(Node):
         if self._p2p_server is None:
             if self.chain_class is None:
                 raise AttributeError("LightNode subclass must set chain_class")
-            self._p2p_server = LightPeerChain(self.headerdb, self._peer_pool, self.chain_class)
+            self._p2p_server = LightPeerChain(
+                self.headerdb, self._peer_pool, self.chain_class, self.cancel_token)
         return self._p2p_server
 
     def get_peer_pool(self) -> PeerPool:
@@ -92,4 +91,5 @@ class LightNode(Node):
             chain_config.network_id,
             chain_config.nodekey,
             self.chain_class.vm_configuration,
+            token=self.cancel_token,
         )

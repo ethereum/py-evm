@@ -46,6 +46,7 @@ from p2p.exceptions import (
     OperationCancelled,
     TooManyTimeouts,
 )
+from p2p.cancel_token import CancelToken
 from p2p import les
 from p2p import protocol
 from p2p.constants import REPLY_TIMEOUT
@@ -78,8 +79,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             self,
             headerdb: 'BaseAsyncHeaderDB',
             peer_pool: PeerPool,
-            chain_class: Type[BaseChain]) -> None:
-        super().__init__()
+            chain_class: Type[BaseChain],
+            token: CancelToken = None) -> None:
+        PeerPoolSubscriber.__init__(self)
+        BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._announcement_queue: asyncio.Queue[Tuple[LESPeer, les.HeadInfo]] = asyncio.Queue()
@@ -258,7 +261,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             VM.validate_header(header, parent_header)
 
     async def _cleanup(self):
-        self.logger.info("Stopping LightPeerChain...")
+        pass
 
     async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
         reply = None

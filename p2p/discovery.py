@@ -323,8 +323,9 @@ class DiscoveryService(BaseService):
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
-    def __init__(self, proto: DiscoveryProtocol, peer_pool: PeerPool) -> None:
-        super().__init__()
+    def __init__(
+            self, proto: DiscoveryProtocol, peer_pool: PeerPool, token: CancelToken = None) -> None:
+        super().__init__(token)
         self.proto = proto
         self.peer_pool = peer_pool
 

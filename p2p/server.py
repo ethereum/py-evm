@@ -150,6 +150,7 @@ class Server(BaseService):
             self.privkey,
             self.chain.vm_configuration,
             max_peers=self.max_peers,
+            token=self.cancel_token,
         )
 
     async def _run(self) -> None:
@@ -172,7 +173,7 @@ class Server(BaseService):
         discovery_proto = PreferredNodeDiscoveryProtocol(
             self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
         await self._start_udp_listener(discovery_proto)
-        self.discovery = DiscoveryService(discovery_proto, self.peer_pool)
+        self.discovery = DiscoveryService(discovery_proto, self.peer_pool, self.cancel_token)
         asyncio.ensure_future(self.peer_pool.run())
         asyncio.ensure_future(self.discovery.run())
         asyncio.ensure_future(self.upnp_service.run())
@@ -181,10 +182,7 @@ class Server(BaseService):
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await asyncio.gather(
-            self.peer_pool.cancel(),
-            self.discovery.cancel(),
-        )
+        await asyncio.gather(self.peer_pool.cleaned_up.wait(), self.discovery.cleaned_up.wait())
         await self._close()
 
     async def receive_handshake(
