@@ -459,11 +459,16 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             )
 
         limit = max(header_request['max_headers'], eth.MAX_HEADERS_FETCH)
+        step = header_request['skip'] + 1
         if header_request['reverse']:
-            block_numbers = list(reversed(range(max(0, block_number - limit), block_number + 1)))
+            low = max(0, block_number - limit)
+            high = block_number + 1
+            block_numbers = reversed(range(low, high, step))
         else:
-            block_numbers = list(range(block_number, block_number + limit))
-        return block_numbers
+            low = block_number
+            high = block_number + limit
+            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
+        return list(block_numbers)
 
     async def _generate_available_headers(
             self,
