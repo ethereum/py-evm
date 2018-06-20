@@ -1,16 +1,23 @@
 import asyncio
-from typing import Type
-
-from eth_keys import datatypes
 
 from evm import MainnetChain, RopstenChain
 from evm.chains.base import Chain
 from evm.db.chain import AsyncChainDB
 
-from p2p import kademlia
-from p2p.peer import BasePeer, HardCodedNodesPeerPool
+from p2p.exceptions import OperationCancelled
 
 from trinity.db.header import AsyncHeaderDB
+
+
+async def connect_to_peers_loop(peer_pool, nodes):
+    """Loop forever trying to connect to one of the given nodes if the pool is not yet full."""
+    while not peer_pool.cancel_token.triggered:
+        try:
+            if not peer_pool.is_full:
+                await peer_pool.connect_to_nodes(nodes)
+            await peer_pool.wait(asyncio.sleep(2))
+        except OperationCancelled:
+            break
 
 
 def async_passthrough(base_name):
@@ -20,26 +27,6 @@ def async_passthrough(base_name):
         return getattr(self, base_name)(*args, **kwargs)
     passthrough_method.__name__ = coro_name
     return passthrough_method
-
-
-class SingleNodePeerPool(HardCodedNodesPeerPool):
-    """A PeerPool that will only attempt to connect to the enode passed to its __init__()"""
-
-    def __init__(self,
-                 peer_class: Type[BasePeer],
-                 chaindb: AsyncChainDB,
-                 network_id: int,
-                 privkey: datatypes.PrivateKey,
-                 enode: str,
-                 ) -> None:
-        discovery = None
-        self._node = kademlia.Node.from_uri(enode)
-        super().__init__(
-            peer_class, chaindb, network_id, privkey, discovery, max_peers=1,
-        )
-
-    def get_nodes_to_connect(self):
-        yield self._node
 
 
 class FakeAsyncChainDB(AsyncChainDB):

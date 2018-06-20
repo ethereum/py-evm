@@ -12,8 +12,8 @@ import time
 from typing import (
     Any,
     Callable,
-    Generator,
     Hashable,
+    Iterator,
     List,
     Set,
     Sized,
@@ -231,7 +231,7 @@ class RoutingTable:
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
-    def get_random_nodes(self, count: int) -> Generator[Node, None, None]:
+    def get_random_nodes(self, count: int) -> Iterator[Node]:
         if count > len(self):
             self.logger.warn(
                 "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
@@ -345,7 +345,7 @@ class CallbackManager(collections.UserDict):
     @contextlib.contextmanager
     def acquire(self,
                 key: Hashable,
-                callback: Callable[..., Any]) -> Generator[CallbackLock, None, None]:
+                callback: Callable[..., Any]) -> Iterator[CallbackLock]:
         if key in self:
             if not self.locked(key):
                 del self[key]

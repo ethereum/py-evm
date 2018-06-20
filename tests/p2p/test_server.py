@@ -131,10 +131,9 @@ async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_d
     monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
 
     network_id = 1
-    discovery = None
-    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), network_id, INITIATOR_PRIVKEY, discovery)
+    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), network_id, INITIATOR_PRIVKEY)
     nodes = [RECEIVER_REMOTE]
-    await pool._connect_to_nodes(nodes)
+    await pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.
     await asyncio.sleep(0.1)
 

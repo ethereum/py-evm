@@ -4,6 +4,7 @@ import secrets
 import socket
 from typing import (
     cast,
+    Sequence,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -30,7 +31,11 @@ from p2p.constants import (
     HASH_LEN,
     REPLY_TIMEOUT,
 )
-from p2p.discovery import DiscoveryProtocol
+from p2p.discovery import (
+    DiscoveryProtocol,
+    DiscoveryService,
+    PreferredNodeDiscoveryProtocol,
+)
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
@@ -47,9 +52,9 @@ from p2p.p2p_proto import (
 )
 from p2p.peer import (
     BasePeer,
+    DEFAULT_PREFERRED_NODES,
     ETHPeer,
     PeerPool,
-    PreferredNodePeerPool,
 )
 from p2p.service import BaseService
 from p2p.sync import FullNodeSyncer
@@ -76,8 +81,8 @@ class Server(BaseService):
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
-                 peer_pool_class: Type[PeerPool] = PreferredNodePeerPool,
                  bootstrap_nodes: Tuple[Node, ...] = None,
+                 preferred_nodes: Sequence[Node] = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
@@ -89,10 +94,13 @@ class Server(BaseService):
         self.port = port
         self.network_id = network_id
         self.peer_class = peer_class
-        self.peer_pool_class = peer_pool_class
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
+        self.preferred_nodes = preferred_nodes
+        if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
+            self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
         self.upnp_service = UPnPService(port, token=self.cancel_token)
+        self.peer_pool = self._make_peer_pool()
 
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
@@ -129,14 +137,13 @@ class Server(BaseService):
         return FullNodeSyncer(
             self.chain, self.chaindb, self.base_db, peer_pool, self.cancel_token)
 
-    def _make_peer_pool(self, discovery: DiscoveryProtocol) -> PeerPool:
+    def _make_peer_pool(self) -> PeerPool:
         # This method exists only so that ShardSyncer can provide a different implementation.
-        return self.peer_pool_class(
+        return PeerPool(
             self.peer_class,
             self.headerdb,
             self.network_id,
             self.privkey,
-            discovery,
             max_peers=self.max_peers,
         )
 
@@ -157,11 +164,12 @@ class Server(BaseService):
         self.logger.info('network: %s', self.network_id)
         self.logger.info('peers: max_peers=%s', self.max_peers)
         addr = Address(external_ip, self.port, self.port)
-        self.discovery = DiscoveryProtocol(self.privkey, addr, bootstrap_nodes=self.bootstrap_nodes)
-        await self._start_udp_listener(self.discovery)
-        self.peer_pool = self._make_peer_pool(self.discovery)
-        asyncio.ensure_future(self.discovery.bootstrap())
+        discovery_proto = PreferredNodeDiscoveryProtocol(
+            self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
+        await self._start_udp_listener(discovery_proto)
+        self.discovery = DiscoveryService(discovery_proto, self.peer_pool)
         asyncio.ensure_future(self.peer_pool.run())
+        asyncio.ensure_future(self.discovery.run())
         asyncio.ensure_future(self.upnp_service.run())
         self.syncer = self._make_syncer(self.peer_pool)
         await self.syncer.run()
@@ -170,7 +178,7 @@ class Server(BaseService):
         self.logger.info("Closing server...")
         await asyncio.gather(
             self.peer_pool.cancel(),
-            self.discovery.stop(),
+            self.discovery.cancel(),
         )
         await self._close()
 

@@ -79,11 +79,12 @@ def _test():
     from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
-    from p2p.peer import ETHPeer, HardCodedNodesPeerPool
+    from p2p.kademlia import Node
+    from p2p.peer import ETHPeer, DEFAULT_PREFERRED_NODES
     from evm.chains.ropsten import RopstenChain
     from evm.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
-        FakeAsyncChainDB, FakeAsyncRopstenChain, SingleNodePeerPool)
+        FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
@@ -93,16 +94,15 @@ def _test():
 
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chain = FakeAsyncRopstenChain(chaindb)
+    network_id = RopstenChain.network_id
     privkey = ecies.generate_privkey()
+    peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey)
     if args.enode:
-        peer_pool = SingleNodePeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, privkey, args.enode)
+        nodes = tuple([Node.from_uri(args.enode)])
     else:
-        discovery = None
-        peer_pool = HardCodedNodesPeerPool(
-            ETHPeer, chaindb, RopstenChain.network_id, privkey, discovery,
-        )
+        nodes = DEFAULT_PREFERRED_NODES[network_id]
     asyncio.ensure_future(peer_pool.run())
+    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ProcessPoolExecutor())

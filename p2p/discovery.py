@@ -6,13 +6,17 @@ listening nodes.
 More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery
 """
 import asyncio
+import collections
 import logging
+import random
 import time
 from typing import (
     Any,
     Callable,
-    Generator,
+    Dict,
+    Iterator,
     List,
+    Sequence,
     Tuple
 )
 
@@ -22,6 +26,7 @@ from eth_utils import (
     text_if_str,
     to_bytes,
     to_list,
+    to_tuple,
 )
 
 from eth_utils import (
@@ -35,8 +40,10 @@ from eth_keys import datatypes
 from eth_hash.auto import keccak
 
 from p2p.cancel_token import CancelToken
-from p2p.exceptions import OperationCancelled
+from p2p.exceptions import NoEligibleNodes, OperationCancelled
 from p2p import kademlia
+from p2p.peer import PeerPool
+from p2p.service import BaseService
 
 # UDP packet constants.
 MAC_SIZE = 256 // 8  # 32
@@ -93,7 +100,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     async def lookup_random(self, cancel_token: CancelToken) -> List[kademlia.Node]:
         return await self.kademlia.lookup_random(self.cancel_token.chain(cancel_token))
 
-    def get_random_nodes(self, count: int) -> Generator[kademlia.Node, None, None]:
+    def get_random_bootnode(self) -> Iterator[kademlia.Node]:
+        if self.bootstrap_nodes:
+            yield random.choice(self.bootstrap_nodes)
+        else:
+            self.logger.warning('No bootnodes available')
+
+    def get_nodes_to_connect(self, count: int) -> Iterator[kademlia.Node]:
         return self.kademlia.routing.get_random_nodes(count)
 
     @property
@@ -234,9 +247,133 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.send(node, message)
 
 
+class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
+    """
+    A DiscoveryProtocol which has a list of preferred nodes which it will prioritize using before
+    trying to find nodes.  Each preferred node can only be used once every
+    preferred_node_recycle_time seconds.
+    """
+    preferred_nodes: Sequence[kademlia.Node] = None
+    preferred_node_recycle_time: int = 300
+    _preferred_node_tracker: Dict[kademlia.Node, float] = None
+
+    def __init__(self,
+                 privkey: datatypes.PrivateKey,
+                 address: kademlia.Address,
+                 bootstrap_nodes: Tuple[kademlia.Node, ...],
+                 preferred_nodes: Sequence[kademlia.Node] = None) -> None:
+        super().__init__(privkey, address, bootstrap_nodes)
+
+        if preferred_nodes is not None:
+            self.preferred_nodes = preferred_nodes
+        else:
+            self.preferred_nodes = tuple()
+        self.logger.info('Preferred peers: %s', self.preferred_nodes)
+
+        self._preferred_node_tracker = collections.defaultdict(lambda: 0)
+
+    @to_tuple
+    def _get_eligible_preferred_nodes(self) -> Iterator[kademlia.Node]:
+        """
+        Return nodes from the preferred_nodes which have not been used within
+        the last preferred_node_recycle_time
+        """
+        for node in self.preferred_nodes:
+            last_used = self._preferred_node_tracker[node]
+            if time.time() - last_used > self.preferred_node_recycle_time:
+                yield node
+
+    def _get_random_preferred_node(self) -> kademlia.Node:
+        """
+        Return a random node from the preferred list.
+        """
+        eligible_nodes = self._get_eligible_preferred_nodes()
+        if not eligible_nodes:
+            raise NoEligibleNodes("No eligible preferred nodes available")
+        node = random.choice(eligible_nodes)
+        return node
+
+    def get_random_bootnode(self) -> Iterator[kademlia.Node]:
+        """
+        Return a single node to bootstrap, preferring nodes from the preferred list.
+        """
+        try:
+            node = self._get_random_preferred_node()
+            self._preferred_node_tracker[node] = time.time()
+            yield node
+        except NoEligibleNodes:
+            yield from super().get_random_bootnode()
+
+    def get_nodes_to_connect(self, count: int) -> Iterator[kademlia.Node]:
+        """
+        Return up to `count` nodes, preferring nodes from the preferred list.
+        """
+        preferred_nodes = self._get_eligible_preferred_nodes()[:count]
+        for node in preferred_nodes:
+            self._preferred_node_tracker[node] = time.time()
+            yield node
+
+        num_nodes_needed = max(0, count - len(preferred_nodes))
+        yield from super().get_nodes_to_connect(num_nodes_needed)
+
+
+class DiscoveryService(BaseService):
+    logger = logging.getLogger("p2p.discovery.DiscoveryService")
+    _lookup_running = asyncio.Lock()
+    _last_lookup: float = 0
+    _lookup_interval: int = 30
+
+    def __init__(self, proto: DiscoveryProtocol, peer_pool: PeerPool) -> None:
+        super().__init__()
+        self.proto = proto
+        self.peer_pool = peer_pool
+
+    async def _run(self) -> None:
+        connect_loop_sleep = 2
+        asyncio.ensure_future(self.proto.bootstrap())
+        while True:
+            await self.maybe_connect_to_more_peers()
+            await self.wait(asyncio.sleep(connect_loop_sleep))
+
+    async def maybe_connect_to_more_peers(self) -> None:
+        """Connect to more peers if we're not yet maxed out to max_peers"""
+        if self.peer_pool.is_full:
+            self.logger.debug("Already connected to %s peers; sleeping", len(self.peer_pool))
+            return
+
+        asyncio.ensure_future(self.maybe_lookup_random_node())
+
+        await self.peer_pool.connect_to_nodes(
+            self.proto.get_nodes_to_connect(self.peer_pool.max_peers))
+
+        # In some cases (e.g ROPSTEN or private testnets), the discovery table might be full of
+        # bad peers so if we can't connect to any peers we try a random bootstrap node as well.
+        if not len(self.peer_pool):
+            await self.peer_pool.connect_to_nodes(self.proto.get_random_bootnode())
+
+    async def maybe_lookup_random_node(self) -> None:
+        if self._last_lookup + self._lookup_interval > time.time():
+            return
+        elif self._lookup_running.locked():
+            self.logger.debug("Node discovery lookup already in progress, not running another")
+            return
+        async with self._lookup_running:
+            # This method runs in the background, so we must catch OperationCancelled here
+            # otherwise asyncio will warn that its exception was never retrieved.
+            try:
+                await self.proto.lookup_random(self.cancel_token)
+            except OperationCancelled:
+                pass
+            finally:
+                self._last_lookup = time.time()
+
+    async def _cleanup(self):
+        await self.proto.stop()
+
+
 @to_list
 def _extract_nodes_from_payload(
-        payload: List[Tuple[str, str, str, str]]) -> Generator[kademlia.Node, None, None]:
+        payload: List[Tuple[str, str, str, str]]) -> Iterator[kademlia.Node]:
     for item in payload:
         ip, udp_port, tcp_port, node_id = item
         address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
@@ -326,7 +463,7 @@ def _test():
             while True:
                 await discovery.lookup_random(CancelToken("Unused"))
                 print("====================================================")
-                print("Random nodes: ", list(discovery.get_random_nodes(10)))
+                print("Random nodes: ", list(discovery.get_nodes_to_connect(10)))
                 print("====================================================")
         except OperationCancelled:
             await discovery.stop()
