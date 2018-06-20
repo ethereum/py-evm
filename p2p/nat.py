@@ -13,6 +13,7 @@ from p2p.cancel_token import (
     CancelToken,
 )
 from p2p.exceptions import (
+    NoInternalAddressMatchesDevice,
     OperationCancelled,
 )
 import netifaces
@@ -27,11 +28,6 @@ UPNP_DISCOVER_TIMEOUT_SECONDS = 30
 class PortMapping(NamedTuple):
     internal: str  # of the form "192.2.3.4:56"
     external: str  # of the form "192.2.3.4:56"
-
-
-class NoInternalAddressMatchesDevice(Exception):
-    def __init__(self, *args, device_hostname=None, **kwargs):
-        self.device_hostname = device_hostname
 
 
 def find_internal_ip_on_device_network(upnp_dev: upnpclient.upnp.Device) -> str:
