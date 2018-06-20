@@ -268,7 +268,7 @@ class Server(BaseService):
         if self.peer_pool.is_full:
             peer.disconnect(DisconnectReason.too_many_peers)
         elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
-            peer.disconnect(DisconnectReason.too_many_peers)
+            peer.disconnect(DisconnectReason.useless_peer)
 
         total_peers = len(self.peer_pool.connected_nodes)
         inbound_peer_count = len([
@@ -279,7 +279,7 @@ class Server(BaseService):
         ])
         if total_peers > 1 and inbound_peer_count / total_peers > DIAL_IN_OUT_RATIO:
             # make sure to have at least 1/4 outbound connections
-            peer.disconnect(DisconnectReason.useless_peer)
+            peer.disconnect(DisconnectReason.too_many_peers)
         else:
             # We use self.wait() here as a workaround for
             # https://github.com/ethereum/py-evm/issues/670.
