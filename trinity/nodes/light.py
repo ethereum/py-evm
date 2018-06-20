@@ -3,13 +3,12 @@ from typing import Type
 
 from eth_keys.datatypes import PrivateKey
 
-from p2p.discovery import DiscoveryProtocol
+from p2p.discovery import DiscoveryService, PreferredNodeDiscoveryProtocol
 from p2p.kademlia import Address
 from p2p.lightchain import LightPeerChain
 from p2p.peer import (
     LESPeer,
     PeerPool,
-    PreferredNodePeerPool,
 )
 
 from trinity.chains.light import (
@@ -37,12 +36,14 @@ class LightNode(Node):
         self.nodekey = chain_config.nodekey
 
         self._port = chain_config.port
-        self._discovery = DiscoveryProtocol(
+        self._discovery_proto = PreferredNodeDiscoveryProtocol(
             chain_config.nodekey,
             Address('0.0.0.0', chain_config.port, chain_config.port),
             bootstrap_nodes=chain_config.bootstrap_nodes,
+            preferred_nodes=chain_config.preferred_nodes,
         )
         self._peer_pool = self._create_peer_pool(chain_config)
+        self._discovery = DiscoveryService(self._discovery_proto, self._peer_pool)
         self.add_service(self._peer_pool)
 
     async def _run(self):
@@ -56,14 +57,14 @@ class LightNode(Node):
         self.logger.info('network: %s', self.network_id)
         self.logger.info('peers: max_peers=%s', self._peer_pool.max_peers)
         transport, _ = await asyncio.get_event_loop().create_datagram_endpoint(
-            lambda: self._discovery,
+            lambda: self._discovery_proto,
             local_addr=('0.0.0.0', self._port)
         )
-        await self._discovery.bootstrap()
+        asyncio.ensure_future(self._discovery.run())
         try:
             await super()._run()
         finally:
-            await self._discovery.stop()
+            await self._discovery.cancel()
 
     def get_chain(self) -> LightDispatchChain:
         if self._chain is None:
@@ -81,11 +82,9 @@ class LightNode(Node):
         return self._p2p_server
 
     def _create_peer_pool(self, chain_config: ChainConfig) -> PeerPool:
-        return PreferredNodePeerPool(
+        return PeerPool(
             LESPeer,
             self.headerdb,
             chain_config.network_id,
             chain_config.nodekey,
-            self._discovery,
-            preferred_nodes=chain_config.preferred_nodes,
         )

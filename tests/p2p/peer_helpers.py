@@ -141,8 +141,7 @@ async def get_directly_linked_peers(
 class MockPeerPoolWithConnectedPeers(PeerPool):
 
     def __init__(self, peers: List[BasePeer]) -> None:
-        super().__init__(
-            peer_class=None, headerdb=None, network_id=None, privkey=None, discovery=None)
+        super().__init__(peer_class=None, headerdb=None, network_id=None, privkey=None)
         for peer in peers:
             self.connected_nodes[peer.remote] = peer
 

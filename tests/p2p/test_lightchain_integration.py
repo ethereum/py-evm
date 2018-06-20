@@ -14,10 +14,11 @@ from evm.chains.mainnet import MAINNET_VM_CONFIGURATION
 from evm.db.backends.memory import MemoryDB
 
 from p2p import ecies
+from p2p.kademlia import Node
 from p2p.lightchain import LightPeerChain
-from p2p.peer import LESPeer
+from p2p.peer import LESPeer, PeerPool
 
-from integration_test_helpers import FakeAsyncHeaderDB, SingleNodePeerPool
+from integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
 
 
 class IntegrationTestLightPeerChain(LightPeerChain):
@@ -39,14 +40,14 @@ async def test_lightchain_integration(request, event_loop):
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
-    enode = pytest.config.getoption("--enode")
+    remote = Node.from_uri(pytest.config.getoption("--enode"))
     headerdb = FakeAsyncHeaderDB(MemoryDB())
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
-    peer_pool = SingleNodePeerPool(
-        LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey(), enode)
+    peer_pool = PeerPool(LESPeer, headerdb, ROPSTEN_NETWORK_ID, ecies.generate_privkey())
     chain = IntegrationTestLightPeerChain(headerdb, peer_pool, RopstenChain)
 
     asyncio.ensure_future(peer_pool.run())
+    asyncio.ensure_future(connect_to_peers_loop(peer_pool, tuple([remote])))
     asyncio.ensure_future(chain.run())
     await asyncio.sleep(0)  # Yield control to give the LightPeerChain a chance to start
 
@@ -75,7 +76,7 @@ async def test_lightchain_integration(request, event_loop):
         '0xf709ed2c57efc18a1675e8c740f3294c9e2cb36ba7bb3b89d3ab4c8fef9d8860')
 
     assert len(chain.peer_pool) == 1
-    head_info = chain.peer_pool._peers[0].head_info
+    head_info = chain.peer_pool.peers[0].head_info
     head = await chain.get_block_header_by_hash(head_info.block_hash)
     assert head.block_number == head_info.block_number
 

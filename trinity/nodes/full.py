@@ -1,7 +1,4 @@
 from evm.chains.base import BaseChain
-from p2p.peer import (
-    PreferredNodePeerPool,
-)
 from p2p.server import Server
 from p2p.service import BaseService
 
@@ -19,6 +16,7 @@ class FullNode(Node):
         super().__init__(chain_config)
 
         self._bootstrap_nodes = chain_config.bootstrap_nodes
+        self._preferred_nodes = chain_config.preferred_nodes
         self._network_id = chain_config.network_id
         self._node_key = chain_config.nodekey
         self._node_port = chain_config.port
@@ -42,8 +40,8 @@ class FullNode(Node):
                 manager.get_db(),  # type: ignore
                 self._network_id,
                 max_peers=self._max_peers,
-                peer_pool_class=PreferredNodePeerPool,
                 bootstrap_nodes=self._bootstrap_nodes,
+                preferred_nodes=self._preferred_nodes,
                 token=self.cancel_token,
             )
         return self._p2p_server

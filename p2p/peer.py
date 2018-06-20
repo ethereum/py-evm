@@ -1,11 +1,9 @@
 import asyncio
-import collections
 import contextlib
 import logging
 import operator
 import random
 import struct
-import time
 from abc import (
     ABC,
     abstractmethod
@@ -15,10 +13,8 @@ from typing import (
     Any,
     cast,
     Dict,
-    Generator,
     Iterator,
     List,
-    Sequence,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -38,7 +34,6 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import (
     decode_hex,
     encode_hex,
-    to_tuple,
 )
 
 from eth_typing import BlockNumber, Hash32
@@ -55,7 +50,6 @@ from evm.rlp.headers import BlockHeader
 
 from p2p import auth
 from p2p import ecies
-from p2p.discovery import DiscoveryProtocol
 from p2p.kademlia import Address, Node
 from p2p import protocol
 from p2p.exceptions import (
@@ -64,7 +58,6 @@ from p2p.exceptions import (
     HandshakeFailure,
     MalformedMessage,
     NoConnectedPeers,
-    NoEligibleNodes,
     NoMatchingPeerCapabilities,
     OperationCancelled,
     PeerConnectionLost,
@@ -567,18 +560,13 @@ class PeerPool(BaseService):
     PeerPool maintains connections to up-to max_peers on a given network.
     """
     logger = logging.getLogger("p2p.peer.PeerPool")
-    _connect_loop_sleep = 2
     _report_interval = 60
-    _discovery_lookup_running = asyncio.Lock()
-    _discovery_last_lookup: float = 0
-    _discovery_lookup_interval: int = 30
 
     def __init__(self,
                  peer_class: Type[BasePeer],
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
-                 discovery: DiscoveryProtocol,
                  max_peers: int = DEFAULT_MAX_PEERS
                  ) -> None:
         super().__init__()
@@ -586,7 +574,6 @@ class PeerPool(BaseService):
         self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
-        self.discovery = discovery
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
@@ -597,9 +584,6 @@ class PeerPool(BaseService):
     @property
     def is_full(self) -> bool:
         return len(self) >= self.max_peers
-
-    def get_nodes_to_connect(self) -> Generator[Node, None, None]:
-        yield from self.discovery.get_random_nodes(self.max_peers)
 
     def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
         self._subscribers.append(subscriber)
@@ -625,12 +609,9 @@ class PeerPool(BaseService):
             peer.add_subscriber(subscriber.msg_queue)
 
     async def _run(self) -> None:
-        self.logger.info("Running PeerPool...")
-        asyncio.ensure_future(self._periodically_report_stats())
-        while not self.cancel_token.triggered:
-            await self.maybe_connect_to_more_peers()
-            # Wait self._connect_loop_sleep seconds, unless we're asked to stop.
-            await self.wait_first(asyncio.sleep(self._connect_loop_sleep))
+        # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
+        # so in order to ensure we cancel all peers when we terminate.
+        await self.cancel_token.wait()
 
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
@@ -682,49 +663,7 @@ class PeerPool(BaseService):
             self.logger.exception("Unexpected error during auth/p2p handshake with %r", remote)
         return None
 
-    async def maybe_lookup_random_node(self) -> None:
-        if self._discovery_last_lookup + self._discovery_lookup_interval > time.time():
-            return
-        elif self._discovery_lookup_running.locked():
-            self.logger.debug("Node discovery lookup already in progress, not running another")
-            return
-        async with self._discovery_lookup_running:
-            # This method runs in the background, so we must catch OperationCancelled here
-            # otherwise asyncio will warn that its exception was never retrieved.
-            try:
-                await self.discovery.lookup_random(self.cancel_token)
-            except OperationCancelled:
-                pass
-            finally:
-                self._discovery_last_lookup = time.time()
-
-    async def maybe_connect_to_more_peers(self) -> None:
-        """Connect to more peers if we're not yet maxed out to max_peers"""
-        num_connected_nodes = len(self.connected_nodes)
-        if self.is_full:
-            self.logger.debug(
-                "Already connected to %s peers: %s; sleeping",
-                num_connected_nodes,
-                [remote for remote in self.connected_nodes],
-            )
-            return
-
-        asyncio.ensure_future(self.maybe_lookup_random_node())
-
-        await self._connect_to_nodes(self.get_nodes_to_connect())
-
-        # In some cases (e.g ROPSTEN or private testnets), the discovery table might be full of
-        # bad peers so if we can't connect to any peers we try a random bootstrap node as well.
-        if not self.peers:
-            await self._connect_to_nodes(self._get_random_bootnode())
-
-    def _get_random_bootnode(self) -> Generator[Node, None, None]:
-        if self.discovery.bootstrap_nodes:
-            yield random.choice(self.discovery.bootstrap_nodes)
-        else:
-            self.logger.warning('No bootnodes available')
-
-    async def _connect_to_nodes(self, nodes: Generator[Node, None, None]) -> None:
+    async def connect_to_nodes(self, nodes: Iterator[Node]) -> None:
         for node in nodes:
             if self.is_full:
                 return
@@ -799,8 +738,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("79.98.29.154", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("94c15d1b9e2fe7ce56e458b9a3b672ef11894ddedd0c6f247e0f1d3487f52b66208fb4aeb8179fce6e3a749ea93ed147c37976d67af557508d199d9594c35f09")),  # noqa: E501
              Address("192.81.208.223", 30303, 30303)),
-        Node(keys.PublicKey(decode_hex("865a63255b3bb68023b6bffd5095118fcc13e79dcf014fe4e47e065c350c7cc72af2e53eff895f11ba1bbb6a2b33271c1116ee870f266618eadfc2e78aa7349c")),  # noqa: E501
-             Address("52.176.100.77", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("a147a3adde1daddc0d86f44f1a76404914e44cee018c26d49248142d4dc8a9fb0e7dd14b5153df7e60f23b037922ae1f33b8f318844ef8d2b0453b9ab614d70d")),  # noqa: E501
              Address("72.36.89.11", 30303, 30303)),
         Node(keys.PublicKey(decode_hex("d8714127db3c10560a2463c557bbe509c99969078159c69f9ce4f71c2cd1837bcd33db3b9c3c3e88c971b4604bbffa390a0a7f53fc37f122e2e6e0022c059dfd")),  # noqa: E501
@@ -823,121 +760,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("34.198.237.7", 30303, 30303)),
     ),
 }
-
-
-class HardCodedNodesPeerPool(PeerPool):
-    """
-    A PeerPool that uses a hard-coded list of remote nodes to connect to.
-
-    The node discovery v4 protocol is terrible at finding LES nodes, so for now
-    we hard-code some nodes that seem to have a good uptime.
-    """
-
-    def _get_random_bootnode(self) -> Generator[Node, None, None]:
-        # We don't have a DiscoveryProtocol with bootnodes, so just return one of our regular
-        # hardcoded nodes.
-        options = list(self.get_nodes_to_connect())
-        if options:
-            yield random.choice(options)
-        else:
-            self.logger.warning('No bootnodes available')
-
-    async def maybe_lookup_random_node(self) -> None:
-        # Do nothing as we don't have a DiscoveryProtocol
-        pass
-
-    def get_nodes_to_connect(self) -> Generator[Node, None, None]:
-        if self.network_id in DEFAULT_PREFERRED_NODES:
-            nodes = list(DEFAULT_PREFERRED_NODES[self.network_id])
-        else:
-            raise ValueError("Unknown network_id: {}".format(self.network_id))
-
-        random.shuffle(nodes)
-        for node in nodes:
-            yield node
-
-
-class PreferredNodePeerPool(PeerPool):
-    """
-    A PeerPool which has a list of preferred nodes which it will prioritize
-    using before going to the discovery protocol to find nodes.  Each preferred
-    node can only be used once every preferred_node_recycle_time seconds.
-    """
-    preferred_nodes: Sequence[Node] = None
-    preferred_node_recycle_time: int = 300
-    _preferred_node_tracker: Dict[Node, float] = None
-
-    def __init__(self,
-                 peer_class: Type[BasePeer],
-                 headerdb: 'BaseAsyncHeaderDB',
-                 network_id: int,
-                 privkey: datatypes.PrivateKey,
-                 discovery: DiscoveryProtocol,
-                 max_peers: int = DEFAULT_MAX_PEERS,
-                 preferred_nodes: Sequence[Node] = None,
-                 ) -> None:
-        super().__init__(
-            peer_class,
-            headerdb,
-            network_id,
-            privkey,
-            discovery,
-            max_peers=max_peers,
-        )
-
-        if preferred_nodes is not None:
-            self.preferred_nodes = preferred_nodes
-        elif network_id in DEFAULT_PREFERRED_NODES:
-            self.preferred_nodes = DEFAULT_PREFERRED_NODES[network_id]
-        else:
-            self.logger.debug('PreferredNodePeerPool operating with no preferred nodes')
-            self.preferred_nodes = tuple()
-
-        self._preferred_node_tracker = collections.defaultdict(lambda: 0)
-
-    @to_tuple
-    def _get_eligible_preferred_nodes(self) -> Generator[Node, None, None]:
-        """
-        Return nodes from the preferred_nodes which have not been used within
-        the last preferred_node_recycle_time
-        """
-        for node in self.preferred_nodes:
-            last_used = self._preferred_node_tracker[node]
-            if time.time() - last_used > self.preferred_node_recycle_time:
-                yield node
-
-    def _get_random_preferred_node(self) -> Node:
-        """
-        Return a random node from the preferred list.
-        """
-        eligible_nodes = self._get_eligible_preferred_nodes()
-        if not eligible_nodes:
-            raise NoEligibleNodes("No eligible preferred nodes available")
-        node = random.choice(eligible_nodes)
-        return node
-
-    def _get_random_bootnode(self) -> Generator[Node, None, None]:
-        """
-        Return a single node to bootstrap, preferring nodes from the preferred list.
-        """
-        try:
-            node = self._get_random_preferred_node()
-            self._preferred_node_tracker[node] = time.time()
-            yield node
-        except NoEligibleNodes:
-            yield from super()._get_random_bootnode()
-
-    def get_nodes_to_connect(self) -> Generator[Node, None, None]:
-        """
-        Return up to `max_peers` nodes, preferring nodes from the preferred list.
-        """
-        preferred_nodes = self._get_eligible_preferred_nodes()[:self.max_peers]
-        for node in preferred_nodes:
-            self._preferred_node_tracker[node] = time.time()
-            yield node
-
-        num_nodes_needed = max(0, self.max_peers - len(preferred_nodes))
-        yield from self.discovery.get_random_nodes(num_nodes_needed)
 
 
 class ChainInfo:
@@ -965,7 +787,7 @@ def _test():
     import signal
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
     from evm.db.backends.memory import MemoryDB
-    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, SingleNodePeerPool
+    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
@@ -980,8 +802,9 @@ def _test():
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
-    peer_pool = SingleNodePeerPool(
-        peer_class, headerdb, network_id, ecies.generate_privkey(), args.enode)
+    nodes = [Node.from_uri(args.enode)]
+    peer_pool = PeerPool(peer_class, headerdb, network_id, ecies.generate_privkey())
+    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     async def request_stuff():
         # Request some stuff from ropsten's block 2440319
