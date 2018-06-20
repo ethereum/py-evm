@@ -122,6 +122,8 @@ async def handshake(remote: Node,
          ) = await auth.handshake(remote, privkey, token)
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer(e)
+    except MalformedMessage as e:
+        raise HandshakeFailure(e)
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
@@ -638,7 +640,6 @@ class PeerPool(BaseService):
             PeerConnectionLost,
             TimeoutError,
             UnreachablePeer,
-            MalformedMessage,
         )
         try:
             self.logger.debug("Connecting to %s...", remote)
