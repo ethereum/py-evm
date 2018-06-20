@@ -38,7 +38,13 @@ from p2p.exceptions import (
 )
 from p2p.cancel_token import CancelToken
 from p2p import protocol
-from p2p.constants import REPLY_TIMEOUT
+from p2p.constants import (
+    COMPLETION_TIMEOUT,
+    REPLY_TIMEOUT,
+)
+from p2p.p2p_proto import (
+    DisconnectReason,
+)
 from p2p.peer import (
     LESPeer,
     PeerPool,
@@ -47,6 +53,7 @@ from p2p.peer import (
 from p2p.rlp import BlockBody
 from p2p.service import (
     BaseService,
+    service_timeout,
 )
 from p2p.utils import gen_request_id
 
@@ -144,6 +151,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         return rlp.decode(rlp_account, sedes=Account)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
+    @service_timeout(COMPLETION_TIMEOUT)
     async def get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
         """
         :param block_hash: find code as of the block with block_hash

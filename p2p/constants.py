@@ -40,6 +40,9 @@ REPLY_TIMEOUT = 3
 # us.
 CHAIN_SPLIT_CHECK_TIMEOUT = 5 * REPLY_TIMEOUT
 
+# Default timeout before giving up on a caller-initiated interaction
+COMPLETION_TIMEOUT = 5
+
 # Types of LES Announce messages
 LES_ANNOUNCE_SIMPLE = 1
 LES_ANNOUNCE_SIGNED = 2

@@ -1,14 +1,17 @@
 from abc import ABC, abstractmethod
 import asyncio
+import functools
 import logging
-from typing import (  # noqa: #401
+from typing import (
     Any,
     Awaitable,
     Callable,
-    cast,
+    Dict,
     List,
     Optional,
-    TypeVar,
+    Tuple,
+    TypeVar
+    cast,
 )
 
 from evm.utils.logging import TraceLogger
@@ -127,6 +130,25 @@ class BaseService(ABC, CancellableMixin):
         Called after the service's _run() method returns.
         """
         raise NotImplementedError()
+
+
+def service_timeout(timeout):
+    """
+    Decorator to time out a method call.
+
+    :param timeout: seconds to wait before raising a timeout exception
+
+    :raise asyncio.futures.TimeoutError: if the call is not complete before timeout seconds
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapped(service: BaseService, *args: Tuple, **kwargs: Dict) -> Any:
+            return await service.wait(
+                func(service, *args, **kwargs),
+                timeout=timeout,
+            )
+        return wrapped
+    return decorator
 
 
 class EmptyService(BaseService):
