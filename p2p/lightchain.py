@@ -5,6 +5,7 @@ from typing import (
     Callable,
     cast,
     Dict,
+    Iterable,
     List,
     Tuple,
     Type,
@@ -123,7 +124,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             asyncio.ensure_future(self._process_announcements())
             while True:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
-
+                peer = cast(LESPeer, peer)
                 if isinstance(cmd, les.Announce):
                     peer.head_info = cmd.as_head_info(msg)
                     peer.head_td = peer.head_info.total_difficulty
@@ -228,7 +229,9 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             start_block = await self._import_headers_from_peer(batch, peer)
             self.logger.info("synced headers up to #%s", start_block)
 
-    async def _import_headers_from_peer(self, headers, peer):
+    async def _import_headers_from_peer(self,
+                                        headers: Iterable[BlockHeader],
+                                        peer: BasePeer) -> int:
         """
         :return: the block number of the new tip after importing the header
         """
@@ -247,7 +250,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
                 new_tip = header.block_number
         return new_tip
 
-    async def _validate_header(self, header):
+    async def _validate_header(self, header: BlockHeader) -> None:
         if header.is_genesis:
             raise ValidationError("Peer sent a genesis header {} that we didn't ask for".format(
                 header,
@@ -260,21 +263,24 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             # TODO push validation into process pool executor
             VM.validate_header(header, parent_header)
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         pass
 
     async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
         reply = None
         got_reply = asyncio.Event()
 
-        def callback(r):
+        def callback(r: protocol._DecodedMsgType) -> None:
             nonlocal reply
             reply = r
             got_reply.set()
 
         self._pending_replies[request_id] = callback
         await self.wait(got_reply.wait(), timeout=self.reply_timeout)
-        return reply
+        # we need to cast here because mypy knows this should actually be of type
+        # `protocol._DecodedMsgType`. However, we know the type should be restricted
+        # to `Dict[str, Any]` and this is what all callsites expect
+        return cast(Dict[str, Any], reply)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:

@@ -1,5 +1,6 @@
 import asyncio
 from typing import (
+    Any,
     cast,
     Dict,
     List,
@@ -48,7 +49,7 @@ from p2p.exceptions import (
 class ShardingPeer(BasePeer):
     _supported_sub_protocols = [ShardingProtocol]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.known_collation_hashes: Set[Hash32] = set()
         self._pending_replies: Dict[
@@ -102,7 +103,7 @@ class ShardingPeer(BasePeer):
         self._pending_replies[request_id] = pending_reply
         cast(ShardingProtocol, self.sub_proto).send_get_collations(request_id, collation_hashes)
         cmd, msg = await wait_with_token(pending_reply, token=cancel_token)
-
+        msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Collations):
             raise UnexpectedMessage(
                 "Expected Collations as response to GetCollations, but got %s",

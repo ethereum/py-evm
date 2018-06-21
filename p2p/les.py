@@ -1,4 +1,4 @@
-from typing import Any, cast, Dict, Generator, List, Tuple, Union
+from typing import Any, cast, Dict, Generator, List, Tuple, TYPE_CHECKING, Union
 
 import rlp
 from rlp import sedes
@@ -6,6 +6,10 @@ from rlp import sedes
 from eth_utils import (
     encode_hex,
     to_dict,
+)
+
+from eth_typing import (
+    Hash32
 )
 
 from evm.rlp.headers import BlockHeader
@@ -21,6 +25,10 @@ from p2p.sedes import HashOrNumber
 
 from .constants import LES_ANNOUNCE_SIMPLE
 
+if TYPE_CHECKING:
+    from p2p.peer import (  # noqa: F401
+        ChainInfo
+    )
 
 # Max number of items we can ask for in LES requests. These are the values used in geth and if we
 # ask for more than this the peers will disconnect from us.
@@ -33,13 +41,18 @@ MAX_HEADER_PROOFS_FETCH = 64
 
 
 class HeadInfo:
-    def __init__(self, block_number, block_hash, total_difficulty, reorg_depth):
+    def __init__(self,
+                 block_number: int,
+                 block_hash: Hash32,
+                 total_difficulty: int,
+                 reorg_depth: int) -> None:
+
         self.block_number = block_number
         self.block_hash = block_hash
         self.total_difficulty = total_difficulty
         self.reorg_depth = reorg_depth
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "HeadInfo{{block:{}, hash:{}, td:{}, reorg_depth:{}}}".format(
             self.block_number, encode_hex(self.block_hash), self.total_difficulty,
             self.reorg_depth)
@@ -86,11 +99,11 @@ class Status(Command):
             else:
                 yield key, value
 
-    def encode_payload(self, data):
+    def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
         response = [
             (key, self.items_sedes[key].serialize(value))
             for key, value
-            in sorted(data.items())
+            in sorted(data.items())  # type: ignore
         ]
         return super().encode_payload(response)
 
@@ -254,14 +267,14 @@ class LESProtocol(Protocol):
     _commands = [Status, Announce, BlockHeaders, BlockBodies, Receipts, Proofs, ContractCodes]
     cmd_length = 15
 
-    def send_handshake(self, head_info):
+    def send_handshake(self, chain_info: 'ChainInfo') -> None:
         resp = {
             'protocolVersion': self.version,
             'networkId': self.peer.network_id,
-            'headTd': head_info.total_difficulty,
-            'headHash': head_info.block_hash,
-            'headNum': head_info.block_number,
-            'genesisHash': head_info.genesis_hash,
+            'headTd': chain_info.total_difficulty,
+            'headHash': chain_info.block_hash,
+            'headNum': chain_info.block_number,
+            'genesisHash': chain_info.genesis_hash,
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
@@ -354,15 +367,15 @@ class LESProtocolV2(LESProtocol):
     _commands = [StatusV2, Announce, BlockHeaders, BlockBodies, Receipts, ProofsV2, ContractCodes]
     cmd_length = 21
 
-    def send_handshake(self, head_info):
+    def send_handshake(self, chain_info: 'ChainInfo') -> None:
         resp = {
             'announceType': LES_ANNOUNCE_SIMPLE,
             'protocolVersion': self.version,
             'networkId': self.peer.network_id,
-            'headTd': head_info.total_difficulty,
-            'headHash': head_info.block_hash,
-            'headNum': head_info.block_number,
-            'genesisHash': head_info.genesis_hash,
+            'headTd': chain_info.total_difficulty,
+            'headHash': chain_info.block_hash,
+            'headNum': chain_info.block_number,
+            'genesisHash': chain_info.genesis_hash,
         }
         cmd = StatusV2(self.cmd_id_offset)
         self.logger.debug("Sending LES/Status msg: %s", resp)

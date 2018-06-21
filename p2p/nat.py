@@ -66,7 +66,7 @@ class UPnPService(BaseService):
         self.port = port
         self._mapping: PortMapping = None  # when called externally, this never returns None
 
-    async def _run(self):
+    async def _run(self) -> None:
         """Run an infinite loop refreshing our NAT port mapping.
 
         On every iteration we configure the port mapping with a lifetime of 30 minutes and then
@@ -82,10 +82,10 @@ class UPnPService(BaseService):
             except Exception:
                 self.logger.exception("Failed to setup NAT portmap")
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         pass
 
-    async def add_nat_portmap(self):
+    async def add_nat_portmap(self) -> str:
         """
         Set up the port mapping
 
@@ -115,6 +115,7 @@ class UPnPService(BaseService):
                 self.logger.exception("Failed to setup NAT portmap")
 
         self._mapping = None
+        return None
 
     def current_mapping(self) -> PortMapping:
         if self._mapping is None:

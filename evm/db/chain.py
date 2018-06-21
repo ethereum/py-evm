@@ -662,5 +662,5 @@ class AsyncChainDB(ChainDB):
         raise NotImplementedError()
 
     async def coro_get_receipts(
-            self, header: BlockHeader, receipt_class: Type[Receipt]) -> Iterable[Receipt]:
+            self, header: BlockHeader, receipt_class: Type[Receipt]) -> List[Receipt]:
         raise NotImplementedError()

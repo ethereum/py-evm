@@ -13,7 +13,10 @@ from cytoolz.itertoolz import partition_all
 
 import rlp
 
-from trie.sync import HexaryTrieSync
+from trie.sync import (
+    HexaryTrieSync,
+    SyncRequest,
+)
 from trie.exceptions import SyncRequestAlreadyProcessed
 
 from eth_utils import (
@@ -21,6 +24,10 @@ from eth_utils import (
 )
 
 from eth_hash.auto import keccak
+
+from eth_typing import (
+    Hash32
+)
 
 from evm.constants import (
     BLANK_ROOT_HASH,
@@ -82,6 +89,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             # Run self._handle_msg() with ensure_future() instead of awaiting for it so that we
             # can keep consuming msgs while _handle_msg() performs cpu-intensive tasks in separate
             # processes.
+            peer = cast(ETHPeer, peer)
             asyncio.ensure_future(self._handle_msg(peer, cmd, msg))
 
     async def _handle_msg(
@@ -110,7 +118,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             # We ignore everything that is not a NodeData when doing a StateSync.
             self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
         # run in the background notice the cancel token has been triggered and return.
         await asyncio.sleep(0)
@@ -126,7 +134,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             peer.sub_proto.send_get_node_data(batch)
             self._peers_with_pending_requests[peer] = now
 
-    async def _periodically_retry_timedout(self):
+    async def _periodically_retry_timedout(self) -> None:
         while self.is_running:
             now = time.time()
             # First, update our list of peers with pending requests by removing those for which a
@@ -159,7 +167,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
             except OperationCancelled:
                 break
 
-    async def _run(self):
+    async def _run(self) -> None:
         """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
 
         Raises OperationCancelled if we're interrupted before that is completed.
@@ -190,7 +198,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
 
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
-    async def _periodically_report_progress(self):
+    async def _periodically_report_progress(self) -> None:
         while self.is_running:
             now = time.time()
             self.logger.info("====== State sync progress ========")
@@ -211,10 +219,10 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
 
 class StateSync(HexaryTrieSync):
 
-    def __init__(self, root_hash, db):
+    def __init__(self, root_hash: Hash32, db: BaseDB) -> None:
         super().__init__(root_hash, db, logging.getLogger("p2p.state.StateSync"))
 
-    def leaf_callback(self, data, parent):
+    def leaf_callback(self, data: bytes, parent: SyncRequest) -> None:
         # TODO: Need to figure out why geth uses 64 as the depth here, and then document it.
         depth = 64
         account = rlp.decode(data, sedes=Account)
@@ -224,7 +232,7 @@ class StateSync(HexaryTrieSync):
             self.schedule(account.code_hash, parent, depth, leaf_callback=None, is_raw=True)
 
 
-def _test():
+def _test() -> None:
     import argparse
     import signal
     from p2p import ecies
@@ -261,7 +269,7 @@ def _test():
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, sigint_received.set)
 
-    async def exit_on_sigint():
+    async def exit_on_sigint() -> None:
         await sigint_received.wait()
         await peer_pool.cancel()
         await downloader.cancel()

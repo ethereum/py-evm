@@ -365,7 +365,7 @@ def _test() -> None:
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, sigint_received.set)
 
-    async def exit_on_sigint():
+    async def exit_on_sigint() -> None:
         await sigint_received.wait()
         await server.cancel()
         loop.stop()

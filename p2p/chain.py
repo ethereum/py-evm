@@ -89,6 +89,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
             # loop can keep processing msgs, and that's why we use ensure_future() instead of
             # awaiting for it to finish here.
+            peer = cast(ETHPeer, peer)
             asyncio.ensure_future(self.handle_msg(peer, cmd, msg))
 
     async def handle_msg(self, peer: ETHPeer, cmd: protocol.Command,
@@ -108,7 +109,7 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         with self.subscribe(self.peer_pool):
             while True:
                 peer_or_finished = await self.wait_first(
-                    self._sync_requests.get(), self._sync_complete.wait())
+                    self._sync_requests.get(), self._sync_complete.wait())  # type: Any
 
                 # In the case of a fast sync, we return once the sync is completed, and our caller
                 # must then run the StateDownloader.
@@ -403,7 +404,9 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         # the executor when the list() is applied to it.
         receipts_tries = await self.wait(loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
-        for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):
+        # TODO: figure out why mypy is losing the type of the receipts_tries
+        # so we can get rid of the ignore
+        for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):  # type: ignore # noqa: E501
             await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
             downloaded.append(DownloadedBlockPart(receipts, receipt_root))
         self._downloaded_receipts.put_nowait((peer, downloaded))
@@ -419,7 +422,10 @@ class FastChainSyncer(BaseService, PeerPoolSubscriber):
         transactions_tries = await self.wait(
             loop.run_in_executor(self._executor, list, iterator))
         downloaded: List[DownloadedBlockPart] = []
-        for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):
+
+        # TODO: figure out why mypy is losing the type of the transactions_tries
+        # so we can get rid of the ignore
+        for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):  # type: ignore # noqa: E501
             await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
             uncles_hash = await self.wait(self.chaindb.coro_persist_uncles(body.uncles))
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
@@ -698,7 +704,7 @@ def _test() -> None:
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, sigint_received.set)
 
-    async def exit_on_sigint():
+    async def exit_on_sigint() -> None:
         await sigint_received.wait()
         await peer_pool.cancel()
         await syncer.cancel()
