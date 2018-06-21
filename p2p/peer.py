@@ -186,7 +186,7 @@ class BasePeer(BaseService):
         self.mac_enc = mac_cipher.encryptor().update
 
     @abstractmethod
-    async def send_sub_proto_handshake(self):
+    async def send_sub_proto_handshake(self) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
@@ -236,7 +236,7 @@ class BasePeer(BaseService):
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
-    async def do_sub_proto_handshake(self):
+    async def do_sub_proto_handshake(self) -> None:
         """Perform the handshake for the sub-protocol agreed with the remote peer.
 
         Raises HandshakeFailure if the handshake is not successful.
@@ -249,6 +249,7 @@ class BasePeer(BaseService):
             self.base_protocol.send_pong()
             cmd, msg = await self.read_msg()
         if isinstance(cmd, Disconnect):
+            msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
                 "{} disconnected before completing sub-proto handshake: {}".format(
@@ -256,7 +257,7 @@ class BasePeer(BaseService):
         await self.process_sub_proto_handshake(cmd, msg)
         self.logger.debug("Finished %s handshake with %s", self.sub_proto, self.remote)
 
-    async def do_p2p_handshake(self):
+    async def do_p2p_handshake(self) -> None:
         """Perform the handshake for the P2P base protocol.
 
         Raises HandshakeFailure if the handshake is not successful.
@@ -271,6 +272,7 @@ class BasePeer(BaseService):
             raise HandshakeFailure("Got malformed message during handshake") from e
 
         if isinstance(cmd, Disconnect):
+            msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
             raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
                 self, msg['reason_name']))
@@ -303,12 +305,11 @@ class BasePeer(BaseService):
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug("Got msg with cmd_id: %s", cmd_id)
         if cmd_id < self.base_protocol.cmd_length:
-            proto = self.base_protocol
+            return self.base_protocol.cmd_by_id[cmd_id]
         elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
-            proto = self.sub_proto  # type: ignore
+            return self.sub_proto.cmd_by_id[cmd_id]
         else:
             raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
-        return proto.cmd_by_id[cmd_id]
 
     async def read(self, n: int) -> bytes:
         self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
@@ -317,7 +318,7 @@ class BasePeer(BaseService):
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
             raise PeerConnectionLost(repr(e))
 
-    def close(self):
+    def close(self) -> None:
         """Close this peer's reader/writer streams.
 
         This will cause the peer to stop in case it is running.
@@ -329,10 +330,10 @@ class BasePeer(BaseService):
         self.reader.feed_eof()
         self.writer.close()
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         self.close()
 
-    async def _run(self):
+    async def _run(self) -> None:
         while True:
             try:
                 cmd, msg = await self.read_msg()
@@ -361,7 +362,7 @@ class BasePeer(BaseService):
         # too much time is being spent on this again, we need to consider running this in a
         # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
         # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
-        decoded_msg = cmd.decode(msg)
+        decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
         self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
         return cmd, decoded_msg
 
@@ -506,10 +507,10 @@ class BasePeer(BaseService):
                 return proto_class(self, offset)
         raise NoMatchingPeerCapabilities()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} {}".format(self.__class__.__name__, self.remote)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{} {}".format(self.__class__.__name__, repr(self.remote))
 
 
@@ -520,7 +521,7 @@ class LESPeer(BasePeer):
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: les.HeadInfo = None
 
-    async def send_sub_proto_handshake(self):
+    async def send_sub_proto_handshake(self) -> None:
         self.sub_proto.send_handshake(await self._local_chain_info)
 
     async def process_sub_proto_handshake(
@@ -590,7 +591,7 @@ class ETHPeer(BasePeer):
     _supported_sub_protocols = [eth.ETHProtocol]
     sub_proto: eth.ETHProtocol = None
 
-    async def send_sub_proto_handshake(self):
+    async def send_sub_proto_handshake(self) -> None:
         self.sub_proto.send_handshake(await self._local_chain_info)
 
     async def process_sub_proto_handshake(
@@ -688,7 +689,7 @@ class PeerPool(BaseService):
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerPoolSubscriber] = []
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.connected_nodes)
 
     @property
@@ -716,11 +717,11 @@ class PeerPool(BaseService):
         for peer in self.connected_nodes.values():
             peer.remove_subscriber(subscriber.msg_queue)
 
-    def start_peer(self, peer):
+    def start_peer(self, peer: BasePeer) -> None:
         asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
         self.add_peer(peer)
 
-    def add_peer(self, peer):
+    def add_peer(self, peer: BasePeer) -> None:
         self.logger.info('Adding peer: %s', peer)
         self.connected_nodes[peer.remote] = peer
         for subscriber in self._subscribers:
@@ -816,7 +817,7 @@ class PeerPool(BaseService):
     def get_peers(self, min_td: int) -> List[BasePeer]:
         return [peer for peer in self.peers if peer.head_td >= min_td]
 
-    async def _periodically_report_stats(self):
+    async def _periodically_report_stats(self) -> None:
         while self.is_running:
             inbound_peers = len(
                 [peer for peer in self.connected_nodes.values() if peer.inbound])
@@ -879,7 +880,11 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
 
 
 class ChainInfo:
-    def __init__(self, block_number, block_hash, total_difficulty, genesis_hash):
+    def __init__(self,
+                 block_number: int,
+                 block_hash: Hash32,
+                 total_difficulty: int,
+                 genesis_hash: Hash32) -> None:
         self.block_number = block_number
         self.block_hash = block_hash
         self.total_difficulty = total_difficulty
@@ -889,7 +894,7 @@ class ChainInfo:
 PEER_MSG_TYPE = Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]
 
 
-def _test():
+def _test() -> None:
     """
     Create a Peer instance connected to a local geth instance and log messages exchanged with it.
 
@@ -911,9 +916,9 @@ def _test():
     parser.add_argument('-light', action='store_true', help="Connect as a light node")
     args = parser.parse_args()
 
-    peer_class = ETHPeer  # type: ignore
+    peer_class: Type[BasePeer] = ETHPeer
     if args.light:
-        peer_class = LESPeer  # type: ignore
+        peer_class = LESPeer
     headerdb = FakeAsyncHeaderDB(MemoryDB())
     headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
     network_id = RopstenChain.network_id
@@ -923,7 +928,7 @@ def _test():
         peer_class, headerdb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
-    async def request_stuff():
+    async def request_stuff() -> None:
         # Request some stuff from ropsten's block 2440319
         # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
         nonlocal peer_pool
@@ -949,7 +954,7 @@ def _test():
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, sigint_received.set)
 
-    async def exit_on_sigint():
+    async def exit_on_sigint() -> None:
         await sigint_received.wait()
         await peer_pool.cancel()
         loop.stop()

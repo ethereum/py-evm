@@ -13,11 +13,14 @@ import time
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     Iterator,
     List,
     Sequence,
-    Tuple
+    Tuple,
+    Text,
+    Union,
 )
 
 import rlp
@@ -69,7 +72,7 @@ class Command():
         # Elements beyond this length must be trimmed.
         self.elem_count = elem_count
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Command(%s:%d)' % (self.name, self.id)
 
 
@@ -125,25 +128,25 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         else:
             raise ValueError("Unknwon command: {}".format(cmd))
 
-    def _get_max_neighbours_per_packet(self):
+    def _get_max_neighbours_per_packet(self) -> int:
         if self._max_neighbours_per_packet_cache is not None:
             return self._max_neighbours_per_packet_cache
         self._max_neighbours_per_packet_cache = _get_max_neighbours_per_packet()
         return self._max_neighbours_per_packet_cache
 
-    def connection_made(self, transport):
-        self.transport = transport
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        # we need to cast here because the signature in the base class dicates BaseTransport
+        # and arguments can only be redefined contravariantly
+        self.transport = cast(asyncio.DatagramTransport, transport)
 
-    async def bootstrap(self):
+    async def bootstrap(self) -> None:
         self.logger.debug("boostrapping with %s", self.bootstrap_nodes)
         try:
             await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
         except OperationCancelled as e:
             self.logger.info("Bootstrapping cancelled: %s", e)
 
-    # FIXME: Enable type checking here once we have a mypy version that
-    # includes the fix for https://github.com/python/typeshed/pull/1740
-    def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:  # type: ignore
+    def datagram_received(self, data: Union[bytes, Text], addr: Tuple[str, int]) -> None:
         ip_address, udp_port = addr
         # XXX: For now we simply discard all v5 messages. The prefix below is what geth uses to
         # identify them:
@@ -152,7 +155,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.logger.debug("Got discovery v5 msg, discarding")
             return
 
-        self.receive(kademlia.Address(ip_address, udp_port), data)  # type: ignore
+        self.receive(kademlia.Address(ip_address, udp_port), cast(bytes, data))
 
     def error_received(self, exc: Exception) -> None:
         self.logger.error('error received: %s', exc)
@@ -160,7 +163,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send(self, node: kademlia.Node, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
 
-    async def stop(self):
+    async def stop(self) -> None:
         self.logger.info('stopping discovery')
         self.cancel_token.trigger()
         self.transport.close()
@@ -368,7 +371,7 @@ class DiscoveryService(BaseService):
             finally:
                 self._last_lookup = time.time()
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         await self.proto.stop()
 
 
@@ -381,7 +384,7 @@ def _extract_nodes_from_payload(
         yield kademlia.Node(keys.PublicKey(node_id), address)
 
 
-def _get_max_neighbours_per_packet():
+def _get_max_neighbours_per_packet() -> int:
     # As defined in https://github.com/ethereum/devp2p/blob/master/rlpx.md, the max size of a
     # datagram must be 1280 bytes, so when sending neighbours packets we must include up to
     # _max_neighbours_per_packet and if there's more than that split them across multiple
@@ -432,7 +435,7 @@ def _unpack(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], bytes]
     return remote_pubkey, cmd_id, payload, message_hash
 
 
-def _test():
+def _test() -> None:
     import signal
     from p2p import constants
     from p2p import ecies
@@ -458,7 +461,7 @@ def _test():
     loop.run_until_complete(
         loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port)))
 
-    async def run():
+    async def run() -> None:
         try:
             await discovery.bootstrap()
             while True:

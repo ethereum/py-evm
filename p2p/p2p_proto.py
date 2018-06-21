@@ -1,5 +1,9 @@
 import enum
-from typing import cast, Dict
+from typing import (
+    cast,
+    Dict,
+    TYPE_CHECKING
+)
 
 from cytoolz import assoc
 
@@ -7,11 +11,17 @@ import rlp
 from rlp import sedes
 
 from p2p.exceptions import MalformedMessage
+
 from p2p.protocol import (
     Command,
     Protocol,
     _DecodedMsgType,
 )
+
+if TYPE_CHECKING:
+    from p2p.peer import (  # noqa: F401
+        BasePeer
+    )
 
 
 class Hello(Command):
@@ -77,11 +87,11 @@ class P2PProtocol(Protocol):
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
 
-    def __init__(self, peer):
+    def __init__(self, peer: 'BasePeer') -> None:
         # For the base protocol the cmd_id_offset is always 0.
         super().__init__(peer, cmd_id_offset=0)
 
-    def send_handshake(self):
+    def send_handshake(self) -> None:
         # TODO: move import out once this is in the trinity codebase
         from trinity.utils.version import construct_trinity_client_identifier
         data = dict(version=self.version,
@@ -92,10 +102,10 @@ class P2PProtocol(Protocol):
         header, body = Hello(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_disconnect(self, reason):
+    def send_disconnect(self, reason: DisconnectReason) -> None:
         header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
         self.send(header, body)
 
-    def send_pong(self):
+    def send_pong(self) -> None:
         header, body = Pong(self.cmd_id_offset).encode({})
         self.send(header, body)

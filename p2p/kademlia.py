@@ -12,7 +12,9 @@ import time
 from typing import (
     Any,
     Callable,
+    cast,
     Hashable,
+    Iterable,
     Iterator,
     List,
     Set,
@@ -42,6 +44,11 @@ from p2p.cancel_token import CancelToken, wait_with_token
 if TYPE_CHECKING:
     from p2p.discovery import DiscoveryProtocol  # noqa: F401
 
+    # Promoted workaround for inheriting from generic stdlib class
+    # https://github.com/python/mypy/issues/5264#issuecomment-399407428
+    UserDict = collections.UserDict[Hashable, 'CallbackLock']
+else:
+    UserDict = collections.UserDict
 
 k_b = 8  # 8 bits per hop
 
@@ -54,12 +61,12 @@ k_id_size = 256
 k_max_node_id = 2 ** k_id_size - 1
 
 
-def int_to_big_endian4(integer):
+def int_to_big_endian4(integer: int) -> bytes:
     ''' 4 bytes big endian integer'''
     return struct.pack('>I', integer)
 
 
-def enc_port(p):
+def enc_port(p: int) -> bytes:
     return int_to_big_endian4(p)[-2:]
 
 
@@ -76,16 +83,16 @@ class Address:
         self._ip = ipaddress.ip_address(ip)
 
     @property
-    def ip(self):
+    def ip(self) -> str:
         return str(self._ip)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return (self.ip, self.udp_port) == (other.ip, other.udp_port)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Address(%s:udp:%s|tcp:%s)' % (self.ip, self.udp_port, self.tcp_port)
 
-    def to_endpoint(self):
+    def to_endpoint(self) -> List[bytes]:
         return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
 
     @classmethod
@@ -113,23 +120,26 @@ class Node:
     def __repr__(self) -> str:
         return '<Node(%s@%s:%d)>' % (self.pubkey.to_hex(), self.address.ip, self.address.tcp_port)
 
-    def distance_to(self, id):
+    def distance_to(self, id: int) -> int:
         return self.id ^ id
 
-    def __lt__(self, other):
+    # mypy doesn't have support for @total_ordering
+    # https://github.com/python/mypy/issues/4610
+    def __lt__(self, other: 'Node') -> bool:
         if not isinstance(other, self.__class__):
-            return super().__lt__(other)
+            return super().__lt__(other)  # type: ignore
         return self.id < other.id
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             return super().__eq__(other)
+        other = cast(Node, other)
         return self.pubkey == other.pubkey
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         return not self == other
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.pubkey)
 
 
@@ -296,7 +306,7 @@ class RoutingTable:
     def __len__(self) -> int:
         return sum(len(b) for b in self.buckets)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Node]:
         for b in self.buckets:
             for n in b.nodes:
                 yield n
@@ -330,18 +340,18 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
 
 class CallbackLock:
     def __init__(self,
-                 callback: Callable,
+                 callback: Callable[..., Any],
                  timeout: float=2 * k_request_timeout) -> None:
         self.callback = callback
         self.timeout = timeout
         self.created_at = time.time()
 
     @property
-    def is_expired(self):
+    def is_expired(self) -> bool:
         return time.time() - self.created_at > self.timeout
 
 
-class CallbackManager(collections.UserDict):
+class CallbackManager(UserDict):
     @contextlib.contextmanager
     def acquire(self,
                 key: Hashable,
@@ -519,7 +529,7 @@ class KademliaProtocol:
         event = asyncio.Event()
         neighbours: List[Node] = []
 
-        def process(response):
+        def process(response: List[Node]) -> None:
             neighbours.extend(response)
             # This callback is expected to be called multiple times because nodes usually
             # split the neighbours replies into multiple packets, so we only call event.set() once
@@ -580,7 +590,7 @@ class KademliaProtocol:
         self.update_routing_table(node)
         return True
 
-    async def bootstrap(self, bootstrap_nodes: List[Node], cancel_token: CancelToken) -> None:
+    async def bootstrap(self, bootstrap_nodes: Iterable[Node], cancel_token: CancelToken) -> None:
         bonded = await asyncio.gather(*(
             self.bond(n, cancel_token)
             for n
@@ -601,7 +611,7 @@ class KademliaProtocol:
         nodes_asked: Set[Node] = set()
         nodes_seen: Set[Node] = set()
 
-        async def _find_node(node_id, remote):
+        async def _find_node(node_id: int, remote: Node) -> Tuple[Node, ...]:
             # Short-circuit in case our token has been triggered to avoid trying to send requests
             # over a transport that is probably closed already.
             cancel_token.raise_if_triggered()
@@ -623,7 +633,7 @@ class KademliaProtocol:
             self.logger.debug("bonded with %s candidates", bonded.count(True))
             return tuple(c for c in candidates if bonded[candidates.index(c)])
 
-        def _exclude_if_asked(nodes):
+        def _exclude_if_asked(nodes: Iterable[Node]) -> List[Node]:
             nodes_to_ask = list(set(nodes).difference(nodes_asked))
             return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
 
@@ -675,7 +685,7 @@ class KademliaProtocol:
 
 def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
     """Count the number of prefix bits shared by all nodes."""
-    def to_binary(x):  # left padded bit representation
+    def to_binary(x: int) -> str:  # left padded bit representation
         b = bin(x)[2:]
         return '0' * (k_id_size - len(b)) + b
 

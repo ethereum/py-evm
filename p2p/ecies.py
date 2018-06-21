@@ -34,7 +34,7 @@ CURVE = ec.SECP256K1()
 KEY_LEN = 32
 
 
-def generate_privkey():
+def generate_privkey() -> datatypes.PrivateKey:
     """Generate a new SECP256K1 private key and return it"""
     privkey = ec.generate_private_key(CURVE, default_backend())
     return keys.PrivateKey(pad32(int_to_big_endian(privkey.private_numbers().private_value)))
@@ -120,7 +120,7 @@ def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes =
     return ctx.update(ciphertext) + ctx.finalize()
 
 
-def kdf(key_material):
+def kdf(key_material: bytes) -> bytes:
     """NIST SP 800-56a Concatenation Key Derivation Function (see section 5.8.1).
 
     Pretty much copied from geth's implementation:
@@ -139,7 +139,7 @@ def kdf(key_material):
     return key[:KEY_LEN]
 
 
-def hmac_sha256(key, msg):
+def hmac_sha256(key: bytes, msg: bytes) -> bytes:
     mac = hmac.HMAC(key, hashes.SHA256(), default_backend())
     mac.update(msg)
     return mac.finalize()

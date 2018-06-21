@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable, Optional
+from typing import (
+    Awaitable,
+    Callable,
+    Optional,
+    TypeVar
+)
 
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
@@ -25,13 +30,19 @@ class BaseService(ABC):
         else:
             self.cancel_token = base_token.chain(token)
 
-    async def wait(
-            self, awaitable: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
+    _TReturn = TypeVar('_TReturn')
+
+    async def wait(self,
+                   awaitable: Awaitable[_TReturn],
+                   token: CancelToken = None,
+                   timeout: float = None) -> _TReturn:
         """See wait_first()"""
         return await self.wait_first(awaitable, token=token, timeout=timeout)
 
-    async def wait_first(
-            self, *awaitables: Awaitable, token: CancelToken = None, timeout: float = None) -> Any:
+    async def wait_first(self,
+                         *awaitables: Awaitable[_TReturn],
+                         token: CancelToken = None,
+                         timeout: float = None) -> _TReturn:
         """Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
 
         The given token is chained with this service's token, so triggering either will cancel
@@ -84,7 +95,7 @@ class BaseService(ABC):
         await self._cleanup()
         self.cleaned_up.set()
 
-    async def cancel(self):
+    async def cancel(self) -> None:
         """Trigger the CancelToken and wait for the cleaned_up event to be set."""
         if self.cancel_token.triggered:
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)

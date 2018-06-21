@@ -1,5 +1,11 @@
 import asyncio
-from typing import Any, Awaitable, cast, List
+from typing import (
+    Any,
+    Awaitable,
+    cast,
+    List,
+    Sequence,
+)
 
 from p2p.exceptions import (
     EventLoopMismatch,
@@ -62,27 +68,27 @@ class CancelToken:
         for token in self._chain:
             futures.append(asyncio.ensure_future(token.wait(), loop=self._loop))
 
-        def cancel_not_done(f):
+        def cancel_not_done(fut: 'asyncio.Future[None]') -> None:
             for future in futures:
                 if not future.done():
                     future.cancel()
 
-        async def _wait_for_first(futures):
+        async def _wait_for_first(futures: Sequence[Awaitable[Any]]) -> None:
             for future in asyncio.as_completed(futures):
                 # We don't need to catch CancelledError here (and cancel not done futures)
                 # because our callback (above) takes care of that.
-                await cast(asyncio.Future, future)
+                await cast(Awaitable[Any], future)
                 return
 
         fut = asyncio.ensure_future(_wait_for_first(futures), loop=self._loop)
         fut.add_done_callback(cancel_not_done)
         await fut
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
-async def wait_with_token(*awaitables: Awaitable,
+async def wait_with_token(*awaitables: Awaitable[Any],
                           token: CancelToken,
                           timeout: float = None) -> Any:
     """Wait for the first awaitable to complete, unless we timeout or the cancel token is triggered.

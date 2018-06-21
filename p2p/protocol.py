@@ -43,7 +43,7 @@ class Command:
         self.cmd_id = cmd_id_offset + self._cmd_id
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         if self._logger is None:
             self._logger = logging.getLogger(
                 "p2p.protocol.{0}".format(self.__class__.__name__)
@@ -54,7 +54,7 @@ class Command:
     def is_base_protocol(self) -> bool:
         return self.cmd_id_offset == 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
     def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
@@ -131,11 +131,11 @@ class Protocol:
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)
 
 
-def _pad_to_16_byte_boundary(data):
+def _pad_to_16_byte_boundary(data: bytes) -> bytes:
     """Pad the given data with NULL_BYTE up to the next 16-byte boundary."""
     remainder = len(data) % 16
     if remainder != 0:

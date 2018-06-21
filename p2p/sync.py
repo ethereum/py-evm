@@ -68,12 +68,12 @@ class FullNodeSyncer(BaseService):
             new_chain, self.chaindb, self.peer_pool, self.cancel_token)
         await chain_syncer.run()
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         # We don't run anything in the background, so nothing to do here.
         pass
 
 
-def _test():
+def _test() -> None:
     import argparse
     import asyncio
     from concurrent.futures import ProcessPoolExecutor
@@ -113,7 +113,7 @@ def _test():
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, sigint_received.set)
 
-    async def exit_on_sigint():
+    async def exit_on_sigint() -> None:
         await sigint_received.wait()
         await syncer.cancel()
         await peer_pool.cancel()

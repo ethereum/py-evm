@@ -4,6 +4,7 @@ from collections import (
 import logging
 import time
 from typing import (
+    Any,
     cast,
     Dict,
     Set,
@@ -111,9 +112,12 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
             while True:
+
                 peer, cmd, msg = await wait_with_token(
                     self.msg_queue.get(), token=self.cancel_token)
 
+                peer = cast(ShardingPeer, peer)
+                msg = cast(Dict[str, Any], msg)
                 if isinstance(cmd, GetCollations):
                     await self._handle_get_collations(peer, msg)
                 elif isinstance(cmd, Collations):
@@ -121,7 +125,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
                 elif isinstance(cmd, NewCollationHashes):
                     await self._handle_new_collation_hashes(peer, msg)
 
-    async def _handle_get_collations(self, peer, msg):
+    async def _handle_get_collations(self, peer: ShardingPeer, msg: Dict[str, Any]) -> None:
         """Respond with all requested collations that we know about."""
         collation_hashes = set(msg["collation_hashes"])
         self.collation_hashes_at_peer[peer] |= collation_hashes
@@ -141,9 +145,10 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
             peer.remote,
             len(collations),
         )
+        peer.sub_proto = cast(ShardingProtocol, peer.sub_proto)
         peer.sub_proto.send_collations(msg["request_id"], collations)
 
-    async def _handle_collations(self, peer, msg):
+    async def _handle_collations(self, peer: ShardingPeer, msg: Dict[str, Any]) -> None:
         """Add collations to our shard and notify peers about new collations available here."""
         collations_by_hash = {collation.hash: collation for collation in msg["collations"]}
         self.collation_hashes_at_peer[peer] |= set(collations_by_hash.keys())
@@ -163,10 +168,11 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
             self.shard.add_collation(collation)
 
         # inform peers about new collations they might not know about already
-        for peer in self.peer_pool.peers:
-            known_hashes = self.collation_hashes_at_peer[peer]
+        for pool_peer in self.peer_pool.peers:
+            pool_peer = cast(ShardingPeer, pool_peer)
+            known_hashes = self.collation_hashes_at_peer[pool_peer]
             new_hashes = set(new_collations_by_hash.keys()) - known_hashes
-            self.collation_hashes_at_peer[peer] |= new_hashes
+            self.collation_hashes_at_peer[pool_peer] |= new_hashes
 
             if new_hashes:
                 new_collations = [
@@ -175,9 +181,10 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
                 hashes_and_periods = [
                     (collation.hash, collation.period) for collation in new_collations
                 ]
-                peer.sub_proto.send_new_collation_hashes(hashes_and_periods)
+                pool_peer.sub_proto = cast(ShardingProtocol, pool_peer.sub_proto)
+                pool_peer.sub_proto.send_new_collation_hashes(hashes_and_periods)
 
-    async def _handle_new_collation_hashes(self, peer, msg):
+    async def _handle_new_collation_hashes(self, peer: ShardingPeer, msg: Dict[str, Any]) -> None:
         """Request those collations."""
         # Request all collations for now, no matter if we now about them or not, as there's no way
         # to header existence at the moment. In the future we won't transfer collations anyway but
@@ -187,8 +194,9 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
             collation_hash for collation_hash, _ in msg["collation_hashes_and_periods"]
         )
         if collation_hashes:
+            peer.sub_proto = cast(ShardingProtocol, peer.sub_proto)
             peer.sub_proto.send_get_collations(gen_request_id(), list(collation_hashes))
 
-    def get_current_period(self):
+    def get_current_period(self) -> int:
         # TODO: get this from main chain
         return int((time.time() - self.start_time) // COLLATION_PERIOD)

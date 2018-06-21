@@ -1,5 +1,9 @@
 import logging
-from typing import List, Union
+from typing import (
+    List,
+    Union,
+    TYPE_CHECKING
+)
 
 from rlp import sedes
 
@@ -14,6 +18,10 @@ from p2p.protocol import (
 from p2p.rlp import BlockBody
 from p2p.sedes import HashOrNumber
 
+if TYPE_CHECKING:
+    from p2p.peer import (  # noqa: F401
+        ChainInfo
+    )
 
 # Max number of items we can ask for in ETH requests. These are the values used in geth and if we
 # ask for more than this the peers will disconnect from us.
@@ -108,7 +116,7 @@ class ETHProtocol(Protocol):
     cmd_length = 17
     logger = logging.getLogger("p2p.eth.ETHProtocol")
 
-    def send_handshake(self, head_info):
+    def send_handshake(self, head_info: 'ChainInfo') -> None:
         resp = {
             'protocol_version': self.version,
             'network_id': self.peer.network_id,
@@ -174,7 +182,7 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
 
-    def send_receipts(self, receipts: List[Receipt]) -> None:
+    def send_receipts(self, receipts: List[List[Receipt]]) -> None:
         cmd = Receipts(self.cmd_id_offset)
         header, body = cmd.encode(receipts)
         self.send(header, body)

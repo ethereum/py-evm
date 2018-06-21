@@ -12,7 +12,7 @@ def sxor(s1: bytes, s2: bytes) -> bytes:
     return bytes(x ^ y for x, y in zip(s1, s2))
 
 
-def roundup_16(x):
+def roundup_16(x: int) -> int:
     """Rounds up the given value to the next multiple of 16."""
     remainder = x % 16
     if remainder != 0:
@@ -33,7 +33,7 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
 
 
-def get_process_pool_executor():
+def get_process_pool_executor() -> ProcessPoolExecutor:
     # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
     # asyncio's event loop.
     os_cpu_count = os.cpu_count()
