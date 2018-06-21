@@ -42,7 +42,6 @@ from p2p.cancel_token import (
 )
 from p2p.service import BaseService
 from p2p.peer import (
-    BasePeer,
     PeerPool,
     PeerPoolSubscriber,
 )
@@ -109,9 +108,6 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     #
     # Peer handling
     #
-    def register_peer(self, peer: BasePeer) -> None:
-        pass
-
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
             while True:
