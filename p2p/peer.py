@@ -706,8 +706,6 @@ class PeerPool(BaseService):
         return random.choice(peers_by_td[max_td])
 
     def get_peers(self, min_td: int) -> List[BasePeer]:
-        if not self.connected_nodes:
-            raise NoConnectedPeers()
         return [peer for peer in self.peers if peer.head_td >= min_td]
 
     async def _periodically_report_stats(self):
