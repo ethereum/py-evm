@@ -538,9 +538,16 @@ class ETHPeer(BasePeer):
 class PeerPoolSubscriber(ABC):
     _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
 
-    @abstractmethod
     def register_peer(self, peer: BasePeer) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
+        """
+        Notify about each registered peer in the :class:`~p2p.peer.PeerPool`. Is called upon
+        subscription for each :class:`~p2p.peer.BasePeer` that exists in the pool at that time and
+        then for each :class:`~p2p.peer.BasePeer` that joins the pool later on.
+
+        A :class:`~p2p.peer.PeerPoolSubscriber` that wants to act upon peer registration needs to
+        overwrite this method to provide an implementation.
+        """
+        pass
 
     @property
     def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':

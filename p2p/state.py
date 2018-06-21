@@ -33,7 +33,7 @@ from p2p import eth
 from p2p import protocol
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
-from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.peer import ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_process_pool_executor
 
@@ -58,9 +58,6 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
         self._executor = get_process_pool_executor()
-
-    def register_peer(self, peer: BasePeer) -> None:
-        pass
 
     @property
     def idle_peers(self) -> List[ETHPeer]:
