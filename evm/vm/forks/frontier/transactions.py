@@ -54,7 +54,7 @@ class FrontierTransaction(BaseTransaction):
         validate_gte(self.v, minimum=self.v_min, title="Transaction.v")
         validate_lte(self.v, maximum=self.v_max, title="Transaction.v")
 
-        super(FrontierTransaction, self).validate()
+        super().validate()
 
     def check_signature_validity(self):
         validate_transaction_signature(self)
@@ -90,7 +90,7 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
             validate_canonical_address(self.to, title="Transaction.to")
         validate_uint256(self.value, title="Transaction.value")
         validate_is_bytes(self.data, title="Transaction.data")
-        super(FrontierUnsignedTransaction, self).validate()
+        super().validate()
 
     def as_signed_transaction(self, private_key):
         v, r, s = create_transaction_signature(self, private_key)

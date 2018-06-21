@@ -49,7 +49,7 @@ class FrontierBlock(BaseBlock):
 
         self.bloom_filter = BloomFilter(header.bloom)
 
-        super(FrontierBlock, self).__init__(
+        super().__init__(
             header=header,
             transactions=transactions,
             uncles=uncles,

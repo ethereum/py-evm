@@ -8,7 +8,7 @@ class InvalidOpcode(Opcode):
 
     def __init__(self, value):
         self.value = value
-        super(InvalidOpcode, self).__init__()
+        super().__init__()
 
     def __call__(self, computation):
         raise InvalidInstruction("Invalid opcode 0x{0:x} @ {1}".format(

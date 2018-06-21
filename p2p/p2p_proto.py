@@ -56,7 +56,7 @@ class Disconnect(Command):
 
     def decode(self, data: bytes) -> _DecodedMsgType:
         try:
-            raw_decoded = cast(Dict[str, int], super(Disconnect, self).decode(data))
+            raw_decoded = cast(Dict[str, int], super().decode(data))
         except rlp.exceptions.ListDeserializationError:
             self.logger.warn("Malformed Disconnect message: %s", data)
             raise MalformedMessage("Malformed Disconnect message: {0}".format(data))
@@ -79,7 +79,7 @@ class P2PProtocol(Protocol):
 
     def __init__(self, peer):
         # For the base protocol the cmd_id_offset is always 0.
-        super(P2PProtocol, self).__init__(peer, cmd_id_offset=0)
+        super().__init__(peer, cmd_id_offset=0)
 
     def send_handshake(self):
         # TODO: move import out once this is in the trinity codebase

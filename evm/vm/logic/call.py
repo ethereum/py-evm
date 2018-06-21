@@ -332,7 +332,7 @@ class StaticCall(CallEIP161):
 
 class CallByzantium(CallEIP161):
     def get_call_params(self, computation):
-        call_params = super(CallByzantium, self).get_call_params(computation)
+        call_params = super().get_call_params(computation)
         value = call_params[1]
         if computation.msg.is_static and value != 0:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")

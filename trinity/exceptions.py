@@ -20,5 +20,5 @@ class MissingPath(BaseTrinityError):
     Raised when an expected path is missing
     """
     def __init__(self, msg: str, path: pathlib.Path) -> None:
-        super(MissingPath, self).__init__(msg)
+        super().__init__(msg)
         self.path = path

@@ -23,7 +23,7 @@ from evm.utils.transactions import (
 
 class HomesteadTransaction(FrontierTransaction):
     def validate(self):
-        super(HomesteadTransaction, self).validate()
+        super().validate()
         validate_lt_secpk1n2(self.s, title="Transaction.s")
 
     def get_intrinsic_gas(self):

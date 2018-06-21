@@ -33,4 +33,4 @@ class Account(rlp.Serializable):
                  storage_root: bytes=BLANK_ROOT_HASH,
                  code_hash: bytes=EMPTY_SHA3,
                  **kwargs: Any) -> None:
-        super(Account, self).__init__(nonce, balance, storage_root, code_hash, **kwargs)
+        super().__init__(nonce, balance, storage_root, code_hash, **kwargs)

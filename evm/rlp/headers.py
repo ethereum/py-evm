@@ -145,7 +145,7 @@ class BlockHeader(rlp.Serializable):
                  nonce=GENESIS_NONCE):
         if timestamp is None:
             timestamp = int(time.time())
-        super(BlockHeader, self).__init__(
+        super().__init__(
             parent_hash=parent_hash,
             uncles_hash=uncles_hash,
             coinbase=coinbase,
