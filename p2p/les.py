@@ -72,7 +72,7 @@ class Status(Command):
 
     @to_dict
     def decode_payload(self, rlp_data: bytes) -> Generator[Tuple[str, Any], None, None]:
-        data = cast(List[Tuple[str, bytes]], super(Status, self).decode_payload(rlp_data))
+        data = cast(List[Tuple[str, bytes]], super().decode_payload(rlp_data))
         # The LES/Status msg contains an arbitrary list of (key, value) pairs, where values can
         # have different types and unknown keys should be ignored for forward compatibility
         # reasons, so here we need an extra pass to deserialize each of the key/value pairs we
@@ -92,7 +92,7 @@ class Status(Command):
             for key, value
             in sorted(data.items())
         ]
-        return super(Status, self).encode_payload(response)
+        return super().encode_payload(response)
 
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
         decoded = cast(Dict[str, Any], decoded)

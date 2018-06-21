@@ -168,4 +168,4 @@ class CreateByzantium(CreateEIP150):
     def __call__(self, computation):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
-        return super(CreateEIP150, self).__call__(computation)
+        return super().__call__(computation)

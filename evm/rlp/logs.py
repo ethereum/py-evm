@@ -18,7 +18,7 @@ class Log(rlp.Serializable):
     ]
 
     def __init__(self, address: bytes, topics: bytes, data: bytes) -> None:
-        super(Log, self).__init__(address, topics, data)
+        super().__init__(address, topics, data)
 
     @property
     def bloomables(self):

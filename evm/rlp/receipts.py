@@ -40,7 +40,7 @@ class Receipt(rlp.Serializable):
             bloomables = itertools.chain.from_iterable(log.bloomables for log in logs)
             bloom = int(BloomFilter.from_iterable(bloomables))
 
-        super(Receipt, self).__init__(
+        super().__init__(
             state_root=state_root,
             gas_used=gas_used,
             bloom=bloom,

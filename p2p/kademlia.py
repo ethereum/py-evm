@@ -118,12 +118,12 @@ class Node:
 
     def __lt__(self, other):
         if not isinstance(other, self.__class__):
-            return super(Node, self).__lt__(other)
+            return super().__lt__(other)
         return self.id < other.id
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
-            return super(Node, self).__eq__(other)
+            return super().__eq__(other)
         return self.pubkey == other.pubkey
 
     def __ne__(self, other):
