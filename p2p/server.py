@@ -268,10 +268,7 @@ class Server(BaseService):
         else:
             # We use self.wait() here as a workaround for
             # https://github.com/ethereum/py-evm/issues/670.
-            try:
-                await self.wait(self.do_handshake(peer))
-            except MalformedMessage as e:
-                self.logger.debug("Could not complete handshake with %r: %s", peer.remote, repr(e))
+            await self.wait(self.do_handshake(peer))
 
     async def do_handshake(self, peer: BasePeer) -> None:
         try:
