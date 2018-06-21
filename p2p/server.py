@@ -39,6 +39,7 @@ from p2p.discovery import (
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
+    MalformedMessage,
     OperationCancelled,
     PeerConnectionLost,
 )
@@ -286,7 +287,10 @@ class Server(BaseService):
             await self.wait(self.do_handshake(peer))
 
     async def do_handshake(self, peer: BasePeer) -> None:
-        await peer.do_p2p_handshake(),
+        try:
+            await peer.do_p2p_handshake(),
+        except MalformedMessage as e:
+            raise HandshakeFailure() from e
         await peer.do_sub_proto_handshake()
         self._start_peer(peer)
 
