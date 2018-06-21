@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 from typing import (
@@ -154,7 +154,7 @@ class BaseTransaction(rlp.Serializable, BaseTransactionCommonMethods):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionCommonMethods, metaclass=ABCMeta):
+class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionCommonMethods, ABC):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),

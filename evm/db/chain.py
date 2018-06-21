@@ -2,7 +2,7 @@ import functools
 import itertools
 
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 from typing import (
@@ -76,7 +76,7 @@ class TransactionKey(rlp.Serializable):
     ]
 
 
-class BaseChainDB(metaclass=ABCMeta):
+class BaseChainDB(ABC):
     db = None  # type: BaseDB
 
     @abstractmethod

@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 from collections.abc import (
@@ -7,7 +7,7 @@ from collections.abc import (
 )
 
 
-class BaseDB(MutableMapping, metaclass=ABCMeta):
+class BaseDB(MutableMapping, ABC):
     """
     This is an abstract key/value lookup with all :class:`bytes` values,
     with some convenience methods for databases. As much as possible,

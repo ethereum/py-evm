@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 import itertools
@@ -81,7 +81,7 @@ def memory_gas_cost(size_in_bytes: int) -> int:
     return total_cost
 
 
-class BaseComputation(Configurable, metaclass=ABCMeta):
+class BaseComputation(Configurable, ABC):
     """
     The base class for all execution computations.
 

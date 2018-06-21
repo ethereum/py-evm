@@ -2,14 +2,14 @@ import functools
 import logging
 
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 
 from evm.utils.datatypes import Configurable
 
 
-class Opcode(Configurable, metaclass=ABCMeta):
+class Opcode(Configurable, ABC):
     mnemonic = None  # type: str
     gas_cost = None  # type: int
 
