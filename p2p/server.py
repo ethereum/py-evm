@@ -277,7 +277,7 @@ class Server(BaseService):
         try:
             await peer.do_p2p_handshake(),
         except MalformedMessage as e:
-            raise HandshakeFailure(e)
+            raise HandshakeFailure() from e
         await peer.do_sub_proto_handshake()
         self._start_peer(peer)
 
