@@ -60,7 +60,6 @@ class TxPool(BaseService, PeerPoolSubscriber):
                 peer, cmd, msg = await self.wait(
                     self.msg_queue.get(), token=self.cancel_token)
                 peer = cast(ETHPeer, peer)
-                cmd = cast(Transactions, cmd)
                 msg = cast(List[BaseTransactionFields], msg)
                 if isinstance(cmd, Transactions):
                     await self._handle_tx(peer, msg)
