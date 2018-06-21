@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod,
 )
 import logging
@@ -23,7 +23,7 @@ from utils.shellart import (
 )
 
 
-class BaseBenchmark(metaclass=ABCMeta):
+class BaseBenchmark(ABC):
 
     @abstractmethod
     def execute(self) -> DefaultStat:

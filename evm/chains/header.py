@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Dict, Any, Tuple, Type  # noqa: F401
 
 from eth_typing import (
@@ -18,7 +18,7 @@ from evm.utils.datatypes import (
 from evm.vm.base import BaseVM  # noqa: F401
 
 
-class BaseHeaderChain(Configurable, metaclass=ABCMeta):
+class BaseHeaderChain(Configurable, ABC):
     _base_db = None  # type: BaseDB
 
     _headerdb_class = None  # type: Type[BaseHeaderDB]

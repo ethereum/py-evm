@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 import logging
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     )
 
 
-class BaseState(Configurable, metaclass=ABCMeta):
+class BaseState(Configurable, ABC):
     """
     The base class that encapsulates all of the various moving parts related to
     the state of the VM during execution.
@@ -228,7 +228,7 @@ class BaseState(Configurable, metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class BaseTransactionExecutor(metaclass=ABCMeta):
+class BaseTransactionExecutor(ABC):
     def __init__(self, vm_state):
         self.vm_state = vm_state
 

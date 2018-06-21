@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 
@@ -18,7 +18,7 @@ from evm.utils.address import (
 )
 
 
-class BaseCall(Opcode, metaclass=ABCMeta):
+class BaseCall(Opcode, ABC):
     @abstractmethod
     def compute_msg_extra_gas(self, computation, gas, to, value):
         raise NotImplementedError("Must be implemented by subclasses")

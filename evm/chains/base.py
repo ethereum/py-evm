@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 import operator
@@ -102,7 +102,7 @@ if TYPE_CHECKING:
 AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
 
 
-class BaseChain(Configurable, metaclass=ABCMeta):
+class BaseChain(Configurable, ABC):
     """
     The base class for all Chain objects
     """

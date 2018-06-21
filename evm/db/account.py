@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 from uuid import UUID
@@ -59,7 +59,7 @@ from .hash_trie import HashTrie
 account_cache = LRU(2048)
 
 
-class BaseAccountDB(metaclass=ABCMeta):
+class BaseAccountDB(ABC):
 
     @abstractmethod
     def __init__(self) -> None:

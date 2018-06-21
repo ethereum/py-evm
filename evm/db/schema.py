@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 from eth_typing import (
     BlockNumber,
@@ -6,7 +6,7 @@ from eth_typing import (
 )
 
 
-class BaseSchema(metaclass=ABCMeta):
+class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_canonical_head_hash_lookup_key() -> bytes:

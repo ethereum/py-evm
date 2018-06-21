@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Tuple, Iterable
 
 import rlp
@@ -30,7 +30,7 @@ from evm.validation import (
 )
 
 
-class BaseHeaderDB(metaclass=ABCMeta):
+class BaseHeaderDB(ABC):
     db = None  # type: BaseDB
 
     def __init__(self, db: BaseDB) -> None:

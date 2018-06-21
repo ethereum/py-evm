@@ -1,5 +1,5 @@
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod
 )
 from typing import (  # noqa: F401
@@ -22,7 +22,7 @@ from .transactions import BaseTransaction
 from .headers import BlockHeader
 
 
-class BaseBlock(rlp.Serializable, Configurable, metaclass=ABCMeta):
+class BaseBlock(rlp.Serializable, Configurable, ABC):
     transaction_class = None  # type: Type[BaseTransaction]
 
     @classmethod

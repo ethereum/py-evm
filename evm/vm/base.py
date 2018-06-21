@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod,
 )
 import contextlib
@@ -63,7 +63,7 @@ from evm.vm.message import (
 from evm.vm.state import BaseState  # noqa: F401
 
 
-class BaseVM(Configurable, metaclass=ABCMeta):
+class BaseVM(Configurable, ABC):
     block = None  # type: BaseBlock
     block_class = None  # type: Type[BaseBlock]
     fork = None  # type: str
