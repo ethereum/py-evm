@@ -55,7 +55,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
-        "mypy<0.600",
+        "mypy==0.610",
     ],
     'benchmark': [
         "termcolor==1.1.*",
