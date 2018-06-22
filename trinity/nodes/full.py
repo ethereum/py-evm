@@ -41,7 +41,7 @@ class FullNode(Node):
             self._p2p_server = Server(
                 self._node_key,
                 self._node_port,
-                manager.get_chain(),  # type: ignore
+                manager.get_block_importer(),  # type: ignore
                 manager.get_chaindb(),  # type: ignore
                 self.headerdb,
                 manager.get_db(),  # type: ignore

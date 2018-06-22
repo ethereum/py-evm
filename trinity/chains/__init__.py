@@ -6,11 +6,15 @@ from multiprocessing.managers import (  # type: ignore
 )
 import os
 from typing import (
-    Type
+    Tuple,
+    Type,
 )
+
+from eth_typing import BlockNumber
 
 from evm import MainnetChain, RopstenChain
 from evm.chains.base import (
+    Chain,
     BaseChain
 )
 from evm.chains.mainnet import (
@@ -24,6 +28,8 @@ from evm.chains.ropsten import (
 from evm.db.backends.base import BaseDB
 from evm.db.chain import AsyncChainDB
 from evm.exceptions import CanonicalHeadNotFound
+from evm.rlp.blocks import BaseBlock
+from evm.vm.base import BaseVM
 
 from p2p import ecies
 
@@ -188,6 +194,11 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
         proxytype=AsyncHeaderChainProxy,
     )
 
+    DBManager.register(  # type: ignore
+        'get_block_importer',
+        callable=lambda: BlockImporter(chain_class, base_db),
+        proxytype=BlockImporterProxy)
+
     manager = DBManager(address=str(chain_config.database_ipc_path))  # type: ignore
     server = manager.get_server()  # type: ignore
 
@@ -197,3 +208,25 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
 class ChainProxy(BaseProxy):
     coro_import_block = async_method('import_block')
     get_vm_configuration = sync_method('get_vm_configuration')
+
+
+class BlockImporter:
+
+    def __init__(self, chain_class: Type[Chain], base_db: BaseDB) -> None:
+        self.chain_class = chain_class
+        self.base_db = base_db
+
+    def get_vm_configuration(self) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+        return self.chain_class.vm_configuration
+
+    def get_vm_class_for_block_number(self, block_number: BlockNumber) -> Type[BaseVM]:
+        return self.chain_class.get_vm_class_for_block_number(block_number)
+
+    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+        return self.chain_class(self.base_db).import_block(block, perform_validation)
+
+
+class BlockImporterProxy(BaseProxy):
+    coro_import_block = async_method('import_block')
+    get_vm_configuration = sync_method('get_vm_configuration')
+    get_vm_class_for_block_number = sync_method('get_vm_class_for_block_number')
