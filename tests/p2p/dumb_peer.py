@@ -14,3 +14,6 @@ class DumbPeer(ETHPeer):
 
     async def do_sub_proto_handshake(self):
         pass
+
+    async def ensure_same_side_on_dao_fork(self, vm_configuration):
+        pass

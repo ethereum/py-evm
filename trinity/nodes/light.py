@@ -91,4 +91,5 @@ class LightNode(Node):
             self.headerdb,
             chain_config.network_id,
             chain_config.nodekey,
+            self.chain_class.vm_configuration,
         )

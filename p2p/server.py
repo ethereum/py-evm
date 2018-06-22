@@ -148,6 +148,7 @@ class Server(BaseService):
             self.headerdb,
             self.network_id,
             self.privkey,
+            self.chain.vm_configuration,
             max_peers=self.max_peers,
         )
 
@@ -292,6 +293,7 @@ class Server(BaseService):
         except MalformedMessage as e:
             raise HandshakeFailure() from e
         await peer.do_sub_proto_handshake()
+        await peer.ensure_same_side_on_dao_fork(self.chain.vm_configuration)
         self._start_peer(peer)
 
     def _start_peer(self, peer: BasePeer) -> None:
