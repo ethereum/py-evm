@@ -46,6 +46,7 @@ from p2p.kademlia import (
     Node,
 )
 from p2p.nat import UPnPService
+from p2p import network
 from p2p.p2p_proto import (
     DisconnectReason,
 )
@@ -87,6 +88,7 @@ class Server(BaseService):
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
                  token: CancelToken = None,
+                 host: str = '0.0.0.0',
                  ) -> None:
         super().__init__(token)
         self.headerdb = headerdb
@@ -94,6 +96,7 @@ class Server(BaseService):
         self.chain = chain
         self.base_db = base_db
         self.privkey = privkey
+        self.host = host
         self.port = port
         self.network_id = network_id
         self.peer_class = peer_class
@@ -108,11 +111,19 @@ class Server(BaseService):
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
 
+    _network = None
+
+    @property
+    def network(self):
+        if self._network is None:
+            self._network = network.get_network()
+        return self._network
+
     async def _start_tcp_listener(self) -> None:
         # TODO: Support IPv6 addresses as well.
-        self._tcp_listener = await asyncio.start_server(
+        self._tcp_listener = await self.network.start_server(
             self.receive_handshake,
-            host='0.0.0.0',
+            host=self.host,
             port=self.port,
         )
 
@@ -197,7 +208,7 @@ class Server(BaseService):
         except OperationCancelled:
             pass
         except Exception as e:
-            self.logger.exception("Unexpected error handling handshake")
+            self.logger.exception("Unexpected error handling handshake: %r", e)
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
