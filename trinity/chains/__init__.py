@@ -39,6 +39,7 @@ from trinity.db.header import (
 )
 from trinity.utils.mp import (
     async_method,
+    sync_method,
 )
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
@@ -195,3 +196,4 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
 
 class ChainProxy(BaseProxy):
     coro_import_block = async_method('import_block')
+    get_vm_configuration = sync_method('get_vm_configuration')

@@ -306,6 +306,10 @@ class Chain(BaseChain):
             raise AttributeError("`chaindb_class` not set")
         return cls.chaindb_class
 
+    @classmethod
+    def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
+        return cls.vm_configuration
+
     #
     # Chain API
     #
