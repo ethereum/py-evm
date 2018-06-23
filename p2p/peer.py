@@ -128,13 +128,14 @@ async def handshake(remote: Node,
          ) = await auth.handshake(remote, privkey, token)
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer() from e
-    except MalformedMessage as e:
-        raise HandshakeFailure() from e
     peer = peer_class(
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
         ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
-    await peer.do_p2p_handshake()
+    try:
+        await peer.do_p2p_handshake()
+    except MalformedMessage as e:
+        raise HandshakeFailure() from e
     await peer.do_sub_proto_handshake()
     await peer.ensure_same_side_on_dao_fork(vm_configuration)
     return peer
