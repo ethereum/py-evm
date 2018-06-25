@@ -42,7 +42,7 @@ deps = {
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.4",
         "coincurve>=7.0.0,<8.0.0",
-        "web3>=4.1.0,<5.0.0",
+        "web3==4.3.0",
         # required for rlp>=1.0.0
         "eth-account>=0.2.1,<1",
     ],
