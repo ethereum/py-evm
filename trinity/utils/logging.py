@@ -75,7 +75,6 @@ def setup_trinity_file_and_queue_logging(
     handler_file.setFormatter(formatter)
 
     logger.addHandler(handler_file)
-    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
 
     listener = QueueListener(
         log_queue,

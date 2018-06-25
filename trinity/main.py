@@ -125,6 +125,8 @@ def main() -> None:
         log_level
     )
 
+    display_launch_logs(chain_config)
+
     # if console command, run the trinity CLI
     if args.subcommand == 'attach':
         console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
@@ -220,8 +222,6 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 @setup_cprofiler('launch_node')
 @with_queued_logging
 def launch_node(chain_config: ChainConfig) -> None:
-    display_launch_logs(chain_config)
-
     NodeClass = chain_config.node_class
     node = NodeClass(chain_config)
 
@@ -232,6 +232,7 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
     logger = logging.getLogger('trinity')
     logger.info(TRINITY_HEADER)
     logger.info(construct_trinity_client_identifier())
+    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
 
 
 def run_service_until_quit(service: BaseService) -> None:
