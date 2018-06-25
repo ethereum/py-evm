@@ -6,6 +6,7 @@ from multiprocessing.managers import (
 )
 from threading import Thread
 from typing import (
+    List,
     Type,
     Union
 )
@@ -18,7 +19,6 @@ from p2p.peer import (
 from p2p.service import (
     BaseService,
     EmptyService,
-    ServiceContext,
 )
 from trinity.chains import (
     ChainProxy,
@@ -61,7 +61,7 @@ class Node(BaseService):
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = chain_config.jsonrpc_ipc_path
-        self._auxiliary_services = ServiceContext()
+        self._auxiliary_services: List[BaseService] = []
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
@@ -97,7 +97,7 @@ class Node(BaseService):
             self._auxiliary_services.append(service)
 
     def create_and_add_tx_pool(self) -> None:
-        self.tx_pool = TxPool(self.get_peer_pool())
+        self.tx_pool = TxPool(self.get_peer_pool(), self.cancel_token)
         self.add_service(self.tx_pool)
 
     def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
@@ -122,12 +122,15 @@ class Node(BaseService):
             self._ipc_server.run(loop=ipc_loop), loop=ipc_loop  # type: ignore
         )
 
-        async with self._auxiliary_services:
-            await self.get_p2p_server().run()
+        for service in self._auxiliary_services:
+            asyncio.ensure_future(service.run())
+
+        await self.get_p2p_server().run()
 
     async def _cleanup(self) -> None:
         if isinstance(self._ipc_server, IPCServer):
             await self._ipc_server.stop()
+        await asyncio.gather(*[service.cleaned_up.wait() for service in self._auxiliary_services])
 
     def _make_new_loop_thread(self) -> asyncio.AbstractEventLoop:
         new_loop = asyncio.new_event_loop()

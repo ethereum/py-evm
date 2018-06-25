@@ -13,6 +13,7 @@ from bloom_filter import (
 from evm.rlp.transactions import (
     BaseTransactionFields
 )
+from p2p.cancel_token import CancelToken
 from p2p.eth import (
     Transactions
 )
@@ -40,8 +41,8 @@ class TxPool(BaseService, PeerPoolSubscriber):
     """
     logger = logging.getLogger("trinity.tx_pool.TxPool")
 
-    def __init__(self, peer_pool: PeerPool) -> None:
-        super().__init__()
+    def __init__(self, peer_pool: PeerPool, token: CancelToken = None) -> None:
+        super().__init__(token)
         self._peer_pool = peer_pool
         # 1m should give us 9000 blocks before that filter becomes less reliable
         # It should take up about 1mb of memory

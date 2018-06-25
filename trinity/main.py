@@ -183,6 +183,9 @@ def main() -> None:
         logger.info('Keyboard Interrupt: Stopping')
         kill_process_gracefully(database_server_process, logger)
         logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
+        # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
+        # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
+        import time; time.sleep(0.2)  # noqa: E702
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
 

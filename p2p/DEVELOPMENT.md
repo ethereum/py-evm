@@ -17,4 +17,16 @@ we use `CancelToken`s, which are heavily inspired by https://vorpus.org/blog/tim
 
 - If your service runs coroutines in the background (e.g. via `asyncio.ensure_future`), you must
   ensure they exit when `is_running` is False or when the cancel token is triggered
-- If your service runs other services in the background, you should ensure your `_cleanup()` method stops them.
+- If your service runs other services in the background, you should pass your CancelToken down to
+  those services and ensure your `_cleanup()` waits for them to cleanup as well
+
+```Python
+class Node(BaseService):
+    async def _run(self):
+        self.discovery = DiscoveryService(token=self.cancel_token)
+        asyncio.ensure_future(self.discovery.run())
+        # Node's run logic goes here...
+
+    async def _cleanup(self):
+        await self.discovery.cleaned_up.wait()
+```
