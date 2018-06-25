@@ -132,10 +132,7 @@ async def handshake(remote: Node,
         remote=remote, privkey=privkey, reader=reader, writer=writer,
         aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
         ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
-    try:
-        await peer.do_p2p_handshake()
-    except MalformedMessage as e:
-        raise HandshakeFailure() from e
+    await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
     await peer.ensure_same_side_on_dao_fork(vm_configuration)
     return peer
@@ -270,6 +267,8 @@ class BasePeer(BaseService):
             cmd, msg = await self.read_msg()
         except rlp.DecodingError:
             raise HandshakeFailure("Got invalid rlp data during handshake")
+        except MalformedMessage as e:
+            raise HandshakeFailure("Got malformed message during handshake") from e
 
         if isinstance(cmd, Disconnect):
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
