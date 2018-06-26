@@ -1,5 +1,6 @@
 from typing import (
     cast,
+    Callable,
     Iterable,
     List
 )
@@ -39,9 +40,17 @@ class TxPool(BaseService, PeerPoolSubscriber):
         hold on to them yet. It's still missing many features of a grown up transaction pool.
     """
 
-    def __init__(self, peer_pool: PeerPool, token: CancelToken = None) -> None:
+    def __init__(self,
+                 peer_pool: PeerPool,
+                 tx_validation_fn: Callable[[BaseTransactionFields], bool],
+                 token: CancelToken = None) -> None:
         super().__init__(token)
         self._peer_pool = peer_pool
+
+        if tx_validation_fn is None:
+            raise ValueError('Must pass a tx validation function')
+
+        self.tx_validation_fn = tx_validation_fn
         # 1m should give us 9000 blocks before that filter becomes less reliable
         # It should take up about 1mb of memory
         self._bloom = BloomFilter(max_elements=1000000)
@@ -94,6 +103,8 @@ class TxPool(BaseService, PeerPoolSubscriber):
         return [
             val for val in txs
             if self._construct_bloom_entry(peer, val) not in self._bloom
+            # TODO: we need to keep track of invalid txs and eventually blacklist nodes
+            if self.tx_validation_fn(val)
         ]
 
     def _construct_bloom_entry(self, peer: BasePeer, tx: BaseTransactionFields) -> bytes:

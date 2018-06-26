@@ -44,6 +44,9 @@ from trinity.config import (
 from trinity.tx_pool.pool import (
     TxPool
 )
+from trinity.tx_pool.validators import (
+    DefaultTransactionValidator
+)
 
 
 class Node(BaseService):
@@ -52,6 +55,7 @@ class Node(BaseService):
     unset attributes.
     """
     chain_class: Type[BaseChain] = None
+    initial_tx_validation_block_number: int = None
 
     def __init__(self, chain_config: ChainConfig) -> None:
         super().__init__()
@@ -97,7 +101,11 @@ class Node(BaseService):
             self._auxiliary_services.append(service)
 
     def create_and_add_tx_pool(self) -> None:
-        self.tx_pool = TxPool(self.get_peer_pool(), self.cancel_token)
+        self.tx_pool = TxPool(
+            self.get_peer_pool(),
+            DefaultTransactionValidator(self.get_chain(), self.initial_tx_validation_block_number),
+            self.cancel_token
+        )
         self.add_service(self.tx_pool)
 
     def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
