@@ -1,11 +1,9 @@
 import asyncio
-import contextlib
 import logging
 import operator
 import random
 import struct
 from abc import (
-    ABC,
     abstractmethod
 )
 
@@ -54,6 +52,10 @@ from evm.vm.forks import HomesteadVM
 from p2p import auth
 from p2p import ecies
 from p2p.kademlia import Address, Node
+from p2p.msg_queue import (
+    MsgQueueExposer,
+    MsgQueueSubscriber
+)
 from p2p import protocol
 from p2p.exceptions import (
     BadAckMessage,
@@ -634,8 +636,7 @@ class ETHPeer(BasePeer):
             return header, parent
 
 
-class PeerPoolSubscriber(ABC):
-    _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
+class PeerPoolSubscriber(MsgQueueSubscriber['PEER_MSG_TYPE']):
 
     def register_peer(self, peer: BasePeer) -> None:
         """
@@ -648,22 +649,8 @@ class PeerPoolSubscriber(ABC):
         """
         pass
 
-    @property
-    def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
-        if self._msg_queue is None:
-            self._msg_queue = asyncio.Queue(maxsize=10000)
-        return self._msg_queue
 
-    @contextlib.contextmanager
-    def subscribe(self, peer_pool: 'PeerPool') -> Iterator[None]:
-        peer_pool.subscribe(self)
-        try:
-            yield
-        finally:
-            peer_pool.unsubscribe(self)
-
-
-class PeerPool(BaseService):
+class PeerPool(BaseService, MsgQueueExposer['PEER_MSG_TYPE']):
     """
     PeerPool maintains connections to up-to max_peers on a given network.
     """
@@ -687,7 +674,7 @@ class PeerPool(BaseService):
         self.vm_configuration = vm_configuration
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
-        self._subscribers: List[PeerPoolSubscriber] = []
+        self._subscribers: List[MsgQueueSubscriber['PEER_MSG_TYPE']] = []
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
@@ -705,13 +692,14 @@ class PeerPool(BaseService):
         matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
         return len(matching_ip_nodes) <= 2
 
-    def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
+    def subscribe(self, subscriber: MsgQueueSubscriber['PEER_MSG_TYPE']) -> None:
+        subscriber = cast(PeerPoolSubscriber, subscriber)
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber.msg_queue)
 
-    def unsubscribe(self, subscriber: PeerPoolSubscriber) -> None:
+    def unsubscribe(self, subscriber: MsgQueueSubscriber['PEER_MSG_TYPE']) -> None:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
         for peer in self.connected_nodes.values():
@@ -725,6 +713,7 @@ class PeerPool(BaseService):
         self.logger.info('Adding peer: %s', peer)
         self.connected_nodes[peer.remote] = peer
         for subscriber in self._subscribers:
+            subscriber = cast(PeerPoolSubscriber, subscriber)
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber.msg_queue)
 
