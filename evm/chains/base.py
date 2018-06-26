@@ -188,7 +188,7 @@ class BaseChain(Configurable, ABC):
     # Block API
     #
     @abstractmethod
-    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader) -> Iterator[BaseBlock]:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -412,13 +412,10 @@ class Chain(BaseChain):
     # Block API
     #
     @to_tuple
-    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader) -> Iterator[BaseBlock]:
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
-        if header is None:
-            header = self.get_canonical_head()
-
         lower_limit = max(header.block_number - limit, 0)
         for n in reversed(range(lower_limit, header.block_number)):
             yield self.get_canonical_block_by_number(BlockNumber(n))
