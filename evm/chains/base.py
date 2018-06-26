@@ -301,12 +301,6 @@ class Chain(BaseChain):
     def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
         return cls.vm_configuration
 
-    def default_header(self, header: BlockHeader=None) -> BlockHeader:
-        if header is None:
-            return self.get_canonical_head()
-        else:
-            return header
-
     #
     # Chain API
     #
@@ -422,9 +416,11 @@ class Chain(BaseChain):
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
-        at_header = self.default_header(header)
-        lower_limit = max(at_header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, at_header.block_number)):
+        if header is None:
+            header = self.get_canonical_head()
+
+        lower_limit = max(header.block_number - limit, 0)
+        for n in reversed(range(lower_limit, header.block_number)):
             yield self.get_canonical_block_by_number(BlockNumber(n))
 
     def get_block(self) -> BaseBlock:
@@ -722,12 +718,6 @@ class MiningChain(Chain):
 
         return new_block, receipt, computation
 
-    def default_header(self, header: BlockHeader=None) -> BlockHeader:
-        if header is None:
-            return self.header
-        else:
-            return header
-
     def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
         result_block = super().import_block(block, perform_validation)
         self.header = self.create_header_from_parent(self.get_canonical_head())
@@ -748,9 +738,9 @@ class MiningChain(Chain):
 
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         if at_header is None:
-            return super().get_vm(self.header)
-        else:
-            return super().get_vm(at_header)
+            at_header = self.header
+
+        return super().get_vm(at_header)
 
 
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
