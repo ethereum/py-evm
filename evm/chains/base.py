@@ -707,8 +707,30 @@ class Chain(BaseChain):
                     "Uncle ancestor not found: {0}".format(uncle.parent_hash)
                 )
 
-            uncle_vm = self.get_vm(uncle)
-            uncle_vm.validate_uncle(block, uncle, uncle_parent)
+            validate_uncle(block, uncle, uncle_parent)
+
+
+def validate_uncle(block, uncle, uncle_parent):
+    """
+    Validate the given uncle in the context of the given block.
+    """
+    if uncle.block_number >= block.number:
+        raise ValidationError(
+            "Uncle number ({0}) is higher than block number ({1})".format(
+                uncle.block_number, block.number))
+
+    if uncle.block_number != uncle_parent.block_number + 1:
+        raise ValidationError(
+            "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                uncle.block_number, uncle_parent.block_number))
+    if uncle.timestamp < uncle_parent.timestamp:
+        raise ValidationError(
+            "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                uncle.timestamp, uncle_parent.timestamp))
+    if uncle.gas_used > uncle.gas_limit:
+        raise ValidationError(
+            "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                uncle.gas_used, uncle.gas_limit))
 
 
 @to_set
