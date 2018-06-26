@@ -61,16 +61,8 @@ def test_import_block(chain, tx):
         assert computation.is_success
     else:
         # working on a non-mining chain, so we have to build the block to apply manually
-        base_header = chain.create_header_from_parent(chain.get_canonical_head())
-        vm = chain.get_vm(base_header)
-
-        new_header, receipt, computation = vm.apply_transaction(base_header, tx)
-        assert computation.is_success
-
-        transactions = (tx, )
-        receipts = (receipt, )
-
-        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
+        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        assert computations[0].is_success
 
     block = chain.import_block(new_block)
     assert block.transactions == (tx,)

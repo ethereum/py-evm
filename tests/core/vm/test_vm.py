@@ -61,14 +61,11 @@ def test_import_block(chain, funded_address, funded_address_private_key):
         new_block, _, computation = chain.apply_transaction(tx)
     else:
         # Have to manually build the block for the import_block test
+        new_block, _, computations = chain.build_block_with_transactions([tx])
+        computation = computations[0]
+
+        # Generate the pending header to import the new block on
         pending_header = chain.create_header_from_parent(chain.get_canonical_head())
-        vm = chain.get_vm(pending_header)
-        new_header, receipt, computation = vm.apply_transaction(pending_header, tx)
-
-        transactions = (tx, )
-        receipts = (receipt, )
-
-        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
 
     assert not computation.is_error
 

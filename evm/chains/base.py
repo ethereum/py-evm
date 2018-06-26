@@ -187,6 +187,7 @@ class BaseChain(Configurable, ABC):
     #
     # Block API
     #
+    @abstractmethod
     def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -194,9 +195,11 @@ class BaseChain(Configurable, ABC):
     def get_block(self) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
     def get_block_by_header(self, block_header: BlockHeader) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -206,6 +209,10 @@ class BaseChain(Configurable, ABC):
 
     @abstractmethod
     def get_canonical_block_hash(self, block_number):
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
+    def build_block_with_transactions(self, transactions, parent_header):
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -459,6 +466,27 @@ class Chain(BaseChain):
         canonical chain.
         """
         return self.chaindb.get_canonical_block_hash(block_number)
+
+    def build_block_with_transactions(self, transactions, parent_header=None):
+        """
+        Generate a block with the provided transactions. This does *not* import
+        that block into your chain. If you want this new block in your chain,
+        run :meth:`~import_block` with the result block from this method.
+
+        :param transactions: an iterable of transactions to insert to the block
+        :param parent_header: parent of the new block -- or canonical head if ``None``
+        :return: (new block, receipts, computations)
+        """
+        if parent_header is None:
+            parent_header = self.get_canonical_head()
+
+        base_header = self.create_header_from_parent(parent_header)
+        vm = self.get_vm(base_header)
+
+        new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
+        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
+
+        return new_block, receipts, computations
 
     #
     # Transaction API

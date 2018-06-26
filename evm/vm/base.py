@@ -394,18 +394,40 @@ class VM(BaseVM):
             transaction_context,
         )
 
-    def _apply_all_transactions(self, transactions, base_header):
+    def apply_all_transactions(self, transactions, base_header):
+        """
+        Determine the results of applying all transactions to the base header.
+        This does *not* update the current block or header of the VM.
+
+        :param transactions: an iterable of all transactions to apply
+        :param base_header: the starting header to apply transactions to
+        :return: the final header, the receipts of each transaction, and the computations
+        """
+        if base_header.block_number != self.block.number:
+            raise ValidationError(
+                "This VM instance must only work on block #{}, "
+                "but the target header has block #{}".format(
+                    self.block.number,
+                    base_header.block_number,
+                )
+            )
+
         receipts = []
+        computations = []
         previous_header = base_header
         result_header = base_header
 
         for transaction in transactions:
-            result_header, receipt, _ = self.apply_transaction(previous_header, transaction)
+            result_header, receipt, computation = self.apply_transaction(
+                previous_header,
+                transaction,
+            )
 
             previous_header = result_header
             receipts.append(receipt)
+            computations.append(computation)
 
-        return result_header, receipts
+        return result_header, receipts, computations
 
     #
     # Mining
@@ -442,11 +464,11 @@ class VM(BaseVM):
         )
 
         # run all of the transactions.
-        last_header, receipts = self._apply_all_transactions(block.transactions, self.block.header)
+        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.block.header)
 
         self.block = self.set_block_transactions(
             self.block,
-            last_header,
+            new_header,
             block.transactions,
             receipts,
         )
