@@ -138,6 +138,9 @@ class BadAckMessage(BaseP2PError):
 class BadLESResponse(BaseP2PError):
     """
     Raised when the response to a LES request doesn't contain the data we asked for.
+
+    The peer can be treated as violating protocol. Often, the repurcussion should be
+    disconnection and blacklisting.
     """
     pass
 

@@ -41,6 +41,7 @@ from p2p.cancel_token import CancelToken
 from p2p import protocol
 from p2p.constants import (
     COMPLETION_TIMEOUT,
+    MAX_REQUEST_ATTEMPTS,
     REPLY_TIMEOUT,
 )
 from p2p.p2p_proto import (
@@ -159,9 +160,10 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         :param address: which contract to look up
 
         :return: bytecode of the contract, ``b''`` if no code is set
-        """
-        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
 
+        :raise NoEligiblePeers: if no peers are available to fulfill the request
+        :raise TimeoutError: if an individual request or the overall process times out
+        """
         # get account for later verification, and
         # to confirm that our highest total difficulty peer has the info
         try:
@@ -169,6 +171,31 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         except HeaderNotFound as exc:
             raise NoEligiblePeers("Our best peer does not have header %s" % block_hash) from exc
 
+        code_hash = account.code_hash
+
+        for _ in range(MAX_REQUEST_ATTEMPTS):
+            peer = cast(LESPeer, self.peer_pool.highest_td_peer)
+            try:
+                return await self._get_contract_code_from_peer(block_hash, address, peer, code_hash)
+            except BadLESResponse as exc:
+                self.logger.warn("Disconnecting from peer, because: %s", exc)
+                await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
+                # reattempt after removing this peer from our pool
+
+        raise TimeoutError("Could not get contract code within %d attempts" % MAX_REQUEST_ATTEMPTS)
+
+    async def _get_contract_code_from_peer(
+            self,
+            block_hash: Hash32,
+            address: Address,
+            peer: LESPeer,
+            code_hash: Hash32) -> bytes:
+        """
+        A single attempt to get the contract code from the given peer
+
+        :raise BadLESResponse: if the peer replies with contract code that does not match the
+            account's code hash
+        """
         # request contract code
         request_id = gen_request_id()
         peer.sub_proto.send_get_contract_code(block_hash, keccak(address), request_id)
@@ -180,7 +207,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             bytecode = reply['codes'][0]
 
         # validate bytecode against a proven account
-        if account.code_hash == keccak(bytecode):
+        if code_hash == keccak(bytecode):
             return bytecode
         elif bytecode == b'':
             # TODO disambiguate failure types here, and raise the appropriate exception
@@ -188,10 +215,12 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             raise NoEligiblePeers("Our best peer incorrectly responded with an empty code value")
         else:
             # a bad-acting peer sent an invalid non-empty bytecode
-            # disconnect from the peer
-            await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
-            # try again with another peer
-            return await self.get_contract_code(block_hash, address)
+            raise BadLESResponse("Peer %s sent code %s that did not match hash %s in account %s" % (
+                peer,
+                encode_hex(bytecode),
+                encode_hex(code_hash),
+                encode_hex(address),
+            ))
 
     async def _get_block_header_by_hash(self, peer: LESPeer, block_hash: Hash32) -> BlockHeader:
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
