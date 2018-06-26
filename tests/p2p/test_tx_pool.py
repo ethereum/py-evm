@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-import random
+import uuid
 
 from p2p.peer import (
     ETHPeer,
@@ -8,14 +8,21 @@ from p2p.peer import (
 from p2p.eth import (
     Transactions
 )
-from evm.rlp.transactions import (
-    BaseTransactionFields
+
+from evm.utils.address import (
+    force_bytes_to_address
 )
 
 from trinity.tx_pool.pool import (
     TxPool,
 )
+from trinity.tx_pool.validators import (
+    DefaultTransactionValidator
+)
 
+from tests.conftest import (
+    funded_address_private_key
+)
 from tests.p2p.peer_helpers import (
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
@@ -33,7 +40,8 @@ class TxsRecorder():
         self.recorded_tx.extend(txs)
         self.send_count = self.send_count + 1
 
-async def bootstrap_test_setup(monkeypatch, request, event_loop):
+
+async def bootstrap_test_setup(monkeypatch, request, event_loop, chain, tx_validator):
     peer1, peer2 = await get_directly_linked_peers(
         request,
         event_loop,
@@ -46,7 +54,10 @@ async def bootstrap_test_setup(monkeypatch, request, event_loop):
     peer1_txs_recorder = create_tx_recorder(monkeypatch, peer1)
     peer2_txs_recorder = create_tx_recorder(monkeypatch, peer2)
 
-    pool = TxPool(MockPeerPoolWithConnectedPeers([peer1, peer2]))
+    pool = TxPool(
+        MockPeerPoolWithConnectedPeers([peer1, peer2]),
+        tx_validator
+    )
 
     asyncio.ensure_future(pool.run())
 
@@ -56,15 +67,28 @@ async def bootstrap_test_setup(monkeypatch, request, event_loop):
 
     return peer1, peer1_txs_recorder, peer2, peer2_txs_recorder, pool
 
+
+@pytest.fixture
+def tx_validator(chain_with_block_validation):
+    return DefaultTransactionValidator(chain_with_block_validation, 0)
+
+
 @pytest.mark.asyncio
-async def test_tx_propagation(monkeypatch, request, event_loop):
+async def test_tx_propagation(monkeypatch,
+                              request,
+                              event_loop,
+                              chain_with_block_validation,
+                              tx_validator):
+
     peer1, peer1_txs_recorder, peer2, peer2_txs_recorder, pool = await bootstrap_test_setup(
         monkeypatch,
         request,
-        event_loop
+        event_loop,
+        chain_with_block_validation,
+        tx_validator
     )
 
-    txs_broadcasted_by_peer1 = [create_random_tx()]
+    txs_broadcasted_by_peer1 = [create_random_tx(chain_with_block_validation)]
 
     # Peer1 sends some txs
     await pool._handle_tx(peer1, txs_broadcasted_by_peer1)
@@ -91,7 +115,10 @@ async def test_tx_propagation(monkeypatch, request, event_loop):
     assert peer1_txs_recorder.send_count == 0
 
     # Peer2 sends old + new tx
-    txs_broadcasted_by_peer2 = [create_random_tx(), txs_broadcasted_by_peer1[0]]
+    txs_broadcasted_by_peer2 = [
+        create_random_tx(chain_with_block_validation),
+        txs_broadcasted_by_peer1[0]
+    ]
     await pool._handle_tx(peer2, txs_broadcasted_by_peer2)
 
     # Check that Peer1 receives only the one tx that it didn't know about
@@ -101,7 +128,35 @@ async def test_tx_propagation(monkeypatch, request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_tx_sending(request, event_loop):
+async def test_does_not_propagate_invalid_tx(monkeypatch,
+                                             request,
+                                             event_loop,
+                                             chain_with_block_validation,
+                                             tx_validator):
+
+    peer1, peer1_txs_recorder, peer2, peer2_txs_recorder, pool = await bootstrap_test_setup(
+        monkeypatch,
+        request,
+        event_loop,
+        chain_with_block_validation,
+        tx_validator
+    )
+
+    txs_broadcasted_by_peer1 = [
+        create_random_tx(chain_with_block_validation, is_valid=False),
+        create_random_tx(chain_with_block_validation)
+    ]
+
+    # Peer1 sends some txs
+    await pool._handle_tx(peer1, txs_broadcasted_by_peer1)
+
+    # Check that Peer2 received only the second tx which is valid
+    assert len(peer2_txs_recorder.recorded_tx) == 1
+    assert peer2_txs_recorder.recorded_tx[0].hash == txs_broadcasted_by_peer1[1].hash
+
+
+@pytest.mark.asyncio
+async def test_tx_sending(request, event_loop, chain_with_block_validation, tx_validator):
     # This test covers the communication end to end whereas the previous
     # focusses on the rules of the transaction pool on when to send tx to whom
     peer1, peer2 = await get_directly_linked_peers(
@@ -114,7 +169,7 @@ async def test_tx_sending(request, event_loop):
     peer2_subscriber = asyncio.Queue()
     peer2.add_subscriber(peer2_subscriber)
 
-    pool = TxPool(MockPeerPoolWithConnectedPeers([peer1, peer2]))
+    pool = TxPool(MockPeerPoolWithConnectedPeers([peer1, peer2]), tx_validator)
 
     asyncio.ensure_future(pool.run())
 
@@ -122,7 +177,7 @@ async def test_tx_sending(request, event_loop):
         event_loop.run_until_complete(pool.cancel())
     request.addfinalizer(finalizer)
 
-    txs = [create_random_tx()]
+    txs = [create_random_tx(chain_with_block_validation)]
 
     peer1.sub_proto.send_transactions(txs)
 
@@ -147,15 +202,14 @@ def create_tx_recorder(monkeypatch, peer):
     return recorder
 
 
-def create_random_tx():
-    return BaseTransactionFields(
+def create_random_tx(chain, is_valid=True):
+    return chain.create_unsigned_transaction(
         nonce=0,
         gas_price=1,
-        gas=21000,
-        data=b'',
-        to=b'',
-        value=random.randint(0, 1000),
-        r=random.randint(0, 1000),
-        s=random.randint(0, 1000),
-        v=random.randint(0, 1000)
-    )
+        gas=2100000000000 if is_valid else 0,
+        # For simplicity, both peers create tx with the same private key.
+        # We rely on unique data to create truly unique txs
+        data=uuid.uuid4().bytes,
+        to=force_bytes_to_address(b'\x10\x10'),
+        value=1,
+    ).as_signed_transaction(funded_address_private_key())
