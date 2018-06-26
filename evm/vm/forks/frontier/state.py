@@ -9,7 +9,6 @@ from evm.db.account import (
 )
 from evm.exceptions import (
     ContractCreationCollision,
-    ValidationError,
 )
 from evm.vm.message import (
     Message,
@@ -40,10 +39,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
     def validate_transaction(self, transaction):
 
         # Validate the transaction
-
-        if transaction.intrinsic_gas > transaction.gas:
-            raise ValidationError("Insufficient gas")
-
         transaction.validate()
         self.vm_state.validate_transaction(transaction)
 
