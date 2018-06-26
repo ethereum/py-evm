@@ -276,10 +276,6 @@ class BaseVM(Configurable, ABC):
     def validate_seal(cls, header: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
-    @abstractmethod
-    def validate_uncle(self, block, uncle, uncle_parent):
-        raise NotImplementedError("VM classes must implement this method")
-
     #
     # State
     #
@@ -713,28 +709,6 @@ class VM(BaseVM):
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
-
-    def validate_uncle(self, block, uncle, uncle_parent):
-        """
-        Validate the given uncle in the context of the given block.
-        """
-        if uncle.block_number >= block.number:
-            raise ValidationError(
-                "Uncle number ({0}) is higher than block number ({1})".format(
-                    uncle.block_number, block.number))
-
-        if uncle.block_number != uncle_parent.block_number + 1:
-            raise ValidationError(
-                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
-                    uncle.block_number, uncle_parent.block_number))
-        if uncle.timestamp < uncle_parent.timestamp:
-            raise ValidationError(
-                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
-                    uncle.timestamp, uncle_parent.timestamp))
-        if uncle.gas_used > uncle.gas_limit:
-            raise ValidationError(
-                "Uncle's gas usage ({0}) is above the limit ({1})".format(
-                    uncle.gas_used, uncle.gas_limit))
 
     #
     # State
