@@ -707,8 +707,8 @@ class Chain(BaseChain):
                     "Uncle ancestor not found: {0}".format(uncle.parent_hash)
                 )
 
-            uncle_vm = self.get_vm(uncle)
-            uncle_vm.validate_uncle(block, uncle, uncle_parent)
+            uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
+            uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
 
 @to_set

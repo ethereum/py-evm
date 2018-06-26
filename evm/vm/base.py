@@ -276,8 +276,10 @@ class BaseVM(Configurable, ABC):
     def validate_seal(cls, header: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
+    @classmethod
     @abstractmethod
-    def validate_uncle(self, block, uncle, uncle_parent):
+    def validate_uncle(
+            cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -714,7 +716,8 @@ class VM(BaseVM):
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
 
-    def validate_uncle(self, block, uncle, uncle_parent):
+    @classmethod
+    def validate_uncle(cls, block, uncle, uncle_parent):
         """
         Validate the given uncle in the context of the given block.
         """
