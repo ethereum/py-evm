@@ -33,9 +33,7 @@ class TxsRecorder():
         self.recorded_tx.extend(txs)
         self.send_count = self.send_count + 1
 
-
-@pytest.mark.asyncio
-async def test_tx_propagation(monkeypatch, request, event_loop):
+async def bootstrap_test_setup(monkeypatch, request, event_loop):
     peer1, peer2 = await get_directly_linked_peers(
         request,
         event_loop,
@@ -55,6 +53,16 @@ async def test_tx_propagation(monkeypatch, request, event_loop):
     def finalizer():
         event_loop.run_until_complete(pool.cancel())
     request.addfinalizer(finalizer)
+
+    return peer1, peer1_txs_recorder, peer2, peer2_txs_recorder, pool
+
+@pytest.mark.asyncio
+async def test_tx_propagation(monkeypatch, request, event_loop):
+    peer1, peer1_txs_recorder, peer2, peer2_txs_recorder, pool = await bootstrap_test_setup(
+        monkeypatch,
+        request,
+        event_loop
+    )
 
     txs_broadcasted_by_peer1 = [create_random_tx()]
 
