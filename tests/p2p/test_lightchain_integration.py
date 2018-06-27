@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 import rlp
@@ -9,7 +10,12 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
-from evm.chains.ropsten import ROPSTEN_NETWORK_ID, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
+from evm.chains.ropsten import (
+    RopstenChain,
+    ROPSTEN_NETWORK_ID,
+    ROPSTEN_GENESIS_HEADER,
+    ROPSTEN_VM_CONFIGURATION,
+)
 from evm.db.backends.memory import MemoryDB
 
 from p2p import ecies
@@ -19,16 +25,20 @@ from p2p.lightchain import LightPeerChain
 from p2p.peer import LESPeer, PeerPool
 
 from integration_test_helpers import (
-    FakeAsyncChainDB, FakeAsyncRopstenChain, FakeAsyncHeaderDB, connect_to_peers_loop)
+    FakeAsyncChainDB,
+    FakeAsyncRopstenChain,
+    FakeAsyncHeaderDB,
+    connect_to_peers_loop,
+)
 
 
 @pytest.mark.asyncio
-async def test_lightchain_integration(request, event_loop):
+async def test_lightchain_integration(request, event_loop, caplog):
     """Test LightChainSyncer/LightPeerChain against a running geth instance.
 
     In order to run this you need to pass the following to pytest:
 
-        pytest --integration --enode=...
+        pytest --integration --capture=no --enode=...
 
     If you don't have any geth testnet data ready, it is very quick to generate some with:
 
@@ -43,14 +53,21 @@ async def test_lightchain_integration(request, event_loop):
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
+    # will almost certainly want verbose logging in a failure
+    caplog.set_level(logging.DEBUG)
+
     remote = Node.from_uri(pytest.config.getoption("--enode"))
     base_db = MemoryDB()
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)
     peer_pool = PeerPool(
-        LESPeer, FakeAsyncHeaderDB(base_db), ROPSTEN_NETWORK_ID, ecies.generate_privkey(),
-        ROPSTEN_VM_CONFIGURATION)
+        LESPeer,
+        FakeAsyncHeaderDB(base_db),
+        ROPSTEN_NETWORK_ID,
+        ecies.generate_privkey(),
+        ROPSTEN_VM_CONFIGURATION,
+    )
     chain = FakeAsyncRopstenChain(base_db)
     syncer = LightChainSyncer(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
