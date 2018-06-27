@@ -5,6 +5,9 @@ from typing import (
     Any,
     Dict,
 )
+from trinity.utils.log_messages import (
+    create_missing_ipc_error_message,
+)
 
 from cytoolz import merge
 
@@ -58,6 +61,10 @@ def console(ipc_path: Path,
     """
     if env is None:
         env = {}
+
+    # if ipc_path is not found, raise an exception with a useful message
+    if not ipc_path.exists():
+        raise FileNotFoundError(create_missing_ipc_error_message(ipc_path))
 
     # cast needed until https://github.com/ethereum/web3.py/issues/867 is fixed
     w3 = web3.Web3(web3.IPCProvider(str(ipc_path)))

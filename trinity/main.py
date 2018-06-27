@@ -129,7 +129,7 @@ def main() -> None:
 
     # if console command, run the trinity CLI
     if args.subcommand == 'attach':
-        console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
+        run_console(chain_config, not args.vanilla_shell)
         sys.exit(0)
 
     # start the listener thread to handle logs produced by other processes in
@@ -168,7 +168,7 @@ def main() -> None:
 
     try:
         if args.subcommand == 'console':
-            console(chain_config.jsonrpc_ipc_path, use_ipython=not args.vanilla_shell)
+            run_console(chain_config, not args.vanilla_shell)
         else:
             networking_process.join()
     except KeyboardInterrupt:
@@ -190,6 +190,15 @@ def main() -> None:
         import time; time.sleep(0.2)  # noqa: E702
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+
+
+def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
+    logger = logging.getLogger("trinity")
+    try:
+        console(chain_config.jsonrpc_ipc_path, use_ipython=vanilla_shell_args)
+    except FileNotFoundError as err:
+        logger.error(str(err))
+        sys.exit(1)
 
 
 @setup_cprofiler('run_database_process')
