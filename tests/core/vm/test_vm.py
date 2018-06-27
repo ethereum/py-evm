@@ -3,6 +3,9 @@ import pytest
 from eth_utils import decode_hex
 
 from evm import constants
+from evm.chains.base import (
+    MiningChain,
+)
 
 from tests.core.helpers import (
     new_transaction,
@@ -37,6 +40,10 @@ def test_apply_transaction(
 
 
 def test_mine_block_issues_block_reward(chain):
+    if not isinstance(chain, MiningChain):
+        pytest.skip("Only test mining on a MiningChain")
+        return
+
     block = chain.mine_block()
     vm = chain.get_vm()
     coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
@@ -48,9 +55,21 @@ def test_import_block(chain, funded_address, funded_address_private_key):
     amount = 100
     from_ = funded_address
     tx = new_transaction(chain.get_vm(), from_, recipient, amount, funded_address_private_key)
-    new_block, _, computation = chain.apply_transaction(tx)
+    if isinstance(chain, MiningChain):
+        # Can use the mining chain functionality to build transactions in-flight
+        pending_header = chain.header
+        new_block, _, computation = chain.apply_transaction(tx)
+    else:
+        # Have to manually build the block for the import_block test
+        new_block, _, computations = chain.build_block_with_transactions([tx])
+        computation = computations[0]
+
+        # Generate the pending header to import the new block on
+        pending_header = chain.create_header_from_parent(chain.get_canonical_head())
 
     assert not computation.is_error
-    parent_vm = chain.get_chain_at_block_parent(new_block).get_vm()
-    block = parent_vm.import_block(new_block)
-    assert block.transactions == (tx,)
+
+    # import the built block
+    validation_vm = chain.get_vm(pending_header)
+    block = validation_vm.import_block(new_block)
+    assert block.transactions == (tx, )

@@ -21,13 +21,15 @@ from eth_typing import (
 
 from evm import (
     constants,
-    Chain
+)
+from evm.chains.base import (
+    MiningChain,
 )
 from evm.vm.base import (
     BaseVM
 )
 from evm.chains.mainnet import (
-    MainnetChain
+    BaseMainnetChain,
 )
 from evm.db.backends.memory import (
     MemoryDB
@@ -39,7 +41,7 @@ AddressSetup = NamedTuple('AddressSetup', [
     ('code', bytes)
 ])
 
-ALL_VM = [vm for _, vm in MainnetChain.vm_configuration]
+ALL_VM = [vm for _, vm in BaseMainnetChain.vm_configuration]
 
 FUNDED_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
@@ -80,11 +82,11 @@ def chain_without_pow(
         base_db: MemoryDB,
         vm: Type[BaseVM],
         genesis_params: Any,
-        genesis_state: Any) -> Chain:
+        genesis_state: Any) -> MiningChain:
 
     vm_without_pow = vm.configure(validate_seal=lambda block: None)
 
-    klass = Chain.configure(
+    klass = MiningChain.configure(
         __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, vm_without_pow),
@@ -93,7 +95,7 @@ def chain_without_pow(
     return chain
 
 
-def get_chain(vm: Type[BaseVM]) -> Chain:
+def get_chain(vm: Type[BaseVM]) -> MiningChain:
     return chain_without_pow(
         MemoryDB(),
         vm,
@@ -113,7 +115,7 @@ def get_chain(vm: Type[BaseVM]) -> Chain:
     )
 
 
-def get_all_chains() -> Iterable[Chain]:
+def get_all_chains() -> Iterable[MiningChain]:
     for vm in ALL_VM:
         chain = get_chain(vm)
         yield chain

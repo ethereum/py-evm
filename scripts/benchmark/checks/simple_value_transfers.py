@@ -9,7 +9,7 @@ from eth_typing import (
     Address,
 )
 from evm.chains.base import (
-    Chain,
+    MiningChain,
 )
 from evm.rlp.blocks import (
     BaseBlock,
@@ -94,7 +94,7 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
 
         return total_stat
 
-    def mine_blocks(self, chain: Chain, num_blocks: int) -> Tuple[int, int]:
+    def mine_blocks(self, chain: MiningChain, num_blocks: int) -> Tuple[int, int]:
         total_gas_used = 0
         total_num_tx = 0
 
@@ -106,13 +106,13 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
 
         return total_gas_used, total_num_tx
 
-    def mine_block(self, chain: Chain, block_number: int, num_tx: int) -> BaseBlock:
+    def mine_block(self, chain: MiningChain, block_number: int, num_tx: int) -> BaseBlock:
         for i in range(1, num_tx + 1):
             self.apply_transaction(chain)
 
         return chain.mine_block()
 
-    def apply_transaction(self, chain: Chain) -> None:
+    def apply_transaction(self, chain: MiningChain) -> None:
 
         if self.config.to_address is None:
             to_address = generate_random_address()

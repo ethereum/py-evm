@@ -1,9 +1,10 @@
 Understanding the mining process
 ================================
 
-In the :doc:`Building Chains Guide <building_chains>` we already learned how to use the
-:class:`~evm.chains.base.Chain` class to create a single blockchain as a combination of different
-virtual machines for different spans of blocks.
+In the :doc:`Building Chains Guide <building_chains>` we already learned how to
+use the :class:`~evm.chains.base.MiningChain` class to create a single
+blockchain as a combination of different virtual machines for different spans
+of blocks.
 
 In this guide we want to build up on that knowledge and look into the actual mining process.
 
@@ -20,11 +21,12 @@ The term *mining* can refer to different things depending on our point of view. 
 when we read about *mining*, we talk about the process where several parties are *competing* to be
 the first to create a new valid block and pass it on to the network.
 
-In this guide, when we talk about the :func:`~evm.chains.base.Chain.mine_block` API, we are only
-referring to the part that creates, validates and sets a block as the new canonical head of the
-chain but not necessarily as part of the mentioned competition to be the first. In fact, the
-:func:`~evm.chains.base.Chain.mine_block` API is internally also called when we import existing
-blocks that others created.
+In this guide, when we talk about the
+:func:`~evm.chains.base.MiningChain.mine_block` API, we are only referring to
+the part that creates, validates and sets a block as the new canonical head of
+the chain but not necessarily as part of the mentioned competition to be the
+first. In fact, the :func:`~evm.chains.base.MiningChain.mine_block` API is
+internally also called when we import existing blocks that others created.
 
 Mining an empty block
 ---------------------
@@ -47,7 +49,7 @@ As a refresher, he's where we left of as part of the `Building Chains Guide <bui
   chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
 
 Since we decided to not add any transactions to our block let's just call
-:func:`~~evm.chains.base.Chain.mine_block` and see what happens.
+:func:`~~evm.chains.base.MiningChain.mine_block` and see what happens.
 
 ::
 
@@ -103,7 +105,7 @@ can be added to the chain.
 
 In order to produce a valid block, we have to set the correct ``mix_hash`` and ``nonce`` in the
 header. We can pass these as key-value pairs when we call
-:func:`~~evm.chains.base.Chain.mine_block` as seen below.
+:func:`~~evm.chains.base.MiningChain.mine_block` as seen below.
 
 
 ::
@@ -117,9 +119,10 @@ Retrieving a valid nonce and mix hash
 -------------------------------------
 
 
-Now that we know we can call :func:`~~evm.chains.base.Chain.mine_block` with the correct parameters
-to successfully add a block to our chain, let's briefly go over an example that demonstrates how we
-can retrieve a matching ``nonce`` and ``mix_hash``.
+Now that we know we can call :func:`~~evm.chains.base.MiningChain.mine_block`
+with the correct parameters to successfully add a block to our chain, let's
+briefly go over an example that demonstrates how we can retrieve a matching
+``nonce`` and ``mix_hash``.
 
 .. note::
 
@@ -156,12 +159,12 @@ Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the
 
 ::
 
-  from evm import Chain
+  from evm import MiningChain
   from evm.vm.forks.byzantium import ByzantiumVM
   from evm.db.backends.memory import MemoryDB
 
 
-  klass = Chain.configure(
+  klass = MiningChain.configure(
       __name__='TestChain',
       vm_configuration=(
           (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
@@ -203,8 +206,8 @@ information that we need to calculate the ``nonce`` and the ``mix_hash``.
 2. We then call :func:`~evm.consensus.pow.mine_pow_nonce` to retrieve the proper ``nonce`` and
 ``mix_hash`` that we need to mine the block and satisfy the validation.
 
-3. Finally we call :func:`~evm.chain.base.Chain.mine_block` and pass along the ``nonce`` and the
-``mix_hash``
+3. Finally we call :func:`~evm.chain.base.MiningChain.mine_block` and pass
+   along the ``nonce`` and the ``mix_hash``
 
 .. note::
 
@@ -295,7 +298,7 @@ private key which is as simple as calling
 
     signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
 
-Finally, we can call :func:`~evm.chains.base.Chain.apply_transaction` and pass along the
+Finally, we can call :func:`~evm.chains.base.MiningChain.apply_transaction` and pass along the
 ``signed_tx``.
 
 ::
@@ -312,7 +315,7 @@ zero value transfer transaction.
     from eth_typing import Address
 
     from evm.consensus.pow import mine_pow_nonce
-    from evm import constants, Chain
+    from evm import constants, MiningChain
     from evm.vm.forks.byzantium import ByzantiumVM
     from evm.db.backends.memory import MemoryDB
 
@@ -339,7 +342,7 @@ zero value transfer transaction.
 
     RECEIVER = Address(b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02')
 
-    klass = Chain.configure(
+    klass = MiningChain.configure(
         __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),

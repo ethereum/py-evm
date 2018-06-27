@@ -79,7 +79,8 @@ def test_estimate_gas(
 
     if on_pending:
         # estimate on *pending* block
-        assert chain.estimate_gas(tx, chain.header) == expected
+        pending_header = chain.create_header_from_parent(chain.get_canonical_head())
+        assert chain.estimate_gas(tx, pending_header) == expected
     else:
         # estimates on top of *latest* block
         assert chain.estimate_gas(tx) == expected

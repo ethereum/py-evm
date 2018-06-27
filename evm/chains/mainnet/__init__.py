@@ -14,7 +14,9 @@ from .constants import (
 )
 from evm import constants
 
-from evm.chains.base import Chain
+from evm.chains.base import (
+    Chain,
+)
 from evm.exceptions import ValidationError
 from evm.rlp.headers import BlockHeader
 from evm.vm.base import BaseVM  # noqa: F401
