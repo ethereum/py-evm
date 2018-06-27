@@ -6,10 +6,8 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     List,
     Optional,
-    Tuple,
     TypeVar
     cast,
 )
@@ -132,7 +130,7 @@ class BaseService(ABC, CancellableMixin):
         raise NotImplementedError()
 
 
-def service_timeout(timeout):
+def service_timeout(timeout: int) -> Callable[..., Any]:
     """
     Decorator to time out a method call.
 
@@ -140,9 +138,9 @@ def service_timeout(timeout):
 
     :raise asyncio.futures.TimeoutError: if the call is not complete before timeout seconds
     """
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        async def wrapped(service: BaseService, *args: Tuple, **kwargs: Dict) -> Any:
+        async def wrapped(service: BaseService, *args: Any, **kwargs: Any) -> Any:
             return await service.wait(
                 func(service, *args, **kwargs),
                 timeout=timeout,

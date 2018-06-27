@@ -149,7 +149,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: Hash32, address: Address) -> Account:
-        return await self._reattempt_on_bad_response(
+        return await self._retry_on_bad_response(
             partial(self._get_account_from_peer, block_hash, address)
         )
 
@@ -192,7 +192,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
         code_hash = account.code_hash
 
-        return await self._reattempt_on_bad_response(
+        return await self._retry_on_bad_response(
             partial(self._get_contract_code_from_peer, block_hash, address, code_hash)
         )
 
@@ -260,7 +260,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         reply = await self._wait_for_reply(request_id)
         return reply['proof']
 
-    async def _reattempt_on_bad_response(self, make_request_to_peer):
+    async def _retry_on_bad_response(self, make_request_to_peer: Callable[[LESPeer], Any]) -> Any:
         for _ in range(MAX_REQUEST_ATTEMPTS):
             peer = cast(LESPeer, self.peer_pool.highest_td_peer)
             try:
