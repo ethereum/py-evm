@@ -37,6 +37,7 @@ from p2p import protocol
 from p2p import eth
 from p2p import les
 from p2p.cancel_token import CancelToken
+from p2p.constants import MAX_REORG_DEPTH
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody
@@ -164,29 +165,36 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             return
 
         self.logger.info("Starting sync with %s", peer)
-        # FIXME: Fetch a batch of headers, in reverse order, starting from our current head, and
-        # find the common ancestor between our chain and the peer's.
-        start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - peer.max_headers_fetch)
+        # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
+        # headers before our current head's number, in case there were chain reorgs since the last
+        # time _sync() was called. All of the extra headers that are already present in our DB
+        # will be discarded by _fetch_missing_headers() so we don't unnecessarily process them
+        # again.
+        start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - MAX_REORG_DEPTH)
         while True:
             if not peer.is_running:
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
-            self.logger.debug("Fetching chain segment starting at #%d", start_at)
-            peer.request_block_headers(start_at, peer.max_headers_fetch, reverse=False)
             try:
-                # Pass the peer's token to self.wait() because we want to abort if either we
-                # or the peer terminates.
-                headers = await self.wait(
-                    self._new_headers.get(),
-                    token=peer.cancel_token,
-                    timeout=self._reply_timeout)
+                headers = await self._fetch_missing_headers(peer, start_at)
             except TimeoutError:
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.cancel()
                 break
 
-            self.logger.debug("Got headers segment starting at #%d", start_at)
+            if not headers:
+                self.logger.info("Got no new headers from %s, aborting sync", peer)
+                break
+
+            first = headers[0]
+            try:
+                await self.wait(self.chaindb.coro_get_block_header_by_hash(first.parent_hash))
+            except HeaderNotFound:
+                self.logger.warn("Unable to find common ancestor betwen our chain and %s", peer)
+                break
+
+            self.logger.debug("Got new header chain starting at #%d", first.block_number)
             start = time.time()
             try:
                 await self.chain.coro_validate_chain(headers)
@@ -212,6 +220,27 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
                 if self._exit_on_sync_complete:
                     self._sync_complete.set()
                 break
+
+    async def _fetch_missing_headers(
+            self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
+        """Fetch a batch of headers starting at start_at and return the ones we're missing."""
+        self.logger.debug("Fetching chain segment starting at #%d", start_at)
+        peer.request_block_headers(start_at, peer.max_headers_fetch, reverse=False)
+        # Pass the peer's token to self.wait() because we want to abort if either we
+        # or the peer terminates.
+        headers = list(await self.wait(
+            self._new_headers.get(),
+            token=peer.cancel_token,
+            timeout=self._reply_timeout))
+        for header in headers.copy():
+            try:
+                await self.wait(self.chaindb.coro_get_block_header_by_hash(header.hash))
+            except HeaderNotFound:
+                break
+            else:
+                self.logger.debug("Discarding %s as we already have it", header)
+                headers.remove(header)
+        return tuple(headers)
 
     def _handle_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         if not headers:
@@ -605,25 +634,11 @@ class RegularChainSyncer(FastChainSyncer):
         peer.sub_proto.send_node_data(nodes)
 
     async def _process_headers(
-            self, peer: HeaderRequestingPeer, headers_tuple: Tuple[BlockHeader, ...]) -> int:
-        # This is needed to ensure after a state sync we only start importing blocks on top of our
-        # current head, as that's the only one whose state root is present in our DB.
-        new_headers = list(headers_tuple)
-        for header in headers_tuple:
-            try:
-                await self.wait(self.chaindb.coro_get_block_header_by_hash(header.hash))
-            except HeaderNotFound:
-                break
-            else:
-                new_headers.remove(header)
-        else:
-            head = await self.wait(self.chaindb.coro_get_canonical_head())
-            return head.block_number
-
-        target_td = await self._calculate_td(tuple(new_headers))
+            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+        target_td = await self._calculate_td(headers)
         downloaded_parts = await self._download_block_parts(
             target_td,
-            [header for header in new_headers if not _is_body_empty(header)],
+            [header for header in headers if not _is_body_empty(header)],
             self.request_bodies,
             self._downloaded_bodies,
             _body_key,
@@ -631,7 +646,7 @@ class RegularChainSyncer(FastChainSyncer):
         self.logger.info("Got block bodies for chain segment")
 
         parts_by_key = dict((part.unique_key, part.part) for part in downloaded_parts)
-        for header in new_headers:
+        for header in headers:
             vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
             block_class = vm_class.get_block_class()
 
@@ -647,9 +662,6 @@ class RegularChainSyncer(FastChainSyncer):
 
             block = block_class(header, transactions, uncles)
             t = time.time()
-            # FIXME: Instead of using self.wait() here we should pass our cancel_token to
-            # coro_import_block() so that it can cancel the actual import-block task. See
-            # https://github.com/ethereum/py-evm/issues/665 for details.
             await self.wait(self.chain.coro_import_block(block, perform_validation=True))
             self.logger.info("Imported block %d (%d txs) in %f seconds",
                              block.number, len(transactions), time.time() - t)
@@ -712,7 +724,6 @@ def _test() -> None:
     log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
-    logging.getLogger('p2p.chain').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
 
@@ -742,6 +753,7 @@ def _test() -> None:
     else:
         syncer_class = RegularChainSyncer  # type: ignore
     syncer = syncer_class(chain, chaindb, peer_pool)
+    syncer.logger.setLevel(log_level)
     syncer.min_peers_to_sync = 1
 
     sigint_received = asyncio.Event()
