@@ -1,4 +1,7 @@
 import asyncio
+from functools import (
+    partial,
+)
 from typing import (
     Any,
     Callable,
@@ -24,6 +27,7 @@ from eth_utils import (
 )
 
 from trie import HexaryTrie
+from trie.exceptions import BadTrieProof
 
 from evm.exceptions import (
     BlockNotFound,
@@ -145,11 +149,26 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     async def get_account(self, block_hash: Hash32, address: Address) -> Account:
-        peer = cast(LESPeer, self.peer_pool.highest_td_peer)
+        return await self._reattempt_on_bad_response(
+            partial(self._get_account_from_peer, block_hash, address)
+        )
+
+    async def _get_account_from_peer(
+            self,
+            block_hash: Hash32,
+            address: Address,
+            peer: LESPeer) -> Account:
         key = keccak(address)
         proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
         header = await self._get_block_header_by_hash(peer, block_hash)
-        rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
+        try:
+            rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
+        except BadTrieProof as exc:
+            raise BadLESResponse("Peer %s returned an invalid proof for account %s at block %s" % (
+                peer,
+                encode_hex(address),
+                encode_hex(block_hash),
+            )) from exc
         return rlp.decode(rlp_account, sedes=Account)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
@@ -173,23 +192,16 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
 
         code_hash = account.code_hash
 
-        for _ in range(MAX_REQUEST_ATTEMPTS):
-            peer = cast(LESPeer, self.peer_pool.highest_td_peer)
-            try:
-                return await self._get_contract_code_from_peer(block_hash, address, peer, code_hash)
-            except BadLESResponse as exc:
-                self.logger.warn("Disconnecting from peer, because: %s", exc)
-                await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
-                # reattempt after removing this peer from our pool
-
-        raise TimeoutError("Could not get contract code within %d attempts" % MAX_REQUEST_ATTEMPTS)
+        return await self._reattempt_on_bad_response(
+            partial(self._get_contract_code_from_peer, block_hash, address, code_hash)
+        )
 
     async def _get_contract_code_from_peer(
             self,
             block_hash: Hash32,
             address: Address,
-            peer: LESPeer,
-            code_hash: Hash32) -> bytes:
+            code_hash: Hash32,
+            peer: LESPeer) -> bytes:
         """
         A single attempt to get the contract code from the given peer
 
@@ -247,3 +259,15 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await self._wait_for_reply(request_id)
         return reply['proof']
+
+    async def _reattempt_on_bad_response(self, make_request_to_peer):
+        for _ in range(MAX_REQUEST_ATTEMPTS):
+            peer = cast(LESPeer, self.peer_pool.highest_td_peer)
+            try:
+                return await make_request_to_peer(peer)
+            except BadLESResponse as exc:
+                self.logger.warn("Disconnecting from peer, because: %s", exc)
+                await self.disconnect_peer(peer, DisconnectReason.subprotocol_error)
+                # reattempt after removing this peer from our pool
+
+        raise TimeoutError("Could not complete peer request in %d attempts" % MAX_REQUEST_ATTEMPTS)
