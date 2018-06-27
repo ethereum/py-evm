@@ -186,11 +186,6 @@ class BasePeer(BaseService):
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
 
-    @property
-    @abstractmethod
-    def max_headers_fetch(self) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
-
     @abstractmethod
     async def send_sub_proto_handshake(self) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
@@ -233,11 +228,6 @@ class BasePeer(BaseService):
 
         Must raise HeaderNotFound if the peer doesn't have them.
         """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def request_block_headers(self, block_number_or_hash: Union[int, bytes],
-                              max_headers: int, reverse: bool = True) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:

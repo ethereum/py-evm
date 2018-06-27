@@ -196,5 +196,6 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
 
 class ChainProxy(BaseProxy):
     coro_import_block = async_method('import_block')
+    coro_validate_chain = async_method('validate_chain')
     get_vm_configuration = sync_method('get_vm_configuration')
     get_vm_class_for_block_number = sync_method('get_vm_class_for_block_number')

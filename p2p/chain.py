@@ -23,9 +23,9 @@ from cytoolz import (
 
 from eth_typing import BlockNumber, Hash32
 
-from evm.constants import BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_PARENT_HASH
+from evm.constants import (
+    BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
 from evm.chains import AsyncChain
-from evm.chains.base import BaseChain
 from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import HeaderNotFound, ValidationError
@@ -46,6 +46,9 @@ from p2p.utils import (
 )
 
 
+HeaderRequestingPeer = Union[LESPeer, ETHPeer]
+
+
 class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
     """
     Sync with the Ethereum network by fetching/storing block headers.
@@ -62,23 +65,22 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
     _reply_timeout = 60
 
     def __init__(self,
+                 chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  peer_pool: PeerPool,
-                 chain_class: Type[BaseChain],
                  token: CancelToken = None) -> None:
         super().__init__(token)
-        self.logger = logging.getLogger("p2p.chain." + self.__class__.__name__)
+        self.chain = chain
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self.chain_class = chain_class
         self._syncing = False
         self._sync_complete = asyncio.Event()
-        self._sync_requests: asyncio.Queue[BasePeer] = asyncio.Queue()
-        self._new_headers: asyncio.Queue[List[BlockHeader]] = asyncio.Queue()
+        self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
+        self._new_headers: asyncio.Queue[Tuple[BlockHeader, ...]] = asyncio.Queue()
         self._executor = get_process_pool_executor()
 
     def register_peer(self, peer: BasePeer) -> None:
-        self._sync_requests.put_nowait(self.peer_pool.highest_td_peer)
+        self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
@@ -90,9 +92,9 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
             # loop can keep processing msgs, and that's why we use ensure_future() instead of
             # awaiting for it to finish here.
-            asyncio.ensure_future(self.handle_msg(peer, cmd, msg))
+            asyncio.ensure_future(self.handle_msg(cast(HeaderRequestingPeer, peer), cmd, msg))
 
-    async def handle_msg(self, peer: BasePeer, cmd: protocol.Command,
+    async def handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
         try:
             await self._handle_msg(peer, cmd, msg)
@@ -125,7 +127,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         # run in the background notice the cancel token has been triggered and return.
         await asyncio.sleep(0)
 
-    async def sync(self, peer: BasePeer) -> None:
+    async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:
             self.logger.debug(
                 "Got a NewBlock or a new peer, but already syncing so doing nothing")
@@ -144,7 +146,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         finally:
             self._syncing = False
 
-    async def _sync(self, peer: BasePeer) -> None:
+    async def _sync(self, peer: HeaderRequestingPeer) -> None:
         """Try to fetch/process blocks until the given peer's head_hash.
 
         Returns when the peer's head_hash is available in our ChainDB, or if any error occurs
@@ -164,7 +166,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         self.logger.info("Starting sync with %s", peer)
         # FIXME: Fetch a batch of headers, in reverse order, starting from our current head, and
         # find the common ancestor between our chain and the peer's.
-        start_at = max(1, head.block_number - peer.max_headers_fetch)
+        start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - peer.max_headers_fetch)
         while True:
             if not peer.is_running:
                 self.logger.info("%s disconnected, aborting sync", peer)
@@ -187,9 +189,9 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug("Got headers segment starting at #%d", start_at)
             start = time.time()
             try:
-                await self._validate_chain(headers)
+                await self.chain.coro_validate_chain(headers)
             except ValidationError as e:
-                self.logger.warn("Received invalid headers from %s: %s", peer, e)
+                self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
                 break
             try:
                 head_number = await self._process_headers(peer, headers)
@@ -211,7 +213,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
                     self._sync_complete.set()
                 break
 
-    def _handle_block_headers(self, headers: List[BlockHeader]) -> None:
+    def _handle_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         if not headers:
             self.logger.warn("Got an empty BlockHeaders msg")
             return
@@ -219,44 +221,32 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             "Got BlockHeaders from %d to %d", headers[0].block_number, headers[-1].block_number)
         self._new_headers.put_nowait(headers)
 
-    async def _validate_chain(self, chain: List[BlockHeader]) -> None:
-        parent = await self.wait(
-            self.chaindb.coro_get_block_header_by_hash(chain[0].parent_hash))
-        for header in chain:
-            if header.parent_hash != parent.hash:
-                raise ValidationError(
-                    "Invalid header chain; %s has parent %s, but expected %s",
-                    header, header.parent_hash, parent.hash)
-            vm_class = self.chain_class.get_vm_class_for_block_number(header.block_number)
-            loop = asyncio.get_event_loop()
-            await self.wait(loop.run_in_executor(
-                self._executor, vm_class.validate_header, header, parent))
-            parent = header
-
     @abstractmethod
-    async def _handle_msg(self, peer: BasePeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    async def _process_headers(self, peer: BasePeer, headers: List[BlockHeader]) -> int:
+    async def _process_headers(
+            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
 
 class LightChainSyncer(BaseHeaderChainSyncer):
     _exit_on_sync_complete = False
 
-    async def _handle_msg(self, peer: BasePeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, les.Announce):
             self._sync_requests.put_nowait(peer)
         elif isinstance(cmd, les.BlockHeaders):
             msg = cast(Dict[str, Any], msg)
-            self._handle_block_headers(list(cast(Tuple[BlockHeader], msg['headers'])))
+            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg['headers'])))
         else:
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
 
-    async def _process_headers(self, peer: BasePeer, headers: List[BlockHeader]) -> int:
+    async def _process_headers(
+            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
         for header in headers:
             await self.wait(self.chaindb.coro_persist_header(header))
 
@@ -275,17 +265,17 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     _exit_on_sync_complete = True
 
     def __init__(self,
+                 chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  peer_pool: PeerPool,
-                 chain_class: Type[BaseChain],
                  token: CancelToken = None) -> None:
-        super().__init__(chaindb, peer_pool, chain_class, token)
+        super().__init__(chain, chaindb, peer_pool, token)
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
         self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
 
-    async def _calculate_td(self, headers: List[BlockHeader]) -> int:
+    async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
 
         Assumes the first header's parent is already present in our DB.
@@ -301,7 +291,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             td += header.difficulty
         return td
 
-    async def _process_headers(self, peer: BasePeer, headers: List[BlockHeader]) -> int:
+    async def _process_headers(
+            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
         target_td = await self._calculate_td(headers)
         await self._download_block_parts(
             target_td,
@@ -430,11 +421,11 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         """
         return self._request_block_parts(target_td, headers, self._send_get_receipts)
 
-    async def _handle_msg(self, peer: BasePeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(ETHPeer, peer)
         if isinstance(cmd, eth.BlockHeaders):
-            self._handle_block_headers(list(cast(Tuple[BlockHeader], msg)))
+            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg)))
         elif isinstance(cmd, eth.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
         elif isinstance(cmd, eth.Receipts):
@@ -564,20 +555,11 @@ class RegularChainSyncer(FastChainSyncer):
     """
     _exit_on_sync_complete = False
 
-    def __init__(self,
-                 chain: AsyncChain,
-                 chaindb: AsyncChainDB,
-                 peer_pool: PeerPool,
-                 chain_class: Type[BaseChain],
-                 token: CancelToken = None) -> None:
-        super().__init__(chaindb, peer_pool, chain_class, token)
-        self.chain = chain
-
-    async def _handle_msg(self, peer: BasePeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(ETHPeer, peer)
         if isinstance(cmd, eth.BlockHeaders):
-            self._handle_block_headers(list(cast(Tuple[BlockHeader], msg)))
+            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg)))
         elif isinstance(cmd, eth.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
         elif isinstance(cmd, eth.NewBlock):
@@ -622,24 +604,26 @@ class RegularChainSyncer(FastChainSyncer):
             nodes.append(node)
         peer.sub_proto.send_node_data(nodes)
 
-    async def _process_headers(self, peer: BasePeer, headers: List[BlockHeader]) -> int:
+    async def _process_headers(
+            self, peer: HeaderRequestingPeer, headers_tuple: Tuple[BlockHeader, ...]) -> int:
         # This is needed to ensure after a state sync we only start importing blocks on top of our
         # current head, as that's the only one whose state root is present in our DB.
-        for header in headers.copy():
+        new_headers = list(headers_tuple)
+        for header in headers_tuple:
             try:
                 await self.wait(self.chaindb.coro_get_block_header_by_hash(header.hash))
             except HeaderNotFound:
                 break
             else:
-                headers.remove(header)
+                new_headers.remove(header)
         else:
             head = await self.wait(self.chaindb.coro_get_canonical_head())
             return head.block_number
 
-        target_td = await self._calculate_td(headers)
+        target_td = await self._calculate_td(tuple(new_headers))
         downloaded_parts = await self._download_block_parts(
             target_td,
-            [header for header in headers if not _is_body_empty(header)],
+            [header for header in new_headers if not _is_body_empty(header)],
             self.request_bodies,
             self._downloaded_bodies,
             _body_key,
@@ -647,7 +631,7 @@ class RegularChainSyncer(FastChainSyncer):
         self.logger.info("Got block bodies for chain segment")
 
         parts_by_key = dict((part.unique_key, part.part) for part in downloaded_parts)
-        for header in headers:
+        for header in new_headers:
             vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
             block_class = vm_class.get_block_class()
 
@@ -728,7 +712,7 @@ def _test() -> None:
     log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
-    logging.getLogger('p2p.chain.ChainSyncer').setLevel(log_level)
+    logging.getLogger('p2p.chain').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
 
@@ -737,7 +721,7 @@ def _test() -> None:
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)
 
-    peer_class: Type[BasePeer] = ETHPeer
+    peer_class: Type[HeaderRequestingPeer] = ETHPeer
     if args.light:
         peer_class = LESPeer
     network_id = RopstenChain.network_id
@@ -750,14 +734,14 @@ def _test() -> None:
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
-    syncer: BaseHeaderChainSyncer = None
+    chain = FakeAsyncRopstenChain(base_db)
     if args.fast:
-        syncer = FastChainSyncer(chaindb, peer_pool, RopstenChain)
+        syncer_class = FastChainSyncer  # type: ignore
     elif args.light:
-        syncer = LightChainSyncer(chaindb, peer_pool, RopstenChain)
+        syncer_class = LightChainSyncer  # type: ignore
     else:
-        chain = FakeAsyncRopstenChain(base_db)
-        syncer = RegularChainSyncer(chain, chaindb, peer_pool, RopstenChain)
+        syncer_class = RegularChainSyncer  # type: ignore
+    syncer = syncer_class(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
 
     sigint_received = asyncio.Event()
@@ -770,7 +754,7 @@ def _test() -> None:
         await syncer.cancel()
         loop.stop()
 
-    loop.set_debug(True)
+    # loop.set_debug(True)
     asyncio.ensure_future(exit_on_sigint())
     asyncio.ensure_future(syncer.run())
     loop.run_forever()
