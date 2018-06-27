@@ -12,3 +12,7 @@ class TangerineWhistleVM(HomesteadVM):
 
     # classes
     _state_class = TangerineWhistleState  # type: Type[BaseState]
+
+    # Don't bother with any DAO logic in Tangerine VM or later
+    # This is how we skip DAO logic on Ropsten, for example
+    support_dao_fork = False
