@@ -108,7 +108,7 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
         """
-        if self.intrinsic_gas > self.gas:
+        if self.gas < self.intrinsic_gas:
             raise ValidationError("Insufficient gas")
         self.check_signature_validity()
 
