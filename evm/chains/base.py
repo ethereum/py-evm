@@ -150,6 +150,10 @@ class BaseChain(Configurable, ABC):
     # VM API
     #
     @abstractmethod
+    def get_vm_class(self, header: BlockHeader=None) -> Type['BaseVM']:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -367,16 +371,18 @@ class Chain(BaseChain):
     #
     # VM API
     #
+    def get_vm_class(self, at_header: BlockHeader=None) -> Type['BaseVM']:
+        """
+        Returns the VM instance for the given block number.
+        """
+        header = self.ensure_header(at_header)
+        return self.get_vm_class_for_block_number(header.block_number)
+
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         """
         Returns the VM instance for the given block number.
         """
-        if at_header is None:
-            head = self.get_canonical_head()
-            header = self.create_header_from_parent(head)
-        else:
-            header = at_header
-
+        header = self.ensure_header(at_header)
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         return vm_class(header=header, chaindb=self.chaindb)
 
@@ -416,6 +422,17 @@ class Chain(BaseChain):
         Raises HeaderNotFound if there is no matching black hash.
         """
         return self.headerdb.get_score(block_hash)
+
+    def ensure_header(self, header: BlockHeader=None) -> BlockHeader:
+        """
+        Return ``header`` if it is not ``None``, otherwise return the header
+        of the canonical head.
+        """
+        if header is None:
+            head = self.get_canonical_head()
+            return self.create_header_from_parent(head)
+        else:
+            return header
 
     #
     # Block API
@@ -479,10 +496,7 @@ class Chain(BaseChain):
         :param parent_header: parent of the new block -- or canonical head if ``None``
         :return: (new block, receipts, computations)
         """
-        if parent_header is None:
-            parent_header = self.get_canonical_head()
-
-        base_header = self.create_header_from_parent(parent_header)
+        base_header = self.ensure_header(parent_header)
         vm = self.get_vm(base_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
@@ -706,10 +720,7 @@ class MiningChain(Chain):
 
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         super().__init__(base_db)
-        if self.header is None:
-            self.header = self.create_header_from_parent(self.get_canonical_head())
-        else:
-            self.header = header
+        self.header = self.ensure_header(header)
 
     def apply_transaction(self, transaction):
         """
@@ -737,7 +748,7 @@ class MiningChain(Chain):
 
     def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
         result_block = super().import_block(block, perform_validation)
-        self.header = self.create_header_from_parent(self.get_canonical_head())
+        self.header = self.ensure_header()
         return result_block
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
@@ -750,7 +761,7 @@ class MiningChain(Chain):
         self.validate_block(mined_block)
 
         self.chaindb.persist_block(mined_block)
-        self.header = self.create_header_from_parent(self.get_canonical_head())
+        self.header = self.ensure_header()
         return mined_block
 
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
