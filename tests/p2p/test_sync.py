@@ -10,13 +10,12 @@ from evm.db.backends.memory import MemoryDB
 from evm.vm.forks.frontier import FrontierVM, _PoWMiningVM
 
 from p2p import eth
-from p2p.peer import ETHPeer
-from p2p.chain import FastChainSyncer, RegularChainSyncer
+from p2p.peer import ETHPeer, LESPeer
+from p2p.chain import FastChainSyncer, LightChainSyncer, RegularChainSyncer
 from p2p.state import StateDownloader
 
 from integration_test_helpers import FakeAsyncChain, FakeAsyncChainDB, FakeAsyncHeaderDB
 from peer_helpers import get_directly_linked_peers, MockPeerPoolWithConnectedPeers
-from test_lightchain import wait_for_head
 
 
 # This causes the chain syncers to request/send small batches of things, which will cause us to
@@ -90,6 +89,33 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     assert head.state_root in client.chaindb.db
 
 
+@pytest.mark.asyncio
+async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
+    client_peer, server_peer = await get_directly_linked_peers(
+        request, event_loop,
+        LESPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
+        LESPeer, FakeAsyncHeaderDB(chaindb_20.db))
+    client = LightChainSyncer(
+        FrontierTestChain(chaindb_fresh.db),
+        chaindb_fresh,
+        MockPeerPoolWithConnectedPeers([client_peer]))
+    server = LightChainSyncer(
+        FrontierTestChain(chaindb_20.db),
+        chaindb_20,
+        MockPeerPoolWithConnectedPeers([server_peer]))
+    asyncio.ensure_future(server.run())
+
+    def finalizer():
+        event_loop.run_until_complete(asyncio.gather(client.cancel(), server.cancel()))
+        # Yield control so that client/server.run() returns, otherwise asyncio will complain.
+        event_loop.run_until_complete(asyncio.sleep(0.1))
+    request.addfinalizer(finalizer)
+
+    asyncio.ensure_future(client.run())
+
+    await wait_for_head(client.chaindb, server.chaindb.get_canonical_head())
+
+
 @pytest.fixture
 def chaindb_20():
     chain = PoWMiningChain.from_genesis(MemoryDB(), GENESIS_PARAMS, GENESIS_STATE)
@@ -151,3 +177,14 @@ class FrontierTestChain(FakeAsyncChain):
 
 class PoWMiningChain(FrontierTestChain):
     vm_configuration = ((0, _PoWMiningVM),)
+
+
+async def wait_for_head(headerdb, header):
+    # A full header sync may involve several round trips, so we must be willing to wait a little
+    # bit for them.
+    HEADER_SYNC_TIMEOUT = 3
+
+    async def wait_loop():
+        while headerdb.get_canonical_head() != header:
+            await asyncio.sleep(0.1)
+    await asyncio.wait_for(wait_loop(), HEADER_SYNC_TIMEOUT)

@@ -250,6 +250,56 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             "Got BlockHeaders from %d to %d", headers[0].block_number, headers[-1].block_number)
         self._new_headers.put_nowait(headers)
 
+    async def _get_block_numbers_for_request(
+            self, block_number_or_hash: Union[int, bytes], max_headers: int, skip: int,
+            reverse: bool) -> List[BlockNumber]:
+        """
+        Generates the block numbers requested, subject to local availability.
+        """
+        block_number_or_hash = block_number_or_hash
+        if isinstance(block_number_or_hash, bytes):
+            header = await self.wait(
+                self.chaindb.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
+            )
+            block_number = header.block_number
+        elif isinstance(block_number_or_hash, int):
+            block_number = block_number_or_hash
+        else:
+            raise TypeError(
+                "Unexpected type for 'block_number_or_hash': %s",
+                type(block_number_or_hash),
+            )
+
+        limit = max(max_headers, eth.MAX_HEADERS_FETCH)
+        step = skip + 1
+        if reverse:
+            low = max(0, block_number - limit)
+            high = block_number + 1
+            block_numbers = reversed(range(low, high, step))
+        else:
+            low = block_number
+            high = block_number + limit
+            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
+        return list(block_numbers)
+
+    async def _generate_available_headers(
+            self,
+            block_numbers: List[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
+        """
+        Generates the headers requested, halting on the first header that is not locally available.
+        """
+        for block_num in block_numbers:
+            try:
+                yield await self.wait(
+                    self.chaindb.coro_get_canonical_block_header_by_number(block_num)
+                )
+            except HeaderNotFound:
+                self.logger.debug(
+                    "Peer requested header number %s that is unavailable, stopping search.",
+                    block_num,
+                )
+                break
+
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -271,8 +321,29 @@ class LightChainSyncer(BaseHeaderChainSyncer):
         elif isinstance(cmd, les.BlockHeaders):
             msg = cast(Dict[str, Any], msg)
             self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg['headers'])))
+        elif isinstance(cmd, les.GetBlockHeaders):
+            msg = cast(Dict[str, Any], msg)
+            await self._handle_get_block_headers(cast(LESPeer, peer), msg)
         else:
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
+
+    async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
+        self.logger.debug("Peer %s made header request: %s", peer, msg)
+        query = msg['query']
+        try:
+            block_numbers = await self._get_block_numbers_for_request(
+                query.block_number_or_hash, query.max_headers,
+                query.skip, query.reverse)
+        except HeaderNotFound:
+            self.logger.debug(
+                "Peer %r requested starting header %r that is unavailable, returning nothing",
+                peer,
+                query.block_number_or_hash,
+            )
+            block_numbers = []
+
+        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
@@ -513,7 +584,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         self.logger.debug("Peer %s made header request: %s", peer, header_request)
 
         try:
-            block_numbers = await self._get_block_numbers_for_request(header_request)
+            block_numbers = await self._get_block_numbers_for_request(
+                header_request['block_number_or_hash'], header_request['max_headers'],
+                header_request['skip'], header_request['reverse'])
         except HeaderNotFound:
             self.logger.debug(
                 "Peer %r requested starting header %r that is unavailable, returning nothing",
@@ -524,56 +597,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         headers = [header async for header in self._generate_available_headers(block_numbers)]
         peer.sub_proto.send_block_headers(headers)
-
-    async def _get_block_numbers_for_request(
-            self,
-            header_request: Dict[str, Any]) -> List[BlockNumber]:
-        """
-        Generates the block numbers requested, subject to local availability.
-        """
-        block_number_or_hash = header_request['block_number_or_hash']
-        if isinstance(block_number_or_hash, bytes):
-            header = await self.wait(
-                self.chaindb.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
-            )
-            block_number = header.block_number
-        elif isinstance(block_number_or_hash, int):
-            block_number = block_number_or_hash
-        else:
-            raise TypeError(
-                "Unexpected type for 'block_number_or_hash': %s",
-                type(block_number_or_hash),
-            )
-
-        limit = max(header_request['max_headers'], eth.MAX_HEADERS_FETCH)
-        step = header_request['skip'] + 1
-        if header_request['reverse']:
-            low = max(0, block_number - limit)
-            high = block_number + 1
-            block_numbers = reversed(range(low, high, step))
-        else:
-            low = block_number
-            high = block_number + limit
-            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
-        return list(block_numbers)
-
-    async def _generate_available_headers(
-            self,
-            block_numbers: List[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
-        """
-        Generates the headers requested, halting on the first header that is not locally available.
-        """
-        for block_num in block_numbers:
-            try:
-                yield await self.wait(
-                    self.chaindb.coro_get_canonical_block_header_by_number(block_num)
-                )
-            except HeaderNotFound:
-                self.logger.debug(
-                    "Peer requested header number %s that is unavailable, stopping search.",
-                    block_num,
-                )
-                break
 
 
 class RegularChainSyncer(FastChainSyncer):
