@@ -264,15 +264,11 @@ class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
                  privkey: datatypes.PrivateKey,
                  address: kademlia.Address,
                  bootstrap_nodes: Tuple[kademlia.Node, ...],
-                 preferred_nodes: Sequence[kademlia.Node] = None) -> None:
+                 preferred_nodes: Sequence[kademlia.Node]) -> None:
         super().__init__(privkey, address, bootstrap_nodes)
 
-        if preferred_nodes is not None:
-            self.preferred_nodes = preferred_nodes
-        else:
-            self.preferred_nodes = tuple()
+        self.preferred_nodes = preferred_nodes
         self.logger.info('Preferred peers: %s', self.preferred_nodes)
-
         self._preferred_node_tracker = collections.defaultdict(lambda: 0)
 
     @to_tuple

@@ -151,6 +151,6 @@ def construct_chain_config_params(
         yield 'port', args.port
 
     if args.preferred_nodes is None:
-        yield 'preferred_nodes', args.preferred_nodes
+        yield 'preferred_nodes', tuple()
     else:
         yield 'preferred_nodes', tuple(args.preferred_nodes)

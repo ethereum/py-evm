@@ -21,6 +21,7 @@ from p2p.constants import (
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
 )
+from p2p.peer import DEFAULT_PREFERRED_NODES
 
 from trinity.constants import (
     SYNC_FULL,
@@ -70,7 +71,11 @@ class ChainConfig:
         self.max_peers = max_peers
         self.sync_mode = sync_mode
         self.port = port
-        self.preferred_nodes = preferred_nodes
+
+        if not preferred_nodes and network_id in DEFAULT_PREFERRED_NODES:
+            self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
+        else:
+            self.preferred_nodes = preferred_nodes
 
         if bootstrap_nodes is None:
             if self.network_id == MAINNET_NETWORK_ID:
