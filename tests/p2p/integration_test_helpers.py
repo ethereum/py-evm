@@ -32,6 +32,7 @@ def async_passthrough(base_name):
 
 
 class FakeAsyncChainDB(AsyncChainDB):
+    coro_get = async_passthrough('get')
     coro_get_score = async_passthrough('get_score')
     coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
     coro_get_canonical_head = async_passthrough('get_canonical_head')

@@ -70,8 +70,7 @@ class BaseAccountDB(ABC):
             "Must be implemented by subclasses"
         )
 
-    # We need to ignore this until https://github.com/python/mypy/issues/4165 is resolved
-    @property  # tyoe: ignore
+    @property
     @abstractmethod
     def state_root(self):
         raise NotImplementedError("Must be implemented by subclasses")
