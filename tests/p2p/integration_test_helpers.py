@@ -57,15 +57,18 @@ async def coro_import_block(chain, block, perform_validation=True):
 class FakeAsyncRopstenChain(RopstenChain):
     chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
+    coro_validate_chain = async_passthrough('validate_chain')
 
 
 class FakeAsyncMainnetChain(MainnetChain):
     chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
+    coro_validate_chain = async_passthrough('validate_chain')
 
 
 class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
+    coro_validate_chain = async_passthrough('validate_chain')
 
 
 class FakeAsyncHeaderDB(AsyncHeaderDB):

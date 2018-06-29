@@ -262,6 +262,10 @@ class BaseChain(Configurable, ABC):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
+    def validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
+        raise NotImplementedError("Chain classes must implement this method")
+
 
 class Chain(BaseChain):
     """
@@ -673,6 +677,17 @@ class Chain(BaseChain):
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
+    def validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
+        parent = self.chaindb.get_block_header_by_hash(chain[0].parent_hash)
+        for header in chain:
+            if header.parent_hash != parent.hash:
+                raise ValidationError(
+                    "Invalid header chain; {} has parent {}, but expected {}".format(
+                        header, header.parent_hash, parent.hash))
+            vm_class = self.get_vm_class_for_block_number(header.block_number)
+            vm_class.validate_header(header, parent)
+            parent = header
+
 
 @to_set
 def _extract_uncle_hashes(blocks):
@@ -747,4 +762,7 @@ class AsyncChain(Chain):
     async def coro_import_block(self,
                                 block: BlockHeader,
                                 perform_validation: bool=True) -> BaseBlock:
+        raise NotImplementedError()
+
+    async def coro_validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
         raise NotImplementedError()

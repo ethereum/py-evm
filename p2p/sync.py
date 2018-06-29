@@ -46,7 +46,8 @@ class FullNodeSyncer(BaseService):
         if head.timestamp < time.time() - FAST_SYNC_CUTOFF:
             # Fast-sync chain data.
             self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
-            chain_syncer = FastChainSyncer(self.chaindb, self.peer_pool, self.cancel_token)
+            chain_syncer = FastChainSyncer(
+                self.chain, self.chaindb, self.peer_pool, self.cancel_token)
             await chain_syncer.run()
 
         # Ensure we have the state for our current head.

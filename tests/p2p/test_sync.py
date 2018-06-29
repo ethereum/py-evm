@@ -35,7 +35,7 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         ETHPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
         ETHPeer, FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-    client = FastChainSyncer(chaindb_fresh, client_peer_pool)
+    client = FastChainSyncer(FrontierTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server = RegularChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
