@@ -765,6 +765,7 @@ class PeerPool(BaseService):
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
+        asyncio.ensure_future(self._periodically_report_stats())
         await self.cancel_token.wait()
 
     async def stop_all_peers(self) -> None:
