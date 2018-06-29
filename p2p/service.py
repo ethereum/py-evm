@@ -4,22 +4,26 @@ import logging
 from typing import (
     Awaitable,
     Callable,
+    cast,
     Optional,
     TypeVar
 )
+
+from evm.utils.logging import TraceLogger
 
 from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.exceptions import OperationCancelled
 
 
 class BaseService(ABC):
-    logger: logging.Logger = None
+    logger: TraceLogger = None
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
     def __init__(self, token: CancelToken=None) -> None:
         if self.logger is None:
-            self.logger = logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+            self.logger = cast(
+                TraceLogger, logging.getLogger(self.__module__ + '.' + self.__class__.__name__))
 
         self._run_lock = asyncio.Lock()
         self.cleaned_up = asyncio.Event()

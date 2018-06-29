@@ -317,7 +317,6 @@ class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
 
 
 class DiscoveryService(BaseService):
-    logger = logging.getLogger("p2p.discovery.DiscoveryService")
     _lookup_running = asyncio.Lock()
     _last_lookup: float = 0
     _lookup_interval: int = 30

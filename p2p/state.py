@@ -46,7 +46,6 @@ from p2p.utils import get_process_pool_executor
 
 
 class StateDownloader(BaseService, PeerPoolSubscriber):
-    logger = logging.getLogger("p2p.state.StateDownloader")
     _pending_nodes: Dict[Any, float] = {}
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.

@@ -1,4 +1,3 @@
-import logging
 from typing import (
     cast,
     Iterable,
@@ -39,7 +38,6 @@ class TxPool(BaseService, PeerPoolSubscriber):
         This is a minimal viable implementation that only relays transactions but doesn't actually
         hold on to them yet. It's still missing many features of a grown up transaction pool.
     """
-    logger = logging.getLogger("trinity.tx_pool.TxPool")
 
     def __init__(self, peer_pool: PeerPool, token: CancelToken = None) -> None:
         super().__init__(token)

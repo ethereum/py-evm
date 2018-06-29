@@ -1,6 +1,9 @@
 from eth_hash.auto import keccak
 
-from evm import constants
+from evm.constants import (
+    GAS_CODEDEPOSIT,
+    STACK_DEPTH_LIMIT,
+)
 from evm import precompiles
 from evm.vm.computation import (
     BaseComputation
@@ -39,7 +42,7 @@ class FrontierComputation(BaseComputation):
     def apply_message(self):
         snapshot = self.state.snapshot()
 
-        if self.msg.depth > constants.STACK_DEPTH_LIMIT:
+        if self.msg.depth > STACK_DEPTH_LIMIT:
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
@@ -53,7 +56,7 @@ class FrontierComputation(BaseComputation):
             self.state.account_db.delta_balance(self.msg.sender, -1 * self.msg.value)
             self.state.account_db.delta_balance(self.msg.storage_address, self.msg.value)
 
-            self.logger.debug(
+            self.logger.trace(
                 "TRANSFERRED: %s from %s -> %s",
                 self.msg.value,
                 encode_hex(self.msg.sender),
@@ -84,7 +87,7 @@ class FrontierComputation(BaseComputation):
             contract_code = computation.output
 
             if contract_code:
-                contract_code_gas_fee = len(contract_code) * constants.GAS_CODEDEPOSIT
+                contract_code_gas_fee = len(contract_code) * GAS_CODEDEPOSIT
                 try:
                     computation.consume_gas(
                         contract_code_gas_fee,
@@ -93,7 +96,7 @@ class FrontierComputation(BaseComputation):
                 except OutOfGas:
                     computation.output = b''
                 else:
-                    self.logger.debug(
+                    self.logger.trace(
                         "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(self.msg.storage_address),
                         len(contract_code),

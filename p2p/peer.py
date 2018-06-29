@@ -140,7 +140,6 @@ async def handshake(remote: Node,
 
 
 class BasePeer(BaseService):
-    logger = logging.getLogger("p2p.peer.Peer")
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
@@ -304,7 +303,7 @@ class BasePeer(BaseService):
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
-        self.logger.debug("Got msg with cmd_id: %s", cmd_id)
+        self.logger.trace("Got msg with cmd_id: %s", cmd_id)
         if cmd_id < self.base_protocol.cmd_length:
             return self.base_protocol.cmd_by_id[cmd_id]
         elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
@@ -313,7 +312,7 @@ class BasePeer(BaseService):
             raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
 
     async def read(self, n: int) -> bytes:
-        self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
+        self.logger.trace("Waiting for %s bytes from %s", n, self.remote)
         try:
             return await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
@@ -364,7 +363,7 @@ class BasePeer(BaseService):
         # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
         # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
         decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
-        self.logger.debug("Successfully decoded %s msg: %s", cmd, decoded_msg)
+        self.logger.trace("Successfully decoded %s msg: %s", cmd, decoded_msg)
         return cmd, decoded_msg
 
     def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
@@ -472,7 +471,7 @@ class BasePeer(BaseService):
 
     def send(self, header: bytes, body: bytes) -> None:
         cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
-        self.logger.debug("Sending msg with cmd_id: %s", cmd_id)
+        self.logger.trace("Sending msg with cmd_id: %s", cmd_id)
         self.writer.write(self.encrypt(header, body))
 
     def disconnect(self, reason: DisconnectReason) -> None:
@@ -481,9 +480,9 @@ class BasePeer(BaseService):
         :param reason: An item from the DisconnectReason enum.
         """
         if not isinstance(reason, DisconnectReason):
-            self.logger.debug("Disconnecting from remote peer; reason: %s", reason.value)
             raise ValueError(
                 "Reason must be an item of DisconnectReason, got {}".format(reason))
+        self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 
@@ -703,7 +702,6 @@ class PeerPool(BaseService):
     """
     PeerPool maintains connections to up-to max_peers on a given network.
     """
-    logger = logging.getLogger("p2p.peer.PeerPool")
     _report_interval = 60
 
     def __init__(self,
@@ -796,7 +794,7 @@ class PeerPool(BaseService):
             UnreachablePeer,
         )
         try:
-            self.logger.debug("Connecting to %s...", remote)
+            self.logger.trace("Connecting to %s...", remote)
             # We use self.wait() as well as passing our CancelToken to handshake() as a workaround
             # for https://github.com/ethereum/py-evm/issues/670.
             peer = await self.wait(
@@ -942,10 +940,11 @@ def _test() -> None:
     """
     import argparse
     import signal
+    from evm.utils.logging import TRACE_LEVEL_NUM
     from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from evm.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
+    logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-enode', type=str, help="The enode we should connect to")

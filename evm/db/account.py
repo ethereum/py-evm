@@ -5,7 +5,7 @@ from abc import (
 from uuid import UUID
 import logging
 from lru import LRU
-from typing import Set, Tuple  # noqa: F401
+from typing import cast, Set, Tuple  # noqa: F401
 
 from eth_typing import (
     Address,
@@ -43,6 +43,9 @@ from evm.validation import (
     validate_canonical_address,
 )
 
+from evm.utils.logging import (
+    TraceLogger
+)
 from evm.utils.numeric import (
     int_to_big_endian,
 )
@@ -174,7 +177,7 @@ class BaseAccountDB(ABC):
 
 class AccountDB(BaseAccountDB):
 
-    logger = logging.getLogger('evm.db.account.AccountDB')
+    logger = cast(TraceLogger, logging.getLogger('evm.db.account.AccountDB'))
 
     def __init__(self, db, state_root=BLANK_ROOT_HASH):
         r"""
@@ -403,7 +406,7 @@ class AccountDB(BaseAccountDB):
         self._journaltrie.commit(trie_changeset)
 
     def make_state_root(self) -> Hash32:
-        self.logger.debug("Generating AccountDB trie")
+        self.logger.trace("Generating AccountDB trie")
         self._journaldb.persist()
         self._journaltrie.persist()
         return self.state_root
@@ -424,7 +427,7 @@ class AccountDB(BaseAccountDB):
                 else:
                     accounts_displayed.add(address)
                     account = self._get_account(address)
-                    self.logger.debug(
+                    self.logger.trace(
                         "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
                         encode_hex(address),
                         account.balance,
