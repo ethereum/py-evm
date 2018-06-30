@@ -123,6 +123,11 @@ class BaseChain(Configurable, ABC):
     def get_chaindb_class(cls) -> Type[BaseChainDB]:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @classmethod
+    @abstractmethod
+    def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
+        raise NotImplementedError("Chain classes must implement this method")
+
     #
     # Chain API
     #
