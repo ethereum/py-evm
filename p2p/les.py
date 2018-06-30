@@ -264,7 +264,8 @@ class ContractCodes(Command):
 class LESProtocol(Protocol):
     name = 'les'
     version = 1
-    _commands = [Status, Announce, BlockHeaders, BlockBodies, Receipts, Proofs, ContractCodes]
+    _commands = [Status, Announce, BlockHeaders, GetBlockHeaders, BlockBodies, Receipts, Proofs,
+                 ContractCodes]
     cmd_length = 15
 
     def send_handshake(self, chain_info: 'ChainInfo') -> None:
@@ -313,6 +314,16 @@ class LESProtocol(Protocol):
             'query': GetBlockHeadersQuery(block_number_or_hash, max_headers, skip, reverse),
         }
         header, body = cmd.encode(data)
+        self.send(header, body)
+
+    def send_block_headers(
+            self, headers: List[BlockHeader], buffer_value: int, request_id: int) -> None:
+        data = {
+            'request_id': request_id,
+            'headers': headers,
+            'buffer_value': buffer_value,
+        }
+        header, body = BlockHeaders(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
     def send_get_receipts(self, block_hash: bytes, request_id: int) -> None:
@@ -364,7 +375,8 @@ class ProofsV2(Command):
 
 class LESProtocolV2(LESProtocol):
     version = 2
-    _commands = [StatusV2, Announce, BlockHeaders, BlockBodies, Receipts, ProofsV2, ContractCodes]
+    _commands = [StatusV2, Announce, BlockHeaders, GetBlockHeaders, BlockBodies, Receipts,
+                 ProofsV2, ContractCodes]
     cmd_length = 21
 
     def send_handshake(self, chain_info: 'ChainInfo') -> None:

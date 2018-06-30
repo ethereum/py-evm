@@ -3,6 +3,7 @@ from typing import Type
 
 from eth_keys.datatypes import PrivateKey
 
+from p2p.chain import LightChainSyncer
 from p2p.discovery import DiscoveryService, PreferredNodeDiscoveryProtocol
 from p2p.kademlia import Address
 from p2p.lightchain import LightPeerChain
@@ -24,7 +25,8 @@ class LightNode(Node):
     chain_class: Type[LightDispatchChain] = None
 
     _chain: LightDispatchChain = None
-    _p2p_server: LightPeerChain = None
+    _peer_chain: LightPeerChain = None
+    _p2p_server: LightChainSyncer = None
 
     network_id: int = None
     nodekey: PrivateKey = None
@@ -45,8 +47,10 @@ class LightNode(Node):
         self._peer_pool = self._create_peer_pool(chain_config)
         self._discovery = DiscoveryService(
             self._discovery_proto, self._peer_pool, self.cancel_token)
+        self._peer_chain = LightPeerChain(self.headerdb, self._peer_pool, self.cancel_token)
         self.add_service(self._discovery)
         self.add_service(self._peer_pool)
+        self.add_service(self._peer_chain)
         self.create_and_add_tx_pool()
 
     async def _run(self) -> None:
@@ -69,16 +73,19 @@ class LightNode(Node):
         if self._chain is None:
             if self.chain_class is None:
                 raise AttributeError("LightNode subclass must set chain_class")
-            self._chain = self.chain_class(self._headerdb, peer_chain=self.get_p2p_server())
+            self._chain = self.chain_class(self._headerdb, peer_chain=self._peer_chain)
 
         return self._chain
 
-    def get_p2p_server(self) -> LightPeerChain:
+    def get_p2p_server(self) -> LightChainSyncer:
         if self._p2p_server is None:
             if self.chain_class is None:
                 raise AttributeError("LightNode subclass must set chain_class")
-            self._p2p_server = LightPeerChain(
-                self.headerdb, self._peer_pool, self.chain_class, self.cancel_token)
+            self._p2p_server = LightChainSyncer(
+                self.db_manager.get_chain(),  # type: ignore
+                self.db_manager.get_chaindb(),  # type: ignore
+                self._peer_pool,
+                self.cancel_token)
         return self._p2p_server
 
     def get_peer_pool(self) -> PeerPool:
