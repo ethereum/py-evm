@@ -5,8 +5,6 @@ from setuptools import setup, find_packages
 
 deps = {
     'evm': [
-        "aiohttp>=2.3.1,<3.0.0",
-        "async_lru>=0.1.0,<1.0.0",
         "cryptography>=2.0.3,<3.0.0",
         "cytoolz>=0.9.0,<1.0.0",
         "eth-bloom>=1.0.0,<2.0.0",
@@ -30,7 +28,6 @@ deps = {
         "eth-hash[pycryptodome];implementation_name=='pypy'",
     ],
     'p2p': [
-        "aiohttp>=2.3.1,<3.0.0",
         "async_lru>=0.1.0,<1.0.0",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
