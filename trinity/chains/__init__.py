@@ -22,7 +22,6 @@ from evm.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 from evm.db.backends.base import BaseDB
-from evm.db.chain import AsyncChainDB
 from evm.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
@@ -32,7 +31,7 @@ from trinity.exceptions import (
 )
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
-from trinity.db.chain import ChainDBProxy
+from trinity.db.chain import AsyncChainDB, ChainDBProxy
 from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy,

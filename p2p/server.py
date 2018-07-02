@@ -16,7 +16,6 @@ from eth_utils import big_endian_to_int
 
 from evm.chains import AsyncChain
 from evm.db.backends.base import BaseDB
-from evm.db.chain import AsyncChainDB
 
 from p2p.auth import (
     decode_authentication,
@@ -60,6 +59,7 @@ from p2p.service import BaseService
 from p2p.sync import FullNodeSyncer
 
 if TYPE_CHECKING:
+    from trinity.db.chain import AsyncChainDB  # noqa: F401
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
@@ -77,7 +77,7 @@ class Server(BaseService):
                  privkey: datatypes.PrivateKey,
                  port: int,
                  chain: AsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'AsyncChainDB',
                  headerdb: 'BaseAsyncHeaderDB',
                  base_db: BaseDB,
                  network_id: int,

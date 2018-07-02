@@ -253,6 +253,30 @@ class HeaderDB(BaseHeaderDB):
         )
 
 
+class AsyncHeaderDB(HeaderDB):
+    async def coro_get_score(self, block_hash: Hash32) -> int:
+        raise NotImplementedError()
+
+    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        raise NotImplementedError()
+
+    async def coro_get_canonical_head(self) -> BlockHeader:
+        raise NotImplementedError()
+
+    async def coro_get_canonical_block_header_by_number(
+            self, block_number: BlockNumber) -> BlockHeader:
+        raise NotImplementedError()
+
+    async def coro_header_exists(self, block_hash: Hash32) -> bool:
+        raise NotImplementedError()
+
+    async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+        raise NotImplementedError()
+
+    async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+        raise NotImplementedError()
+
+
 # When performing a chain sync (either fast or regular modes), we'll very often need to look
 # up recent block headers to validate the chain, and decoding their RLP representation is
 # relatively expensive so we cache that here, but use a small cache because we *should* only
