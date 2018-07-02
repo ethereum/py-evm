@@ -83,7 +83,7 @@ class LightNode(Node):
                 raise AttributeError("LightNode subclass must set chain_class")
             self._p2p_server = LightChainSyncer(
                 self.db_manager.get_chain(),  # type: ignore
-                self.db_manager.get_chaindb(),  # type: ignore
+                self._headerdb,
                 self._peer_pool,
                 self.cancel_token)
         return self._p2p_server

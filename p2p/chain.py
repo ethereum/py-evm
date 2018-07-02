@@ -49,6 +49,7 @@ from p2p.utils import (
 
 if TYPE_CHECKING:
     from trinity.db.chain import AsyncChainDB  # noqa: F401
+    from trinity.db.header import AsyncHeaderDB  # noqa: F401
 
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
@@ -71,12 +72,12 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: 'AsyncChainDB',
+                 db: 'AsyncHeaderDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
-        self.chaindb = chaindb
+        self.db = db
         self.peer_pool = peer_pool
         self._syncing = False
         self._sync_complete = asyncio.Event()
@@ -160,8 +161,8 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         If in fast-sync mode, the _sync_completed event will be set upon successful completion of
         a sync.
         """
-        head = await self.wait(self.chaindb.coro_get_canonical_head())
-        head_td = await self.wait(self.chaindb.coro_get_score(head.hash))
+        head = await self.wait(self.db.coro_get_canonical_head())
+        head_td = await self.wait(self.db.coro_get_score(head.hash))
         if peer.head_td <= head_td:
             self.logger.info(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
@@ -193,7 +194,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
 
             first = headers[0]
             try:
-                await self.wait(self.chaindb.coro_get_block_header_by_hash(first.parent_hash))
+                await self.wait(self.db.coro_get_block_header_by_hash(first.parent_hash))
             except HeaderNotFound:
                 self.logger.warn("Unable to find common ancestor betwen our chain and %s", peer)
                 break
@@ -219,7 +220,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
             # order to see if the sync is completed. Instead we just check that we have the peer's
             # head_hash in our chain.
-            if await self.wait(self.chaindb.coro_header_exists(peer.head_hash)):
+            if await self.wait(self.db.coro_header_exists(peer.head_hash)):
                 self.logger.info("Sync with %s completed", peer)
                 if self._exit_on_sync_complete:
                     self._sync_complete.set()
@@ -238,7 +239,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             timeout=self._reply_timeout))
         for header in headers.copy():
             try:
-                await self.wait(self.chaindb.coro_get_block_header_by_hash(header.hash))
+                await self.wait(self.db.coro_get_block_header_by_hash(header.hash))
             except HeaderNotFound:
                 break
             else:
@@ -263,7 +264,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         block_number_or_hash = block_number_or_hash
         if isinstance(block_number_or_hash, bytes):
             header = await self.wait(
-                self.chaindb.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
+                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
             )
             block_number = header.block_number
         elif isinstance(block_number_or_hash, int):
@@ -295,7 +296,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         for block_num in block_numbers:
             try:
                 yield await self.wait(
-                    self.chaindb.coro_get_canonical_block_header_by_number(block_num)
+                    self.db.coro_get_canonical_block_header_by_number(block_num)
                 )
             except HeaderNotFound:
                 self.logger.debug(
@@ -352,9 +353,9 @@ class LightChainSyncer(BaseHeaderChainSyncer):
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
         for header in headers:
-            await self.wait(self.chaindb.coro_persist_header(header))
+            await self.wait(self.db.coro_persist_header(header))
 
-        head = await self.wait(self.chaindb.coro_get_canonical_head())
+        head = await self.wait(self.db.coro_get_canonical_head())
         return head.block_number
 
 
@@ -366,14 +367,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     highest TD, at which point we must run the StateDownloader to fetch the state for our chain
     head.
     """
+    db: 'AsyncChainDB'
     _exit_on_sync_complete = True
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: 'AsyncChainDB',
+                 db: 'AsyncChainDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        super().__init__(chain, chaindb, peer_pool, token)
+        super().__init__(chain, db, peer_pool, token)
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
@@ -390,7 +392,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         if headers[0].parent_hash == GENESIS_PARENT_HASH:
             td = 0
         else:
-            td = await self.wait(self.chaindb.coro_get_score(headers[0].parent_hash))
+            td = await self.wait(self.db.coro_get_score(headers[0].parent_hash))
         for header in headers:
             td += header.difficulty
         return td
@@ -424,9 +426,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # FIXME: Get the bodies returned by self._download_block_parts above and use persit_block
         # here.
         for header in headers:
-            await self.wait(self.chaindb.coro_persist_header(header))
+            await self.wait(self.db.coro_persist_header(header))
 
-        head = await self.wait(self.chaindb.coro_get_canonical_head())
+        head = await self.wait(self.db.coro_get_canonical_head())
         return head.block_number
 
     async def _download_block_parts(
@@ -557,7 +559,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # TODO: figure out why mypy is losing the type of the receipts_tries
         # so we can get rid of the ignore
         for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):  # type: ignore # noqa: E501
-            await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
+            await self.wait(self.db.coro_persist_trie_data_dict(trie_dict_data))
             downloaded.append(DownloadedBlockPart(receipts, receipt_root))
         self._downloaded_receipts.put_nowait((peer, downloaded))
 
@@ -576,8 +578,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # TODO: figure out why mypy is losing the type of the transactions_tries
         # so we can get rid of the ignore
         for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):  # type: ignore # noqa: E501
-            await self.wait(self.chaindb.coro_persist_trie_data_dict(trie_dict_data))
-            uncles_hash = await self.wait(self.chaindb.coro_persist_uncles(body.uncles))
+            await self.wait(self.db.coro_persist_trie_data_dict(trie_dict_data))
+            uncles_hash = await self.wait(self.db.coro_persist_uncles(body.uncles))
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
         self._downloaded_bodies.put_nowait((peer, downloaded))
 
@@ -637,13 +639,13 @@ class RegularChainSyncer(FastChainSyncer):
         hashes = msg[:eth.MAX_BODIES_FETCH]
         for block_hash in hashes:
             try:
-                header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
                 continue
             transactions = await self.wait(
-                self.chaindb.coro_get_block_transactions(header, BaseTransactionFields))
-            uncles = await self.wait(self.chaindb.coro_get_block_uncles(header.uncles_hash))
+                self.db.coro_get_block_transactions(header, BaseTransactionFields))
+            uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
         peer.sub_proto.send_block_bodies(bodies)
 
@@ -653,19 +655,19 @@ class RegularChainSyncer(FastChainSyncer):
         hashes = msg[:eth.MAX_RECEIPTS_FETCH]
         for block_hash in hashes:
             try:
-                header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug(
                     "%s asked receipts for block we don't have: %s", peer, block_hash)
                 continue
-            receipts.append(await self.wait(self.chaindb.coro_get_receipts(header, Receipt)))
+            receipts.append(await self.wait(self.db.coro_get_receipts(header, Receipt)))
         peer.sub_proto.send_receipts(receipts)
 
     async def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         nodes = []
         for node_hash in msg:
             try:
-                node = await self.chaindb.coro_get(node_hash)
+                node = await self.db.coro_get(node_hash)
             except KeyError:
                 self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
                 continue
@@ -705,7 +707,7 @@ class RegularChainSyncer(FastChainSyncer):
             self.logger.info("Imported block %d (%d txs) in %f seconds",
                              block.number, len(transactions), time.time() - t)
 
-        head = await self.wait(self.chaindb.coro_get_canonical_head())
+        head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
         return head.block_number
 
@@ -785,13 +787,13 @@ def _test() -> None:
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
     chain = FakeAsyncRopstenChain(base_db)
+    syncer: BaseHeaderChainSyncer = None
     if args.fast:
-        syncer_class = FastChainSyncer  # type: ignore
+        syncer = FastChainSyncer(chain, chaindb, peer_pool)
     elif args.light:
-        syncer_class = LightChainSyncer  # type: ignore
+        syncer = LightChainSyncer(chain, headerdb, peer_pool)
     else:
-        syncer_class = RegularChainSyncer  # type: ignore
-    syncer = syncer_class(chain, chaindb, peer_pool)
+        syncer = RegularChainSyncer(chain, chaindb, peer_pool)
     syncer.logger.setLevel(log_level)
     syncer.min_peers_to_sync = 1
 

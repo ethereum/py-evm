@@ -84,9 +84,9 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
     asyncio.ensure_future(client.run())
 
-    await wait_for_head(client.chaindb, server.chaindb.get_canonical_head())
-    head = client.chaindb.get_canonical_head()
-    assert head.state_root in client.chaindb.db
+    await wait_for_head(client.db, server.db.get_canonical_head())
+    head = client.db.get_canonical_head()
+    assert head.state_root in client.db.db
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
     asyncio.ensure_future(client.run())
 
-    await wait_for_head(client.chaindb, server.chaindb.get_canonical_head())
+    await wait_for_head(client.db, server.db.get_canonical_head())
 
 
 @pytest.fixture
