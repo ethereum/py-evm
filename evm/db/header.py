@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import functools
 from typing import Tuple, Iterable
 
 import rlp
@@ -129,7 +130,7 @@ class HeaderDB(BaseHeaderDB):
         except KeyError:
             raise HeaderNotFound("No header with hash {0} found".format(
                 encode_hex(block_hash)))
-        return rlp.decode(header_rlp, BlockHeader)
+        return _decode_block_header(header_rlp)
 
     def get_score(self, block_hash: Hash32) -> int:
         try:
@@ -250,3 +251,12 @@ class HeaderDB(BaseHeaderDB):
             block_number_to_hash_key,
             rlp.encode(header.hash, sedes=rlp.sedes.binary),
         )
+
+
+# When performing a chain sync (either fast or regular modes), we'll very often need to look
+# up recent block headers to validate the chain, and decoding their RLP representation is
+# relatively expensive so we cache that here, but use a small cache because we *should* only
+# be looking up recent blocks.
+@functools.lru_cache(128)
+def _decode_block_header(header_rlp: bytes) -> BlockHeader:
+    return rlp.decode(header_rlp, sedes=BlockHeader)
