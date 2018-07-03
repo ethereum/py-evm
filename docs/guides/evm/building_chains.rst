@@ -1,9 +1,9 @@
 Building Chains
-====================
+===============
 
 
 Using the Chain object
-------------------------
+----------------------
 
 A "single" blockchain is made by a series of different virtual machines
 for different spans of blocks. For example, the Ethereum mainnet had
@@ -44,7 +44,7 @@ Then to initialize, you can start it up with an in-memory database:
 
 
 Using the LightPeerChain object
----------------------------
+-------------------------------
 
 The :class:`~p2p.lightchain.LightPeerChain` is like a Chain but it will also
 connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader`
