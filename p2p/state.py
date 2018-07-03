@@ -7,6 +7,7 @@ from typing import (
     cast,
     Dict,
     List,
+    TYPE_CHECKING,
 )
 
 from cytoolz.itertoolz import partition_all
@@ -38,11 +39,16 @@ from evm.rlp.accounts import Account
 
 from p2p import eth
 from p2p import protocol
+from p2p.chain import lookup_headers
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import ETHPeer, PeerPool, PeerPoolSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_process_pool_executor
+
+
+if TYPE_CHECKING:
+    from trinity.db.chain import AsyncChainDB  # noqa: F401
 
 
 class StateDownloader(BaseService, PeerPoolSubscriber):
@@ -54,11 +60,13 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
     _total_timeouts = 0
 
     def __init__(self,
+                 chaindb: 'AsyncChainDB',
                  account_db: BaseDB,
                  root_hash: bytes,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
+        self.chaindb = chaindb
         self.peer_pool = peer_pool
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
@@ -74,8 +82,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
 
     async def get_idle_peer(self) -> ETHPeer:
         while not self.idle_peers:
-            self.logger.debug("Waiting for an idle peer...")
-            await self.wait_first(asyncio.sleep(0.02))
+            await self.wait(asyncio.sleep(0.02))
         return secrets.choice(self.idle_peers)
 
     async def _handle_msg_loop(self) -> None:
@@ -93,10 +100,15 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
 
     async def _handle_msg(
             self, peer: ETHPeer, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        loop = asyncio.get_event_loop()
-        if isinstance(cmd, eth.NodeData):
+        # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
+        # messages related to new blocks/transactions, but we must handle requests for data from
+        # other peers or else they will disconnect from us.
+        ignored_commands = (eth.Transactions, eth.NewBlock, eth.NewBlockHashes)
+        if isinstance(cmd, ignored_commands):
+            pass
+        elif isinstance(cmd, eth.NodeData):
             self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
-
+            loop = asyncio.get_event_loop()
             # Check before we remove because sometimes a reply may come after our timeout and in
             # that case we won't be expecting it anymore.
             if peer in self._peers_with_pending_requests:
@@ -113,9 +125,16 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                     pass
                 # A node may be received more than once, so pop() with a default value.
                 self._pending_nodes.pop(node_key, None)
+        elif isinstance(cmd, eth.GetBlockHeaders):
+            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         else:
-            # We ignore everything that is not a NodeData when doing a StateSync.
-            self.logger.debug("Ignoring %s msg while doing a StateSync", cmd)
+            self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
+
+    async def _handle_get_block_headers(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
+        headers = await lookup_headers(
+            self.chaindb, msg['block_number_or_hash'], msg['max_headers'],
+            msg['skip'], msg['reverse'], self.logger, self.cancel_token)
+        peer.sub_proto.send_block_headers(headers)
 
     async def _cleanup(self) -> None:
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
@@ -261,7 +280,7 @@ def _test() -> None:
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     head = chaindb.get_canonical_head()
-    downloader = StateDownloader(db, head.state_root, peer_pool)
+    downloader = StateDownloader(chaindb, db, head.state_root, peer_pool)
     loop = asyncio.get_event_loop()
 
     sigint_received = asyncio.Event()
@@ -274,9 +293,14 @@ def _test() -> None:
         await downloader.cancel()
         loop.stop()
 
+    async def run() -> None:
+        await downloader.run()
+        downloader.logger.info("run() finished, exiting")
+        sigint_received.set()
+
     loop.set_debug(True)
     asyncio.ensure_future(exit_on_sigint())
-    asyncio.ensure_future(downloader.run())
+    asyncio.ensure_future(run())
     loop.run_forever()
     loop.close()
 

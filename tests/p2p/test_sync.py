@@ -54,7 +54,8 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     assert head == chaindb_20.get_canonical_head()
 
     # Now download the state for the chain's head.
-    state_downloader = StateDownloader(chaindb_fresh.db, head.state_root, client_peer_pool)
+    state_downloader = StateDownloader(
+        chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
     await asyncio.wait_for(state_downloader.run(), timeout=2)
 
     assert head.state_root in chaindb_fresh.db

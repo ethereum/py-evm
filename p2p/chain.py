@@ -822,9 +822,14 @@ def _test() -> None:
         await syncer.cancel()
         loop.stop()
 
+    async def run() -> None:
+        await syncer.run()
+        syncer.logger.info("run() finished, exiting")
+        sigint_received.set()
+
     # loop.set_debug(True)
     asyncio.ensure_future(exit_on_sigint())
-    asyncio.ensure_future(syncer.run())
+    asyncio.ensure_future(run())
     loop.run_forever()
     loop.close()
 
