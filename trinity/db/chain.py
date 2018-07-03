@@ -11,6 +11,7 @@ from trinity.utils.mp import (
 
 
 class ChainDBProxy(BaseProxy):
+    coro_get = async_method('get')
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
     coro_get_canonical_head = async_method('get_canonical_head')
     coro_get_score = async_method('get_score')
@@ -24,6 +25,7 @@ class ChainDBProxy(BaseProxy):
     coro_get_block_uncles = async_method('get_block_uncles')
     coro_get_receipts = async_method('get_receipts')
 
+    get = sync_method('get')
     get_block_header_by_hash = sync_method('get_block_header_by_hash')
     get_canonical_head = sync_method('get_canonical_head')
     get_score = sync_method('get_score')

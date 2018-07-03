@@ -81,7 +81,7 @@ def _selfdestruct(computation, beneficiary):
     # beneficiary.
     computation.state.account_db.set_balance(computation.msg.storage_address, 0)
 
-    computation.logger.debug(
+    computation.logger.trace(
         "SELFDESTRUCT: %s (%s) -> %s",
         encode_hex(computation.msg.storage_address),
         local_balance,
@@ -134,7 +134,7 @@ class Create(Opcode):
         is_collision = computation.state.account_db.account_has_code_or_nonce(contract_address)
 
         if is_collision:
-            self.logger.debug(
+            self.logger.trace(
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )

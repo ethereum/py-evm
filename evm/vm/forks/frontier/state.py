@@ -3,7 +3,7 @@ from typing import Type  # noqa: F401
 
 from eth_hash.auto import keccak
 
-from evm import constants
+from evm.constants import CREATE_CONTRACT_ADDRESS
 from evm.db.account import (
     AccountDB,
 )
@@ -58,7 +58,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Setup VM Message
         message_gas = transaction.gas - transaction.intrinsic_gas
 
-        if transaction.to == constants.CREATE_CONTRACT_ADDRESS:
+        if transaction.to == CREATE_CONTRACT_ADDRESS:
             contract_address = generate_contract_address(
                 transaction.sender,
                 self.vm_state.account_db.get_nonce(transaction.sender) - 1,
@@ -70,7 +70,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             data = transaction.data
             code = self.vm_state.account_db.get_code(transaction.to)
 
-        self.vm_state.logger.debug(
+        self.vm_state.logger.trace(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
                 "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
@@ -114,7 +114,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                         encode_hex(message.storage_address),
                     )
                 )
-                self.vm_state.logger.debug(
+                self.vm_state.logger.trace(
                     "Address collision while creating contract: %s",
                     encode_hex(message.storage_address),
                 )
@@ -144,7 +144,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
         if gas_refund_amount:
-            self.vm_state.logger.debug(
+            self.vm_state.logger.trace(
                 'TRANSACTION REFUND: %s -> %s',
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
@@ -155,7 +155,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Miner Fees
         transaction_fee = \
             (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
-        self.vm_state.logger.debug(
+        self.vm_state.logger.trace(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,
             encode_hex(self.vm_state.coinbase),
@@ -166,7 +166,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
-            self.vm_state.logger.debug('DELETING ACCOUNT: %s', encode_hex(account))
+            self.vm_state.logger.trace('DELETING ACCOUNT: %s', encode_hex(account))
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.

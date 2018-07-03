@@ -184,6 +184,10 @@ class BaseChainDB(ABC):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
+    def get(self, key: bytes) -> bytes:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @abstractmethod
     def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
@@ -606,6 +610,12 @@ class ChainDB(BaseChainDB):
         """
         return self.db.exists(key)
 
+    def get(self, key: bytes) -> bytes:
+        """
+        Return the value for the given key or a KeyError if it doesn't exist in the database.
+        """
+        return self.db[key]
+
     def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
         """
         Store raw trie data to db from a dict
@@ -624,6 +634,9 @@ def _decode_block_header(header_rlp: bytes) -> BlockHeader:
 
 
 class AsyncChainDB(ChainDB):
+    async def coro_get(self, key: bytes) -> bytes:
+        raise NotImplementedError()
+
     async def coro_get_score(self, block_hash: Hash32) -> int:
         raise NotImplementedError()
 

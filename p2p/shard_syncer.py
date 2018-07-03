@@ -1,7 +1,6 @@
 from collections import (
     defaultdict,
 )
-import logging
 import time
 from typing import (
     Any,
@@ -70,7 +69,6 @@ COLLATION_PERIOD = 1
 
 
 class ShardSyncer(BaseService, PeerPoolSubscriber):
-    logger = logging.getLogger("p2p.sharding.ShardSyncer")
 
     def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken=None) -> None:
         super().__init__(token)

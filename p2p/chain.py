@@ -623,7 +623,7 @@ class RegularChainSyncer(FastChainSyncer):
         elif isinstance(cmd, eth.GetReceipts):
             await self._handle_get_receipts(peer, cast(List[Hash32], msg))
         elif isinstance(cmd, eth.GetNodeData):
-            self._handle_get_node_data(peer, cast(List[Hash32], msg))
+            await self._handle_get_node_data(peer, cast(List[Hash32], msg))
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
@@ -632,7 +632,11 @@ class RegularChainSyncer(FastChainSyncer):
         # Only serve up to eth.MAX_BODIES_FETCH items in every request.
         hashes = msg[:eth.MAX_BODIES_FETCH]
         for block_hash in hashes:
-            header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            try:
+                header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            except HeaderNotFound:
+                self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
+                continue
             transactions = await self.wait(
                 self.chaindb.coro_get_block_transactions(header, BaseTransactionFields))
             uncles = await self.wait(self.chaindb.coro_get_block_uncles(header.uncles_hash))
@@ -644,15 +648,23 @@ class RegularChainSyncer(FastChainSyncer):
         # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
         hashes = msg[:eth.MAX_RECEIPTS_FETCH]
         for block_hash in hashes:
-            header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            try:
+                header = await self.wait(self.chaindb.coro_get_block_header_by_hash(block_hash))
+            except HeaderNotFound:
+                self.logger.debug(
+                    "%s asked receipts for block we don't have: %s", peer, block_hash)
+                continue
             receipts.append(await self.wait(self.chaindb.coro_get_receipts(header, Receipt)))
         peer.sub_proto.send_receipts(receipts)
 
-    def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
+    async def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
         nodes = []
         for node_hash in msg:
-            # FIXME: Need to use an async API here as well? chaindb.coro_get()?
-            node = self.chaindb.db[node_hash]
+            try:
+                node = await self.chaindb.coro_get(node_hash)
+            except KeyError:
+                self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
+                continue
             nodes.append(node)
         peer.sub_proto.send_node_data(nodes)
 

@@ -68,7 +68,6 @@ DIAL_IN_OUT_RATIO = 0.75
 
 class Server(BaseService):
     """Server listening for incoming connections"""
-    logger = logging.getLogger("p2p.server.Server")
     _tcp_listener = None
     _udp_listener = None
 

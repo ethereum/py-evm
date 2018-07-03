@@ -228,7 +228,7 @@ class BaseComputation(Configurable, ABC):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        self.logger.debug(
+        self.logger.trace(
             "MEMORY: size (%s -> %s) | cost (%s -> %s)",
             before_size,
             after_size,
@@ -449,7 +449,7 @@ class BaseComputation(Configurable, ABC):
     # Context Manager API
     #
     def __enter__(self) -> 'BaseComputation':
-        self.logger.debug(
+        self.logger.trace(
             (
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
                 "| depth %s | static: %s"
@@ -466,7 +466,7 @@ class BaseComputation(Configurable, ABC):
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
         if exc_value and isinstance(exc_value, VMError):
-            self.logger.debug(
+            self.logger.trace(
                 (
                     "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
                     "depth: %s | static: %s | error: %s"
@@ -492,7 +492,7 @@ class BaseComputation(Configurable, ABC):
             # suppress VM exceptions
             return True
         elif exc_type is None:
-            self.logger.debug(
+            self.logger.trace(
                 (
                     "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
                     "depth: %s | static: %s | gas-used: %s | gas-remaining: %s"
