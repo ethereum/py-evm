@@ -10,5 +10,6 @@ This section aims to provide a detailed description of all APIs. If you are look
 
    api.chain
    api.db
+   api.exceptions
    api.rlp
    api.vm
