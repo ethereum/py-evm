@@ -297,8 +297,6 @@ class BaseVM(Configurable, ABC):
 
 
 class VM(BaseVM):
-    _state = None
-
     """
     The :class:`~evm.vm.base.BaseVM` class represents the Chain rules for a
     specific protocol definition such as the Frontier or Homestead network.
@@ -310,6 +308,9 @@ class VM(BaseVM):
         - ``block_class``: The :class:`~evm.rlp.blocks.Block` class for blocks in this VM ruleset.
         - ``_state_class``: The :class:`~evm.vm.state.State` class used by this VM for execution.
     """
+
+    _state = None
+
     def __init__(self, header, chaindb):
         self.chaindb = chaindb
         self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
