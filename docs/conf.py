@@ -45,6 +45,8 @@ extensions = [
     'sphinxcontrib.asyncio',
 ]
 
+autodoc_default_flags = ['undoc-members']
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
