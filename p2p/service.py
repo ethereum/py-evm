@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 import asyncio
 import logging
-from typing import (
+from typing import (  # noqa: #401
+    Any,
     Awaitable,
     Callable,
     cast,
+    List,
     Optional,
-    TypeVar
+    TypeVar,
 )
 
 from evm.utils.logging import TraceLogger
@@ -17,6 +19,7 @@ from p2p.exceptions import OperationCancelled
 
 class BaseService(ABC):
     logger: TraceLogger = None
+    _child_services: List['BaseService'] = []
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
@@ -94,9 +97,27 @@ class BaseService(ABC):
             if finished_callback is not None:
                 finished_callback(self)
 
+    def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
+        """
+        Run a child service and keep a reference to it to be considered during the cleanup.
+        """
+        self._child_services.append(child_service)
+        return asyncio.ensure_future(child_service.run())
+
     async def cleanup(self) -> None:
-        """Run the service's _cleanup() coroutine and sets the cleaned_up event."""
-        await self._cleanup()
+        """
+        Run the ``_cleanup()`` coroutine and set the ``cleaned_up`` event after the service as
+        well as all child services finished their cleanup.
+
+        The ``_cleanup()`` coroutine is invoked before the child services may have finished
+        their cleanup.
+        """
+
+        await asyncio.gather(*[
+            child_service.cleaned_up.wait()
+            for child_service in self._child_services],
+            self._cleanup()
+        )
         self.cleaned_up.set()
 
     async def cancel(self) -> None:
