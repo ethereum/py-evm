@@ -564,54 +564,16 @@ class RegularChainSyncer(FastChainSyncer):
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockBodies):
-            await self._handle_get_block_bodies(peer, cast(List[Hash32], msg))
+            await handle_get_block_bodies(
+                self.db, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
         elif isinstance(cmd, eth.GetReceipts):
-            await self._handle_get_receipts(peer, cast(List[Hash32], msg))
+            await handle_get_receipts(
+                self.db, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
         elif isinstance(cmd, eth.GetNodeData):
-            await self._handle_get_node_data(peer, cast(List[Hash32], msg))
+            await handle_get_node_data(
+                self.db, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
-
-    async def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        bodies = []
-        # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-        hashes = msg[:eth.MAX_BODIES_FETCH]
-        for block_hash in hashes:
-            try:
-                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
-            except HeaderNotFound:
-                self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
-                continue
-            transactions = await self.wait(
-                self.db.coro_get_block_transactions(header, BaseTransactionFields))
-            uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
-            bodies.append(BlockBody(transactions, uncles))
-        peer.sub_proto.send_block_bodies(bodies)
-
-    async def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        receipts = []
-        # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-        hashes = msg[:eth.MAX_RECEIPTS_FETCH]
-        for block_hash in hashes:
-            try:
-                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
-            except HeaderNotFound:
-                self.logger.debug(
-                    "%s asked receipts for block we don't have: %s", peer, block_hash)
-                continue
-            receipts.append(await self.wait(self.db.coro_get_receipts(header, Receipt)))
-        peer.sub_proto.send_receipts(receipts)
-
-    async def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        nodes = []
-        for node_hash in msg:
-            try:
-                node = await self.db.coro_get(node_hash)
-            except KeyError:
-                self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
-                continue
-            nodes.append(node)
-        peer.sub_proto.send_node_data(nodes)
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
@@ -754,6 +716,67 @@ async def lookup_headers(
     headers = [header async for header in _generate_available_headers(
         headerdb, block_numbers, logger, token)]
     return headers
+
+
+async def handle_get_block_bodies(
+        chaindb: 'AsyncChainDB', peer: ETHPeer, block_hashes: List[Hash32],
+        logger: logging.Logger, token: CancelToken) -> None:
+    bodies = []
+    # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+    for block_hash in block_hashes[:eth.MAX_BODIES_FETCH]:
+        try:
+            header = await wait_with_token(
+                chaindb.coro_get_block_header_by_hash(block_hash),
+                token=token)
+        except HeaderNotFound:
+            logger.debug("%s asked for block we don't have: %s", peer, block_hash)
+            continue
+        transactions = await wait_with_token(
+            chaindb.coro_get_block_transactions(header, BaseTransactionFields),
+            token=token)
+        uncles = await wait_with_token(
+            chaindb.coro_get_block_uncles(header.uncles_hash),
+            token=token)
+        bodies.append(BlockBody(transactions, uncles))
+    peer.sub_proto.send_block_bodies(bodies)
+
+
+async def handle_get_receipts(
+        chaindb: 'AsyncChainDB', peer: ETHPeer, block_hashes: List[Hash32],
+        logger: logging.Logger, token: CancelToken) -> None:
+    receipts = []
+    # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+    for block_hash in block_hashes[:eth.MAX_RECEIPTS_FETCH]:
+        try:
+            header = await wait_with_token(
+                chaindb.coro_get_block_header_by_hash(block_hash),
+                token=token)
+        except HeaderNotFound:
+            logger.debug(
+                "%s asked receipts for block we don't have: %s", peer, block_hash)
+            continue
+        block_receipts = await wait_with_token(
+            chaindb.coro_get_receipts(header, Receipt),
+            token=token)
+        receipts.append(block_receipts)
+    peer.sub_proto.send_receipts(receipts)
+
+
+async def handle_get_node_data(
+        chaindb: 'AsyncChainDB', peer: ETHPeer, node_hashes: List[Hash32],
+        logger: logging.Logger, token: CancelToken) -> None:
+    nodes = []
+    # Only serve up to eth.MAX_STATE_FETCH items in every request.
+    for node_hash in node_hashes[:eth.MAX_STATE_FETCH]:
+        try:
+            node = await wait_with_token(
+                chaindb.coro_get(node_hash),
+                token=token)
+        except KeyError:
+            logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
+            continue
+        nodes.append(node)
+    peer.sub_proto.send_node_data(nodes)
 
 
 def _test() -> None:

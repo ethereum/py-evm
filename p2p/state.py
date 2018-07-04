@@ -39,7 +39,8 @@ from evm.rlp.accounts import Account
 
 from p2p import eth
 from p2p import protocol
-from p2p.chain import lookup_headers
+from p2p.chain import (
+    handle_get_block_bodies, handle_get_node_data, handle_get_receipts, lookup_headers)
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import ETHPeer, PeerPool, PeerPoolSubscriber
@@ -127,6 +128,15 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                 self._pending_nodes.pop(node_key, None)
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.GetBlockBodies):
+            await handle_get_block_bodies(
+                self.chaindb, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
+        elif isinstance(cmd, eth.GetReceipts):
+            await handle_get_receipts(
+                self.chaindb, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
+        elif isinstance(cmd, eth.GetNodeData):
+            await handle_get_node_data(
+                self.chaindb, peer, cast(List[Hash32], msg), self.logger, self.cancel_token)
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 
@@ -208,7 +218,7 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
                     # received nodes (scheduling new requests), there may be cases when the
                     # pending nodes take a while to arrive thus causing the scheduler to run out
                     # of new requests for a while.
-                    self.logger.info("Scheduler queue is empty, sleeping a bit")
+                    self.logger.debug("Scheduler queue is empty, sleeping a bit")
                     await self.wait_first(asyncio.sleep(0.5))
                     continue
 
@@ -298,7 +308,7 @@ def _test() -> None:
         downloader.logger.info("run() finished, exiting")
         sigint_received.set()
 
-    loop.set_debug(True)
+    # loop.set_debug(True)
     asyncio.ensure_future(exit_on_sigint())
     asyncio.ensure_future(run())
     loop.run_forever()
