@@ -70,6 +70,7 @@ class Server(BaseService):
     """Server listening for incoming connections"""
     _tcp_listener = None
     _udp_listener = None
+    _udp_transport = None
 
     peer_pool: PeerPool = None
 
@@ -116,8 +117,9 @@ class Server(BaseService):
         )
 
     async def _close_tcp_listener(self) -> None:
-        self._tcp_listener.close()
-        await self._tcp_listener.wait_closed()
+        if self._tcp_listener:
+            self._tcp_listener.close()
+            await self._tcp_listener.wait_closed()
 
     async def _start_udp_listener(self, discovery: DiscoveryProtocol) -> None:
         loop = asyncio.get_event_loop()
@@ -128,11 +130,8 @@ class Server(BaseService):
             family=socket.AF_INET)
 
     async def _close_udp_listener(self) -> None:
-        cast(asyncio.DatagramTransport, self._udp_transport).abort()
-
-    async def _close(self) -> None:
-        await asyncio.gather(
-            self._close_tcp_listener(), self._close_udp_listener())
+        if self._udp_transport:
+            cast(asyncio.DatagramTransport, self._udp_transport).abort()
 
     def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
         # This method exists only so that ShardSyncer can provide a different implementation.
@@ -172,16 +171,16 @@ class Server(BaseService):
             self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
         await self._start_udp_listener(discovery_proto)
         self.discovery = DiscoveryService(discovery_proto, self.peer_pool, self.cancel_token)
-        asyncio.ensure_future(self.peer_pool.run())
-        asyncio.ensure_future(self.discovery.run())
-        asyncio.ensure_future(self.upnp_service.run())
+        self.run_child_service(self.peer_pool)
+        self.run_child_service(self.discovery)
+        self.run_child_service(self.upnp_service)
         self.syncer = self._make_syncer(self.peer_pool)
         await self.syncer.run()
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await asyncio.gather(self.peer_pool.cleaned_up.wait(), self.discovery.cleaned_up.wait())
-        await self._close()
+        await asyncio.gather(
+            self._close_tcp_listener(), self._close_udp_listener())
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
