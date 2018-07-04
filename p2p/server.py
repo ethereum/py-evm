@@ -72,6 +72,7 @@ class Server(BaseService):
     _udp_listener = None
 
     peer_pool: PeerPool = None
+    discovery: DiscoveryService = None
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -180,7 +181,12 @@ class Server(BaseService):
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await asyncio.gather(self.peer_pool.cleaned_up.wait(), self.discovery.cleaned_up.wait())
+        cleanup_tasks = [self.peer_pool.cleaned_up.wait()]
+
+        if self.discovery is not None:
+            cleanup_tasks.append(self.discovery.cleaned_up.wait())
+
+        await asyncio.gather(*cleanup_tasks)
         await self._close()
 
     async def receive_handshake(
