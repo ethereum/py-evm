@@ -129,11 +129,17 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockBodies):
-            await self._handler.handle_get_block_bodies(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
+            await self._handler.handle_get_block_bodies(peer, block_hashes)
         elif isinstance(cmd, eth.GetReceipts):
-            await self._handler.handle_get_receipts(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+            await self._handler.handle_get_receipts(peer, block_hashes)
         elif isinstance(cmd, eth.GetNodeData):
-            await self._handler.handle_get_node_data(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+            await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 

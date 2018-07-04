@@ -289,6 +289,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
         query = msg['query']
         headers = await self._handler.lookup_headers(
             query.block_number_or_hash, query.max_headers, query.skip, query.reverse)
+        self.logger.trace("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
     async def _process_headers(
@@ -490,8 +491,27 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.GetBlockBodies):
+            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
+            await self._handler.handle_get_block_bodies(peer, block_hashes)
+        elif isinstance(cmd, eth.GetReceipts):
+            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+            await self._handler.handle_get_receipts(peer, block_hashes)
+        elif isinstance(cmd, eth.GetNodeData):
+            # Only serve up to eth.MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+            await self._handler.handle_get_node_data(peer, node_hashes)
+        elif isinstance(cmd, eth.Transactions):
+            # Transactions msgs are handled by our TxPool service.
+            pass
+        elif isinstance(cmd, eth.NodeData):
+            # When doing a chain sync we never send GetNodeData requests, so peers should not send
+            # us NodeData msgs.
+            self.logger.warn("Unexpected NodeData msg from %s", peer)
         else:
-            self.logger.debug("Ignoring %s message from %s", cmd, peer)
+            self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
     async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
         self._sync_requests.put_nowait(peer)
@@ -515,7 +535,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_block_bodies(self,
                                    peer: ETHPeer,
-                                   bodies: List[eth.BlockBody]) -> None:
+                                   bodies: List[BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
         loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
@@ -542,6 +562,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         headers = await self._handler.lookup_headers(
             header_request['block_number_or_hash'], header_request['max_headers'],
             header_request['skip'], header_request['reverse'])
+        self.logger.trace("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers)
 
 
@@ -553,31 +574,10 @@ class RegularChainSyncer(FastChainSyncer):
     """
     _exit_on_sync_complete = False
 
-    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
-                          msg: protocol._DecodedMsgType) -> None:
-        peer = cast(ETHPeer, peer)
-        if isinstance(cmd, eth.BlockHeaders):
-            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg)))
-        elif isinstance(cmd, eth.BlockBodies):
-            await self._handle_block_bodies(peer, list(cast(Tuple[eth.BlockBody], msg)))
-        elif isinstance(cmd, eth.NewBlock):
-            await self._handle_new_block(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, eth.GetBlockHeaders):
-            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, eth.GetBlockBodies):
-            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
-            await self._handler.handle_get_block_bodies(peer, cast(List[Hash32], msg))
-        elif isinstance(cmd, eth.GetReceipts):
-            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
-            await self._handler.handle_get_receipts(peer, block_hashes)
-        elif isinstance(cmd, eth.GetNodeData):
-            # Only serve up to eth.MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
-            await self._handler.handle_get_node_data(peer, node_hashes)
-        else:
-            self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
+    async def _handle_block_receipts(
+            self, peer: ETHPeer, receipts_by_block: List[List[eth.Receipt]]) -> None:
+        # When doing a regular sync we never request receipts.
+        self.logger.warn("Unexpected BlockReceipts msg from %s", peer)
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
@@ -599,7 +599,7 @@ class RegularChainSyncer(FastChainSyncer):
                 transactions: List[BaseTransaction] = []
                 uncles: List[BlockHeader] = []
             else:
-                body = cast(eth.BlockBody, downloaded_parts[_body_key(header)])
+                body = cast(BlockBody, downloaded_parts[_body_key(header)])
                 tx_class = block_class.get_transaction_class()
                 transactions = [tx_class.from_base_transaction(tx)
                                 for tx in body.transactions]
@@ -624,6 +624,7 @@ class PeerRequestHandler(CancellableMixin):
         self.cancel_token = token
 
     async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        self.logger.trace("%s requested bodies for %d blocks", peer, len(block_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         bodies = []
         for block_hash in block_hashes:
@@ -636,9 +637,11 @@ class PeerRequestHandler(CancellableMixin):
                 chaindb.coro_get_block_transactions(header, BaseTransactionFields))
             uncles = await self.wait(chaindb.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
+        self.logger.trace("Replying to %s with %d block bodies", peer, len(bodies))
         peer.sub_proto.send_block_bodies(bodies)
 
     async def handle_get_receipts(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        self.logger.trace("%s requested receipts for %d blocks", peer, len(block_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         receipts = []
         for block_hash in block_hashes:
@@ -650,9 +653,11 @@ class PeerRequestHandler(CancellableMixin):
                 continue
             block_receipts = await self.wait(chaindb.coro_get_receipts(header, Receipt))
             receipts.append(block_receipts)
+        self.logger.trace("Replying to %s with receipts for %d blocks", peer, len(receipts))
         peer.sub_proto.send_receipts(receipts)
 
     async def handle_get_node_data(self, peer: ETHPeer, node_hashes: List[Hash32]) -> None:
+        self.logger.trace("%s requested %d trie nodes", peer, len(node_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         nodes = []
         for node_hash in node_hashes:
@@ -662,6 +667,7 @@ class PeerRequestHandler(CancellableMixin):
                 self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
                 continue
             nodes.append(node)
+        self.logger.trace("Replying to %s with %d trie nodes", peer, len(nodes))
         peer.sub_proto.send_node_data(nodes)
 
     async def lookup_headers(self, block_number_or_hash: Union[int, bytes], max_headers: int,
@@ -731,7 +737,7 @@ class PeerRequestHandler(CancellableMixin):
 
 
 class DownloadedBlockPart(NamedTuple):
-    part: Union[eth.BlockBody, List[Receipt]]
+    part: Union[BlockBody, List[Receipt]]
     unique_key: Union[bytes, Tuple[bytes, bytes]]
 
 
