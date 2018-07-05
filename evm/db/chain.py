@@ -32,6 +32,7 @@ from eth_utils import (
 from eth_hash.auto import keccak
 
 from evm.constants import (
+    EMPTY_UNCLE_HASH,
     GENESIS_PARENT_HASH,
 )
 from evm.exceptions import (
@@ -39,6 +40,7 @@ from evm.exceptions import (
     HeaderNotFound,
     ParentNotFound,
     TransactionNotFound,
+    ValidationError,
 )
 from evm.db.header import BaseHeaderDB, HeaderDB
 from evm.db.backends.base import (
@@ -171,6 +173,8 @@ class ChainDB(HeaderDB, BaseChainDB):
         Returns an iterable of uncle headers specified by the given uncles_hash
         """
         validate_word(uncles_hash, title="Uncles Hash")
+        if uncles_hash == EMPTY_UNCLE_HASH:
+            return []
         try:
             encoded_uncles = self.db[uncles_hash]
         except KeyError:
@@ -268,9 +272,14 @@ class ChainDB(HeaderDB, BaseChainDB):
             for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
                 self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
-        if hasattr(block, "uncles"):
+        if block.uncles:
             uncles_hash = self.persist_uncles(block.uncles)
-            assert uncles_hash == block.header.uncles_hash
+        else:
+            uncles_hash = EMPTY_UNCLE_HASH
+        if uncles_hash != block.header.uncles_hash:
+            raise ValidationError(
+                "Block's uncles_hash (%s) does not match actual uncles' hash (%s)",
+                block.header.uncles_hash, uncles_hash)
 
     def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
         """
