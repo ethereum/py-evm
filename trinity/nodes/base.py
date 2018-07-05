@@ -41,11 +41,11 @@ from trinity.rpc.ipc import (
 from trinity.config import (
     ChainConfig,
 )
-from trinity.tx_pool.pool import (
-    TxPool
+from trinity.extensibility import (
+    PluginManager,
 )
-from trinity.tx_pool.validators import (
-    DefaultTransactionValidator
+from trinity.extensibility.events import (
+    ResourceAvailableEvent
 )
 
 
@@ -55,11 +55,10 @@ class Node(BaseService):
     unset attributes.
     """
     chain_class: Type[BaseChain] = None
-    initial_tx_validation_block_number: int = None
 
-    def __init__(self, chain_config: ChainConfig) -> None:
+    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
         super().__init__()
-
+        self._plugin_manager = plugin_manager
         self._db_manager = create_db_manager(chain_config.database_ipc_path)
         self._db_manager.connect()  # type: ignore
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
@@ -100,13 +99,22 @@ class Node(BaseService):
         else:
             self._auxiliary_services.append(service)
 
-    def create_and_add_tx_pool(self) -> None:
-        self.tx_pool = TxPool(
-            self.get_peer_pool(),
-            DefaultTransactionValidator(self.get_chain(), self.initial_tx_validation_block_number),
-            self.cancel_token
-        )
-        self.add_service(self.tx_pool)
+    def notify_resource_available(self) -> None:
+
+        # We currently need this to give plugins the chance to start as soon
+        # as the `PeerPool` is available. In the long term, the peer pool may become
+        # a plugin itself and we can get rid of this.
+        self._plugin_manager.broadcast(ResourceAvailableEvent(
+            resource=(self.get_peer_pool(), self.cancel_token),
+            resource_type=PeerPool
+        ))
+
+        # This broadcasts the *local* chain, which is suited for tasks that aren't blocking
+        # for too long. There may be value in also broadcasting the proxied chain.
+        self._plugin_manager.broadcast(ResourceAvailableEvent(
+            resource=self.get_chain(),
+            resource_type=BaseChain
+        ))
 
     def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
         if self._jsonrpc_ipc_path:

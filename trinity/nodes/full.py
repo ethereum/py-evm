@@ -13,21 +13,24 @@ from trinity.nodes.base import Node
 from trinity.config import (
     ChainConfig,
 )
+from trinity.extensibility import (
+    PluginManager
+)
 
 
 class FullNode(Node):
     _chain: BaseChain = None
     _p2p_server: Server = None
 
-    def __init__(self, chain_config: ChainConfig) -> None:
-        super().__init__(chain_config)
+    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
+        super().__init__(plugin_manager, chain_config)
         self._bootstrap_nodes = chain_config.bootstrap_nodes
         self._preferred_nodes = chain_config.preferred_nodes
         self._network_id = chain_config.network_id
         self._node_key = chain_config.nodekey
         self._node_port = chain_config.port
         self._max_peers = chain_config.max_peers
-        self.create_and_add_tx_pool()
+        self.notify_resource_available()
 
     def get_chain(self) -> BaseChain:
         if self._chain is None:
