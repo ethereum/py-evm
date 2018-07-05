@@ -835,6 +835,7 @@ class PeerPool(BaseService):
         """
         peer = cast(BasePeer, peer)
         if peer.remote in self.connected_nodes:
+            self.logger.info("%s finished, removing from pool", peer)
             self.connected_nodes.pop(peer.remote)
 
     @property
