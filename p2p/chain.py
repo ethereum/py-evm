@@ -400,7 +400,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
         target_td = await self._calculate_td(headers)
-        await self._download_block_parts(
+        bodies = await self._download_block_parts(
             target_td,
             [header for header in headers if not _is_body_empty(header)],
             self.request_bodies,
@@ -423,10 +423,18 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             'receipt')
         self.logger.debug("Got block receipts for chain segment")
 
-        # FIXME: Get the bodies returned by self._download_block_parts above and use persit_block
-        # here.
         for header in headers:
-            await self.wait(self.db.coro_persist_header(header))
+            if header.uncles_hash != EMPTY_UNCLE_HASH:
+                body = cast(BlockBody, bodies[_body_key(header)])
+                uncles = body.uncles
+            else:
+                uncles = tuple()
+            vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
+            block_class = vm_class.get_block_class()
+            # We don't need to use our block transactions here because persist_block() doesn't do
+            # anything with them as it expects them to have been persisted already.
+            block = block_class(header, uncles=uncles)
+            await self.wait(self.db.coro_persist_block(block))
 
         head = await self.wait(self.db.coro_get_canonical_head())
         return head.block_number
@@ -438,7 +446,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             request_func: Callable[[int, List[BlockHeader]], int],
             download_queue: 'asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
-            part_name: str) -> 'List[DownloadedBlockPart]':
+            part_name: str
+    ) -> 'Dict[Union[bytes, Tuple[bytes, bytes]], Union[BlockBody, List[Receipt]]]':
         """Download block parts for the given headers, using the given request_func.
 
         Retry timed out parts until we have the parts for all headers.
@@ -483,7 +492,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 if key_func(header) not in received_keys
             ]
 
-        return parts
+        return dict((part.unique_key, part.part) for part in parts)
 
     def _request_block_parts(
             self,
@@ -577,7 +586,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         # TODO: figure out why mypy is losing the type of the transactions_tries
         # so we can get rid of the ignore
-        for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):  # type: ignore # noqa: E501
+        for (body, (tx_root, trie_dict_data)) in zip(bodies, transactions_tries):  # type: ignore
             await self.wait(self.db.coro_persist_trie_data_dict(trie_dict_data))
             uncles_hash = await self.wait(self.db.coro_persist_uncles(body.uncles))
             downloaded.append(DownloadedBlockPart(body, (tx_root, uncles_hash)))
@@ -686,7 +695,6 @@ class RegularChainSyncer(FastChainSyncer):
             'body')
         self.logger.info("Got block bodies for chain segment")
 
-        parts_by_key = dict((part.unique_key, part.part) for part in downloaded_parts)
         for header in headers:
             vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
             block_class = vm_class.get_block_class()
@@ -695,7 +703,7 @@ class RegularChainSyncer(FastChainSyncer):
                 transactions: List[BaseTransaction] = []
                 uncles: List[BlockHeader] = []
             else:
-                body = cast(eth.BlockBody, parts_by_key[_body_key(header)])
+                body = cast(eth.BlockBody, downloaded_parts[_body_key(header)])
                 tx_class = block_class.get_transaction_class()
                 transactions = [tx_class.from_base_transaction(tx)
                                 for tx in body.transactions]

@@ -14,6 +14,7 @@ from typing import (
 from eth_typing import Hash32
 
 from evm.db.chain import ChainDB
+from evm.rlp.blocks import BaseBlock
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction
@@ -27,6 +28,9 @@ from trinity.utils.mp import (
 
 class AsyncChainDB(ChainDB, AsyncHeaderDB):
     async def coro_get(self, key: bytes) -> bytes:
+        raise NotImplementedError()
+
+    async def coro_persist_block(self, block: BaseBlock) -> None:
         raise NotImplementedError()
 
     async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
@@ -58,6 +62,7 @@ class ChainDBProxy(BaseProxy):
     coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
     coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')
     coro_persist_header = async_method('persist_header')
+    coro_persist_block = async_method('persist_block')
     coro_persist_uncles = async_method('persist_uncles')
     coro_persist_trie_data_dict = async_method('persist_trie_data_dict')
     coro_get_block_transactions = async_method('get_block_transactions')
