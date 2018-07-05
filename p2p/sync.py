@@ -1,16 +1,20 @@
 import logging
 import time
+from typing import TYPE_CHECKING
 
 from evm.chains import AsyncChain
 from evm.constants import BLANK_ROOT_HASH
 from evm.db.backends.base import BaseDB
-from evm.db.chain import AsyncChainDB
 
 from p2p.cancel_token import CancelToken
 from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
 from p2p.service import BaseService
 from p2p.state import StateDownloader
+
+
+if TYPE_CHECKING:
+    from trinity.db.chain import AsyncChainDB  # noqa: F401
 
 
 # How old (in seconds) must our local head be to cause us to start with a fast-sync before we
@@ -20,13 +24,13 @@ FAST_SYNC_CUTOFF = 60 * 60 * 24
 
 class FullNodeSyncer(BaseService):
     chain: AsyncChain = None
-    chaindb: AsyncChainDB = None
+    chaindb: 'AsyncChainDB' = None
     base_db: BaseDB = None
     peer_pool: PeerPool = None
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'AsyncChainDB',
                  base_db: BaseDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:

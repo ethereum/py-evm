@@ -2,11 +2,9 @@ import functools
 import itertools
 
 from abc import (
-    ABC,
     abstractmethod
 )
 from typing import (
-    cast,
     Dict,
     Iterable,
     List,
@@ -42,6 +40,7 @@ from evm.exceptions import (
     ParentNotFound,
     TransactionNotFound,
 )
+from evm.db.header import BaseHeaderDB, HeaderDB
 from evm.db.backends.base import (
     BaseDB
 )
@@ -56,7 +55,6 @@ from evm.utils.hexadecimal import (
     encode_hex,
 )
 from evm.validation import (
-    validate_uint256,
     validate_word,
 )
 
@@ -76,7 +74,7 @@ class TransactionKey(rlp.Serializable):
     ]
 
 
-class BaseChainDB(ABC):
+class BaseChainDB(BaseHeaderDB):
     db = None  # type: BaseDB
 
     @abstractmethod
@@ -84,41 +82,10 @@ class BaseChainDB(ABC):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
-    # Canonical Chain API
-    #
-    @abstractmethod
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_canonical_head(self) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
     # Header API
     #
     @abstractmethod
-    def header_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
     def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -192,77 +159,13 @@ class BaseChainDB(ABC):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
-class ChainDB(BaseChainDB):
+class ChainDB(HeaderDB, BaseChainDB):
     def __init__(self, db: BaseDB) -> None:
         self.db = db
 
     #
-    # Canonical Chain API
-    #
-    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        """
-        Return the block hash for the given block number.
-        """
-        validate_uint256(block_number, title="Block Number")
-        number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block_number)
-        try:
-            return rlp.decode(
-                self.db[number_to_hash_key],
-                sedes=rlp.sedes.binary,
-            )
-        except KeyError:
-            raise HeaderNotFound(
-                "No header found on the canonical chain with number {0}".format(block_number)
-            )
-
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
-        """
-        Returns the block header with the given number in the canonical chain.
-
-        Raises HeaderNotFound if there's no block header with the given number in the
-        canonical chain.
-        """
-        validate_uint256(block_number, title="Block Number")
-        return self.get_block_header_by_hash(self.get_canonical_block_hash(block_number))
-
-    def get_canonical_head(self) -> BlockHeader:
-        """
-        Returns the current block header at the head of the chain.
-
-        Raises CanonicalHeadNotFound if no canonical head has been set.
-        """
-        try:
-            canonical_head_hash = self.db[SchemaV1.make_canonical_head_hash_lookup_key()]
-        except KeyError:
-            raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return self.get_block_header_by_hash(
-            cast(Hash32, canonical_head_hash),
-        )
-
-    #
     # Header API
     #
-    def header_exists(self, block_hash: Hash32) -> bool:
-        """
-        Returns True if the header with the given hash is in our DB.
-        """
-        return self.db.exists(block_hash)
-
-    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        """
-        Returns the requested block header as specified by block hash.
-
-        Raises HeaderNotFound if it is not present in the db.
-        """
-        validate_word(block_hash, title="Block Hash")
-        try:
-            header_rlp = self.db[block_hash]
-        except KeyError:
-            raise HeaderNotFound(
-                "No header with hash {0} found".format(encode_hex(block_hash))
-            )
-        return _decode_block_header(header_rlp)
-
     def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
         """
         Returns an iterable of uncle headers specified by the given uncles_hash
@@ -276,24 +179,6 @@ class ChainDB(BaseChainDB):
             )
         else:
             return rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader))
-
-    def get_score(self, block_hash: Hash32) -> int:
-        """
-        Returns the score for the header with the given hash.
-
-        Raises HeaderNotFound if no header with the given has is found in the database.
-        """
-        try:
-            encoded_score = self.db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
-        except KeyError:
-            raise HeaderNotFound(
-                "No header with hash {0} found".format(encode_hex(block_hash))
-            )
-        else:
-            return rlp.decode(
-                encoded_score,
-                sedes=rlp.sedes.big_endian_int,
-            )
 
     # TODO: This method should take a chain of headers as that's the most common use case
     # and it'd be much faster than inserting each header individually.
@@ -367,52 +252,6 @@ class ChainDB(BaseChainDB):
         self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
         return new_canonical_headers
-
-    @to_tuple
-    def _find_new_ancestors(self, header: BlockHeader) -> Iterable[BlockHeader]:
-        """
-        Returns the chain leading up from the given header until (but not including)
-        the first ancestor it has in common with our canonical chain.
-
-        If D is the canonical head in the following chain, and F is the new header,
-        then this function returns (F, E).
-
-        A - B - C - D
-               \
-                E - F
-        """
-        h = header
-        while True:
-            try:
-                orig = self.get_canonical_block_header_by_number(h.block_number)
-            except HeaderNotFound:
-                # This just means the block is not on the canonical chain.
-                pass
-            else:
-                if orig.hash == h.hash:
-                    # Found the common ancestor, stop.
-                    break
-
-            # Found a new ancestor
-            yield h
-
-            if h.parent_hash == GENESIS_PARENT_HASH:
-                break
-            else:
-                h = self.get_block_header_by_hash(h.parent_hash)
-
-    def _add_block_number_to_hash_lookup(self, header: BlockHeader) -> None:
-        """
-        Sets a record in the database to allow looking up this header by its
-        block number.
-        """
-        block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(
-            header.block_number
-        )
-        self.db.set(
-            block_number_to_hash_key,
-            rlp.encode(header.hash, sedes=rlp.sedes.binary),
-        )
 
     #
     # Block API
@@ -622,58 +461,3 @@ class ChainDB(BaseChainDB):
         """
         for key, value in trie_data_dict.items():
             self.db[key] = value
-
-
-# When performing a chain sync (either fast or regular modes), we'll very often need to look
-# up recent block headers to validate the chain, and decoding their RLP representation is
-# relatively expensive so we cache that here, but use a small cache because we *should* only
-# be looking up recent blocks.
-@functools.lru_cache(128)
-def _decode_block_header(header_rlp: bytes) -> BlockHeader:
-    return rlp.decode(header_rlp, sedes=BlockHeader)
-
-
-class AsyncChainDB(ChainDB):
-    async def coro_get(self, key: bytes) -> bytes:
-        raise NotImplementedError()
-
-    async def coro_get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError()
-
-    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        raise NotImplementedError()
-
-    async def coro_get_canonical_head(self) -> BlockHeader:
-        raise NotImplementedError()
-
-    async def coro_get_canonical_block_header_by_number(
-            self, block_number: BlockNumber) -> BlockHeader:
-        raise NotImplementedError()
-
-    async def coro_header_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError()
-
-    async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        raise NotImplementedError()
-
-    async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError()
-
-    async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
-        raise NotImplementedError()
-
-    async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
-        raise NotImplementedError()
-
-    async def coro_get_block_transactions(
-            self,
-            header: BlockHeader,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
-        raise NotImplementedError()
-
-    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
-        raise NotImplementedError()
-
-    async def coro_get_receipts(
-            self, header: BlockHeader, receipt_class: Type[Receipt]) -> List[Receipt]:
-        raise NotImplementedError()

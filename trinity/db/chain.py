@@ -3,11 +3,50 @@
 from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
+from typing import (
+    Dict,
+    Iterable,
+    List,
+    Tuple,
+    Type,
+)
 
+from eth_typing import Hash32
+
+from evm.db.chain import ChainDB
+from evm.rlp.headers import BlockHeader
+from evm.rlp.receipts import Receipt
+from evm.rlp.transactions import BaseTransaction
+
+from trinity.db.header import AsyncHeaderDB
 from trinity.utils.mp import (
     async_method,
     sync_method,
 )
+
+
+class AsyncChainDB(ChainDB, AsyncHeaderDB):
+    async def coro_get(self, key: bytes) -> bytes:
+        raise NotImplementedError()
+
+    async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
+        raise NotImplementedError()
+
+    async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
+        raise NotImplementedError()
+
+    async def coro_get_block_transactions(
+            self,
+            header: BlockHeader,
+            transaction_class: Type[BaseTransaction]) -> Iterable[BaseTransaction]:
+        raise NotImplementedError()
+
+    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
+        raise NotImplementedError()
+
+    async def coro_get_receipts(
+            self, header: BlockHeader, receipt_class: Type[Receipt]) -> List[Receipt]:
+        raise NotImplementedError()
 
 
 class ChainDBProxy(BaseProxy):

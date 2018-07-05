@@ -12,6 +12,7 @@ from typing import (
     NamedTuple,
     Tuple,
     Type,
+    TYPE_CHECKING,
     Union,
     cast,
 )
@@ -26,7 +27,6 @@ from eth_typing import BlockNumber, Hash32
 from evm.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
 from evm.chains import AsyncChain
-from evm.db.chain import AsyncChainDB
 from evm.db.trie import make_trie_root_and_nodes
 from evm.exceptions import HeaderNotFound, ValidationError
 from evm.rlp.headers import BlockHeader
@@ -45,6 +45,10 @@ from p2p.service import BaseService
 from p2p.utils import (
     get_process_pool_executor,
 )
+
+
+if TYPE_CHECKING:
+    from trinity.db.chain import AsyncChainDB  # noqa: F401
 
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
@@ -67,7 +71,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'AsyncChainDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -366,7 +370,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     def __init__(self,
                  chain: AsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: 'AsyncChainDB',
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(chain, chaindb, peer_pool, token)
