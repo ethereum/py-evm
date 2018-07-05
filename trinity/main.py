@@ -1,3 +1,4 @@
+from argparse import Namespace
 import asyncio
 import logging
 import signal
@@ -32,6 +33,15 @@ from trinity.cli_parser import (
 )
 from trinity.config import (
     ChainConfig,
+)
+from trinity.extensibility import (
+    PluginManager,
+)
+from trinity.extensibility.events import (
+    TrinityStartupEvent
+)
+from trinity.plugins.registry import (
+    ENABLED_PLUGINS
 )
 from trinity.utils.ipc import (
     wait_for_ipc,
@@ -81,6 +91,8 @@ TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
 
 
 def main() -> None:
+    plugin_manager = setup_plugins()
+    plugin_manager.amend_argparser_config(parser)
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
@@ -154,7 +166,7 @@ def main() -> None:
 
     networking_process = ctx.Process(
         target=launch_node,
-        args=(chain_config, ),
+        args=(args, chain_config, ),
         kwargs=extra_kwargs,
     )
 
@@ -230,9 +242,21 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(chain_config: ChainConfig) -> None:
+def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
     NodeClass = chain_config.node_class
-    node = NodeClass(chain_config)
+    # Temporary hack: We setup a second instance of the PluginManager.
+    # The first instance was only to configure the ArgumentParser whereas
+    # for now, the second instance that lives inside the networking process
+    # performs the bulk of the work. In the future, the PluginManager
+    # should probably live in its own process and manage whether plugins
+    # run in the shared plugin process or spawn their own.
+    plugin_manager = setup_plugins()
+    plugin_manager.broadcast(TrinityStartupEvent(
+        args,
+        chain_config
+    ))
+
+    node = NodeClass(plugin_manager, chain_config)
 
     run_service_until_quit(node)
 
@@ -250,3 +274,11 @@ def run_service_until_quit(service: BaseService) -> None:
     asyncio.ensure_future(service.run())
     loop.run_forever()
     loop.close()
+
+
+def setup_plugins() -> PluginManager:
+    plugin_manager = PluginManager()
+    # TODO: Implement auto-discovery of plugins based on some convention/configuration scheme
+    plugin_manager.register(ENABLED_PLUGINS)
+
+    return plugin_manager

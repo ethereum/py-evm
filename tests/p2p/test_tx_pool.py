@@ -13,10 +13,10 @@ from evm.utils.address import (
     force_bytes_to_address
 )
 
-from trinity.tx_pool.pool import (
+from trinity.plugins.builtin.tx_pool.pool import (
     TxPool,
 )
-from trinity.tx_pool.validators import (
+from trinity.plugins.builtin.tx_pool.validators import (
     DefaultTransactionValidator
 )
 
