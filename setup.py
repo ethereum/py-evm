@@ -42,6 +42,7 @@ deps = {
         "web3==4.3.0",
         # required for rlp>=1.0.0
         "eth-account>=0.2.1,<1",
+        "cachetools==2.1.*",
     ],
     'test': [
         "hypothesis==3.44.26",

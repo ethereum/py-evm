@@ -1,3 +1,5 @@
+import cachetools.func
+
 from typing import (
     Type
 )
@@ -45,6 +47,7 @@ class DefaultTransactionValidator():
         else:
             return True
 
+    @cachetools.func.ttl_cache(maxsize=1024, ttl=300)
     def get_appropriate_tx_class(self) -> Type[BaseTransaction]:
         current_tx_class = self.chain.get_vm_class().get_transaction_class()
         # If the current head of the chain is still on a fork that is before the currently
