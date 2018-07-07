@@ -49,9 +49,13 @@ FUNDED_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
 
 FUNDED_ADDRESS = Address(FUNDED_ADDRESS_PRIVATE_KEY.public_key.to_canonical_address())
 
-DEFAULT_INITIAL_BALANCE = to_wei(1000, 'ether')
+DEFAULT_INITIAL_BALANCE = to_wei(10000, 'ether')
 
-SECOND_EXISTING_ADDRESS = Address(b'\0' * 19 + b'\x02')
+SECOND_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
+    decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d0')
+)
+
+SECOND_ADDRESS = Address(SECOND_ADDRESS_PRIVATE_KEY.public_key.to_canonical_address())
 
 GENESIS_PARAMS = {
     'parent_hash': constants.GENESIS_PARENT_HASH,
@@ -107,10 +111,10 @@ def get_chain(vm: Type[BaseVM]) -> MiningChain:
                 code=b''
             ),
             AddressSetup(
-                address=SECOND_EXISTING_ADDRESS,
+                address=SECOND_ADDRESS,
                 balance=DEFAULT_INITIAL_BALANCE,
                 code=b''
-            )
+            ),
         ])
     )
 
