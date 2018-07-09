@@ -8,7 +8,7 @@ from typing import (
     Callable,
     List,
     Optional,
-    TypeVar
+    TypeVar,
     cast,
 )
 

@@ -11,7 +11,6 @@ from eth_utils import (
 from eth_hash.auto import keccak
 
 from evm.chains.ropsten import (
-    RopstenChain,
     ROPSTEN_NETWORK_ID,
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_VM_CONFIGURATION,
