@@ -42,7 +42,7 @@ deps = {
         "web3==4.3.0",
         # required for rlp>=1.0.0
         "eth-account>=0.2.1,<1",
-        "cachetools==2.1.*",
+        "cachetools>=2.1.0,<3.0.0",
     ],
     'test': [
         "hypothesis==3.44.26",
@@ -57,7 +57,7 @@ deps = {
         "mypy==0.610",
     ],
     'benchmark': [
-        "termcolor==1.1.*",
+        "termcolor>=1.1.0,<2.0.0",
         "web3>=4.1.0,<5.0.0",
     ],
     'doc': [
