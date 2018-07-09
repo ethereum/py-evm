@@ -19,6 +19,13 @@ from checks.erc20_interact import (
     ERC20ApproveBenchmark,
     ERC20TransferFromBenchmark,
 )
+from checks.deploy_dos import (
+    DOSContractDeployBenchmark,
+    DOSContractSstoreUint64Benchmark,
+    DOSContractCreateEmptyContractBenchmark,
+    DOSContractRevertSstoreUint64Benchmark,
+    DOSContractRevertCreateEmptyContractBenchmark,
+)
 
 from checks.simple_value_transfers import (
     TO_EXISTING_ADDRESS_CONFIG,
@@ -77,6 +84,11 @@ def run() -> None:
         ERC20TransferBenchmark(),
         ERC20ApproveBenchmark(),
         ERC20TransferFromBenchmark(),
+        DOSContractDeployBenchmark(),
+        DOSContractSstoreUint64Benchmark(),
+        DOSContractCreateEmptyContractBenchmark(),
+        DOSContractRevertSstoreUint64Benchmark(),
+        DOSContractRevertCreateEmptyContractBenchmark(),
     ]
 
     for benchmark in benchmarks:
