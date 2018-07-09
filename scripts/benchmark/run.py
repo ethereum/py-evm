@@ -14,7 +14,10 @@ from checks import (
 )
 
 from checks.erc20_interact import (
-    ERC20Interact,
+    ERC20DeployBenchmark,
+    ERC20TransferBenchmark,
+    ERC20ApproveBenchmark,
+    ERC20TransferFromBenchmark,
 )
 
 from checks.simple_value_transfers import (
@@ -70,7 +73,10 @@ def run() -> None:
         ImportEmptyBlocksBenchmark(),
         SimpleValueTransferBenchmark(TO_EXISTING_ADDRESS_CONFIG),
         SimpleValueTransferBenchmark(TO_NON_EXISTING_ADDRESS_CONFIG),
-        ERC20Interact(),
+        ERC20DeployBenchmark(),
+        ERC20TransferBenchmark(),
+        ERC20ApproveBenchmark(),
+        ERC20TransferFromBenchmark(),
     ]
 
     for benchmark in benchmarks:
