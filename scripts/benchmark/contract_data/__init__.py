@@ -5,7 +5,8 @@ from typing import (
 CONTRACTS_ROOT = "./scripts/benchmark/contract_data/"
 
 CONTRACTS = [
-    "erc20.sol"
+    "erc20.sol",
+    "DOSContract.sol"
 ]
 
 
