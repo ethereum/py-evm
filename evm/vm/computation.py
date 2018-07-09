@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 import itertools
+from juno import juno_execute
 import logging
 from typing import (  # noqa: F401
     Any,
@@ -537,20 +538,25 @@ class BaseComputation(Configurable, ABC):
                 computation.precompiles[message.code_address](computation)
                 return computation
 
-            for opcode in computation.code:
-                opcode_fn = computation.get_opcode_fn(opcode)
+            # Hand off execution of WASM code
+            if computation.code[0:8] == b'\x00asm\x01\x00\x00\x00':
+                juno_execute(state, message, transaction_context, computation)
 
-                computation.logger.trace(
-                    "OPCODE: 0x%x (%s) | pc: %s",
-                    opcode,
-                    opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
-                )
+            else:
+                for opcode in computation.code:
+                    opcode_fn = computation.get_opcode_fn(opcode)
 
-                try:
-                    opcode_fn(computation=computation)
-                except Halt:
-                    break
+                    computation.logger.trace(
+                        "OPCODE: 0x%x (%s) | pc: %s",
+                        opcode,
+                        opcode_fn.mnemonic,
+                        max(0, computation.code.pc - 1),
+                    )
+
+                    try:
+                        opcode_fn(computation=computation)
+                    except Halt:
+                        break
         return computation
 
     #

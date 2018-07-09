@@ -69,3 +69,4 @@ monkeytype.sqlite3
 
 # pyenv
 .python-version
+.idea
