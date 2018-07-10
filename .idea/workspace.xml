@@ -2,37 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="50456814-c327-4490-a3c8-753cda3a604d" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.chain.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.db.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.exceptions.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.rlp.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.vm.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.account.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.backends.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.chain.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.journal.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/index.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.accounts.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.blocks.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.collation.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.headers.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.logs.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.receipts.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.transactions.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.code_stream.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.computation.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.execution_context.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.forks.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.gas_meter.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.memory.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.message.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.opcode.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.stack.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.state.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.transaction_context.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.vm.rst" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/docs/conf.py" afterPath="$PROJECT_DIR$/docs/conf.py" />
+      <change beforePath="$PROJECT_DIR$/docs/guides/evm/building_chains.rst" afterPath="$PROJECT_DIR$/docs/guides/evm/building_chains.rst" />
+      <change beforePath="$PROJECT_DIR$/docs/guides/evm/creating_opcodes.rst" afterPath="$PROJECT_DIR$/docs/guides/evm/creating_opcodes.rst" />
+      <change beforePath="$PROJECT_DIR$/docs/guides/evm/quickstart.rst" afterPath="$PROJECT_DIR$/docs/guides/evm/quickstart.rst" />
+      <change beforePath="$PROJECT_DIR$/docs/guides/evm/understanding_the_mining_process.rst" afterPath="$PROJECT_DIR$/docs/guides/evm/understanding_the_mining_process.rst" />
+      <change beforePath="$PROJECT_DIR$/docs/guides/trinity/architecture.rst" afterPath="$PROJECT_DIR$/docs/guides/trinity/architecture.rst" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -42,18 +16,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="index.rst" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/docs/api/trinity/index.rst">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-30">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
@@ -67,11 +30,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/opcodes.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/state.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/transactions.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/utils.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/state.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/opcodes.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/computation.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/__init__.py" />
@@ -118,6 +76,11 @@
         <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.state.rst" />
         <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.code_stream.rst" />
         <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.computation.rst" />
+        <option value="$PROJECT_DIR$/docs/guides/evm/building_chains.rst" />
+        <option value="$PROJECT_DIR$/docs/guides/evm/creating_opcodes.rst" />
+        <option value="$PROJECT_DIR$/docs/guides/evm/quickstart.rst" />
+        <option value="$PROJECT_DIR$/docs/guides/evm/understanding_the_mining_process.rst" />
+        <option value="$PROJECT_DIR$/docs/guides/trinity/architecture.rst" />
       </list>
     </option>
   </component>
@@ -154,12 +117,6 @@
               <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
               <item name="py-evm" type="462c0819:PsiDirectoryNode" />
               <item name="docs" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
-              <item name="py-evm" type="462c0819:PsiDirectoryNode" />
-              <item name="docs" type="462c0819:PsiDirectoryNode" />
-              <item name="api" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -230,119 +187,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/swap.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/system.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/base.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/header.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/shard.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/ropsten/constants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/ropsten/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/mainnet/constants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/chains/mainnet/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/consensus/pow.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-30">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/consensus/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.circleci/config.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1224">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.github/ISSUE_TEMPLATE.md">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.github/PULL_REQUEST_TEMPLATE.md">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/docs/conf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="279">
-          <caret line="150" column="25" lean-forward="false" selection-start-line="150" selection-start-column="21" selection-end-line="150" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/docs/contributing.rst">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -615,7 +459,129 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/docs/fragments/virtualenv_explainer.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="9" column="0" lean-forward="true" selection-start-line="9" selection-start-column="0" selection-end-line="9" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/docs/api/trinity/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/architecture.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="276">
+          <caret line="33" column="0" lean-forward="true" selection-start-line="33" selection-start-column="0" selection-end-line="33" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/building_chains.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="296">
+          <caret line="37" column="10" lean-forward="false" selection-start-line="37" selection-start-column="10" selection-end-line="37" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/creating_opcodes.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="67" column="33" lean-forward="false" selection-start-line="67" selection-start-column="33" selection-end-line="67" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/quickstart.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="755">
+          <caret line="88" column="12" lean-forward="false" selection-start-line="88" selection-start-column="12" selection-end-line="88" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/evm/understanding_the_mining_process.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="330">
+          <caret line="319" column="12" lean-forward="false" selection-start-line="319" selection-start-column="12" selection-end-line="319" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/trinity/quickstart.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="123">
+          <caret line="9" column="32" lean-forward="false" selection-start-line="9" selection-start-column="32" selection-end-line="9" selection-end-column="32" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/trinity/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="68">
+          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/trinity/architecture.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="363">
+          <caret line="99" column="42" lean-forward="false" selection-start-line="99" selection-start-column="42" selection-end-line="99" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/guides/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/images/trinity_layers.png">
+      <provider selected="true" editor-type-id="images">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/images/trinity_processes.png">
+      <provider selected="true" editor-type-id="images">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/release_notes/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/release_notes/trinity.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/code_of_conduct.rst">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />

@@ -1,7 +1,7 @@
 Creating Opcodes
 ================
 
-An opcode is just a function which takes a :class:`~evm.vm.computation.BaseComputation`
+An opcode is just a function which takes a :class:`~eth.vm.computation.BaseComputation`
 instance as it's sole argument.  If an opcode function has a return value, this
 value will be discarded during normal VM execution.
 
@@ -22,7 +22,7 @@ Here are some simple examples.
         computation.consume_gas(5, reason='why not?')
 
 
-The :func:`~evm.vm.opcode.as_opcode` helper
+The :func:`~eth.vm.opcode.as_opcode` helper
 -------------------------------------------
 
 
@@ -32,10 +32,10 @@ an abstraction which allows for decoupling of gas consumption from opcode logic
 which can be convenient for cases where an opcode's gas cost changes between
 different VM rules but its logic remains constant.
 
-.. py:function:: evm.vm.opcode.as_opcode(logic_fn, mnemonic, gas_cost)
+.. py:function:: eth.vm.opcode.as_opcode(logic_fn, mnemonic, gas_cost)
 
     * The ``logic_fn`` argument should be a callable conforming to the opcode
-      API, taking a `~evm.vm.computation.Computation` instance as its sole
+      API, taking a `~eth.vm.computation.Computation` instance as its sole
       argument.
     * The ``mnemonic`` is a string such as ``'ADD'`` or ``'MUL'``.
     * The ``gas_cost`` is the gas cost to execute this opcode.
@@ -44,7 +44,7 @@ different VM rules but its logic remains constant.
     execution of the ``logic_fn``.
 
 
-Usage of the :func:`~evm.vm.opcode.as_opcode` helper:
+Usage of the :func:`~eth.vm.opcode.as_opcode` helper:
 
 
 .. code-block:: python
@@ -65,7 +65,7 @@ Sometimes it may be helpful to share common logic between similar opcodes, or
 the same opcode across multiple fork rules.  In these cases, implementing
 opcodes as classes *may* be the right choice.  This is as simple as
 implementing a ``__call__`` method on your class which conforms to the opcode
-API, taking a single :class:`~evm.vm.computation.Computation` instance as the sole
+API, taking a single :class:`~eth.vm.computation.Computation` instance as the sole
 argument.
 
 .. code-block:: python

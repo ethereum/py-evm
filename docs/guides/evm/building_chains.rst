@@ -10,17 +10,17 @@ for different spans of blocks. For example, the Ethereum mainnet had
 one virtual machine for blocks 0 till 1150000 (known as Frontier),
 and another VM for blocks 1150000 till 1920000 (known as Homestead).
 
-The :class:`~evm.chains.chain.Chain` object manages the series of fork rules,
+The :class:`~eth.chains.chain.Chain` object manages the series of fork rules,
 after you define the VM ranges. For example, to set up a chain that would track
 the mainnet Ethereum network until block 1920000, you could create this chain
 class:
 
 ::
 
-  from evm import constants, Chain
-  from evm.vm.forks.frontier import FrontierVM
-  from evm.vm.forks.homestead import HomesteadVM
-  from evm.chains.mainnet import HOMESTEAD_MAINNET_BLOCK
+  from eth import constants, Chain
+  from eth.vm.forks.frontier import FrontierVM
+  from eth.vm.forks.homestead import HomesteadVM
+  from eth.chains.mainnet import HOMESTEAD_MAINNET_BLOCK
 
   chain_class = Chain.configure(
       __name__='Test Chain',
@@ -34,8 +34,8 @@ Then to initialize, you can start it up with an in-memory database:
 
 ::
 
-  from evm.db.backends.memory import MemoryDB
-  from evm.chains.mainnet import MAINNET_GENESIS_HEADER
+  from eth.db.backends.memory import MemoryDB
+  from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
   # start a fresh in-memory db
 
@@ -47,13 +47,13 @@ Using the LightPeerChain object
 -------------------------------
 
 The :class:`~p2p.lightchain.LightPeerChain` is like a Chain but it will also
-connect to remote peers and fetch new :class:`~evm.rlp.headers.BlockHeader`
+connect to remote peers and fetch new :class:`~eth.rlp.headers.BlockHeader`
 objects as they are announced on the network. As such, it must first be
 configured with a `vm_configuration` and a `network_id`:
 
 ::
 
-  from evm.chains.mainnet import MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID
+  from eth.chains.mainnet import MAINNET_VM_CONFIGURATION, MAINNET_NETWORK_ID
   from p2p import ecies
   from p2p.lightchain import LightPeerChain
   from p2p.peer import LESPeer, PeerPool
@@ -72,9 +72,9 @@ its `run()` method:
 ::
 
   import asyncio
-  from evm.db.backends.memory import MemoryDB
-  from evm.db.header import HeaderDB
-  from evm.chains.mainnet import 
+  from eth.db.backends.memory import MemoryDB
+  from eth.db.header import HeaderDB
+  from eth.chains.mainnet import
 
   # start a fresh in-memory db
   base_db = MemoryDB()

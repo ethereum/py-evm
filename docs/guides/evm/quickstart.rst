@@ -25,7 +25,7 @@ and let you use the python interpreter to interact with it:
 
 .. code:: sh
 
-  $ python -i -m evm.lightchain_shell -db /tmp/testnet.db
+  $ python -i -m eth.lightchain_shell -db /tmp/testnet.db
 
 
 That will immediately give you a python shell, with a chain variable that you
@@ -50,17 +50,17 @@ wait for the result:
 Accessing an existing chain database
 ------------------------------------
 
-The :class:`~evm.chains.chain.Chain` object manages the series of fork rules
+The :class:`~eth.chains.chain.Chain` object manages the series of fork rules
 contained in every blockchain. It requires that you define the VM ranges.
 Some pre-built chains are available for your convenience.
 To access the Mainnet chain you can use:
 
 .. code:: python
 
-  from evm import MainnetChain
-  from evm.chains.mainnet import MAINNET_GENESIS_HEADER
-  from evm.db.backends.level import LevelDB
-  from evm.db.chain import ChainDB
+  from eth import MainnetChain
+  from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+  from eth.db.backends.level import LevelDB
+  from eth.db.chain import ChainDB
 
   # Read the previously saved chain database
   chaindb = ChainDB(LevelDB('/tmp/mainnet.db'))
@@ -86,4 +86,4 @@ For example:
 The methods available on the block are variable. They depend on what fork you're on.
 The mainnet follows "Frontier" rules at the beginning, then Homestead, and so on.
 To see block features for Frontier, see the API for
-:class:`~evm.vm.forks.frontier.blocks.FrontierBlock`.
+:class:`~eth.vm.forks.frontier.blocks.FrontierBlock`.

@@ -2,7 +2,7 @@ Understanding the mining process
 ================================
 
 In the :doc:`Building Chains Guide <building_chains>` we already learned how to
-use the :class:`~evm.chains.base.MiningChain` class to create a single
+use the :class:`~eth.chains.base.MiningChain` class to create a single
 blockchain as a combination of different virtual machines for different spans
 of blocks.
 
@@ -22,10 +22,10 @@ when we read about *mining*, we talk about the process where several parties are
 the first to create a new valid block and pass it on to the network.
 
 In this guide, when we talk about the
-:func:`~evm.chains.base.MiningChain.mine_block` API, we are only referring to
+:func:`~eth.chains.base.MiningChain.mine_block` API, we are only referring to
 the part that creates, validates and sets a block as the new canonical head of
 the chain but not necessarily as part of the mentioned competition to be the
-first. In fact, the :func:`~evm.chains.base.MiningChain.mine_block` API is
+first. In fact, the :func:`~eth.chains.base.MiningChain.mine_block` API is
 internally also called when we import existing blocks that others created.
 
 Mining an empty block
@@ -42,14 +42,14 @@ As a refresher, he's where we left of as part of the `Building Chains Guide <bui
 
 ::
 
-  from evm.db.backends.memory import MemoryDB
-  from evm.chains.mainnet import MAINNET_GENESIS_HEADER
+  from eth.db.backends.memory import MemoryDB
+  from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
   # initialize a fresh chain
   chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
 
 Since we decided to not add any transactions to our block let's just call
-:func:`~~evm.chains.base.MiningChain.mine_block` and see what happens.
+:func:`~~eth.chains.base.MiningChain.mine_block` and see what happens.
 
 ::
 
@@ -58,7 +58,7 @@ Since we decided to not add any transactions to our block let's just call
 
   chain.mine_block()
 
-Aw, snap! We're running into an exception at :func:`~evm.consensus.pow.check_pow`. Apparently we
+Aw, snap! We're running into an exception at :func:`~eth.consensus.pow.check_pow`. Apparently we
 are trying to add a block to the chain that doesn't qualify the Proof-of-Work (PoW) rules. The
 error tells us precisely that the ``mix_hash`` of our block does not match the expected value.
 
@@ -78,11 +78,11 @@ error tells us precisely that the ``mix_hash`` of our block does not match the e
     File "/py-evm/evm/consensus/pow.py", line 70, in check_pow
       encode_hex(mining_output[b'mix digest']), encode_hex(mix_hash)))
 
-  evm.exceptions.ValidationError: mix hash mismatch;
+  eth.exceptions.ValidationError: mix hash mismatch;
   0x7a76bbf0c8d0e683fafa2d7cab27f601e19f35e7ecad7e1abb064b6f8f08fe21 !=
   0x0000000000000000000000000000000000000000000000000000000000000000
 
-Let's lookup how :func:`~evm.consensus.pow.check_pow` is implemented.
+Let's lookup how :func:`~eth.consensus.pow.check_pow` is implemented.
 
 
 .. literalinclude:: ../../../evm/consensus/pow.py
@@ -105,7 +105,7 @@ can be added to the chain.
 
 In order to produce a valid block, we have to set the correct ``mix_hash`` and ``nonce`` in the
 header. We can pass these as key-value pairs when we call
-:func:`~~evm.chains.base.MiningChain.mine_block` as seen below.
+:func:`~~eth.chains.base.MiningChain.mine_block` as seen below.
 
 
 ::
@@ -119,7 +119,7 @@ Retrieving a valid nonce and mix hash
 -------------------------------------
 
 
-Now that we know we can call :func:`~~evm.chains.base.MiningChain.mine_block`
+Now that we know we can call :func:`~~eth.chains.base.MiningChain.mine_block`
 with the correct parameters to successfully add a block to our chain, let's
 briefly go over an example that demonstrates how we can retrieve a matching
 ``nonce`` and ``mix_hash``.
@@ -159,9 +159,9 @@ Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the
 
 ::
 
-  from evm import MiningChain
-  from evm.vm.forks.byzantium import ByzantiumVM
-  from evm.db.backends.memory import MemoryDB
+  from eth import MiningChain
+  from eth.vm.forks.byzantium import ByzantiumVM
+  from eth.db.backends.memory import MemoryDB
 
 
   klass = MiningChain.configure(
@@ -176,7 +176,7 @@ Now that we have the building blocks available, let's put it all together and mi
 
 ::
 
-    from evm.consensus.pow import mine_pow_nonce
+    from eth.consensus.pow import mine_pow_nonce
 
 
     # We have to finalize the block first in order to be able read the
@@ -200,13 +200,13 @@ Now that we have the building blocks available, let's put it all together and mi
 
 Let's take a moment to fully understand what this code does.
 
-1. We call :func:`~evm.vm.base.VM.finalize_block` on the underlying VM in order to retrieve the
+1. We call :func:`~eth.vm.base.VM.finalize_block` on the underlying VM in order to retrieve the
 information that we need to calculate the ``nonce`` and the ``mix_hash``.
 
-2. We then call :func:`~evm.consensus.pow.mine_pow_nonce` to retrieve the proper ``nonce`` and
+2. We then call :func:`~eth.consensus.pow.mine_pow_nonce` to retrieve the proper ``nonce`` and
 ``mix_hash`` that we need to mine the block and satisfy the validation.
 
-3. Finally we call :func:`~evm.chain.base.MiningChain.mine_block` and pass
+3. Finally we call :func:`~eth.chain.base.MiningChain.mine_block` and pass
    along the ``nonce`` and the ``mix_hash``
 
 .. note::
@@ -278,9 +278,9 @@ With sender and receiver prepared, let's create the actual transaction.
 Every transaction needs a ``nonce`` not to be confused with the ``nonce`` that we previously
 mined as part of the PoW algorithm. The *transaction nonce* serves as a counter to ensure
 all transactions from one address are processed in order. We retrieve the current ``nonce``
-by calling :func:`~evm.vm.base.VM.state.account_db.get_nonce(sender)`.
+by calling :func:`~eth.vm.base.VM.state.account_db.get_nonce(sender)`.
 
-Once we have the ``nonce`` we can call :func:`~evm.vm.base.VM.create_unsigned_transaction` and
+Once we have the ``nonce`` we can call :func:`~eth.vm.base.VM.create_unsigned_transaction` and
 pass the ``nonce`` among the rest of the transaction attributes as key-value pairs.
 
 * ``nonce`` - Number of transactions sent by the sender
@@ -291,14 +291,14 @@ pass the ``nonce`` among the rest of the transaction attributes as key-value pai
 
 The last step we need to do before we can add the transaction to a block is to sign it with the
 private key which is as simple as calling
-:func:`~evm.rlp.transactions.BaseUnsignedTransaction.as_signed_transaction` with the
+:func:`~eth.rlp.transactions.BaseUnsignedTransaction.as_signed_transaction` with the
 ``SENDER_PRIVATE_KEY``.
 
 ::
 
     signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
 
-Finally, we can call :func:`~evm.chains.base.MiningChain.apply_transaction` and pass along the
+Finally, we can call :func:`~eth.chains.base.MiningChain.apply_transaction` and pass along the
 ``signed_tx``.
 
 ::
@@ -314,10 +314,10 @@ zero value transfer transaction.
     from eth_utils import decode_hex
     from eth_typing import Address
 
-    from evm.consensus.pow import mine_pow_nonce
-    from evm import constants, MiningChain
-    from evm.vm.forks.byzantium import ByzantiumVM
-    from evm.db.backends.memory import MemoryDB
+    from eth.consensus.pow import mine_pow_nonce
+    from eth import constants, MiningChain
+    from eth.vm.forks.byzantium import ByzantiumVM
+    from eth.db.backends.memory import MemoryDB
 
 
     GENESIS_PARAMS = {
