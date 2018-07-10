@@ -113,7 +113,7 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 
 # Allows the mod index to function more helpfully (not everything under 'e')
-modindex_common_prefix = ['evm.']
+modindex_common_prefix = ['eth.']
 
 ##
 #  Below be monsters, for now.  You've been warned.

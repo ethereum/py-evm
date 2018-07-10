@@ -2,157 +2,37 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="50456814-c327-4490-a3c8-753cda3a604d" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/evm/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/base.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/header.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/mainnet/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/mainnet/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/ropsten/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/ropsten/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/shard.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/chains/tester/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/consensus/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/consensus/pow.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/account.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/backends/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/backends/base.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/backends/level.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/backends/memory.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/batch.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/cache.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/chain.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/diff.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/hash_trie.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/header.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/journal.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/keymap.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/schema.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/shard.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/db/trie.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/estimators/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/estimators/gas.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/exceptions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecadd.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecmul.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecpairing.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecrecover.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/identity.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/modexp.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/ripemd160.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/precompiles/sha256.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/accounts.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/blocks.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/collations.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/headers.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/logs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/receipts.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/sedes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/rlp/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/fixture_tests.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/README.md" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/builder_utils.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/formatters.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/normalization.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/test_builder.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/address.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/blobs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/bn128.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/datatypes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/db.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/empty.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/env.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/headers.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/hexadecimal.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/logging.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/merkle.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/module_loading.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/numeric.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/padding.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/rlp.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/spoof.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/utils/version.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/validation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/base.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/code_stream.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/execution_context.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/blocks.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/headers.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/opcodes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/blocks.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/headers.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/opcodes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/transaction_context.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/validation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/blocks.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/headers.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/opcodes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/validation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/blocks.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/opcodes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/transactions.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/utils.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/computation.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/constants.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/opcodes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/gas_meter.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/__init__.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/arithmetic.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/block.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/call.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/comparison.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/context.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/duplication.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/flow.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/invalid.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/logging.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/memory.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/sha3.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/stack.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/storage.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/swap.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/logic/system.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/memory.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/message.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/mnemonics.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/opcode.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/opcode_values.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/stack.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/state.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/evm/vm/transaction_context.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.chain.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.db.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.exceptions.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.rlp.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/api.vm.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.account.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.backends.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.chain.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/db/api.db.journal.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/index.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.accounts.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.blocks.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.collation.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.headers.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.logs.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.receipts.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/rlp/api.rlp.transactions.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.code_stream.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.computation.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.execution_context.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.forks.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.gas_meter.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.memory.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.message.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.opcode.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.stack.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.state.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.transaction_context.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/api/evm/vm/api.vm.vm.rst" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/docs/conf.py" afterPath="$PROJECT_DIR$/docs/conf.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -162,10 +42,22 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf />
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="index.rst" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/docs/api/trinity/index.rst">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-30">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
+      <find>evm</find>
       <find>evm.</find>
     </findStrings>
   </component>
@@ -175,36 +67,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/eth/vm/stack.py" />
-        <option value="$PROJECT_DIR$/eth/vm/transaction_context.py" />
-        <option value="$PROJECT_DIR$/eth/vm/state.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/__init__.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/blocks.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/computation.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/headers.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/opcodes.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/state.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/transactions.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/__init__.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/blocks.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/computation.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/headers.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/opcodes.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/state.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/transaction_context.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/transactions.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/validation.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/validation.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/__init__.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/blocks.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/computation.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/headers.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/opcodes.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/state.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/transactions.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/__init__.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/blocks.py" />
-        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/computation.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/opcodes.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/state.py" />
         <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/transactions.py" />
@@ -226,6 +88,36 @@
         <option value="$PROJECT_DIR$/eth/vm/logic/stack.py" />
         <option value="$PROJECT_DIR$/eth/vm/logic/storage.py" />
         <option value="$PROJECT_DIR$/eth/vm/logic/system.py" />
+        <option value="$PROJECT_DIR$/docs/conf.py" />
+        <option value="$PROJECT_DIR$/docs/api/evm/api.chain.rst" />
+        <option value="$PROJECT_DIR$/docs/api/evm/api.exceptions.rst" />
+        <option value="$PROJECT_DIR$/docs/api/evm/api.rlp.rst" />
+        <option value="$PROJECT_DIR$/docs/api/evm/api.vm.rst" />
+        <option value="$PROJECT_DIR$/docs/api/evm/api.db.rst" />
+        <option value="$PROJECT_DIR$/docs/api/evm/index.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/db/api.db.journal.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/db/api.db.chain.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/db/api.db.backends.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/db/api.db.account.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.accounts.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.blocks.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.collation.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.headers.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.logs.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.receipts.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.transactions.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.vm.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.transaction_context.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.execution_context.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.forks.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.gas_meter.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.memory.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.message.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.opcode.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.stack.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.state.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.code_stream.rst" />
+        <option value="$PROJECT_DIR$/docs/api/eth/vm/api.vm.computation.rst" />
       </list>
     </option>
   </component>
@@ -250,7 +142,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -261,13 +153,19 @@
             <path>
               <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
               <item name="py-evm" type="462c0819:PsiDirectoryNode" />
-              <item name="eth" type="462c0819:PsiDirectoryNode" />
+              <item name="docs" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
+              <item name="py-evm" type="462c0819:PsiDirectoryNode" />
+              <item name="docs" type="462c0819:PsiDirectoryNode" />
+              <item name="api" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -307,20 +205,20 @@
     <layout>
       <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17291667" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -332,335 +230,10 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/transaction_context.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/transactions.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="361">
-          <caret line="23" column="8" lean-forward="false" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/validation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="9" column="8" lean-forward="true" selection-start-line="9" selection-start-column="8" selection-end-line="9" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/validation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="8" lean-forward="false" selection-start-line="7" selection-start-column="8" selection-end-line="7" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="391">
-          <caret line="23" column="8" lean-forward="true" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
-          <folding>
-            <element signature="e#0#37#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/blocks.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="102">
-          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/computation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="19" column="30" lean-forward="false" selection-start-line="19" selection-start-column="30" selection-end-line="19" selection-end-column="30" />
-          <folding>
-            <element signature="e#0#32#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/constants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/headers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="276">
-          <caret line="18" column="8" lean-forward="false" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/opcodes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="11" column="8" lean-forward="false" selection-start-line="11" selection-start-column="8" selection-end-line="11" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/state.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/transactions.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="18" column="8" lean-forward="false" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="34">
-          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/blocks.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="11" column="1" lean-forward="true" selection-start-line="11" selection-start-column="1" selection-end-line="11" selection-end-column="1" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/computation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="20" column="30" lean-forward="false" selection-start-line="20" selection-start-column="30" selection-end-line="20" selection-end-column="30" />
-          <folding>
-            <element signature="e#0#32#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/constants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/opcodes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="242">
-          <caret line="16" column="8" lean-forward="false" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/state.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="18" column="8" lean-forward="true" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
-          <folding>
-            <element signature="e#1#54#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/transactions.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="10" column="8" lean-forward="false" selection-start-line="10" selection-start-column="8" selection-end-line="10" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-4">
-          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/state.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/opcodes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/constants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/computation.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="30" lean-forward="false" selection-start-line="8" selection-start-column="30" selection-end-line="8" selection-end-column="30" />
-          <folding>
-            <element signature="e#0#56#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="51">
-          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/arithmetic.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="72">
-          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/block.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/call.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/comparison.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4">
-          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/context.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="106">
-          <caret line="8" column="8" lean-forward="false" selection-start-line="8" selection-start-column="8" selection-end-line="8" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/duplication.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/flow.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="72">
-          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/invalid.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="17">
-          <caret line="1" column="8" lean-forward="false" selection-start-line="1" selection-start-column="8" selection-end-line="1" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/logging.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" column="8" lean-forward="false" selection-start-line="4" selection-start-column="8" selection-end-line="4" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/memory.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/sha3.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="51">
-          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/stack.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4">
-          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/eth/vm/logic/storage.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4">
-          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/eth/vm/logic/swap.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -668,7 +241,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -676,9 +248,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#62#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -686,9 +255,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#38#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -696,9 +262,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#35#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -706,9 +269,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#33#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -716,7 +276,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -724,9 +283,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#44#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -734,7 +290,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -742,9 +297,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#44#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -752,15 +304,320 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#35#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/eth/consensus/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.circleci/config.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1224">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.github/ISSUE_TEMPLATE.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.github/PULL_REQUEST_TEMPLATE.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/conf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="279">
+          <caret line="150" column="25" lean-forward="false" selection-start-line="150" selection-start-column="21" selection-end-line="150" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/contributing.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/Makefile">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="22" lean-forward="false" selection-start-line="6" selection-start-column="22" selection-end-line="6" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/api.chain.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="204">
+          <caret line="12" column="18" lean-forward="false" selection-start-line="12" selection-start-column="18" selection-end-line="12" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/api.exceptions.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="68">
+          <caret line="4" column="19" lean-forward="false" selection-start-line="4" selection-start-column="19" selection-end-line="4" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/api.rlp.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="17" lean-forward="false" selection-start-line="6" selection-start-column="17" selection-end-line="6" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/api.vm.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="17" lean-forward="false" selection-start-line="6" selection-start-column="17" selection-end-line="6" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/api.db.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="17" lean-forward="false" selection-start-line="6" selection-start-column="17" selection-end-line="6" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/evm/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="119">
+          <caret line="7" column="21" lean-forward="false" selection-start-line="7" selection-start-column="21" selection-end-line="7" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/api.chain.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/api.db.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/db/api.db.account.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="204">
+          <caret line="12" column="18" lean-forward="false" selection-start-line="12" selection-start-column="18" selection-end-line="12" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/db/api.db.backends.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="18" column="18" lean-forward="false" selection-start-line="18" selection-start-column="18" selection-end-line="18" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/db/api.db.chain.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="18" column="18" lean-forward="false" selection-start-line="18" selection-start-column="18" selection-end-line="18" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/db/api.db.journal.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.accounts.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.blocks.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.collation.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.headers.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="221">
+          <caret line="13" column="18" lean-forward="false" selection-start-line="13" selection-start-column="18" selection-end-line="13" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.logs.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="119">
+          <caret line="7" column="11" lean-forward="true" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.receipts.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/rlp/api.rlp.transactions.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="408">
+          <caret line="24" column="18" lean-forward="false" selection-start-line="24" selection-start-column="18" selection-end-line="24" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.vm.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="15" column="18" lean-forward="false" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.transaction_context.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.execution_context.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.forks.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="733">
+          <caret line="110" column="18" lean-forward="false" selection-start-line="110" selection-start-column="18" selection-end-line="110" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.gas_meter.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.memory.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.message.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.opcode.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.stack.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.state.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="221">
+          <caret line="13" column="18" lean-forward="false" selection-start-line="13" selection-start-column="18" selection-end-line="13" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.code_stream.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="18" lean-forward="false" selection-start-line="3" selection-start-column="18" selection-end-line="3" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/eth/vm/api.vm.computation.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="18" lean-forward="false" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/api/trinity/index.rst">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
