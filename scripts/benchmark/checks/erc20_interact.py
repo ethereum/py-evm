@@ -18,13 +18,13 @@ from eth_utils import (
     to_int,
 )
 
-from evm.constants import (
+from eth.constants import (
     CREATE_CONTRACT_ADDRESS
 )
-from evm.chains.base import (
+from eth.chains.base import (
     MiningChain,
 )
-from evm.rlp.blocks import (
+from eth.rlp.blocks import (
     BaseBlock,
 )
 from .base_benchmark import (
@@ -49,6 +49,8 @@ from utils.tx import (
 
 FIRST_TX_GAS_LIMIT = 1400000
 SECOND_TX_GAS_LIMIT = 60000
+TRANSFER_AMOUNT = 1000
+TRANSER_FROM_AMOUNT = 1
 
 CONTRACT_FILE = 'scripts/benchmark/contract_data/erc20.sol'
 CONTRACT_NAME = 'SimpleToken'
@@ -71,18 +73,12 @@ class BaseERC20Benchmark(BaseBenchmark):
         self.addr1 = Web3.toChecksumAddress(FUNDED_ADDRESS)
         self.addr2 = Web3.toChecksumAddress(SECOND_ADDRESS)
 
-    @property
-    @abstractmethod
-    def name(self) -> DefaultStat:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
-
-    @abstractmethod
     def _setup_benchmark(self, chain: MiningChain) -> None:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        """
+        This hook can be overwritten to perform preparations on the chain
+        that do not count into the measured benchmark time
+        """
+        pass
 
     @abstractmethod
     def _apply_transaction(self, chain: MiningChain) -> None:
@@ -93,7 +89,11 @@ class BaseERC20Benchmark(BaseBenchmark):
     def execute(self) -> DefaultStat:
         total_stat = DefaultStat()
         for chain in get_all_chains():
+            # Perform prepartions on the chain that do not count into the
+            # benchmark time
             self._setup_benchmark(chain)
+
+            # Perform the actual work that is measured
             value = self.as_timed_result(
                 lambda: self.mine_blocks(chain, self.num_blocks, self.num_tx)
             )
@@ -145,73 +145,77 @@ class BaseERC20Benchmark(BaseBenchmark):
         )
         logging.debug('Applying Transaction {}'.format(tx))
         block, receipt, computation = chain.apply_transaction(tx)
-        # keep track of deployed contract address
+        # Keep track of deployed contract address
         self.deployed_contract_address = computation.msg.storage_address
 
         assert computation.is_success
-        # keep track of simple_token object
+        # Keep track of simple_token object
         self.simple_token = self.w3.eth.contract(
             address=Web3.toChecksumAddress(encode_hex(self.deployed_contract_address)),
-            abi=self.contract_interface['abi'],)
+            abi=self.contract_interface['abi'],
+        )
 
     def _erc_transfer(self, addr: str, chain: MiningChain) -> None:
-        ammout = self.num_blocks * self.num_tx
+        w3_tx = self.simple_token.functions.transfer(
+            addr,
+            TRANSFER_AMOUNT
+        ).buildTransaction(W3_TX_DEFAULTS)
 
-        w3_tx1 = self.simple_token.functions.transfer(
-            addr, ammout).buildTransaction(W3_TX_DEFAULTS)
-
-        tx1 = new_transaction(
+        tx = new_transaction(
             vm=chain.get_vm(),
             private_key=FUNDED_ADDRESS_PRIVATE_KEY,
             from_=FUNDED_ADDRESS,
             to=self.deployed_contract_address,
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
-            data=decode_hex(w3_tx1['data']),
+            data=decode_hex(w3_tx['data']),
         )
 
-        block, receipt, computation = chain.apply_transaction(tx1)
+        block, receipt, computation = chain.apply_transaction(tx)
 
         assert computation.is_success
         assert to_int(computation.output) == 1
 
     def _erc_approve(self, addr2: str, chain: MiningChain) -> None:
-        ammout = self.num_blocks * self.num_tx
+        w3_tx = self.simple_token.functions.approve(
+            addr2,
+            TRANSFER_AMOUNT
+        ).buildTransaction(W3_TX_DEFAULTS)
 
-        w3_tx2 = self.simple_token.functions.approve(
-            addr2, ammout).buildTransaction(W3_TX_DEFAULTS)
-
-        tx2 = new_transaction(
+        tx = new_transaction(
             vm=chain.get_vm(),
             private_key=FUNDED_ADDRESS_PRIVATE_KEY,
             from_=FUNDED_ADDRESS,
             to=self.deployed_contract_address,
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
-            data=decode_hex(w3_tx2['data']),
+            data=decode_hex(w3_tx['data']),
         )
 
-        block, receipt, computation = chain.apply_transaction(tx2)
+        block, receipt, computation = chain.apply_transaction(tx)
 
         assert computation.is_success
         assert to_int(computation.output) == 1
 
     def _erc_transfer_from(self, addr1: str, addr2: str, chain: MiningChain) -> None:
 
-        w3_tx3 = self.simple_token.functions.transferFrom(
-            addr1, addr2, 1).buildTransaction(W3_TX_DEFAULTS)
+        w3_tx = self.simple_token.functions.transferFrom(
+            addr1,
+            addr2,
+            TRANSER_FROM_AMOUNT
+        ).buildTransaction(W3_TX_DEFAULTS)
 
-        tx3 = new_transaction(
+        tx = new_transaction(
             vm=chain.get_vm(),
             private_key=SECOND_ADDRESS_PRIVATE_KEY,
             from_=SECOND_ADDRESS,
             to=self.deployed_contract_address,
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
-            data=decode_hex(w3_tx3['data']),
+            data=decode_hex(w3_tx['data']),
         )
 
-        block, receipt, computation = chain.apply_transaction(tx3)
+        block, receipt, computation = chain.apply_transaction(tx)
 
         assert computation.is_success
         assert to_int(computation.output) == 1
@@ -224,9 +228,6 @@ class ERC20DeployBenchmark(BaseERC20Benchmark):
     @property
     def name(self) -> str:
         return 'ERC20 deployment'
-
-    def _setup_benchmark(self, chain: MiningChain) -> None:
-        pass
 
     def _apply_transaction(self, chain: MiningChain) -> None:
         self._deploy_simple_token(chain)
@@ -258,7 +259,6 @@ class ERC20ApproveBenchmark(BaseERC20Benchmark):
 
     def _setup_benchmark(self, chain: MiningChain) -> None:
         self._deploy_simple_token(chain)
-        self._erc_transfer(self.addr1, chain)
         chain.mine_block()
 
     def _apply_transaction(self, chain: MiningChain) -> None:
