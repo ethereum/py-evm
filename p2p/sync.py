@@ -58,7 +58,7 @@ class FullNodeSyncer(BaseService):
             self.logger.info(
                 "Missing state for current head (#%d), downloading it", head.block_number)
             downloader = StateDownloader(
-                self.base_db, head.state_root, self.peer_pool, self.cancel_token)
+                self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
 
         # Now, loop forever, fetching missing blocks and applying them.

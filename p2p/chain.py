@@ -32,11 +32,12 @@ from evm.exceptions import HeaderNotFound, ValidationError
 from evm.rlp.headers import BlockHeader
 from evm.rlp.receipts import Receipt
 from evm.rlp.transactions import BaseTransaction, BaseTransactionFields
+from evm.utils.logging import TraceLogger
 
 from p2p import protocol
 from p2p import eth
 from p2p import les
-from p2p.cancel_token import CancelToken
+from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.constants import MAX_REORG_DEPTH
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
@@ -79,6 +80,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
+        self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
@@ -255,56 +257,6 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             "Got BlockHeaders from %d to %d", headers[0].block_number, headers[-1].block_number)
         self._new_headers.put_nowait(headers)
 
-    async def _get_block_numbers_for_request(
-            self, block_number_or_hash: Union[int, bytes], max_headers: int, skip: int,
-            reverse: bool) -> List[BlockNumber]:
-        """
-        Generates the block numbers requested, subject to local availability.
-        """
-        block_number_or_hash = block_number_or_hash
-        if isinstance(block_number_or_hash, bytes):
-            header = await self.wait(
-                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
-            )
-            block_number = header.block_number
-        elif isinstance(block_number_or_hash, int):
-            block_number = block_number_or_hash
-        else:
-            raise TypeError(
-                "Unexpected type for 'block_number_or_hash': %s",
-                type(block_number_or_hash),
-            )
-
-        limit = max(max_headers, eth.MAX_HEADERS_FETCH)
-        step = skip + 1
-        if reverse:
-            low = max(0, block_number - limit)
-            high = block_number + 1
-            block_numbers = reversed(range(low, high, step))
-        else:
-            low = block_number
-            high = block_number + limit
-            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
-        return list(block_numbers)
-
-    async def _generate_available_headers(
-            self,
-            block_numbers: List[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
-        """
-        Generates the headers requested, halting on the first header that is not locally available.
-        """
-        for block_num in block_numbers:
-            try:
-                yield await self.wait(
-                    self.db.coro_get_canonical_block_header_by_number(block_num)
-                )
-            except HeaderNotFound:
-                self.logger.debug(
-                    "Peer requested header number %s that is unavailable, stopping search.",
-                    block_num,
-                )
-                break
-
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -335,19 +287,8 @@ class LightChainSyncer(BaseHeaderChainSyncer):
     async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
         self.logger.debug("Peer %s made header request: %s", peer, msg)
         query = msg['query']
-        try:
-            block_numbers = await self._get_block_numbers_for_request(
-                query.block_number_or_hash, query.max_headers,
-                query.skip, query.reverse)
-        except HeaderNotFound:
-            self.logger.debug(
-                "Peer %r requested starting header %r that is unavailable, returning nothing",
-                peer,
-                query.block_number_or_hash,
-            )
-            block_numbers = []
-
-        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        headers = await self._handler.lookup_headers(
+            query.block_number_or_hash, query.max_headers, query.skip, query.reverse)
         peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
     async def _process_headers(
@@ -598,19 +539,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             header_request: Dict[str, Any]) -> None:
         self.logger.debug("Peer %s made header request: %s", peer, header_request)
 
-        try:
-            block_numbers = await self._get_block_numbers_for_request(
-                header_request['block_number_or_hash'], header_request['max_headers'],
-                header_request['skip'], header_request['reverse'])
-        except HeaderNotFound:
-            self.logger.debug(
-                "Peer %r requested starting header %r that is unavailable, returning nothing",
-                peer,
-                header_request['block_number_or_hash'],
-            )
-            block_numbers = []
-
-        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        headers = await self._handler.lookup_headers(
+            header_request['block_number_or_hash'], header_request['max_headers'],
+            header_request['skip'], header_request['reverse'])
         peer.sub_proto.send_block_headers(headers)
 
 
@@ -634,54 +565,19 @@ class RegularChainSyncer(FastChainSyncer):
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockBodies):
-            await self._handle_get_block_bodies(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
+            await self._handler.handle_get_block_bodies(peer, cast(List[Hash32], msg))
         elif isinstance(cmd, eth.GetReceipts):
-            await self._handle_get_receipts(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+            await self._handler.handle_get_receipts(peer, block_hashes)
         elif isinstance(cmd, eth.GetNodeData):
-            await self._handle_get_node_data(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+            await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
-
-    async def _handle_get_block_bodies(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        bodies = []
-        # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-        hashes = msg[:eth.MAX_BODIES_FETCH]
-        for block_hash in hashes:
-            try:
-                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
-            except HeaderNotFound:
-                self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
-                continue
-            transactions = await self.wait(
-                self.db.coro_get_block_transactions(header, BaseTransactionFields))
-            uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
-            bodies.append(BlockBody(transactions, uncles))
-        peer.sub_proto.send_block_bodies(bodies)
-
-    async def _handle_get_receipts(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        receipts = []
-        # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-        hashes = msg[:eth.MAX_RECEIPTS_FETCH]
-        for block_hash in hashes:
-            try:
-                header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
-            except HeaderNotFound:
-                self.logger.debug(
-                    "%s asked receipts for block we don't have: %s", peer, block_hash)
-                continue
-            receipts.append(await self.wait(self.db.coro_get_receipts(header, Receipt)))
-        peer.sub_proto.send_receipts(receipts)
-
-    async def _handle_get_node_data(self, peer: ETHPeer, msg: List[Hash32]) -> None:
-        nodes = []
-        for node_hash in msg:
-            try:
-                node = await self.db.coro_get(node_hash)
-            except KeyError:
-                self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
-                continue
-            nodes.append(node)
-        peer.sub_proto.send_node_data(nodes)
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
@@ -718,6 +614,120 @@ class RegularChainSyncer(FastChainSyncer):
         head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
         return head.block_number
+
+
+class PeerRequestHandler(CancellableMixin):
+
+    def __init__(self, db: 'AsyncHeaderDB', logger: TraceLogger, token: CancelToken) -> None:
+        self.db = db
+        self.logger = logger
+        self.cancel_token = token
+
+    async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        chaindb = cast('AsyncChainDB', self.db)
+        bodies = []
+        for block_hash in block_hashes:
+            try:
+                header = await self.wait(chaindb.coro_get_block_header_by_hash(block_hash))
+            except HeaderNotFound:
+                self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
+                continue
+            transactions = await self.wait(
+                chaindb.coro_get_block_transactions(header, BaseTransactionFields))
+            uncles = await self.wait(chaindb.coro_get_block_uncles(header.uncles_hash))
+            bodies.append(BlockBody(transactions, uncles))
+        peer.sub_proto.send_block_bodies(bodies)
+
+    async def handle_get_receipts(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        chaindb = cast('AsyncChainDB', self.db)
+        receipts = []
+        for block_hash in block_hashes:
+            try:
+                header = await self.wait(chaindb.coro_get_block_header_by_hash(block_hash))
+            except HeaderNotFound:
+                self.logger.debug(
+                    "%s asked receipts for block we don't have: %s", peer, block_hash)
+                continue
+            block_receipts = await self.wait(chaindb.coro_get_receipts(header, Receipt))
+            receipts.append(block_receipts)
+        peer.sub_proto.send_receipts(receipts)
+
+    async def handle_get_node_data(self, peer: ETHPeer, node_hashes: List[Hash32]) -> None:
+        chaindb = cast('AsyncChainDB', self.db)
+        nodes = []
+        for node_hash in node_hashes:
+            try:
+                node = await self.wait(chaindb.coro_get(node_hash))
+            except KeyError:
+                self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
+                continue
+            nodes.append(node)
+        peer.sub_proto.send_node_data(nodes)
+
+    async def lookup_headers(self, block_number_or_hash: Union[int, bytes], max_headers: int,
+                             skip: int, reverse: bool) -> List[BlockHeader]:
+        """
+        Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
+        between each, in reverse order if :reverse: is True.
+        """
+        try:
+            block_numbers = await self._get_block_numbers_for_request(
+                block_number_or_hash, max_headers, skip, reverse)
+        except HeaderNotFound:
+            self.logger.debug(
+                "Peer requested starting header %r that is unavailable, returning nothing",
+                block_number_or_hash)
+            block_numbers = []
+
+        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        return headers
+
+    async def _get_block_numbers_for_request(
+            self, block_number_or_hash: Union[int, bytes], max_headers: int,
+            skip: int, reverse: bool) -> List[BlockNumber]:
+        """
+        Generates the block numbers requested, subject to local availability.
+        """
+        block_number_or_hash = block_number_or_hash
+        if isinstance(block_number_or_hash, bytes):
+            header = await self.wait(
+                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
+            block_number = header.block_number
+        elif isinstance(block_number_or_hash, int):
+            block_number = block_number_or_hash
+        else:
+            raise TypeError(
+                "Unexpected type for 'block_number_or_hash': %s",
+                type(block_number_or_hash),
+            )
+
+        limit = max(max_headers, eth.MAX_HEADERS_FETCH)
+        step = skip + 1
+        if reverse:
+            low = max(0, block_number - limit)
+            high = block_number + 1
+            block_numbers = reversed(range(low, high, step))
+        else:
+            low = block_number
+            high = block_number + limit
+            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
+        return list(block_numbers)
+
+    async def _generate_available_headers(
+            self, block_numbers: List[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
+        """
+        Generates the headers requested, halting on the first header that is not locally available.
+        """
+        for block_num in block_numbers:
+            try:
+                yield await self.wait(
+                    self.db.coro_get_canonical_block_header_by_number(block_num))
+            except HeaderNotFound:
+                self.logger.debug(
+                    "Peer requested header number %s that is unavailable, stopping search.",
+                    block_num,
+                )
+                break
 
 
 class DownloadedBlockPart(NamedTuple):
@@ -815,9 +825,14 @@ def _test() -> None:
         await syncer.cancel()
         loop.stop()
 
+    async def run() -> None:
+        await syncer.run()
+        syncer.logger.info("run() finished, exiting")
+        sigint_received.set()
+
     # loop.set_debug(True)
     asyncio.ensure_future(exit_on_sigint())
-    asyncio.ensure_future(syncer.run())
+    asyncio.ensure_future(run())
     loop.run_forever()
     loop.close()
 
