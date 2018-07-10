@@ -1,0 +1,770 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="50456814-c327-4490-a3c8-753cda3a604d" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/evm/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/base.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/header.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/mainnet/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/mainnet/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/ropsten/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/ropsten/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/shard.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/chains/tester/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/consensus/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/consensus/pow.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/account.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/backends/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/backends/base.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/backends/level.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/backends/memory.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/batch.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/cache.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/chain.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/diff.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/hash_trie.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/header.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/journal.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/keymap.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/schema.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/shard.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/db/trie.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/estimators/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/estimators/gas.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/exceptions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecadd.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecmul.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecpairing.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/ecrecover.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/identity.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/modexp.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/ripemd160.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/precompiles/sha256.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/accounts.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/blocks.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/collations.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/headers.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/logs.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/receipts.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/sedes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/rlp/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/fixture_tests.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/README.md" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/builder_utils.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/formatters.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/normalization.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/tools/test_builder/test_builder.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/address.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/blobs.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/bn128.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/datatypes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/db.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/empty.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/env.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/headers.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/hexadecimal.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/logging.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/merkle.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/module_loading.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/numeric.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/padding.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/rlp.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/spoof.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/utils/version.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/validation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/base.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/code_stream.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/execution_context.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/blocks.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/headers.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/opcodes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/byzantium/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/blocks.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/headers.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/opcodes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/transaction_context.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/frontier/validation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/blocks.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/headers.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/opcodes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/homestead/validation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/blocks.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/opcodes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/transactions.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/spurious_dragon/utils.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/computation.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/constants.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/opcodes.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/forks/tangerine_whistle/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/gas_meter.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/__init__.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/arithmetic.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/block.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/call.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/comparison.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/context.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/duplication.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/flow.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/invalid.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/logging.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/memory.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/sha3.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/stack.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/storage.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/swap.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/logic/system.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/memory.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/message.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/mnemonics.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/opcode.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/opcode_values.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/stack.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/state.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/evm/vm/transaction_context.py" afterPath="" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf />
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>evm.</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/eth/vm/stack.py" />
+        <option value="$PROJECT_DIR$/eth/vm/transaction_context.py" />
+        <option value="$PROJECT_DIR$/eth/vm/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/__init__.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/blocks.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/computation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/headers.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/opcodes.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/byzantium/transactions.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/__init__.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/blocks.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/computation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/headers.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/opcodes.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/transaction_context.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/transactions.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/frontier/validation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/validation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/__init__.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/blocks.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/computation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/headers.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/opcodes.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/homestead/transactions.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/__init__.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/blocks.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/computation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/opcodes.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/transactions.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/spurious_dragon/utils.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/state.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/opcodes.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/computation.py" />
+        <option value="$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/__init__.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/arithmetic.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/block.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/call.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/comparison.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/context.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/flow.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/invalid.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/logging.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/memory.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/sha3.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/stack.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/storage.py" />
+        <option value="$PROJECT_DIR$/eth/vm/logic/system.py" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="1628" />
+    <option name="y" value="327" />
+    <option name="width" value="1346" />
+    <option name="height" value="688" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
+              <item name="py-evm" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="py-evm" type="b2602c69:ProjectViewProjectNode" />
+              <item name="py-evm" type="462c0819:PsiDirectoryNode" />
+              <item name="eth" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="50456814-c327-4490-a3c8-753cda3a604d" name="Default" comment="" />
+      <created>1531180778030</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1531180778030</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="1358" y="-8" width="1936" height="1056" extended-state="6" />
+    <layout>
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17291667" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager />
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/transaction_context.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/transactions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="361">
+          <caret line="23" column="8" lean-forward="false" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/frontier/validation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="9" column="8" lean-forward="true" selection-start-line="9" selection-start-column="8" selection-end-line="9" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/validation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="119">
+          <caret line="7" column="8" lean-forward="false" selection-start-line="7" selection-start-column="8" selection-end-line="7" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="23" column="8" lean-forward="true" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#37#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/blocks.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/computation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="19" column="30" lean-forward="false" selection-start-line="19" selection-start-column="30" selection-end-line="19" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#32#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/headers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="276">
+          <caret line="18" column="8" lean-forward="false" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/opcodes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="8" lean-forward="false" selection-start-line="11" selection-start-column="8" selection-end-line="11" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/homestead/transactions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="289">
+          <caret line="18" column="8" lean-forward="false" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="34">
+          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/blocks.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="1" lean-forward="true" selection-start-line="11" selection-start-column="1" selection-end-line="11" selection-end-column="1" />
+          <folding>
+            <element signature="e#0#44#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/computation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="20" column="30" lean-forward="false" selection-start-line="20" selection-start-column="30" selection-end-line="20" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#32#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/opcodes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="242">
+          <caret line="16" column="8" lean-forward="false" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="18" column="8" lean-forward="true" selection-start-line="18" selection-start-column="8" selection-end-line="18" selection-end-column="8" />
+          <folding>
+            <element signature="e#1#54#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/transactions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="10" column="8" lean-forward="false" selection-start-line="10" selection-start-column="8" selection-end-line="10" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/spurious_dragon/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-4">
+          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/opcodes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/computation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="30" lean-forward="false" selection-start-line="8" selection-start-column="30" selection-end-line="8" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#56#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/forks/tangerine_whistle/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/arithmetic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="72">
+          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/block.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/call.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/comparison.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4">
+          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/context.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="106">
+          <caret line="8" column="8" lean-forward="false" selection-start-line="8" selection-start-column="8" selection-end-line="8" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/duplication.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/flow.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="72">
+          <caret line="6" column="8" lean-forward="false" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/invalid.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="1" column="8" lean-forward="false" selection-start-line="1" selection-start-column="8" selection-end-line="1" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/logging.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="4" column="8" lean-forward="false" selection-start-line="4" selection-start-column="8" selection-end-line="4" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/memory.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="8" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/sha3.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/stack.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4">
+          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/storage.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4">
+          <caret line="2" column="8" lean-forward="false" selection-start-line="2" selection-start-column="8" selection-end-line="2" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/swap.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/vm/logic/system.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="8" lean-forward="false" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#62#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#38#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/header.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/shard.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/ropsten/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/ropsten/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/mainnet/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/chains/mainnet/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/consensus/pow.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/eth/consensus/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>
