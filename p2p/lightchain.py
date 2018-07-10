@@ -116,11 +116,13 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
         return cast(Dict[str, Any], reply)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
+    @service_timeout(COMPLETION_TIMEOUT)
     async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         return await self._get_block_header_by_hash(peer, block_hash)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
+    @service_timeout(COMPLETION_TIMEOUT)
     async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
@@ -134,6 +136,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
+    @service_timeout(COMPLETION_TIMEOUT)
     async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
@@ -148,6 +151,7 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
     # request accounts and code (and storage?)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
+    @service_timeout(COMPLETION_TIMEOUT)
     async def get_account(self, block_hash: Hash32, address: Address) -> Account:
         return await self._retry_on_bad_response(
             partial(self._get_account_from_peer, block_hash, address)
