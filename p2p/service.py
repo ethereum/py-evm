@@ -13,11 +13,11 @@ from typing import (  # noqa: #401
 
 from evm.utils.logging import TraceLogger
 
-from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.exceptions import OperationCancelled
 
 
-class BaseService(ABC):
+class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
     _child_services: List['BaseService'] = []
     # Number of seconds cancel() will wait for run() to finish.
@@ -36,36 +36,6 @@ class BaseService(ABC):
             self.cancel_token = base_token
         else:
             self.cancel_token = base_token.chain(token)
-
-    _TReturn = TypeVar('_TReturn')
-
-    async def wait(self,
-                   awaitable: Awaitable[_TReturn],
-                   token: CancelToken = None,
-                   timeout: float = None) -> _TReturn:
-        """See wait_first()"""
-        return await self.wait_first(awaitable, token=token, timeout=timeout)
-
-    async def wait_first(self,
-                         *awaitables: Awaitable[_TReturn],
-                         token: CancelToken = None,
-                         timeout: float = None) -> _TReturn:
-        """Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
-
-        The given token is chained with this service's token, so triggering either will cancel
-        this.
-
-        Returns the result of the first one to complete.
-
-        Raises TimeoutError if we timeout or OperationCancelled if the token chain is triggered.
-
-        All pending futures are cancelled before returning.
-        """
-        if token is None:
-            token_chain = self.cancel_token
-        else:
-            token_chain = token.chain(self.cancel_token)
-        return await wait_with_token(*awaitables, token=token_chain, timeout=timeout)
 
     async def run(
             self,

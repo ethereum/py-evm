@@ -37,7 +37,7 @@ from evm.utils.logging import TraceLogger
 from p2p import protocol
 from p2p import eth
 from p2p import les
-from p2p.cancel_token import CancelToken, wait_with_token
+from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.constants import MAX_REORG_DEPTH
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
@@ -565,11 +565,17 @@ class RegularChainSyncer(FastChainSyncer):
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockBodies):
+            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
             await self._handler.handle_get_block_bodies(peer, cast(List[Hash32], msg))
         elif isinstance(cmd, eth.GetReceipts):
-            await self._handler.handle_get_receipts(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+            await self._handler.handle_get_receipts(peer, block_hashes)
         elif isinstance(cmd, eth.GetNodeData):
-            await self._handler.handle_get_node_data(peer, cast(List[Hash32], msg))
+            # Only serve up to eth.MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+            await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
@@ -610,7 +616,7 @@ class RegularChainSyncer(FastChainSyncer):
         return head.block_number
 
 
-class PeerRequestHandler:
+class PeerRequestHandler(CancellableMixin):
 
     def __init__(self, db: 'AsyncHeaderDB', logger: TraceLogger, token: CancelToken) -> None:
         self.db = db
@@ -620,52 +626,38 @@ class PeerRequestHandler:
     async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
         chaindb = cast('AsyncChainDB', self.db)
         bodies = []
-        # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-        for block_hash in block_hashes[:eth.MAX_BODIES_FETCH]:
+        for block_hash in block_hashes:
             try:
-                header = await wait_with_token(
-                    chaindb.coro_get_block_header_by_hash(block_hash),
-                    token=self.cancel_token)
+                header = await self.wait(chaindb.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
                 continue
-            transactions = await wait_with_token(
-                chaindb.coro_get_block_transactions(header, BaseTransactionFields),
-                token=self.cancel_token)
-            uncles = await wait_with_token(
-                chaindb.coro_get_block_uncles(header.uncles_hash),
-                token=self.cancel_token)
+            transactions = await self.wait(
+                chaindb.coro_get_block_transactions(header, BaseTransactionFields))
+            uncles = await self.wait(chaindb.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
         peer.sub_proto.send_block_bodies(bodies)
 
     async def handle_get_receipts(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
         chaindb = cast('AsyncChainDB', self.db)
         receipts = []
-        # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-        for block_hash in block_hashes[:eth.MAX_RECEIPTS_FETCH]:
+        for block_hash in block_hashes:
             try:
-                header = await wait_with_token(
-                    chaindb.coro_get_block_header_by_hash(block_hash),
-                    token=self.cancel_token)
+                header = await self.wait(chaindb.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug(
                     "%s asked receipts for block we don't have: %s", peer, block_hash)
                 continue
-            block_receipts = await wait_with_token(
-                chaindb.coro_get_receipts(header, Receipt),
-                token=self.cancel_token)
+            block_receipts = await self.wait(chaindb.coro_get_receipts(header, Receipt))
             receipts.append(block_receipts)
         peer.sub_proto.send_receipts(receipts)
 
     async def handle_get_node_data(self, peer: ETHPeer, node_hashes: List[Hash32]) -> None:
         chaindb = cast('AsyncChainDB', self.db)
         nodes = []
-        # Only serve up to eth.MAX_STATE_FETCH items in every request.
-        for node_hash in node_hashes[:eth.MAX_STATE_FETCH]:
+        for node_hash in node_hashes:
             try:
-                node = await wait_with_token(
-                    chaindb.coro_get(node_hash),
-                    token=self.cancel_token)
+                node = await self.wait(chaindb.coro_get(node_hash))
             except KeyError:
                 self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
                 continue
@@ -698,10 +690,8 @@ class PeerRequestHandler:
         """
         block_number_or_hash = block_number_or_hash
         if isinstance(block_number_or_hash, bytes):
-            header = await wait_with_token(
-                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)),
-                token=self.cancel_token,
-            )
+            header = await self.wait(
+                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
             block_number = header.block_number
         elif isinstance(block_number_or_hash, int):
             block_number = block_number_or_hash
@@ -730,10 +720,8 @@ class PeerRequestHandler:
         """
         for block_num in block_numbers:
             try:
-                yield await wait_with_token(
-                    self.db.coro_get_canonical_block_header_by_number(block_num),
-                    token=self.cancel_token
-                )
+                yield await self.wait(
+                    self.db.coro_get_canonical_block_header_by_number(block_num))
             except HeaderNotFound:
                 self.logger.debug(
                     "Peer requested header number %s that is unavailable, stopping search.",
