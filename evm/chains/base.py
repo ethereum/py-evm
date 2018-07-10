@@ -124,9 +124,8 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
-    @abstractmethod
     def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
-        raise NotImplementedError("Chain classes must implement this method")
+        return cls.vm_configuration
 
     #
     # Chain API
@@ -149,9 +148,11 @@ class BaseChain(Configurable, ABC):
     #
     # VM API
     #
-    @abstractmethod
-    def get_vm_class(self, header: BlockHeader=None) -> Type['BaseVM']:
-        raise NotImplementedError("Chain classes must implement this method")
+    def get_vm_class(self, header: BlockHeader) -> Type['BaseVM']:
+        """
+        Returns the VM instance for the given block number.
+        """
+        return self.get_vm_class_for_block_number(header.block_number)
 
     @abstractmethod
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
@@ -310,10 +311,6 @@ class Chain(BaseChain):
             raise AttributeError("`chaindb_class` not set")
         return cls.chaindb_class
 
-    @classmethod
-    def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
-        return cls.vm_configuration
-
     #
     # Chain API
     #
@@ -371,13 +368,6 @@ class Chain(BaseChain):
     #
     # VM API
     #
-    def get_vm_class(self, at_header: BlockHeader=None) -> Type['BaseVM']:
-        """
-        Returns the VM instance for the given block number.
-        """
-        header = self.ensure_header(at_header)
-        return self.get_vm_class_for_block_number(header.block_number)
-
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         """
         Returns the VM instance for the given block number.

@@ -49,7 +49,8 @@ class DefaultTransactionValidator():
 
     @cachetools.func.ttl_cache(maxsize=1024, ttl=300)
     def get_appropriate_tx_class(self) -> Type[BaseTransaction]:
-        current_tx_class = self.chain.get_vm_class().get_transaction_class()
+        head = self.chain.get_canonical_head()
+        current_tx_class = self.chain.get_vm_class(head).get_transaction_class()
         # If the current head of the chain is still on a fork that is before the currently
         # active fork (syncing), ensure that we use the specified initial tx class
         if self._is_outdated_tx_class(current_tx_class):
