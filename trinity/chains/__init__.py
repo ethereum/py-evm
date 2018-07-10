@@ -4,8 +4,14 @@ from multiprocessing.managers import (  # type: ignore
     BaseManager,
     BaseProxy,
 )
+import inspect
 import os
+import traceback
+from types import TracebackType
 from typing import (
+    Any,
+    Callable,
+    List,
     Type
 )
 
@@ -144,6 +150,65 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
             )
 
 
+class TracebackRecorder:
+    """
+    Wrap the given instance, delegating all attribute accesses to it but if any method call raises
+    an exception it is converted into a ChainedExceptionWithTraceback that uses exception chaining
+    in order to retain the traceback that led to the exception in the remote process.
+    """
+
+    def __init__(self, obj: Any) -> None:
+        self.obj = obj
+
+    def __dir__(self) -> List[str]:
+        return dir(self.obj)
+
+    def __getattr__(self, name: str) -> Any:
+        attr = getattr(self.obj, name)
+        if not inspect.ismethod(attr):
+            return attr
+        else:
+            return record_traceback_on_error(attr)
+
+
+# Need to "type: ignore" here because we run mypy with --disallow-any-generics
+def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return attr(*args, **kwargs)
+        except Exception as e:
+            # This is a bit of a hack based on https://bugs.python.org/issue13831 to record the
+            # original traceback (as a string, which is picklable unlike traceback instances) in
+            # the exception that will be sent to the remote process.
+            raise ChainedExceptionWithTraceback(e, e.__traceback__)
+
+    return wrapper
+
+
+class RemoteTraceback(Exception):
+
+    def __init__(self, tb: str) -> None:
+        self.tb = tb
+
+    def __str__(self) -> str:
+        return self.tb
+
+
+class ChainedExceptionWithTraceback(Exception):
+
+    def __init__(self, exc: Exception, tb: TracebackType) -> None:
+        self.tb = '\n"""\n%s"""' % ''.join(traceback.format_exception(type(exc), exc, tb))
+        self.exc = exc
+
+    def __reduce__(self) -> Any:
+        return rebuild_exc, (self.exc, self.tb)
+
+
+def rebuild_exc(exc, tb):  # type: ignore
+    exc.__cause__ = RemoteTraceback(tb)
+    return exc
+
+
 def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     chaindb = AsyncChainDB(base_db)
     chain_class: Type[BaseChain]
@@ -167,23 +232,25 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
 
     # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
     # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-    DBManager.register('get_db', callable=lambda: base_db, proxytype=DBProxy)  # type: ignore
+    DBManager.register(  # type: ignore
+        'get_db', callable=lambda: TracebackRecorder(base_db), proxytype=DBProxy)
 
     DBManager.register(  # type: ignore
         'get_chaindb',
-        callable=lambda: chaindb,
+        callable=lambda: TracebackRecorder(chaindb),
         proxytype=ChainDBProxy,
     )
-    DBManager.register('get_chain', callable=lambda: chain, proxytype=ChainProxy)  # type: ignore
+    DBManager.register(  # type: ignore
+        'get_chain', callable=lambda: TracebackRecorder(chain), proxytype=ChainProxy)
 
     DBManager.register(  # type: ignore
         'get_headerdb',
-        callable=lambda: headerdb,
+        callable=lambda: TracebackRecorder(headerdb),
         proxytype=AsyncHeaderDBProxy,
     )
     DBManager.register(  # type: ignore
         'get_header_chain',
-        callable=lambda: header_chain,
+        callable=lambda: TracebackRecorder(header_chain),
         proxytype=AsyncHeaderChainProxy,
     )
 
