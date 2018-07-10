@@ -40,6 +40,7 @@ from p2p import les
 from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.constants import MAX_REORG_DEPTH
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
+from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
@@ -187,7 +188,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
                 headers = await self._fetch_missing_headers(peer, start_at)
             except TimeoutError:
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
-                await peer.cancel()
+                await peer.disconnect(DisconnectReason.timeout)
                 break
 
             if not headers:
@@ -509,7 +510,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         elif isinstance(cmd, eth.NodeData):
             # When doing a chain sync we never send GetNodeData requests, so peers should not send
             # us NodeData msgs.
-            self.logger.warn("Unexpected NodeData msg from %s", peer)
+            self.logger.warn("Unexpected NodeData msg from %s, disconnecting", peer)
+            await peer.disconnect(DisconnectReason.bad_protocol)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
@@ -577,7 +579,8 @@ class RegularChainSyncer(FastChainSyncer):
     async def _handle_block_receipts(
             self, peer: ETHPeer, receipts_by_block: List[List[eth.Receipt]]) -> None:
         # When doing a regular sync we never request receipts.
-        self.logger.warn("Unexpected BlockReceipts msg from %s", peer)
+        self.logger.warn("Unexpected BlockReceipts msg from %s, disconnecting", peer)
+        await peer.disconnect(DisconnectReason.bad_protocol)
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:

@@ -67,7 +67,7 @@ class ShardingPeer(BasePeer):
                                           cmd: Command,
                                           msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
-            self.disconnect(DisconnectReason.subprotocol_error)
+            await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure("Expected status msg, got {}, disconnecting".format(cmd))
 
     async def _get_headers_at_chain_split(
