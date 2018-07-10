@@ -276,7 +276,7 @@ class BasePeer(BaseService):
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
             raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
                 self, msg['reason_name']))
-        self.process_p2p_handshake(cmd, msg)
+        await self.process_p2p_handshake(cmd, msg)
 
     @property
     async def genesis(self) -> BlockHeader:
@@ -393,16 +393,17 @@ class BasePeer(BaseService):
         else:
             self.handle_sub_proto_msg(cmd, msg)
 
-    def process_p2p_handshake(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+    async def process_p2p_handshake(
+            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
-            self.disconnect(DisconnectReason.bad_protocol)
+            await self.disconnect(DisconnectReason.bad_protocol)
             raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
         remote_capabilities = msg['capabilities']
         try:
             self.sub_proto = self.select_sub_protocol(remote_capabilities)
         except NoMatchingPeerCapabilities:
-            self.disconnect(DisconnectReason.useless_peer)
+            await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "No matching capabilities between us ({}) and {} ({}), disconnecting".format(
                     self.capabilities, self.remote, remote_capabilities))
@@ -474,8 +475,10 @@ class BasePeer(BaseService):
         self.logger.trace("Sending msg with cmd_id: %s", cmd_id)
         self.writer.write(self.encrypt(header, body))
 
-    def disconnect(self, reason: DisconnectReason) -> None:
+    async def disconnect(self, reason: DisconnectReason) -> None:
         """Send a disconnect msg to the remote node and stop this Peer.
+
+        Also awaits for self.cancel() to ensure any pending tasks are cleaned up.
 
         :param reason: An item from the DisconnectReason enum.
         """
@@ -485,6 +488,8 @@ class BasePeer(BaseService):
         self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
+        if self.is_running:
+            await self.cancel()
 
     def select_sub_protocol(self, remote_capabilities: List[Tuple[bytes, int]]
                             ) -> protocol.Protocol:
@@ -537,18 +542,18 @@ class LESPeer(BasePeer):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, (les.Status, les.StatusV2)):
-            self.disconnect(DisconnectReason.subprotocol_error)
+            await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(
                 "Expected a LES Status msg, got {}, disconnecting".format(cmd))
         msg = cast(Dict[str, Any], msg)
         if msg['networkId'] != self.network_id:
-            self.disconnect(DisconnectReason.useless_peer)
+            await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['networkId'], self.network_id))
         genesis = await self.genesis
         if msg['genesisHash'] != genesis.hash:
-            self.disconnect(DisconnectReason.useless_peer)
+            await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
@@ -628,18 +633,18 @@ class ETHPeer(BasePeer):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if not isinstance(cmd, eth.Status):
-            self.disconnect(DisconnectReason.subprotocol_error)
+            await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(
                 "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
         msg = cast(Dict[str, Any], msg)
         if msg['network_id'] != self.network_id:
-            self.disconnect(DisconnectReason.useless_peer)
+            await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['network_id'], self.network_id))
         genesis = await self.genesis
         if msg['genesis_hash'] != genesis.hash:
-            self.disconnect(DisconnectReason.useless_peer)
+            await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
@@ -770,12 +775,8 @@ class PeerPool(BaseService):
 
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
-
         peers = self.connected_nodes.values()
-        for peer in peers:
-            peer.disconnect(DisconnectReason.client_quitting)
-
-        await asyncio.gather(*[peer.cancel() for peer in peers])
+        await asyncio.gather(*[peer.disconnect(DisconnectReason.client_quitting) for peer in peers])
 
     async def _cleanup(self) -> None:
         await self.stop_all_peers()
