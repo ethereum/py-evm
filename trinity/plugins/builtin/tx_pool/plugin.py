@@ -8,11 +8,11 @@ from evm.chains.base import (
 )
 from evm.chains.mainnet import (
     BYZANTIUM_MAINNET_BLOCK,
-    MainnetChain,
+    BaseMainnetChain,
 )
 from evm.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
-    RopstenChain,
+    BaseRopstenChain,
 )
 
 from p2p.cancel_token import (
@@ -71,14 +71,14 @@ class TxPlugin(BasePlugin):
         return all((self.peer_pool is not None, self.chain is not None, self.is_enabled))
 
     def start(self, context: PluginContext) -> None:
-        if isinstance(self.chain, MainnetChain):
+        if isinstance(self.chain, BaseMainnetChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
-        elif isinstance(self.chain, RopstenChain):
+        elif isinstance(self.chain, BaseRopstenChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_ROPSTEN_BLOCK)
         else:
             # TODO: We could hint the user about e.g. a --tx-pool-no-validation flag to run the
             # tx pool without tx validation in this case
-            raise ValueError("The TxPool plugin does only support MainnetChain or RopstenChain")
+            raise ValueError("The TxPool plugin only supports MainnetChain or RopstenChain")
 
         tx_pool = TxPool(self.peer_pool, validator, self.cancel_token)
         asyncio.ensure_future(tx_pool.run())
