@@ -1,14 +1,10 @@
 import logging
-from logging import Logger
 from typing import Any
 
 TRACE_LEVEL_NUM = 5
 
 
-class TraceLogger(Logger):
-
-    def init(self, name: str, level: int) -> None:
-        Logger.__init__(self, name, level)
+class TraceLogger(logging.Logger):
 
     def trace(self, message: str, *args: Any, **kwargs: Any) -> None:
         self.log(TRACE_LEVEL_NUM, message, *args, **kwargs)
