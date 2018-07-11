@@ -1,10 +1,10 @@
 import pytest
 
-from evm.vm import opcode_values
-from evm.vm.code_stream import (
+from eth.vm import opcode_values
+from eth.vm.code_stream import (
     CodeStream,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 

@@ -1,19 +1,19 @@
 import os
 import json
 
-from evm.tools.test_builder.test_builder import (
+from eth.tools.test_builder.test_builder import (
     fill_test,
 )
-from evm.tools.test_builder.formatters import (
+from eth.tools.test_builder.formatters import (
     filler_formatter,
 )
-from evm.tools.test_builder.builder_utils import (
+from eth.tools.test_builder.builder_utils import (
     get_test_name,
 )
 
 from eth_hash.auto import keccak
 
-from evm.utils.hexadecimal import (
+from eth.utils.hexadecimal import (
     encode_hex,
 )
 

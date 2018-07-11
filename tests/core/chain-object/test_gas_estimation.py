@@ -1,7 +1,7 @@
 import pytest
 
-from evm.estimators.gas import binary_gas_search_1000_tolerance
-from evm.utils.address import force_bytes_to_address
+from eth.estimators.gas import binary_gas_search_1000_tolerance
+from eth.utils.address import force_bytes_to_address
 
 from tests.core.helpers import (
     fill_block,

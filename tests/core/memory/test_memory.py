@@ -1,9 +1,9 @@
 import pytest
 
-from evm.vm.memory import (
+from eth.vm.memory import (
     Memory,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 

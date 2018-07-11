@@ -1,7 +1,7 @@
 import logging
 import sys
 
-# from evm.utils.logging import TRACE_LEVEL_NUM
+# from eth.utils.logging import TRACE_LEVEL_NUM
 
 import pytest
 
@@ -12,20 +12,20 @@ from eth_utils import (
 )
 from eth_keys import keys
 
-from evm import constants
-from evm.chains.base import (
+from eth import constants
+from eth.chains.base import (
     Chain,
     MiningChain,
 )
-from evm.db.backends.memory import MemoryDB
+from eth.db.backends.memory import MemoryDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
-from evm.vm.forks.spurious_dragon import SpuriousDragonVM
+from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 
 
 @pytest.fixture(autouse=True, scope="session")
 def vm_logger():
-    logger = logging.getLogger('evm')
+    logger = logging.getLogger('eth')
 
     handler = logging.StreamHandler(sys.stdout)
 
@@ -50,7 +50,7 @@ def vm_file_logger(request):
     import datetime
     import os
 
-    logger = logging.getLogger('evm')
+    logger = logging.getLogger('eth')
 
     level = TRACE_LEVEL_NUM
     #level = logging.DEBUG

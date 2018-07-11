@@ -2,10 +2,10 @@ import os
 
 import pytest
 
-from evm.db import (
+from eth.db import (
     get_db_backend,
 )
-from evm.db.chain import ChainDB
+from eth.db.chain import ChainDB
 
 from eth_utils import (
     to_bytes,
@@ -13,13 +13,13 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
-from evm.exceptions import (
+from eth.exceptions import (
     VMError,
 )
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     BlockHeader,
 )
-from evm.tools.fixture_tests import (
+from eth.tools.fixture_tests import (
     normalize_vmtest_fixture,
     generate_fixture_tests,
     load_fixture,
@@ -28,17 +28,17 @@ from evm.tools.fixture_tests import (
     verify_account_db,
     hash_log_entries,
 )
-from evm.vm.forks import (
+from eth.vm.forks import (
     HomesteadVM,
 )
-from evm.vm.forks.homestead.computation import (
+from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
-from evm.vm.forks.homestead.state import HomesteadState
-from evm.vm.message import (
+from eth.vm.forks.homestead.state import HomesteadState
+from eth.vm.message import (
     Message,
 )
-from evm.vm.transaction_context import (
+from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
 

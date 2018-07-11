@@ -1,8 +1,8 @@
 import pytest
 
 # TODO: use a custom chain class only for testing.
-from evm.db.backends.level import LevelDB
-from evm.db.chain import ChainDB
+from eth.db.backends.level import LevelDB
+from eth.db.chain import ChainDB
 
 from trinity.chains import (
     initialize_data_dir,

@@ -1,7 +1,7 @@
 import pytest
-from evm.db.backends.memory import MemoryDB
-from evm.db.journal import JournalDB
-from evm.db.batch import BatchDB
+from eth.db.backends.memory import MemoryDB
+from eth.db.journal import JournalDB
+from eth.db.batch import BatchDB
 
 
 @pytest.fixture(params=[JournalDB, BatchDB, MemoryDB])

@@ -1,6 +1,6 @@
 import pytest
 
-from evm.db.diff import (
+from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
     DiffMissingError,

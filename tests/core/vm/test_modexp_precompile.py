@@ -1,10 +1,10 @@
 import pytest
 
-from evm.precompiles.modexp import (
+from eth.precompiles.modexp import (
     _modexp,
     _compute_modexp_gas_fee,
 )
-from evm.utils.hexadecimal import (
+from eth.utils.hexadecimal import (
     decode_hex,
 )
 

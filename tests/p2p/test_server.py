@@ -4,10 +4,10 @@ import socket
 
 from eth_keys import keys
 
-from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
-from evm.db.chain import ChainDB
-from evm.db.header import HeaderDB
-from evm.db.backends.memory import MemoryDB
+from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+from eth.db.chain import ChainDB
+from eth.db.header import HeaderDB
+from eth.db.backends.memory import MemoryDB
 
 from p2p.peer import (
     ETHPeer,

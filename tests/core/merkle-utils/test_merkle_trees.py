@@ -4,7 +4,7 @@ from eth_hash.auto import (
     keccak,
 )
 
-from evm.utils.merkle import (
+from eth.utils.merkle import (
     calc_merkle_root,
     calc_merkle_tree,
     get_root,
@@ -12,7 +12,7 @@ from evm.utils.merkle import (
     verify_merkle_proof,
 )
 
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 

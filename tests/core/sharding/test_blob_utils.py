@@ -4,26 +4,26 @@ from itertools import (
     zip_longest,
 )
 
-from evm.utils.blobs import (
+from eth.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
     deserialize_blobs,
     iterate_chunks,
     serialize_blobs,
 )
-from evm.utils.padding import (
+from eth.utils.padding import (
     zpad_right,
 )
 
-from evm.utils.padding import zpad_left
-from evm.utils.numeric import int_to_big_endian
+from eth.utils.padding import zpad_left
+from eth.utils.numeric import int_to_big_endian
 
-from evm.constants import (
+from eth.constants import (
     CHUNK_SIZE,
     COLLATION_SIZE,
     MAX_BLOB_SIZE
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 

@@ -1,9 +1,9 @@
 import pytest
 
-from evm.vm.gas_meter import (
+from eth.vm.gas_meter import (
     GasMeter,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
     OutOfGas,
 )

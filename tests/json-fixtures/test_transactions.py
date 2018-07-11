@@ -9,24 +9,24 @@ from eth_utils import (
     to_tuple,
 )
 
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
-from evm.tools.fixture_tests import (
+from eth.tools.fixture_tests import (
     generate_fixture_tests,
     load_fixture,
     normalize_transactiontest_fixture
 )
-from evm.vm.forks.frontier.transactions import (
+from eth.vm.forks.frontier.transactions import (
     FrontierTransaction
 )
-from evm.vm.forks.homestead.transactions import (
+from eth.vm.forks.homestead.transactions import (
     HomesteadTransaction
 )
-from evm.vm.forks.spurious_dragon.transactions import (
+from eth.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction
 )
-from evm.vm.forks.byzantium.transactions import (
+from eth.vm.forks.byzantium.transactions import (
     ByzantiumTransaction
 )
 

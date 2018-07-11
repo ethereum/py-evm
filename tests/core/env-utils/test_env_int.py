@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from evm.utils.env import (
+from eth.utils.env import (
     env_int,
 )
 

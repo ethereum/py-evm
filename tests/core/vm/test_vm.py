@@ -2,8 +2,8 @@ import pytest
 
 from eth_utils import decode_hex
 
-from evm import constants
-from evm.chains.base import (
+from eth import constants
+from eth.chains.base import (
     MiningChain,
 )
 

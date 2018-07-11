@@ -1,12 +1,12 @@
 import pytest
 
-from evm.vm.message import (
+from eth.vm.message import (
     Message,
 )
-from evm.vm.forks.frontier.computation import (
+from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
-from evm.vm.transaction_context import (
+from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
 

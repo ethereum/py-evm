@@ -10,17 +10,17 @@ from eth_utils import (
 
 from eth_keys import keys
 
-from evm.vm.forks.frontier.transactions import (
+from eth.vm.forks.frontier.transactions import (
     FrontierTransaction,
 )
-from evm.vm.forks.homestead.transactions import (
+from eth.vm.forks.homestead.transactions import (
     HomesteadTransaction,
 )
-from evm.vm.forks.spurious_dragon.transactions import (
+from eth.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
 
-from evm.utils.transactions import (
+from eth.utils.transactions import (
     extract_transaction_sender,
     validate_transaction_signature,
 )
