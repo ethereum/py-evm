@@ -12,8 +12,8 @@ from eth_typing import (
     Hash32
 )
 
-from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
 
 from p2p.protocol import (
     Command,

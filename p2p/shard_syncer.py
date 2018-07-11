@@ -13,25 +13,25 @@ from eth_typing import (
     Hash32,
 )
 
-from evm.rlp.collations import Collation
-from evm.rlp.headers import CollationHeader
-from evm.chains.shard import Shard
+from eth.rlp.collations import Collation
+from eth.rlp.headers import CollationHeader
+from eth.chains.shard import Shard
 
-from evm.db.shard import (
+from eth.db.shard import (
     Availability,
 )
 
-from evm.utils.padding import (
+from eth.utils.padding import (
     zpad_right,
 )
-from evm.utils.blobs import (
+from eth.utils.blobs import (
     calc_chunk_root,
 )
 
-from evm.constants import (
+from eth.constants import (
     COLLATION_SIZE,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     CollationHeaderNotFound,
     CollationBodyNotFound,
 )

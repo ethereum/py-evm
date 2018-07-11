@@ -30,12 +30,12 @@ from eth_typing import (
     Hash32
 )
 
-from evm.constants import (
+from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from evm.db.backends.base import BaseDB
-from evm.rlp.accounts import Account
+from eth.db.backends.base import BaseDB
+from eth.rlp.accounts import Account
 
 from p2p import eth
 from p2p import protocol
@@ -267,8 +267,8 @@ def _test() -> None:
     import signal
     from p2p import ecies
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
-    from evm.db.backends.level import LevelDB
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
+    from eth.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, connect_to_peers_loop
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 

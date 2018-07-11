@@ -7,9 +7,9 @@ from typing import (
 
 from rlp import sedes
 
-from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransactionFields
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransactionFields
 
 from p2p.protocol import (
     Command,

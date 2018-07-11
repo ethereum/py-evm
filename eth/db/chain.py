@@ -29,7 +29,7 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth_hash.evm.auto import keccak
+from eth_hash.auto import keccak
 
 from constants import (
     EMPTY_UNCLE_HASH,

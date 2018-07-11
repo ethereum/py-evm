@@ -13,7 +13,7 @@ from typing import (
 import rlp
 from rlp import sedes
 
-from evm.constants import NULL_BYTE
+from eth.constants import NULL_BYTE
 
 from p2p.utils import get_devp2p_cmd_id
 

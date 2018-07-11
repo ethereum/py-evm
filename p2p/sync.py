@@ -2,9 +2,9 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from evm.chains import AsyncChain
-from evm.constants import BLANK_ROOT_HASH
-from evm.db.backends.base import BaseDB
+from eth.chains import AsyncChain
+from eth.constants import BLANK_ROOT_HASH
+from eth.db.backends.base import BaseDB
 
 from p2p.cancel_token import CancelToken
 from p2p.peer import PeerPool
@@ -80,8 +80,8 @@ def _test() -> None:
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import ETHPeer, DEFAULT_PREFERRED_NODES
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
-    from evm.db.backends.level import LevelDB
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
+    from eth.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')

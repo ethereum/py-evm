@@ -13,8 +13,8 @@ from eth_typing import (
     Hash32,
 )
 
-from evm.rlp.collations import Collation
-from evm.rlp.headers import BlockHeader
+from eth.rlp.collations import Collation
+from eth.rlp.headers import BlockHeader
 
 from p2p.cancel_token import (
     CancelToken,

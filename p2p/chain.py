@@ -24,15 +24,15 @@ from cytoolz import (
 
 from eth_typing import BlockNumber, Hash32
 
-from evm.constants import (
+from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
-from evm.chains import AsyncChain
-from evm.db.trie import make_trie_root_and_nodes
-from evm.exceptions import HeaderNotFound, ValidationError
-from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction, BaseTransactionFields
-from evm.utils.logging import TraceLogger
+from eth.chains import AsyncChain
+from eth.db.trie import make_trie_root_and_nodes
+from eth.exceptions import HeaderNotFound, ValidationError
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransaction, BaseTransactionFields
+from eth.utils.logging import TraceLogger
 
 from p2p import protocol
 from p2p import eth

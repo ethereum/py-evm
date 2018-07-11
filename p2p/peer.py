@@ -44,13 +44,13 @@ from eth_keys import (
     keys,
 )
 
-from evm.chains.mainnet import MAINNET_NETWORK_ID
-from evm.chains.ropsten import ROPSTEN_NETWORK_ID
-from evm.constants import GENESIS_BLOCK_NUMBER
-from evm.exceptions import ValidationError
-from evm.rlp.headers import BlockHeader
-from evm.vm.base import BaseVM
-from evm.vm.forks import HomesteadVM
+from eth.chains.mainnet import MAINNET_NETWORK_ID
+from eth.chains.ropsten import ROPSTEN_NETWORK_ID
+from eth.constants import GENESIS_BLOCK_NUMBER
+from eth.exceptions import ValidationError
+from eth.rlp.headers import BlockHeader
+from eth.vm.base import BaseVM
+from eth.vm.forks import HomesteadVM
 
 from p2p import auth
 from p2p import ecies
@@ -946,9 +946,9 @@ def _test() -> None:
     """
     import argparse
     import signal
-    from evm.utils.logging import TRACE_LEVEL_NUM
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
-    from evm.db.backends.memory import MemoryDB
+    from eth.utils.logging import TRACE_LEVEL_NUM
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
+    from eth.db.backends.memory import MemoryDB
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 

@@ -16,7 +16,7 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys import datatypes
 
-from evm.utils.padding import (
+from eth.utils.padding import (
     pad32,
 )
 

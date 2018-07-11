@@ -3,7 +3,7 @@ import logging
 import os
 import rlp
 
-from evm.utils.numeric import big_endian_to_int
+from eth.utils.numeric import big_endian_to_int
 
 
 def sxor(s1: bytes, s2: bytes) -> bytes:

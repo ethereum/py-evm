@@ -14,8 +14,8 @@ from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
-from evm.chains import AsyncChain
-from evm.db.backends.base import BaseDB
+from eth.chains import AsyncChain
+from eth.db.backends.base import BaseDB
 
 from p2p.auth import (
     decode_authentication,
