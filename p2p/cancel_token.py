@@ -105,7 +105,8 @@ class CancellableMixin:
                          *awaitables: Awaitable[_TReturn],
                          token: CancelToken = None,
                          timeout: float = None) -> _TReturn:
-        """Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
+        """
+        Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
 
         The given token is chained with this service's token, so triggering either will cancel
         this.

@@ -199,8 +199,11 @@ class BasePeer(BaseService):
         for start_block, vm_class in vm_configuration:
             if not issubclass(vm_class, HomesteadVM):
                 continue
+            elif not vm_class.support_dao_fork:
+                break
             elif start_block > vm_class.dao_fork_block_number:
-                continue
+                # VM comes after the fork, so stop checking
+                break
 
             fork_block = vm_class.dao_fork_block_number
             try:
@@ -213,12 +216,12 @@ class BasePeer(BaseService):
                 self.logger.info("Timed out waiting for DAO fork header from %s", self)
                 raise
             except ValidationError as e:
-                raise HandshakeFailure("Peer failed DAO fork check: {}".format(e))
+                raise HandshakeFailure("Peer failed DAO fork check retrieval: {}".format(e))
 
             try:
                 vm_class.validate_header(header, parent)
             except ValidationError as e:
-                raise HandshakeFailure("Peer failed DAO fork check: {}".format(e))
+                raise HandshakeFailure("Peer failed DAO fork check validation: {}".format(e))
 
     @abstractmethod
     async def _get_headers_at_chain_split(

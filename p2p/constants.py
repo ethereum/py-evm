@@ -35,10 +35,14 @@ CONN_IDLE_TIMEOUT = 30
 
 # Timeout used when waiting for a reply from a remote node.
 REPLY_TIMEOUT = 3
+MAX_REQUEST_ATTEMPTS = 3
 
 # Timeout used when performing the check to ensure peers are on the same side of chain splits as
 # us.
 CHAIN_SPLIT_CHECK_TIMEOUT = 5 * REPLY_TIMEOUT
+
+# Default timeout before giving up on a caller-initiated interaction
+COMPLETION_TIMEOUT = 5
 
 # Types of LES Announce messages
 LES_ANNOUNCE_SIMPLE = 1
