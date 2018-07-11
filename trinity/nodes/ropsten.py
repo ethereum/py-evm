@@ -1,4 +1,4 @@
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     RopstenChain,
 )
 

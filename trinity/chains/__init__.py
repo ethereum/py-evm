@@ -15,20 +15,20 @@ from typing import (
     Type
 )
 
-from evm import MainnetChain, RopstenChain
-from evm.chains.base import (
+from eth import MainnetChain, RopstenChain
+from eth.chains.base import (
     BaseChain
 )
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
     MAINNET_NETWORK_ID,
 )
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_NETWORK_ID,
 )
-from evm.db.backends.base import BaseDB
-from evm.exceptions import CanonicalHeadNotFound
+from eth.db.backends.base import BaseDB
+from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 

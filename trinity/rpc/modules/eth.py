@@ -18,16 +18,16 @@ from eth_utils import (
     is_integer,
 )
 
-from evm.chains.base import (
+from eth.chains.base import (
     BaseChain
 )
-from evm.rlp.blocks import (
+from eth.rlp.blocks import (
     BaseBlock
 )
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     BlockHeader
 )
-from evm.vm.state import (
+from eth.vm.state import (
     BaseAccountDB
 )
 

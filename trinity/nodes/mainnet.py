@@ -1,4 +1,4 @@
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     MainnetChain,
 )
 

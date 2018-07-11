@@ -6,12 +6,12 @@ from multiprocessing.managers import (  # type: ignore
 )
 from typing import Tuple, Type
 
-from evm.db.backends.base import BaseDB
-from evm.chains.header import (
+from eth.db.backends.base import BaseDB
+from eth.chains.header import (
     BaseHeaderChain,
     HeaderChain,
 )
-from evm.rlp.headers import BlockHeader
+from eth.rlp.headers import BlockHeader
 
 from trinity.db.header import (
     AsyncHeaderDB,

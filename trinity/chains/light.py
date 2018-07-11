@@ -21,32 +21,32 @@ from eth_typing import (
     Hash32,
 )
 
-from evm.chains.base import (
+from eth.chains.base import (
     AccountState,
     BaseChain,
 )
-from evm.db.backends.base import BaseDB
-from evm.db.chain import (
+from eth.db.backends.base import BaseDB
+from eth.db.chain import (
     BaseChainDB,
 )
-from evm.db.header import (
+from eth.db.header import (
     BaseHeaderDB,
 )
-from evm.rlp.blocks import (
+from eth.rlp.blocks import (
     BaseBlock,
 )
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     BlockHeader,
     HeaderParams,
 )
-from evm.rlp.receipts import (
+from eth.rlp.receipts import (
     Receipt
 )
-from evm.rlp.transactions import (
+from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from evm.vm.computation import (
+from eth.vm.computation import (
     BaseComputation
 )
 
@@ -55,7 +55,7 @@ from p2p.lightchain import (
 )
 
 if TYPE_CHECKING:
-    from evm.vm.base import BaseVM  # noqa: F401
+    from eth.vm.base import BaseVM  # noqa: F401
 
 
 class LightDispatchChain(BaseChain):

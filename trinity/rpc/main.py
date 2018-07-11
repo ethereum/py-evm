@@ -7,10 +7,10 @@ from typing import (
     Union,
 )
 
-from evm.chains.base import (
+from eth.chains.base import (
     BaseChain
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 
