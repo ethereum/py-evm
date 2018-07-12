@@ -283,10 +283,10 @@ def header_pairs(VM, headers, valid):
 )
 def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
     if valid:
-        VM.validate_header(header, previous_header)
+        VM.validate_header(header, previous_header, check_seal=True)
     else:
         try:
-            VM.validate_header(header, previous_header)
+            VM.validate_header(header, previous_header, check_seal=True)
         except ValidationError:
             pass
         else:

@@ -256,7 +256,8 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def validate_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
+    def validate_header(
+            cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -677,7 +678,7 @@ class VM(BaseVM):
             validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
         else:
             parent_header = get_parent_header(block.header, self.chaindb)
-            self.validate_header(block.header, parent_header)
+            self.validate_header(block.header, parent_header, check_seal=True)
 
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
@@ -712,7 +713,8 @@ class VM(BaseVM):
             )
 
     @classmethod
-    def validate_header(cls, header: BlockHeader, parent_header: BlockHeader) -> None:
+    def validate_header(
+            cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool) -> None:
         """
         :raise eth.exceptions.ValidationError: if the header is not valid
         """
@@ -744,7 +746,8 @@ class VM(BaseVM):
                     )
                 )
 
-            cls.validate_seal(header)
+            if check_seal:
+                cls.validate_seal(header)
 
     @classmethod
     def validate_seal(cls, header: BlockHeader) -> None:
