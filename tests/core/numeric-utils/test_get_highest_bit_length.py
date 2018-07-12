@@ -1,6 +1,6 @@
 import pytest
 
-from evm.utils.numeric import (
+from eth.utils.numeric import (
     get_highest_bit_index,
 )
 

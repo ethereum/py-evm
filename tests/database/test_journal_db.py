@@ -1,6 +1,6 @@
 import pytest
-from evm.db.backends.memory import MemoryDB
-from evm.db.journal import JournalDB
+from eth.db.backends.memory import MemoryDB
+from eth.db.journal import JournalDB
 
 
 @pytest.fixture

@@ -10,8 +10,8 @@ from eth_typing import (
 
 from rlp import sedes
 
-from evm.rlp.collations import Collation
-from evm.rlp.sedes import (
+from eth.rlp.collations import Collation
+from eth.rlp.sedes import (
     hash32,
 )
 

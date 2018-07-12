@@ -1,7 +1,7 @@
 import asyncio
 
-from evm import MainnetChain, RopstenChain
-from evm.chains.base import (
+from eth import MainnetChain, RopstenChain
+from eth.chains.base import (
     MiningChain,
 )
 

@@ -13,11 +13,11 @@ from typing import (
 
 from eth_typing import Hash32
 
-from evm.db.chain import ChainDB
-from evm.rlp.blocks import BaseBlock
-from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
-from evm.rlp.transactions import BaseTransaction
+from eth.db.chain import ChainDB
+from eth.rlp.blocks import BaseBlock
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransaction
 
 from trinity.db.header import AsyncHeaderDB
 from trinity.utils.mp import (

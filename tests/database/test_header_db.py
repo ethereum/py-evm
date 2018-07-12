@@ -10,21 +10,21 @@ from eth_utils import (
     keccak,
 )
 
-from evm.constants import (
+from eth.constants import (
     GENESIS_BLOCK_NUMBER,
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     CanonicalHeadNotFound,
     ParentNotFound,
 )
-from evm.db.backends.memory import MemoryDB
-from evm.db.header import HeaderDB
-from evm.rlp.headers import (
+from eth.db.backends.memory import MemoryDB
+from eth.db.header import HeaderDB
+from eth.rlp.headers import (
     BlockHeader,
 )
-from evm.utils.rlp import (
+from eth.utils.rlp import (
     ensure_rlp_objects_are_equal,
 )
 

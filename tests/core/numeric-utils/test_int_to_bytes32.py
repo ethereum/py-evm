@@ -1,11 +1,11 @@
 import pytest
 
-from evm.constants import (
+from eth.constants import (
     NULL_BYTE,
     UINT_256_MAX,
 )
 
-from evm.utils.numeric import (
+from eth.utils.numeric import (
     int_to_bytes32,
 )
 

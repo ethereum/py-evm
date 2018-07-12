@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from evm.utils.version import (
+from eth.utils.version import (
     construct_evm_runtime_identifier
 )
 

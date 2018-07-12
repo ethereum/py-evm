@@ -5,14 +5,14 @@ import signal
 import sys
 from typing import Type
 
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
 )
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
-from evm.db.backends.base import BaseDB
-from evm.db.backends.level import LevelDB
+from eth.db.backends.base import BaseDB
+from eth.db.backends.level import LevelDB
 
 from p2p.service import BaseService
 

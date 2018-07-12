@@ -9,28 +9,28 @@ import rlp
 
 from eth_hash.auto import keccak
 
-from evm.constants import (
+from eth.constants import (
     BLANK_ROOT_HASH,
 )
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import (
+from eth.db.backends.memory import MemoryDB
+from eth.db.chain import (
     ChainDB,
 )
-from evm.db.schema import SchemaV1
-from evm.exceptions import (
+from eth.db.schema import SchemaV1
+from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
 )
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     BlockHeader,
 )
-from evm.tools.fixture_tests import (
+from eth.tools.fixture_tests import (
     assert_rlp_equal,
 )
-from evm.vm.forks.frontier.blocks import (
+from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
-from evm.vm.forks.homestead.blocks import (
+from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
 )
 

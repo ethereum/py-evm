@@ -32,7 +32,7 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source evm
+	coverage run --source eth
 	coverage report -m
 	coverage html
 	open htmlcov/index.html

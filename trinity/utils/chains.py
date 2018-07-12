@@ -15,10 +15,10 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
 )
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 

@@ -10,12 +10,12 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_VM_CONFIGURATION,
 )
-from evm.db.backends.memory import MemoryDB
+from eth.db.backends.memory import MemoryDB
 
 from p2p import ecies
 from p2p.chain import LightChainSyncer

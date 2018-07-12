@@ -5,9 +5,9 @@ import pytest
 from eth_keys import keys
 from eth_utils import decode_hex
 
-from evm import constants
-from evm.db.backends.memory import MemoryDB
-from evm.vm.forks.frontier import FrontierVM, _PoWMiningVM
+from eth import constants
+from eth.db.backends.memory import MemoryDB
+from eth.vm.forks.frontier import FrontierVM, _PoWMiningVM
 
 from p2p import eth
 from p2p.peer import ETHPeer, LESPeer

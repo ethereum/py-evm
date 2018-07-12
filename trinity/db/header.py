@@ -11,11 +11,11 @@ from eth_typing import (
     BlockNumber,
 )
 
-from evm.db.header import (
+from eth.db.header import (
     BaseHeaderDB,
     HeaderDB,
 )
-from evm.rlp.headers import BlockHeader
+from eth.rlp.headers import BlockHeader
 
 from trinity.utils.mp import (
     async_method,

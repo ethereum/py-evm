@@ -10,7 +10,7 @@ from bloom_filter import (
     BloomFilter
 )
 
-from evm.rlp.transactions import (
+from eth.rlp.transactions import (
     BaseTransactionFields
 )
 from p2p.cancel_token import CancelToken
@@ -31,7 +31,7 @@ from p2p.service import (
 class TxPool(BaseService, PeerPoolSubscriber):
     """
     The :class:`~trinity.tx_pool.pool.TxPool` class is responsible for holding and relaying
-    of transactions, represented as :class:`~evm.rlp.transactions.BaseTransaction` among the
+    of transactions, represented as :class:`~eth.rlp.transactions.BaseTransaction` among the
     connected peers.
 
       .. note::

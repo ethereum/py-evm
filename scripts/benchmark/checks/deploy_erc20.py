@@ -14,13 +14,13 @@ from eth_utils import (
     to_int,
 )
 
-from evm.constants import (
+from eth.constants import (
     CREATE_CONTRACT_ADDRESS
 )
-from evm.chains.base import (
+from eth.chains.base import (
     MiningChain,
 )
-from evm.rlp.blocks import (
+from eth.rlp.blocks import (
     BaseBlock,
 )
 

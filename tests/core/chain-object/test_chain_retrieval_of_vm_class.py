@@ -1,24 +1,24 @@
 import pytest
 
 
-from evm.chains.base import (
+from eth.chains.base import (
     Chain,
     MiningChain,
 )
-from evm.constants import (
+from eth.constants import (
     GENESIS_BLOCK_NUMBER,
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from evm.db.backends.memory import MemoryDB
-from evm.db.chain import ChainDB
-from evm.exceptions import (
+from eth.db.backends.memory import MemoryDB
+from eth.db.chain import ChainDB
+from eth.exceptions import (
     VMNotFound,
 )
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     BlockHeader,
 )
-from evm.vm.base import VM
+from eth.vm.base import VM
 
 
 @pytest.fixture

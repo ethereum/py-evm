@@ -5,10 +5,10 @@ from eth_utils import (
     encode_hex,
 )
 
-from evm.chains.base import (
+from eth.chains.base import (
     Chain
 )
-from evm.tools.fixture_tests import (
+from eth.tools.fixture_tests import (
     apply_fixture_block_to_chain,
     new_chain_from_fixture,
     normalize_block,

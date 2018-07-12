@@ -2,8 +2,8 @@ import rlp
 from rlp import sedes
 
 
-from evm.rlp.headers import BlockHeader
-from evm.rlp.transactions import BaseTransactionFields
+from eth.rlp.headers import BlockHeader
+from eth.rlp.transactions import BaseTransactionFields
 
 
 class BlockBody(rlp.Serializable):

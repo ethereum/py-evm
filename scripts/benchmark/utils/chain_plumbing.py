@@ -19,19 +19,19 @@ from eth_typing import (
     Address
 )
 
-from evm import (
+from eth import (
     constants,
 )
-from evm.chains.base import (
+from eth.chains.base import (
     MiningChain,
 )
-from evm.vm.base import (
+from eth.vm.base import (
     BaseVM
 )
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     BaseMainnetChain,
 )
-from evm.db.backends.memory import (
+from eth.db.backends.memory import (
     MemoryDB
 )
 

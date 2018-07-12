@@ -4,13 +4,13 @@ from typing import (
     Type
 )
 
-from evm.chains.base import (
+from eth.chains.base import (
     BaseChain
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError
 )
-from evm.rlp.transactions import (
+from eth.rlp.transactions import (
     BaseTransaction,
     BaseTransactionFields
 )

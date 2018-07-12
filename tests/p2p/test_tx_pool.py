@@ -9,7 +9,7 @@ from p2p.eth import (
     Transactions
 )
 
-from evm.utils.address import (
+from eth.utils.address import (
     force_bytes_to_address
 )
 

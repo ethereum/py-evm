@@ -2,16 +2,16 @@ import pytest
 
 from eth_hash.auto import keccak
 
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 
-from evm.db.backends.memory import MemoryDB
-from evm.db.account import (
+from eth.db.backends.memory import MemoryDB
+from eth.db.account import (
     AccountDB,
 )
 
-from evm.constants import (
+from eth.constants import (
     EMPTY_SHA3,
 )
 

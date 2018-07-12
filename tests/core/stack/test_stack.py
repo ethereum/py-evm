@@ -1,14 +1,14 @@
 import pytest
 
-from evm.vm.stack import (
+from eth.vm.stack import (
     Stack,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     FullStack,
     InsufficientStack,
     ValidationError,
 )
-from evm.constants import (
+from eth.constants import (
     UINT256,
     BYTES,
     SECPK1_N,

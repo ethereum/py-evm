@@ -97,7 +97,7 @@ Database Process
 
 The database process exposes several chain-related operations, all of which are bundled in this
 single process. These aren't necessarily low-level get/set operations, but also include
-higher-level APIs, such as the :func:`~evm.chains.base.Chain.import_block` API.
+higher-level APIs, such as the :func:`~eth.chains.base.Chain.import_block` API.
 
 The way this works is by facilitazing Pythons :class:`~multiprocessing.managers.BaseManager` API
 and exposing several :class:`~multiprocessing.managers.BaseProxy` proxies to coordinate

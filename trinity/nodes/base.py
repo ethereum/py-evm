@@ -11,7 +11,7 @@ from typing import (
     Union
 )
 
-from evm.chains.base import BaseChain
+from eth.chains.base import BaseChain
 
 from p2p.peer import (
     PeerPool

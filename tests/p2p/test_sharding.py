@@ -3,14 +3,14 @@ import itertools
 
 import pytest
 
-from evm.chains.shard import Shard
-from evm.db.backends.memory import MemoryDB
-from evm.db.shard import ShardDB
+from eth.chains.shard import Shard
+from eth.db.backends.memory import MemoryDB
+from eth.db.shard import ShardDB
 
-from evm.utils.blobs import (
+from eth.utils.blobs import (
     calc_chunk_root,
 )
-from evm.utils.padding import (
+from eth.utils.padding import (
     zpad_right,
 )
 
@@ -33,10 +33,10 @@ from p2p.exceptions import (
     HandshakeFailure,
 )
 
-from evm.rlp.headers import CollationHeader
-from evm.rlp.collations import Collation
+from eth.rlp.headers import CollationHeader
+from eth.rlp.collations import Collation
 
-from evm.constants import (
+from eth.constants import (
     COLLATION_SIZE,
 )
 

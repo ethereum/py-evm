@@ -4,8 +4,8 @@ from typing import List
 
 from eth_hash.auto import keccak
 
-from evm.chains.mainnet import MAINNET_GENESIS_HEADER
-from evm.db.backends.memory import MemoryDB
+from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+from eth.db.backends.memory import MemoryDB
 
 from p2p import auth
 from p2p import constants

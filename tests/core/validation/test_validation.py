@@ -2,13 +2,13 @@ from __future__ import unicode_literals
 
 import pytest
 
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
-from evm.constants import (
+from eth.constants import (
     SECPK1_N,
 )
-from evm.validation import (
+from eth.validation import (
     validate_block_number,
     validate_canonical_address,
     validate_gt,

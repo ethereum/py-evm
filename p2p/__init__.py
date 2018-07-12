@@ -1,2 +1,2 @@
 # This is to ensure we call setup_trace_logging() before anything else.
-import evm  # noqa: F401
+import eth as eth_module  # noqa: F401

@@ -1,8 +1,8 @@
 import os
 import random
 
-from evm.db.backends.memory import MemoryDB
-from evm.db.account import AccountDB
+from eth.db.backends.memory import MemoryDB
+from eth.db.account import AccountDB
 
 from p2p.state import StateSync
 

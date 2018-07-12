@@ -3,32 +3,32 @@ import pytest
 import random
 import itertools
 
-from evm.chains.shard import (
+from eth.chains.shard import (
     Shard,
 )
-from evm.db.shard import (
+from eth.db.shard import (
     ShardDB,
     Availability,
 )
-from evm.db import (
+from eth.db import (
     get_db_backend,
 )
 
-from evm.rlp.headers import (
+from eth.rlp.headers import (
     CollationHeader,
 )
-from evm.rlp.collations import (
+from eth.rlp.collations import (
     Collation,
 )
 
-from evm.constants import (
+from eth.constants import (
     COLLATION_SIZE,
 )
 
-from evm.utils.blobs import (
+from eth.utils.blobs import (
     calc_chunk_root,
 )
-from evm.utils.padding import (
+from eth.utils.padding import (
     zpad_right,
 )
 from eth_utils import (

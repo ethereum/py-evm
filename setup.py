@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 deps = {
-    'evm': [
+    'eth': [
         "cryptography>=2.0.3,<3.0.0",
         "cytoolz>=0.9.0,<1.0.0",
         "eth-bloom>=1.0.0,<2.0.0",
@@ -17,11 +17,11 @@ deps = {
         "trie>=1.3.5,<2.0.0",
         "lru-dict>=1.1.6",
     ],
-    # The evm-extra sections is for libraries that the evm does not
+    # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
-    'evm-extra': [
+    'eth-extra': [
         "coincurve>=7.0.0,<8.0.0",
         "plyvel==1.0.4",
         "eth-hash[pysha3];implementation_name=='cpython'",
@@ -77,8 +77,8 @@ deps = {
 
 deps['dev'] = (
     deps['dev'] +
-    deps['evm'] +
-    deps['evm-extra'] +
+    deps['eth'] +
+    deps['eth-extra'] +
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
@@ -86,10 +86,10 @@ deps['dev'] = (
     deps['lint']
 )
 
-# As long as evm, p2p and trinity are managed together in the py-evm
+# As long as eth, p2p and trinity are managed together in the py-evm
 # package, someone running a `pip install py-evm` should expect all
-# dependencies for evm, p2p and trinity to get installed.
-install_requires = deps['evm'] + deps['p2p'] + deps['trinity']
+# dependencies for eth, p2p and trinity to get installed.
+install_requires = deps['eth'] + deps['p2p'] + deps['trinity']
 
 setup(
     name='py-evm',
@@ -101,7 +101,7 @@ setup(
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
-    py_modules=['evm', 'trinity', 'p2p'],
+    py_modules=['eth', 'trinity', 'p2p'],
     install_requires=install_requires,
     extras_require=deps,
     setup_requires=['setuptools-markdown'],

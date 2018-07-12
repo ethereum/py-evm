@@ -7,8 +7,8 @@ import tempfile
 
 import pytest
 
-from evm.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
-from evm.db.chain import (
+from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
+from eth.db.chain import (
     ChainDB,
 )
 

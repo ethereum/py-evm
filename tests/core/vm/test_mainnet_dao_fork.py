@@ -6,13 +6,13 @@ from eth_utils import (
 
 from cytoolz import sliding_window
 
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     MainnetHomesteadVM,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
-from evm.rlp.headers import BlockHeader
+from eth.rlp.headers import BlockHeader
 
 
 class ETC_VM(MainnetHomesteadVM):

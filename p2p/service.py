@@ -10,7 +10,7 @@ from typing import (
     cast,
 )
 
-from evm.utils.logging import TraceLogger
+from eth.utils.logging import TraceLogger
 
 from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.exceptions import OperationCancelled

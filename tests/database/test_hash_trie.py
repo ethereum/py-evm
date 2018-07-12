@@ -6,7 +6,7 @@ from hypothesis import (
 from eth_hash.auto import keccak
 from trie import HexaryTrie
 
-from evm.db.hash_trie import (
+from eth.db.hash_trie import (
     HashTrie,
 )
 

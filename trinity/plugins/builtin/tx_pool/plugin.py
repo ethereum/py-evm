@@ -3,14 +3,14 @@ from argparse import (
 )
 import asyncio
 
-from evm.chains.base import (
+from eth.chains.base import (
     BaseChain
 )
-from evm.chains.mainnet import (
+from eth.chains.mainnet import (
     BYZANTIUM_MAINNET_BLOCK,
     BaseMainnetChain,
 )
-from evm.chains.ropsten import (
+from eth.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
     BaseRopstenChain,
 )

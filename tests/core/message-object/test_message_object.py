@@ -6,13 +6,13 @@ from eth_utils import (
     to_normalized_address,
 )
 
-from evm.vm.message import (
+from eth.vm.message import (
     Message,
 )
-from evm.constants import (
+from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-from evm.exceptions import (
+from eth.exceptions import (
     ValidationError,
 )
 

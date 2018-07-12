@@ -15,7 +15,7 @@ from eth_utils import (
     is_string,
 )
 
-from evm.tools.fixture_tests import (
+from eth.tools.fixture_tests import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,

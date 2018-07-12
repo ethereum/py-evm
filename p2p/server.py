@@ -14,8 +14,8 @@ from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
-from evm.chains import AsyncChain
-from evm.db.backends.base import BaseDB
+from eth.chains import AsyncChain
+from eth.db.backends.base import BaseDB
 
 from p2p.auth import (
     decode_authentication,
@@ -298,8 +298,8 @@ def _test() -> None:
     from pathlib import Path
     import signal
 
-    from evm.db.backends.level import LevelDB
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+    from eth.db.backends.level import LevelDB
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
     from p2p import ecies
     from p2p.constants import ROPSTEN_BOOTNODES

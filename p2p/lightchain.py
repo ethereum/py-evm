@@ -29,13 +29,13 @@ from eth_utils import (
 from trie import HexaryTrie
 from trie.exceptions import BadTrieProof
 
-from evm.exceptions import (
+from eth.exceptions import (
     BlockNotFound,
     HeaderNotFound,
 )
-from evm.rlp.accounts import Account
-from evm.rlp.headers import BlockHeader
-from evm.rlp.receipts import Receipt
+from eth.rlp.accounts import Account
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
 
 from p2p.exceptions import (
     BadLESResponse,
