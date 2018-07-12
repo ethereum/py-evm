@@ -4,10 +4,10 @@ from typing import (
     Type
 )
 
-from evm.utils.module_loading import (
+from eth.utils.module_loading import (
     import_string,
 )
-from evm.db.backends.base import (
+from eth.db.backends.base import (
     BaseDB
 )
 

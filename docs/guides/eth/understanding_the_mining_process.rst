@@ -69,13 +69,13 @@ error tells us precisely that the ``mix_hash`` of our block does not match the e
       run()
     File "scripts/benchmark/run.py", line 52, in run
       block = chain.mine_block()  #**pow_args
-    File "/py-evm/evm/chains/base.py", line 545, in mine_block
+    File "/py-evm/eth/chains/base.py", line 545, in mine_block
       self.validate_block(mined_block)
-    File "/py-evm/evm/chains/base.py", line 585, in validate_block
+    File "/py-evm/eth/chains/base.py", line 585, in validate_block
       self.validate_seal(block.header)
-    File "/py-evm/evm/chains/base.py", line 622, in validate_seal
+    File "/py-evm/eth/chains/base.py", line 622, in validate_seal
       header.mix_hash, header.nonce, header.difficulty)
-    File "/py-evm/evm/consensus/pow.py", line 70, in check_pow
+    File "/py-evm/eth/consensus/pow.py", line 70, in check_pow
       encode_hex(mining_output[b'mix digest']), encode_hex(mix_hash)))
 
   eth.exceptions.ValidationError: mix hash mismatch;
@@ -85,7 +85,7 @@ error tells us precisely that the ``mix_hash`` of our block does not match the e
 Let's lookup how :func:`~eth.consensus.pow.check_pow` is implemented.
 
 
-.. literalinclude:: ../../../evm/consensus/pow.py
+.. literalinclude:: ../../../eth/consensus/pow.py
    :language: python
    :pyobject: check_pow
 
@@ -138,7 +138,7 @@ Let's start off by defining the ``GENESIS_PARAMS``.
 
 ::
 
-  from evm import constants
+  from eth import constants
 
   GENESIS_PARAMS = {
         'parent_hash': constants.GENESIS_PARENT_HASH,

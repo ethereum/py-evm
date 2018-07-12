@@ -101,7 +101,7 @@ setup(
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
-    py_modules=['evm', 'trinity', 'p2p'],
+    py_modules=['eth', 'trinity', 'p2p'],
     install_requires=install_requires,
     extras_require=deps,
     setup_requires=['setuptools-markdown'],

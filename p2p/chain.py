@@ -774,8 +774,8 @@ def _test() -> None:
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
-    from evm.db.backends.level import LevelDB
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
+    from eth.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, FakeAsyncHeaderDB, connect_to_peers_loop)
 

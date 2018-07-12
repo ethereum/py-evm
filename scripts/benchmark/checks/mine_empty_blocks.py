@@ -1,6 +1,6 @@
 import logging
 
-from evm.chains.base import (
+from eth.chains.base import (
     MiningChain
 )
 

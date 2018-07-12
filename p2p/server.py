@@ -298,8 +298,8 @@ def _test() -> None:
     from pathlib import Path
     import signal
 
-    from evm.db.backends.level import LevelDB
-    from evm.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+    from eth.db.backends.level import LevelDB
+    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
     from p2p import ecies
     from p2p.constants import ROPSTEN_BOOTNODES

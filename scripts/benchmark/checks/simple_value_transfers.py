@@ -8,10 +8,10 @@ from typing import (
 from eth_typing import (
     Address,
 )
-from evm.chains.base import (
+from eth.chains.base import (
     MiningChain,
 )
-from evm.rlp.blocks import (
+from eth.rlp.blocks import (
     BaseBlock,
 )
 

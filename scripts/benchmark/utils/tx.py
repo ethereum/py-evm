@@ -2,10 +2,10 @@ from eth_typing import (
     Address
 )
 
-from evm.rlp.transactions import (
+from eth.rlp.transactions import (
     BaseTransaction
 )
-from evm.vm.base import (
+from eth.vm.base import (
     VM
 )
 

@@ -1,5 +1,5 @@
-from evm.rlp.blocks import BaseBlock
-from evm.utils.hexadecimal import (
+from eth.rlp.blocks import BaseBlock
+from eth.utils.hexadecimal import (
     encode_hex,
 )
 

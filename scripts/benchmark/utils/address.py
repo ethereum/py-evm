@@ -3,7 +3,7 @@ from typing import (
     Tuple
 )
 
-from evm.utils.padding import (
+from eth.utils.padding import (
     pad32,
 )
 

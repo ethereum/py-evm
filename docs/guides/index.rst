@@ -8,4 +8,4 @@ This section aims to provide hands-on guides to demonstrate how to use Trinity a
    :name: toc-guides
 
    trinity/index
-   evm/index
+   eth/index
