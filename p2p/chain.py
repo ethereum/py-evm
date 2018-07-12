@@ -485,14 +485,18 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             request_func: Callable[[ETHPeer, List[BlockHeader]], None],
             block_part: BlockPartEnum,
     ) -> int:
+        """
+        :return: how many requests were made (one request per peer)
+        """
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
         batches = self._select_headers_by_peer(headers, peers, block_part)
         for peer, batch in zip(peers, batches):
-            self._get_throughput_stats(peer, block_part).begin_work()
-            request_func(cast(ETHPeer, peer), batch)
-        return len(batches)
+            if len(batch):
+                self._get_throughput_stats(peer, block_part).begin_work()
+                request_func(cast(ETHPeer, peer), batch)
+        return len([batch for batch in batches if len(batch)])
 
     def _select_headers_by_peer(
             self,
