@@ -31,7 +31,7 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
-from constants import (
+from eth.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_PARENT_HASH,
 )
