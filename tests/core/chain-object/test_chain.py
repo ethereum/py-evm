@@ -6,7 +6,7 @@ from eth_utils import decode_hex
 from eth import constants
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
-from etj.exceptions import (
+from eth.exceptions import (
     TransactionNotFound,
 )
 from eth.vm.forks.frontier.blocks import FrontierBlock
