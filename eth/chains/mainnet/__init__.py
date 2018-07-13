@@ -33,7 +33,7 @@ class MainnetDAOValidatorVM:
     """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
 
     @classmethod
-    def validate_header(cls, header, previous_header, check_seal):
+    def validate_header(cls, header, previous_header, check_seal=True):
         # ignore mypy warnings, because super's validate_header is defined by mixing w/ other class
         super().validate_header(header, previous_header, check_seal)  # type: ignore
 

@@ -38,7 +38,7 @@ from p2p import protocol
 from p2p import eth
 from p2p import les
 from p2p.cancel_token import CancellableMixin, CancelToken
-from p2p.constants import FAST_SYNC_SEAL_CHECK_FREQUENCY, MAX_REORG_DEPTH
+from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
@@ -71,7 +71,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
     # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
     # the round-trip times from our download requests.
     _reply_timeout = 60
-    _seal_check_frequency = FAST_SYNC_SEAL_CHECK_FREQUENCY
+    _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
 
     def __init__(self,
                  chain: AsyncChain,
@@ -206,7 +206,7 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
             start = time.time()
             try:
-                await self.chain.coro_validate_chain(headers, self._seal_check_frequency)
+                await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
             except ValidationError as e:
                 self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
                 break
@@ -576,7 +576,7 @@ class RegularChainSyncer(FastChainSyncer):
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
     _exit_on_sync_complete = False
-    _seal_check_frequency = 1
+    _seal_check_random_sample_rate = 1
 
     async def _handle_block_receipts(
             self, peer: ETHPeer, receipts_by_block: List[List[eth.Receipt]]) -> None:

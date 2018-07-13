@@ -274,7 +274,8 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def validate_chain(self, chain: Tuple[BlockHeader, ...], seal_check_frequency: int = 1) -> None:
+    def validate_chain(
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
 
@@ -687,14 +688,15 @@ class Chain(BaseChain):
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
-    def validate_chain(self, chain: Tuple[BlockHeader, ...], seal_check_frequency: int = 1) -> None:
+    def validate_chain(
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         parent = self.chaindb.get_block_header_by_hash(chain[0].parent_hash)
         all_indices = list(range(len(chain)))
-        if seal_check_frequency == 1:
-            headers_to_check_seal = all_indices
+        if seal_check_random_sample_rate == 1:
+            headers_to_check_seal = set(all_indices)
         else:
-            headers_to_check_seal = random.sample(
-                all_indices, len(all_indices) // seal_check_frequency)
+            sample_size = len(all_indices) // seal_check_random_sample_rate
+            headers_to_check_seal = set(random.sample(all_indices, sample_size))
 
         for i, header in enumerate(chain):
             if header.parent_hash != parent.hash:
@@ -703,10 +705,9 @@ class Chain(BaseChain):
                         header, header.parent_hash, parent.hash))
             vm_class = self.get_vm_class_for_block_number(header.block_number)
             if i in headers_to_check_seal:
-                check_seal = True
+                vm_class.validate_header(header, parent, check_seal=True)
             else:
-                check_seal = False
-            vm_class.validate_header(header, parent, check_seal)
+                vm_class.validate_header(header, parent, check_seal=False)
             parent = header
 
 
@@ -783,5 +784,5 @@ class AsyncChain(Chain):
         raise NotImplementedError()
 
     async def coro_validate_chain(
-            self, chain: Tuple[BlockHeader, ...], seal_check_frequency: int = 1) -> None:
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError()
