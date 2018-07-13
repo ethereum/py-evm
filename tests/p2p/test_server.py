@@ -75,8 +75,14 @@ def get_server(privkey, address, peer_class):
     return server
 
 
+@pytest.fixture(autouse=True)
+def _network(network):
+    # use mocked networking connections.
+    pass
+
+
 @pytest.fixture
-async def server(router):
+async def server():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)
     await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
     yield server
@@ -85,7 +91,7 @@ async def server(router):
 
 
 @pytest.fixture
-async def receiver_server_with_dumb_peer(router):
+async def receiver_server_with_dumb_peer():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, DumbPeer)
     await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
     yield server
@@ -94,7 +100,7 @@ async def receiver_server_with_dumb_peer(router):
 
 
 @pytest.mark.asyncio
-async def test_server_authenticates_incoming_connections(monkeypatch, server, event_loop, router):
+async def test_server_authenticates_incoming_connections(monkeypatch, server, event_loop):
     connected_peer = None
 
     async def mock_do_handshake(peer):
@@ -109,7 +115,7 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
 
     # Send auth init message to the server.
     reader, writer = await asyncio.wait_for(
-        router.open_connection(SERVER_ADDRESS.ip, SERVER_ADDRESS.tcp_port),
+        asyncio.open_connection(SERVER_ADDRESS.ip, SERVER_ADDRESS.tcp_port),
         timeout=1)
     writer.write(eip8_values['auth_init_ciphertext'])
     await asyncio.wait_for(writer.drain(), timeout=1)
@@ -126,7 +132,7 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
 
 
 @pytest.mark.asyncio
-async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_dumb_peer, router):
+async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_dumb_peer):
     started_peers = []
 
     def mock_start_peer(peer):

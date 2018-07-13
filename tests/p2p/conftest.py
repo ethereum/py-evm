@@ -1,10 +1,3 @@
-import asyncio
-import pytest
-
-from p2p import network
-from p2p.tools import local_network
-
-
 def pytest_addoption(parser):
     parser.addoption("--enode", type=str, required=False)
     parser.addoption("--integration", action="store_true", default=False)
@@ -37,20 +30,3 @@ def p2p_logger():
 
     return logger
 """
-
-
-@pytest.fixture
-async def router(monkeypatch):
-    router = local_network.Router()
-
-    asyncio.ensure_future(router.run())
-
-    def get_network():
-        return router
-
-    monkeypatch.setattr(network, 'get_network', get_network)
-
-    try:
-        yield router
-    finally:
-        await router.cancel()

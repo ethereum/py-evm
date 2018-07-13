@@ -119,5 +119,6 @@ setup(
     # trinity
     entry_points={
         'console_scripts': ['trinity=trinity:main'],
+        'pytest11': ['ethereum=p2p.tools.local_network'],
     },
 )
