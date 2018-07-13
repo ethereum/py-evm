@@ -40,6 +40,8 @@ DEFAULT_LOG_LEVEL = 'info'
 LOG_LEVEL_CHOICES = (
     'debug',
     'info',
+    'warning',
+    'error',
 )
 
 
