@@ -56,6 +56,6 @@ class PidFile:
             with self.filepath.open('x') as pidfile:
                 pidfile.write(str(os.getpid()) + "\n")
 
-    def __exit__(self, exc_type=None, exc_value=None, exc_tb=None):
+    def __exit__(self, exc_type=None, exc_value=None, exc_tb=None):  # type: ignore
         self.filepath.unlink()
         self._running = False

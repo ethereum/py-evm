@@ -241,6 +241,6 @@ class ChainConfig:
             )
 
     @contextmanager
-    def process_id_file(self, process_name: str):
+    def process_id_file(self, process_name: str):  # type: ignore
         with PidFile(process_name, self.data_dir):
             yield
