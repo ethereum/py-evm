@@ -1,4 +1,4 @@
-from typing import Any, cast, Dict, Generator, List, Tuple, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, Iterator, List, Tuple, TYPE_CHECKING, Union
 
 import rlp
 from rlp import sedes
@@ -65,7 +65,8 @@ class Status(Command):
     # any type, we need to use the raw sedes here and do the actual deserialization in
     # decode_payload().
     structure = sedes.CountableList(sedes.List([sedes.text, sedes.raw]))
-    # The sedes used for each key in the list above.
+    # The sedes used for each key in the list above. Keys that use None as their sedes are
+    # optional and have no value -- IOW, they just need to be present in the msg when appropriate.
     items_sedes = {
         'protocolVersion': sedes.big_endian_int,
         'networkId': sedes.big_endian_int,
@@ -84,7 +85,7 @@ class Status(Command):
     }
 
     @to_dict
-    def decode_payload(self, rlp_data: bytes) -> Generator[Tuple[str, Any], None, None]:
+    def decode_payload(self, rlp_data: bytes) -> Iterator[Tuple[str, Any]]:
         data = cast(List[Tuple[str, bytes]], super().decode_payload(rlp_data))
         # The LES/Status msg contains an arbitrary list of (key, value) pairs, where values can
         # have different types and unknown keys should be ignored for forward compatibility
@@ -93,19 +94,31 @@ class Status(Command):
         for key, value in data:
             if key not in self.items_sedes:
                 continue
-            item_sedes = self.items_sedes[key]
-            if item_sedes is not None:
-                yield key, item_sedes.deserialize(value)
-            else:
-                yield key, value
+            yield key, self._deserialize_item(key, value)
 
     def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
         response = [
-            (key, self.items_sedes[key].serialize(value))
+            (key, self._serialize_item(key, value))
             for key, value
-            in sorted(data.items())  # type: ignore
+            in sorted(cast(Dict[str, Any], data).items())
         ]
         return super().encode_payload(response)
+
+    def _deserialize_item(self, key: str, value: bytes) -> Any:
+        sedes = self.items_sedes[key]
+        if sedes is not None:
+            return sedes.deserialize(value)
+        else:
+            # See comment in the definition of item_sedes as to why we do this.
+            return b''
+
+    def _serialize_item(self, key: str, value: bytes) -> bytes:
+        sedes = self.items_sedes[key]
+        if sedes is not None:
+            return sedes.serialize(value)
+        else:
+            # See comment in the definition of item_sedes as to why we do this.
+            return b''
 
     def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
         decoded = cast(Dict[str, Any], decoded)
@@ -276,6 +289,9 @@ class LESProtocol(Protocol):
             'headHash': chain_info.block_hash,
             'headNum': chain_info.block_number,
             'genesisHash': chain_info.genesis_hash,
+            'serveHeaders': None,
+            'serveChainSince': 0,
+            'txRelay': None,
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))
@@ -388,6 +404,9 @@ class LESProtocolV2(LESProtocol):
             'headHash': chain_info.block_hash,
             'headNum': chain_info.block_number,
             'genesisHash': chain_info.genesis_hash,
+            'serveHeaders': None,
+            'serveChainSince': 0,
+            'txRelay': None,
         }
         cmd = StatusV2(self.cmd_id_offset)
         self.logger.debug("Sending LES/Status msg: %s", resp)
