@@ -46,6 +46,7 @@ from trinity.plugins.registry import (
 from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
+    kill_process_id_gracefully,
 )
 from trinity.utils.logging import (
     setup_trinity_stdout_logging,
@@ -137,6 +138,11 @@ def main() -> None:
         log_level
     )
 
+    # if cleanup command, try to shutdown dangling processes and exit
+    if args.subcommand == 'fix-unclean-shutdown':
+        fix_unclean_shutdown(chain_config, logger)
+        sys.exit(0)
+
     display_launch_logs(chain_config)
 
     # if console command, run the trinity CLI
@@ -202,6 +208,23 @@ def main() -> None:
         import time; time.sleep(0.2)  # noqa: E702
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+
+
+def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> None:
+    logger.info("Cleaning up unclean shutdown...")
+
+    pidfiles = tuple(chain_config.data_dir.glob('*.pid'))
+    if len(pidfiles) > 1:
+        logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
+    elif len(pidfiles) == 1:
+        logger.info('Found 1 process from a previous run. Closing...')
+    else:
+        logger.info('Found 0 processes from a previous run. Nothing to do.')
+
+    for pidfile in pidfiles:
+        process_id = int(pidfile.read_text())
+        kill_process_id_gracefully(process_id, logger)
+        pidfile.unlink()
 
 
 def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:

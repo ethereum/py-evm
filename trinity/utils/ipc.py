@@ -51,3 +51,48 @@ def kill_process_gracefully(process: Process,
         return
     os.kill(process.pid, signal.SIGKILL)
     logger.info("Sent SIGKILL to process %d", process.pid)
+
+
+def kill_process_id_gracefully(
+        pid: int,
+        logger: Logger,
+        SIGINT_timeout: int=5,
+        SIGTERM_timeout: int=3) -> None:
+    try:
+        try:
+            os.kill(pid, signal.SIGINT)
+        except ProcessLookupError:
+            logger.info("Process %d has already terminated", pid)
+            return
+        logger.info(
+            "Sent SIGINT to process %d, waiting %d seconds for it to terminate",
+            pid, SIGINT_timeout)
+        time.sleep(SIGINT_timeout)
+    except KeyboardInterrupt:
+        logger.info(
+            "Waiting for process to terminate.  You may force termination "
+            "with CTRL+C two more times."
+        )
+
+    try:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            logger.info("Process %d has already terminated", pid)
+            return
+        logger.info(
+            "Sent SIGTERM to process %d, waiting %d seconds for it to terminate",
+            pid, SIGTERM_timeout)
+        time.sleep(SIGTERM_timeout)
+    except KeyboardInterrupt:
+        logger.info(
+            "Waiting for process to terminate.  You may force termination "
+            "with CTRL+C one more time."
+        )
+
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        logger.info("Process %d has already terminated", pid)
+        return
+    logger.info("Sent SIGKILL to process %d", pid)
