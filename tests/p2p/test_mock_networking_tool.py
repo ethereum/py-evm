@@ -63,8 +63,6 @@ async def test_server_closes_writers_on_close(network):
     server.close()
     await asyncio.wait_for(server.wait_closed(), timeout=0.01)
 
-    asyncio.sleep(1)
-
     assert client_reader.at_eof()
 
 
