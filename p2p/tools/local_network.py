@@ -1,11 +1,13 @@
 import asyncio
-import logging
 import os
 import random
 from typing import (
+    Any,
+    Callable,
     Dict,
     Iterable,
     NamedTuple,
+    List,
     Tuple,
 )
 
@@ -31,6 +33,7 @@ class MemoryTransport(asyncio.Transport):
     """
     Direct connection between a StreamWriter and StreamReader.
     """
+    _reader: asyncio.StreamReader
 
     def __init__(self, reader: asyncio.StreamReader) -> None:
         super().__init__()
@@ -61,6 +64,7 @@ class AddressedTransport(MemoryTransport):
     """
     Direct connection between a StreamWriter and StreamReader.
     """
+    _queue: asyncio.Queue
 
     def __init__(self, address: Address, reader: asyncio.StreamReader) -> None:
         super().__init__(reader)
@@ -68,10 +72,10 @@ class AddressedTransport(MemoryTransport):
         self._queue = asyncio.Queue()
 
     @property
-    def queue(self):
+    def queue(self) -> asyncio.Queue:
         return self._queue
 
-    def get_extra_info(self, name, default=None):
+    def get_extra_info(self, name: str, default=None):
         if name == 'peername':
             return (self._address.host, self._address.port)
         else:
@@ -82,7 +86,10 @@ class AddressedTransport(MemoryTransport):
         self._queue.put_nowait(len(data))
 
 
-def addressed_pipe(address) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+ReaderWriterPair = Tuple[asyncio.StreamReader, asyncio.StreamWriter]
+
+
+def addressed_pipe(address: Address) -> ReaderWriterPair:
     reader = asyncio.StreamReader()
 
     transport = AddressedTransport(address, reader)
@@ -97,7 +104,7 @@ def addressed_pipe(address) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]
     return reader, writer
 
 
-def direct_pipe() -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+def direct_pipe() -> ReaderWriterPair:
     reader = asyncio.StreamReader()
 
     transport = MemoryTransport(reader)
@@ -112,101 +119,129 @@ def direct_pipe() -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     return reader, writer
 
 
-logger = logging.getLogger('p2p.testing.network')
+async def _connect_streams(
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        queue: asyncio.Queue,
+        token: CancelToken) -> None:
+    try:
+        while not token.triggered:
+            if reader.at_eof():
+                break
+
+            try:
+                size = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(0)
+                continue
+            data = await wait_with_token(reader.readexactly(size), token=token)
+            writer.write(data)
+            queue.task_done()
+            await wait_with_token(writer.drain(), token=token)
+    except OperationCancelled:
+        pass
+    finally:
+        writer.write_eof()
+
+    if reader.at_eof():
+        reader.feed_eof()
 
 
-class Server:
+class Router(BaseService):
+    hosts: Dict[str, 'Host']
+    networks = Dict[str, 'Network']
+    connections = Dict[CancelToken, asyncio.Task]
+
+    def __init__(self):
+        super().__init__()
+        self.hosts = {}
+        self.networks = {}
+        self.connections = {}
+
+    #
+    # Service API
+    #
+    async def _run(self) -> None:
+        while not self.cancel_token.triggered:
+            await asyncio.sleep(0.02)
+
+    async def _cleanup(self) -> None:
+        # all of the cancel tokens *should* be triggered already so we just
+        # wait for the networking processes to complete.
+        if self.connections:
+            await asyncio.wait(
+                self.connections.values(),
+                timeout=2,
+                return_when=asyncio.ALL_COMPLETED
+            )
+
+    #
+    # Connections API
+    #
+    def get_host(self, host: str) -> 'Host':
+        if host not in self.hosts:
+            self.hosts[host] = Host(host, self)
+        return self.hosts[host]
+
+    def get_network(self, name: str) -> 'Network':
+        if name not in self.networks:
+            self.networks[name] = Network(name, self)
+        return self.networks[name]
+
+    def get_connected_readers(self, address: Address) -> ReaderWriterPair:
+        external_reader, internal_writer = direct_pipe()
+        internal_reader, external_writer = addressed_pipe(address)
+
+        token = CancelToken(str(address)).chain(self.cancel_token)
+        connection = asyncio.ensure_future(_connect_streams(
+            internal_reader, internal_writer, external_writer.transport.queue, token,
+        ))
+        self.connections[token] = connection
+
+        return (external_reader, external_writer)
+
+
+ConnectionCallback = Callable[[asyncio.StreamReader, asyncio.StreamWriter], Any]
+
+
+class Server(asyncio.AbstractServer):
     """
     Mock version of `asyncio.Server` object.
     """
-    def __init__(self, client_connected_cb, address, network):
+    connections: List[asyncio.StreamWriter]
+
+    def __init__(
+            self,
+            client_connected_cb: ConnectionCallback,
+            address: Address) -> None:
         self.client_connected_cb = client_connected_cb
         self.address = address
-        self.network = network
+        self.connections = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<%s %s>' % (self.__class__.__name__, self.address)
 
-    def close(self):
-        pass
+    def close(self) -> None:
+        for writer in self.connections:
+            writer.write_eof()
 
-    async def wait_closed(self):
-        return
+    async def wait_closed(self) -> None:
+        await asyncio.wait(
+            tuple(writer.drain() for writer in self.connections),
+            timeout=0.01,
+            return_when=asyncio.ALL_COMPLETED
+        )
 
-
-class Host:
-    servers: Dict[int, Server] = None
-    connections: Dict[int, Address] = None
-
-    def __init__(self, host, router):
-        self.router = router
-        self.host = host
-        self.servers = {}
-        self.connections = {}
-
-    def get_server(self, port):
-        try:
-            return self.servers[port]
-        except KeyError:
-            raise ConnectionRefusedError("No server running at {0}:{1}".format(self.host, port))
-
-    def get_open_port(self):
-        while True:
-            port = random.randint(2**15, 2**16 - 1)
-            if port in self.connections:
-                continue
-            elif port in self.servers:
-                continue
-            else:
-                break
-        return port
-
-    async def start_server(self, client_connected_cb, port) -> Server:
-        if port in self.servers:
-            raise OSError('Address already in use')
-
-        address = Address(self.host, port)
-
-        server = Server(client_connected_cb, address, self)
-        self.servers[port] = server
-        return server
-
-    def receive_connection(self, port) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        address = Address(self.host, port)
-        if port not in self.servers:
-            raise ConnectionRefusedError("No server running at {0}:{1}".format(self.host, port))
-        if address.port in self.connections:
-            raise OSError('Address already in use')
-
-        reader, writer = self.router.get_connected_readers(address)
-        return reader, writer
-
-    async def open_connection(self, host, port) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        if port in self.connections:
-            raise OSError('already connected')
-
-        to_address = Address(host, port)
-
-        to_host = self.router.get_host(host)
-        client_reader, server_writer = to_host.receive_connection(port)
-
-        from_port = self.get_open_port()
-        from_address = Address(self.host, from_port)
-
-        server_reader, client_writer = self.router.get_connected_readers(from_address)
-        self.connections[from_port] = to_address
-
-        server = to_host.get_server(port)
-        asyncio.ensure_future(server.client_connected_cb(server_reader, server_writer))
-
-        return client_reader, client_writer
+    def add_connection(self, writer: asyncio.StreamWriter) -> None:
+        self.connections.append(writer)
 
 
 class Network:
+    router: Router
     name: str
     _default_host: str = None
 
-    def __init__(self, name, router, default_host=None):
+    def __init__(self, name: str, router: Router, default_host: str=None):
         self.name = name
         self.router = router
         self.default_host = default_host
@@ -219,17 +254,24 @@ class Network:
             return os.environ.get('P2P_DEFAULT_HOST', '127.0.0.1')
 
     @default_host.setter
-    def default_host(self, value):
+    def default_host(self, value: str) -> None:
         self._default_host = value
 
     #
     # Asyncio API
     #
-    async def start_server(self, client_connected_cb, host, port) -> Server:
+    async def start_server(
+            self,
+            client_connected_cb: ConnectionCallback,
+            host: str,
+            port: int) -> Server:
         host = self.router.get_host(host)
         return await host.start_server(client_connected_cb, port)
 
-    async def open_connection(self, host, port) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    async def open_connection(
+            self,
+            host: str,
+            port: int) -> ReaderWriterPair:
         client_host = self.router.get_host(self.default_host)
         try:
             return await client_host.open_connection(host, port)
@@ -244,73 +286,76 @@ class Network:
             raise err
 
 
-async def _connect_streams(reader, writer, queue, token):
-    logger.info('NETWORK CONNECTED')
-    try:
-        while not reader.at_eof():
-            logger.info('WAITING ON QUEUE')
-            size = await wait_with_token(queue.get(), token=token)
-            data = await wait_with_token(reader.readexactly(size), token=token)
-            writer.write(data)
-            logger.info('DATA RECEIVED: size %s', size)
-            await wait_with_token(writer.drain(), token=token)
-        else:
-            writer.write_eof()
-    except OperationCancelled:
-        writer.write_eof()
+class Host:
+    servers: Dict[int, Server] = None
+    connections: Dict[int, Address] = None
 
-
-class Router(BaseService):
-    hosts: Dict[str, Host]
-    networks = Dict[str, Network]
-
-    def __init__(self):
-        super().__init__()
-        self.hosts = {}
-        self.networks = {}
+    def __init__(self, host: str, router: Router) -> None:
+        self.router = router
+        self.host = host
+        self.servers = {}
         self.connections = {}
 
-    #
-    # Service API
-    #
-    async def _run(self):
-        while not self.cancel_token.triggered:
-            await asyncio.sleep(0.02)
+    def get_server(self, port: int) -> Server:
+        try:
+            return self.servers[port]
+        except KeyError:
+            raise ConnectionRefusedError("No server running at {0}:{1}".format(self.host, port))
 
-    async def _cleanup(self):
-        # all of the cancel tokens *should* be triggered already so we just
-        # wait for the networking processes to complete.
-        if self.connections:
-            await asyncio.wait(
-                self.connections.values(),
-                timeout=1,
-                return_when=asyncio.ALL_COMPLETED
-            )
+    def _get_open_port(self) -> int:
+        while True:
+            port = random.randint(2**15, 2**16 - 1)
+            if port in self.connections:
+                continue
+            elif port in self.servers:
+                continue
+            else:
+                break
+        return port
 
-    #
-    # Connections API
-    #
-    def get_host(self, host):
-        if host not in self.hosts:
-            self.hosts[host] = Host(host, self)
-        return self.hosts[host]
+    async def start_server(self, client_connected_cb: ConnectionCallback, port: int) -> Server:
+        if port in self.servers:
+            raise OSError('Address already in use')
 
-    def get_network(self, name):
-        if name not in self.networks:
-            self.networks[name] = Network(name, self)
-        return self.networks[name]
+        address = Address(self.host, port)
 
-    def get_connected_readers(self, address):
-        external_reader, internal_writer = direct_pipe()
-        internal_reader, external_writer = addressed_pipe(address)
+        server = Server(client_connected_cb, address)
+        self.servers[port] = server
+        return server
 
-        token = self.cancel_token.chain(CancelToken('something'))
-        connection = asyncio.ensure_future(_connect_streams(
-            internal_reader, internal_writer, external_writer.transport.queue, token,
-        ))
-        self.connections[token] = connection
+    def receive_connection(self, port: int) -> ReaderWriterPair:
+        address = Address(self.host, port)
+        if port not in self.servers:
+            raise ConnectionRefusedError("No server running at {0}:{1}".format(self.host, port))
+        elif address.port in self.connections:
+            raise OSError('Address already in use')
 
-        return (external_reader, external_writer)
+        reader, writer = self.router.get_connected_readers(address)
+
+        server = self.servers[port]
+        server.add_connection(writer)
+
+        return reader, writer
+
+    async def open_connection(self, host: str, port: int) -> ReaderWriterPair:
+        if port in self.connections:
+            raise OSError('already connected')
+
+        to_address = Address(host, port)
+
+        to_host = self.router.get_host(host)
+        client_reader, server_writer = to_host.receive_connection(port)
+
+        from_port = self._get_open_port()
+        from_address = Address(self.host, from_port)
+
+        server_reader, client_writer = self.router.get_connected_readers(from_address)
+        self.connections[from_port] = to_address
+
+        server = to_host.get_server(port)
+        asyncio.ensure_future(server.client_connected_cb(server_reader, server_writer))
+
+        return client_reader, client_writer
 
 
 @pytest.fixture

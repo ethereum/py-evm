@@ -11,8 +11,7 @@ async def test_router_produces_connected_readers(router):
 
     writer.write(b'test-data')
 
-    #data = await asyncio.wait_for(reader.read(9), timeout=0.01)
-    data = await reader.read(9)
+    data = await asyncio.wait_for(reader.read(9), timeout=0.01)
 
     assert data == b'test-data'
 
@@ -33,9 +32,40 @@ async def test_server_connection_callback(network):
 
     await asyncio.wait_for(network.start_server(cb, '192.168.1.1', 1234), timeout=0.01)
     await asyncio.wait_for(network.open_connection('192.168.1.1', 1234), timeout=0.01)
-    await asyncio.wait_for(was_run.wait(), timeout=0.1)
+    await asyncio.wait_for(was_run.wait(), timeout=0.01)
 
     assert was_run.is_set()
+
+
+@pytest.mark.asyncio
+async def test_server_closes_writers_on_close(network):
+    was_run = asyncio.Event()
+
+    server_reader, server_writer = None, None
+
+    async def cb(reader, writer):
+        nonlocal was_run
+        nonlocal server_reader
+        nonlocal server_writer
+        server_reader = reader
+        server_writer = writer
+        was_run.set()
+
+    server = await asyncio.wait_for(network.start_server(cb, '192.168.1.1', 1234), timeout=0.01)
+    client_reader, client_writer = await asyncio.wait_for(
+        network.open_connection('192.168.1.1', 1234),
+        timeout=0.01,
+    )
+    await asyncio.wait_for(was_run.wait(), timeout=0.01)
+
+    assert not client_reader.at_eof()
+
+    server.close()
+    await asyncio.wait_for(server.wait_closed(), timeout=0.01)
+
+    asyncio.sleep(1)
+
+    assert client_reader.at_eof()
 
 
 @pytest.mark.asyncio
@@ -50,7 +80,6 @@ async def test_server_client_communication(network):
         nonlocal server_writer
         server_reader = reader
         server_writer = writer
-        await asyncio.sleep(0)
         was_run.set()
 
     await network.start_server(cb, '192.168.1.1', 1234)
