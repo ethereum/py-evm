@@ -5,6 +5,7 @@ from abc import (
     abstractmethod
 )
 import operator
+import random
 from typing import (  # noqa: F401
     Any,
     Optional,
@@ -273,7 +274,8 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
+    def validate_chain(
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
 
@@ -600,7 +602,7 @@ class Chain(BaseChain):
             raise ValidationError("Cannot validate genesis block this way")
         VM = self.get_vm_class_for_block_number(BlockNumber(block.number))
         parent_block = self.get_block_by_hash(block.header.parent_hash)
-        VM.validate_header(block.header, parent_block.header)
+        VM.validate_header(block.header, parent_block.header, check_seal=True)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -686,15 +688,26 @@ class Chain(BaseChain):
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
-    def validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
+    def validate_chain(
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         parent = self.chaindb.get_block_header_by_hash(chain[0].parent_hash)
-        for header in chain:
+        all_indices = list(range(len(chain)))
+        if seal_check_random_sample_rate == 1:
+            headers_to_check_seal = set(all_indices)
+        else:
+            sample_size = len(all_indices) // seal_check_random_sample_rate
+            headers_to_check_seal = set(random.sample(all_indices, sample_size))
+
+        for i, header in enumerate(chain):
             if header.parent_hash != parent.hash:
                 raise ValidationError(
                     "Invalid header chain; {} has parent {}, but expected {}".format(
                         header, header.parent_hash, parent.hash))
             vm_class = self.get_vm_class_for_block_number(header.block_number)
-            vm_class.validate_header(header, parent)
+            if i in headers_to_check_seal:
+                vm_class.validate_header(header, parent, check_seal=True)
+            else:
+                vm_class.validate_header(header, parent, check_seal=False)
             parent = header
 
 
@@ -770,5 +783,6 @@ class AsyncChain(Chain):
                                 perform_validation: bool=True) -> BaseBlock:
         raise NotImplementedError()
 
-    async def coro_validate_chain(self, chain: Tuple[BlockHeader, ...]) -> None:
+    async def coro_validate_chain(
+            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError()

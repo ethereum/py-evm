@@ -69,3 +69,9 @@ DEFAULT_MAX_PEERS = 25
 
 # Maximum allowed depth for chain reorgs.
 MAX_REORG_DEPTH = 24
+
+# Random sampling rate (i.e. every K-th) for header seal checks during light/fast sync. Apparently
+# 100 was the optimal value determined by geth devs
+# (https://github.com/ethereum/go-ethereum/pull/1889#issue-47241762), but in order to err on the
+# side of caution, we use a higher value.
+SEAL_CHECK_RANDOM_SAMPLE_RATE = 48

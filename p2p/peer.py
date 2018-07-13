@@ -219,7 +219,7 @@ class BasePeer(BaseService):
                 raise HandshakeFailure("Peer failed DAO fork check retrieval: {}".format(e))
 
             try:
-                vm_class.validate_header(header, parent)
+                vm_class.validate_header(header, parent, check_seal=True)
             except ValidationError as e:
                 raise HandshakeFailure("Peer failed DAO fork check validation: {}".format(e))
 
