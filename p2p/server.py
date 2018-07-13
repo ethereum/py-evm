@@ -86,7 +86,8 @@ class Server(BaseService):
                  peer_class: Type[BasePeer] = ETHPeer,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
-                 token: CancelToken = None) -> None:
+                 token: CancelToken = None,
+                 ) -> None:
         super().__init__(token)
         self.headerdb = headerdb
         self.chaindb = chaindb
@@ -195,8 +196,8 @@ class Server(BaseService):
             self.logger.debug("Could not complete handshake: %s", e)
         except OperationCancelled:
             pass
-        except Exception as e:
-            self.logger.exception("Unexpected error handling handshake: %r", e)
+        except Exception:
+            self.logger.exception("Unexpected error handling handshake")
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
