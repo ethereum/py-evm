@@ -13,6 +13,7 @@ from typing import (
     Any,
     Callable,
     cast,
+    Dict,
     Hashable,
     Iterable,
     Iterator,
@@ -23,6 +24,8 @@ from typing import (
     TYPE_CHECKING,
 )
 from urllib import parse as urlparse
+
+import cytoolz
 
 from eth_utils import (
     big_endian_to_int,
@@ -396,6 +399,7 @@ class KademliaProtocol:
         self.pong_callbacks = CallbackManager()
         self.ping_callbacks = CallbackManager()
         self.neighbours_callbacks = CallbackManager()
+        self.parity_pong_tokens: Dict[bytes, bytes] = {}
 
     def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
         """Process a neighbours response.
@@ -421,13 +425,25 @@ class KademliaProtocol:
         left to the callback from pong_callbacks, which is added (and removed after it's done
         or timed out) in wait_pong().
         """
+        # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
+        # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
+        # should get rid of this once there are no longer too many parity 1.10 nodes out there.
+        if token in self.parity_pong_tokens:
+            # This is a pong from a buggy parity node, so need to lookup the actual token we're
+            # expecting.
+            token = self.parity_pong_tokens.pop(token)
+        else:
+            # This is a pong from a non-buggy node, so just cleanup self.parity_pong_tokens.
+            self.parity_pong_tokens = cytoolz.valfilter(
+                lambda val: val != token, self.parity_pong_tokens)
+
         self.logger.debug('<<< pong from %s (token == %s)', remote, encode_hex(token))
         pingid = self._mkpingid(token, remote)
 
         try:
             callback = self.pong_callbacks.get_callback(pingid)
         except KeyError:
-            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+            self.logger.info('unexpected pong from %s (token == %s)', remote, encode_hex(token))
         else:
             callback()
 
