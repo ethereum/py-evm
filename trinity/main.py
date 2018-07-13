@@ -216,9 +216,10 @@ def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
 @setup_cprofiler('run_database_process')
 @with_queued_logging
 def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
-    base_db = db_class(db_path=chain_config.database_dir)
+    with chain_config.process_id_file('database'):
+        base_db = db_class(db_path=chain_config.database_dir)
 
-    serve_chaindb(chain_config, base_db)
+        serve_chaindb(chain_config, base_db)
 
 
 def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
@@ -243,22 +244,23 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 @setup_cprofiler('launch_node')
 @with_queued_logging
 def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
-    NodeClass = chain_config.node_class
-    # Temporary hack: We setup a second instance of the PluginManager.
-    # The first instance was only to configure the ArgumentParser whereas
-    # for now, the second instance that lives inside the networking process
-    # performs the bulk of the work. In the future, the PluginManager
-    # should probably live in its own process and manage whether plugins
-    # run in the shared plugin process or spawn their own.
-    plugin_manager = setup_plugins()
-    plugin_manager.broadcast(TrinityStartupEvent(
-        args,
-        chain_config
-    ))
+    with chain_config.process_id_file('networking'):
+        NodeClass = chain_config.node_class
+        # Temporary hack: We setup a second instance of the PluginManager.
+        # The first instance was only to configure the ArgumentParser whereas
+        # for now, the second instance that lives inside the networking process
+        # performs the bulk of the work. In the future, the PluginManager
+        # should probably live in its own process and manage whether plugins
+        # run in the shared plugin process or spawn their own.
+        plugin_manager = setup_plugins()
+        plugin_manager.broadcast(TrinityStartupEvent(
+            args,
+            chain_config
+        ))
 
-    node = NodeClass(plugin_manager, chain_config)
+        node = NodeClass(plugin_manager, chain_config)
 
-    run_service_until_quit(node)
+        run_service_until_quit(node)
 
 
 def display_launch_logs(chain_config: ChainConfig) -> None:
