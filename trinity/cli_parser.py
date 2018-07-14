@@ -38,8 +38,12 @@ class ValidateAndStoreEnodes(argparse.Action):
 
 DEFAULT_LOG_LEVEL = 'info'
 LOG_LEVEL_CHOICES = (
+    'trace',
     'debug',
     'info',
+    'warning',
+    'error',
+    'critical',
 )
 
 

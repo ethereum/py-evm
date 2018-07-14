@@ -33,11 +33,11 @@ LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
 
 
-def setup_trinity_stdout_logging(level: int) -> Tuple[Logger, Formatter, StreamHandler]:
+def setup_trinity_stderr_logging(level: int) -> Tuple[Logger, Formatter, StreamHandler]:
     logger = logging.getLogger('trinity')
     logger.setLevel(logging.DEBUG)
 
-    handler_stream = logging.StreamHandler(sys.stdout)
+    handler_stream = logging.StreamHandler(sys.stderr)
     handler_stream.setLevel(level)
 
     # TODO: allow configuring `detailed` logging

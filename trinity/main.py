@@ -48,7 +48,7 @@ from trinity.utils.ipc import (
     kill_process_gracefully,
 )
 from trinity.utils.logging import (
-    setup_trinity_stdout_logging,
+    setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
     with_queued_logging,
 )
@@ -103,7 +103,7 @@ def main() -> None:
             "networks are supported.".format(args.network_id)
         )
 
-    logger, formatter, handler_stream = setup_trinity_stdout_logging(log_level)
+    logger, formatter, handler_stream = setup_trinity_stderr_logging(log_level)
 
     try:
         chain_config = ChainConfig.from_parser_args(args)
