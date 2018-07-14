@@ -18,7 +18,7 @@ from p2p.exceptions import OperationCancelled
 
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
-    _child_services: List['BaseService'] = []
+    _child_services: List['BaseService']
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
@@ -29,6 +29,7 @@ class BaseService(ABC, CancellableMixin):
 
         self._run_lock = asyncio.Lock()
         self.cleaned_up = asyncio.Event()
+        self._child_services = []
 
         base_token = CancelToken(type(self).__name__)
         if token is None:
