@@ -196,7 +196,7 @@ class Server(BaseService):
             self.logger.debug("Could not complete handshake: %s", e)
         except OperationCancelled:
             pass
-        except Exception as e:
+        except Exception:
             self.logger.exception("Unexpected error handling handshake")
 
     async def _receive_handshake(

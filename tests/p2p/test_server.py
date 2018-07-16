@@ -75,6 +75,12 @@ def get_server(privkey, address, peer_class):
     return server
 
 
+@pytest.fixture(autouse=True)
+def _network(network):
+    # use mocked networking connections.
+    pass
+
+
 @pytest.fixture
 async def server():
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)

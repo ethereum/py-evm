@@ -101,8 +101,11 @@ class HandshakeBase:
     _is_initiator = False
 
     def __init__(
-            self, remote: kademlia.Node, privkey: datatypes.PrivateKey,
-            use_eip8: bool, token: CancelToken) -> None:
+            self,
+            remote: kademlia.Node,
+            privkey: datatypes.PrivateKey,
+            use_eip8: bool,
+            token: CancelToken) -> None:
         self.remote = remote
         self.privkey = privkey
         self.ephemeral_privkey = ecies.generate_privkey()

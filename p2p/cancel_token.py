@@ -22,6 +22,10 @@ class CancelToken:
         self._triggered = asyncio.Event(loop=loop)
         self._loop = loop
 
+    @property
+    def loop(self):
+        return self._loop
+
     def chain(self, token: 'CancelToken') -> 'CancelToken':
         """Return a new CancelToken chaining this and the given token.
 
@@ -29,10 +33,10 @@ class CancelToken:
         called on either of the chained tokens, but calling trigger() on the new token
         has no effect on either of the chained tokens.
         """
-        if self._loop != token._loop:
+        if self.loop != token._loop:
             raise EventLoopMismatch("Chained CancelToken objects must be on the same event loop")
         chain_name = ":".join([self.name, token.name])
-        chain = CancelToken(chain_name, loop=self._loop)
+        chain = CancelToken(chain_name, loop=self.loop)
         chain._chain.extend([self, token])
         return chain
 
@@ -65,9 +69,9 @@ class CancelToken:
         if self.triggered_token is not None:
             return
 
-        futures = [asyncio.ensure_future(self._triggered.wait(), loop=self._loop)]
+        futures = [asyncio.ensure_future(self._triggered.wait(), loop=self.loop)]
         for token in self._chain:
-            futures.append(asyncio.ensure_future(token.wait(), loop=self._loop))
+            futures.append(asyncio.ensure_future(token.wait(), loop=self.loop))
 
         def cancel_not_done(fut: 'asyncio.Future[None]') -> None:
             for future in futures:
@@ -81,7 +85,7 @@ class CancelToken:
                 await cast(Awaitable[Any], future)
                 return
 
-        fut = asyncio.ensure_future(_wait_for_first(futures), loop=self._loop)
+        fut = asyncio.ensure_future(_wait_for_first(futures), loop=self.loop)
         fut.add_done_callback(cancel_not_done)
         await fut
 
@@ -135,12 +139,14 @@ async def wait_with_token(*awaitables: Awaitable[Any],
 
     All pending futures are cancelled before returning.
     """
-    futures = [asyncio.ensure_future(a) for a in awaitables + (token.wait(),)]
+    futures = [asyncio.ensure_future(a, loop=token.loop) for a in awaitables + (token.wait(),)]
     try:
         done, pending = await asyncio.wait(
             futures,
             timeout=timeout,
-            return_when=asyncio.FIRST_COMPLETED)
+            return_when=asyncio.FIRST_COMPLETED,
+            loop=token.loop,
+        )
     except asyncio.futures.CancelledError:
         # Since we use return_when=asyncio.FIRST_COMPLETED above, we can be sure none of our
         # futures will be done here, so we don't need to check if any is done before cancelling.
