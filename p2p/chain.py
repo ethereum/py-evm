@@ -7,7 +7,6 @@ from enum import (
 )
 from functools import partial
 import logging
-import math
 import time
 from typing import (
     Any,
@@ -24,7 +23,6 @@ from typing import (
 )
 
 from cytoolz import (
-    take,
     unique,
 )
 
@@ -58,6 +56,7 @@ from p2p.service import BaseService
 from p2p.utils import (
     ThroughputTracker,
     get_process_pool_executor,
+    get_scaled_batches,
 )
 
 
@@ -347,7 +346,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             smoothing_factor=THROUGHPUT_SMOOTHING_FACTOR,
         )
         # mypy is confused -- https://github.com/python/typeshed/issues/2329
-        self._throughput_stats = {part: defaultdict(create_stats) for part in BlockPartEnum}  # type: ignore # noqa: E501
+        self._peer_stats = {part: defaultdict(create_stats) for part in BlockPartEnum}  # type: ignore # noqa: E501
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -449,7 +448,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             unexpected = received_keys.difference(key_func(header) for header in headers)
 
             work_size = len(received_keys.difference(unexpected))
-            self._get_throughput_stats(peer, part_name).complete_work(work_size)
+            self._get_peer_stats(peer, part_name).complete_work(work_size)
 
             parts.extend(received)
             pending_replies -= 1
@@ -467,16 +466,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         return dict((part.unique_key, part.part) for part in parts)
 
-    def _get_throughput_stats(self, peer: BasePeer, body_part: BlockPartEnum) -> ThroughputTracker:
-        return self._throughput_stats[body_part][peer]
+    def _get_peer_stats(self, peer: BasePeer, body_part: BlockPartEnum) -> ThroughputTracker:
+        return self._peer_stats[body_part][peer]
 
     def deregister_peer(self, peer: BasePeer) -> None:
         # Delete all in-progress stats for the given peer. Otherwise, if a peer disconnects before
         # sending a block part, stats would fail when starting to track throughput the 2nd time.
         # Also, we don't want a perpetually growing dict of stats.
         for part in BlockPartEnum:
-            if peer in self._throughput_stats[part]:
-                del self._throughput_stats[part][peer]
+            if peer in self._peer_stats[part]:
+                del self._peer_stats[part][peer]
 
     def _request_block_parts(
             self,
@@ -491,37 +490,22 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
-        batches = self._select_headers_by_peer(headers, peers, block_part)
-        for peer, batch in zip(peers, batches):
-            if len(batch):
-                self._get_throughput_stats(peer, block_part).begin_work()
-                request_func(cast(ETHPeer, peer), batch)
-        return len([batch for batch in batches if len(batch)])
+        peer_batches = self._batch_headers_by_peer(headers, peers, block_part)
+        for peer, batch in peer_batches:
+            self._get_peer_stats(peer, block_part).begin_work()
+            request_func(cast(ETHPeer, peer), batch)
+        return len(peer_batches)
 
-    def _select_headers_by_peer(
+    def _batch_headers_by_peer(
             self,
             headers: List[BlockHeader],
             peers: List[BasePeer],
             block_part: BlockPartEnum,
-    ) -> List[List[BlockHeader]]:
-        speeds = [self._get_throughput_stats(peer, block_part).get_throughput() for peer in peers]
-        speed_sum = sum(speeds)
-        fractional_speeds = [speed / speed_sum for speed in speeds]
-
+    ) -> List[Tuple[BasePeer, List[BlockHeader]]]:
+        speeds = tuple(self._get_peer_stats(peer, block_part).get_throughput() for peer in peers)
         # request headers proportionally, so faster peers are asked for more parts than slow peers
-        num_headers = len(headers)
-        header_iter = iter(headers)
-        batches = []
-        for peer, fractional_speed in zip(peers, fractional_speeds):
-            num_to_take = math.floor(fractional_speed * num_headers)
-            header_batch = list(take(num_to_take, header_iter))
-            batches.append(header_batch)
-
-        # any headers missed due to rounding error will go to the fastest peer
-        fastest_peer_idx = fractional_speeds.index(max(fractional_speeds))
-        batches[fastest_peer_idx] += list(header_iter)
-
-        return batches
+        batches = get_scaled_batches(speeds, headers)
+        return [(peer, batch) for peer, batch in zip(peers, batches) if len(batch)]
 
     def _send_get_block_bodies(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
         self.logger.debug("Requesting %d block bodies to %s", len(headers), peer)
