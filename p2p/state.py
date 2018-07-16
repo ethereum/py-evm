@@ -74,17 +74,18 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
         self._executor = get_process_pool_executor()
 
-    @property
-    def idle_peers(self) -> List[ETHPeer]:
+    async def _get_idle_peers(self) -> List[ETHPeer]:
         # FIXME: Should probably use get_peers() and pass the TD of our head? It's not really
         # necessary because peers that are behind us may very well have the trie nodes we want.
-        peers = set([cast(ETHPeer, peer) for peer in self.peer_pool.peers])
+        peers = set([cast(ETHPeer, peer) async for peer in self.peer_pool])
         return list(peers.difference(self._peers_with_pending_requests))
 
     async def get_idle_peer(self) -> ETHPeer:
-        while not self.idle_peers:
+        idle_peers = await self._get_idle_peers()
+        while not idle_peers:
             await self.wait(asyncio.sleep(0.02))
-        return secrets.choice(self.idle_peers)
+            idle_peers = await self._get_idle_peers()
+        return secrets.choice(idle_peers)
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:

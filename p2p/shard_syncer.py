@@ -83,7 +83,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
     async def _cleanup(self) -> None:
         pass
 
-    def propose(self) -> Collation:
+    async def propose(self) -> Collation:
         """Broadcast a new collation to the network, add it to the local shard, and return it."""
         # create collation for current period
         period = self.get_current_period()
@@ -97,7 +97,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.shard.add_collation(collation)
 
         # broadcast collation
-        for peer in self.peer_pool.peers:
+        async for peer in self.peer_pool:
             cast(ShardingProtocol, peer.sub_proto).send_new_collation_hashes(
                 [(collation.hash, collation.period)]
             )
@@ -166,7 +166,7 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
             self.shard.add_collation(collation)
 
         # inform peers about new collations they might not know about already
-        for pool_peer in self.peer_pool.peers:
+        async for pool_peer in self.peer_pool:
             pool_peer = cast(ShardingPeer, pool_peer)
             known_hashes = self.collation_hashes_at_peer[pool_peer]
             new_hashes = set(new_collations_by_hash.keys()) - known_hashes
