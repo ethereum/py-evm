@@ -140,7 +140,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.transport = cast(asyncio.DatagramTransport, transport)
 
     async def bootstrap(self) -> None:
-        self.logger.debug("boostrapping with %s", self.bootstrap_nodes)
+        self.logger.info("boostrapping with %s", self.bootstrap_nodes)
         try:
             await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
         except OperationCancelled as e:
@@ -221,6 +221,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # Return the msg hash, which is used as a token to identify pongs.
         token = message[:MAC_SIZE]
         self.logger.debug('>>> ping %s (token == %s)', node, encode_hex(token))
+        # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
+        # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
+        # should get rid of this once there are no longer too many parity 1.10 nodes out there.
+        parity_token = keccak(message[HEAD_SIZE + 1:])
+        self.kademlia.parity_pong_tokens[parity_token] = token
         return token
 
     def send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
@@ -431,28 +436,36 @@ def _unpack(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], bytes]
 
 
 def _test() -> None:
+    import argparse
     import signal
     from p2p import constants
     from p2p import ecies
 
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    listen_host = '0.0.0.0'
-    # Listen on a port other than 30303 in case we want to test against a local geth instance
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-bootnode', type=str, help="The enode to use as bootnode")
+    parser.add_argument('-debug', action="store_true")
+    args = parser.parse_args()
+
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level, format='%(asctime)s %(levelname)s: %(message)s')
+
+    listen_host = '127.0.0.1'
+    # Listen on a port other than 30303 so that we can test against a local geth instance
     # running on that port.
-    listen_port = 30303
+    listen_port = 30304
     privkey = ecies.generate_privkey()
     addr = kademlia.Address(listen_host, listen_port, listen_port)
-    bootstrap_nodes = tuple(
-        kademlia.Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES
-    )
+    if args.bootnode:
+        bootstrap_nodes = tuple([kademlia.Node.from_uri(args.bootnode)])
+    else:
+        bootstrap_nodes = tuple(
+            kademlia.Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES)
     discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
-    # local_bootnodes = [
-    #     kademlia.Node.from_uri('enode://0x3a514176466fa815ed481ffad09110a2d344f6c9b78c1d14afc351c3a51be33d8072e77939dc03ba44790779b7a1025baf3003f6732430e20cd9b76d953391b3@127.0.0.1:30303')]  # noqa: E501
-    # discovery = DiscoveryProtocol(privkey, addr, local_bootnodes)
     loop.run_until_complete(
         loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port)))
 
