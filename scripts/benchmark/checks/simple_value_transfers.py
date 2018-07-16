@@ -22,7 +22,7 @@ from utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
-    SECOND_EXISTING_ADDRESS,
+    SECOND_ADDRESS,
 )
 from utils.address import (
     generate_random_address,
@@ -45,7 +45,7 @@ class SimpleValueTransferBenchmarkConfig(NamedTuple):
 
 
 TO_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
-    to_address=SECOND_EXISTING_ADDRESS,
+    to_address=SECOND_ADDRESS,
     greeter_info='Sending to existing address\n'
 )
 
