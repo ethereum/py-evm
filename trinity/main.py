@@ -3,6 +3,7 @@ import asyncio
 import logging
 import signal
 import sys
+import time
 from typing import Type
 
 from eth.chains.mainnet import (
@@ -205,7 +206,7 @@ def main() -> None:
         logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
         # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
         # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-        import time; time.sleep(0.2)  # noqa: E702
+        time.sleep(0.2)
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
 
@@ -223,8 +224,11 @@ def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> N
 
     for pidfile in pidfiles:
         process_id = int(pidfile.read_text())
-        kill_process_id_gracefully(process_id, logger)
-        pidfile.unlink()
+        kill_process_id_gracefully(process_id, time.sleep, logger)
+        try:
+            pidfile.unlink()
+        except FileNotFoundError:
+            logger.info('file %s was gone after killing process id %d' % (pidfile, process_id))
 
 
 def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
