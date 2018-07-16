@@ -87,7 +87,14 @@ class TxPool(BaseService, PeerPoolSubscriber):
             if len(filtered_tx) == 0:
                 continue
 
-            self.logger.trace('Sending %d transactions to %s', len(filtered_tx), receiving_peer)
+            if receiving_peer.is_closing:
+                continue
+
+            self.logger.trace(
+                'Sending %d transactions to %s',
+                len(filtered_tx),
+                receiving_peer,
+            )
             receiving_peer.sub_proto.send_transactions(filtered_tx)
             self._add_txs_to_bloom(receiving_peer, filtered_tx)
 
