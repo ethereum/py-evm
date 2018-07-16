@@ -34,44 +34,32 @@ class BasePlugin(ABC):
     def logger(self) -> logging.Logger:
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
 
-    @abstractmethod
     def configure_parser(self, arg_parser: ArgumentParser) -> None:
         """
         Called at startup, giving the plugin a chance to amend the Trinity CLI argument parser
         """
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        pass
 
-    @abstractmethod
     def handle_event(self, activation_event: BaseEvent) -> None:
         """
         Notify the plugin about an event, giving it the chance to do internal accounting right
         before :meth:`~trinity.extensibility.plugin.BasePlugin.should_start` is called
         """
 
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        pass
 
-    @abstractmethod
     def should_start(self) -> bool:
         """
         Return ``True`` if the plugin should start, otherwise return ``False``
         """
 
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        return False
 
-    @abstractmethod
     def start(self, context: PluginContext) -> None:
         """
         The ``start`` method is called only once when the plugin is started
         """
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        pass
 
     def stop(self) -> None:
         """
