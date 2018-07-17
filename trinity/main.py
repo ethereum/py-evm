@@ -4,7 +4,11 @@ import logging
 import signal
 import sys
 import time
-from typing import Type
+from typing import (
+    Any,
+    Dict,
+    Type,
+)
 
 from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
@@ -25,9 +29,6 @@ from trinity.chains import (
     initialize_data_dir,
     is_data_dir_initialized,
     serve_chaindb,
-)
-from trinity.console import (
-    console,
 )
 from trinity.cli_parser import (
     parser,
@@ -147,20 +148,28 @@ def main() -> None:
 
     display_launch_logs(chain_config)
 
-    # if console command, run the trinity CLI
-    if args.subcommand == 'attach':
-        run_console(chain_config, not args.vanilla_shell)
-        sys.exit(0)
-
-    # start the listener thread to handle logs produced by other processes in
-    # the local logger.
-    listener.start()
-
     extra_kwargs = {
         'log_queue': log_queue,
         'log_level': log_level,
         'profile': args.profile,
     }
+
+    # Plugins can provide a subcommand with a `func` which does then control
+    # the entire process from here.
+    if hasattr(args, 'func'):
+        args.func(args, chain_config)
+    else:
+        trinity_boot(args, chain_config, extra_kwargs, listener, logger)
+
+
+def trinity_boot(args: Namespace,
+                 chain_config: ChainConfig,
+                 extra_kwargs: Dict[str, Any],
+                 listener: logging.handlers.QueueListener,
+                 logger: logging.Logger) -> None:
+    # start the listener thread to handle logs produced by other processes in
+    # the local logger.
+    listener.start()
 
     # First initialize the database process.
     database_server_process = ctx.Process(
@@ -187,10 +196,7 @@ def main() -> None:
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
     try:
-        if args.subcommand == 'console':
-            run_console(chain_config, not args.vanilla_shell)
-        else:
-            networking_process.join()
+        networking_process.join()
     except KeyboardInterrupt:
         # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
         # foreground *process group*, so both our networking and database processes will terminate
@@ -230,15 +236,6 @@ def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> N
             pidfile.unlink()
         except FileNotFoundError:
             logger.info('file %s was gone after killing process id %d' % (pidfile, process_id))
-
-
-def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
-    logger = logging.getLogger("trinity")
-    try:
-        console(chain_config.jsonrpc_ipc_path, use_ipython=vanilla_shell_args)
-    except FileNotFoundError as err:
-        logger.error(str(err))
-        sys.exit(1)
 
 
 @setup_cprofiler('run_database_process')

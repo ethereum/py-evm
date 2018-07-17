@@ -192,34 +192,6 @@ debug_parser.add_argument(
     ),
 )
 
-
-#
-# Add `console` sub-command to trinity CLI.
-#
-console_parser = subparser.add_parser(
-    'console', help='run the chain and start the trinity REPL')
-console_parser.add_argument(
-    '--vanilla-shell',
-    action='store_true',
-    default=False,
-    help='start a native Python shell'
-)
-
-
-#
-# Add `attach` sub-command to trinity CLI.
-#
-attach_parser = subparser.add_parser(
-    'attach',
-    help='open an REPL attached to a currently running chain',
-)
-attach_parser.add_argument(
-    '--vanilla-shell',
-    action='store_true',
-    default=False,
-    help='start a native Python shell'
-)
-
 #
 # Add `fix-unclean-shutdown` sub-command to trinity CLI
 #
