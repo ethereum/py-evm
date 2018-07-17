@@ -73,6 +73,47 @@ class BlockPartEnum(Enum):
     receipt = auto()
 
 
+class HeaderRequest(NamedTuple):
+    # TODO: support block hashes too
+    block_number: BlockNumber
+    max_headers: int
+    skip: int
+    reverse: bool
+
+    def generate_block_numbers(self) -> Tuple[BlockNumber, ...]:
+        """
+        Generates the block numbers requested, subject to local availability.
+        """
+        limit = min(self.max_headers, eth.MAX_HEADERS_FETCH)
+        step = self.skip + 1
+        if self.reverse:
+            low = max(0, self.block_number - limit + 1)
+            high = self.block_number + 1
+            block_numbers = reversed(range(low, high, step))
+        else:
+            low = self.block_number
+            high = (self.block_number + limit) * step
+            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
+        return tuple(block_numbers)
+
+    def is_matching_block_numbers(self, block_numbers):
+        """
+        Check if the given list of block numbers matches the expected block
+        numbers this `HeaderRequest` should generate.  A match is defined as a
+        subset of the expected set of numbers, in the same order as they appear
+        within expected set.
+        """
+        expected_block_numbers = iter(self.generate_block_numbers())
+        for number in block_numbers:
+            for expected_number in expected_block_numbers:
+                if expected_number == number:
+                    break
+            else:
+                return False
+        else:
+            return True
+
+
 class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
     """
     Sync with the Ethereum network by fetching/storing block headers.
