@@ -87,9 +87,6 @@ class TxPool(BaseService, PeerPoolSubscriber):
             if len(filtered_tx) == 0:
                 continue
 
-            if receiving_peer.is_closing:
-                continue
-
             self.logger.trace(
                 'Sending %d transactions to %s',
                 len(filtered_tx),
