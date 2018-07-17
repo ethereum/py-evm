@@ -31,6 +31,7 @@ from trinity.console import (
 )
 from trinity.cli_parser import (
     parser,
+    subparser,
 )
 from trinity.config import (
     ChainConfig,
@@ -94,7 +95,7 @@ TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
 
 def main() -> None:
     plugin_manager = setup_plugins()
-    plugin_manager.amend_argparser_config(parser)
+    plugin_manager.amend_argparser_config(parser, subparser)
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
