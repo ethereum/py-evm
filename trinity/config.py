@@ -1,4 +1,5 @@
 import argparse
+from contextlib import contextmanager
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -35,6 +36,9 @@ from trinity.utils.chains import (
     get_logfile_path,
     get_nodekey_path,
     load_nodekey,
+)
+from trinity.utils.filesystem import (
+    PidFile,
 )
 
 if TYPE_CHECKING:
@@ -235,3 +239,8 @@ class ChainConfig:
             raise NotImplementedError(
                 "Only full and light sync modes are supported"
             )
+
+    @contextmanager
+    def process_id_file(self, process_name: str):  # type: ignore
+        with PidFile(process_name, self.data_dir):
+            yield

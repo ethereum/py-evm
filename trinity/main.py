@@ -3,6 +3,7 @@ import asyncio
 import logging
 import signal
 import sys
+import time
 from typing import Type
 
 from eth.chains.mainnet import (
@@ -46,6 +47,7 @@ from trinity.plugins.registry import (
 from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
+    kill_process_id_gracefully,
 )
 from trinity.utils.logging import (
     setup_trinity_stderr_logging,
@@ -137,6 +139,11 @@ def main() -> None:
         log_level
     )
 
+    # if cleanup command, try to shutdown dangling processes and exit
+    if args.subcommand == 'fix-unclean-shutdown':
+        fix_unclean_shutdown(chain_config, logger)
+        sys.exit(0)
+
     display_launch_logs(chain_config)
 
     # if console command, run the trinity CLI
@@ -199,9 +206,29 @@ def main() -> None:
         logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
         # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
         # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-        import time; time.sleep(0.2)  # noqa: E702
+        time.sleep(0.2)
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+
+
+def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> None:
+    logger.info("Cleaning up unclean shutdown...")
+
+    pidfiles = tuple(chain_config.data_dir.glob('*.pid'))
+    if len(pidfiles) > 1:
+        logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
+    elif len(pidfiles) == 1:
+        logger.info('Found 1 process from a previous run. Closing...')
+    else:
+        logger.info('Found 0 processes from a previous run. Nothing to do.')
+
+    for pidfile in pidfiles:
+        process_id = int(pidfile.read_text())
+        kill_process_id_gracefully(process_id, time.sleep, logger)
+        try:
+            pidfile.unlink()
+        except FileNotFoundError:
+            logger.info('file %s was gone after killing process id %d' % (pidfile, process_id))
 
 
 def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
@@ -216,9 +243,10 @@ def run_console(chain_config: ChainConfig, vanilla_shell_args: bool) -> None:
 @setup_cprofiler('run_database_process')
 @with_queued_logging
 def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
-    base_db = db_class(db_path=chain_config.database_dir)
+    with chain_config.process_id_file('database'):
+        base_db = db_class(db_path=chain_config.database_dir)
 
-    serve_chaindb(chain_config, base_db)
+        serve_chaindb(chain_config, base_db)
 
 
 def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
@@ -243,22 +271,23 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 @setup_cprofiler('launch_node')
 @with_queued_logging
 def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
-    NodeClass = chain_config.node_class
-    # Temporary hack: We setup a second instance of the PluginManager.
-    # The first instance was only to configure the ArgumentParser whereas
-    # for now, the second instance that lives inside the networking process
-    # performs the bulk of the work. In the future, the PluginManager
-    # should probably live in its own process and manage whether plugins
-    # run in the shared plugin process or spawn their own.
-    plugin_manager = setup_plugins()
-    plugin_manager.broadcast(TrinityStartupEvent(
-        args,
-        chain_config
-    ))
+    with chain_config.process_id_file('networking'):
+        NodeClass = chain_config.node_class
+        # Temporary hack: We setup a second instance of the PluginManager.
+        # The first instance was only to configure the ArgumentParser whereas
+        # for now, the second instance that lives inside the networking process
+        # performs the bulk of the work. In the future, the PluginManager
+        # should probably live in its own process and manage whether plugins
+        # run in the shared plugin process or spawn their own.
+        plugin_manager = setup_plugins()
+        plugin_manager.broadcast(TrinityStartupEvent(
+            args,
+            chain_config
+        ))
 
-    node = NodeClass(plugin_manager, chain_config)
+        node = NodeClass(plugin_manager, chain_config)
 
-    run_service_until_quit(node)
+        run_service_until_quit(node)
 
 
 def display_launch_logs(chain_config: ChainConfig) -> None:

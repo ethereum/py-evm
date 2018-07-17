@@ -217,3 +217,11 @@ attach_parser.add_argument(
     default=False,
     help='start a native Python shell'
 )
+
+#
+# Add `fix-unclean-shutdown` sub-command to trinity CLI
+#
+fix_unclean_shutdown_parser = subparser.add_parser(
+    'fix-unclean-shutdown',
+    help='close any dangling processes from a previous unclean shutdown',
+)
