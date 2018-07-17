@@ -28,7 +28,6 @@ import sha3
 from cytoolz import groupby
 
 import rlp
-from rlp import sedes
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -480,10 +479,11 @@ class BasePeer(BaseService):
         return size
 
     def send(self, header: bytes, body: bytes) -> None:
-        cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
-        self.logger.trace("Sending msg with cmd_id: %s", cmd_id)
+        cmd_id = rlp.decode(body[:1], sedes=rlp.sedes.big_endian_int)
+        self.logger.trace("Sending msg with cmd id %d to %s", cmd_id, self)
         if self.is_closing:
-            self.logger.error("Attempted to send %s to disconnected peer", cmd_id)
+            self.logger.error(
+                "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
             return
         self.writer.write(self.encrypt(header, body))
 
@@ -855,6 +855,9 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         if peer.remote in self.connected_nodes:
             self.logger.info("%s finished, removing from pool", peer)
             self.connected_nodes.pop(peer.remote)
+        else:
+            self.logger.warn(
+                "%s finished but was not found in connected_nodes (%s)", peer, self.connected_nodes)
 
     def __aiter__(self) -> AsyncIterator[BasePeer]:
         return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
@@ -888,7 +891,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 if subscribers:
                     longest_queue = max(
                         peer._subscribers, key=operator.methodcaller('qsize'))
-                    msg += "longest_subscriber_queue=%s(%d)" % (
+                    msg += " longest_subscriber_queue=%s(%d)" % (
                         longest_queue._name, longest_queue.qsize())  # type: ignore
                 self.logger.debug(msg)
             self.logger.debug("== End peer details == ")
