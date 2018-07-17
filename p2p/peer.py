@@ -695,6 +695,8 @@ class PeerPoolSubscriber(ABC):
     def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
         if self._msg_queue is None:
             self._msg_queue = asyncio.Queue(maxsize=10000)
+            # Add a _name to our msg_queue so that the stats logged by PeerPool are more useful.
+            self._msg_queue._name = self.__class__.__name__  # type: ignore
         return self._msg_queue
 
     @contextlib.contextmanager
@@ -866,12 +868,13 @@ class PeerPool(BaseService):
             self.logger.debug("== Peer details == ")
             for peer in self.connected_nodes.values():
                 subscribers = len(peer._subscribers)
-                longest_queue = 0
+                msg = "%s: running=%s, subscribers=%d" % (peer, peer.is_running, subscribers)
                 if subscribers:
-                    longest_queue = max(queue.qsize() for queue in peer._subscribers)
-                self.logger.debug(
-                    "%s: running=%s, subscribers=%d, longest_subscriber_queue=%s",
-                    peer, peer.is_running, subscribers, longest_queue)
+                    longest_queue = max(
+                        peer._subscribers, key=operator.methodcaller('qsize'))
+                    msg += "longest_subscriber_queue=%s(%d)" % (
+                        longest_queue._name, longest_queue.qsize())  # type: ignore
+                self.logger.debug(msg)
             self.logger.debug("== End peer details == ")
             try:
                 await self.wait(asyncio.sleep(self._report_interval))
