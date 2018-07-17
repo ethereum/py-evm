@@ -11,6 +11,8 @@ from abc import (
 
 from typing import (
     Any,
+    AsyncIterable,
+    AsyncIterator,
     cast,
     Dict,
     Iterator,
@@ -333,6 +335,10 @@ class BasePeer(BaseService):
         self.reader.feed_eof()
         self.writer.close()
 
+    @property
+    def is_closing(self) -> bool:
+        return self.writer.transport.is_closing()
+
     async def _cleanup(self) -> None:
         self.close()
 
@@ -476,6 +482,9 @@ class BasePeer(BaseService):
     def send(self, header: bytes, body: bytes) -> None:
         cmd_id = rlp.decode(body[:1], sedes=sedes.big_endian_int)
         self.logger.trace("Sending msg with cmd_id: %s", cmd_id)
+        if self.is_closing:
+            self.logger.error("Attempted to send %s to disconnected peer", cmd_id)
+            return
         self.writer.write(self.encrypt(header, body))
 
     async def disconnect(self, reason: DisconnectReason) -> None:
@@ -714,7 +723,7 @@ class PeerPoolSubscriber(ABC):
             peer_pool.unsubscribe(self)
 
 
-class PeerPool(BaseService):
+class PeerPool(BaseService, AsyncIterable[BasePeer]):
     """
     PeerPool maintains connections to up-to max_peers on a given network.
     """
@@ -852,20 +861,24 @@ class PeerPool(BaseService):
         for subscriber in self._subscribers:
             subscriber.deregister_peer(peer)
 
-    @property
-    def peers(self) -> List[BasePeer]:
-        return list(self.connected_nodes.values())
+    def __aiter__(self) -> AsyncIterator[BasePeer]:
+        return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
 
     @property
     def highest_td_peer(self) -> BasePeer:
-        if not self.connected_nodes:
+        peers = tuple(self.connected_nodes.values())
+        if not peers:
             raise NoConnectedPeers()
-        peers_by_td = groupby(operator.attrgetter('head_td'), self.peers)
+        peers_by_td = groupby(operator.attrgetter('head_td'), peers)
         max_td = max(peers_by_td.keys())
         return random.choice(peers_by_td[max_td])
 
     def get_peers(self, min_td: int) -> List[BasePeer]:
-        return [peer for peer in self.peers if peer.head_td >= min_td]
+        # TODO: Consider turning this into a method that returns an AsyncIterator, to make it
+        # harder for callsites to get a list of peers while making blocking calls, as those peers
+        # might disconnect in the meantime.
+        peers = tuple(self.connected_nodes.values())
+        return [peer for peer in peers if peer.head_td >= min_td]
 
     async def _periodically_report_stats(self) -> None:
         while self.is_running:
@@ -888,6 +901,24 @@ class PeerPool(BaseService):
                 await self.wait(asyncio.sleep(self._report_interval))
             except OperationCancelled:
                 break
+
+
+class ConnectedPeersIterator(AsyncIterator[BasePeer]):
+
+    def __init__(self, peers: Tuple[BasePeer, ...]) -> None:
+        self.iter = iter(peers)
+
+    async def __anext__(self) -> BasePeer:
+        while True:
+            # Yield control to ensure we process any disconnection requests from peers. Otherwise
+            # we could return peers that should have been disconnected already.
+            await asyncio.sleep(0)
+            try:
+                peer = next(self.iter)
+                if not peer.is_closing:
+                    return peer
+            except StopIteration:
+                raise StopAsyncIteration
 
 
 DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
@@ -984,10 +1015,10 @@ def _test() -> None:
         # Request some stuff from ropsten's block 2440319
         # (https://ropsten.etherscan.io/block/2440319), just as a basic test.
         nonlocal peer_pool
-        while not peer_pool.peers:
+        while not peer_pool.connected_nodes:
             peer_pool.logger.info("Waiting for peer connection...")
             await asyncio.sleep(0.2)
-        peer = peer_pool.peers[0]
+        peer = peer_pool.highest_td_peer
         block_hash = decode_hex(
             '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
         if peer_class == ETHPeer:

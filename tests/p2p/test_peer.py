@@ -8,11 +8,12 @@ from p2p.les import (
 )
 from p2p.exceptions import NoMatchingPeerCapabilities
 from p2p.peer import LESPeer
-from p2p.p2p_proto import P2PProtocol
+from p2p.p2p_proto import DisconnectReason, P2PProtocol
 
 from peer_helpers import (
     get_directly_linked_peers_without_handshake,
     get_directly_linked_peers,
+    MockPeerPoolWithConnectedPeers,
 )
 
 
@@ -50,6 +51,30 @@ def test_sub_protocol_selection():
 
     with pytest.raises(NoMatchingPeerCapabilities):
         peer.select_sub_protocol([('unknown', 1)])
+
+
+@pytest.mark.asyncio
+async def test_peer_pool_iter(request, event_loop):
+    peer1, _ = await get_directly_linked_peers(request, event_loop)
+    peer2, _ = await get_directly_linked_peers(request, event_loop)
+    peer3, _ = await get_directly_linked_peers(request, event_loop)
+    pool = MockPeerPoolWithConnectedPeers([peer1, peer2, peer3])
+    peers = list([peer async for peer in pool])
+
+    assert len(peers) == 3
+    assert peer1 in peers
+    assert peer2 in peers
+    assert peer3 in peers
+
+    peers = []
+    asyncio.ensure_future(peer2.disconnect(DisconnectReason.disconnect_requested))
+    async for peer in pool:
+        peers.append(peer)
+
+    assert len(peers) == 2
+    assert peer1 in peers
+    assert peer2 not in peers
+    assert peer3 in peers
 
 
 class LESProtocolV3(LESProtocol):

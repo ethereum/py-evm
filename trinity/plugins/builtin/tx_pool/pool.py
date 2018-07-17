@@ -77,7 +77,7 @@ class TxPool(BaseService, PeerPoolSubscriber):
 
         self._add_txs_to_bloom(peer, txs)
 
-        for receiving_peer in self._peer_pool.peers:
+        async for receiving_peer in self._peer_pool:
             receiving_peer = cast(ETHPeer, receiving_peer)
 
             if receiving_peer is peer:

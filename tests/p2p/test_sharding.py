@@ -295,7 +295,7 @@ async def test_syncer_proposing(request, event_loop):
     request.addfinalizer(finalizer)
 
     # propose at b and check that it announces its proposal
-    syncer.propose()
+    await syncer.propose()
     peer, cmd, msg = await asyncio.wait_for(
         peer_a_b_subscriber.get(),
         timeout=1,
