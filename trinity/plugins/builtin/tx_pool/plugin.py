@@ -45,7 +45,7 @@ class TxPlugin(BasePlugin):
         self.peer_pool: PeerPool = None
         self.cancel_token: CancelToken = None
         self.chain: BaseChain = None
-        self.is_enabled: bool = None
+        self.is_enabled: bool = False
 
     @property
     def name(self) -> str:
@@ -53,14 +53,14 @@ class TxPlugin(BasePlugin):
 
     def configure_parser(self, arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--disable-tx-pool",
+            "--tx-pool",
             action="store_true",
-            help="Disable the Transaction Pool",
+            help="Enables the Transaction Pool (experimental)",
         )
 
     def handle_event(self, activation_event: BaseEvent) -> None:
         if isinstance(activation_event, TrinityStartupEvent):
-            self.is_enabled = not activation_event.args.disable_tx_pool
+            self.is_enabled = activation_event.args.tx_pool
         if isinstance(activation_event, ResourceAvailableEvent):
             if activation_event.resource_type is PeerPool:
                 self.peer_pool, self.cancel_token = activation_event.resource
