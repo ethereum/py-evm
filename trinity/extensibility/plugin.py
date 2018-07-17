@@ -3,7 +3,8 @@ from abc import (
     abstractmethod
 )
 from argparse import (
-    ArgumentParser
+    ArgumentParser,
+    _SubParsersAction,
 )
 import logging
 from typing import (
@@ -34,7 +35,7 @@ class BasePlugin(ABC):
     def logger(self) -> logging.Logger:
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
 
-    def configure_parser(self, arg_parser: ArgumentParser) -> None:
+    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
         Called at startup, giving the plugin a chance to amend the Trinity CLI argument parser
         """
@@ -78,7 +79,7 @@ class DebugPlugin(BasePlugin):
     def name(self) -> str:
         return "Debug Plugin"
 
-    def configure_parser(self, arg_parser: ArgumentParser) -> None:
+    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument("--debug-plugin", type=bool, required=False)
 
     def handle_event(self, activation_event: BaseEvent) -> None:

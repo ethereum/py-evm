@@ -1,5 +1,6 @@
 from argparse import (
-    ArgumentParser
+    ArgumentParser,
+    _SubParsersAction,
 )
 import logging
 from typing import (
@@ -41,13 +42,15 @@ class PluginManager:
         new_plugins = [plugins] if isinstance(plugins, BasePlugin) else plugins
         self._plugin_store.extend(new_plugins)
 
-    def amend_argparser_config(self, arg_parser: ArgumentParser) -> None:
+    def amend_argparser_config(self,
+                               arg_parser: ArgumentParser,
+                               subparser: _SubParsersAction) -> None:
         """
         Call :meth:`~trinity.extensibility.plugin.BasePlugin.configure_parser` for every registered
         plugin, giving them the option to amend the global parser setup.
         """
         for plugin in self._plugin_store:
-            plugin.configure_parser(arg_parser)
+            plugin.configure_parser(arg_parser, subparser)
 
     def broadcast(self, event: BaseEvent, exclude: BasePlugin = None) -> None:
         """

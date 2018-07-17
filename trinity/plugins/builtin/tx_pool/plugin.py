@@ -1,5 +1,6 @@
 from argparse import (
-    ArgumentParser
+    ArgumentParser,
+    _SubParsersAction,
 )
 import asyncio
 
@@ -51,7 +52,7 @@ class TxPlugin(BasePlugin):
     def name(self) -> str:
         return "TxPlugin"
 
-    def configure_parser(self, arg_parser: ArgumentParser) -> None:
+    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
             "--tx-pool",
             action="store_true",
