@@ -6,9 +6,9 @@ import os
 import rlp
 import time
 from typing import (
+    Dict,
     List,
     TypeVar,
-    Tuple,
     Union,
 )
 
@@ -91,13 +91,14 @@ class ThroughputTracker:
         return self._throughput
 
 
-T = TypeVar('T')
+Work = TypeVar('Work')
+Worker = TypeVar('Worker')
 
 
 def get_scaled_batches(
-        scales: Tuple[float, ...],
-        source: List[T],
-) -> List[List[T]]:
+        scaled_workers: Dict[Worker, float],
+        source: List[Work],
+) -> Dict[Worker, List[Work]]:
     """
     Group elements from source into scaled batches. Each element from source will be present
     in exactly one of the batches. Batch lengths always round down, and any remaining elements
@@ -108,6 +109,7 @@ def get_scaled_batches(
 
     :return: list of batches, the same length as scales. Batches *may be empty*.
     """
+    scales = tuple(scaled_workers.values())
     if len(set(source)) != len(source):
         raise ValidationError("Elements to batch must be unique")
     elif len(scales) == 0:
@@ -117,30 +119,37 @@ def get_scaled_batches(
 
     scale_sum = sum(scales)
     if scale_sum == 0:
-        normalized_scales = (1.0, ) * len(scales)
-        total = float(len(scales))
+        normalized_scales = {worker: 1.0 for worker in scaled_workers.keys()}
+        total = float(len(scaled_workers))
     elif any(math.isinf(scale) for scale in scales):
-        normalized_scales = tuple(
+        normalized_scales = {
+            worker:
             1.0 if math.isinf(scale) else 0.0
-            for scale in scales
-        )
-        total = sum(normalized_scales)
+            for worker, scale in scaled_workers.items()
+        }
+        total = sum(normalized_scales.values())
     else:
-        normalized_scales = scales
+        normalized_scales = scaled_workers
         total = scale_sum
 
-    fractional_scales = [scale / total for scale in normalized_scales]
+    fractional_scales = {worker: scale / total for worker, scale in normalized_scales.items()}
 
     num_elements = len(source)
     element_iter = iter(source)
-    batches = []
-    for fraction in fractional_scales:
+    batches = {}
+    for worker, fraction in fractional_scales.items():
         num_to_take = math.floor(fraction * num_elements)
-        batch = list(take(num_to_take, element_iter))
-        batches.append(batch)
+        if num_to_take >= 1:
+            batch = list(take(num_to_take, element_iter))
+            batches[worker] = batch
 
-    # any elements missed due to rounding error will go to the largest scaled index
-    largest_idx = fractional_scales.index(max(fractional_scales))
-    batches[largest_idx] += list(element_iter)
+    # any elements missed due to rounding error will go to the largest scaled worker
+    remaining = list(element_iter)
+    if remaining:
+        largest_worker = max(fractional_scales.keys(), key=fractional_scales.get)
+        if largest_worker in batches:
+            batches[largest_worker] += remaining
+        else:
+            batches[largest_worker] = remaining
 
     return batches

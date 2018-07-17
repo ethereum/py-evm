@@ -490,22 +490,14 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
-        peer_batches = self._batch_headers_by_peer(headers, peers, block_part)
-        for peer, batch in peer_batches:
+
+        # request headers proportionally, so faster peers are asked for more parts than slow peers
+        speeds = {peer: self._get_peer_stats(peer, block_part).get_throughput() for peer in peers}
+        peer_batches = get_scaled_batches(speeds, headers)
+        for peer, batch in peer_batches.items():
             self._get_peer_stats(peer, block_part).begin_work()
             request_func(cast(ETHPeer, peer), batch)
         return len(peer_batches)
-
-    def _batch_headers_by_peer(
-            self,
-            headers: List[BlockHeader],
-            peers: List[BasePeer],
-            block_part: BlockPartEnum,
-    ) -> List[Tuple[BasePeer, List[BlockHeader]]]:
-        speeds = tuple(self._get_peer_stats(peer, block_part).get_throughput() for peer in peers)
-        # request headers proportionally, so faster peers are asked for more parts than slow peers
-        batches = get_scaled_batches(speeds, headers)
-        return [(peer, batch) for peer, batch in zip(peers, batches) if len(batch)]
 
     def _send_get_block_bodies(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
         self.logger.debug("Requesting %d block bodies to %s", len(headers), peer)
