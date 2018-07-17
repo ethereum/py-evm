@@ -530,6 +530,9 @@ class BasePeer(BaseService):
     def __repr__(self) -> str:
         return "{} {}".format(self.__class__.__name__, repr(self.remote))
 
+    def __hash__(self) -> int:
+        return hash(self.remote)
+
 
 class LESPeer(BasePeer):
     _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
