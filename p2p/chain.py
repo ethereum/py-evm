@@ -712,7 +712,7 @@ class PeerRequestHandler(CancellableMixin):
                 type(block_number_or_hash),
             )
 
-        limit = max(max_headers, eth.MAX_HEADERS_FETCH)
+        limit = min(max_headers, eth.MAX_HEADERS_FETCH)
         step = skip + 1
         if reverse:
             low = max(0, block_number - limit)

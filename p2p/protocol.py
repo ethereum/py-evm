@@ -14,6 +14,7 @@ import rlp
 from rlp import sedes
 
 from eth.constants import NULL_BYTE
+from eth.rlp.headers import BlockHeader
 
 from p2p.utils import get_devp2p_cmd_id
 
@@ -133,6 +134,12 @@ class Protocol:
 
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)
+
+
+class BaseBlockHeaders(Command):
+
+    def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
+        raise NotImplementedError("Must be implemented by subclasses")
 
 
 def _pad_to_16_byte_boundary(data: bytes) -> bytes:

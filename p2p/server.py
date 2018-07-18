@@ -287,12 +287,11 @@ class Server(BaseService):
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake()
         await peer.do_sub_proto_handshake()
-        await peer.ensure_same_side_on_dao_fork(self.chain.get_vm_configuration())
-        self._start_peer(peer)
+        await self._start_peer(peer)
 
-    def _start_peer(self, peer: BasePeer) -> None:
+    async def _start_peer(self, peer: BasePeer) -> None:
         # This method exists only so that we can monkey-patch it in tests.
-        self.peer_pool.start_peer(peer)
+        await self.peer_pool.start_peer(peer)
 
 
 def _test() -> None:
