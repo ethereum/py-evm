@@ -264,10 +264,12 @@ class Server(BaseService):
 
         if self.peer_pool.is_full:
             await peer.disconnect(DisconnectReason.too_many_peers)
+            return
         elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
             await peer.disconnect(DisconnectReason.useless_peer)
+            return
 
-        total_peers = len(self.peer_pool.connected_nodes)
+        total_peers = len(self.peer_pool)
         inbound_peer_count = len([
             peer
             for peer
