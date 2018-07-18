@@ -2,6 +2,9 @@ from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import rlp
+from typing import Iterator
+
+from eth_utils import to_tuple
 
 from eth.utils.numeric import big_endian_to_int
 
@@ -31,6 +34,25 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     as an integer.
     """
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
+
+
+@to_tuple
+def sequence_builder(start_number: int, max_length: int, skip: int, reverse: bool) -> Iterator[int]:
+    remaining_elements = max_length
+    next_element = start_number
+    step_size = skip + 1
+
+    while remaining_elements > 0:
+        if next_element < 0:
+            return
+        else:
+            yield next_element
+            remaining_elements -= 1
+
+            if reverse:
+                next_element = next_element - step_size
+            else:
+                next_element = next_element + step_size
 
 
 def get_process_pool_executor() -> ProcessPoolExecutor:
