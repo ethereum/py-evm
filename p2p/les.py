@@ -16,6 +16,7 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 
 from p2p.protocol import (
+    BaseBlockHeaders,
     Command,
     Protocol,
     _DecodedMsgType,
@@ -169,13 +170,17 @@ class GetBlockHeaders(Command):
     ]
 
 
-class BlockHeaders(Command):
+class BlockHeaders(BaseBlockHeaders):
     _cmd_id = 3
     structure = [
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('headers', sedes.CountableList(BlockHeader)),
     ]
+
+    def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
+        msg = cast(Dict[str, Any], msg)
+        return cast(Tuple[BlockHeader, ...], tuple(msg['headers']))
 
 
 class GetBlockBodies(Command):

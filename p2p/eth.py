@@ -1,6 +1,8 @@
 import logging
 from typing import (
+    cast,
     List,
+    Tuple,
     Union,
     TYPE_CHECKING
 )
@@ -12,8 +14,10 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
 
 from p2p.protocol import (
+    BaseBlockHeaders,
     Command,
     Protocol,
+    _DecodedMsgType,
 )
 from p2p.rlp import BlockBody
 from p2p.sedes import HashOrNumber
@@ -62,9 +66,12 @@ class GetBlockHeaders(Command):
     ]
 
 
-class BlockHeaders(Command):
+class BlockHeaders(BaseBlockHeaders):
     _cmd_id = 4
     structure = sedes.CountableList(BlockHeader)
+
+    def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
+        return cast(Tuple[BlockHeader, ...], tuple(msg))
 
 
 class GetBlockBodies(Command):

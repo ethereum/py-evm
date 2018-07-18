@@ -4,6 +4,7 @@ import logging
 import operator
 import random
 import struct
+import time
 from abc import (
     ABC,
     abstractmethod
@@ -59,6 +60,7 @@ from p2p.kademlia import Address, Node
 from p2p import protocol
 from p2p.exceptions import (
     BadAckMessage,
+    DAOForkCheckFailure,
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
@@ -107,7 +109,6 @@ async def handshake(remote: Node,
                     peer_class: 'Type[BasePeer]',
                     headerdb: 'BaseAsyncHeaderDB',
                     network_id: int,
-                    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
                     token: CancelToken,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -136,7 +137,6 @@ async def handshake(remote: Node,
         ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
-    await peer.ensure_same_side_on_dao_fork(vm_configuration)
     return peer
 
 
@@ -193,44 +193,6 @@ class BasePeer(BaseService):
     @abstractmethod
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    async def ensure_same_side_on_dao_fork(
-            self, vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...]) -> None:
-        for start_block, vm_class in vm_configuration:
-            if not issubclass(vm_class, HomesteadVM):
-                continue
-            elif not vm_class.support_dao_fork:
-                break
-            elif start_block > vm_class.dao_fork_block_number:
-                # VM comes after the fork, so stop checking
-                break
-
-            fork_block = vm_class.dao_fork_block_number
-            try:
-                header, parent = await self.wait(
-                    self._get_headers_at_chain_split(fork_block),
-                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT)
-            except TimeoutError:
-                # Logging as INFO because if we start seeing this too often we might need to
-                # increase the timeout used here.
-                self.logger.info("Timed out waiting for DAO fork header from %s", self)
-                raise
-            except ValidationError as e:
-                raise HandshakeFailure("Peer failed DAO fork check retrieval: {}".format(e))
-
-            try:
-                vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as e:
-                raise HandshakeFailure("Peer failed DAO fork check validation: {}".format(e))
-
-    @abstractmethod
-    async def _get_headers_at_chain_split(
-            self, number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
-        """Fetch and return the header with the given number and its parent.
-
-        Must raise HeaderNotFound if the peer doesn't have them.
-        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
@@ -583,38 +545,13 @@ class LESPeer(BasePeer):
         self.sub_proto.send_get_block_headers(
             block_number_or_hash, max_headers, request_id, reverse)
 
-    async def _get_headers_at_chain_split(
-            self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
-        start_block = block_number - 1
-        max_headers = 2
-        reverse = False
-        request_id = gen_request_id()
-        self.sub_proto.send_get_block_headers(start_block, max_headers, request_id, reverse)
-        while True:
-            cmd, msg = await self.read_msg()
-            msg = cast(Dict[str, Any], msg)
-            if not isinstance(cmd, les.BlockHeaders):
-                self.logger.debug(
-                    "Ignoring %s msg from %s as we haven't performed the chain-split check yet",
-                    cmd, self)
-                continue
-            elif msg['request_id'] != request_id:
-                self.logger.debug(
-                    "Got a BlockHeaders msg with the wrong request_id (%d) from %s, ignoring",
-                    msg['request_id'], self)
-                continue
-            headers = msg['headers']
-            validate_header_response(start_block, max_headers, reverse, headers)
-            parent, header = headers
-            return header, parent
-
 
 def validate_header_response(
-        start_number: int, count: int, reverse: bool, headers: List[BlockHeader]) -> None:
+        start_number: int, count: int, reverse: bool, headers: Tuple[BlockHeader, ...]) -> None:
     if len(headers) != count:
         raise ValidationError("Expected {} headers, got: {}".format(count, headers))
     if reverse:
-        headers = list(reversed(headers))
+        headers = tuple(reversed(headers))
     if headers[0].block_number != start_number:
         raise ValidationError("Expected {} as first header's number, got: {}".format(
             start_number, headers[0].block_number))
@@ -669,24 +606,6 @@ class ETHPeer(BasePeer):
     def request_block_headers(self, block_number_or_hash: Union[int, bytes],
                               max_headers: int, reverse: bool = True) -> None:
         self.sub_proto.send_get_block_headers(block_number_or_hash, max_headers, reverse)
-
-    async def _get_headers_at_chain_split(
-            self, block_number: BlockNumber) -> Tuple[BlockHeader, BlockHeader]:
-        start_block = block_number - 1
-        max_headers = 2
-        reverse = False
-        self.sub_proto.send_get_block_headers(start_block, max_headers, reverse)
-        while True:
-            cmd, msg = await self.read_msg()
-            if not isinstance(cmd, eth.BlockHeaders):
-                self.logger.debug(
-                    "Ignoring %s msg from %s as we haven't performed the chain-split check yet",
-                    cmd, self)
-                continue
-            headers = cast(List[BlockHeader], msg)
-            validate_header_response(start_block, max_headers, reverse, headers)
-            parent, header = headers
-            return header, parent
 
 
 class PeerPoolSubscriber(ABC):
@@ -773,16 +692,34 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for peer in self.connected_nodes.values():
             peer.remove_subscriber(subscriber.msg_queue)
 
-    def start_peer(self, peer: BasePeer) -> None:
+    async def start_peer(self, peer: BasePeer) -> None:
+        try:
+            # Although connect() may seem like a more appropriate place to perform the DAO fork
+            # check, we do it here because we want to perform it for incoming peer connections as
+            # well.
+            msgs = await self.ensure_same_side_on_dao_fork(peer)
+        except DAOForkCheckFailure as e:
+            self.logger.debug("DAO fork check with %s failed: %s", peer, e)
+            await peer.disconnect(DisconnectReason.useless_peer)
+            return
         asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-        self.add_peer(peer)
+        self._add_peer(peer, msgs)
 
-    def add_peer(self, peer: BasePeer) -> None:
-        self.logger.info('Adding peer: %s', peer)
+    def _add_peer(self,
+                  peer: BasePeer,
+                  msgs: List[Tuple[protocol.Command, protocol._DecodedMsgType]]) -> None:
+        """Add the given peer to the pool.
+
+        Appart from adding it to our list of connected nodes and adding each of our subscriber's
+        msg_queue to the peer, we also add the given messages to our subscriber's queues.
+        """
+        self.logger.info('Adding %s to pool', peer)
         self.connected_nodes[peer.remote] = peer
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber.msg_queue)
+            for cmd, msg in msgs:
+                subscriber.msg_queue.put_nowait((peer, cmd, msg))
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -819,7 +756,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer = await self.wait(
                 handshake(
                     remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
-                    self.vm_configuration, self.cancel_token))
+                    self.cancel_token))
 
             return peer
         except OperationCancelled:
@@ -845,7 +782,55 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             # https://github.com/ethereum/py-evm/pull/139#discussion_r152067425
             peer = await self.connect(node)
             if peer is not None:
-                self.start_peer(peer)
+                await self.start_peer(peer)
+
+    async def ensure_same_side_on_dao_fork(
+            self, peer: BasePeer) -> List[Tuple[protocol.Command, protocol._DecodedMsgType]]:
+        """Ensure we're on the same side of the DAO fork as the given peer.
+
+        In order to do that we have to request the DAO fork block and its parent, but while we
+        wait for that we may receive other messages from the peer, which are returned so that they
+        can be re-added to our subscribers' queues when the peer is finally added to the pool.
+        """
+        msgs = []
+        for start_block, vm_class in self.vm_configuration:
+            if not issubclass(vm_class, HomesteadVM):
+                continue
+            elif not vm_class.support_dao_fork:
+                break
+            elif start_block > vm_class.dao_fork_block_number:
+                # VM comes after the fork, so stop checking
+                break
+
+            start_block = vm_class.dao_fork_block_number - 1
+            max_headers = 2
+            reverse = False
+            peer.request_block_headers(start_block, max_headers, reverse)  # type: ignore
+            start = time.time()
+            try:
+                while True:
+                    elapsed = int(time.time() - start)
+                    remaining_timeout = max(0, CHAIN_SPLIT_CHECK_TIMEOUT - elapsed)
+                    cmd, msg = await self.wait(
+                        peer.read_msg(), timeout=remaining_timeout)
+                    if isinstance(cmd, protocol.BaseBlockHeaders):
+                        headers = cmd.extract_headers(msg)
+                        break
+                    else:
+                        msgs.append((cmd, msg))
+                        continue
+            except (TimeoutError, PeerConnectionLost) as e:
+                raise DAOForkCheckFailure(
+                    "Timed out waiting for DAO fork header from {}: {}".format(peer, e))
+
+            try:
+                validate_header_response(start_block, max_headers, reverse, headers)
+                parent, header = headers
+                vm_class.validate_header(header, parent, check_seal=True)
+            except ValidationError as e:
+                raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(e))
+
+        return msgs
 
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
