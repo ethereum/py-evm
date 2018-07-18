@@ -103,7 +103,6 @@ def _modexp(data):
         to_size=exponent_length,
     )
     exponent = big_endian_to_int(exponent_bytes)
-    print('base', base, 'exponent', exponent, 'modulus', modulus)
 
     result = pow(base, exponent, modulus)
 
