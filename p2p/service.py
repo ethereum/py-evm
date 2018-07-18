@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import asyncio
 import functools
 import logging
+import time
 from typing import (
     Any,
     Callable,
@@ -22,7 +23,10 @@ class BaseService(ABC, CancellableMixin):
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
-    def __init__(self, token: CancelToken=None) -> None:
+    # the custom event loop to run in, or None if the default loop should be used
+    loop: asyncio.AbstractEventLoop = None
+
+    def __init__(self, token: CancelToken=None, loop: asyncio.AbstractEventLoop = None) -> None:
         if self.logger is None:
             self.logger = cast(
                 TraceLogger, logging.getLogger(self.__module__ + '.' + self.__class__.__name__))
@@ -31,7 +35,9 @@ class BaseService(ABC, CancellableMixin):
         self.cleaned_up = asyncio.Event()
         self._child_services = []
 
-        base_token = CancelToken(type(self).__name__)
+        self.loop = loop
+        base_token = CancelToken(type(self).__name__, loop=loop)
+
         if token is None:
             self.cancel_token = base_token
         else:
