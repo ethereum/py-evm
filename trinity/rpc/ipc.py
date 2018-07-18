@@ -158,3 +158,4 @@ class IPCServer(BaseService):
     async def _cleanup(self) -> None:
         self.server.close()
         await self.server.wait_closed()
+        self.ipc_path.unlink()
