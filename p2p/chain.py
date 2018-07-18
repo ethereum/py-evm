@@ -448,7 +448,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             unexpected = received_keys.difference(key_func(header) for header in headers)
 
             work_size = len(received_keys.difference(unexpected))
-            self._get_peer_stats(peer, part_name).complete_work(work_size)
+
+            peer_stats = self._get_peer_stats(peer, part_name)
+            if peer_stats.is_tracking:
+                peer_stats.complete_work(work_size)
+            else:
+                self.logger.warning("Peer %s sent unexpected %s parts" % (peer, part_name.name))
 
             parts.extend(received)
             pending_replies -= 1

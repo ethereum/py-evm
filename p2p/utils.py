@@ -75,17 +75,21 @@ class ThroughputTracker:
             raise ValidationError("Smoothing factor of ThroughputTracker must be between 0 and 1")
 
     def begin_work(self) -> None:
-        if self._last_start is not None:
+        if self.is_tracking:
             raise ValidationError("Cannot start the ThroughputTracker again without completing it")
         self._last_start = time.perf_counter()
 
     def complete_work(self, work_completed: Union[int, float]) -> None:
-        if self._last_start is None:
+        if not self.is_tracking:
             raise ValidationError("Cannot end the ThroughputTracker without starting it")
         time_elapsed = time.perf_counter() - self._last_start
         last_throughput = work_completed / time_elapsed
         self._throughput = (self._throughput * (1 - self._alpha)) + (last_throughput * self._alpha)
         self._last_start = None
+
+    @property
+    def is_tracking(self) -> bool:
+        return self._last_start is not None
 
     def get_throughput(self) -> float:
         return self._throughput
