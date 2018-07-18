@@ -227,15 +227,23 @@ def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> N
     elif len(pidfiles) == 1:
         logger.info('Found 1 process from a previous run. Closing...')
     else:
-        logger.info('Found 0 processes from a previous run. Nothing to do.')
+        logger.info('Found 0 processes from a previous run. No processes to kill.')
 
     for pidfile in pidfiles:
         process_id = int(pidfile.read_text())
         kill_process_id_gracefully(process_id, time.sleep, logger)
         try:
             pidfile.unlink()
+            logger.info('Manually removed %s after killing process id %d' % (pidfile, process_id))
         except FileNotFoundError:
-            logger.info('file %s was gone after killing process id %d' % (pidfile, process_id))
+            logger.debug('pidfile %s was gone after killing process id %d' % (pidfile, process_id))
+
+    db_ipc = chain_config.database_ipc_path
+    try:
+        db_ipc.unlink()
+        logger.info('Removed a dangling IPC socket file for database connections at %s', db_ipc)
+    except FileNotFoundError:
+        logger.debug('The IPC socket file for database connections at %s was already gone', db_ipc)
 
 
 @setup_cprofiler('run_database_process')
