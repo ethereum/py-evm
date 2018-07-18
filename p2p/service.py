@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import asyncio
 import functools
 import logging
-import time
 from typing import (
     Any,
     Callable,
@@ -77,6 +76,7 @@ class BaseService(ABC, CancellableMixin):
                 # XXX: Only added to help debug https://github.com/ethereum/py-evm/issues/1023;
                 # should be removed eventually.
                 self.logger.warn("%s finished but had no finished_callback", self)
+            self.logger.debug("%s halted cleanly", self)
 
     def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
         """
@@ -122,6 +122,15 @@ class BaseService(ABC, CancellableMixin):
     @property
     def is_running(self) -> bool:
         return self._run_lock.locked()
+
+    async def threadsafe_cancel(self) -> None:
+        """
+        Cancel service in another thread. Block until service is cleaned up.
+
+        :param poll_period: how many seconds to wait in between each check for service cleanup
+        """
+        asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.loop)
+        await asyncio.wait_for(self.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
 
     @abstractmethod
     async def _run(self) -> None:
