@@ -221,6 +221,7 @@ def trinity_boot(args: Namespace,
 def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> None:
     logger.info("Cleaning up unclean shutdown...")
 
+    logger.info("Searching for process id files in %s..." % chain_config.data_dir)
     pidfiles = tuple(chain_config.data_dir.glob('*.pid'))
     if len(pidfiles) > 1:
         logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
