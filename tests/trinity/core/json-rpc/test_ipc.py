@@ -117,7 +117,7 @@ async def test_ipc_requests(jsonrpc_ipc_pipe_path,
                             ipc_server):
     assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
 
-    reader, writer = await asyncio.open_unix_connection(jsonrpc_ipc_pipe_path, loop=event_loop)
+    reader, writer = await asyncio.open_unix_connection(str(jsonrpc_ipc_pipe_path), loop=event_loop)
 
     writer.write(request_msg)
     await writer.drain()

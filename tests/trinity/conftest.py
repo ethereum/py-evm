@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 import pytest
 import tempfile
 import uuid
@@ -48,12 +49,7 @@ def event_loop():
 @pytest.fixture(scope='session')
 def jsonrpc_ipc_pipe_path():
     with tempfile.TemporaryDirectory() as temp_dir:
-        ipc_path = os.path.join(temp_dir, '{0}.ipc'.format(uuid.uuid4()))
-        try:
-            yield ipc_path
-        finally:
-            if os.path.exists(ipc_path):
-                os.remove(ipc_path)
+        yield Path(temp_dir) / '{0}.ipc'.format(uuid.uuid4())
 
 
 @pytest.fixture
@@ -63,8 +59,9 @@ def p2p_server(monkeypatch, jsonrpc_ipc_pipe_path):
     return Server(None, None, None, None, None, None, None)
 
 
+@pytest.mark.asyncio
 @pytest.fixture
-def ipc_server(
+async def ipc_server(
         monkeypatch,
         p2p_server,
         jsonrpc_ipc_pipe_path,
@@ -77,11 +74,11 @@ def ipc_server(
     '''
 
     rpc = RPCServer(chain_with_block_validation, p2p_server.peer_pool)
-    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path)
+    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
 
-    asyncio.ensure_future(ipc_server.run(loop=event_loop), loop=event_loop)
+    asyncio.ensure_future(ipc_server.run(), loop=event_loop)
 
     try:
         yield
     finally:
-        event_loop.run_until_complete(ipc_server.stop())
+        await ipc_server.cancel()

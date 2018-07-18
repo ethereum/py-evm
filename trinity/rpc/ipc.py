@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import os
 import pathlib
 from typing import (
     Any,
@@ -17,6 +16,9 @@ from p2p.cancel_token import (
 )
 from p2p.exceptions import (
     OperationCancelled,
+)
+from p2p.service import (
+    BaseService,
 )
 
 from trinity.rpc.main import (
@@ -128,32 +130,31 @@ async def write_error(writer: asyncio.StreamWriter, message: str) -> None:
     await writer.drain()
 
 
-class IPCServer:
-    logger = logging.getLogger('trinity.rpc.ipc.IPCServer')
-
-    cancel_token = None
+class IPCServer(BaseService):
     ipc_path = None
     rpc = None
     server = None
 
-    def __init__(self, rpc: RPCServer, ipc_path: pathlib.Path) -> None:
+    def __init__(
+            self,
+            rpc: RPCServer,
+            ipc_path: pathlib.Path,
+            token: CancelToken = None,
+            loop: asyncio.AbstractEventLoop = None) -> None:
+        super().__init__(token=token, loop=loop)
         self.rpc = rpc
         self.ipc_path = ipc_path
 
-    async def run(self, loop: asyncio.AbstractEventLoop=None) -> None:
-        ipc_path = str(self.ipc_path)
-        self.cancel_token = CancelToken('IPCServer', loop=loop)
+    async def _run(self) -> None:
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
-            ipc_path,
-            loop=loop,
+            str(self.ipc_path),
+            loop=self.loop,
             limit=MAXIMUM_REQUEST_BYTES,
         )
-        self.logger.info('IPC started at: %s', os.path.abspath(ipc_path))
+        self.logger.info('IPC started at: %s', self.ipc_path.resolve())
         await self.cancel_token.wait()
 
-    async def stop(self) -> None:
-        if self.cancel_token is not None:
-            self.cancel_token.trigger()
+    async def _cleanup(self) -> None:
         self.server.close()
         await self.server.wait_closed()
