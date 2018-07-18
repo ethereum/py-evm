@@ -1,13 +1,8 @@
-from abc import abstractmethod
 import asyncio
-from collections import defaultdict
-from enum import (
-    Enum,
-    auto,
-)
-from functools import partial
 import logging
+import math
 import time
+from abc import abstractmethod
 from typing import (
     Any,
     AsyncGenerator,
@@ -23,6 +18,7 @@ from typing import (
 )
 
 from cytoolz import (
+    partition_all,
     unique,
 )
 
@@ -42,21 +38,14 @@ from p2p import protocol
 from p2p import eth
 from p2p import les
 from p2p.cancel_token import CancellableMixin, CancelToken
-from p2p.constants import (
-    MAX_REORG_DEPTH,
-    NEW_PEER_THROUGHPUT_DEFAULT,
-    SEAL_CHECK_RANDOM_SAMPLE_RATE,
-    THROUGHPUT_SMOOTHING_FACTOR,
-)
+from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
-    ThroughputTracker,
     get_process_pool_executor,
-    get_scaled_batches,
 )
 
 
@@ -66,11 +55,6 @@ if TYPE_CHECKING:
 
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
-
-
-class BlockPartEnum(Enum):
-    body = auto()
-    receipt = auto()
 
 
 class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
@@ -340,13 +324,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
         self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
-        create_stats = partial(
-            ThroughputTracker,
-            default_throughput=NEW_PEER_THROUGHPUT_DEFAULT,
-            smoothing_factor=THROUGHPUT_SMOOTHING_FACTOR,
-        )
-        # mypy is confused -- https://github.com/python/typeshed/issues/2329
-        self._peer_stats = {part: defaultdict(create_stats) for part in BlockPartEnum}  # type: ignore # noqa: E501
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -373,8 +350,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self.request_bodies,
             self._downloaded_bodies,
             _body_key,
-            BlockPartEnum.body,
-        )
+            'body')
         self.logger.debug("Got block bodies for chain segment")
 
         missing_receipts = [header for header in headers if not _is_receipts_empty(header)]
@@ -388,8 +364,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self.request_receipts,
             self._downloaded_receipts,
             _receipts_key,
-            BlockPartEnum.receipt,
-        )
+            'receipt')
         self.logger.debug("Got block receipts for chain segment")
 
         for header in headers:
@@ -415,7 +390,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             request_func: Callable[[int, List[BlockHeader]], int],
             download_queue: 'asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]]',
             key_func: Callable[[BlockHeader], Union[bytes, Tuple[bytes, bytes]]],
-            part_name: BlockPartEnum,
+            part_name: str
     ) -> 'Dict[Union[bytes, Tuple[bytes, bytes]], Union[BlockBody, List[Receipt]]]':
         """Download block parts for the given headers, using the given request_func.
 
@@ -447,16 +422,13 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             duplicates = received_keys.intersection(part.unique_key for part in parts)
             unexpected = received_keys.difference(key_func(header) for header in headers)
 
-            work_size = len(received_keys.difference(unexpected))
-            self._get_peer_stats(peer, part_name).complete_work(work_size)
-
             parts.extend(received)
             pending_replies -= 1
 
             if unexpected:
-                self.logger.debug("Got unexpected %s from %s: %s", part_name.name, peer, unexpected)
+                self.logger.debug("Got unexpected %s from %s: %s", part_name, peer, unexpected)
             if duplicates:
-                self.logger.debug("Got duplicate %s from %s: %s", part_name.name, peer, duplicates)
+                self.logger.debug("Got duplicate %s from %s: %s", part_name, peer, duplicates)
 
             missing = [
                 header
@@ -466,38 +438,19 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         return dict((part.unique_key, part.part) for part in parts)
 
-    def _get_peer_stats(self, peer: BasePeer, body_part: BlockPartEnum) -> ThroughputTracker:
-        return self._peer_stats[body_part][peer]
-
-    def deregister_peer(self, peer: BasePeer) -> None:
-        # Delete all in-progress stats for the given peer. Otherwise, if a peer disconnects before
-        # sending a block part, stats would fail when starting to track throughput the 2nd time.
-        # Also, we don't want a perpetually growing dict of stats.
-        for part in BlockPartEnum:
-            if peer in self._peer_stats[part]:
-                del self._peer_stats[part][peer]
-
     def _request_block_parts(
             self,
             target_td: int,
             headers: List[BlockHeader],
-            request_func: Callable[[ETHPeer, List[BlockHeader]], None],
-            block_part: BlockPartEnum,
-    ) -> int:
-        """
-        :return: how many requests were made (one request per peer)
-        """
+            request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
-
-        # request headers proportionally, so faster peers are asked for more parts than slow peers
-        speeds = {peer: self._get_peer_stats(peer, block_part).get_throughput() for peer in peers}
-        peer_batches = get_scaled_batches(speeds, headers)
-        for peer, batch in peer_batches.items():
-            self._get_peer_stats(peer, block_part).begin_work()
+        length = math.ceil(len(headers) / len(peers))
+        batches = list(partition_all(length, headers))
+        for peer, batch in zip(peers, batches):
             request_func(cast(ETHPeer, peer), batch)
-        return len(peer_batches)
+        return len(batches)
 
     def _send_get_block_bodies(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
         self.logger.debug("Requesting %d block bodies to %s", len(headers), peer)
@@ -512,12 +465,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         See request_receipts() for details of how this is done.
         """
-        return self._request_block_parts(
-            target_td,
-            headers,
-            self._send_get_block_bodies,
-            BlockPartEnum.body,
-        )
+        return self._request_block_parts(target_td, headers, self._send_get_block_bodies)
 
     def request_receipts(self, target_td: int, headers: List[BlockHeader]) -> int:
         """Ask our peers for receipts for the given headers.
@@ -530,12 +478,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
         Returns the number of requests made.
         """
-        return self._request_block_parts(
-            target_td,
-            headers,
-            self._send_get_receipts,
-            BlockPartEnum.receipt,
-        )
+        return self._request_block_parts(target_td, headers, self._send_get_receipts)
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -650,8 +593,7 @@ class RegularChainSyncer(FastChainSyncer):
             self.request_bodies,
             self._downloaded_bodies,
             _body_key,
-            BlockPartEnum.body,
-        )
+            'body')
         self.logger.info("Got block bodies for chain segment")
 
         for header in headers:

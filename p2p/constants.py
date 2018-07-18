@@ -73,17 +73,3 @@ MAX_REORG_DEPTH = 24
 # (https://github.com/ethereum/go-ethereum/pull/1889#issue-47241762), but in order to err on the
 # side of caution, we use a higher value.
 SEAL_CHECK_RANDOM_SAMPLE_RATE = 48
-
-#
-# Parameters for tracking average throughput of a peer
-#
-
-# Smoothing factor, or "alpha" of the exponential moving average.
-# Closer to 0 gives you smoother, slower-to-update, data
-# Closer to 1 gives you choppier, quicker-to-update, data
-# (1 would completely ignore history, and 0 would completely ignore new data)
-THROUGHPUT_SMOOTHING_FACTOR = 0.05
-
-# Default starting value for throughput for a new peer, for all types of throughput tracking
-# Default receipt download speed, for example, would be 1 receipt per second
-NEW_PEER_THROUGHPUT_DEFAULT = 1.0

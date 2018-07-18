@@ -703,12 +703,6 @@ class PeerPoolSubscriber(ABC):
         """
         pass
 
-    def deregister_peer(self, peer: BasePeer) -> None:
-        """
-        Called when a peer connection is closed
-        """
-        pass
-
     @property
     def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
         if self._msg_queue is None:
@@ -861,8 +855,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         if peer.remote in self.connected_nodes:
             self.logger.info("%s finished, removing from pool", peer)
             self.connected_nodes.pop(peer.remote)
-        for subscriber in self._subscribers:
-            subscriber.deregister_peer(peer)
 
     def __aiter__(self) -> AsyncIterator[BasePeer]:
         return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
