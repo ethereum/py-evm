@@ -57,7 +57,7 @@ def get_process_pool_executor() -> ProcessPoolExecutor:
         )
         cpu_count = 1
     else:
-        cpu_count = os_cpu_count - 1
+        cpu_count = max(1, os_cpu_count - 1)
     return ProcessPoolExecutor(cpu_count)
 
 
