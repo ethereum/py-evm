@@ -2,7 +2,11 @@ from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import rlp
+from typing import Iterator
 
+from eth_utils import to_tuple
+
+from eth.constants import UINT_256_MAX
 from eth.utils.numeric import big_endian_to_int
 
 
@@ -31,6 +35,22 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     as an integer.
     """
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
+
+
+@to_tuple
+def sequence_builder(start_number: int, max_length: int, skip: int, reverse: bool) -> Iterator[int]:
+    if reverse:
+        step = -1 * (skip + 1)
+    else:
+        step = skip + 1
+
+    cutoff_number = start_number + step * max_length
+
+    for number in range(start_number, cutoff_number, step):
+        if number < 0 or number > UINT_256_MAX:
+            return
+        else:
+            yield number
 
 
 def get_process_pool_executor() -> ProcessPoolExecutor:
