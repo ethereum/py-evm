@@ -46,6 +46,7 @@ from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
     get_process_pool_executor,
+    sequence_builder,
 )
 
 
@@ -688,14 +689,14 @@ class PeerRequestHandler(CancellableMixin):
             self.logger.debug(
                 "Peer requested starting header %r that is unavailable, returning nothing",
                 block_number_or_hash)
-            block_numbers = []
+            block_numbers = tuple()  # type: ignore
 
         headers = [header async for header in self._generate_available_headers(block_numbers)]
         return headers
 
     async def _get_block_numbers_for_request(
             self, block_number_or_hash: Union[int, bytes], max_headers: int,
-            skip: int, reverse: bool) -> List[BlockNumber]:
+            skip: int, reverse: bool) -> Tuple[BlockNumber]:
         """
         Generates the block numbers requested, subject to local availability.
         """
@@ -713,19 +714,10 @@ class PeerRequestHandler(CancellableMixin):
             )
 
         limit = min(max_headers, eth.MAX_HEADERS_FETCH)
-        step = skip + 1
-        if reverse:
-            low = max(0, block_number - limit)
-            high = block_number + 1
-            block_numbers = reversed(range(low, high, step))
-        else:
-            low = block_number
-            high = block_number + limit
-            block_numbers = iter(range(low, high, step))  # mypy thinks range isn't iterable
-        return list(block_numbers)
+        return sequence_builder(block_number, limit, skip, reverse)
 
     async def _generate_available_headers(
-            self, block_numbers: List[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
+            self, block_numbers: Tuple[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
         """
         Generates the headers requested, halting on the first header that is not locally available.
         """
