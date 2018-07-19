@@ -14,10 +14,11 @@ from checks import (
 )
 
 from checks.erc20_interact import (
-    ERC20DeployBenchmark,
-    ERC20TransferBenchmark,
-    ERC20ApproveBenchmark,
-    ERC20TransferFromBenchmark,
+    ERC20Benchmark,
+    ERC20_DEPLOY_CONFIG,
+    ERC20_TRANSFER_CONFIG,
+    ERC20_APPROVE_CONFIG,
+    ERC20_TRANSFER_FROM_CONFIG,
 )
 from checks.deploy_dos import (
     DOSContractDeployBenchmark,
