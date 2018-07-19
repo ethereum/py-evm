@@ -61,5 +61,4 @@ class AsyncProcessRunner():
         raise TimeoutError('Killed process after {} seconds'.format(timeout_sec))
 
     def kill(self) -> None:
-        # TODO: investigate if we could do this more gracefully
         os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
