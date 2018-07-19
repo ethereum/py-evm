@@ -208,6 +208,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-trinity
+  py36-trinity-integration:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-trinity-integration
   py36-transactions:
     <<: *common
     docker:
@@ -253,6 +259,7 @@ workflows:
       - py36-benchmark
       - py36-core
       - py36-trinity
+      - py36-trinity-integration
       - py36-transactions
       - py36-p2p
       - py36-database
