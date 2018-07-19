@@ -8,7 +8,6 @@ from threading import Thread
 from typing import (
     List,
     Type,
-    Union
 )
 
 from eth.chains.base import BaseChain
@@ -18,7 +17,6 @@ from p2p.peer import (
 )
 from p2p.service import (
     BaseService,
-    EmptyService,
 )
 from trinity.chains import (
     ChainProxy,
@@ -116,27 +114,30 @@ class Node(BaseService):
             resource_type=BaseChain
         ))
 
-    def make_ipc_server(self) -> Union[IPCServer, EmptyService]:
-        if self._jsonrpc_ipc_path:
+    @property
+    def has_ipc_server(self) -> bool:
+        return bool(self._jsonrpc_ipc_path)
+
+    def make_ipc_server(self, loop: asyncio.AbstractEventLoop) -> BaseService:
+        if self.has_ipc_server:
             rpc = RPCServer(self.get_chain(), self.get_peer_pool())
-            return IPCServer(rpc, self._jsonrpc_ipc_path)
+            return IPCServer(rpc, self._jsonrpc_ipc_path, loop=loop)
         else:
-            return EmptyService()
+            return None
 
     async def _run(self) -> None:
-        self._ipc_server = self.make_ipc_server()
-        # The RPC server needs its own thread, because it provides a synchcronous
-        # API which might call into p2p async methods. These sync->async calls
-        # deadlock if they are run in the same Thread and loop.
-        ipc_loop = self._make_new_loop_thread()
+        if self.has_ipc_server:
+            # The RPC server needs its own thread, because it provides a synchcronous
+            # API which might call into p2p async methods. These sync->async calls
+            # deadlock if they are run in the same Thread and loop.
+            ipc_loop = self._make_new_loop_thread()
 
-        # keep a copy on self, for debugging
-        self._ipc_loop = ipc_loop
+            self._ipc_server = self.make_ipc_server(ipc_loop)
 
-        # FIXME: EmptyService doesn't share a common API with the IPCServer
-        asyncio.run_coroutine_threadsafe(
-            self._ipc_server.run(loop=ipc_loop), loop=ipc_loop  # type: ignore
-        )
+            # keep a copy on self, for later shutdown
+            self._ipc_loop = ipc_loop
+
+            asyncio.run_coroutine_threadsafe(self._ipc_server.run(), loop=ipc_loop)
 
         for service in self._auxiliary_services:
             asyncio.ensure_future(service.run())
@@ -144,8 +145,12 @@ class Node(BaseService):
         await self.get_p2p_server().run()
 
     async def _cleanup(self) -> None:
-        if isinstance(self._ipc_server, IPCServer):
-            await self._ipc_server.stop()
+        # IPC Server requires special handling because it's running in its own loop & thread
+        if self.has_ipc_server:
+            await self._ipc_server.threadsafe_cancel()
+            # Stop the this IPCServer-specific event loop, so that the IPCServer thread will exit
+            self._ipc_loop.stop()
+
         await asyncio.gather(*[service.cleaned_up.wait() for service in self._auxiliary_services])
 
     def _make_new_loop_thread(self) -> asyncio.AbstractEventLoop:
@@ -154,6 +159,7 @@ class Node(BaseService):
         def start_loop(loop: asyncio.AbstractEventLoop) -> None:
             asyncio.set_event_loop(loop)
             loop.run_forever()
+            loop.close()
 
         thread = Thread(target=start_loop, args=(new_loop, ))
         thread.start()
