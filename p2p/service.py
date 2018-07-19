@@ -64,8 +64,13 @@ class BaseService(ABC, CancellableMixin):
 
             await self.cleanup()
 
+            from p2p.peer import BasePeer  # type: ignore
             if finished_callback is not None:
                 finished_callback(self)
+            elif isinstance(self, BasePeer):
+                # XXX: Only added to help debug https://github.com/ethereum/py-evm/issues/1023;
+                # should be removed eventually.
+                self.logger.warn("%s finished but had no finished_callback", self)
 
     def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
         """
