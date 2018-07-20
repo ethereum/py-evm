@@ -415,6 +415,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                     download_queue.get(),
                     timeout=self._reply_timeout)
             except TimeoutError:
+                self.logger.info(
+                    "Timed out waiting for %d missing %s", len(missing), part_name)
                 pending_replies = request_func(target_td, missing)
                 continue
 
@@ -427,9 +429,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             pending_replies -= 1
 
             if unexpected:
-                self.logger.debug("Got unexpected %s from %s: %s", part_name, peer, unexpected)
+                self.logger.debug("Got %d unexpected %s from %s", len(unexpected), part_name, peer)
             if duplicates:
-                self.logger.debug("Got duplicate %s from %s: %s", part_name, peer, duplicates)
+                self.logger.debug("Got %d duplicate %s from %s", len(duplicates), part_name, peer)
 
             missing = [
                 header
@@ -454,11 +456,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         return len(batches)
 
     def _send_get_block_bodies(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
-        self.logger.debug("Requesting %d block bodies to %s", len(headers), peer)
+        block_numbers = ", ".join(str(h.block_number) for h in headers)
+        self.logger.debug(
+            "Requesting %d block bodies (%s) to %s", len(headers), block_numbers, peer)
         peer.sub_proto.send_get_block_bodies([header.hash for header in headers])
 
     def _send_get_receipts(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
-        self.logger.debug("Requesting %d block receipts to %s", len(headers), peer)
+        block_numbers = ", ".join(str(h.block_number) for h in headers)
+        self.logger.debug(
+            "Requesting %d block receipts (%s) to %s", len(headers), block_numbers, peer)
         peer.sub_proto.send_get_receipts([header.hash for header in headers])
 
     def request_bodies(self, target_td: int, headers: List[BlockHeader]) -> int:
