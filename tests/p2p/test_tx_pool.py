@@ -26,6 +26,7 @@ from tests.conftest import (
 from tests.p2p.peer_helpers import (
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
+    SamplePeerSubscriber,
 )
 
 # TODO: Move this file into the trinity tests (Requires refactor of peer_helpers)
@@ -166,7 +167,7 @@ async def test_tx_sending(request, event_loop, chain_with_block_validation, tx_v
         peer2_class=ETHPeer,
     )
 
-    peer2_subscriber = asyncio.Queue()
+    peer2_subscriber = SamplePeerSubscriber()
     peer2.add_subscriber(peer2_subscriber)
 
     pool = TxPool(MockPeerPoolWithConnectedPeers([peer1, peer2]), tx_validator)
@@ -183,7 +184,7 @@ async def test_tx_sending(request, event_loop, chain_with_block_validation, tx_v
 
     # Ensure that peer2 gets the transactions
     peer, cmd, msg = await asyncio.wait_for(
-        peer2_subscriber.get(),
+        peer2_subscriber.msg_queue.get(),
         timeout=0.1,
     )
 

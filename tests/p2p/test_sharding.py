@@ -44,6 +44,7 @@ from tests.p2p.peer_helpers import (
     get_directly_linked_peers,
     get_directly_linked_peers_without_handshake,
     MockPeerPoolWithConnectedPeers,
+    SamplePeerSubscriber,
 )
 
 from cytoolz import (
@@ -203,7 +204,7 @@ async def test_new_collations_notification(request, event_loop):
     # setup a-b-c topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
     peer_b_c, peer_c_b = await get_directly_linked_sharding_peers(request, event_loop)
-    peer_c_b_subscriber = asyncio.Queue()
+    peer_c_b_subscriber = SamplePeerSubscriber()
     peer_c_b.add_subscriber(peer_c_b_subscriber)
     peer_pool_b = MockPeerPoolWithConnectedPeers([peer_b_a, peer_b_c])
 
@@ -223,7 +224,7 @@ async def test_new_collations_notification(request, event_loop):
     c1 = next(collations)
     peer_a_b.sub_proto.send_collations(0, [c1])
     peer, cmd, msg = await asyncio.wait_for(
-        peer_c_b_subscriber.get(),
+        peer_c_b_subscriber.msg_queue.get(),
         timeout=1,
     )
     assert peer == peer_c_b
@@ -234,7 +235,7 @@ async def test_new_collations_notification(request, event_loop):
     c2 = next(collations)
     peer_a_b.sub_proto.send_collations(0, [c1, c2])
     peer, cmd, msg = await asyncio.wait_for(
-        peer_c_b_subscriber.get(),
+        peer_c_b_subscriber.msg_queue.get(),
         timeout=1,
     )
     assert peer == peer_c_b
@@ -246,7 +247,7 @@ async def test_new_collations_notification(request, event_loop):
 async def test_syncer_requests_new_collations(request, event_loop):
     # setup a-b topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
-    peer_a_b_subscriber = asyncio.Queue()
+    peer_a_b_subscriber = SamplePeerSubscriber()
     peer_a_b.add_subscriber(peer_a_b_subscriber)
     peer_pool_b = MockPeerPoolWithConnectedPeers([peer_b_a])
 
@@ -266,7 +267,7 @@ async def test_syncer_requests_new_collations(request, event_loop):
     hashes_and_periods = ((b"\xaa" * 32, 0),)
     peer_a_b.sub_proto.send_new_collation_hashes(hashes_and_periods)
     peer, cmd, msg = await asyncio.wait_for(
-        peer_a_b_subscriber.get(),
+        peer_a_b_subscriber.msg_queue.get(),
         timeout=1,
     )
     assert peer == peer_a_b
@@ -278,7 +279,7 @@ async def test_syncer_requests_new_collations(request, event_loop):
 async def test_syncer_proposing(request, event_loop):
     # setup a-b topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
-    peer_a_b_subscriber = asyncio.Queue()
+    peer_a_b_subscriber = SamplePeerSubscriber()
     peer_a_b.add_subscriber(peer_a_b_subscriber)
     peer_pool_b = MockPeerPoolWithConnectedPeers([peer_b_a])
 
@@ -297,7 +298,7 @@ async def test_syncer_proposing(request, event_loop):
     # propose at b and check that it announces its proposal
     await syncer.propose()
     peer, cmd, msg = await asyncio.wait_for(
-        peer_a_b_subscriber.get(),
+        peer_a_b_subscriber.msg_queue.get(),
         timeout=1,
     )
     assert peer == peer_a_b

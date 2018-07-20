@@ -174,7 +174,7 @@ class BasePeer(BaseService):
         self.headerdb = headerdb
         self.network_id = network_id
         self.inbound = inbound
-        self._subscribers: List['asyncio.Queue[PEER_MSG_TYPE]'] = []
+        self._subscribers: List[PeerSubscriber] = []
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -195,10 +195,10 @@ class BasePeer(BaseService):
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def add_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
+    def add_subscriber(self, subscriber: 'PeerSubscriber') -> None:
         self._subscribers.append(subscriber)
 
-    def remove_subscriber(self, subscriber: 'asyncio.Queue[PEER_MSG_TYPE]') -> None:
+    def remove_subscriber(self, subscriber: 'PeerSubscriber') -> None:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
@@ -353,7 +353,7 @@ class BasePeer(BaseService):
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if self._subscribers:
             for subscriber in self._subscribers:
-                subscriber.put_nowait((self, cmd, msg))
+                subscriber.add_msg((self, cmd, msg))
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
@@ -608,8 +608,13 @@ class ETHPeer(BasePeer):
         self.sub_proto.send_get_block_headers(block_number_or_hash, max_headers, reverse)
 
 
-class PeerPoolSubscriber(ABC):
+class PeerSubscriber(ABC):
     _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
+
+    @property
+    @abstractmethod
+    def msg_queue_maxsize(self) -> int:
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def register_peer(self, peer: BasePeer) -> None:
         """
@@ -617,7 +622,7 @@ class PeerPoolSubscriber(ABC):
         subscription for each :class:`~p2p.peer.BasePeer` that exists in the pool at that time and
         then for each :class:`~p2p.peer.BasePeer` that joins the pool later on.
 
-        A :class:`~p2p.peer.PeerPoolSubscriber` that wants to act upon peer registration needs to
+        A :class:`~p2p.peer.PeerSubscriber` that wants to act upon peer registration needs to
         overwrite this method to provide an implementation.
         """
         pass
@@ -625,10 +630,23 @@ class PeerPoolSubscriber(ABC):
     @property
     def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
         if self._msg_queue is None:
-            self._msg_queue = asyncio.Queue(maxsize=10000)
-            # Add a _name to our msg_queue so that the stats logged by PeerPool are more useful.
-            self._msg_queue._name = self.__class__.__name__  # type: ignore
+            self._msg_queue = asyncio.Queue(maxsize=self.msg_queue_maxsize)
         return self._msg_queue
+
+    @property
+    def queue_size(self) -> int:
+        return self.msg_queue.qsize()
+
+    def add_msg(self, msg: 'PEER_MSG_TYPE') -> None:
+        peer, cmd, _ = msg
+        try:
+            self.logger.trace(  # type: ignore
+                "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
+            self.msg_queue.put_nowait(msg)
+        except asyncio.queues.QueueFull:
+            self.logger.warn(  # type: ignore
+                "%s msg queue is full; discarding %s msg from %s",
+                self.__class__.__name__, cmd, peer)
 
     @contextlib.contextmanager
     def subscribe(self, peer_pool: 'PeerPool') -> Iterator[None]:
@@ -662,7 +680,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         self.vm_configuration = vm_configuration
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
-        self._subscribers: List[PeerPoolSubscriber] = []
+        self._subscribers: List[PeerSubscriber] = []
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
@@ -680,17 +698,17 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
         return len(matching_ip_nodes) <= 2
 
-    def subscribe(self, subscriber: PeerPoolSubscriber) -> None:
+    def subscribe(self, subscriber: PeerSubscriber) -> None:
         self._subscribers.append(subscriber)
         for peer in self.connected_nodes.values():
             subscriber.register_peer(peer)
-            peer.add_subscriber(subscriber.msg_queue)
+            peer.add_subscriber(subscriber)
 
-    def unsubscribe(self, subscriber: PeerPoolSubscriber) -> None:
+    def unsubscribe(self, subscriber: PeerSubscriber) -> None:
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
         for peer in self.connected_nodes.values():
-            peer.remove_subscriber(subscriber.msg_queue)
+            peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
         try:
@@ -711,15 +729,15 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
-        msg_queue to the peer, we also add the given messages to our subscriber's queues.
+        to the peer, we also add the given messages to our subscriber's queues.
         """
         self.logger.info('Adding %s to pool', peer)
         self.connected_nodes[peer.remote] = peer
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
-            peer.add_subscriber(subscriber.msg_queue)
+            peer.add_subscriber(subscriber)
             for cmd, msg in msgs:
-                subscriber.msg_queue.put_nowait((peer, cmd, msg))
+                subscriber.add_msg((peer, cmd, msg))
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -875,9 +893,9 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 msg = "%s: running=%s, subscribers=%d" % (peer, peer.is_running, subscribers)
                 if subscribers:
                     longest_queue = max(
-                        peer._subscribers, key=operator.methodcaller('qsize'))
+                        peer._subscribers, key=operator.attrgetter('queue_size'))
                     msg += " longest_subscriber_queue=%s(%d)" % (
-                        longest_queue._name, longest_queue.qsize())  # type: ignore
+                        longest_queue.__class__.__name__, longest_queue.queue_size)
                 self.logger.debug(msg)
             self.logger.debug("== End peer details == ")
             try:

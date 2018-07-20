@@ -21,14 +21,14 @@ from p2p.peer import (
     BasePeer,
     ETHPeer,
     PeerPool,
-    PeerPoolSubscriber,
+    PeerSubscriber,
 )
 from p2p.service import (
     BaseService
 )
 
 
-class TxPool(BaseService, PeerPoolSubscriber):
+class TxPool(BaseService, PeerSubscriber):
     """
     The :class:`~trinity.tx_pool.pool.TxPool` class is responsible for holding and relaying
     of transactions, represented as :class:`~eth.rlp.transactions.BaseTransaction` among the
@@ -56,8 +56,12 @@ class TxPool(BaseService, PeerPoolSubscriber):
         self._bloom = BloomFilter(max_elements=1000000)
         self._bloom_salt = str(uuid.uuid4())
 
-    def register_peer(self, peer: BasePeer) -> None:
-        pass
+    @property
+    def msg_queue_maxsize(self) -> int:
+        # This is a rather arbitrary value, but when the sync is operating normally we never see
+        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+        # now.
+        return 2000
 
     async def _run(self) -> None:
         self.logger.info("Running Tx Pool")

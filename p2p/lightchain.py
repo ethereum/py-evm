@@ -56,7 +56,7 @@ from p2p.p2p_proto import (
 from p2p.peer import (
     LESPeer,
     PeerPool,
-    PeerPoolSubscriber,
+    PeerSubscriber,
 )
 from p2p.rlp import BlockBody
 from p2p.service import (
@@ -69,7 +69,7 @@ if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
-class LightPeerChain(PeerPoolSubscriber, BaseService):
+class LightPeerChain(PeerSubscriber, BaseService):
     reply_timeout = REPLY_TIMEOUT
     headerdb: 'BaseAsyncHeaderDB' = None
 
@@ -78,11 +78,17 @@ class LightPeerChain(PeerPoolSubscriber, BaseService):
             headerdb: 'BaseAsyncHeaderDB',
             peer_pool: PeerPool,
             token: CancelToken = None) -> None:
-        PeerPoolSubscriber.__init__(self)
+        PeerSubscriber.__init__(self)
         BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        # Here we only care about replies to our requests, ignoring most msgs (which are supposed
+        # to be handled by the chain syncer), so our queue should never grow too much.
+        return 500
 
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
