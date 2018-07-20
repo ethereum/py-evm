@@ -1,5 +1,7 @@
 import asyncio
+import collections
 import contextlib
+import datetime
 import logging
 import operator
 import random
@@ -80,6 +82,7 @@ from p2p.utils import (
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
+    time_since,
 )
 from p2p import eth
 from p2p import les
@@ -175,6 +178,8 @@ class BasePeer(BaseService):
         self.network_id = network_id
         self.inbound = inbound
         self._subscribers: List[PeerSubscriber] = []
+        self.start_time = datetime.datetime.now()
+        self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -194,6 +199,14 @@ class BasePeer(BaseService):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
+
+    @property
+    def received_msgs_count(self) -> int:
+        return sum(self.received_msgs.values())
+
+    @property
+    def uptime(self) -> str:
+        return '%d:%02d:%02d:%02d' % time_since(self.start_time)
 
     def add_subscriber(self, subscriber: 'PeerSubscriber') -> None:
         self._subscribers.append(subscriber)
@@ -334,6 +347,7 @@ class BasePeer(BaseService):
         # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
         decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
         self.logger.trace("Successfully decoded %s msg: %s", cmd, decoded_msg)
+        self.received_msgs[cmd] += 1
         return cmd, decoded_msg
 
     def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
@@ -887,16 +901,22 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 [peer for peer in self.connected_nodes.values() if peer.inbound])
             self.logger.info("Connected peers: %d inbound, %d outbound",
                              inbound_peers, (len(self.connected_nodes) - inbound_peers))
+            subscribers = len(self._subscribers)
+            if subscribers:
+                longest_queue = max(
+                    self._subscribers, key=operator.attrgetter('queue_size'))
+                self.logger.info(
+                    "Peer subscribers: %d, longest queue: %s(%d)",
+                    subscribers, longest_queue.__class__.__name__, longest_queue.queue_size)
+
             self.logger.debug("== Peer details == ")
             for peer in self.connected_nodes.values():
-                subscribers = len(peer._subscribers)
-                msg = "%s: running=%s, subscribers=%d" % (peer, peer.is_running, subscribers)
-                if subscribers:
-                    longest_queue = max(
-                        peer._subscribers, key=operator.attrgetter('queue_size'))
-                    msg += " longest_subscriber_queue=%s(%d)" % (
-                        longest_queue.__class__.__name__, longest_queue.queue_size)
-                self.logger.debug(msg)
+                most_received_type, count = max(
+                    peer.received_msgs.items(), key=operator.itemgetter(1))
+                self.logger.debug(
+                    "%s: running=%s, uptime=%s, received_msgs=%d, most_received=%s(%d)",
+                    peer, peer.is_running, peer.uptime, peer.received_msgs_count,
+                    most_received_type, count)
             self.logger.debug("== End peer details == ")
             try:
                 await self.wait(asyncio.sleep(self._report_interval))
