@@ -1,7 +1,7 @@
 Py-EVM
 ======
 
-This section aims to provide hands-on guides to demonstrate how to use Py-EVM. If you are looking for detailed API descriptions check out the `API section </api/eth>`_.
+This section aims to provide hands-on guides to demonstrate how to use Py-EVM. If you are looking for detailed API descriptions check out the :doc:`API section </api/eth/index>`.
 
 .. toctree::
    :maxdepth: 2

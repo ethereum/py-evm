@@ -1,7 +1,7 @@
 Trinity
 =======
 
-This section aims to provide a detailed description of all APIs. If you are looking for something more hands-on or higher-level check out the existing `Trinity guides </guides/trinity>`_..
+This section aims to provide a detailed description of all APIs. If you are looking for something more hands-on or higher-level check out the existing :doc:`Trinity guides </guides/trinity/index>`.
 
 Command Line Interface (CLI)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,5 +49,3 @@ Command Line Interface (CLI)
     --nodekey-path NODEKEY_PATH
                             The filesystem path to the file which contains the
                             nodekey
-
-
