@@ -1,14 +1,10 @@
 from typing import (
     Iterator,
-    TYPE_CHECKING,
 )
 
 from eth_utils import to_tuple
 
 from eth.constants import UINT_256_MAX
-
-if TYPE_CHECKING:
-    from p2p.peer import HeaderRequest  # noqa: F401
 
 
 @to_tuple

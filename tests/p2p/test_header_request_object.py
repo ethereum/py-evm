@@ -1,6 +1,7 @@
 import pytest
 
-from p2p.chain import HeaderRequest
+from p2p.exceptions import ValidationError
+from p2p.protocol import BaseHeaderRequest
 
 
 FORWARD_0_to_5 = (0, 6, 0, False)
@@ -11,6 +12,23 @@ REVERSE_5_to_0_SKIP_1 = (5, 3, 1, True)
 
 
 BLOCK_HASH = b'\x01' * 32
+
+
+class HeaderRequest(BaseHeaderRequest):
+    MAX_HEADERS_FETCH = 192
+
+    def __init__(self,
+                 block_number_or_hash,
+                 max_headers,
+                 skip,
+                 reverse):
+        self.block_number_or_hash = block_number_or_hash
+        self.max_headers = max_headers
+        self.skip = skip
+        self.reverse = reverse
+
+    def validate_response(self, response):
+        pass
 
 
 @pytest.mark.parametrize(
@@ -111,5 +129,5 @@ def test_header_request_sequence_matching(
     if is_match:
         request.validate_sequence(sequence)
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             request.validate_sequence(sequence)

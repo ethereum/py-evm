@@ -43,9 +43,9 @@ from p2p import eth
 from p2p import les
 from p2p.cancellable import CancellableMixin
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
-from p2p.exceptions import NoEligiblePeers
+from p2p.exceptions import NoEligiblePeers, ValidationError
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, ETHPeer, LESPeer, HeaderRequest, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
@@ -91,7 +91,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
-        self._new_headers: asyncio.Queue[Tuple[BlockHeader, ...]] = asyncio.Queue()
         self._executor = get_asyncio_executor()
 
     @property
@@ -207,7 +206,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.disconnect(DisconnectReason.timeout)
                 break
-            except ValueError as err:
+            except ValidationError as err:
                 self.logger.warn(
                     "Invalid header response sent by peer %s disconnecting: %s",
                     peer, err,
@@ -253,47 +252,37 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Fetching chain segment starting at #%d", start_at)
-        request = peer.request_block_headers(
+
+        headers = await peer.get_block_headers(
             start_at,
             peer.max_headers_fetch,
             skip=0,
             reverse=False,
         )
 
-        # Pass the peer's token to self.wait() because we want to abort if either we
-        # or the peer terminates.
-        headers = tuple(await self.wait(
-            self._new_headers.get(),
-            token=peer.cancel_token,
-            timeout=self._reply_timeout))
+        # We only want headers that are missing, so we iterate over the list
+        # until we find the first missing header, after which we return all of
+        # the remaining headers.
+        async def get_missing_tail(self: 'BaseHeaderChainSyncer',
+                                   headers: Tuple[BlockHeader, ...]
+                                   ) -> AsyncGenerator[BlockHeader, None]:
+            iter_headers = iter(headers)
+            for header in iter_headers:
+                is_missing = not await self.wait(self.db.coro_header_exists(header.hash))
+                if is_missing:
+                    yield header
+                    break
+                else:
+                    self.logger.debug("Discarding header that we already have: %s", header)
 
-        # check that the response headers are a valid match for our
-        # requested headers.
-        request.validate_headers(headers)
+            for header in iter_headers:
+                yield header
 
-        # the inner list comprehension is required to get python to evaluate
-        # the asynchronous comprehension
-        missing_headers = tuple([
-            header
-            for header
-            in headers
-            if not (await self.wait(self.db.coro_header_exists(header.hash)))
-        ])
-        if len(missing_headers) != len(headers):
-            self.logger.debug(
-                "Discarding %d / %d headers that we already have",
-                len(headers) - len(missing_headers),
-                len(headers),
-            )
-        return headers
+        # The inner list comprehension is needed because async_generators
+        # cannot be cast to a tuple.
+        tail_headers = tuple([header async for header in get_missing_tail(self, headers)])
 
-    def _handle_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
-        if not headers:
-            self.logger.warn("Got an empty BlockHeaders msg")
-            return
-        self.logger.debug(
-            "Got BlockHeaders from %d to %d", headers[0].block_number, headers[-1].block_number)
-        self._new_headers.put_nowait(headers)
+        return tail_headers
 
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
@@ -313,9 +302,6 @@ class LightChainSyncer(BaseHeaderChainSyncer):
                           msg: protocol._DecodedMsgType) -> None:
         if isinstance(cmd, les.Announce):
             self._sync_requests.put_nowait(peer)
-        elif isinstance(cmd, les.BlockHeaders):
-            msg = cast(Dict[str, Any], msg)
-            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg['headers'])))
         elif isinstance(cmd, les.GetBlockHeaders):
             msg = cast(Dict[str, Any], msg)
             await self._handle_get_block_headers(cast(LESPeer, peer), msg)
@@ -324,15 +310,16 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
         self.logger.debug("Peer %s made header request: %s", peer, msg)
-        request = HeaderRequest(
+        request = les.HeaderRequest(
             msg['query'].block_number_or_hash,
             msg['query'].max_headers,
             msg['query'].skip,
             msg['query'].reverse,
+            msg['request_id'],
         )
         headers = await self._handler.lookup_headers(request)
         self.logger.trace("Replying to %s with %d headers", peer, len(headers))
-        peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
+        peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=request.request_id)
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
@@ -538,9 +525,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(ETHPeer, peer)
-        if isinstance(cmd, eth.BlockHeaders):
-            self._handle_block_headers(tuple(cast(Tuple[BlockHeader, ...], msg)))
-        elif isinstance(cmd, eth.BlockBodies):
+        if isinstance(cmd, eth.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
         elif isinstance(cmd, eth.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
@@ -613,7 +598,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             peer: ETHPeer,
             query: Dict[str, Any]) -> None:
         self.logger.debug("Peer %s made header request: %s", peer, query)
-        request = HeaderRequest(
+        request = eth.HeaderRequest(
             query['block_number_or_hash'],
             query['max_headers'],
             query['skip'],
@@ -732,7 +717,7 @@ class PeerRequestHandler(CancellableMixin):
         peer.sub_proto.send_node_data(nodes)
 
     async def lookup_headers(self,
-                             request: HeaderRequest) -> Tuple[BlockHeader, ...]:
+                             request: protocol.BaseHeaderRequest) -> Tuple[BlockHeader, ...]:
         """
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
@@ -753,7 +738,8 @@ class PeerRequestHandler(CancellableMixin):
         return headers
 
     async def _get_block_numbers_for_request(self,
-                                             request: HeaderRequest) -> Tuple[BlockNumber, ...]:
+                                             request: protocol.BaseHeaderRequest
+                                             ) -> Tuple[BlockNumber, ...]:
         """
         Generate the block numbers for a given `HeaderRequest`.
         """
