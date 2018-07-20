@@ -249,9 +249,15 @@ def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> N
     jsonrpc_ipc = chain_config.jsonrpc_ipc_path
     try:
         jsonrpc_ipc.unlink()
-        logger.info('Removed a dangling IPC socket file for JSON-RPC connections at %s', jsonrpc_ipc)
+        logger.info(
+            'Removed a dangling IPC socket file for JSON-RPC connections at %s',
+            jsonrpc_ipc,
+        )
     except FileNotFoundError:
-        logger.debug('The IPC socket file for JSON-RPC connections at %s was already gone', jsonrpc_ipc)
+        logger.debug(
+            'The IPC socket file for JSON-RPC connections at %s was already gone',
+            jsonrpc_ipc,
+        )
 
 
 @setup_cprofiler('run_database_process')
