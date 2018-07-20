@@ -3,14 +3,10 @@ import datetime
 import logging
 import os
 import time
-from typing import Iterator, Tuple
+from typing import Tuple
 
 import rlp
 
-from eth_utils import to_tuple
-from eth_typing import BlockNumber
-
-from eth.constants import UINT_256_MAX
 from eth.utils.numeric import big_endian_to_int
 
 
@@ -39,33 +35,6 @@ def get_devp2p_cmd_id(msg: bytes) -> int:
     as an integer.
     """
     return rlp.decode(msg[:1], sedes=rlp.sedes.big_endian_int)
-
-
-@to_tuple
-def sequence_builder(start_number: int, max_length: int, skip: int, reverse: bool) -> Iterator[int]:
-    if reverse:
-        step = -1 * (skip + 1)
-    else:
-        step = skip + 1
-
-    cutoff_number = start_number + step * max_length
-
-    for number in range(start_number, cutoff_number, step):
-        if number < 0 or number > UINT_256_MAX:
-            return
-        else:
-            yield number
-
-
-def get_block_numbers_for_request(
-        block_number: int, max_headers: int, skip: int, reverse: bool) -> Tuple[BlockNumber]:
-    """
-    Return a tuple of min(max_headers, MAX_HEADERS_FETCH) BlockNumbers, starting from the given one,
-    skipping :skip: items between each, in reverse order if :reverse: is True.
-    """
-    from p2p.eth import MAX_HEADERS_FETCH
-    limit = min(max_headers, MAX_HEADERS_FETCH)
-    return sequence_builder(block_number, limit, skip, reverse)
 
 
 def get_asyncio_executor() -> Executor:

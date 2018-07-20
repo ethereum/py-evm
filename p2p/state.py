@@ -8,6 +8,7 @@ from typing import (
     Dict,
     List,
     TYPE_CHECKING,
+    Union,
 )
 
 from cytoolz.itertoolz import partition_all
@@ -43,7 +44,7 @@ from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
 from p2p.exceptions import OperationCancelled
-from p2p.peer import ETHPeer, PeerPool, PeerSubscriber
+from p2p.peer import ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer
 
@@ -136,7 +137,14 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # A node may be received more than once, so pop() with a default value.
                 self._pending_nodes.pop(node_key, None)
         elif isinstance(cmd, eth.GetBlockHeaders):
-            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+            query = cast(Dict[Any, Union[bool, int]], msg)
+            request = HeaderRequest(
+                query['block_number_or_hash'],
+                query['max_headers'],
+                query['skip'],
+                cast(bool, query['reverse']),
+            )
+            await self._handle_get_block_headers(peer, request)
         elif isinstance(cmd, eth.GetBlockBodies):
             # Only serve up to eth.MAX_BODIES_FETCH items in every request.
             block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
@@ -152,9 +160,8 @@ class StateDownloader(BaseService, PeerSubscriber):
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 
-    async def _handle_get_block_headers(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
-        headers = await self._handler.lookup_headers(
-            msg['block_number_or_hash'], msg['max_headers'], msg['skip'], msg['reverse'])
+    async def _handle_get_block_headers(self, peer: ETHPeer, request: HeaderRequest) -> None:
+        headers = await self._handler.lookup_headers(request)
         peer.sub_proto.send_block_headers(headers)
 
     async def _cleanup(self) -> None:

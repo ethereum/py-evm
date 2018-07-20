@@ -9,6 +9,7 @@ from eth_utils import (
 )
 
 from eth_typing import (
+    BlockIdentifier,
     Hash32
 )
 
@@ -314,8 +315,12 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
-                               max_headers: int, request_id: int, reverse: bool = True
+    def send_get_block_headers(self,
+                               block_number_or_hash: BlockIdentifier,
+                               max_headers: int,
+                               skip: int,
+                               reverse: bool,
+                               request_id: int,
                                ) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
@@ -338,7 +343,7 @@ class LESProtocol(Protocol):
         self.send(header, body)
 
     def send_block_headers(
-            self, headers: List[BlockHeader], buffer_value: int, request_id: int) -> None:
+            self, headers: Tuple[BlockHeader, ...], buffer_value: int, request_id: int) -> None:
         data = {
             'request_id': request_id,
             'headers': headers,
