@@ -1,7 +1,8 @@
 import pytest
 
 from eth.constants import UINT_256_MAX
-from p2p.utils import sequence_builder
+from p2p.eth import MAX_HEADERS_FETCH
+from p2p.utils import get_block_numbers_for_request, sequence_builder
 
 
 @pytest.mark.parametrize(
@@ -26,3 +27,14 @@ from p2p.utils import sequence_builder
 )
 def test_sequence(start_num, max_length, skip, reverse, expected):
     assert sequence_builder(start_num, max_length, skip, reverse) == expected
+
+
+@pytest.mark.parametrize(
+    'block_number, max_headers, skip, reverse, expected',
+    (
+        (0, 1, 0, False, (0, )),
+        (0, MAX_HEADERS_FETCH + 1, 0, False, tuple(range(MAX_HEADERS_FETCH))),
+    ),
+)
+def test_get_block_numbers_for_request(block_number, max_headers, skip, reverse, expected):
+    assert get_block_numbers_for_request(block_number, max_headers, skip, reverse) == expected
