@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 
 from trinity.tools.async_process_runner import AsyncProcessRunner
@@ -18,6 +19,16 @@ from trinity.utils.async_iter import (
 # This ensures the AsyncProcessRunner will never leave a process behind
 @pytest.fixture(scope="function")
 def async_process_runner():
+    runner = AsyncProcessRunner(
+        # This allows running pytest with -s and observing the output
+        debug_fn=lambda line: print(line)
+    )
+    yield runner
+    runner.kill()
+
+
+@pytest.fixture(scope="function")
+def second_async_process_runner():
     runner = AsyncProcessRunner(
         # This allows running pytest with -s and observing the output
         debug_fn=lambda line: print(line)
@@ -87,6 +98,33 @@ async def test_light_boot(async_process_runner, command):
         "Started networking process",
         "IPC started at",
     })
+
+
+@pytest.mark.parametrize(
+    'command',
+    (
+        ['trinity'],
+        # ['trinity', '--light', '--ropsten'],
+    )
+)
+@pytest.mark.asyncio
+async def test_web3(event_loop, command, async_process_runner, second_async_process_runner):
+    await async_process_runner.run(command, timeout_sec=30)
+    assert await contains_all(async_process_runner.stderr, {
+        "Started DB server process",
+        "Started networking process",
+        "IPC started at",
+    })
+    await second_async_process_runner.run(['trinity', 'attach'], timeout_sec=30)
+    assert await contains_all(second_async_process_runner.stdout, {
+        "An instance of Web3",
+        "In [1]:",
+    })
+
+    stdout, stderr = await second_async_process_runner.proc.communicate(b'w3\n')
+
+    async for line in stdout:
+        print(line)
 
 
 @pytest.mark.parametrize(

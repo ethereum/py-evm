@@ -27,6 +27,7 @@ class AsyncProcessRunner():
             *cmds,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE,
             # We need this because Trinity spawns multiple processes and we need to take down
             # the entire group of processes.
             preexec_fn=os.setsid
