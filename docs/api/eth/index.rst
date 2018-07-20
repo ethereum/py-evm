@@ -1,7 +1,7 @@
 Py-EVM
 ======
 
-This section aims to provide a detailed description of all APIs. If you are looking for something more hands-on or higher-level check out the existing `EVM guides </guides/eth>`_.
+This section aims to provide a detailed description of all APIs. If you are looking for something more hands-on or higher-level check out the existing :doc:`EVM guides </guides/eth/index>`.
 
 .. toctree::
    :maxdepth: 4
