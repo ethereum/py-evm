@@ -29,7 +29,7 @@ def xdg_trinity_root(monkeypatch, tmpdir):
     """
     Ensure proper test isolation as well as protecting the real directories.
     """
-    dir_path = tmpdir.mkdir('xdg_trinity_root')
+    dir_path = tmpdir.mkdir('trinity')
     monkeypatch.setenv('XDG_TRINITY_ROOT', str(dir_path))
 
     assert not is_under_path(os.path.expandvars('$HOME'), get_xdg_trinity_root())
