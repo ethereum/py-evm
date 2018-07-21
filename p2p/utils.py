@@ -2,9 +2,10 @@ from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import rlp
-from typing import Iterator
+from typing import Iterator, Tuple
 
 from eth_utils import to_tuple
+from eth_typing import BlockNumber
 
 from eth.constants import UINT_256_MAX
 from eth.utils.numeric import big_endian_to_int
@@ -51,6 +52,17 @@ def sequence_builder(start_number: int, max_length: int, skip: int, reverse: boo
             return
         else:
             yield number
+
+
+def get_block_numbers_for_request(
+        block_number: int, max_headers: int, skip: int, reverse: bool) -> Tuple[BlockNumber]:
+    """
+    Return a tuple of min(max_headers, MAX_HEADERS_FETCH) BlockNumbers, starting from the given one,
+    skipping :skip: items between each, in reverse order if :reverse: is True.
+    """
+    from p2p.eth import MAX_HEADERS_FETCH
+    limit = min(max_headers, MAX_HEADERS_FETCH)
+    return sequence_builder(block_number, limit, skip, reverse)
 
 
 def get_process_pool_executor() -> ProcessPoolExecutor:

@@ -45,8 +45,8 @@ from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
+    get_block_numbers_for_request,
     get_process_pool_executor,
-    sequence_builder,
 )
 
 
@@ -695,39 +695,25 @@ class PeerRequestHandler(CancellableMixin):
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
         """
-        try:
-            block_numbers = await self._get_block_numbers_for_request(
-                block_number_or_hash, max_headers, skip, reverse)
-        except HeaderNotFound:
-            self.logger.debug(
-                "Peer requested starting header %r that is unavailable, returning nothing",
-                block_number_or_hash)
-            block_numbers = tuple()  # type: ignore
-
-        headers = [header async for header in self._generate_available_headers(block_numbers)]
-        return headers
-
-    async def _get_block_numbers_for_request(
-            self, block_number_or_hash: Union[int, bytes], max_headers: int,
-            skip: int, reverse: bool) -> Tuple[BlockNumber]:
-        """
-        Generates the block numbers requested, subject to local availability.
-        """
-        block_number_or_hash = block_number_or_hash
         if isinstance(block_number_or_hash, bytes):
-            header = await self.wait(
-                self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
+            try:
+                header = await self.wait(
+                    self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
+            except HeaderNotFound:
+                self.logger.debug(
+                    "Peer requested starting header %r that is unavailable, returning nothing",
+                    block_number_or_hash)
+                return []
             block_number = header.block_number
         elif isinstance(block_number_or_hash, int):
             block_number = block_number_or_hash
         else:
             raise TypeError(
-                "Unexpected type for 'block_number_or_hash': %s",
-                type(block_number_or_hash),
-            )
+                "Unexpected type for 'block_number_or_hash': %s", type(block_number_or_hash))
 
-        limit = min(max_headers, eth.MAX_HEADERS_FETCH)
-        return sequence_builder(block_number, limit, skip, reverse)
+        block_numbers = get_block_numbers_for_request(block_number, max_headers, skip, reverse)
+        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        return headers
 
     async def _generate_available_headers(
             self, block_numbers: Tuple[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
