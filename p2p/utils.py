@@ -1,4 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
+import datetime
 import logging
 import os
 import rlp
@@ -79,3 +80,10 @@ def get_process_pool_executor() -> ProcessPoolExecutor:
     else:
         cpu_count = max(1, os_cpu_count - 1)
     return ProcessPoolExecutor(cpu_count)
+
+
+def time_since(start_time: datetime.datetime) -> Tuple[int, int, int, int]:
+    delta = datetime.datetime.now() - start_time
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return delta.days, hours, minutes, seconds
