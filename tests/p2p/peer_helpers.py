@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from eth_hash.auto import keccak
+from eth.utils.logging import TraceLogger
 
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 from eth.db.backends.memory import MemoryDB
@@ -12,7 +13,7 @@ from p2p import constants
 from p2p import ecies
 from p2p import kademlia
 from p2p.cancel_token import CancelToken
-from p2p.peer import BasePeer, LESPeer, PeerPool
+from p2p.peer import BasePeer, LESPeer, PeerPool, PeerSubscriber
 from p2p.server import decode_authentication
 
 from integration_test_helpers import FakeAsyncHeaderDB
@@ -160,3 +161,11 @@ class MockPeerPoolWithConnectedPeers(PeerPool):
 
     async def _run(self) -> None:
         raise NotImplementedError("This is a mock PeerPool implementation, you must not _run() it")
+
+
+class SamplePeerSubscriber(PeerSubscriber):
+    logger = TraceLogger("")
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        return 100

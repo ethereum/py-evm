@@ -41,7 +41,7 @@ from p2p.cancel_token import CancellableMixin, CancelToken
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerPoolSubscriber
+from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
 
 
-class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
+class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     """
     Sync with the Ethereum network by fetching/storing block headers.
 
@@ -89,6 +89,13 @@ class BaseHeaderChainSyncer(BaseService, PeerPoolSubscriber):
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
         self._new_headers: asyncio.Queue[Tuple[BlockHeader, ...]] = asyncio.Queue()
         self._executor = get_process_pool_executor()
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        # This is a rather arbitrary value, but when the sync is operating normally we never see
+        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+        # now.
+        return 2000
 
     def register_peer(self, peer: BasePeer) -> None:
         self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))

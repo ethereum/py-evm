@@ -43,7 +43,7 @@ from p2p.cancel_token import (
 from p2p.service import BaseService
 from p2p.peer import (
     PeerPool,
-    PeerPoolSubscriber,
+    PeerSubscriber,
 )
 
 from p2p.sharding_peer import (
@@ -68,7 +68,7 @@ from cytoolz import (
 COLLATION_PERIOD = 1
 
 
-class ShardSyncer(BaseService, PeerPoolSubscriber):
+class ShardSyncer(BaseService, PeerSubscriber):
 
     def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken=None) -> None:
         super().__init__(token)
@@ -79,6 +79,13 @@ class ShardSyncer(BaseService, PeerPoolSubscriber):
         self.collation_hashes_at_peer: Dict[ShardingPeer, Set[Hash32]] = defaultdict(set)
 
         self.start_time = time.time()
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        # This is a rather arbitrary value, but when the sync is operating normally we never see
+        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+        # now.
+        return 2000
 
     async def _cleanup(self) -> None:
         pass

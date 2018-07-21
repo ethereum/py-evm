@@ -42,7 +42,7 @@ from p2p import protocol
 from p2p.chain import PeerRequestHandler
 from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
-from p2p.peer import ETHPeer, PeerPool, PeerPoolSubscriber
+from p2p.peer import ETHPeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_process_pool_executor
 
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from trinity.db.chain import AsyncChainDB  # noqa: F401
 
 
-class StateDownloader(BaseService, PeerPoolSubscriber):
+class StateDownloader(BaseService, PeerSubscriber):
     _pending_nodes: Dict[Any, float] = {}
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
@@ -73,6 +73,13 @@ class StateDownloader(BaseService, PeerPoolSubscriber):
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
         self._executor = get_process_pool_executor()
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        # This is a rather arbitrary value, but when the sync is operating normally we never see
+        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+        # now.
+        return 2000
 
     async def _get_idle_peers(self) -> List[ETHPeer]:
         # FIXME: Should probably use get_peers() and pass the TD of our head? It's not really
