@@ -269,7 +269,15 @@ class ChainDB(HeaderDB, BaseChainDB):
         new_canonical_headers = self.persist_header(block.header)
 
         for header in new_canonical_headers:
-            for index, transaction_hash in enumerate(self.get_block_transaction_hashes(header)):
+            if header.hash == block.hash:
+                # Most of the time this is called to persist a block whose parent is the current
+                # head, so we optimize for that and read the tx hashes from the block itself. This
+                # is specially important during a fast sync.
+                tx_hashes = [tx.hash for tx in block.transactions]
+            else:
+                tx_hashes = self.get_block_transaction_hashes(header)
+
+            for index, transaction_hash in enumerate(tx_hashes):
                 self._add_transaction_to_canonical_chain(transaction_hash, header, index)
 
         if block.uncles:
