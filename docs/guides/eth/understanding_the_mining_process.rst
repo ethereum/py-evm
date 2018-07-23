@@ -1,8 +1,8 @@
 Understanding the mining process
 ================================
 
-In the :doc:`Building Chains Guide <building_chains>` we already learned how to
-use the :class:`~eth.chains.base.MiningChain` class to create a single
+From the :ref:`EVM Cookbook<evm_cookbook>` we can already learn how to
+use the :class:`~eth.chains.base.Chain` class to create a single
 blockchain as a combination of different virtual machines for different spans
 of blocks.
 
@@ -38,7 +38,9 @@ block first because, after all, one primary use case for the Ethereum blockchain
 For the sake of simplicity though, we'll mine an empty block as a first example (meaning the block
 will not contain any transactions)
 
-As a refresher, he's where we left of as part of the :doc:`Building Chains Guide </guides/eth/building_chains>`.
+As a refresher, he's how we create a chain as demonstrated in the
+:ref:`Using the chain object recipe<evm_cookbook_recipe_using_the_chain_object>` from the
+cookbook.
 
 ::
 
