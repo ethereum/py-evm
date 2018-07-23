@@ -44,7 +44,7 @@ from p2p.cancel_token import CancelToken
 from p2p.exceptions import OperationCancelled
 from p2p.peer import ETHPeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
-from p2p.utils import get_process_pool_executor
+from p2p.utils import get_asyncio_executor, Timer
 
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ class StateDownloader(BaseService, PeerSubscriber):
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
     _reply_timeout = 20  # seconds
-    _start_time: float = None
+    _timer = Timer(auto_start=False)
     _total_timeouts = 0
 
     def __init__(self,
@@ -72,7 +72,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
-        self._executor = get_process_pool_executor()
+        self._executor = get_asyncio_executor()
 
     @property
     def msg_queue_maxsize(self) -> int:
@@ -210,7 +210,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
         Raises OperationCancelled if we're interrupted before that is completed.
         """
-        self._start_time = time.time()
+        self._timer.start()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
         asyncio.ensure_future(self._handle_msg_loop())
         asyncio.ensure_future(self._periodically_report_progress())
@@ -238,11 +238,10 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _periodically_report_progress(self) -> None:
         while self.is_running:
-            now = time.time()
             self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
             self.logger.info("Nodes processed per second (average): %d",
-                             self._total_processed_nodes / (now - self._start_time))
+                             self._total_processed_nodes / self._timer.elapsed)
             self.logger.info("Nodes committed to DB: %d", self.scheduler.committed_nodes)
             self.logger.info(
                 "Nodes requested but not received yet: %d", len(self._pending_nodes))
