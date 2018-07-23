@@ -1,9 +1,11 @@
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Executor, ProcessPoolExecutor
 import datetime
 import logging
 import os
-import rlp
+import time
 from typing import Iterator, Tuple
+
+import rlp
 
 from eth_utils import to_tuple
 from eth_typing import BlockNumber
@@ -66,7 +68,7 @@ def get_block_numbers_for_request(
     return sequence_builder(block_number, limit, skip, reverse)
 
 
-def get_process_pool_executor() -> ProcessPoolExecutor:
+def get_asyncio_executor() -> Executor:
     # Use CPU_COUNT - 1 processes to make sure we always leave one CPU idle so that it can run
     # asyncio's event loop.
     os_cpu_count = os.cpu_count()
@@ -87,3 +89,18 @@ def time_since(start_time: datetime.datetime) -> Tuple[int, int, int, int]:
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return delta.days, hours, minutes, seconds
+
+
+class Timer:
+    _start: float = None
+
+    def __init__(self, auto_start: bool = True) -> None:
+        if auto_start:
+            self.start()
+
+    def start(self) -> None:
+        self._start = time.time()
+
+    @property
+    def elapsed(self) -> float:
+        return time.time() - self._start

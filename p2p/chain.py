@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import math
-import time
 from abc import abstractmethod
 from typing import (
     Any,
@@ -46,7 +45,8 @@ from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
     get_block_numbers_for_request,
-    get_process_pool_executor,
+    get_asyncio_executor,
+    Timer,
 )
 
 
@@ -88,7 +88,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
         self._new_headers: asyncio.Queue[Tuple[BlockHeader, ...]] = asyncio.Queue()
-        self._executor = get_process_pool_executor()
+        self._executor = get_asyncio_executor()
 
     @property
     def msg_queue_maxsize(self) -> int:
@@ -144,6 +144,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
         # run in the background notice the cancel token has been triggered and return.
         await asyncio.sleep(0)
+
+    async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
+        loop = asyncio.get_event_loop()
+        return await self.wait(loop.run_in_executor(self._executor, callback, *args))
 
     async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:
@@ -212,7 +216,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
-            start = time.time()
             try:
                 await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
             except ValidationError as e:
@@ -223,9 +226,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             except NoEligiblePeers:
                 self.logger.info("No peers have the blocks we want, aborting sync")
                 break
-            self.logger.info(
-                "Imported %d headers in %0.2f seconds, new head: #%d",
-                len(headers), time.time() - start, head_number)
             start_at = head_number + 1
 
             # Quite often the header batch we receive here includes headers past the peer's reported
@@ -304,10 +304,14 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+        timer = Timer()
         for header in headers:
             await self.wait(self.db.coro_persist_header(header))
 
         head = await self.wait(self.db.coro_get_canonical_head())
+        self.logger.info(
+            "Imported %d headers in %0.2f seconds, new head: #%d",
+            len(headers), timer.elapsed, head.block_number)
         return head.block_number
 
 
@@ -351,6 +355,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _process_headers(
             self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+        timer = Timer()
         target_td = await self._calculate_td(headers)
         bodies = await self._download_block_parts(
             target_td,
@@ -389,6 +394,10 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             await self.wait(self.db.coro_persist_block(block))
 
         head = await self.wait(self.db.coro_get_canonical_head())
+        txs = sum(len(cast(BlockBody, body).transactions) for body in bodies.values())
+        self.logger.info(
+            "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
+            len(headers), txs, timer.elapsed, head.block_number)
         return head.block_number
 
     async def _download_block_parts(
@@ -537,11 +546,10 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                                      peer: ETHPeer,
                                      receipts_by_block: List[List[eth.Receipt]]) -> None:
         self.logger.debug("Got Receipts for %d blocks from %s", len(receipts_by_block), peer)
-        loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, receipts_by_block)
         # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
         # the executor when the list() is applied to it.
-        receipts_tries = await self.wait(loop.run_in_executor(self._executor, list, iterator))
+        receipts_tries = await self._run_in_executor(list, iterator)
         downloaded: List[DownloadedBlockPart] = []
         # TODO: figure out why mypy is losing the type of the receipts_tries
         # so we can get rid of the ignore
@@ -554,12 +562,10 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                                    peer: ETHPeer,
                                    bodies: List[BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
-        loop = asyncio.get_event_loop()
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
         # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
         # the executor when the list() is applied to it.
-        transactions_tries = await self.wait(
-            loop.run_in_executor(self._executor, list, iterator))
+        transactions_tries = await self._run_in_executor(list, iterator)
         downloaded: List[DownloadedBlockPart] = []
 
         # TODO: figure out why mypy is losing the type of the transactions_tries
@@ -625,10 +631,10 @@ class RegularChainSyncer(FastChainSyncer):
                 uncles = body.uncles
 
             block = block_class(header, transactions, uncles)
-            t = time.time()
+            timer = Timer()
             await self.wait(self.chain.coro_import_block(block, perform_validation=True))
             self.logger.info("Imported block %d (%d txs) in %f seconds",
-                             block.number, len(transactions), time.time() - t)
+                             block.number, len(transactions), timer.elapsed)
 
         head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
@@ -839,10 +845,19 @@ def _test() -> None:
     loop.close()
 
 
+def _run_test(profile: bool) -> None:
+    import cProfile, pstats  # noqa
+
+    async def mock_run_in_executor(self, callback, *args):  # type: ignore
+        return callback(*args)
+
+    if profile:
+        BaseHeaderChainSyncer._run_in_executor = mock_run_in_executor  # type: ignore
+        cProfile.run('_test()', 'stats')
+        pstats.Stats('stats').strip_dirs().sort_stats('cumulative').print_stats(50)
+    else:
+        _test()
+
+
 if __name__ == "__main__":
-    # Use the snippet below to get profile stats and print the top 50 functions by cumulative time
-    # used.
-    # import cProfile, pstats  # noqa
-    # cProfile.run('_test()', 'stats')
-    # pstats.Stats('stats').strip_dirs().sort_stats('cumulative').print_stats(50)
-    _test()
+    _run_test(profile=True)

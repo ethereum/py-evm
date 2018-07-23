@@ -75,7 +75,6 @@ class FullNodeSyncer(BaseService):
 def _test() -> None:
     import argparse
     import asyncio
-    from concurrent.futures import ProcessPoolExecutor
     import signal
     from p2p import ecies
     from p2p.kademlia import Node
@@ -104,7 +103,6 @@ def _test() -> None:
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(ProcessPoolExecutor())
 
     syncer = FullNodeSyncer(chain, chaindb, chaindb.db, peer_pool)
 
