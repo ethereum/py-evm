@@ -820,19 +820,24 @@ def _is_receipts_empty(header: BlockHeader) -> bool:
 
 def _test() -> None:
     import argparse
+    from pathlib import Path
     import signal
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
+    from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
     from tests.p2p.integration_test_helpers import (
-        FakeAsyncChainDB, FakeAsyncRopstenChain, FakeAsyncHeaderDB, connect_to_peers_loop)
+        FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
+        connect_to_peers_loop)
+    from trinity.utils.chains import load_nodekey
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-fast', action="store_true")
     parser.add_argument('-light', action="store_true")
+    parser.add_argument('-nodekey', type=str)
     parser.add_argument('-enode', type=str, required=False, help="The enode we should connect to")
     parser.add_argument('-debug', action="store_true")
     args = parser.parse_args()
@@ -846,16 +851,33 @@ def _test() -> None:
     loop = asyncio.get_event_loop()
 
     base_db = LevelDB(args.db)
-    chaindb = FakeAsyncChainDB(base_db)
-    chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)
+    chaindb = FakeAsyncChainDB(base_db)
+    try:
+        genesis = chaindb.get_canonical_block_header_by_number(0)
+    except HeaderNotFound:
+        genesis = ROPSTEN_GENESIS_HEADER
+        chaindb.persist_header(genesis)
 
     peer_class: Type[HeaderRequestingPeer] = ETHPeer
     if args.light:
         peer_class = LESPeer
-    network_id = RopstenChain.network_id
-    privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(peer_class, headerdb, network_id, privkey, ROPSTEN_VM_CONFIGURATION)
+
+    if genesis.hash == ROPSTEN_GENESIS_HEADER.hash:
+        network_id = RopstenChain.network_id
+        vm_config = ROPSTEN_VM_CONFIGURATION  # type: ignore
+        chain_class = FakeAsyncRopstenChain
+    elif genesis.hash == MAINNET_GENESIS_HEADER.hash:
+        network_id = MainnetChain.network_id
+        vm_config = MAINNET_VM_CONFIGURATION  # type: ignore
+        chain_class = FakeAsyncMainnetChain
+    else:
+        raise RuntimeError("Unknown genesis: %s", genesis)
+    if args.nodekey:
+        privkey = load_nodekey(Path(args.nodekey))
+    else:
+        privkey = ecies.generate_privkey()
+    peer_pool = PeerPool(peer_class, headerdb, network_id, privkey, vm_config)
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
@@ -863,7 +885,7 @@ def _test() -> None:
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
-    chain = FakeAsyncRopstenChain(base_db)
+    chain = chain_class(base_db)
     syncer: BaseHeaderChainSyncer = None
     if args.fast:
         syncer = FastChainSyncer(chain, chaindb, peer_pool)
