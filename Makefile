@@ -58,6 +58,7 @@ release: clean
 release-trinity: clean
 	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
 	git config commit.gpgSign true
+	git push upstream && git push upstream --tags
 	python setup_trinity.py sdist bdist_wheel
 	twine upload dist/*
 	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
