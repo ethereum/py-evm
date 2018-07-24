@@ -38,7 +38,7 @@ block first because, after all, one primary use case for the Ethereum blockchain
 For the sake of simplicity though, we'll mine an empty block as a first example (meaning the block
 will not contain any transactions)
 
-As a refresher, he's where we left of as part of the `Building Chains Guide <building_chains>`_.
+As a refresher, he's where we left of as part of the :doc:`Building Chains Guide </guides/eth/building_chains>`.
 
 ::
 
