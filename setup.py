@@ -70,6 +70,7 @@ deps = {
     'dev': [
         "bumpversion>=0.5.3,<1",
         "wheel",
+        "twine",
         "tox==2.7.0",
     ],
 }
