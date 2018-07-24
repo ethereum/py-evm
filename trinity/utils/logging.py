@@ -97,6 +97,7 @@ def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     # the INFO level for it until https://github.com/ethereum/py-evm/issues/806 is fixed.
     logging.getLogger('p2p.kademlia').setLevel(logging.INFO)
     logging.getLogger('p2p.discovery').setLevel(logging.INFO)
+    logging.getLogger('p2p.state.StateSync').setLevel(logging.INFO)
     logger.debug('Logging initialized: PID=%s', os.getpid())
 
 
