@@ -35,8 +35,8 @@ def async_process_runner():
 @pytest.mark.parametrize(
     'command',
     (
-        ['trinity'],
-        ['trinity', '--ropsten'],
+        ('trinity',),
+        ('trinity', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
@@ -54,8 +54,8 @@ async def test_full_boot(async_process_runner, command):
 @pytest.mark.parametrize(
     'command',
     (
-        ['trinity', '--tx-pool'],
-        ['trinity', '--tx-pool', '--ropsten'],
+        ('trinity', '--tx-pool',),
+        ('trinity', '--tx-pool', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
@@ -74,8 +74,8 @@ async def test_txpool_full_boot(async_process_runner, command):
 @pytest.mark.parametrize(
     'command',
     (
-        ['trinity', '--light'],
-        ['trinity', '--light', '--ropsten'],
+        ('trinity', '--light',),
+        ('trinity', '--light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
@@ -93,11 +93,11 @@ async def test_light_boot(async_process_runner, command):
     'command',
     (
         # mainnet
-        ['trinity'],
-        ['trinity', '--light'],
+        ('trinity',),
+        ('trinity', '--light',),
         # ropsten
-        ['trinity', '--ropsten'],
-        ['trinity', '--light', '--ropsten'],
+        ('trinity', '--ropsten',),
+        ('trinity', '--light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio

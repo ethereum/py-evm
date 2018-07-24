@@ -5,7 +5,7 @@ from typing import (
     AsyncIterable,
     Awaitable,
     Callable,
-    Iterable,
+    Tuple,
 )
 
 
@@ -15,12 +15,14 @@ class AsyncProcessRunner():
         self.debug_fn = debug_fn
 
     @classmethod
-    async def create_and_run(cls, cmds: Iterable[str], timeout_sec: int=10) -> 'AsyncProcessRunner':
+    async def create_and_run(cls,
+                             cmds: Tuple[str, ...],
+                             timeout_sec: int=10) -> 'AsyncProcessRunner':
         runner = cls()
         await runner.run(cmds, timeout_sec)
         return runner
 
-    async def run(self, cmds: Iterable[str], timeout_sec: int=10) -> None:
+    async def run(self, cmds: Tuple[str, ...], timeout_sec: int=10) -> None:
         proc = await asyncio.create_subprocess_exec(
             *cmds,
             stdout=asyncio.subprocess.PIPE,
