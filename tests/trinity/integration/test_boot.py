@@ -94,9 +94,11 @@ async def test_light_boot(async_process_runner, command):
     (
         # mainnet
         ('trinity',),
+        ('trinity', '--tx-pool',),
         ('trinity', '--light',),
         # ropsten
         ('trinity', '--ropsten',),
+        ('trinity', '--ropsten', '--tx-pool',),
         ('trinity', '--light', '--ropsten',),
     )
 )
