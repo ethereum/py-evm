@@ -55,6 +55,13 @@ release: clean
 	twine upload dist/*
 	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
 
+release-trinity: clean
+	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
+	git config commit.gpgSign true
+	python setup_trinity.py sdist bdist_wheel
+	twine upload dist/*
+	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
+
 sdist: clean
 	python setup.py sdist bdist_wheel
 	ls -l dist
