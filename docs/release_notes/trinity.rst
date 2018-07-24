@@ -1,6 +1,11 @@
 Trinity 
 =======
 
+0.1.0-alpha.13
+--------------
+
+- Remove specified ``eth-account`` dependency in favor of allowing ``web3.py`` specify the correct version.
+
 
 
 0.1.0-alpha.12
