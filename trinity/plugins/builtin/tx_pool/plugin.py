@@ -22,6 +22,9 @@ from p2p.peer import (
     PeerPool
 )
 
+from trinity.constants import (
+    SYNC_LIGHT
+)
 from trinity.extensibility import (
     BaseEvent,
     BasePlugin,
@@ -59,7 +62,11 @@ class TxPlugin(BasePlugin):
 
     def handle_event(self, activation_event: BaseEvent) -> None:
         if isinstance(activation_event, TrinityStartupEvent):
-            self.is_enabled = activation_event.args.tx_pool
+            light_mode = activation_event.args.sync_mode == SYNC_LIGHT
+            self.is_enabled = activation_event.args.tx_pool and not light_mode
+            if activation_event.args.tx_pool and light_mode:
+                self.logger.error('The transaction pool is not yet available in light mode')
+                self.context.shutdown_host()
         if isinstance(activation_event, ResourceAvailableEvent):
             if activation_event.resource_type is PeerPool:
                 self.peer_pool, self.cancel_token = activation_event.resource
