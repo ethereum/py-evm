@@ -74,6 +74,23 @@ async def test_txpool_full_boot(async_process_runner, command):
 @pytest.mark.parametrize(
     'command',
     (
+        ('trinity', '--light', '--tx-pool',),
+        ('trinity', '--light', '--ropsten', '--tx-pool',),
+    )
+)
+@pytest.mark.asyncio
+async def test_txpool_deactivated(async_process_runner, command):
+    await async_process_runner.run(command)
+    assert await contains_all(async_process_runner.stderr, {
+        "Started DB server process",
+        "Started networking process",
+        "The transaction pool is not yet available in light mode",
+    })
+
+
+@pytest.mark.parametrize(
+    'command',
+    (
         ('trinity', '--light',),
         ('trinity', '--light', '--ropsten',),
     )
