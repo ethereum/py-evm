@@ -443,7 +443,7 @@ class KademliaProtocol:
         try:
             callback = self.pong_callbacks.get_callback(pingid)
         except KeyError:
-            self.logger.info('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
         else:
             callback()
 
