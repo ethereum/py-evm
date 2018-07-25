@@ -15,32 +15,32 @@ after you define the VM ranges. For example, to set up a chain that would track
 the mainnet Ethereum network until block 1920000, you could create this chain
 class:
 
-::
+.. doctest::
 
-  from eth import constants, Chain
-  from eth.vm.forks.frontier import FrontierVM
-  from eth.vm.forks.homestead import HomesteadVM
-  from eth.chains.mainnet import HOMESTEAD_MAINNET_BLOCK
+  >>> from eth import constants, Chain
+  >>> from eth.vm.forks.frontier import FrontierVM
+  >>> from eth.vm.forks.homestead import HomesteadVM
+  >>> from eth.chains.mainnet import HOMESTEAD_MAINNET_BLOCK
 
-  chain_class = Chain.configure(
-      __name__='Test Chain',
-      vm_configuration=(
-          (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
-          (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
-      ),
-  )
+  >>> chain_class = Chain.configure(
+  ...     __name__='Test Chain',
+  ...     vm_configuration=(
+  ...         (constants.GENESIS_BLOCK_NUMBER, FrontierVM),
+  ...         (HOMESTEAD_MAINNET_BLOCK, HomesteadVM),
+  ...     ),
+  ... )
 
 Then to initialize, you can start it up with an in-memory database:
 
-::
+.. doctest::
 
-  from eth.db.backends.memory import MemoryDB
-  from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+  >>> from eth.db.backends.memory import MemoryDB
+  >>> from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
-  # start a fresh in-memory db
+  >>> # start a fresh in-memory db
 
-  # initialize a fresh chain
-  chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
+  >>> # initialize a fresh chain
+  >>> chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
 
 
 Using the LightPeerChain object
