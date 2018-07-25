@@ -38,7 +38,7 @@ coverage:
 	open htmlcov/index.html
 
 build-docs:
-	cd docs/; sphinx-build -T -E . _build/html
+	cd docs/; sphinx-build -W -T -E . _build/html
 
 doctest:
 	cd docs/; sphinx-build -T -b doctest . _build/doctest
