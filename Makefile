@@ -40,6 +40,11 @@ coverage:
 build-docs:
 	cd docs/; sphinx-build -T -E . _build/html
 
+doctest:
+	cd docs/; sphinx-build -T -b doctest . _build/doctest
+
+validate-docs: build-docs doctest
+
 docs: build-docs
 	open docs/_build/html/index.html
 

@@ -52,6 +52,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: lint-py36
+  py36-docs:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-docs
   py35-native-state-byzantium:
     <<: *common
     docker:
@@ -243,6 +249,7 @@ workflows:
   version: 2
   test:
     jobs:
+      - py36-docs
       - py36-native-state-byzantium
       - py36-native-state-frontier
       - py36-native-state-homestead

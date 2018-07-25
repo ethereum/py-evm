@@ -41,6 +41,7 @@ needs_sphinx = '1.5'
 extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinxcontrib.asyncio',
 ]
@@ -180,3 +181,14 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.5', None),
     'eth-typing': ('https://eth-typing.readthedocs.io/en/latest', None),
 }
+
+# -- Doctest configuration ----------------------------------------
+
+import doctest
+
+doctest_default_flags = (0
+    | doctest.DONT_ACCEPT_TRUE_FOR_1
+    | doctest.ELLIPSIS
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.NORMALIZE_WHITESPACE
+)
