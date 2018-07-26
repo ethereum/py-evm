@@ -73,7 +73,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
-        self._requested_nodes: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self._active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
         self._peer_missing_nodes: Dict[ETHPeer, List[Hash32]] = collections.defaultdict(list)
         self._executor = get_asyncio_executor()
 
@@ -94,7 +94,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         """Return an idle peer that may have any of the trie nodes in node_keys."""
         async for peer in self.peer_pool:
             peer = cast(ETHPeer, peer)
-            if peer in self._requested_nodes:
+            if peer in self._active_requests:
                 self.logger.trace("%s is not idle, skipping it", peer)
                 continue
             if node_keys.difference(self._peer_missing_nodes[peer]):
@@ -141,7 +141,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             pass
         elif isinstance(cmd, eth.NodeData):
             msg = cast(List[bytes], msg)
-            if peer not in self._requested_nodes:
+            if peer not in self._active_requests:
                 # This is probably a batch that we retried after a timeout and ended up receiving
                 # more than once, so ignore but log as an INFO just in case.
                 self.logger.info(
@@ -150,7 +150,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 return
 
             self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
-            _, requested_node_keys = self._requested_nodes.pop(peer)
+            _, requested_node_keys = self._active_requests.pop(peer)
 
             loop = asyncio.get_event_loop()
             node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
@@ -208,7 +208,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
             batch = candidates[:eth.MAX_STATE_FETCH]
             not_yet_requested = not_yet_requested.difference(batch)
-            self._requested_nodes[peer] = (time.time(), batch)
+            self._active_requests[peer] = (time.time(), batch)
             self.logger.debug("Requesting %d trie nodes to %s", len(batch), peer)
             peer.sub_proto.send_get_node_data(batch)
 
@@ -218,12 +218,12 @@ class StateDownloader(BaseService, PeerSubscriber):
             oldest_request_time = now
             timed_out = []
             # Iterate over a copy of our dict's items as we're going to mutate it.
-            for peer, (req_time, node_keys) in list(self._requested_nodes.items()):
+            for peer, (req_time, node_keys) in list(self._active_requests.items()):
                 if now - req_time > self._reply_timeout:
                     self.logger.debug(
                         "Timed out waiting for %d nodes from %s", len(node_keys), peer)
                     timed_out.extend(node_keys)
-                    self._requested_nodes.pop(peer)
+                    self._active_requests.pop(peer)
                 elif req_time < oldest_request_time:
                     oldest_request_time = req_time
             if timed_out:
@@ -276,7 +276,7 @@ class StateDownloader(BaseService, PeerSubscriber):
     async def _periodically_report_progress(self) -> None:
         while self.is_running:
             requested_nodes = sum(
-                len(node_keys) for _, node_keys in self._requested_nodes.values())
+                len(node_keys) for _, node_keys in self._active_requests.values())
             self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
             self.logger.info("Nodes processed per second (average): %d",
