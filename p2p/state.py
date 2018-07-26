@@ -132,6 +132,8 @@ class StateDownloader(BaseService, PeerSubscriber):
                     # This means we received a node more than once, which can happen when we
                     # retry after a timeout.
                     pass
+                else:
+                    await asyncio.sleep(0)
                 # A node may be received more than once, so pop() with a default value.
                 self._pending_nodes.pop(node_key, None)
         elif isinstance(cmd, eth.GetBlockHeaders):
