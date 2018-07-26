@@ -760,6 +760,10 @@ class PeerSubscriber(ABC):
         """
         pass
 
+    def deregister_peer(self, peer: BasePeer) -> None:
+        """Called when a peer is removed from the pool."""
+        pass
+
     @property
     def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
         if self._msg_queue is None:
@@ -1010,6 +1014,8 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         else:
             self.logger.warn(
                 "%s finished but was not found in connected_nodes (%s)", peer, self.connected_nodes)
+        for subscriber in self._subscribers:
+            subscriber.deregister_peer(peer)
 
     def __aiter__(self) -> AsyncIterator[BasePeer]:
         return ConnectedPeersIterator(tuple(self.connected_nodes.values()))

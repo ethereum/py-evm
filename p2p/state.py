@@ -1,17 +1,18 @@
 import asyncio
+import collections
 import logging
-import secrets
 import time
 from typing import (
     Any,
     cast,
     Dict,
+    Iterable,
     List,
+    Set,
+    Tuple,
     TYPE_CHECKING,
     Union,
 )
-
-from cytoolz import dicttoolz, itertoolz
 
 import rlp
 
@@ -43,7 +44,8 @@ from eth.rlp.accounts import Account
 from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
-from p2p.peer import ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
+from p2p.exceptions import NoEligiblePeers
+from p2p.peer import BasePeer, ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer
 
@@ -53,7 +55,6 @@ if TYPE_CHECKING:
 
 
 class StateDownloader(BaseService, PeerSubscriber):
-    _pending_nodes: Dict[Any, float] = {}
     _total_processed_nodes = 0
     _report_interval = 10  # Number of seconds between progress reports.
     _reply_timeout = 20  # seconds
@@ -72,7 +73,8 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
-        self._peers_with_pending_requests: Dict[ETHPeer, float] = {}
+        self._requested_nodes: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self._peer_missing_nodes: Dict[ETHPeer, List[Hash32]] = collections.defaultdict(list)
         self._executor = get_asyncio_executor()
 
     @property
@@ -82,18 +84,24 @@ class StateDownloader(BaseService, PeerSubscriber):
         # now.
         return 2000
 
-    async def _get_idle_peers(self) -> List[ETHPeer]:
-        # FIXME: Should probably use get_peers() and pass the TD of our head? It's not really
-        # necessary because peers that are behind us may very well have the trie nodes we want.
-        peers = set([cast(ETHPeer, peer) async for peer in self.peer_pool])
-        return list(peers.difference(self._peers_with_pending_requests))
+    def deregister_peer(self, peer: BasePeer) -> None:
+        # Use .pop() with a default value as it's possible we never requested anything to this
+        # peer or it had all the trie nodes we requested, so there'd be no entry in
+        # self._peer_missing_nodes for it.
+        self._peer_missing_nodes.pop(cast(ETHPeer, peer), None)
 
-    async def get_idle_peer(self) -> ETHPeer:
-        idle_peers = await self._get_idle_peers()
-        while not idle_peers:
-            await self.wait(asyncio.sleep(0.02))
-            idle_peers = await self._get_idle_peers()
-        return secrets.choice(idle_peers)
+    async def get_peer_for_request(self, node_keys: Set[Hash32]) -> ETHPeer:
+        """Return an idle peer that may have any of the trie nodes in node_keys."""
+        async for peer in self.peer_pool:
+            peer = cast(ETHPeer, peer)
+            if peer in self._requested_nodes:
+                self.logger.trace("%s is not idle, skipping it", peer)
+                continue
+            if node_keys.difference(self._peer_missing_nodes[peer]):
+                return peer
+            else:
+                self.logger.trace("%s doesn't have the nodes we want, skipping it", peer)
+        raise NoEligiblePeers()
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
@@ -108,6 +116,21 @@ class StateDownloader(BaseService, PeerSubscriber):
             peer = cast(ETHPeer, peer)
             asyncio.ensure_future(self._handle_msg(peer, cmd, msg))
 
+    async def _process_nodes(self, nodes: Iterable[Tuple[Hash32, bytes]]) -> None:
+        for idx, (node_key, node) in enumerate(nodes):
+            self._total_processed_nodes += 1
+            try:
+                self.scheduler.process([(node_key, node)])
+            except SyncRequestAlreadyProcessed:
+                # This means we received a node more than once, which can happen when we
+                # retry after a timeout.
+                pass
+            if idx % 10 == 0:
+                # XXX: This is a quick workaround for
+                # https://github.com/ethereum/py-evm/issues/1074, which will be replaced soon
+                # with a proper fix.
+                await self.wait(asyncio.sleep(0))
+
     async def _handle_msg(
             self, peer: ETHPeer, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
@@ -117,31 +140,27 @@ class StateDownloader(BaseService, PeerSubscriber):
         if isinstance(cmd, ignored_commands):
             pass
         elif isinstance(cmd, eth.NodeData):
-            self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
-            loop = asyncio.get_event_loop()
-            # Check before we remove because sometimes a reply may come after our timeout and in
-            # that case we won't be expecting it anymore.
-            if peer in self._peers_with_pending_requests:
-                self._peers_with_pending_requests.pop(peer)
+            msg = cast(List[bytes], msg)
+            if peer not in self._requested_nodes:
+                # This is probably a batch that we retried after a timeout and ended up receiving
+                # more than once, so ignore but log as an INFO just in case.
+                self.logger.info(
+                    "Got %d NodeData entries from %s that were not expected, ignoring them",
+                    len(msg), peer)
+                return
 
+            self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
+            _, requested_node_keys = self._requested_nodes.pop(peer)
+
+            loop = asyncio.get_event_loop()
             node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
-            # If we removed items from self._pending_nodes in the processing loop below, the retry
-            # coroutine could kick in before we've finished and retry the nodes we haven't gotten
-            # to yet, so we first pop all received node keys from self._pending_nodes.
-            self._pending_nodes = dicttoolz.dissoc(self._pending_nodes, *node_keys)
-            for idx, (node_key, node) in enumerate(zip(node_keys, msg)):
-                self._total_processed_nodes += 1
-                try:
-                    self.scheduler.process([(node_key, node)])
-                except SyncRequestAlreadyProcessed:
-                    # This means we received a node more than once, which can happen when we
-                    # retry after a timeout.
-                    pass
-                if idx % 10 == 0:
-                    # XXX: This is a quick workaround for
-                    # https://github.com/ethereum/py-evm/issues/1074, which will be replaced soon
-                    # with a proper fix.
-                    await self.wait(asyncio.sleep(0))
+
+            missing = set(requested_node_keys).difference(node_keys)
+            self._peer_missing_nodes[peer].extend(missing)
+            if missing:
+                await self.request_nodes(missing)
+
+            await self._process_nodes(zip(node_keys, msg))
         elif isinstance(cmd, eth.GetBlockHeaders):
             query = cast(Dict[Any, Union[bool, int]], msg)
             request = HeaderRequest(
@@ -175,32 +194,36 @@ class StateDownloader(BaseService, PeerSubscriber):
         # run in the background notice the cancel token has been triggered and return.
         await asyncio.sleep(0)
 
-    async def request_nodes(self, node_keys: List[bytes]) -> None:
-        batches = list(itertoolz.partition_all(eth.MAX_STATE_FETCH, node_keys))
-        for batch in batches:
-            peer = await self.get_idle_peer()
-            now = time.time()
-            for node_key in batch:
-                self._pending_nodes[node_key] = now
+    async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
+        not_yet_requested = set(node_keys)
+        while not_yet_requested:
+            try:
+                peer = await self.get_peer_for_request(not_yet_requested)
+            except NoEligiblePeers:
+                self.logger.debug(
+                    "No idle peers have any of the trie nodes we want, sleeping a bit")
+                await self.wait(asyncio.sleep(0.2))
+                continue
+
+            candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
+            batch = candidates[:eth.MAX_STATE_FETCH]
+            not_yet_requested = not_yet_requested.difference(batch)
+            self._requested_nodes[peer] = (time.time(), batch)
             self.logger.debug("Requesting %d trie nodes to %s", len(batch), peer)
             peer.sub_proto.send_get_node_data(batch)
-            self._peers_with_pending_requests[peer] = now
 
     async def _periodically_retry_timedout(self) -> None:
         while self.is_running:
             now = time.time()
-            # First, update our list of peers with pending requests by removing those for which a
-            # request timed out. This loop mutates the dict, so we iterate on a copy of it.
-            for peer, last_req_time in list(self._peers_with_pending_requests.items()):
-                if now - last_req_time > self._reply_timeout:
-                    self._peers_with_pending_requests.pop(peer)
-
-            # Now re-send requests for nodes that timed out.
             oldest_request_time = now
             timed_out = []
-            for node_key, req_time in self._pending_nodes.items():
+            # Iterate over a copy of our dict's items as we're going to mutate it.
+            for peer, (req_time, node_keys) in list(self._requested_nodes.items()):
                 if now - req_time > self._reply_timeout:
-                    timed_out.append(node_key)
+                    self.logger.debug(
+                        "Timed out waiting for %d nodes from %s", len(node_keys), peer)
+                    timed_out.extend(node_keys)
+                    self._requested_nodes.pop(peer)
                 elif req_time < oldest_request_time:
                     oldest_request_time = req_time
             if timed_out:
@@ -252,13 +275,14 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _periodically_report_progress(self) -> None:
         while self.is_running:
+            requested_nodes = sum(
+                len(node_keys) for _, node_keys in self._requested_nodes.values())
             self.logger.info("====== State sync progress ========")
             self.logger.info("Nodes processed: %d", self._total_processed_nodes)
             self.logger.info("Nodes processed per second (average): %d",
                              self._total_processed_nodes / self._timer.elapsed)
             self.logger.info("Nodes committed to DB: %d", self.scheduler.committed_nodes)
-            self.logger.info(
-                "Nodes requested but not received yet: %d", len(self._pending_nodes))
+            self.logger.info("Nodes requested but not received yet: %d", requested_nodes)
             self.logger.info(
                 "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
             self.logger.info("Total nodes timed out: %d", self._total_timeouts)
