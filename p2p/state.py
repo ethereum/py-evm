@@ -74,7 +74,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self._active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
-        self._peer_missing_nodes: Dict[ETHPeer, List[Hash32]] = collections.defaultdict(list)
+        self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
         self._executor = get_asyncio_executor()
 
     @property
@@ -156,7 +156,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
 
             missing = set(requested_node_keys).difference(node_keys)
-            self._peer_missing_nodes[peer].extend(missing)
+            self._peer_missing_nodes[peer].update(missing)
             if missing:
                 await self.request_nodes(missing)
 
