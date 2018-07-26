@@ -129,7 +129,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # XXX: This is a quick workaround for
                 # https://github.com/ethereum/py-evm/issues/1074, which will be replaced soon
                 # with a proper fix.
-                await self.wait(asyncio.sleep(0))
+                await self.sleep(0)
 
     async def _handle_msg(
             self, peer: ETHPeer, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
@@ -192,6 +192,8 @@ class StateDownloader(BaseService, PeerSubscriber):
     async def _cleanup(self) -> None:
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
         # run in the background notice the cancel token has been triggered and return.
+        # Also, don't use self.sleep() here as the cancel token will be triggered and that will
+        # raise OperationCancelled.
         await asyncio.sleep(0)
 
     async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
@@ -202,7 +204,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             except NoEligiblePeers:
                 self.logger.debug(
                     "No idle peers have any of the trie nodes we want, sleeping a bit")
-                await self.wait(asyncio.sleep(0.2))
+                await self.sleep(0.2)
                 continue
 
             candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
@@ -238,7 +240,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             now = time.time()
             sleep_duration = (oldest_request_time + self._reply_timeout) - now
             try:
-                await self.wait(asyncio.sleep(sleep_duration))
+                await self.sleep(sleep_duration)
             except OperationCancelled:
                 break
 
@@ -257,7 +259,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # This ensures we yield control and give _handle_msg() a chance to process any nodes
                 # we may have received already, also ensuring we exit when our cancel token is
                 # triggered.
-                await self.wait(asyncio.sleep(0))
+                await self.sleep(0)
 
                 requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
                 if not requests:
@@ -266,7 +268,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                     # pending nodes take a while to arrive thus causing the scheduler to run out
                     # of new requests for a while.
                     self.logger.debug("Scheduler queue is empty, sleeping a bit")
-                    await self.wait(asyncio.sleep(0.5))
+                    await self.sleep(0.5)
                     continue
 
                 await self.request_nodes([request.node_key for request in requests])
@@ -287,7 +289,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
             self.logger.info("Total nodes timed out: %d", self._total_timeouts)
             try:
-                await self.wait(asyncio.sleep(self._report_interval))
+                await self.sleep(self._report_interval)
             except OperationCancelled:
                 break
 
