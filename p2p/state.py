@@ -279,15 +279,13 @@ class StateDownloader(BaseService, PeerSubscriber):
         while self.is_running:
             requested_nodes = sum(
                 len(node_keys) for _, node_keys in self._active_requests.values())
-            self.logger.info("====== State sync progress ========")
-            self.logger.info("Nodes processed: %d", self._total_processed_nodes)
-            self.logger.info("Nodes processed per second (average): %d",
-                             self._total_processed_nodes / self._timer.elapsed)
-            self.logger.info("Nodes committed to DB: %d", self.scheduler.committed_nodes)
-            self.logger.info("Nodes requested but not received yet: %d", requested_nodes)
-            self.logger.info(
-                "Nodes scheduled but not requested yet: %d", len(self.scheduler.requests))
-            self.logger.info("Total nodes timed out: %d", self._total_timeouts)
+            msg = "processed: %11d, " % self._total_processed_nodes
+            msg += "tnps: %5d, " % (self._total_processed_nodes / self._timer.elapsed)
+            msg += "committed: %11d, " % self.scheduler.committed_nodes
+            msg += "requested: %7d, " % requested_nodes
+            msg += "scheduled: %7d, " % len(self.scheduler.requests)
+            msg += "timeouts: %5d, " % self._total_timeouts
+            self.logger.info("State sync progress: %s", msg)
             try:
                 await self.sleep(self._report_interval)
             except OperationCancelled:
