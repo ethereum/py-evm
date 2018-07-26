@@ -40,7 +40,7 @@ from eth_keys import (
 
 from eth_hash.auto import keccak
 
-from p2p.cancel_token import CancelToken, wait_with_token
+from cancel_token import CancelToken
 
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
@@ -504,8 +504,8 @@ class KademliaProtocol:
         with self.ping_callbacks.acquire(remote, event.set):
             got_ping = False
             try:
-                got_ping = await wait_with_token(
-                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                got_ping = await cancel_token.cancellable_wait(
+                    event.wait(), timeout=k_request_timeout)
                 self.logger.debug('got expected ping from %s', remote)
             except TimeoutError:
                 self.logger.debug('timed out waiting for ping from %s', remote)
@@ -525,8 +525,8 @@ class KademliaProtocol:
         with self.pong_callbacks.acquire(pingid, event.set):
             got_pong = False
             try:
-                got_pong = await wait_with_token(
-                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                got_pong = await cancel_token.cancellable_wait(
+                    event.wait(), timeout=k_request_timeout)
                 self.logger.debug('got expected pong with token %s', encode_hex(token))
             except TimeoutError:
                 self.logger.debug(
@@ -555,8 +555,8 @@ class KademliaProtocol:
 
         with self.neighbours_callbacks.acquire(remote, process):
             try:
-                await wait_with_token(
-                    event.wait(), token=cancel_token, timeout=k_request_timeout)
+                await cancel_token.cancellable_wait(
+                    event.wait(), timeout=k_request_timeout)
                 self.logger.debug('got expected neighbours response from %s', remote)
             except TimeoutError:
                 self.logger.debug('timed out waiting for neighbours response from %s', remote)

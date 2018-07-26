@@ -13,13 +13,11 @@ from eth_typing import (
     Hash32,
 )
 
+from cancel_token import CancelToken
+
 from eth.rlp.collations import Collation
 from eth.rlp.headers import BlockHeader
 
-from p2p.cancel_token import (
-    CancelToken,
-    wait_with_token,
-)
 from p2p import protocol
 from p2p.protocol import (
     Command,
@@ -102,7 +100,7 @@ class ShardingPeer(BasePeer):
         pending_reply: asyncio.Future[Tuple[Command, protocol._DecodedMsgType]] = asyncio.Future()
         self._pending_replies[request_id] = pending_reply
         cast(ShardingProtocol, self.sub_proto).send_get_collations(request_id, collation_hashes)
-        cmd, msg = await wait_with_token(pending_reply, token=cancel_token)
+        cmd, msg = await cancel_token.cancellable_wait(pending_reply)
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Collations):
             raise UnexpectedMessage(

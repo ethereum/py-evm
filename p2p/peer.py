@@ -48,6 +48,8 @@ from eth_keys import (
     keys,
 )
 
+from cancel_token import CancelToken
+
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.constants import GENESIS_BLOCK_NUMBER
@@ -75,7 +77,6 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
     UnreachablePeer,
 )
-from p2p.cancel_token import CancelToken
 from p2p.service import BaseService
 from p2p.utils import (
     gen_request_id,

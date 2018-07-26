@@ -8,9 +8,10 @@ from eth_utils import (
 
 from eth_keys import keys
 
+from cancel_token import CancelToken
+
 from p2p import ecies
 from p2p import kademlia
-from p2p.cancel_token import CancelToken
 from p2p.p2p_proto import Hello
 from p2p.auth import (
     HandshakeInitiator,

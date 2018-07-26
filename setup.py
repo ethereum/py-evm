@@ -8,14 +8,14 @@ deps = {
         "cryptography>=2.0.3,<3.0.0",
         "cytoolz>=0.9.0,<1.0.0",
         "eth-bloom>=1.0.0,<2.0.0",
-        "eth-utils>=1.0.1,<2.0.0",
-        "eth-typing>=1.0.0,<2.0.0",
-        "pyethash>=0.1.27,<1.0.0",
-        "py-ecc>=1.4.2,<2.0.0",
-        "rlp>=1.0.1,<2.0.0",
         "eth-keys>=0.2.0b3,<1.0.0",
-        "trie>=1.3.5,<2.0.0",
+        "eth-typing>=1.0.0,<2.0.0",
+        "eth-utils>=1.0.1,<2.0.0",
         "lru-dict>=1.1.6",
+        "py-ecc>=1.4.2,<2.0.0",
+        "pyethash>=0.1.27,<1.0.0",
+        "rlp>=1.0.1,<2.0.0",
+        "trie>=1.3.5,<2.0.0",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
@@ -23,32 +23,33 @@ deps = {
     # using the default fallbacks though.
     'eth-extra': [
         "coincurve>=7.0.0,<8.0.0",
-        "plyvel==1.0.4",
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
+        "plyvel==1.0.4",
     ],
     'p2p': [
+        "asyncio-cancel-token==0.1.0a2",
         "async_lru>=0.1.0,<1.0.0",
+        "eth-hash>=0.1.4,<1",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
-        "eth-hash>=0.1.4,<1",
     ],
     'trinity': [
         "bloom-filter==1.3",
+        "cachetools>=2.1.0,<3.0.0",
+        "coincurve>=7.0.0,<8.0.0",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.4",
-        "coincurve>=7.0.0,<8.0.0",
         "web3==4.4.1",
-        "cachetools>=2.1.0,<3.0.0",
     ],
     'test': [
         "hypothesis==3.44.26",
         "pytest~=3.3",
         "pytest-asyncio==0.8.0",
         "pytest-cov==2.5.1",
-        "pytest-xdist==1.18.1",
         "pytest-watch>=4.1.0,<5",
+        "pytest-xdist==1.18.1",
     ],
     'lint': [
         "flake8==3.5.0",
@@ -68,8 +69,8 @@ deps = {
     'dev': [
         "bumpversion>=0.5.3,<1",
         "wheel",
-        "twine",
         "tox==2.7.0",
+        "twine",
     ],
 }
 

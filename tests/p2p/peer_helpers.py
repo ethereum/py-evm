@@ -3,16 +3,17 @@ import os
 from typing import List
 
 from eth_hash.auto import keccak
-from eth.utils.logging import TraceLogger
+
+from cancel_token import CancelToken
 
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 from eth.db.backends.memory import MemoryDB
+from eth.utils.logging import TraceLogger
 
 from p2p import auth
 from p2p import constants
 from p2p import ecies
 from p2p import kademlia
-from p2p.cancel_token import CancelToken
 from p2p.peer import BasePeer, LESPeer, PeerPool, PeerSubscriber
 from p2p.server import decode_authentication
 

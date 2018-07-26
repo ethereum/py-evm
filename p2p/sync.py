@@ -2,11 +2,12 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from cancel_token import CancelToken
+
 from eth.chains import AsyncChain
 from eth.constants import BLANK_ROOT_HASH
 from eth.db.backends.base import BaseDB
 
-from p2p.cancel_token import CancelToken
 from p2p.peer import PeerPool
 from p2p.chain import FastChainSyncer, RegularChainSyncer
 from p2p.service import BaseService

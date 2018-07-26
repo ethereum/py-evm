@@ -12,7 +12,9 @@ from typing import (
 
 from eth.utils.logging import TraceLogger
 
-from p2p.cancel_token import CancellableMixin, CancelToken
+from cancel_token import CancelToken
+
+from p2p.cancellable import CancellableMixin
 from p2p.exceptions import OperationCancelled
 
 
