@@ -51,3 +51,79 @@ Then to initialize, you can start it up with an in-memory database:
 
   >>> # initialize a fresh chain
   >>> chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
+
+.. _evm_cookbook_recipe_creating_a_chain_with_custom_state:
+
+Creating a chain with custom state
+----------------------------------
+
+While the previous recipe demos how to create a chain from an existing genesis header, we can
+also create chains simply by specifing various genesis parameter as well as an optional genesis
+state.
+
+.. doctest::
+
+  >>> from eth_keys import keys
+  >>> from eth import constants
+  >>> from eth.chains.mainnet import MainnetChain
+  >>> from eth.db.backends.memory import MemoryDB
+  >>> from eth_utils import to_wei, encode_hex
+
+
+
+  >>> # Giving funds to some address
+  >>> SOME_ADDRESS = b'\x85\x82\xa2\x89V\xb9%\x93M\x03\xdd\xb4Xu\xe1\x8e\x85\x93\x12\xc1'
+  >>> GENESIS_STATE = {
+  ...     SOME_ADDRESS: {
+  ...         "balance": to_wei(10000, 'ether'),
+  ...         "nonce": 0,
+  ...         "code": b'',
+  ...         "storage": {}
+  ...     }
+  ... }
+
+  >>> GENESIS_PARAMS = {
+  ...     'parent_hash': constants.GENESIS_PARENT_HASH,
+  ...     'uncles_hash': constants.EMPTY_UNCLE_HASH,
+  ...     'coinbase': constants.ZERO_ADDRESS,
+  ...     'transaction_root': constants.BLANK_ROOT_HASH,
+  ...     'receipt_root': constants.BLANK_ROOT_HASH,
+  ...     'difficulty': constants.GENESIS_DIFFICULTY,
+  ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
+  ...     'gas_limit': constants.GENESIS_GAS_LIMIT,
+  ...     'extra_data': constants.GENESIS_EXTRA_DATA,
+  ...     'nonce': constants.GENESIS_NONCE
+  ... }
+
+>>> chain = MainnetChain.from_genesis(MemoryDB(), GENESIS_PARAMS, GENESIS_STATE)
+
+.. _evm_cookbook_recipe_getting_the_balance_from_an_account:
+
+Getting the balance from an account
+-----------------------------------
+
+Considering our previous example, we can get the balance of our pre-funded account as follows.
+
+.. doctest::
+
+  >>> current_vm = chain.get_vm()
+  >>> account_db = current_vm.state.account_db
+  >>> account_db.get_balance(SOME_ADDRESS)
+  10000000000000000000000
+
+.. _evm_cookbook_recipe_building_blocks_incrementally:
+
+Building blocks incrementally
+------------------------------
+
+The default :class:`~eth.chains.chain.Chain` is stateless and thus does not keep a tip block open
+that would allow us to incrementally build a block. However, we can import the 
+:class:`~eth.chains.chain.MiningChain` which does allow exactly that.
+
+.. doctest::
+
+  >>> from eth.chains.base import MiningChain
+
+Please check out the :doc:`Understanding the mining process
+</guides/eth/understanding_the_mining_process>` guide for a full example that demonstrates how 
+to use the :class:`~eth.chains.chain.MiningChain`.
