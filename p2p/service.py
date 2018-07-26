@@ -133,6 +133,10 @@ class BaseService(ABC, CancellableMixin):
         asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.loop)
         await asyncio.wait_for(self.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
 
+    async def sleep(self, delay: float) -> None:
+        """Coroutine that completes after a given time (in seconds)."""
+        await self.wait(asyncio.sleep(delay))
+
     @abstractmethod
     async def _run(self) -> None:
         """Run the service's loop.
