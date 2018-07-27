@@ -3,11 +3,14 @@ from typing import (
     cast,
     List,
     Tuple,
-    Union,
     TYPE_CHECKING
 )
 
 from rlp import sedes
+
+from eth_typing import (
+    BlockIdentifier,
+)
 
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
@@ -26,6 +29,7 @@ if TYPE_CHECKING:
     from p2p.peer import (  # noqa: F401
         ChainInfo
     )
+
 
 # Max number of items we can ask for in ETH requests. These are the values used in geth and if we
 # ask for more than this the peers will disconnect from us.
@@ -145,8 +149,11 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(nodes)
         self.send(header, body)
 
-    def send_get_block_headers(self, block_number_or_hash: Union[int, bytes],
-                               max_headers: int, reverse: bool = True
+    def send_get_block_headers(self,
+                               block_number_or_hash: BlockIdentifier,
+                               max_headers: int,
+                               skip: int,
+                               reverse: bool,
                                ) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
@@ -159,8 +166,6 @@ class ETHProtocol(Protocol):
                 "Cannot ask for more than {} block headers in a single request".format(
                     MAX_HEADERS_FETCH))
         cmd = GetBlockHeaders(self.cmd_id_offset)
-        # Number of block headers to skip between each item (i.e. step in python APIs).
-        skip = 0
         data = {
             'block_number_or_hash': block_number_or_hash,
             'max_headers': max_headers,
@@ -169,7 +174,7 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(data)
         self.send(header, body)
 
-    def send_block_headers(self, headers: List[BlockHeader]) -> None:
+    def send_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         cmd = BlockHeaders(self.cmd_id_offset)
         header, body = cmd.encode(headers)
         self.send(header, body)

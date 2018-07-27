@@ -29,7 +29,10 @@ from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
 from eth.chains import AsyncChain
 from eth.db.trie import make_trie_root_and_nodes
-from eth.exceptions import HeaderNotFound, ValidationError
+from eth.exceptions import (
+    HeaderNotFound,
+    ValidationError as EthValidationError,
+)
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction, BaseTransactionFields
@@ -42,11 +45,10 @@ from p2p.cancellable import CancellableMixin
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, ETHPeer, LESPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
-    get_block_numbers_for_request,
     get_asyncio_executor,
     Timer,
 )
@@ -205,6 +207,13 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.disconnect(DisconnectReason.timeout)
                 break
+            except ValueError as err:
+                self.logger.warn(
+                    "Invalid header response sent by peer %s disconnecting: %s",
+                    peer, err,
+                )
+                await peer.disconnect(DisconnectReason.useless_peer)
+                break
 
             if not headers:
                 self.logger.info("Got no new headers from %s, aborting sync", peer)
@@ -220,7 +229,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
             try:
                 await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
-            except ValidationError as e:
+            except EthValidationError as e:
                 self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
                 break
             try:
@@ -244,22 +253,39 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Fetching chain segment starting at #%d", start_at)
-        peer.request_block_headers(start_at, peer.max_headers_fetch, reverse=False)
+        request = peer.request_block_headers(
+            start_at,
+            peer.max_headers_fetch,
+            skip=0,
+            reverse=False,
+        )
+
         # Pass the peer's token to self.wait() because we want to abort if either we
         # or the peer terminates.
-        headers = list(await self.wait(
+        headers = tuple(await self.wait(
             self._new_headers.get(),
             token=peer.cancel_token,
             timeout=self._reply_timeout))
-        for header in headers.copy():
-            try:
-                await self.wait(self.db.coro_get_block_header_by_hash(header.hash))
-            except HeaderNotFound:
-                break
-            else:
-                self.logger.debug("Discarding %s as we already have it", header)
-                headers.remove(header)
-        return tuple(headers)
+
+        # check that the response headers are a valid match for our
+        # requested headers.
+        request.validate_headers(headers)
+
+        # the inner list comprehension is required to get python to evaluate
+        # the asynchronous comprehension
+        missing_headers = tuple([
+            header
+            for header
+            in headers
+            if not (await self.wait(self.db.coro_header_exists(header.hash)))
+        ])
+        if len(missing_headers) != len(headers):
+            self.logger.debug(
+                "Discarding %d / %d headers that we already have",
+                len(headers) - len(missing_headers),
+                len(headers),
+            )
+        return headers
 
     def _handle_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         if not headers:
@@ -298,9 +324,13 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
         self.logger.debug("Peer %s made header request: %s", peer, msg)
-        query = msg['query']
-        headers = await self._handler.lookup_headers(
-            query.block_number_or_hash, query.max_headers, query.skip, query.reverse)
+        request = HeaderRequest(
+            msg['query'].block_number_or_hash,
+            msg['query'].max_headers,
+            msg['query'].skip,
+            msg['query'].reverse,
+        )
+        headers = await self._handler.lookup_headers(request)
         self.logger.trace("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=msg['request_id'])
 
@@ -581,12 +611,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     async def _handle_get_block_headers(
             self,
             peer: ETHPeer,
-            header_request: Dict[str, Any]) -> None:
-        self.logger.debug("Peer %s made header request: %s", peer, header_request)
+            query: Dict[str, Any]) -> None:
+        self.logger.debug("Peer %s made header request: %s", peer, query)
+        request = HeaderRequest(
+            query['block_number_or_hash'],
+            query['max_headers'],
+            query['skip'],
+            query['reverse'],
+        )
 
-        headers = await self._handler.lookup_headers(
-            header_request['block_number_or_hash'], header_request['max_headers'],
-            header_request['skip'], header_request['reverse'])
+        headers = await self._handler.lookup_headers(request)
         self.logger.trace("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers)
 
@@ -697,34 +731,49 @@ class PeerRequestHandler(CancellableMixin):
         self.logger.trace("Replying to %s with %d trie nodes", peer, len(nodes))
         peer.sub_proto.send_node_data(nodes)
 
-    async def lookup_headers(self, block_number_or_hash: Union[int, bytes], max_headers: int,
-                             skip: int, reverse: bool) -> List[BlockHeader]:
+    async def lookup_headers(self,
+                             request: HeaderRequest) -> Tuple[BlockHeader, ...]:
         """
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
         """
-        if isinstance(block_number_or_hash, bytes):
-            try:
-                header = await self.wait(
-                    self.db.coro_get_block_header_by_hash(cast(Hash32, block_number_or_hash)))
-            except HeaderNotFound:
-                self.logger.debug(
-                    "Peer requested starting header %r that is unavailable, returning nothing",
-                    block_number_or_hash)
-                return []
-            block_number = header.block_number
-        elif isinstance(block_number_or_hash, int):
-            block_number = block_number_or_hash
-        else:
-            raise TypeError(
-                "Unexpected type for 'block_number_or_hash': %s", type(block_number_or_hash))
+        try:
+            block_numbers = await self._get_block_numbers_for_request(request)
+        except HeaderNotFound:
+            self.logger.debug(
+                "Peer requested starting header %r that is unavailable, returning nothing",
+                request.block_number_or_hash)
+            block_numbers = tuple()  # type: ignore
 
-        block_numbers = get_block_numbers_for_request(block_number, max_headers, skip, reverse)
-        headers = [header async for header in self._generate_available_headers(block_numbers)]
+        headers: Tuple[BlockHeader, ...] = tuple([
+            header
+            async for header
+            in self._generate_available_headers(block_numbers)
+        ])
         return headers
 
+    async def _get_block_numbers_for_request(self,
+                                             request: HeaderRequest) -> Tuple[BlockNumber, ...]:
+        """
+        Generate the block numbers for a given `HeaderRequest`.
+        """
+        if isinstance(request.block_number_or_hash, bytes):
+            header = await self.wait(
+                self.db.coro_get_block_header_by_hash(cast(Hash32, request.block_number_or_hash)))
+            return request.generate_block_numbers(header.block_number)
+        elif isinstance(request.block_number_or_hash, int):
+            # We don't need to pass in the block number to
+            # `generate_block_numbers` since the request is based on a numbered
+            # block identifier.
+            return request.generate_block_numbers()
+        else:
+            raise TypeError(
+                "Invariant: unexpected type for 'block_number_or_hash': %s",
+                type(request.block_number_or_hash),
+            )
+
     async def _generate_available_headers(
-            self, block_numbers: Tuple[BlockNumber]) -> AsyncGenerator[BlockHeader, None]:
+            self, block_numbers: Tuple[BlockNumber, ...]) -> AsyncGenerator[BlockHeader, None]:
         """
         Generates the headers requested, halting on the first header that is not locally available.
         """
