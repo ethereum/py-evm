@@ -53,7 +53,7 @@ from cancel_token import CancelToken
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.exceptions import ValidationError
+from eth.exceptions import ValidationError as EthValidationError
 from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM
 from eth.vm.forks import HomesteadVM
@@ -995,7 +995,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             try:
                 vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as err:
+            except EthValidationError as err:
                 raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(err))
 
         return msgs

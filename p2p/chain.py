@@ -29,7 +29,10 @@ from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
 from eth.chains import AsyncChain
 from eth.db.trie import make_trie_root_and_nodes
-from eth.exceptions import HeaderNotFound, ValidationError
+from eth.exceptions import (
+    HeaderNotFound,
+    ValidationError as EthValidationError,
+)
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction, BaseTransactionFields
@@ -204,7 +207,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.disconnect(DisconnectReason.timeout)
                 break
-            except ValidationError as err:
+            except ValueError as err:
                 self.logger.warn(
                     "Invalid header response sent by peer %s disconnecting: %s",
                     peer, err,
@@ -226,7 +229,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
             try:
                 await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
-            except ValidationError as e:
+            except EthValidationError as e:
                 self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
                 break
             try:
