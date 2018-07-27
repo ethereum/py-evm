@@ -7,10 +7,12 @@ package, but for now it's just a collection of random notes/recommendations.
 ## Task cancellation
 
 In order to make sure we stop all pending asyncio tasks upon exit (or when a service terminates),
-we use `CancelToken`s, which are heavily inspired by https://vorpus.org/blog/timeouts-and-cancellation-for-humans/
+we use `CancelToken`s from the
+[asyncio-cancel-token](https://asyncio-cancel-token.readthedocs.io/en/latest/index.html)
+library.
 
 - A `CancelToken` must be available to all our async APIs. Either as an instance attribute or as an explicit argument.
-- When one of our async APIs `await` for stdlib/third-party coroutines, it must use `wait_with_token()` to ensure the scheduled task is cancelled when the token is triggered.
+- When one of our async APIs `await` for stdlib/third-party coroutines, it must use `CancelToken.cancellable_wait()` to ensure the scheduled task is cancelled when the token is triggered.
 
 
 ## BaseService

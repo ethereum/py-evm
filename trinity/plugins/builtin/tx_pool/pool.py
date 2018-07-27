@@ -10,10 +10,11 @@ from bloom_filter import (
     BloomFilter
 )
 
+from cancel_token import CancelToken
+
 from eth.rlp.transactions import (
     BaseTransactionFields
 )
-from p2p.cancel_token import CancelToken
 from p2p.eth import (
     Transactions
 )

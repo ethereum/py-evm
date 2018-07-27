@@ -9,7 +9,8 @@ from eth_utils import (
     int_to_big_endian,
 )
 
-from p2p.cancel_token import CancelToken
+from cancel_token import CancelToken
+
 from p2p import kademlia
 
 

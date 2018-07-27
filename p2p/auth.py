@@ -17,9 +17,10 @@ from eth_keys import (
 
 from eth_hash.auto import keccak
 
+from cancel_token import CancelToken
+
 from p2p import ecies
 from p2p import kademlia
-from p2p.cancel_token import CancelToken, wait_with_token
 from p2p.constants import REPLY_TIMEOUT
 from p2p.exceptions import (
     BadAckMessage,
@@ -74,9 +75,8 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     auth_init = initiator.encrypt_auth_message(auth_msg)
     writer.write(auth_init)
 
-    auth_ack = await wait_with_token(
+    auth_ack = await token.cancellable_wait(
         reader.read(ENCRYPTED_AUTH_ACK_LEN),
-        token=token,
         timeout=REPLY_TIMEOUT)
 
     if reader.at_eof():
@@ -118,9 +118,8 @@ class HandshakeBase:
         return self.privkey.public_key
 
     async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        return await wait_with_token(
+        return await self.cancel_token.cancellable_wait(
             asyncio.open_connection(host=self.remote.address.ip, port=self.remote.address.tcp_port),
-            token=self.cancel_token,
             timeout=REPLY_TIMEOUT)
 
     def derive_secrets(self,

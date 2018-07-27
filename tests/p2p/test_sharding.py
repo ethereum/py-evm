@@ -14,6 +14,8 @@ from eth.utils.padding import (
     zpad_right,
 )
 
+from cancel_token import CancelToken
+
 from p2p.sharding_protocol import (
     ShardingProtocol,
     GetCollations,
@@ -24,9 +26,6 @@ from p2p.sharding_peer import (
 )
 from p2p.shard_syncer import (
     ShardSyncer,
-)
-from p2p.cancel_token import (
-    CancelToken,
 )
 
 from p2p.exceptions import (

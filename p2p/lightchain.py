@@ -29,6 +29,8 @@ from eth_utils import (
 from trie import HexaryTrie
 from trie.exceptions import BadTrieProof
 
+from cancel_token import CancelToken
+
 from eth.exceptions import (
     BlockNotFound,
     HeaderNotFound,
@@ -42,7 +44,6 @@ from p2p.exceptions import (
     NoConnectedPeers,
     NoEligiblePeers,
 )
-from p2p.cancel_token import CancelToken
 from p2p import protocol
 from p2p.constants import (
     COMPLETION_TIMEOUT,

@@ -14,15 +14,14 @@ from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
+from cancel_token import CancelToken
+
 from eth.chains import AsyncChain
 from eth.db.backends.base import BaseDB
 
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
-)
-from p2p.cancel_token import (
-    CancelToken,
 )
 from p2p.constants import (
     ENCRYPTED_AUTH_MSG_LEN,

@@ -4,6 +4,8 @@ from argparse import (
 )
 import asyncio
 
+from cancel_token import CancelToken
+
 from eth.chains.base import (
     BaseChain
 )
@@ -16,9 +18,6 @@ from eth.chains.ropsten import (
     BaseRopstenChain,
 )
 
-from p2p.cancel_token import (
-    CancelToken
-)
 from p2p.peer import (
     PeerPool
 )

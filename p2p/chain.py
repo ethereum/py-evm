@@ -23,6 +23,8 @@ from cytoolz import (
 
 from eth_typing import BlockNumber, Hash32
 
+from cancel_token import CancelToken
+
 from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
 from eth.chains import AsyncChain
@@ -36,7 +38,7 @@ from eth.utils.logging import TraceLogger
 from p2p import protocol
 from p2p import eth
 from p2p import les
-from p2p.cancel_token import CancellableMixin, CancelToken
+from p2p.cancellable import CancellableMixin
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, OperationCancelled
 from p2p.p2p_proto import DisconnectReason

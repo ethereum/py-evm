@@ -13,6 +13,8 @@ from eth_typing import (
     Hash32,
 )
 
+from cancel_token import CancelToken
+
 from eth.rlp.collations import Collation
 from eth.rlp.headers import CollationHeader
 from eth.chains.shard import Shard
@@ -36,10 +38,6 @@ from eth.exceptions import (
     CollationBodyNotFound,
 )
 
-from p2p.cancel_token import (
-    CancelToken,
-    wait_with_token,
-)
 from p2p.service import BaseService
 from p2p.peer import (
     PeerPool,
@@ -117,9 +115,8 @@ class ShardSyncer(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
             while True:
-
-                peer, cmd, msg = await wait_with_token(
-                    self.msg_queue.get(), token=self.cancel_token)
+                peer, cmd, msg = await self.cancel_token.cancellable_wait(
+                    self.msg_queue.get())
 
                 peer = cast(ShardingPeer, peer)
                 msg = cast(Dict[str, Any], msg)
