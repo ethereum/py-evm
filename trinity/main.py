@@ -28,6 +28,8 @@ from trinity.exceptions import (
 from trinity.chains import (
     initialize_data_dir,
     is_data_dir_initialized,
+    initialize_trinity_root_dir,
+    need_create_trinity_root_dir,
     get_chaindb_manager,
 )
 from trinity.cli_parser import (
@@ -134,6 +136,9 @@ def main() -> None:
             ).format(e.path)
             logger.error(msg)
             sys.exit(1)
+
+    if need_create_trinity_root_dir(chain_config):
+        initialize_trinity_root_dir(chain_config)
 
     logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         logger,

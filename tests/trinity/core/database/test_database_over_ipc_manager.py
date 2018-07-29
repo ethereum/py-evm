@@ -27,6 +27,9 @@ from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
 )
+from trinity.utils.xdg import (
+    get_xdg_trinity_root,
+)
 
 
 def serve_chaindb(manager):
@@ -44,7 +47,12 @@ def database_server_ipc_path():
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, max_peers=1, data_dir=temp_dir)
+        chain_config = ChainConfig(
+            network_id=ROPSTEN_NETWORK_ID,
+            max_peers=1,
+            data_dir=temp_dir,
+            trinity_root_dir=get_xdg_trinity_root()
+        )
 
         manager = get_chaindb_manager(chain_config, core_db)
         chaindb_server_process = multiprocessing.Process(

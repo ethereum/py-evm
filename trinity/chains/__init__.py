@@ -32,9 +32,6 @@ from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
-from trinity.exceptions import (
-    MissingPath,
-)
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import AsyncChainDB, ChainDBProxy
@@ -46,10 +43,6 @@ from trinity.utils.mp import (
     async_method,
     sync_method,
 )
-from trinity.utils.xdg import (
-    is_under_xdg_trinity_root,
-)
-
 from .header import (
     AsyncHeaderChain,
     AsyncHeaderChainProxy,
@@ -97,31 +90,13 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
-    if not chain_config.data_dir.exists() and is_under_xdg_trinity_root(chain_config.data_dir):
+    if not chain_config.data_dir.exists():
         chain_config.data_dir.mkdir(parents=True, exist_ok=True)
-    elif not chain_config.data_dir.exists():
-        # we don't lazily create the base dir for non-default base directories.
-        raise MissingPath(
-            "The base chain directory provided does not exist: `{0}`".format(
-                chain_config.data_dir,
-            ),
-            chain_config.data_dir
-        )
 
     # Logfile
-    if (not chain_config.logdir_path.exists() and
-            is_under_xdg_trinity_root(chain_config.logdir_path)):
-
+    if not chain_config.logdir_path.exists():
         chain_config.logdir_path.mkdir(parents=True, exist_ok=True)
         chain_config.logfile_path.touch()
-    elif not chain_config.logdir_path.exists():
-        # we don't lazily create the base dir for non-default base directories.
-        raise MissingPath(
-            "The base logging directory provided does not exist: `{0}`".format(
-                chain_config.logdir_path,
-            ),
-            chain_config.logdir_path
-        )
 
     # Chain data-dir
     os.makedirs(chain_config.database_dir, exist_ok=True)
@@ -131,6 +106,19 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         nodekey = ecies.generate_privkey()
         with open(chain_config.nodekey_path, 'wb') as nodekey_file:
             nodekey_file.write(nodekey.to_bytes())
+
+
+def need_create_trinity_root_dir(chain_config: ChainConfig) -> bool:
+    if chain_config.trinity_root_dir is None:
+        return False
+    if os.path.exists(chain_config.trinity_root_dir):
+        return False
+    return True
+
+
+def initialize_trinity_root_dir(chain_config: ChainConfig) -> None:
+    if not chain_config.trinity_root_dir.exists():
+        chain_config.trinity_root_dir.mkdir(parents=True, exist_ok=True)
 
 
 def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> None:

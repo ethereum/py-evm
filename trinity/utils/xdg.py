@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 from pathlib import Path
 
@@ -37,6 +38,13 @@ def get_xdg_data_home() -> str:
         return os.environ['XDG_DATA_HOME']
     except KeyError:
         return os.path.join(get_home(), '.local', 'share')
+
+
+def get_xdg_runtime_home() -> str:
+    try:
+        return os.environ['XDG_RUNTIME_DIR']
+    except KeyError:
+        return os.path.join(tempfile.gettempdir(), 'trinity')
 
 
 def get_xdg_trinity_root() -> str:
