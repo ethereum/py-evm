@@ -151,7 +151,7 @@ class ChainConfig:
         elif self.sync_mode == SYNC_LIGHT:
             return self.data_dir / DATABASE_DIR_NAME / "light"
         else:
-            raise ValueError("Unknown sync mode: {}}".format(self.sync_mode))
+            raise ValueError("Unknown sync mode: {}".format(self.sync_mode))
 
     @property
     def database_ipc_path(self) -> Path:
