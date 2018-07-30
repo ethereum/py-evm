@@ -13,6 +13,7 @@ ADDMOD = 'ADDMOD'
 MULMOD = 'MULMOD'
 EXP = 'EXP'
 SIGNEXTEND = 'SIGNEXTEND'
+SHL = 'SHL'
 #
 # Comparisons
 #

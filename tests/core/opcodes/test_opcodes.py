@@ -1,19 +1,23 @@
 import pytest
 
 from eth_utils import (
+    decode_hex,
+    encode_hex,
     to_canonical_address,
+    int_to_big_endian,
 )
 
 from eth import (
     constants
 )
+from eth.utils.padding import (
+    pad32
+)
 from eth.vm import (
     opcode_values
 )
-from eth.vm.forks.byzantium.opcodes import (
-    BYZANTIUM_OPCODES
-)
 from eth.vm.forks import (
+    ConstantinopleVM,
     ByzantiumVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -98,3 +102,84 @@ def test_mul(vm_class, val1, val2, expected):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    # Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shl-shift-left
+    'vm_class, val1, val2, expected',
+    (
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x00',
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x01',
+            '0x0000000000000000000000000000000000000000000000000000000000000002',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0xff',
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x0100',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x0101',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x00',
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x01',
+            '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0xff',
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x0100',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            '0x01',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x01',
+            '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe',
+        ),
+    )
+)
+def test_shl(vm_class, val1, val2, expected):
+    computation = prepare_computation(vm_class)
+    computation.stack_push(decode_hex(val1))
+    computation.stack_push(decode_hex(val2))
+    computation.opcodes[opcode_values.SHL](computation)
+
+    result = computation.stack_pop(type_hint=constants.UINT256)
+
+    assert encode_hex(pad32(int_to_big_endian(result))) == expected
