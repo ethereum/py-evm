@@ -98,6 +98,7 @@ def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     logging.getLogger('p2p.kademlia').setLevel(logging.INFO)
     logging.getLogger('p2p.discovery').setLevel(logging.INFO)
     logging.getLogger('p2p.state.StateSync').setLevel(logging.INFO)
+    logging.getLogger('trie').setLevel(logging.ERROR)
     logger.debug('Logging initialized: PID=%s', os.getpid())
 
 
