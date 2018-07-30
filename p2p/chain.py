@@ -23,7 +23,7 @@ from cytoolz import (
 
 from eth_typing import BlockNumber, Hash32
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
 from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_BLOCK_NUMBER, GENESIS_PARENT_HASH)
@@ -43,7 +43,7 @@ from p2p import eth
 from p2p import les
 from p2p.cancellable import CancellableMixin
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
-from p2p.exceptions import NoEligiblePeers, OperationCancelled
+from p2p.exceptions import NoEligiblePeers
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, ETHPeer, LESPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody

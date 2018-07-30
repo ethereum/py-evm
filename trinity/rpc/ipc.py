@@ -12,11 +12,9 @@ from cytoolz import curry
 
 from cancel_token import (
     CancelToken,
-)
-
-from p2p.exceptions import (
     OperationCancelled,
 )
+
 from p2p.service import (
     BaseService,
 )
