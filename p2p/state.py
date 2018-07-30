@@ -1,5 +1,6 @@
 import asyncio
 import collections
+import itertools
 import logging
 import time
 from typing import (
@@ -13,6 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+
+import cytoolz
 
 import rlp
 
@@ -40,11 +43,12 @@ from eth.constants import (
 )
 from eth.db.backends.base import BaseDB
 from eth.rlp.accounts import Account
+from eth.utils.logging import TraceLogger
 
 from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
-from p2p.exceptions import NoEligiblePeers
+from p2p.exceptions import NoEligiblePeers, NoIdlePeers
 from p2p.peer import BasePeer, ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer
@@ -73,7 +77,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.root_hash = root_hash
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
-        self._active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
         self._executor = get_asyncio_executor()
 
@@ -91,17 +95,27 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._peer_missing_nodes.pop(cast(ETHPeer, peer), None)
 
     async def get_peer_for_request(self, node_keys: Set[Hash32]) -> ETHPeer:
-        """Return an idle peer that may have any of the trie nodes in node_keys."""
+        """Return an idle peer that may have any of the trie nodes in node_keys.
+
+        If none of our peers have any of the given node keys, raise NoEligiblePeers. If none of
+        the peers which may have at least one of the given node keys is idle, raise NoIdlePeers.
+        """
+        has_eligible_peers = False
         async for peer in self.peer_pool:
             peer = cast(ETHPeer, peer)
-            if peer in self._active_requests:
+            if self._peer_missing_nodes[peer].issuperset(node_keys):
+                self.logger.trace("%s doesn't have any of the nodes we want, skipping it", peer)
+                continue
+            has_eligible_peers = True
+            if peer in self.request_tracker.active_requests:
                 self.logger.trace("%s is not idle, skipping it", peer)
                 continue
-            if node_keys.difference(self._peer_missing_nodes[peer]):
-                return peer
-            else:
-                self.logger.trace("%s doesn't have the nodes we want, skipping it", peer)
-        raise NoEligiblePeers()
+            return peer
+
+        if not has_eligible_peers:
+            raise NoEligiblePeers()
+        else:
+            raise NoIdlePeers()
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
@@ -141,7 +155,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             pass
         elif isinstance(cmd, eth.NodeData):
             msg = cast(List[bytes], msg)
-            if peer not in self._active_requests:
+            if peer not in self.request_tracker.active_requests:
                 # This is probably a batch that we retried after a timeout and ended up receiving
                 # more than once, so ignore but log as an INFO just in case.
                 self.logger.info(
@@ -150,7 +164,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 return
 
             self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
-            _, requested_node_keys = self._active_requests.pop(peer)
+            _, requested_node_keys = self.request_tracker.active_requests.pop(peer)
 
             loop = asyncio.get_event_loop()
             node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
@@ -201,46 +215,49 @@ class StateDownloader(BaseService, PeerSubscriber):
         while not_yet_requested:
             try:
                 peer = await self.get_peer_for_request(not_yet_requested)
-            except NoEligiblePeers:
+            except NoIdlePeers:
                 self.logger.debug(
                     "No idle peers have any of the trie nodes we want, sleeping a bit")
                 await self.sleep(0.2)
                 continue
+            except NoEligiblePeers:
+                self.request_tracker.missing[time.time()] = list(not_yet_requested)
+                self.logger.debug(
+                    "No peers have any of the trie nodes in this batch, will retry later")
+                # TODO: disconnect a peer if the pool is full
+                return
 
             candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
             batch = candidates[:eth.MAX_STATE_FETCH]
             not_yet_requested = not_yet_requested.difference(batch)
-            self._active_requests[peer] = (time.time(), batch)
+            self.request_tracker.active_requests[peer] = (time.time(), batch)
             self.logger.debug("Requesting %d trie nodes to %s", len(batch), peer)
             peer.sub_proto.send_get_node_data(batch)
 
-    async def _periodically_retry_timedout(self) -> None:
+    async def _periodically_retry_timedout_and_missing(self) -> None:
         while self.is_running:
-            now = time.time()
-            oldest_request_time = now
-            timed_out = []
-            # Iterate over a copy of our dict's items as we're going to mutate it.
-            for peer, (req_time, node_keys) in list(self._active_requests.items()):
-                if now - req_time > self._reply_timeout:
-                    self.logger.debug(
-                        "Timed out waiting for %d nodes from %s", len(node_keys), peer)
-                    timed_out.extend(node_keys)
-                    self._active_requests.pop(peer)
-                elif req_time < oldest_request_time:
-                    oldest_request_time = req_time
+            timed_out = self.request_tracker.get_timed_out()
             if timed_out:
-                self.logger.debug("Re-requesting %d trie nodes", len(timed_out))
+                self.logger.debug("Re-requesting %d timed out trie nodes", len(timed_out))
                 self._total_timeouts += len(timed_out)
                 try:
                     await self.request_nodes(timed_out)
                 except OperationCancelled:
                     break
 
-            # Finally, sleep until the time our oldest request is scheduled to timeout.
-            now = time.time()
-            sleep_duration = (oldest_request_time + self._reply_timeout) - now
+            retriable_missing = self.request_tracker.get_retriable_missing()
+            if retriable_missing:
+                self.logger.debug("Re-requesting %d missing trie nodes", len(timed_out))
+                try:
+                    await self.request_nodes(retriable_missing)
+                except OperationCancelled:
+                    break
+
+            # Finally, sleep until the time either our oldest request is scheduled to timeout or
+            # one of our missing batches is scheduled to be retried.
+            next_timeout = self.request_tracker.get_next_timeout()
             try:
-                await self.sleep(sleep_duration)
+                await self.sleep(next_timeout - time.time())
             except OperationCancelled:
                 break
 
@@ -253,7 +270,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
         asyncio.ensure_future(self._handle_msg_loop())
         asyncio.ensure_future(self._periodically_report_progress())
-        asyncio.ensure_future(self._periodically_retry_timedout())
+        asyncio.ensure_future(self._periodically_retry_timedout_and_missing())
         with self.subscribe(self.peer_pool):
             while self.scheduler.has_pending_requests:
                 # This ensures we yield control and give _handle_msg() a chance to process any nodes
@@ -278,7 +295,7 @@ class StateDownloader(BaseService, PeerSubscriber):
     async def _periodically_report_progress(self) -> None:
         while self.is_running:
             requested_nodes = sum(
-                len(node_keys) for _, node_keys in self._active_requests.values())
+                len(node_keys) for _, node_keys in self.request_tracker.active_requests.values())
             msg = "processed: %11d, " % self._total_processed_nodes
             msg += "tnps: %5d, " % (self._total_processed_nodes / self._timer.elapsed)
             msg += "committed: %11d, " % self.scheduler.committed_nodes
@@ -290,6 +307,35 @@ class StateDownloader(BaseService, PeerSubscriber):
                 await self.sleep(self._report_interval)
             except OperationCancelled:
                 break
+
+
+class TrieNodeRequestTracker:
+
+    def __init__(self, reply_timeout: int, logger: TraceLogger) -> None:
+        self.reply_timeout = reply_timeout
+        self.logger = logger
+        self.active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self.missing: Dict[float, List[Hash32]] = {}
+
+    def get_timed_out(self) -> List[Hash32]:
+        timed_out = cytoolz.valfilter(
+            lambda v: time.time() - v[0] > self.reply_timeout, self.active_requests)
+        for peer, (_, node_keys) in timed_out.items():
+            self.logger.debug(
+                "Timed out waiting for %d nodes from %s", len(node_keys), peer)
+        self.active_requests = cytoolz.dissoc(self.active_requests, *timed_out.keys())
+        return list(cytoolz.concat(node_keys for _, node_keys in timed_out.values()))
+
+    def get_retriable_missing(self) -> List[Hash32]:
+        retriable = cytoolz.keyfilter(
+            lambda k: time.time() - k > self.reply_timeout, self.missing)
+        self.missing = cytoolz.dissoc(self.missing, *retriable.keys())
+        return list(cytoolz.concat(retriable.values()))
+
+    def get_next_timeout(self) -> float:
+        active_req_times = [req_time for (req_time, _) in self.active_requests.values()]
+        oldest = min(itertools.chain([time.time()], self.missing.keys(), active_req_times))
+        return oldest + self.reply_timeout
 
 
 class StateSync(HexaryTrieSync):
