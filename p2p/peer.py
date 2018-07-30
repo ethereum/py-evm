@@ -48,7 +48,7 @@ from eth_keys import (
     keys,
 )
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
@@ -70,7 +70,6 @@ from p2p.exceptions import (
     MalformedMessage,
     NoConnectedPeers,
     NoMatchingPeerCapabilities,
-    OperationCancelled,
     PeerConnectionLost,
     RemoteDisconnected,
     UnexpectedMessage,

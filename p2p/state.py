@@ -31,7 +31,7 @@ from eth_typing import (
     Hash32
 )
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -43,7 +43,6 @@ from eth.rlp.accounts import Account
 from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
-from p2p.exceptions import OperationCancelled
 from p2p.peer import ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer

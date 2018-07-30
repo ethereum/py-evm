@@ -1,11 +1,11 @@
 import asyncio
 
+from cancel_token import OperationCancelled
+
 from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
     MiningChain,
 )
-
-from p2p.exceptions import OperationCancelled
 
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB

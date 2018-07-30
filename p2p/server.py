@@ -14,7 +14,7 @@ from eth_keys import datatypes
 
 from eth_utils import big_endian_to_int
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
 from eth.chains import AsyncChain
 from eth.db.backends.base import BaseDB
@@ -37,7 +37,6 @@ from p2p.discovery import (
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
-    OperationCancelled,
     PeerConnectionLost,
 )
 from p2p.kademlia import (

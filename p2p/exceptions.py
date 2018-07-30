@@ -86,13 +86,6 @@ class TooManyTimeouts(BaseP2PError):
     pass
 
 
-class OperationCancelled(BaseP2PError):
-    """
-    Raised when an operation was cancelled.
-    """
-    pass
-
-
 class NoMatchingPeerCapabilities(BaseP2PError):
     """
     Raised when no matching protocol between peers was found.

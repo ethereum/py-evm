@@ -42,9 +42,9 @@ from eth_keys import datatypes
 
 from eth_hash.auto import keccak
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
-from p2p.exceptions import NoEligibleNodes, OperationCancelled
+from p2p.exceptions import NoEligibleNodes
 from p2p import kademlia
 from p2p.peer import PeerPool
 from p2p.service import BaseService
