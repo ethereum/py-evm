@@ -296,12 +296,12 @@ class StateDownloader(BaseService, PeerSubscriber):
         while self.is_running:
             requested_nodes = sum(
                 len(node_keys) for _, node_keys in self.request_tracker.active_requests.values())
-            msg = "processed: %d " % self._total_processed_nodes
-            msg += "tnps: %d " % (self._total_processed_nodes / self._timer.elapsed)
-            msg += "committed: %d " % self.scheduler.committed_nodes
-            msg += "requested: %d " % requested_nodes
-            msg += "scheduled: %d " % len(self.scheduler.requests)
-            msg += "timeouts: %d" % self._total_timeouts
+            msg = "processed=%d  " % self._total_processed_nodes
+            msg += "tnps=%d  " % (self._total_processed_nodes / self._timer.elapsed)
+            msg += "committed=%d  " % self.scheduler.committed_nodes
+            msg += "requested=%d  " % requested_nodes
+            msg += "scheduled=%d  " % len(self.scheduler.requests)
+            msg += "timeouts=%d" % self._total_timeouts
             self.logger.info("State-Sync: %s", msg)
             try:
                 await self.sleep(self._report_interval)
