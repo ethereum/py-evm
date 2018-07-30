@@ -42,6 +42,7 @@ class MalformedMessage(BaseP2PError):
     """
     Raised when a p2p command is received with a malformed message
     """
+    pass
 
 
 class UnknownProtocolCommand(BaseP2PError):

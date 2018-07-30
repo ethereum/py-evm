@@ -355,10 +355,18 @@ class BasePeer(BaseService):
         # too much time is being spent on this again, we need to consider running this in a
         # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
         # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
-        decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
-        self.logger.trace("Successfully decoded %s msg: %s", cmd, decoded_msg)
-        self.received_msgs[cmd] += 1
-        return cmd, decoded_msg
+        try:
+            decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
+        except MalformedMessage as err:
+            self.logger.debug(
+                "Malformed message from peer %s: CMD:%s Error: %r",
+                self, type(cmd).__name__, err,
+            )
+            raise
+        else:
+            self.logger.trace("Successfully decoded %s msg: %s", cmd, decoded_msg)
+            self.received_msgs[cmd] += 1
+            return cmd, decoded_msg
 
     def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         """Handle the base protocol (P2P) messages."""
@@ -837,9 +845,13 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             # check, we do it here because we want to perform it for incoming peer connections as
             # well.
             msgs = await self.ensure_same_side_on_dao_fork(peer)
-        except DAOForkCheckFailure as e:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, e)
+        except DAOForkCheckFailure as err:
+            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
             await peer.disconnect(DisconnectReason.useless_peer)
+            return
+        except MalformedMessage as err:
+            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
+            await peer.disconnect(DisconnectReason.bad_protocol)
             return
         asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
         self._add_peer(peer, msgs)
@@ -962,9 +974,9 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     else:
                         msgs.append((cmd, msg))
                         continue
-            except (TimeoutError, PeerConnectionLost) as e:
+            except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
-                    "Timed out waiting for DAO fork header from {}: {}".format(peer, e))
+                    "Timed out waiting for DAO fork header from {}: {}".format(peer, err))
 
             try:
                 request.validate_headers(headers)
