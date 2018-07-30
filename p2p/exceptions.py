@@ -109,7 +109,14 @@ class NoConnectedPeers(BaseP2PError):
 
 class NoEligiblePeers(BaseP2PError):
     """
-    Raised when none of our peers have the blocks we want.
+    Raised when none of our peers have the data we want.
+    """
+    pass
+
+
+class NoIdlePeers(BaseP2PError):
+    """
+    Raised when none of our peers is idle and can be used for data requests.
     """
     pass
 
