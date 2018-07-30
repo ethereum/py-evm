@@ -256,37 +256,37 @@ workflows:
   test:
     jobs:
       - py37-core
-      # - py36-docs
-      # - py36-native-state-byzantium
-      # - py36-native-state-frontier
-      # - py36-native-state-homestead
-      # - py36-native-state-eip150
-      # - py36-native-state-eip158
-      # - py36-rpc-state-byzantium
-      # - py36-rpc-state-frontier
-      # - py36-rpc-state-homestead
-      # - py36-rpc-state-eip150
-      # - py36-rpc-state-eip158
-      # - py36-native-blockchain
-      # - py36-rpc-blockchain
-      # - py36-vm
-      # - py36-benchmark
-      # - py36-core
-      # - py36-trinity
-      # - py36-trinity-integration
-      # - py36-transactions
-      # - py36-p2p
-      # - py36-database
-      # - py36-rpc-state-quadratic
-      # - py35-native-state-byzantium
-      # - py35-native-state-frontier
-      # - py35-native-state-homestead
-      # - py35-native-state-eip150
-      # - py35-native-state-eip158
-      # - py35-native-blockchain
-      # - py35-vm
-      # - py35-core
-      # - py35-transactions
-      # - py35-database
-      # - lint-py35
-      # - lint-py36
+      - py36-docs
+      - py36-native-state-byzantium
+      - py36-native-state-frontier
+      - py36-native-state-homestead
+      - py36-native-state-eip150
+      - py36-native-state-eip158
+      - py36-rpc-state-byzantium
+      - py36-rpc-state-frontier
+      - py36-rpc-state-homestead
+      - py36-rpc-state-eip150
+      - py36-rpc-state-eip158
+      - py36-native-blockchain
+      - py36-rpc-blockchain
+      - py36-vm
+      - py36-benchmark
+      - py36-core
+      - py36-trinity
+      - py36-trinity-integration
+      - py36-transactions
+      - py36-p2p
+      - py36-database
+      - py36-rpc-state-quadratic
+      - py35-native-state-byzantium
+      - py35-native-state-frontier
+      - py35-native-state-homestead
+      - py35-native-state-eip150
+      - py35-native-state-eip158
+      - py35-native-blockchain
+      - py35-vm
+      - py35-core
+      - py35-transactions
+      - py35-database
+      - lint-py35
+      - lint-py36
