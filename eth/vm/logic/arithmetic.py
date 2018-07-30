@@ -177,3 +177,17 @@ def signextend(computation):
         result = value
 
     computation.stack_push(result)
+
+
+def shl(computation):
+    """
+    Bitwise left shift
+    """
+    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+
+    if shift_length >= 256:
+        result = 0
+    else:
+        result = (value << shift_length) & constants.UINT_256_MAX
+
+    computation.stack_push(result)
