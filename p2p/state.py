@@ -49,7 +49,7 @@ from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
 from p2p.exceptions import NoEligiblePeers, NoIdlePeers
-from p2p.peer import BasePeer, ETHPeer, HeaderRequest, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer
 
@@ -177,7 +177,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             await self._process_nodes(zip(node_keys, msg))
         elif isinstance(cmd, eth.GetBlockHeaders):
             query = cast(Dict[Any, Union[bool, int]], msg)
-            request = HeaderRequest(
+            request = eth.HeaderRequest(
                 query['block_number_or_hash'],
                 query['max_headers'],
                 query['skip'],
@@ -199,7 +199,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 
-    async def _handle_get_block_headers(self, peer: ETHPeer, request: HeaderRequest) -> None:
+    async def _handle_get_block_headers(self, peer: ETHPeer, request: eth.HeaderRequest) -> None:
         headers = await self._handler.lookup_headers(request)
         peer.sub_proto.send_block_headers(headers)
 

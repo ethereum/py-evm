@@ -20,7 +20,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    NamedTuple,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -60,8 +59,10 @@ from eth.vm.forks import HomesteadVM
 
 from p2p import auth
 from p2p import ecies
-from p2p.kademlia import Address, Node
+from p2p import eth
+from p2p import les
 from p2p import protocol
+from p2p.kademlia import Address, Node
 from p2p.exceptions import (
     BadAckMessage,
     DAOForkCheckFailure,
@@ -75,17 +76,16 @@ from p2p.exceptions import (
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
+    ValidationError,
 )
 from p2p.service import BaseService
 from p2p.utils import (
-    gen_request_id,
+    gen_request_id as _gen_request_id,
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
     time_since,
 )
-from p2p import eth
-from p2p import les
 from p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
@@ -143,105 +143,6 @@ async def handshake(remote: Node,
     return peer
 
 
-class HeaderRequest(NamedTuple):
-    block_number_or_hash: BlockIdentifier
-    max_headers: int
-    skip: int
-    reverse: bool
-
-    def generate_block_numbers(self,
-                               block_number: BlockNumber=None) -> Tuple[BlockNumber, ...]:
-        if block_number is None and not self.is_numbered:
-            raise TypeError(
-                "A `block_number` must be supplied to generate block numbers "
-                "for hash based header requests"
-            )
-        elif block_number is not None and self.is_numbered:
-            raise TypeError(
-                "The `block_number` parameter may not be used for number based "
-                "header requests"
-            )
-        elif block_number is None:
-            block_number = cast(BlockNumber, self.block_number_or_hash)
-
-        max_headers = min(eth.MAX_HEADERS_FETCH, self.max_headers)
-
-        # inline import until this module is moved to `trinity`
-        from trinity.utils.headers import sequence_builder
-        return sequence_builder(
-            block_number,
-            max_headers,
-            self.skip,
-            self.reverse,
-        )
-
-    @property
-    def is_numbered(self) -> bool:
-        return isinstance(self.block_number_or_hash, int)
-
-    def validate_headers(self,
-                         headers: Tuple[BlockHeader, ...]) -> None:
-        if not headers:
-            # An empty response is always valid
-            return
-        elif not self.is_numbered:
-            first_header = headers[0]
-            if first_header.hash != self.block_number_or_hash:
-                raise ValueError(
-                    "Returned headers cannot be matched to header request. "
-                    "Expected first header to have hash of {0} but instead got "
-                    "{1}.".format(
-                        encode_hex(self.block_number_or_hash),
-                        encode_hex(first_header.hash),
-                    )
-                )
-
-        block_numbers: Tuple[BlockNumber, ...] = tuple(
-            header.block_number for header in headers
-        )
-        return self.validate_sequence(block_numbers)
-
-    def validate_sequence(self, block_numbers: Tuple[BlockNumber, ...]) -> None:
-        if not block_numbers:
-            return
-        elif self.is_numbered:
-            expected_numbers = self.generate_block_numbers()
-        else:
-            expected_numbers = self.generate_block_numbers(block_numbers[0])
-
-        # check for numbers that should not be present.
-        unexpected_numbers = set(block_numbers).difference(expected_numbers)
-        if unexpected_numbers:
-            raise ValueError(
-                'Unexpected numbers: {0}'.format(unexpected_numbers))
-
-        # check that the numbers are correctly ordered.
-        expected_order = tuple(sorted(
-            block_numbers,
-            reverse=self.reverse,
-        ))
-        if block_numbers != expected_order:
-            raise ValueError(
-                'Returned headers are not correctly ordered.\n'
-                'Expected: {0}\n'
-                'Got     : {1}\n'.format(expected_order, block_numbers)
-            )
-
-        # check that all provided numbers are an ordered subset of the master
-        # sequence.
-        iter_expected = iter(expected_numbers)
-        for number in block_numbers:
-            for value in iter_expected:
-                if value == number:
-                    break
-            else:
-                raise ValueError(
-                    'Returned headers contain an unexpected block number.\n'
-                    'Unexpected Number: {0}\n'
-                    'Expected Numbers : {1}'.format(number, expected_numbers)
-                )
-
-
 class BasePeer(BaseService):
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
@@ -253,6 +154,14 @@ class BasePeer(BaseService):
     sub_proto: protocol.Protocol = None
     head_td: int = None
     head_hash: Hash32 = None
+
+    # TODO: Instead of a fixed timeout, we should instead monitor response
+    # times for the peer and adjust our timeout accordingly
+    _response_timeout = 60
+    pending_requests: Dict[
+        Type[protocol.Command],
+        Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
+    ]
 
     def __init__(self,
                  remote: Node,
@@ -279,6 +188,8 @@ class BasePeer(BaseService):
         self._subscribers: List[PeerSubscriber] = []
         self.start_time = datetime.datetime.now()
         self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
+
+        self.pending_requests = {}
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -470,6 +381,24 @@ class BasePeer(BaseService):
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
+        cmd_type = type(cmd)
+
+        if cmd_type in self.pending_requests:
+            request, future = self.pending_requests[cmd_type]
+            try:
+                request.validate_response(msg)
+            except ValidationError as err:
+                self.logger.debug(
+                    "Response validation failure for pending %s request from peer %s: %s",
+                    cmd_type.__name__,
+                    self,
+                    err,
+                )
+                pass
+            else:
+                future.set_result(msg)
+                self.pending_requests.pop(cmd_type)
+
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
@@ -624,6 +553,7 @@ class LESPeer(BasePeer):
             self.head_info = cmd.as_head_info(msg)
             self.head_td = self.head_info.total_difficulty
             self.head_hash = self.head_info.block_hash
+
         super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
@@ -652,19 +582,23 @@ class LESPeer(BasePeer):
         self.head_td = self.head_info.total_difficulty
         self.head_hash = self.head_info.block_hash
 
+    def gen_request_id(self) -> int:
+        return _gen_request_id()
+
     def request_block_headers(self,
                               block_number_or_hash: BlockIdentifier,
                               max_headers: int = None,
                               skip: int = 0,
-                              reverse: bool = False) -> HeaderRequest:
+                              reverse: bool = False) -> les.HeaderRequest:
         if max_headers is None:
             max_headers = self.max_headers_fetch
-        request_id = gen_request_id()
-        request = HeaderRequest(
+        request_id = self.gen_request_id()
+        request = les.HeaderRequest(
             block_number_or_hash,
             max_headers,
             skip,
             reverse,
+            request_id,
         )
         self.sub_proto.send_get_block_headers(
             request.block_number_or_hash,
@@ -674,6 +608,38 @@ class LESPeer(BasePeer):
             request_id,
         )
         return request
+
+    async def wait_for_block_headers(self, request: les.HeaderRequest) -> Tuple[BlockHeader, ...]:
+        future: 'asyncio.Future[protocol._DecodedMsgType]' = asyncio.Future()
+        if les.BlockHeaders in self.pending_requests:
+            # the `finally` block below should prevent this from happening, but
+            # were two requests to the same peer to be fired off at the same
+            # time, this will prevent us from overwriting the first one.
+            raise ValueError(
+                "There is already a pending `BlockHeaders` request for peer {0}".format(self)
+            )
+        self.pending_requests[les.BlockHeaders] = cast(
+            Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
+            (request, future),
+        )
+        try:
+            response = cast(
+                Dict[str, Any],
+                await self.wait(future, timeout=self._response_timeout),
+            )
+        finally:
+            # We always want to be sure that this method cleans up the
+            # `pending_requests` so that we don't end up in a situation.
+            self.pending_requests.pop(les.BlockHeaders, None)
+        return cast(Tuple[BlockHeader, ...], response['headers'])
+
+    async def get_block_headers(self,
+                                block_number_or_hash: BlockIdentifier,
+                                max_headers: int = None,
+                                skip: int = 0,
+                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
+        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
+        return await self.wait_for_block_headers(request)
 
 
 class ETHPeer(BasePeer):
@@ -693,6 +659,7 @@ class ETHPeer(BasePeer):
             if actual_td > self.head_td:
                 self.head_hash = actual_head
                 self.head_td = actual_td
+
         super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
@@ -723,10 +690,10 @@ class ETHPeer(BasePeer):
                               block_number_or_hash: BlockIdentifier,
                               max_headers: int = None,
                               skip: int = 0,
-                              reverse: bool = True) -> HeaderRequest:
+                              reverse: bool = True) -> eth.HeaderRequest:
         if max_headers is None:
             max_headers = self.max_headers_fetch
-        request = HeaderRequest(
+        request = eth.HeaderRequest(
             block_number_or_hash,
             max_headers,
             skip,
@@ -739,6 +706,23 @@ class ETHPeer(BasePeer):
             request.reverse,
         )
         return request
+
+    async def wait_for_block_headers(self, request: eth.HeaderRequest) -> Tuple[BlockHeader, ...]:
+        future: 'asyncio.Future[Tuple[BlockHeader, ...]]' = asyncio.Future()
+        self.pending_requests[eth.BlockHeaders] = cast(
+            Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
+            (request, future),
+        )
+        response = await self.wait(future, timeout=self._response_timeout)
+        return response
+
+    async def get_block_headers(self,
+                                block_number_or_hash: BlockIdentifier,
+                                max_headers: int = None,
+                                skip: int = 0,
+                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
+        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
+        return await self.wait_for_block_headers(request)
 
 
 class PeerSubscriber(ABC):
@@ -984,7 +968,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             try:
                 request.validate_headers(headers)
-            except ValueError as err:
+            except ValidationError as err:
                 raise DAOForkCheckFailure(
                     "Invalid header response during DAO fork check: {}".format(err)
                 )
