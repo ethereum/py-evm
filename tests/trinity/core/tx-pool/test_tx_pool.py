@@ -2,13 +2,6 @@ import asyncio
 import pytest
 import uuid
 
-from p2p.peer import (
-    ETHPeer,
-)
-from p2p.eth import (
-    Transactions
-)
-
 from eth.utils.address import (
     force_bytes_to_address
 )
@@ -19,6 +12,10 @@ from trinity.plugins.builtin.tx_pool.pool import (
 from trinity.plugins.builtin.tx_pool.validators import (
     DefaultTransactionValidator
 )
+from trinity.protocol.eth.commands import (
+    Transactions
+)
+from trinity.protocol.eth.peer import ETHPeer
 
 from tests.conftest import (
     funded_address_private_key

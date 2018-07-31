@@ -14,10 +14,12 @@ from p2p import auth
 from p2p import constants
 from p2p import ecies
 from p2p import kademlia
-from p2p.peer import BasePeer, LESPeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.server import decode_authentication
 
-from integration_test_helpers import FakeAsyncHeaderDB
+from trinity.protocol.les.peer import LESPeer
+
+from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_fresh_mainnet_headerdb():
@@ -146,7 +148,11 @@ async def get_directly_linked_peers(
     asyncio.ensure_future(peer2.run())
 
     def finalizer():
-        event_loop.run_until_complete(asyncio.gather(peer1.cancel(), peer2.cancel()))
+        event_loop.run_until_complete(asyncio.gather(
+            peer1.cancel(),
+            peer2.cancel(),
+            loop=event_loop,
+        ))
     request.addfinalizer(finalizer)
 
     return peer1, peer2

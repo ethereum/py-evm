@@ -10,7 +10,6 @@ from eth.db.header import HeaderDB
 from eth.db.backends.memory import MemoryDB
 
 from p2p.peer import (
-    ETHPeer,
     PeerPool,
 )
 from p2p.kademlia import (
@@ -18,6 +17,8 @@ from p2p.kademlia import (
     Address,
 )
 from p2p.server import Server
+
+from trinity.protocol.eth.peer import ETHPeer
 
 from auth_constants import eip8_values
 from dumb_peer import DumbPeer

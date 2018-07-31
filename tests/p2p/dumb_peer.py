@@ -1,5 +1,5 @@
 from p2p import protocol
-from p2p.peer import (
+from trinity.protocol.eth.peer import (
     ETHPeer,
 )
 

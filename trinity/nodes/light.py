@@ -8,20 +8,20 @@ from p2p.discovery import DiscoveryService, PreferredNodeDiscoveryProtocol
 from p2p.kademlia import Address
 from p2p.lightchain import LightPeerChain
 from p2p.peer import (
-    LESPeer,
     PeerPool,
 )
 
 from trinity.chains.light import (
     LightDispatchChain,
 )
+from trinity.config import (
+    ChainConfig,
+)
 from trinity.extensibility import (
     PluginManager
 )
 from trinity.nodes.base import Node
-from trinity.config import (
-    ChainConfig,
-)
+from trinity.protocol.les.peer import LESPeer
 
 
 class LightNode(Node):

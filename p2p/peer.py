@@ -37,10 +37,9 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
     decode_hex,
-    encode_hex,
 )
 
-from eth_typing import BlockIdentifier, BlockNumber, Hash32
+from eth_typing import BlockNumber, Hash32
 
 from eth_keys import (
     datatypes,
@@ -59,8 +58,6 @@ from eth.vm.forks import HomesteadVM
 
 from p2p import auth
 from p2p import ecies
-from p2p import eth
-from p2p import les
 from p2p import protocol
 from p2p.kademlia import Address, Node
 from p2p.exceptions import (
@@ -80,7 +77,6 @@ from p2p.exceptions import (
 )
 from p2p.service import BaseService
 from p2p.utils import (
-    gen_request_id as _gen_request_id,
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
@@ -105,6 +101,8 @@ from .constants import (
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
+    from trinity.protocol.eth.requests import HeaderRequest  # noqa: F401
+    from trinity.protocol.base_request import BaseRequest  # noqa: F401
 
 
 async def handshake(remote: Node,
@@ -160,7 +158,7 @@ class BasePeer(BaseService):
     _response_timeout = 60
     pending_requests: Dict[
         Type[protocol.Command],
-        Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
+        Tuple['BaseRequest', 'asyncio.Future[protocol._DecodedMsgType]'],
     ]
 
     def __init__(self,
@@ -546,193 +544,6 @@ class BasePeer(BaseService):
         return hash(self.remote)
 
 
-class LESPeer(BasePeer):
-    _supported_sub_protocols = [les.LESProtocol, les.LESProtocolV2]
-    sub_proto: les.LESProtocol = None
-    # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
-    head_info: les.HeadInfo = None
-
-    @property
-    def max_headers_fetch(self) -> int:
-        return les.MAX_HEADERS_FETCH
-
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(cmd, les.Announce):
-            self.head_info = cmd.as_head_info(msg)
-            self.head_td = self.head_info.total_difficulty
-            self.head_hash = self.head_info.block_hash
-
-        super().handle_sub_proto_msg(cmd, msg)
-
-    async def send_sub_proto_handshake(self) -> None:
-        self.sub_proto.send_handshake(await self._local_chain_info)
-
-    async def process_sub_proto_handshake(
-            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if not isinstance(cmd, (les.Status, les.StatusV2)):
-            await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(
-                "Expected a LES Status msg, got {}, disconnecting".format(cmd))
-        msg = cast(Dict[str, Any], msg)
-        if msg['networkId'] != self.network_id:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
-                "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['networkId'], self.network_id))
-        genesis = await self.genesis
-        if msg['genesisHash'] != genesis.hash:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
-                "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesisHash']), genesis.hex_hash))
-        # TODO: Disconnect if the remote doesn't serve headers.
-        self.head_info = cmd.as_head_info(msg)
-        self.head_td = self.head_info.total_difficulty
-        self.head_hash = self.head_info.block_hash
-
-    def gen_request_id(self) -> int:
-        return _gen_request_id()
-
-    def request_block_headers(self,
-                              block_number_or_hash: BlockIdentifier,
-                              max_headers: int = None,
-                              skip: int = 0,
-                              reverse: bool = False) -> les.HeaderRequest:
-        if max_headers is None:
-            max_headers = self.max_headers_fetch
-        request_id = self.gen_request_id()
-        request = les.HeaderRequest(
-            block_number_or_hash,
-            max_headers,
-            skip,
-            reverse,
-            request_id,
-        )
-        self.sub_proto.send_get_block_headers(
-            request.block_number_or_hash,
-            request.max_headers,
-            request.skip,
-            request.reverse,
-            request_id,
-        )
-        return request
-
-    async def wait_for_block_headers(self, request: les.HeaderRequest) -> Tuple[BlockHeader, ...]:
-        future: 'asyncio.Future[protocol._DecodedMsgType]' = asyncio.Future()
-        if les.BlockHeaders in self.pending_requests:
-            # the `finally` block below should prevent this from happening, but
-            # were two requests to the same peer to be fired off at the same
-            # time, this will prevent us from overwriting the first one.
-            raise ValueError(
-                "There is already a pending `BlockHeaders` request for peer {0}".format(self)
-            )
-        self.pending_requests[les.BlockHeaders] = cast(
-            Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
-            (request, future),
-        )
-        try:
-            response = cast(
-                Dict[str, Any],
-                await self.wait(future, timeout=self._response_timeout),
-            )
-        finally:
-            # We always want to be sure that this method cleans up the
-            # `pending_requests` so that we don't end up in a situation.
-            self.pending_requests.pop(les.BlockHeaders, None)
-        return cast(Tuple[BlockHeader, ...], response['headers'])
-
-    async def get_block_headers(self,
-                                block_number_or_hash: BlockIdentifier,
-                                max_headers: int = None,
-                                skip: int = 0,
-                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
-        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
-        return await self.wait_for_block_headers(request)
-
-
-class ETHPeer(BasePeer):
-    _supported_sub_protocols = [eth.ETHProtocol]
-    sub_proto: eth.ETHProtocol = None
-
-    @property
-    def max_headers_fetch(self) -> int:
-        return eth.MAX_HEADERS_FETCH
-
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if isinstance(cmd, eth.NewBlock):
-            msg = cast(Dict[str, Any], msg)
-            header, _, _ = msg['block']
-            actual_head = header.parent_hash
-            actual_td = msg['total_difficulty'] - header.difficulty
-            if actual_td > self.head_td:
-                self.head_hash = actual_head
-                self.head_td = actual_td
-
-        super().handle_sub_proto_msg(cmd, msg)
-
-    async def send_sub_proto_handshake(self) -> None:
-        self.sub_proto.send_handshake(await self._local_chain_info)
-
-    async def process_sub_proto_handshake(
-            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        if not isinstance(cmd, eth.Status):
-            await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(
-                "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
-        msg = cast(Dict[str, Any], msg)
-        if msg['network_id'] != self.network_id:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
-                "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['network_id'], self.network_id))
-        genesis = await self.genesis
-        if msg['genesis_hash'] != genesis.hash:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
-                "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
-        self.head_td = msg['td']
-        self.head_hash = msg['best_hash']
-
-    def request_block_headers(self,
-                              block_number_or_hash: BlockIdentifier,
-                              max_headers: int = None,
-                              skip: int = 0,
-                              reverse: bool = True) -> eth.HeaderRequest:
-        if max_headers is None:
-            max_headers = self.max_headers_fetch
-        request = eth.HeaderRequest(
-            block_number_or_hash,
-            max_headers,
-            skip,
-            reverse,
-        )
-        self.sub_proto.send_get_block_headers(
-            request.block_number_or_hash,
-            request.max_headers,
-            request.skip,
-            request.reverse,
-        )
-        return request
-
-    async def wait_for_block_headers(self, request: eth.HeaderRequest) -> Tuple[BlockHeader, ...]:
-        future: 'asyncio.Future[Tuple[BlockHeader, ...]]' = asyncio.Future()
-        self.pending_requests[eth.BlockHeaders] = cast(
-            Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
-            (request, future),
-        )
-        response = await self.wait(future, timeout=self._response_timeout)
-        return response
-
-    async def get_block_headers(self,
-                                block_number_or_hash: BlockIdentifier,
-                                max_headers: int = None,
-                                skip: int = 0,
-                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
-        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
-        return await self.wait_for_block_headers(request)
-
-
 class PeerSubscriber(ABC):
     _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
 
@@ -939,6 +750,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         wait for that we may receive other messages from the peer, which are returned so that they
         can be re-added to our subscribers' queues when the peer is finally added to the pool.
         """
+        from trinity.protocol.base_block_headers import BaseBlockHeaders
         msgs = []
         for start_block, vm_class in self.vm_configuration:
             if not issubclass(vm_class, HomesteadVM):
@@ -964,7 +776,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     remaining_timeout = max(0, CHAIN_SPLIT_CHECK_TIMEOUT - elapsed)
                     cmd, msg = await self.wait(
                         peer.read_msg(), timeout=remaining_timeout)
-                    if isinstance(cmd, protocol.BaseBlockHeaders):
+                    if isinstance(cmd, BaseBlockHeaders):
                         headers = cmd.extract_headers(msg)
                         break
                     else:
@@ -1151,6 +963,8 @@ def _test() -> None:
     from eth.utils.logging import TRACE_LEVEL_NUM
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.memory import MemoryDB
+    from trinity.protocol.eth.peer import ETHPeer
+    from trinity.protocol.les.peer import LESPeer
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 

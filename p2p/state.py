@@ -45,17 +45,18 @@ from eth.db.backends.base import BaseDB
 from eth.rlp.accounts import Account
 from eth.utils.logging import TraceLogger
 
-from p2p import eth
 from p2p import protocol
 from p2p.chain import PeerRequestHandler
 from p2p.exceptions import NoEligiblePeers, NoIdlePeers
-from p2p.peer import BasePeer, ETHPeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
 from p2p.utils import get_asyncio_executor, Timer
 
 
 if TYPE_CHECKING:
     from trinity.db.chain import AsyncChainDB  # noqa: F401
+    from trinity.protocol.eth.peer import ETHPeer  # noqa: F401
+    from trinity.protocol.eth.requests import HeaderRequest  # noqa: F401
 
 
 class StateDownloader(BaseService, PeerSubscriber):
@@ -78,7 +79,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
-        self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
+        self._peer_missing_nodes: Dict['ETHPeer', Set[Hash32]] = collections.defaultdict(set)
         self._executor = get_asyncio_executor()
 
     @property
@@ -92,14 +93,18 @@ class StateDownloader(BaseService, PeerSubscriber):
         # Use .pop() with a default value as it's possible we never requested anything to this
         # peer or it had all the trie nodes we requested, so there'd be no entry in
         # self._peer_missing_nodes for it.
+        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
+
         self._peer_missing_nodes.pop(cast(ETHPeer, peer), None)
 
-    async def get_peer_for_request(self, node_keys: Set[Hash32]) -> ETHPeer:
+    async def get_peer_for_request(self, node_keys: Set[Hash32]) -> 'ETHPeer':
         """Return an idle peer that may have any of the trie nodes in node_keys.
 
         If none of our peers have any of the given node keys, raise NoEligiblePeers. If none of
         the peers which may have at least one of the given node keys is idle, raise NoIdlePeers.
         """
+        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
+
         has_eligible_peers = False
         async for peer in self.peer_pool:
             peer = cast(ETHPeer, peer)
@@ -118,6 +123,8 @@ class StateDownloader(BaseService, PeerSubscriber):
             raise NoIdlePeers()
 
     async def _handle_msg_loop(self) -> None:
+        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
+
         while self.is_running:
             try:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
@@ -146,14 +153,20 @@ class StateDownloader(BaseService, PeerSubscriber):
                 await self.sleep(0)
 
     async def _handle_msg(
-            self, peer: ETHPeer, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+            self, peer: 'ETHPeer', cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
         # messages related to new blocks/transactions, but we must handle requests for data from
         # other peers or else they will disconnect from us.
-        ignored_commands = (eth.Transactions, eth.NewBlock, eth.NewBlockHashes)
+        from trinity.protocol.eth import commands
+        from trinity.protocol.eth import (
+            constants as eth_constants,
+        )
+        from trinity.protocol.eth.requests import HeaderRequest  # noqa F811
+
+        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
         if isinstance(cmd, ignored_commands):
             pass
-        elif isinstance(cmd, eth.NodeData):
+        elif isinstance(cmd, commands.NodeData):
             msg = cast(List[bytes], msg)
             if peer not in self.request_tracker.active_requests:
                 # This is probably a batch that we retried after a timeout and ended up receiving
@@ -175,31 +188,31 @@ class StateDownloader(BaseService, PeerSubscriber):
                 await self.request_nodes(missing)
 
             await self._process_nodes(zip(node_keys, msg))
-        elif isinstance(cmd, eth.GetBlockHeaders):
+        elif isinstance(cmd, commands.GetBlockHeaders):
             query = cast(Dict[Any, Union[bool, int]], msg)
-            request = eth.HeaderRequest(
+            request = HeaderRequest(
                 query['block_number_or_hash'],
                 query['max_headers'],
                 query['skip'],
                 cast(bool, query['reverse']),
             )
             await self._handle_get_block_headers(peer, request)
-        elif isinstance(cmd, eth.GetBlockBodies):
-            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
+        elif isinstance(cmd, commands.GetBlockBodies):
+            # Only serve up to MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
             await self._handler.handle_get_block_bodies(peer, block_hashes)
-        elif isinstance(cmd, eth.GetReceipts):
-            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+        elif isinstance(cmd, commands.GetReceipts):
+            # Only serve up to MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_RECEIPTS_FETCH]
             await self._handler.handle_get_receipts(peer, block_hashes)
-        elif isinstance(cmd, eth.GetNodeData):
-            # Only serve up to eth.MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+        elif isinstance(cmd, commands.GetNodeData):
+            # Only serve up to MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
             await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 
-    async def _handle_get_block_headers(self, peer: ETHPeer, request: eth.HeaderRequest) -> None:
+    async def _handle_get_block_headers(self, peer: 'ETHPeer', request: 'HeaderRequest') -> None:
         headers = await self._handler.lookup_headers(request)
         peer.sub_proto.send_block_headers(headers)
 
@@ -211,6 +224,10 @@ class StateDownloader(BaseService, PeerSubscriber):
         await asyncio.sleep(0)
 
     async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
+        from trinity.protocol.eth import (
+            constants as eth_constants,
+        )
+
         not_yet_requested = set(node_keys)
         while not_yet_requested:
             try:
@@ -228,7 +245,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 return
 
             candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
-            batch = candidates[:eth.MAX_STATE_FETCH]
+            batch = candidates[:eth_constants.MAX_STATE_FETCH]
             not_yet_requested = not_yet_requested.difference(batch)
             self.request_tracker.active_requests[peer] = (time.time(), batch)
             self.logger.debug("Requesting %d trie nodes to %s", len(batch), peer)
@@ -266,6 +283,10 @@ class StateDownloader(BaseService, PeerSubscriber):
 
         Raises OperationCancelled if we're interrupted before that is completed.
         """
+        from trinity.protocol.eth import (
+            constants as eth_constants,
+        )
+
         self._timer.start()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
         asyncio.ensure_future(self._handle_msg_loop())
@@ -278,7 +299,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # triggered.
                 await self.sleep(0)
 
-                requests = self.scheduler.next_batch(eth.MAX_STATE_FETCH)
+                requests = self.scheduler.next_batch(eth_constants.MAX_STATE_FETCH)
                 if not requests:
                     # Although we frequently yield control above, to let our msg handler process
                     # received nodes (scheduling new requests), there may be cases when the
@@ -314,7 +335,7 @@ class TrieNodeRequestTracker:
     def __init__(self, reply_timeout: int, logger: TraceLogger) -> None:
         self.reply_timeout = reply_timeout
         self.logger = logger
-        self.active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self.active_requests: Dict['ETHPeer', Tuple[float, List[Hash32]]] = {}
         self.missing: Dict[float, List[Hash32]] = {}
 
     def get_timed_out(self) -> List[Hash32]:
@@ -356,10 +377,11 @@ class StateSync(HexaryTrieSync):
 def _test() -> None:
     import argparse
     import signal
-    from p2p import ecies
-    from p2p.peer import DEFAULT_PREFERRED_NODES
     from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
+    from p2p import ecies
+    from p2p.peer import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.eth.peer import ETHPeer  # noqa F811
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, connect_to_peers_loop
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 

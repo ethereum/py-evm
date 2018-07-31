@@ -39,13 +39,11 @@ from eth.rlp.transactions import BaseTransaction, BaseTransactionFields
 from eth.utils.logging import TraceLogger
 
 from p2p import protocol
-from p2p import eth
-from p2p import les
 from p2p.cancellable import CancellableMixin
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.exceptions import NoEligiblePeers, ValidationError
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, ETHPeer, LESPeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.rlp import BlockBody
 from p2p.service import BaseService
 from p2p.utils import (
@@ -57,9 +55,12 @@ from p2p.utils import (
 if TYPE_CHECKING:
     from trinity.db.chain import AsyncChainDB  # noqa: F401
     from trinity.db.header import AsyncHeaderDB  # noqa: F401
+    from trinity.protocol.eth.peer import ETHPeer  # noqa: F401
+    from trinity.protocol.les.peer import LESPeer  # noqa: F401
+    from trinity.protocol.base_request import BaseHeaderRequest  # noqa: F401
 
 
-HeaderRequestingPeer = Union[LESPeer, ETHPeer]
+HeaderRequestingPeer = Union['LESPeer', 'ETHPeer']
 
 
 class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
@@ -300,20 +301,23 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
-        if isinstance(cmd, les.Announce):
+        from trinity.protocol.les import commands
+        from trinity.protocol.les.peer import LESPeer  # noqa: F811
+        if isinstance(cmd, commands.Announce):
             self._sync_requests.put_nowait(peer)
-        elif isinstance(cmd, les.GetBlockHeaders):
+        elif isinstance(cmd, commands.GetBlockHeaders):
             msg = cast(Dict[str, Any], msg)
             await self._handle_get_block_headers(cast(LESPeer, peer), msg)
-        elif isinstance(cmd, les.BlockHeaders):
+        elif isinstance(cmd, commands.BlockHeaders):
             # `BlockHeaders` messages are handled at the peer level.
             pass
         else:
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
 
-    async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
+    async def _handle_get_block_headers(self, peer: 'LESPeer', msg: Dict[str, Any]) -> None:
+        from trinity.protocol.les.requests import HeaderRequest
         self.logger.debug("Peer %s made header request: %s", peer, msg)
-        request = les.HeaderRequest(
+        request = HeaderRequest(
             msg['query'].block_number_or_hash,
             msg['query'].max_headers,
             msg['query'].skip,
@@ -356,8 +360,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         super().__init__(chain, db, peer_pool, token)
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
-        self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
-        self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
+        self._downloaded_receipts: asyncio.Queue[Tuple['ETHPeer', List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
+        self._downloaded_bodies: asyncio.Queue[Tuple['ETHPeer', List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -483,7 +487,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self,
             target_td: int,
             headers: List[BlockHeader],
-            request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
+            request_func: Callable[['ETHPeer', List[BlockHeader]], None]) -> int:
+        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
@@ -493,13 +498,13 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             request_func(cast(ETHPeer, peer), batch)
         return len(batches)
 
-    def _send_get_block_bodies(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
+    def _send_get_block_bodies(self, peer: 'ETHPeer', headers: List[BlockHeader]) -> None:
         block_numbers = ", ".join(str(h.block_number) for h in headers)
         self.logger.debug(
             "Requesting %d block bodies (%s) to %s", len(headers), block_numbers, peer)
         peer.sub_proto.send_get_block_bodies([header.hash for header in headers])
 
-    def _send_get_receipts(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
+    def _send_get_receipts(self, peer: 'ETHPeer', headers: List[BlockHeader]) -> None:
         block_numbers = ", ".join(str(h.block_number) for h in headers)
         self.logger.debug(
             "Requesting %d block receipts (%s) to %s", len(headers), block_numbers, peer)
@@ -527,34 +532,41 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
+        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
+        from trinity.protocol.eth import commands
+        from trinity.protocol.eth import (
+            constants as eth_constants,
+        )
+
         peer = cast(ETHPeer, peer)
-        if isinstance(cmd, eth.BlockBodies):
+
+        if isinstance(cmd, commands.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
-        elif isinstance(cmd, eth.Receipts):
+        elif isinstance(cmd, commands.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
-        elif isinstance(cmd, eth.NewBlock):
+        elif isinstance(cmd, commands.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, eth.GetBlockHeaders):
+        elif isinstance(cmd, commands.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, eth.BlockHeaders):
+        elif isinstance(cmd, commands.BlockHeaders):
             # `BlockHeaders` messages are handled at the peer level.
             pass
-        elif isinstance(cmd, eth.GetBlockBodies):
-            # Only serve up to eth.MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]
+        elif isinstance(cmd, commands.GetBlockBodies):
+            # Only serve up to MAX_BODIES_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
             await self._handler.handle_get_block_bodies(peer, block_hashes)
-        elif isinstance(cmd, eth.GetReceipts):
-            # Only serve up to eth.MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth.MAX_RECEIPTS_FETCH]
+        elif isinstance(cmd, commands.GetReceipts):
+            # Only serve up to MAX_RECEIPTS_FETCH items in every request.
+            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_RECEIPTS_FETCH]
             await self._handler.handle_get_receipts(peer, block_hashes)
-        elif isinstance(cmd, eth.GetNodeData):
-            # Only serve up to eth.MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth.MAX_STATE_FETCH]
+        elif isinstance(cmd, commands.GetNodeData):
+            # Only serve up to MAX_STATE_FETCH items in every request.
+            node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
             await self._handler.handle_get_node_data(peer, node_hashes)
-        elif isinstance(cmd, eth.Transactions):
+        elif isinstance(cmd, commands.Transactions):
             # Transactions msgs are handled by our TxPool service.
             pass
-        elif isinstance(cmd, eth.NodeData):
+        elif isinstance(cmd, commands.NodeData):
             # When doing a chain sync we never send GetNodeData requests, so peers should not send
             # us NodeData msgs.
             self.logger.warn("Unexpected NodeData msg from %s, disconnecting", peer)
@@ -562,12 +574,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
-    async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
+    async def _handle_new_block(self, peer: 'ETHPeer', msg: Dict[str, Any]) -> None:
         self._sync_requests.put_nowait(peer)
 
     async def _handle_block_receipts(self,
-                                     peer: ETHPeer,
-                                     receipts_by_block: List[List[eth.Receipt]]) -> None:
+                                     peer: 'ETHPeer',
+                                     receipts_by_block: List[List[Receipt]]) -> None:
         self.logger.debug("Got Receipts for %d blocks from %s", len(receipts_by_block), peer)
         iterator = map(make_trie_root_and_nodes, receipts_by_block)
         # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
@@ -582,7 +594,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         self._downloaded_receipts.put_nowait((peer, downloaded))
 
     async def _handle_block_bodies(self,
-                                   peer: ETHPeer,
+                                   peer: 'ETHPeer',
                                    bodies: List[BlockBody]) -> None:
         self.logger.debug("Got Bodies for %d blocks from %s", len(bodies), peer)
         iterator = map(make_trie_root_and_nodes, [body.transactions for body in bodies])
@@ -601,10 +613,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_get_block_headers(
             self,
-            peer: ETHPeer,
+            peer: 'ETHPeer',
             query: Dict[str, Any]) -> None:
+        from trinity.protocol.eth.requests import HeaderRequest  # noqa: F811
+
         self.logger.debug("Peer %s made header request: %s", peer, query)
-        request = eth.HeaderRequest(
+        request = HeaderRequest(
             query['block_number_or_hash'],
             query['max_headers'],
             query['skip'],
@@ -626,7 +640,7 @@ class RegularChainSyncer(FastChainSyncer):
     _seal_check_random_sample_rate = 1
 
     async def _handle_block_receipts(
-            self, peer: ETHPeer, receipts_by_block: List[List[eth.Receipt]]) -> None:
+            self, peer: 'ETHPeer', receipts_by_block: List[List[Receipt]]) -> None:
         # When doing a regular sync we never request receipts.
         self.logger.warn("Unexpected BlockReceipts msg from %s, disconnecting", peer)
         await peer.disconnect(DisconnectReason.bad_protocol)
@@ -675,7 +689,7 @@ class PeerRequestHandler(CancellableMixin):
         self.logger = logger
         self.cancel_token = token
 
-    async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+    async def handle_get_block_bodies(self, peer: 'ETHPeer', block_hashes: List[Hash32]) -> None:
         self.logger.trace("%s requested bodies for %d blocks", peer, len(block_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         bodies = []
@@ -692,7 +706,7 @@ class PeerRequestHandler(CancellableMixin):
         self.logger.trace("Replying to %s with %d block bodies", peer, len(bodies))
         peer.sub_proto.send_block_bodies(bodies)
 
-    async def handle_get_receipts(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+    async def handle_get_receipts(self, peer: 'ETHPeer', block_hashes: List[Hash32]) -> None:
         self.logger.trace("%s requested receipts for %d blocks", peer, len(block_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         receipts = []
@@ -708,7 +722,7 @@ class PeerRequestHandler(CancellableMixin):
         self.logger.trace("Replying to %s with receipts for %d blocks", peer, len(receipts))
         peer.sub_proto.send_receipts(receipts)
 
-    async def handle_get_node_data(self, peer: ETHPeer, node_hashes: List[Hash32]) -> None:
+    async def handle_get_node_data(self, peer: 'ETHPeer', node_hashes: List[Hash32]) -> None:
         self.logger.trace("%s requested %d trie nodes", peer, len(node_hashes))
         chaindb = cast('AsyncChainDB', self.db)
         nodes = []
@@ -723,7 +737,7 @@ class PeerRequestHandler(CancellableMixin):
         peer.sub_proto.send_node_data(nodes)
 
     async def lookup_headers(self,
-                             request: protocol.BaseHeaderRequest) -> Tuple[BlockHeader, ...]:
+                             request: 'BaseHeaderRequest') -> Tuple[BlockHeader, ...]:
         """
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
@@ -744,7 +758,7 @@ class PeerRequestHandler(CancellableMixin):
         return headers
 
     async def _get_block_numbers_for_request(self,
-                                             request: protocol.BaseHeaderRequest
+                                             request: 'BaseHeaderRequest'
                                              ) -> Tuple[BlockNumber, ...]:
         """
         Generate the block numbers for a given `HeaderRequest`.
@@ -823,6 +837,8 @@ def _test() -> None:
     from tests.p2p.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
         connect_to_peers_loop)
+    from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
+    from trinity.protocol.les.peer import LESPeer  # noqa: F811
     from trinity.utils.chains import load_nodekey
 
     parser = argparse.ArgumentParser()

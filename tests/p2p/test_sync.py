@@ -9,10 +9,11 @@ from eth import constants
 from eth.db.backends.memory import MemoryDB
 from eth.vm.forks.frontier import FrontierVM, _PoWMiningVM
 
-from p2p import eth
-from p2p.peer import ETHPeer, LESPeer
 from p2p.chain import FastChainSyncer, LightChainSyncer, RegularChainSyncer
 from p2p.state import StateDownloader
+
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.les.peer import LESPeer
 
 from integration_test_helpers import FakeAsyncChain, FakeAsyncChainDB, FakeAsyncHeaderDB
 from peer_helpers import get_directly_linked_peers, MockPeerPoolWithConnectedPeers
@@ -23,8 +24,9 @@ from peer_helpers import get_directly_linked_peers, MockPeerPoolWithConnectedPee
 # by requesting a single batch.
 @pytest.fixture(autouse=True)
 def small_header_batches(monkeypatch):
-    monkeypatch.setattr(eth, 'MAX_HEADERS_FETCH', 10)
-    monkeypatch.setattr(eth, 'MAX_BODIES_FETCH', 5)
+    from trinity.protocol.eth import constants
+    monkeypatch.setattr(constants, 'MAX_HEADERS_FETCH', 10)
+    monkeypatch.setattr(constants, 'MAX_BODIES_FETCH', 5)
 
 
 @pytest.mark.asyncio
