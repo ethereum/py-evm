@@ -45,13 +45,15 @@ deps = {
     ],
     'test': [
         "hypothesis==3.44.26",
-        "pytest~=3.3",
+        # pinned to <3.7 until async fixtures work again
+        # https://github.com/pytest-dev/pytest-asyncio/issues/89
+        "pytest>=3.6,<3.7",
         "pytest-asyncio==0.8.0",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
         # only needed for p2p
-        "pytest-asyncio-network-simulator==0.1.0a1;python_version>='3.6'",
+        "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
     ],
     'lint': [
         "flake8==3.5.0",
