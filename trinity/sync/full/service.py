@@ -5,11 +5,11 @@ from cancel_token import CancelToken
 
 from eth.chains import AsyncChain
 from eth.constants import BLANK_ROOT_HASH
-from eth.db.backends.base import BaseDB
 
 from p2p.service import BaseService
 from p2p.peer import PeerPool
 
+from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 
 from .chain import FastChainSyncer, RegularChainSyncer
@@ -20,13 +20,13 @@ from .state import StateDownloader
 class FullNodeSyncer(BaseService):
     chain: AsyncChain = None
     chaindb: AsyncChainDB = None
-    base_db: BaseDB = None
+    base_db: AsyncBaseDB = None
     peer_pool: PeerPool = None
 
     def __init__(self,
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
-                 base_db: BaseDB,
+                 base_db: AsyncBaseDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)

@@ -6,7 +6,10 @@ from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
     MiningChain,
 )
+from eth.db.backends.level import LevelDB
+from eth.db.backends.memory import MemoryDB
 
+from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 
@@ -29,6 +32,16 @@ def async_passthrough(base_name):
         return getattr(self, base_name)(*args, **kwargs)
     passthrough_method.__name__ = coro_name
     return passthrough_method
+
+
+class FakeAsyncMemoryDB(MemoryDB, AsyncBaseDB):
+    coro_set = async_passthrough('set')
+    coro_exists = async_passthrough('exists')
+
+
+class FakeAsyncLevelDB(LevelDB, AsyncBaseDB):
+    coro_set = async_passthrough('set')
+    coro_exists = async_passthrough('exists')
 
 
 class FakeAsyncHeaderDB(AsyncHeaderDB):

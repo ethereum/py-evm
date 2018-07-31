@@ -16,7 +16,6 @@ from eth_utils import big_endian_to_int
 from cancel_token import CancelToken, OperationCancelled
 
 from eth.chains import AsyncChain
-from eth.db.backends.base import BaseDB
 
 from p2p.auth import (
     decode_authentication,
@@ -53,6 +52,7 @@ from p2p.peer import (
 )
 from p2p.service import BaseService
 
+from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeer
@@ -76,7 +76,7 @@ class Server(BaseService):
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
-                 base_db: BaseDB,
+                 base_db: AsyncBaseDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
@@ -295,7 +295,6 @@ def _test() -> None:
     from pathlib import Path
     import signal
 
-    from eth.db.backends.level import LevelDB
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 
     from p2p import ecies
@@ -303,8 +302,8 @@ def _test() -> None:
 
     from trinity.utils.chains import load_nodekey
 
-    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, FakeAsyncRopstenChain
+    from tests.p2p.integration_test_helpers import (
+        FakeAsyncLevelDB, FakeAsyncHeaderDB, FakeAsyncChainDB, FakeAsyncRopstenChain)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
@@ -322,7 +321,7 @@ def _test() -> None:
     logging.getLogger('p2p.server.Server').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
-    db = LevelDB(args.db)
+    db = FakeAsyncLevelDB(args.db)
     headerdb = FakeAsyncHeaderDB(db)
     chaindb = FakeAsyncChainDB(db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
