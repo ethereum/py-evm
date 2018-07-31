@@ -849,10 +849,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.debug("DAO fork check with %s failed: %s", peer, err)
             await peer.disconnect(DisconnectReason.useless_peer)
             return
-        except MalformedMessage as err:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
-            await peer.disconnect(DisconnectReason.bad_protocol)
-            return
         asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
         self._add_peer(peer, msgs)
 
@@ -977,6 +973,12 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
                     "Timed out waiting for DAO fork header from {}: {}".format(peer, err))
+            except MalformedMessage as err:
+                raise DAOForkCheckFailure(
+                    "Malformed message while doing DAO fork check with {0}: {1}".format(
+                        peer, err,
+                    )
+                ) from err
 
             try:
                 request.validate_headers(headers)
