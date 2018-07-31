@@ -191,3 +191,17 @@ def shl(computation):
         result = (value << shift_length) & constants.UINT_256_MAX
 
     computation.stack_push(result)
+
+
+def shr(computation):
+    """
+    Bitwise right shift
+    """
+    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+
+    if shift_length >= 256:
+        result = 0
+    else:
+        result = (value >> shift_length) & constants.UINT_256_MAX
+
+    computation.stack_push(result)

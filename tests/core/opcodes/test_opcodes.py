@@ -183,3 +183,85 @@ def test_shl(vm_class, val1, val2, expected):
     result = computation.stack_pop(type_hint=constants.UINT256)
 
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
+
+
+@pytest.mark.parametrize(
+    # Cases: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shr-logical-shift-right
+    'vm_class, val1, val2, expected',
+    (
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x00',
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x01',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            '0x01',
+            '0x4000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            '0xff',
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+        ),
+        (
+            ConstantinopleVM,
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            '0x0100',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            '0x0101',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x00',
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x01',
+            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0xff',
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+        ),
+        (
+            ConstantinopleVM,
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            '0x0100',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            '0x01',
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+    )
+)
+def test_shr(vm_class, val1, val2, expected):
+    computation = prepare_computation(vm_class)
+    computation.stack_push(decode_hex(val1))
+    computation.stack_push(decode_hex(val2))
+    computation.opcodes[opcode_values.SHR](computation)
+
+    result = computation.stack_pop(type_hint=constants.UINT256)
+    assert encode_hex(pad32(int_to_big_endian(result))) == expected
