@@ -244,11 +244,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
+  py37-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-core
 
 workflows:
   version: 2
   test:
     jobs:
+      - py37-core
       - py36-docs
       - py36-native-state-byzantium
       - py36-native-state-frontier
