@@ -15,7 +15,7 @@ BLOCK_HASH = b'\x01' * 32
 
 
 class HeaderRequest(BaseHeaderRequest):
-    MAX_HEADERS_FETCH = 192
+    max_size = 192
 
     def __init__(self,
                  block_number_or_hash,

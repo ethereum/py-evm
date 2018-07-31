@@ -74,7 +74,7 @@ class GetBlockHeaders(Command):
 
 
 class HeaderRequest(BaseHeaderRequest):
-    MAX_HEADERS_FETCH = MAX_HEADERS_FETCH
+    max_size = MAX_HEADERS_FETCH
 
     def __init__(self,
                  block_number_or_hash: BlockIdentifier,

@@ -381,6 +381,24 @@ class BasePeer(BaseService):
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
+        cmd_type = type(cmd)
+
+        if cmd_type in self.pending_requests:
+            request, future = self.pending_requests[cmd_type]
+            try:
+                request.validate_response(msg)
+            except ValidationError as err:
+                self.logger.debug(
+                    "Response validation failure for pending %s request from peer %s: %s",
+                    cmd_type.__name__,
+                    self,
+                    err,
+                )
+                pass
+            else:
+                future.set_result(msg)
+                self.pending_requests.pop(cmd_type)
+
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
@@ -531,21 +549,11 @@ class LESPeer(BasePeer):
         return les.MAX_HEADERS_FETCH
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        cmd_type = type(cmd)
-
         if isinstance(cmd, les.Announce):
             self.head_info = cmd.as_head_info(msg)
             self.head_td = self.head_info.total_difficulty
             self.head_hash = self.head_info.block_hash
-        elif cmd_type in self.pending_requests:
-            request, future = self.pending_requests[cmd_type]
-            try:
-                request.validate_response(msg)
-            except ValidationError:
-                pass
-            else:
-                future.set_result(msg)
-                self.pending_requests.pop(cmd_type)
+
         super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
@@ -603,14 +611,26 @@ class LESPeer(BasePeer):
 
     async def wait_for_block_headers(self, request: les.HeaderRequest) -> Tuple[BlockHeader, ...]:
         future: 'asyncio.Future[protocol._DecodedMsgType]' = asyncio.Future()
+        if les.BlockHeaders in self.pending_requests:
+            # the `finally` block below should prevent this from happening, but
+            # were two requests to the same peer to be fired off at the same
+            # time, this will prevent us from overwriting the first one.
+            raise ValueError(
+                "There is already a pending `BlockHeaders` request for peer {0}".format(self)
+            )
         self.pending_requests[les.BlockHeaders] = cast(
             Tuple[protocol.BaseRequest, 'asyncio.Future[protocol._DecodedMsgType]'],
             (request, future),
         )
-        response = cast(
-            Dict[str, Any],
-            await self.wait(future, timeout=self._response_timeout),
-        )
+        try:
+            response = cast(
+                Dict[str, Any],
+                await self.wait(future, timeout=self._response_timeout),
+            )
+        finally:
+            # We always want to be sure that this method cleans up the
+            # `pending_requests` so that we don't end up in a situation.
+            self.pending_requests.pop(les.BlockHeaders, None)
         return cast(Tuple[BlockHeader, ...], response['headers'])
 
     async def get_block_headers(self,
@@ -631,8 +651,6 @@ class ETHPeer(BasePeer):
         return eth.MAX_HEADERS_FETCH
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
-        cmd_type = type(cmd)
-
         if isinstance(cmd, eth.NewBlock):
             msg = cast(Dict[str, Any], msg)
             header, _, _ = msg['block']
@@ -641,16 +659,6 @@ class ETHPeer(BasePeer):
             if actual_td > self.head_td:
                 self.head_hash = actual_head
                 self.head_td = actual_td
-
-        if cmd_type in self.pending_requests:
-            request, future = self.pending_requests[cmd_type]
-            try:
-                request.validate_response(msg)
-            except ValidationError:
-                pass
-            else:
-                future.set_result(msg)
-                self.pending_requests.pop(cmd_type)
 
         super().handle_sub_proto_msg(cmd, msg)
 

@@ -305,6 +305,9 @@ class LightChainSyncer(BaseHeaderChainSyncer):
         elif isinstance(cmd, les.GetBlockHeaders):
             msg = cast(Dict[str, Any], msg)
             await self._handle_get_block_headers(cast(LESPeer, peer), msg)
+        elif isinstance(cmd, les.BlockHeaders):
+            # `BlockHeaders` messages are handled at the peer level.
+            pass
         else:
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
 
@@ -533,6 +536,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, eth.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+        elif isinstance(cmd, eth.BlockHeaders):
+            # `BlockHeaders` messages are handled at the peer level.
+            pass
         elif isinstance(cmd, eth.GetBlockBodies):
             # Only serve up to eth.MAX_BODIES_FETCH items in every request.
             block_hashes = cast(List[Hash32], msg)[:eth.MAX_BODIES_FETCH]

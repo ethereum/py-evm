@@ -140,7 +140,7 @@ class BaseHeaderRequest(BaseRequest):
 
     @property
     @abstractmethod
-    def MAX_HEADERS_FETCH(self) -> int:
+    def max_size(self) -> int:
         pass
 
     def generate_block_numbers(self,
@@ -158,7 +158,7 @@ class BaseHeaderRequest(BaseRequest):
         elif block_number is None:
             block_number = cast(BlockNumber, self.block_number_or_hash)
 
-        max_headers = min(self.MAX_HEADERS_FETCH, self.max_headers)
+        max_headers = min(self.max_size, self.max_headers)
 
         # inline import until this module is moved to `trinity`
         from trinity.utils.headers import sequence_builder
