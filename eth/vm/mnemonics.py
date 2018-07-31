@@ -14,6 +14,7 @@ MULMOD = 'MULMOD'
 EXP = 'EXP'
 SIGNEXTEND = 'SIGNEXTEND'
 SHL = 'SHL'
+SHR = 'SHR'
 #
 # Comparisons
 #

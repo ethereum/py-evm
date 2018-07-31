@@ -27,6 +27,11 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.SHL,
         gas_cost=constants.GAS_VERYLOW,
     ),
+    opcode_values.SHR: as_opcode(
+        logic_fn=arithmetic.shr,
+        mnemonic=mnemonics.SHR,
+        gas_cost=constants.GAS_VERYLOW,
+    ),
 }
 
 CONSTANTINOPLE_OPCODES = merge(
