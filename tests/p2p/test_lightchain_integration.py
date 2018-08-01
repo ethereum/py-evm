@@ -21,7 +21,9 @@ from p2p import ecies
 from p2p.chain import LightChainSyncer
 from p2p.kademlia import Node
 from p2p.lightchain import LightPeerChain
-from p2p.peer import LESPeer, PeerPool
+from p2p.peer import PeerPool
+
+from trinity.protocol.les.peer import LESPeer
 
 from integration_test_helpers import (
     FakeAsyncChainDB,

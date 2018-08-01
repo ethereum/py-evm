@@ -6,8 +6,10 @@ from eth_utils import to_tuple
 
 from eth.rlp.headers import BlockHeader
 
-from p2p.peer import ETHPeer, LESPeer
-from peer_helpers import (
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.les.peer import LESPeer
+
+from tests.p2p.peer_helpers import (
     get_directly_linked_peers,
 )
 

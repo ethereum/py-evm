@@ -7,8 +7,6 @@ from typing import Tuple
 
 import rlp
 
-from eth.utils.numeric import big_endian_to_int
-
 
 def sxor(s1: bytes, s2: bytes) -> bytes:
     if len(s1) != len(s2):
@@ -22,10 +20,6 @@ def roundup_16(x: int) -> int:
     if remainder != 0:
         x += 16 - remainder
     return x
-
-
-def gen_request_id() -> int:
-    return big_endian_to_int(os.urandom(8))
 
 
 def get_devp2p_cmd_id(msg: bytes) -> int:

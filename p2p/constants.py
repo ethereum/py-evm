@@ -44,10 +44,6 @@ CHAIN_SPLIT_CHECK_TIMEOUT = 5 * REPLY_TIMEOUT
 # Default timeout before giving up on a caller-initiated interaction
 COMPLETION_TIMEOUT = 5
 
-# Types of LES Announce messages
-LES_ANNOUNCE_SIMPLE = 1
-LES_ANNOUNCE_SIGNED = 2
-
 MAINNET_BOOTNODES = (
     'enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303',  # noqa: E501
     'enode://aa36fdf33dd030378a0168efe6ed7d5cc587fafa3cdd375854fe735a2e11ea3650ba29644e2db48368c46e1f60e716300ba49396cd63778bf8a818c09bded46f@13.93.211.84:30303',  # noqa: E501

@@ -55,7 +55,6 @@ from p2p.p2p_proto import (
     DisconnectReason,
 )
 from p2p.peer import (
-    LESPeer,
     PeerPool,
     PeerSubscriber,
 )
@@ -64,10 +63,10 @@ from p2p.service import (
     BaseService,
     service_timeout,
 )
-from p2p.utils import gen_request_id
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
+    from trinity.protocol.les.peer import LESPeer  # noqa: F401
 
 
 class LightPeerChain(PeerSubscriber, BaseService):
@@ -142,6 +141,9 @@ class LightPeerChain(PeerSubscriber, BaseService):
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
     async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
+        from trinity.protocol.les.peer import LESPeer  # noqa: F811
+        from trinity.protocol.les.utils import gen_request_id
+
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
@@ -156,6 +158,9 @@ class LightPeerChain(PeerSubscriber, BaseService):
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
     async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+        from trinity.protocol.les.peer import LESPeer  # noqa: F811
+        from trinity.protocol.les.utils import gen_request_id
+
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
@@ -179,7 +184,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
             self,
             block_hash: Hash32,
             address: Address,
-            peer: LESPeer) -> Account:
+            peer: 'LESPeer') -> Account:
         key = keccak(address)
         proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
         header = await self._get_block_header_by_hash(block_hash, peer)
@@ -223,13 +228,15 @@ class LightPeerChain(PeerSubscriber, BaseService):
             block_hash: Hash32,
             address: Address,
             code_hash: Hash32,
-            peer: LESPeer) -> bytes:
+            peer: 'LESPeer') -> bytes:
         """
         A single attempt to get the contract code from the given peer
 
         :raise BadLESResponse: if the peer replies with contract code that does not match the
             account's code hash
         """
+        from trinity.protocol.les.utils import gen_request_id
+
         # request contract code
         request_id = gen_request_id()
         peer.sub_proto.send_get_contract_code(block_hash, keccak(address), request_id)
@@ -261,7 +268,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
             block_hash: Hash32,
             address: Address,
             code_hash: Hash32,
-            peer: LESPeer) -> None:
+            peer: 'LESPeer') -> None:
         """
         A peer might return b'' if it doesn't have the block at the requested header,
         or it might maliciously return b'' when the code is non-empty. This method tries to tell the
@@ -315,12 +322,14 @@ class LightPeerChain(PeerSubscriber, BaseService):
                 )
             )
 
-    async def _get_block_header_by_hash(self, block_hash: Hash32, peer: LESPeer) -> BlockHeader:
+    async def _get_block_header_by_hash(self, block_hash: Hash32, peer: 'LESPeer') -> BlockHeader:
         """
         A single attempt to get the block header from the given peer.
 
         :raise BadLESResponse: if the peer replies with a header that has a different hash
         """
+        from trinity.protocol.les.utils import gen_request_id
+
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
         max_headers = 1
@@ -336,17 +345,19 @@ class LightPeerChain(PeerSubscriber, BaseService):
         return header
 
     async def _get_proof(self,
-                         peer: LESPeer,
+                         peer: 'LESPeer',
                          block_hash: bytes,
                          account_key: bytes,
                          key: bytes,
                          from_level: int = 0) -> List[bytes]:
+        from trinity.protocol.les.utils import gen_request_id
+
         request_id = gen_request_id()
         peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
         reply = await self._wait_for_reply(request_id)
         return reply['proof']
 
-    async def _retry_on_bad_response(self, make_request_to_peer: Callable[[LESPeer], Any]) -> Any:
+    async def _retry_on_bad_response(self, make_request_to_peer: Callable[['LESPeer'], Any]) -> Any:
         """
         Make a call to a peer. If it behaves badly, drop it and retry with a different peer.
 
@@ -355,6 +366,8 @@ class LightPeerChain(PeerSubscriber, BaseService):
         :raise NoEligiblePeers: if no peers are available to fulfill the request
         :raise TimeoutError: if an individual request or the overall process times out
         """
+        from trinity.protocol.les.peer import LESPeer  # noqa: F811
+
         for _ in range(MAX_REQUEST_ATTEMPTS):
             try:
                 peer = cast(LESPeer, self.peer_pool.highest_td_peer)

@@ -77,11 +77,12 @@ def _test() -> None:
     import argparse
     import asyncio
     import signal
-    from p2p import ecies
-    from p2p.kademlia import Node
-    from p2p.peer import ETHPeer, DEFAULT_PREFERRED_NODES
     from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
+    from p2p import ecies
+    from p2p.kademlia import Node
+    from p2p.peer import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.eth.peer import ETHPeer
     from tests.p2p.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')

@@ -2,15 +2,16 @@ import asyncio
 
 import pytest
 
-from p2p.les import (
+from p2p.exceptions import NoMatchingPeerCapabilities
+from p2p.p2p_proto import DisconnectReason, P2PProtocol
+
+from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.proto import (
     LESProtocol,
     LESProtocolV2,
 )
-from p2p.exceptions import NoMatchingPeerCapabilities
-from p2p.peer import LESPeer
-from p2p.p2p_proto import DisconnectReason, P2PProtocol
 
-from peer_helpers import (
+from tests.p2p.peer_helpers import (
     get_directly_linked_peers_without_handshake,
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,

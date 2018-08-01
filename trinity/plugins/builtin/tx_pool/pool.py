@@ -15,17 +15,19 @@ from cancel_token import CancelToken
 from eth.rlp.transactions import (
     BaseTransactionFields
 )
-from p2p.eth import (
-    Transactions
-)
+
 from p2p.peer import (
     BasePeer,
-    ETHPeer,
     PeerPool,
     PeerSubscriber,
 )
 from p2p.service import (
     BaseService
+)
+
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.commands import (
+    Transactions
 )
 
 
