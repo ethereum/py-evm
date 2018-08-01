@@ -15,6 +15,7 @@ EXP = 'EXP'
 SIGNEXTEND = 'SIGNEXTEND'
 SHL = 'SHL'
 SHR = 'SHR'
+SAR = 'SAR'
 #
 # Comparisons
 #
