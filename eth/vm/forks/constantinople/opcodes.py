@@ -32,6 +32,11 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.SHR,
         gas_cost=constants.GAS_VERYLOW,
     ),
+    opcode_values.SAR: as_opcode(
+        logic_fn=arithmetic.sar,
+        mnemonic=mnemonics.SAR,
+        gas_cost=constants.GAS_VERYLOW,
+    ),
 }
 
 CONSTANTINOPLE_OPCODES = merge(

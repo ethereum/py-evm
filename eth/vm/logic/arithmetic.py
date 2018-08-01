@@ -205,3 +205,18 @@ def shr(computation):
         result = (value >> shift_length) & constants.UINT_256_MAX
 
     computation.stack_push(result)
+
+
+def sar(computation):
+    """
+    Arithmetic bitwise right shift
+    """
+    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    value = unsigned_to_signed(value)
+
+    if shift_length >= 256:
+        result = 0 if value >= 0 else constants.UINT_255_NEGATIVE_ONE
+    else:
+        result = (value >> shift_length) & constants.UINT_256_MAX
+
+    computation.stack_push(result)
