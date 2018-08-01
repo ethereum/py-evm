@@ -52,18 +52,14 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: lint-py36
-  lint-py37:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: lint-py37
+
   py36-docs:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-docs
+
   py35-native-state-byzantium:
     <<: *common
     docker:
@@ -252,90 +248,6 @@ jobs:
         environment:
           TOXENV: py36-rpc-state-quadratic
 
-  py37-benchmark:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-benchmark
-  py37-native-state-byzantium:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-state-byzantium
-  py37-native-state-frontier:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-state-frontier
-  py37-native-state-homestead:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-state-homestead
-  py37-native-state-eip150:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-state-eip150
-  py37-native-state-eip158:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-state-eip158
-  py37-rpc-state-byzantium:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-byzantium
-  py37-rpc-state-frontier:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-frontier
-  py37-rpc-state-homestead:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-homestead
-  py37-rpc-state-eip150:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-eip150
-  py37-rpc-state-eip158:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-eip158
-  py37-native-blockchain:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-native-blockchain
-  py37-rpc-blockchain:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-blockchain
-  py37-vm:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-vm
   py37-core:
     <<: *common
     docker:
@@ -354,58 +266,19 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-trinity-integration
-  py37-transactions:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-transactions
-  py37-p2p:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-p2p
-  py37-database:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-database
-  py37-rpc-state-quadratic:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-rpc-state-quadratic
 
 workflows:
   version: 2
   test:
     jobs:
+      - lint-py35
+      - lint-py36
+
       - py36-docs
 
-      - py37-native-state-byzantium
-      - py37-native-state-frontier
-      - py37-native-state-homestead
-      - py37-native-state-eip150
-      - py37-native-state-eip158
-      - py37-rpc-state-byzantium
-      - py37-rpc-state-frontier
-      - py37-rpc-state-homestead
-      - py37-rpc-state-eip150
-      - py37-rpc-state-eip158
-      - py37-native-blockchain
-      - py37-rpc-blockchain
-      - py37-vm
-      - py37-benchmark
       - py37-core
       - py37-trinity
       - py37-trinity-integration
-      - py37-transactions
-      - py37-p2p
-      - py37-database
-      - py37-rpc-state-quadratic
 
       - py36-native-state-byzantium
       - py36-native-state-frontier
@@ -439,7 +312,3 @@ workflows:
       - py35-core
       - py35-transactions
       - py35-database
-
-      - lint-py37
-      - lint-py36
-      - lint-py35
