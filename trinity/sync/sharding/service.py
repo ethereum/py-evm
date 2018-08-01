@@ -9,6 +9,10 @@ from typing import (
     Set,
 )
 
+from cytoolz import (
+    excepts,
+)
+
 from eth_typing import (
     Hash32,
 )
@@ -44,18 +48,17 @@ from p2p.peer import (
     PeerSubscriber,
 )
 
-from p2p.sharding_peer import (
-    ShardingPeer,
-)
-from p2p.sharding_protocol import (
-    ShardingProtocol,
+
+from trinity.protocol.sharding.commands import (
     Collations,
     GetCollations,
     NewCollationHashes,
 )
-
-from cytoolz import (
-    excepts,
+from trinity.protocol.sharding.peer import (
+    ShardingPeer,
+)
+from trinity.protocol.sharding.proto import (
+    ShardingProtocol,
 )
 
 
@@ -188,7 +191,7 @@ class ShardSyncer(BaseService, PeerSubscriber):
         # to header existence at the moment. In the future we won't transfer collations anyway but
         # only collation bodies (headers are retrieved from the main chain), so there's no need to
         # add this at the moment.
-        from trinity.protocol.les.utils import gen_request_id
+        from trinity.utils.les import gen_request_id
 
         collation_hashes = set(
             collation_hash for collation_hash, _ in msg["collation_hashes_and_periods"]

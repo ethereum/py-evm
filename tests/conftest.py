@@ -23,23 +23,27 @@ from eth.db.backends.memory import MemoryDB
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 
 
+LOGGING_NAMESPACES = ('eth', 'p2p', 'trinity')
+
+
 @pytest.fixture(autouse=True, scope="session")
-def vm_logger():
-    logger = logging.getLogger('eth')
+def vm_logger(namespaces=LOGGING_NAMESPACES):
+    for namespace in namespaces:
+        logger = logging.getLogger(namespace)
 
-    handler = logging.StreamHandler(sys.stdout)
+        handler = logging.StreamHandler(sys.stdout)
 
-    # level = TRACE_LEVEL_NUM
-    # level = logging.DEBUG
-    # level = logging.INFO
-    level = logging.ERROR
+        # level = TRACE_LEVEL_NUM
+        # level = logging.DEBUG
+        # level = logging.INFO
+        level = logging.ERROR
 
-    logger.setLevel(level)
-    handler.setLevel(level)
+        logger.setLevel(level)
+        handler.setLevel(level)
 
-    logger.addHandler(handler)
+        logger.addHandler(handler)
 
-    return logger
+        return logger
 
 
 # Uncomment this to have logs from tests written to a file.  This is useful for

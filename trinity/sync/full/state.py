@@ -11,7 +11,6 @@ from typing import (
     List,
     Set,
     Tuple,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -45,18 +44,25 @@ from eth.db.backends.base import BaseDB
 from eth.rlp.accounts import Account
 from eth.utils.logging import TraceLogger
 
-from p2p import protocol
-from p2p.chain import PeerRequestHandler
+from p2p.service import BaseService
+from p2p.protocol import (
+    Command,
+    _DecodedMsgType,
+)
+
 from p2p.exceptions import NoEligiblePeers, NoIdlePeers
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
-from p2p.service import BaseService
-from p2p.utils import get_asyncio_executor, Timer
+from p2p.executor import get_asyncio_executor
 
-
-if TYPE_CHECKING:
-    from trinity.db.chain import AsyncChainDB  # noqa: F401
-    from trinity.protocol.eth.peer import ETHPeer  # noqa: F401
-    from trinity.protocol.eth.requests import HeaderRequest  # noqa: F401
+from trinity.db.chain import AsyncChainDB
+from trinity.p2p.handlers import PeerRequestHandler
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.requests import HeaderRequest
+from trinity.protocol.eth import commands
+from trinity.protocol.eth import (
+    constants as eth_constants,
+)
+from trinity.utils.timer import Timer
 
 
 class StateDownloader(BaseService, PeerSubscriber):
@@ -67,7 +73,7 @@ class StateDownloader(BaseService, PeerSubscriber):
     _total_timeouts = 0
 
     def __init__(self,
-                 chaindb: 'AsyncChainDB',
+                 chaindb: AsyncChainDB,
                  account_db: BaseDB,
                  root_hash: bytes,
                  peer_pool: PeerPool,
@@ -79,7 +85,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.scheduler = StateSync(root_hash, account_db)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
-        self._peer_missing_nodes: Dict['ETHPeer', Set[Hash32]] = collections.defaultdict(set)
+        self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
         self._executor = get_asyncio_executor()
 
     @property
@@ -93,18 +99,14 @@ class StateDownloader(BaseService, PeerSubscriber):
         # Use .pop() with a default value as it's possible we never requested anything to this
         # peer or it had all the trie nodes we requested, so there'd be no entry in
         # self._peer_missing_nodes for it.
-        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
-
         self._peer_missing_nodes.pop(cast(ETHPeer, peer), None)
 
-    async def get_peer_for_request(self, node_keys: Set[Hash32]) -> 'ETHPeer':
+    async def get_peer_for_request(self, node_keys: Set[Hash32]) -> ETHPeer:
         """Return an idle peer that may have any of the trie nodes in node_keys.
 
         If none of our peers have any of the given node keys, raise NoEligiblePeers. If none of
         the peers which may have at least one of the given node keys is idle, raise NoIdlePeers.
         """
-        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
-
         has_eligible_peers = False
         async for peer in self.peer_pool:
             peer = cast(ETHPeer, peer)
@@ -123,8 +125,6 @@ class StateDownloader(BaseService, PeerSubscriber):
             raise NoIdlePeers()
 
     async def _handle_msg_loop(self) -> None:
-        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
-
         while self.is_running:
             try:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
@@ -153,16 +153,10 @@ class StateDownloader(BaseService, PeerSubscriber):
                 await self.sleep(0)
 
     async def _handle_msg(
-            self, peer: 'ETHPeer', cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+            self, peer: ETHPeer, cmd: Command, msg: _DecodedMsgType) -> None:
         # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
         # messages related to new blocks/transactions, but we must handle requests for data from
         # other peers or else they will disconnect from us.
-        from trinity.protocol.eth import commands
-        from trinity.protocol.eth import (
-            constants as eth_constants,
-        )
-        from trinity.protocol.eth.requests import HeaderRequest  # noqa F811
-
         ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
         if isinstance(cmd, ignored_commands):
             pass
@@ -212,7 +206,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         else:
             self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
 
-    async def _handle_get_block_headers(self, peer: 'ETHPeer', request: 'HeaderRequest') -> None:
+    async def _handle_get_block_headers(self, peer: ETHPeer, request: HeaderRequest) -> None:
         headers = await self._handler.lookup_headers(request)
         peer.sub_proto.send_block_headers(headers)
 
@@ -224,10 +218,6 @@ class StateDownloader(BaseService, PeerSubscriber):
         await asyncio.sleep(0)
 
     async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
-        from trinity.protocol.eth import (
-            constants as eth_constants,
-        )
-
         not_yet_requested = set(node_keys)
         while not_yet_requested:
             try:
@@ -283,10 +273,6 @@ class StateDownloader(BaseService, PeerSubscriber):
 
         Raises OperationCancelled if we're interrupted before that is completed.
         """
-        from trinity.protocol.eth import (
-            constants as eth_constants,
-        )
-
         self._timer.start()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
         asyncio.ensure_future(self._handle_msg_loop())
@@ -335,7 +321,7 @@ class TrieNodeRequestTracker:
     def __init__(self, reply_timeout: int, logger: TraceLogger) -> None:
         self.reply_timeout = reply_timeout
         self.logger = logger
-        self.active_requests: Dict['ETHPeer', Tuple[float, List[Hash32]]] = {}
+        self.active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
         self.missing: Dict[float, List[Hash32]] = {}
 
     def get_timed_out(self) -> List[Hash32]:
@@ -381,7 +367,6 @@ def _test() -> None:
     from eth.db.backends.level import LevelDB
     from p2p import ecies
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from trinity.protocol.eth.peer import ETHPeer  # noqa F811
     from tests.p2p.integration_test_helpers import FakeAsyncChainDB, connect_to_peers_loop
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 

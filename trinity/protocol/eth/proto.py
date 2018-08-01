@@ -14,7 +14,8 @@ from eth.rlp.transactions import BaseTransactionFields
 from p2p.protocol import (
     Protocol,
 )
-from p2p.rlp import BlockBody
+
+from trinity.rlp.block_body import BlockBody
 
 from .commands import (
     BlockBodies,

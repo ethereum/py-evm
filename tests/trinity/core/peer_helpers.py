@@ -14,12 +14,13 @@ from p2p import auth
 from p2p import constants
 from p2p import ecies
 from p2p import kademlia
+from p2p.auth import decode_authentication
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
-from p2p.server import decode_authentication
+
 
 from trinity.protocol.les.peer import LESPeer
 
-from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB
+from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_fresh_mainnet_headerdb():

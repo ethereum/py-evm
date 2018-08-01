@@ -18,14 +18,14 @@ from eth.chains.ropsten import (
 from eth.db.backends.memory import MemoryDB
 
 from p2p import ecies
-from p2p.chain import LightChainSyncer
 from p2p.kademlia import Node
-from p2p.lightchain import LightPeerChain
 from p2p.peer import PeerPool
 
 from trinity.protocol.les.peer import LESPeer
+from trinity.sync.light.chain import LightChainSyncer
+from trinity.sync.light.service import LightPeerChain
 
-from integration_test_helpers import (
+from tests.trinity.core.integration_test_helpers import (
     FakeAsyncChainDB,
     FakeAsyncRopstenChain,
     FakeAsyncHeaderDB,

@@ -17,18 +17,19 @@ from p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
-from p2p.server import decode_authentication
+from p2p.auth import decode_authentication
 
 from auth_constants import (
     eip8_values,
     test_values,
 )
-from dumb_peer import DumbPeer
-from peer_helpers import MockStreamWriter
+from tests.trinity.core.dumb_peer import DumbPeer
+from tests.trinity.core.peer_helpers import MockStreamWriter
 
 
 @pytest.mark.asyncio
 async def test_handshake():
+    # TODO: this test should be re-written to not depend on functionality in the `ETHPeer` class.
     cancel_token = CancelToken("test_handshake")
     use_eip8 = False
     initiator_remote = kademlia.Node(

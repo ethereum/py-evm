@@ -23,6 +23,9 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.base_request import BaseHeaderRequest
+from trinity.utils.les import (
+    gen_request_id as _gen_request_id,
+)
 
 from .commands import (
     Announce,
@@ -40,9 +43,6 @@ from .proto import (
 )
 from .requests import (
     HeaderRequest,
-)
-from .utils import (
-    gen_request_id as _gen_request_id,
 )
 
 
