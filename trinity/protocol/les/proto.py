@@ -4,10 +4,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth_typing import (
-    BlockIdentifier,
-)
-
 from eth.rlp.headers import BlockHeader
 
 from p2p.protocol import (
@@ -35,6 +31,7 @@ from .commands import (
     ContractCodes,
 )
 from . import constants
+from .requests import HeaderRequest
 
 if TYPE_CHECKING:
     from p2p.peer import (  # noqa: F401
@@ -77,29 +74,27 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_block_headers(self,
-                               block_number_or_hash: BlockIdentifier,
-                               max_headers: int,
-                               skip: int,
-                               reverse: bool,
-                               request_id: int,
-                               ) -> None:
+    def send_get_block_headers(self, request: HeaderRequest) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        if max_headers > constants.MAX_HEADERS_FETCH:
+        if request.max_headers > constants.MAX_HEADERS_FETCH:
             raise ValueError(
                 "Cannot ask for more than {} block headers in a single request".format(
                     constants.MAX_HEADERS_FETCH))
         cmd = GetBlockHeaders(self.cmd_id_offset)
         # Number of block headers to skip between each item (i.e. step in python APIs).
-        skip = 0
         data = {
-            'request_id': request_id,
-            'query': GetBlockHeadersQuery(block_number_or_hash, max_headers, skip, reverse),
+            'request_id': request.request_id,
+            'query': GetBlockHeadersQuery(
+                request.block_number_or_hash,
+                request.max_headers,
+                request.skip,
+                request.reverse,
+            ),
         }
         header, body = cmd.encode(data)
         self.send(header, body)

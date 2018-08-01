@@ -72,10 +72,9 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
 
     async def send_headers():
         remote.sub_proto.send_block_headers(headers)
-        await asyncio.sleep(0)
 
     asyncio.ensure_future(send_headers())
-    response = await peer.get_block_headers(*params)
+    response = await peer.handler.get_block_headers(*params)
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -95,16 +94,14 @@ async def test_les_peer_get_headers_round_trip(les_peer_and_remote,
                                                params,
                                                headers):
     peer, remote = les_peer_and_remote
-    request_id = 1234
-
-    peer.gen_request_id = lambda: request_id
 
     async def send_headers():
+        request_id = peer.handler.get_block_headers.pending_request[0].request_id
         remote.sub_proto.send_block_headers(headers, 0, request_id)
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_headers())
-    response = await peer.get_block_headers(*params)
+    response = await peer.handler.get_block_headers(*params)
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -124,7 +121,7 @@ async def test_eth_peer_get_headers_round_trip_with_noise(eth_peer_and_remote):
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
-    response = await peer.get_block_headers(0, 10, 0, False)
+    response = await peer.handler.get_block_headers(0, 10, 0, False)
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -148,7 +145,7 @@ async def test_eth_peer_get_headers_round_trip_does_not_match_invalid_response(e
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
-    response = await peer.get_block_headers(0, 5, 0, False)
+    response = await peer.handler.get_block_headers(0, 5, 0, False)
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):

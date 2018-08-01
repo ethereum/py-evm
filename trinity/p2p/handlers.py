@@ -22,7 +22,7 @@ from p2p.cancellable import CancellableMixin
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeer
-from trinity.protocol.base_request import BaseHeaderRequest
+from trinity.protocol.common.requests import BaseHeaderRequest
 from trinity.rlp.block_body import BlockBody
 
 

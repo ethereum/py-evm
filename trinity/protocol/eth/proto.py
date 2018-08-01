@@ -5,8 +5,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth_typing import BlockIdentifier
-
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
@@ -32,6 +30,9 @@ from .commands import (
     Transactions,
 )
 from . import constants
+from .requests import (
+    HeaderRequest,
+)
 
 if TYPE_CHECKING:
     from p2p.peer import (  # noqa: F401
@@ -71,28 +72,28 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(nodes)
         self.send(header, body)
 
-    def send_get_block_headers(self,
-                               block_number_or_hash: BlockIdentifier,
-                               max_headers: int,
-                               skip: int,
-                               reverse: bool,
-                               ) -> None:
+    def send_get_block_headers(self, request: HeaderRequest) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        if max_headers > constants.MAX_HEADERS_FETCH:
+        if request.max_headers > constants.MAX_HEADERS_FETCH:
             raise ValueError(
-                "Cannot ask for more than {} block headers in a single request".format(
-                    constants.MAX_HEADERS_FETCH))
+                "Cannot ask for more than {} block headers in a single request. "
+                "Asked for {}".format(
+                    constants.MAX_HEADERS_FETCH,
+                    request.max_headers,
+                )
+            )
         cmd = GetBlockHeaders(self.cmd_id_offset)
         data = {
-            'block_number_or_hash': block_number_or_hash,
-            'max_headers': max_headers,
-            'skip': skip,
-            'reverse': reverse}
+            'block_number_or_hash': request.block_number_or_hash,
+            'max_headers': request.max_headers,
+            'skip': request.skip,
+            'reverse': request.reverse
+        }
         header, body = cmd.encode(data)
         self.send(header, body)
 

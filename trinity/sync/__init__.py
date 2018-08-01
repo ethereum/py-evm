@@ -9,7 +9,7 @@ from eth.exceptions import HeaderNotFound
 
 from p2p.peer import PeerPool
 
-from .base_chain_syncer import BaseHeaderChainSyncer
+from .common.chain import BaseHeaderChainSyncer
 from .full.chain import FastChainSyncer, RegularChainSyncer
 from .light.chain import LightChainSyncer
 

@@ -324,13 +324,11 @@ class LightPeerChain(PeerSubscriber, BaseService):
         :raise BadLESResponse: if the peer replies with a header that has a different hash
         """
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
         max_headers = 1
-        peer.sub_proto.send_get_block_headers(block_hash, max_headers, 0, False, request_id)
-        reply = await self._wait_for_reply(request_id)
-        if not reply['headers']:
+        headers = await peer.handler.get_block_headers(block_hash, max_headers, 0, False)
+        if not headers:
             raise HeaderNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
-        header = reply['headers'][0]
+        header = headers[0]
         if header.hash != block_hash:
             raise BadLESResponse(
                 "Received header hash (%s) does not match what we requested (%s)",

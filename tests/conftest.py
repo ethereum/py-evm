@@ -33,7 +33,7 @@ def vm_logger(namespaces=LOGGING_NAMESPACES):
 
         handler = logging.StreamHandler(sys.stdout)
 
-        # level = TRACE_LEVEL_NUM
+        # level = 5  # TRACE
         # level = logging.DEBUG
         # level = logging.INFO
         level = logging.ERROR

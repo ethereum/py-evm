@@ -94,7 +94,6 @@ class BaseService(ABC, CancellableMixin):
         The ``_cleanup()`` coroutine is invoked before the child services may have finished
         their cleanup.
         """
-
         await asyncio.gather(*[
             child_service.cleaned_up.wait()
             for child_service in self._child_services],

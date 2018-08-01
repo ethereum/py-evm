@@ -15,7 +15,7 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.protocol.base_block_headers import BaseBlockHeaders
+from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
 

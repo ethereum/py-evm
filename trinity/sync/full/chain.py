@@ -45,7 +45,7 @@ from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.requests import HeaderRequest
 from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
-from trinity.sync.base_chain_syncer import BaseHeaderChainSyncer
+from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
 
 

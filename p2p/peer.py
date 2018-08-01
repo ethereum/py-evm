@@ -155,14 +155,6 @@ class BasePeer(BaseService):
     head_td: int = None
     head_hash: Hash32 = None
 
-    # TODO: Instead of a fixed timeout, we should instead monitor response
-    # times for the peer and adjust our timeout accordingly
-    _response_timeout = 60
-    pending_requests: Dict[
-        Type[protocol.Command],
-        Tuple['BaseRequest', 'asyncio.Future[protocol._DecodedMsgType]'],
-    ]
-
     def __init__(self,
                  remote: Node,
                  privkey: datatypes.PrivateKey,
@@ -188,8 +180,6 @@ class BasePeer(BaseService):
         self._subscribers: List[PeerSubscriber] = []
         self.start_time = datetime.datetime.now()
         self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
-
-        self.pending_requests = {}
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -399,22 +389,6 @@ class BasePeer(BaseService):
                 )
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
-
-        if cmd_type in self.pending_requests:
-            request, future = self.pending_requests[cmd_type]
-            try:
-                request.validate_response(msg)
-            except ValidationError as err:
-                self.logger.debug(
-                    "Response validation failure for pending %s request from peer %s: %s",
-                    cmd_type.__name__,
-                    self,
-                    err,
-                )
-                pass
-            else:
-                future.set_result(msg)
-                self.pending_requests.pop(cmd_type)
 
     def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         if cmd.is_base_protocol:
@@ -640,6 +614,14 @@ class PeerSubscriber(ABC):
         finally:
             peer_pool.unsubscribe(self)
 
+    @contextlib.contextmanager
+    def subscribe_peer(self, peer: BasePeer) -> Iterator[None]:
+        peer.add_subscriber(self)
+        try:
+            yield
+        finally:
+            peer.remove_subscriber(self)
+
 
 class PeerPool(BaseService, AsyncIterable[BasePeer]):
     """
@@ -794,7 +776,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         wait for that we may receive other messages from the peer, which are returned so that they
         can be re-added to our subscribers' queues when the peer is finally added to the pool.
         """
-        from trinity.protocol.base_block_headers import BaseBlockHeaders
+        from trinity.protocol.common.commands import BaseBlockHeaders
         msgs = []
         for start_block, vm_class in self.vm_configuration:
             if not issubclass(vm_class, HomesteadVM):
@@ -1008,7 +990,9 @@ def _test() -> None:
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.memory import MemoryDB
     from trinity.protocol.eth.peer import ETHPeer
+    from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
     from trinity.protocol.les.peer import LESPeer
+    from trinity.protocol.les.requests import HeaderRequest as LESHeaderRequest
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
@@ -1041,13 +1025,15 @@ def _test() -> None:
             '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.sub_proto.send_get_block_headers(block_hash, 1, 0, False)
+            peer.sub_proto.send_get_block_headers(ETHHeaderRequest(block_hash, 1, 0, False))
             peer.sub_proto.send_get_block_bodies([block_hash])
             peer.sub_proto.send_get_receipts([block_hash])
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
-            peer.sub_proto.send_get_block_headers(block_hash, 1, 0, False, request_id)
+            peer.sub_proto.send_get_block_headers(
+                LESHeaderRequest(block_hash, 1, 0, False, request_id)
+            )
             peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
             peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
 
