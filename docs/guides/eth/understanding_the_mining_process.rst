@@ -1,8 +1,8 @@
 Understanding the mining process
 ================================
 
-In the :doc:`Building Chains Guide <building_chains>` we already learned how to
-use the :class:`~eth.chains.base.MiningChain` class to create a single
+From the :ref:`EVM Cookbook<evm_cookbook>` we can already learn how to
+use the :class:`~eth.chains.base.Chain` class to create a single
 blockchain as a combination of different virtual machines for different spans
 of blocks.
 
@@ -38,7 +38,9 @@ block first because, after all, one primary use case for the Ethereum blockchain
 For the sake of simplicity though, we'll mine an empty block as a first example (meaning the block
 will not contain any transactions)
 
-As a refresher, he's where we left of as part of the :doc:`Building Chains Guide </guides/eth/building_chains>`.
+As a refresher, he's how we create a chain as demonstrated in the
+:ref:`Using the chain object recipe<evm_cookbook_recipe_using_the_chain_object>` from the
+cookbook.
 
 ::
 
@@ -308,74 +310,76 @@ Finally, we can call :func:`~eth.chains.base.MiningChain.apply_transaction` and 
 What follows is the complete script that demonstrates how to mine a single block with one simple
 zero value transfer transaction.
 
-::
+.. doctest::
 
-    from eth_keys import keys
-    from eth_utils import decode_hex
-    from eth_typing import Address
+  >>> from eth_keys import keys
+  >>> from eth_utils import decode_hex
+  >>> from eth_typing import Address
+  >>> from eth import constants
+  >>> from eth.chains.base import MiningChain
+  >>> from eth.consensus.pow import mine_pow_nonce
+  >>> from eth.vm.forks.byzantium import ByzantiumVM
+  >>> from eth.db.backends.memory import MemoryDB
 
-    from eth.consensus.pow import mine_pow_nonce
-    from eth import constants, MiningChain
-    from eth.vm.forks.byzantium import ByzantiumVM
-    from eth.db.backends.memory import MemoryDB
 
+  >>> GENESIS_PARAMS = {
+  ...     'parent_hash': constants.GENESIS_PARENT_HASH,
+  ...     'uncles_hash': constants.EMPTY_UNCLE_HASH,
+  ...     'coinbase': constants.ZERO_ADDRESS,
+  ...     'transaction_root': constants.BLANK_ROOT_HASH,
+  ...     'receipt_root': constants.BLANK_ROOT_HASH,
+  ...     'difficulty': 1,
+  ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
+  ...     'gas_limit': constants.GENESIS_GAS_LIMIT,
+  ...     'timestamp': 1514764800,
+  ...     'extra_data': constants.GENESIS_EXTRA_DATA,
+  ...     'nonce': constants.GENESIS_NONCE
+  ... }
 
-    GENESIS_PARAMS = {
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'uncles_hash': constants.EMPTY_UNCLE_HASH,
-        'coinbase': constants.ZERO_ADDRESS,
-        'transaction_root': constants.BLANK_ROOT_HASH,
-        'receipt_root': constants.BLANK_ROOT_HASH,
-        'difficulty': 1,
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
-        'gas_limit': constants.GENESIS_GAS_LIMIT,
-        'timestamp': 1514764800,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'nonce': constants.GENESIS_NONCE
-    }
+  >>> SENDER_PRIVATE_KEY = keys.PrivateKey(
+  ...     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+  ... )
 
-    SENDER_PRIVATE_KEY = keys.PrivateKey(
-      decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
-    )
+  >>> SENDER = Address(SENDER_PRIVATE_KEY.public_key.to_canonical_address())
 
-    SENDER = Address(SENDER_PRIVATE_KEY.public_key.to_canonical_address())
+  >>> RECEIVER = Address(b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02')
 
-    RECEIVER = Address(b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02')
+  >>> klass = MiningChain.configure(
+  ...     __name__='TestChain',
+  ...     vm_configuration=(
+  ...         (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
+  ...     ))
 
-    klass = MiningChain.configure(
-        __name__='TestChain',
-        vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
-        ))
+  >>> chain = klass.from_genesis(MemoryDB(), GENESIS_PARAMS)
+  >>> vm = chain.get_vm()
 
-    chain = klass.from_genesis(MemoryDB(), GENESIS_PARAMS)
-    vm = chain.get_vm()
+  >>> nonce = vm.state.account_db.get_nonce(SENDER)
 
-    nonce = vm.get_transaction_nonce(SENDER)
+  >>> tx = vm.create_unsigned_transaction(
+  ...     nonce=nonce,
+  ...     gas_price=0,
+  ...     gas=100000,
+  ...     to=RECEIVER,
+  ...     value=0,
+  ...     data=b'',
+  ... )
 
-    tx = vm.create_unsigned_transaction(
-        nonce=nonce,
-        gas_price=0,
-        gas=100000,
-        to=RECEIVER,
-        value=0,
-        data=b'',
-    )
+  >>> signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
 
-    signed_tx = tx.as_signed_transaction(SENDER_PRIVATE_KEY)
+  >>> chain.apply_transaction(signed_tx)
+  (<ByzantiumBlock(#Block #1...)
+  >>> # We have to finalize the block first in order to be able read the
+  >>> # attributes that are important for the PoW algorithm
+  >>> block = chain.get_vm().finalize_block(chain.get_block())
 
-    chain.apply_transaction(signed_tx)
+  >>> # based on mining_hash, block number and difficulty we can perform
+  >>> # the actual Proof of Work (PoW) mechanism to mine the correct
+  >>> # nonce and mix_hash for this block
+  >>> nonce, mix_hash = mine_pow_nonce(
+  ...     block.number,
+  ...     block.header.mining_hash,
+  ...     block.header.difficulty
+  ... )
 
-    # We have to finalize the block first in order to be able read the
-    # attributes that are important for the PoW algorithm
-    block = chain.get_vm().finalize_block(chain.get_block())
-
-    # based on mining_hash, block number and difficulty we can perform
-    # the actual Proof of Work (PoW) mechanism to mine the correct
-    # nonce and mix_hash for this block
-    nonce, mix_hash = mine_pow_nonce(
-        block.number,
-        block.header.mining_hash,
-        block.header.difficulty)
-
-    block = chain.mine_block(mix_hash=mix_hash, nonce=nonce)
+  >>> chain.mine_block(mix_hash=mix_hash, nonce=nonce)
+  <ByzantiumBlock(#Block #1)>
