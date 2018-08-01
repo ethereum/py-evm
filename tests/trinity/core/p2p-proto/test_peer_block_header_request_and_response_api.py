@@ -9,7 +9,7 @@ from eth.rlp.headers import BlockHeader
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 
-from tests.p2p.peer_helpers import (
+from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
 )
 

@@ -6,7 +6,7 @@ from eth.db.backends.memory import MemoryDB
 from eth.db.account import AccountDB
 from eth.utils.logging import TraceLogger
 
-from p2p.state import StateSync, TrieNodeRequestTracker
+from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
 
 
 def make_random_state(n):

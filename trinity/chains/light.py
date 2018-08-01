@@ -50,7 +50,7 @@ from eth.vm.computation import (
     BaseComputation
 )
 
-from p2p.lightchain import (
+from trinity.sync.light.service import (
     LightPeerChain,
 )
 

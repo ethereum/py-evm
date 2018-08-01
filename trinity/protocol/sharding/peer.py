@@ -29,15 +29,17 @@ from p2p.p2p_proto import (
     DisconnectReason,
 )
 
-from p2p.sharding_protocol import (
-    ShardingProtocol,
-    Collations,
-    Status,
-)
-
 from p2p.exceptions import (
     HandshakeFailure,
     UnexpectedMessage,
+)
+
+from trinity.protocol.sharding.commands import (
+    Collations,
+    Status,
+)
+from trinity.protocol.sharding.proto import (
+    ShardingProtocol,
 )
 
 
@@ -89,7 +91,7 @@ class ShardingPeer(BasePeer):
     async def get_collations(self,
                              collation_hashes: List[Hash32],
                              cancel_token: CancelToken) -> Set[Collation]:
-        from trinity.protocol.les.utils import gen_request_id
+        from trinity.utils.les import gen_request_id
         # Don't send empty request
         if len(collation_hashes) == 0:
             return set()

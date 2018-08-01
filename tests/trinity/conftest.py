@@ -6,9 +6,6 @@ import tempfile
 import uuid
 
 from p2p.peer import PeerPool
-from p2p.server import (
-    Server
-)
 
 from trinity.rpc.main import (
     RPCServer,
@@ -16,12 +13,20 @@ from trinity.rpc.main import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
+from trinity.server import (
+    Server
+)
 from trinity.utils.xdg import (
     get_xdg_trinity_root,
 )
 from trinity.utils.filesystem import (
     is_under_path,
 )
+
+
+def pytest_addoption(parser):
+    parser.addoption("--enode", type=str, required=False)
+    parser.addoption("--integration", action="store_true", default=False)
 
 
 @pytest.fixture(autouse=True)

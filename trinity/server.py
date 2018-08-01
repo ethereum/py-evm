@@ -7,7 +7,6 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    TYPE_CHECKING,
 )
 
 from eth_keys import datatypes
@@ -53,12 +52,11 @@ from p2p.peer import (
     PeerPool,
 )
 from p2p.service import BaseService
-from p2p.sync import FullNodeSyncer
 
-if TYPE_CHECKING:
-    from trinity.db.chain import AsyncChainDB  # noqa: F401
-    from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
-    from trinity.protocol.eth.peer import ETHPeer  # noqa: F401
+from trinity.db.chain import AsyncChainDB
+from trinity.db.header import BaseAsyncHeaderDB
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.sync.full.service import FullNodeSyncer
 
 
 DIAL_IN_OUT_RATIO = 0.75
@@ -76,12 +74,12 @@ class Server(BaseService):
                  privkey: datatypes.PrivateKey,
                  port: int,
                  chain: AsyncChain,
-                 chaindb: 'AsyncChainDB',
-                 headerdb: 'BaseAsyncHeaderDB',
+                 chaindb: AsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
                  base_db: BaseDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 peer_class: Type[BasePeer] = None,
+                 peer_class: Type[BasePeer] = ETHPeer,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
                  token: CancelToken = None,
@@ -94,9 +92,6 @@ class Server(BaseService):
         self.privkey = privkey
         self.port = port
         self.network_id = network_id
-        if peer_class is None:
-            from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
-            peer_class = ETHPeer
         self.peer_class = peer_class
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
@@ -306,7 +301,6 @@ def _test() -> None:
     from p2p import ecies
     from p2p.constants import ROPSTEN_BOOTNODES
 
-    from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
     from trinity.utils.chains import load_nodekey
 
     from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB

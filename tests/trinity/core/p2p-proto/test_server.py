@@ -16,12 +16,12 @@ from p2p.kademlia import (
     Node,
     Address,
 )
-from p2p.server import Server
 
 from trinity.protocol.eth.peer import ETHPeer
+from trinity.server import Server
 
-from auth_constants import eip8_values
-from dumb_peer import DumbPeer
+from tests.p2p.auth_constants import eip8_values
+from tests.trinity.core.dumb_peer import DumbPeer
 
 
 def get_open_port():

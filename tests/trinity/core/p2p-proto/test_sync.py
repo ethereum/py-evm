@@ -9,14 +9,22 @@ from eth import constants
 from eth.db.backends.memory import MemoryDB
 from eth.vm.forks.frontier import FrontierVM, _PoWMiningVM
 
-from p2p.chain import FastChainSyncer, LightChainSyncer, RegularChainSyncer
-from p2p.state import StateDownloader
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
+from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
+from trinity.sync.full.state import StateDownloader
+from trinity.sync.light.chain import LightChainSyncer
 
-from integration_test_helpers import FakeAsyncChain, FakeAsyncChainDB, FakeAsyncHeaderDB
-from peer_helpers import get_directly_linked_peers, MockPeerPoolWithConnectedPeers
+from tests.trinity.core.integration_test_helpers import (
+    FakeAsyncChain,
+    FakeAsyncChainDB,
+    FakeAsyncHeaderDB,
+)
+from tests.trinity.core.peer_helpers import (
+    get_directly_linked_peers,
+    MockPeerPoolWithConnectedPeers,
+)
 
 
 # This causes the chain syncers to request/send small batches of things, which will cause us to
@@ -80,7 +88,11 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     asyncio.ensure_future(server.run())
 
     def finalizer():
-        event_loop.run_until_complete(asyncio.gather(client.cancel(), server.cancel()))
+        event_loop.run_until_complete(asyncio.gather(
+            client.cancel(),
+            server.cancel(),
+            loop=event_loop,
+        ))
         # Yield control so that client/server.run() returns, otherwise asyncio will complain.
         event_loop.run_until_complete(asyncio.sleep(0.1))
     request.addfinalizer(finalizer)
@@ -109,7 +121,11 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     asyncio.ensure_future(server.run())
 
     def finalizer():
-        event_loop.run_until_complete(asyncio.gather(client.cancel(), server.cancel()))
+        event_loop.run_until_complete(asyncio.gather(
+            client.cancel(),
+            server.cancel(),
+            loop=event_loop,
+        ))
         # Yield control so that client/server.run() returns, otherwise asyncio will complain.
         event_loop.run_until_complete(asyncio.sleep(0.1))
     request.addfinalizer(finalizer)

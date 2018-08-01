@@ -1,6 +1,10 @@
 import asyncio
 import itertools
 
+from cytoolz import (
+    merge,
+)
+
 import pytest
 
 from eth.chains.shard import Shard
@@ -16,18 +20,6 @@ from eth.utils.padding import (
 
 from cancel_token import CancelToken
 
-from p2p.sharding_protocol import (
-    ShardingProtocol,
-    GetCollations,
-    NewCollationHashes,
-)
-from p2p.sharding_peer import (
-    ShardingPeer,
-)
-from p2p.shard_syncer import (
-    ShardSyncer,
-)
-
 from p2p.exceptions import (
     HandshakeFailure,
 )
@@ -39,15 +31,25 @@ from eth.constants import (
     COLLATION_SIZE,
 )
 
-from tests.p2p.peer_helpers import (
+from trinity.protocol.sharding.commands import (
+    GetCollations,
+    NewCollationHashes,
+)
+from trinity.protocol.sharding.peer import (
+    ShardingPeer,
+)
+from trinity.protocol.sharding.proto import (
+    ShardingProtocol,
+)
+from trinity.sync.sharding.service import (
+    ShardSyncer,
+)
+
+from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
     get_directly_linked_peers_without_handshake,
     MockPeerPoolWithConnectedPeers,
     SamplePeerSubscriber,
-)
-
-from cytoolz import (
-    merge,
 )
 
 

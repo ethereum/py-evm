@@ -5,17 +5,11 @@ from eth.chains.base import (
 from p2p.peer import (
     PeerPool,
 )
-from p2p.server import (
-    Server
-)
 
 from trinity.nodes.base import Node
-from trinity.config import (
-    ChainConfig,
-)
-from trinity.extensibility import (
-    PluginManager
-)
+from trinity.config import ChainConfig
+from trinity.extensibility import PluginManager
+from trinity.server import Server
 
 
 class FullNode(Node):

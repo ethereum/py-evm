@@ -11,7 +11,7 @@ from trinity.protocol.les.proto import (
     LESProtocolV2,
 )
 
-from tests.p2p.peer_helpers import (
+from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers_without_handshake,
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,

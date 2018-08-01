@@ -3,10 +3,8 @@ from typing import Type
 
 from eth_keys.datatypes import PrivateKey
 
-from p2p.chain import LightChainSyncer
 from p2p.discovery import DiscoveryService, PreferredNodeDiscoveryProtocol
 from p2p.kademlia import Address
-from p2p.lightchain import LightPeerChain
 from p2p.peer import (
     PeerPool,
 )
@@ -22,6 +20,8 @@ from trinity.extensibility import (
 )
 from trinity.nodes.base import Node
 from trinity.protocol.les.peer import LESPeer
+from trinity.sync.light.chain import LightChainSyncer
+from trinity.sync.light.service import LightPeerChain
 
 
 class LightNode(Node):
