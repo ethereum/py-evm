@@ -85,6 +85,11 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         commands.GetNodeData,
         commands.Transactions,
         commands.NodeData,
+        # TODO: all of the following are here to quiet warning logging output
+        # until the messages are properly handled.
+        commands.Transactions,
+        commands.NewBlock,
+        commands.NewBlockHashes,
     }
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
@@ -257,7 +262,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(ETHPeer, peer)
 
-        if isinstance(cmd, commands.BlockBodies):
+        # TODO: stop ignoring these once we have proper handling for these messages.
+        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
+
+        if isinstance(cmd, ignored_commands):
+            pass
+        elif isinstance(cmd, commands.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
         elif isinstance(cmd, commands.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))

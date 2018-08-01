@@ -98,6 +98,11 @@ class StateDownloader(BaseService, PeerSubscriber):
         commands.GetBlockBodies,
         commands.GetReceipts,
         commands.GetNodeData,
+        # TODO: all of the following are here to quiet warning logging output
+        # until the messages are properly handled.
+        commands.Transactions,
+        commands.NewBlock,
+        commands.NewBlockHashes,
     }
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
@@ -164,7 +169,12 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _handle_msg(
             self, peer: ETHPeer, cmd: Command, msg: _DecodedMsgType) -> None:
-        if isinstance(cmd, commands.NodeData):
+        # TODO: stop ignoring these once we have proper handling for these messages.
+        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
+
+        if isinstance(cmd, ignored_commands):
+            pass
+        elif isinstance(cmd, commands.NodeData):
             msg = cast(List[bytes], msg)
             if peer not in self.request_tracker.active_requests:
                 # This is probably a batch that we retried after a timeout and ended up receiving
