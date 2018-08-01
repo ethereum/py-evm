@@ -1,6 +1,8 @@
 import asyncio
 import os
-from typing import List
+from typing import (
+    List,
+)
 
 from eth_hash.auto import keccak
 
@@ -16,6 +18,7 @@ from p2p import ecies
 from p2p import kademlia
 from p2p.auth import decode_authentication
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
+from p2p.protocol import Command
 
 
 from trinity.protocol.les.peer import LESPeer
@@ -173,6 +176,8 @@ class MockPeerPoolWithConnectedPeers(PeerPool):
 
 class SamplePeerSubscriber(PeerSubscriber):
     logger = TraceLogger("")
+
+    subscription_msg_types = {Command}
 
     @property
     def msg_queue_maxsize(self) -> int:

@@ -2,7 +2,9 @@ from typing import (
     cast,
     Callable,
     Iterable,
-    List
+    List,
+    Set,
+    Type,
 )
 import uuid
 
@@ -21,6 +23,7 @@ from p2p.peer import (
     PeerPool,
     PeerSubscriber,
 )
+from p2p.protocol import Command
 from p2p.service import (
     BaseService
 )
@@ -59,12 +62,12 @@ class TxPool(BaseService, PeerSubscriber):
         self._bloom = BloomFilter(max_elements=1000000)
         self._bloom_salt = str(uuid.uuid4())
 
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # This is a rather arbitrary value, but when the sync is operating normally we never see
-        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-        # now.
-        return 2000
+    subscription_msg_types: Set[Type[Command]] = {Transactions}
+
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize: int = 2000
 
     async def _run(self) -> None:
         self.logger.info("Running Tx Pool")
@@ -74,8 +77,8 @@ class TxPool(BaseService, PeerSubscriber):
                 peer, cmd, msg = await self.wait(
                     self.msg_queue.get(), token=self.cancel_token)
                 peer = cast(ETHPeer, peer)
-                msg = cast(List[BaseTransactionFields], msg)
                 if isinstance(cmd, Transactions):
+                    msg = cast(List[BaseTransactionFields], msg)
                     await self._handle_tx(peer, msg)
 
     async def _handle_tx(self, peer: ETHPeer, txs: List[BaseTransactionFields]) -> None:

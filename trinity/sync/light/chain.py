@@ -2,7 +2,9 @@ from typing import (
     Any,
     cast,
     Dict,
+    Set,
     Tuple,
+    Type,
     Union,
 )
 
@@ -14,7 +16,9 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.les import commands
 from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.requests import HeaderRequest
 from trinity.sync.base_chain_syncer import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
 
@@ -25,10 +29,14 @@ HeaderRequestingPeer = Union[ETHPeer, LESPeer]
 class LightChainSyncer(BaseHeaderChainSyncer):
     _exit_on_sync_complete = False
 
+    subscription_msg_types: Set[Type[Command]] = {
+        commands.Announce,
+        commands.GetBlockHeaders,
+        commands.BlockHeaders,
+    }
+
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: Command,
                           msg: _DecodedMsgType) -> None:
-        from trinity.protocol.les import commands
-        from trinity.protocol.les.peer import LESPeer  # noqa: F811
         if isinstance(cmd, commands.Announce):
             self._sync_requests.put_nowait(peer)
         elif isinstance(cmd, commands.GetBlockHeaders):
@@ -41,7 +49,6 @@ class LightChainSyncer(BaseHeaderChainSyncer):
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
 
     async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
-        from trinity.protocol.les.requests import HeaderRequest
         self.logger.debug("Peer %s made header request: %s", peer, msg)
         request = HeaderRequest(
             msg['query'].block_number_or_hash,

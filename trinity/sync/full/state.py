@@ -11,6 +11,7 @@ from typing import (
     List,
     Set,
     Tuple,
+    Type,
     Union,
 )
 
@@ -88,12 +89,21 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
         self._executor = get_asyncio_executor()
 
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # This is a rather arbitrary value, but when the sync is operating normally we never see
-        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-        # now.
-        return 2000
+    # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
+    # messages related to new blocks/transactions, but we must handle requests for data from
+    # other peers or else they will disconnect from us.
+    subscription_msg_types: Set[Type[Command]] = {
+        commands.NodeData,
+        commands.GetBlockHeaders,
+        commands.GetBlockBodies,
+        commands.GetReceipts,
+        commands.GetNodeData,
+    }
+
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize: int = 2000
 
     def deregister_peer(self, peer: BasePeer) -> None:
         # Use .pop() with a default value as it's possible we never requested anything to this
@@ -154,13 +164,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _handle_msg(
             self, peer: ETHPeer, cmd: Command, msg: _DecodedMsgType) -> None:
-        # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
-        # messages related to new blocks/transactions, but we must handle requests for data from
-        # other peers or else they will disconnect from us.
-        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
-        if isinstance(cmd, ignored_commands):
-            pass
-        elif isinstance(cmd, commands.NodeData):
+        if isinstance(cmd, commands.NodeData):
             msg = cast(List[bytes], msg)
             if peer not in self.request_tracker.active_requests:
                 # This is probably a batch that we retried after a timeout and ended up receiving
