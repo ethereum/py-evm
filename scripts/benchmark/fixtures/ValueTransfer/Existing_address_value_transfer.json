@@ -1,0 +1,37 @@
+{
+    "frontier": {
+        "1": {
+            "mix_hash": "23285722effbb84285106580d72e662151fbf3e30159896e867394a2369ba8d6",
+            "nonce": "0000000000000002",
+            "state_root": "9b227983d9507520fc7aa4155aded9592e3fd937858a2b5ed3dd2620fbebe6b3"
+        }
+    },
+    "homestead": {
+        "1": {
+            "mix_hash": "23285722effbb84285106580d72e662151fbf3e30159896e867394a2369ba8d6",
+            "nonce": "0000000000000002",
+            "state_root": "9b227983d9507520fc7aa4155aded9592e3fd937858a2b5ed3dd2620fbebe6b3"
+        }
+    },
+    "tangerine-whistle": {
+        "1": {
+            "mix_hash": "23285722effbb84285106580d72e662151fbf3e30159896e867394a2369ba8d6",
+            "nonce": "0000000000000002",
+            "state_root": "9b227983d9507520fc7aa4155aded9592e3fd937858a2b5ed3dd2620fbebe6b3"
+        }
+    },
+    "spurious-dragon": {
+        "1": {
+            "mix_hash": "23285722effbb84285106580d72e662151fbf3e30159896e867394a2369ba8d6",
+            "nonce": "0000000000000002",
+            "state_root": "9b227983d9507520fc7aa4155aded9592e3fd937858a2b5ed3dd2620fbebe6b3"
+        }
+    },
+    "byzantium": {
+        "1": {
+            "mix_hash": "4799aab546b30b954d9cecaed73880f0adae9402582759a489a1fdb01028c51e",
+            "nonce": "000000000000000d",
+            "state_root": "b56d0549266d9f0a02d3f66e7d346af10f876b4438a49b9dcdd8b72c7e8846cf"
+        }
+    }
+}

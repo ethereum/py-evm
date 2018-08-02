@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 contract DOSContract{
     address[] deployedContracts;
     uint64[] liste;
-   
+
     function createEmptyContract() public{
         address newContract = new EmptyContract();
         deployedContracts.push(newContract);
@@ -15,7 +15,7 @@ contract DOSContract{
 
     function storageEntropyRevert() public{
         liste.push(1);
-        revert("Error");
+        revert();
     }
 
     function createEmptyContractRevert() public{

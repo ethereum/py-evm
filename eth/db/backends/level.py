@@ -33,3 +33,7 @@ class LevelDB(BaseDB):
 
     def __delitem__(self, key: bytes) -> None:
         self.db.delete(key)
+
+    def close(self) -> bool:
+        self.db.close()
+        return self.db.closed

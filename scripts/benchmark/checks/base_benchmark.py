@@ -31,13 +31,6 @@ class BaseBenchmark(ABC):
             "Must be implemented by subclasses"
         )
 
-    @property
-    @abstractmethod
-    def name(self) -> DefaultStat:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
-
     def print_result_header(self) -> None:
         print_default_benchmark_result_header()
 
