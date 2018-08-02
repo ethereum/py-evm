@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 
@@ -13,12 +14,17 @@ from tests.trinity.core.peer_helpers import (
 )
 
 
+logger = logging.getLogger('testing.p2p.PeerSubscriber')
+
+
 class HeadersSubscriber(PeerSubscriber):
+    logger = logger
     msg_queue_maxsize = 10
     subscription_msg_types = {GetBlockHeaders}
 
 
 class AllSubscriber(PeerSubscriber):
+    logger = logger
     msg_queue_maxsize = 10
     subscription_msg_types = {Command}
 

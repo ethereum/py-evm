@@ -567,6 +567,10 @@ class PeerSubscriber(ABC):
 
         The base command class `p2p.protocol.Command` can be used to enable
         **all** command types.
+
+        .. note: This API only applies to sub-protocol commands.  Base protocol
+        commands are handled exclusively at the peer level and cannot be
+        consumed with this API.
         """
         pass
 
@@ -610,25 +614,22 @@ class PeerSubscriber(ABC):
         peer, cmd, _ = msg
 
         if not self.is_subscription_command(type(cmd)):
-            if hasattr(self, 'logger'):
-                self.logger.trace(  # type: ignore
-                    "Discarding %s msg from %s; not subscribed to msg type; "
-                    "subscriptions: %s",
-                    cmd, peer, self.subscription_msg_types,
-                )
+            self.logger.trace(  # type: ignore
+                "Discarding %s msg from %s; not subscribed to msg type; "
+                "subscriptions: %s",
+                cmd, peer, self.subscription_msg_types,
+            )
             return False
 
         try:
-            if hasattr(self, 'logger'):
-                self.logger.trace(  # type: ignore
-                    "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
+            self.logger.trace(  # type: ignore
+                "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
             self.msg_queue.put_nowait(msg)
             return True
         except asyncio.queues.QueueFull:
-            if hasattr(self, 'logger'):
-                self.logger.warn(  # type: ignore
-                    "%s msg queue is full; discarding %s msg from %s",
-                    self.__class__.__name__, cmd, peer)
+            self.logger.warn(  # type: ignore
+                "%s msg queue is full; discarding %s msg from %s",
+                self.__class__.__name__, cmd, peer)
             return False
 
     @contextlib.contextmanager
