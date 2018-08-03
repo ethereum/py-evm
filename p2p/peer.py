@@ -38,6 +38,7 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
     decode_hex,
+    to_tuple,
 )
 
 from eth_typing import BlockNumber, Hash32
@@ -198,6 +199,18 @@ class BasePeer(BaseService):
     async def process_sub_proto_handshake(
             self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
+
+    @contextlib.contextmanager
+    def collect_sub_proto_messages(self) -> Iterator['MsgCollector']:
+        """
+        Can be used to gather up all messages that are sent to the peer.
+        """
+        if not self.is_running:
+            raise RuntimeError("Cannot collect messages if peer is not running")
+        msg_collector = MsgCollector()
+
+        with msg_collector.subscribe_peer(self):
+            yield msg_collector
 
     @property
     def received_msgs_count(self) -> int:
@@ -622,6 +635,17 @@ class PeerSubscriber(ABC):
             peer.remove_subscriber(self)
 
 
+class MsgCollector(PeerSubscriber):
+    logger = logging.getLogger('p2p.peer.MsgCollector')
+    msg_queue_maxsize = 200
+    subscription_msg_types = {protocol.Command}
+
+    @to_tuple
+    def get_messages(self) -> Iterator['PEER_MSG_TYPE']:
+        while not self.msg_queue.empty():
+            yield self.msg_queue.get_nowait()
+
+
 class PeerPool(BaseService, AsyncIterable[BasePeer]):
     """
     PeerPool maintains connections to up-to max_peers on a given network.
@@ -676,21 +700,25 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
+        asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
+        await self.wait(peer.events.started.wait(), timeout=1)
         try:
             # Although connect() may seem like a more appropriate place to perform the DAO fork
             # check, we do it here because we want to perform it for incoming peer connections as
             # well.
-            msgs = await self.ensure_same_side_on_dao_fork(peer)
+            with peer.collect_sub_proto_messages() as collector:
+                await self.ensure_same_side_on_dao_fork(peer)
         except DAOForkCheckFailure as err:
             self.logger.debug("DAO fork check with %s failed: %s", peer, err)
             await peer.disconnect(DisconnectReason.useless_peer)
             return
-        asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
-        self._add_peer(peer, msgs)
+        else:
+            msgs = tuple((cmd, msg) for _, cmd, msg in collector.get_messages())
+            self._add_peer(peer, msgs)
 
     def _add_peer(self,
                   peer: BasePeer,
-                  msgs: List[Tuple[protocol.Command, protocol._DecodedMsgType]]) -> None:
+                  msgs: Tuple[Tuple[protocol.Command, protocol._DecodedMsgType], ...]) -> None:
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
@@ -768,7 +796,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 await self.start_peer(peer)
 
     async def ensure_same_side_on_dao_fork(
-            self, peer: BasePeer) -> List[Tuple[protocol.Command, protocol._DecodedMsgType]]:
+            self, peer: BasePeer) -> None:
         """Ensure we're on the same side of the DAO fork as the given peer.
 
         In order to do that we have to request the DAO fork block and its parent, but while we
@@ -785,25 +813,14 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 break
 
             start_block = vm_class.dao_fork_block_number - 1
-            # TODO: This can be either an `ETHPeer` or an `LESPeer`.  Will be
-            # fixed once full awaitable request API is completed.
+
             try:
-                class MsgBuffer(PeerSubscriber):
-                    logger = logging.getLogger('p2p.peer.MsgBuffer')
-                    msg_queue_maxsize = 200
-                    subscription_msg_types = {protocol.Command}
-
-                msg_buffer = MsgBuffer()
-
-                with msg_buffer.subscribe_peer(peer):
-                    headers = await peer.handler.get_block_headers(  # type: ignore
-                        start_block,
-                        max_headers=2,
-                        reverse=False,
-                        timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
-                    )
-
-                msgs = [msg_buffer.msg_queue.get_nowait()[1:] for _ in range(msg_buffer.queue_size)]
+                headers = await peer.requests.get_block_headers(  # type: ignore
+                    start_block,
+                    max_headers=2,
+                    reverse=False,
+                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
+                )
 
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
@@ -820,14 +837,17 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     "Invalid header response during DAO fork check: {}".format(err)
                 ) from err
 
-            parent, header = headers
+            if len(headers) != 2:
+                raise DAOForkCheckFailure(
+                    "Peer %s failed to return DAO fork check headers".format(peer)
+                )
+            else:
+                parent, header = headers
 
             try:
                 vm_class.validate_header(header, parent, check_seal=True)
             except EthValidationError as err:
                 raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(err))
-
-        return msgs
 
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.

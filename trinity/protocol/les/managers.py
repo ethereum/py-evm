@@ -15,7 +15,7 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.common.managers import (
-    BaseRequestManager,
+    BaseRequestManager as _BaseRequestManager,
 )
 from trinity.utils.les import (
     gen_request_id,
@@ -30,7 +30,15 @@ if TYPE_CHECKING:
     from .peer import LESPeer  # noqa: #401
 
 
-class GetBlockHeadersRequestManager(BaseRequestManager['LESPeer', HeaderRequest, Dict[str, Any], Tuple[BlockHeader, ...]]):
+BaseRequestManager = _BaseRequestManager[
+    'LESPeer',
+    HeaderRequest,
+    Dict[str, Any],
+    Tuple[BlockHeader, ...]
+]
+
+
+class GetBlockHeadersRequestManager(BaseRequestManager):
     msg_queue_maxsize = 100
 
     _response_msg_type: Type[Command] = BlockHeaders

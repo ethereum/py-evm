@@ -35,8 +35,7 @@ class BaseRequestResponseHandler(BaseService):
             manager = getattr(self, attr)
             self.run_child_service(manager)
 
-        while not self.cancel_token.triggered:
-            await self.sleep(0.01)
+        await self.cancel_token.wait()
 
     async def _cleanup(self) -> None:
         pass

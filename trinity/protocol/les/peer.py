@@ -38,14 +38,14 @@ class LESPeer(BasePeer):
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: HeadInfo = None
 
-    _handler: LESRequestResponseHandler = None
+    _requests: LESRequestResponseHandler = None
 
     @property
-    def handler(self) -> LESRequestResponseHandler:
-        if self._handler is None:
-            self._handler = LESRequestResponseHandler(self)
-            self.run_child_service(self._handler)
-        return self._handler
+    def requests(self) -> LESRequestResponseHandler:
+        if self._requests is None:
+            self._requests = LESRequestResponseHandler(self)
+            self.run_child_service(self._requests)
+        return self._requests
 
     @property
     def max_headers_fetch(self) -> int:

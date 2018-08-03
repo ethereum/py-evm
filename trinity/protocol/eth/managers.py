@@ -13,7 +13,7 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.common.managers import (
-    BaseRequestManager,
+    BaseRequestManager as _BaseRequestManager,
 )
 
 from .commands import BlockHeaders
@@ -23,7 +23,15 @@ if TYPE_CHECKING:
     from .peer import ETHPeer  # noqa: F401
 
 
-class GetBlockHeadersRequestManager(BaseRequestManager['ETHPeer', HeaderRequest, Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]):
+BaseRequestManager = _BaseRequestManager[
+    'ETHPeer',
+    HeaderRequest,
+    Tuple[BlockHeader, ...],
+    Tuple[BlockHeader, ...],
+]
+
+
+class GetBlockHeadersRequestManager(BaseRequestManager):
     msg_queue_maxsize = 100
 
     _response_msg_type: Type[Command] = BlockHeaders

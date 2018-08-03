@@ -27,14 +27,14 @@ class ETHPeer(BasePeer):
     _supported_sub_protocols = [ETHProtocol]
     sub_proto: ETHProtocol = None
 
-    _handler: ETHRequestResponseHandler = None
+    _requests: ETHRequestResponseHandler = None
 
     @property
-    def handler(self) -> ETHRequestResponseHandler:
-        if self._handler is None:
-            self._handler = ETHRequestResponseHandler(self)
-            self.run_child_service(self._handler)
-        return self._handler
+    def requests(self) -> ETHRequestResponseHandler:
+        if self._requests is None:
+            self._requests = ETHRequestResponseHandler(self)
+            self.run_child_service(self._requests)
+        return self._requests
 
     @property
     def max_headers_fetch(self) -> int:

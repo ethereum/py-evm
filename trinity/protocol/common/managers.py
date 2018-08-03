@@ -31,7 +31,7 @@ ResponseType = TypeVar('ResponseType')
 ReturnType = TypeVar('ReturnType')
 
 
-class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, RequestType, ResponseType, ReturnType]):
+class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, RequestType, ResponseType, ReturnType]):  # noqa: E501
     #
     # PeerSubscriber
     #
@@ -55,10 +55,10 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
     # Service API
     #
     async def _run(self) -> None:
-        self.logger.debug("Running %s for peer %s", self.__class__.__name__, self._peer)
+        self.logger.debug("Launching %s for peer %s", self.__class__.__name__, self._peer)
 
         with self.subscribe_peer(self._peer):
-            while True:
+            while self.is_running:
                 peer, cmd, msg = await self.wait(
                     self.msg_queue.get(), token=self.cancel_token)
                 if peer != self._peer:
@@ -74,6 +74,9 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
 
     def _handle_msg(self, msg: ResponseType) -> None:
         if self.pending_request is None:
+            self.logger.debug(
+                "Got unexpected %s message from %", self.response_msg_name, self._peer
+            )
             return
 
         request, future = self.pending_request
@@ -83,7 +86,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
         except ValidationError as err:
             self.logger.debug(
                 "Response validation failure for pending %s request from peer %s: %s",
-                self._response_msg_type.__name__,
+                self.response_msg_name,
                 self._peer,
                 err,
             )
@@ -109,6 +112,10 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
     def _response_msg_type(self) -> Type[Command]:
         pass
 
+    @property
+    def response_msg_name(self) -> str:
+        return self._response_msg_type.__name__
+
     @abstractmethod
     def _send_sub_proto_request(self, request: RequestType) -> None:
         pass
@@ -119,12 +126,12 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
         if self.pending_request is not None:
             self.logger.error(
                 "Already waiting for response to %s for peer: %s",
-                self._response_msg_type.__name__,
+                self.response_msg_name,
                 self._peer,
             )
             raise AlreadyWaiting(
                 "Already waiting for response to {0} for peer: {1}".format(
-                    self._response_msg_type.__name__,
+                    self.response_msg_name,
                     self._peer
                 )
             )
