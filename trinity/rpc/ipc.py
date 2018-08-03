@@ -120,7 +120,7 @@ def strip_non_json_prefix(raw_request: str) -> Tuple[str, str]:
 
 
 async def write_error(writer: asyncio.StreamWriter, message: str) -> None:
-    json_error = json.dumps({'error': message}) + '\n'
+    json_error = json.dumps({'error': message})
     writer.write(json_error.encode())
     await writer.drain()
 

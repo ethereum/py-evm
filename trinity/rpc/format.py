@@ -8,9 +8,12 @@ from typing import (
 )
 from cytoolz import (
     compose,
+    merge,
 )
 
 from eth_utils import (
+    apply_formatters_to_dict,
+    decode_hex,
     encode_hex,
     int_to_big_endian,
 )
@@ -19,6 +22,9 @@ import rlp
 
 from eth.chains.base import (
     BaseChain
+)
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
 )
 from eth.rlp.blocks import (
     BaseBlock
@@ -35,7 +41,7 @@ def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
     return dict(
         hash=encode_hex(transaction.hash),
         nonce=hex(transaction.nonce),
-        gasLimit=hex(transaction.gas),
+        gas=hex(transaction.gas),
         gasPrice=hex(transaction.gas_price),
         to=encode_hex(transaction.to),
         value=hex(transaction.value),
@@ -44,6 +50,31 @@ def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
         s=hex(transaction.s),
         v=hex(transaction.v),
     )
+
+
+hexstr_to_int = functools.partial(int, base=16)
+
+
+TRANSACTION_NORMALIZER = {
+    'data': decode_hex,
+    'from': decode_hex,
+    'gas': hexstr_to_int,
+    'gasPrice': hexstr_to_int,
+    'nonce': hexstr_to_int,
+    'to': decode_hex,
+    'value': hexstr_to_int,
+}
+
+SAFE_TRANSACTION_DEFAULTS = {
+    'data': b'',
+    'to': CREATE_CONTRACT_ADDRESS,
+    'value': 0,
+}
+
+
+def normalize_transaction_dict(transaction_dict: Dict[str, str]) -> Dict[str, Any]:
+    normalized_dict = apply_formatters_to_dict(TRANSACTION_NORMALIZER, transaction_dict)
+    return merge(SAFE_TRANSACTION_DEFAULTS, normalized_dict)
 
 
 def header_to_dict(header: BlockHeader) -> Dict[str, str]:

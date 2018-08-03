@@ -35,39 +35,66 @@ class MockPeerPool:
         return self.peer_count
 
 
-@pytest.fixture
-def p2p_server(monkeypatch, p2p_server, mock_peer_pool):
-    monkeypatch.setattr(p2p_server, 'peer_pool', mock_peer_pool)
-    return p2p_server
+def id_from_rpc_request(param):
+    if isinstance(param, bytes):
+        request = json.loads(param.decode())
+        if 'method' in request and 'params' in request:
+            rpc_params = (repr(p) for p in request['params'])
+            return '%s(%s)' % (request['method'], ', '.join(rpc_params))
+        else:
+            return repr(param)
+    else:
+        return repr(param)
+
+
+def can_decode_json(potential):
+    try:
+        json.loads(potential.decode())
+        return True
+    except json.decoder.JSONDecodeError:
+        return False
+
+
+async def get_ipc_response(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_loop):
+    assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
+
+    reader, writer = await asyncio.open_unix_connection(str(jsonrpc_ipc_pipe_path), loop=event_loop)
+
+    writer.write(request_msg)
+    await writer.drain()
+    result_bytes = b''
+    while not can_decode_json(result_bytes):
+        result_bytes += await asyncio.tasks.wait_for(reader.readuntil(b'}'), 0.25, loop=event_loop)
+
+    writer.close()
+    return json.loads(result_bytes.decode())
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    'request_msg, mock_peer_pool, expected',
+    'request_msg, expected',
     (
         (
             b'{}',
-            MockPeerPool(),
             {'error': "Invalid Request: empty"},
         ),
         (
             build_request('notamethod'),
-            MockPeerPool(),
             {'error': "Invalid RPC method: 'notamethod'", 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('eth_mining'),
-            MockPeerPool(),
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('web3_clientVersion'),
-            MockPeerPool(),
             {'result': construct_trinity_client_identifier(), 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('web3_sha3', ['0x89987239849872']),
-            MockPeerPool(),
             {
                 'result': '0xb3406131994d9c859de3c4400e12f630638e1e992c6453358c16d0e6ce2b1a70',
                 'id': 3,
@@ -76,7 +103,6 @@ def p2p_server(monkeypatch, p2p_server, mock_peer_pool):
         ),
         (
             build_request('web3_sha3', ['0x']),
-            MockPeerPool(),
             {
                 'result': '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
                 'id': 3,
@@ -85,9 +111,119 @@ def p2p_server(monkeypatch, p2p_server, mock_peer_pool):
         ),
         (
             build_request('net_version'),
-            MockPeerPool(),
             {'result': '1337', 'id': 3, 'jsonrpc': '2.0'},
         ),
+        (
+            build_request('net_listening'),
+            {'result': True, 'id': 3, 'jsonrpc': '2.0'},
+        ),
+    ),
+)
+async def test_ipc_requests(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        expected,
+        event_loop,
+        ipc_server):
+    result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
+    assert result == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'request_msg, expected',
+    (
+        (
+            # simple transaction, with all fields inferred
+            # (except 'to', which must be provided when not creating a contract)
+            build_request('eth_estimateGas', params=[{'to': '0x' + '00' * 20}, 'latest']),
+            # simple transactions are correctly identified as 21000 gas during estimation
+            {'result': hex(21000), 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            # test block number
+            build_request('eth_estimateGas', params=[{'to': '0x' + '00' * 20}, '0x0']),
+            {'result': hex(21000), 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            # another simple transaction, with all fields provided
+            build_request('eth_estimateGas', params=[{
+                'to': '0x' + '00' * 20,
+                'from': '0x' + '11' * 20,
+                'gasPrice': '0x2',
+                'gas': '0x3',
+                'value': '0x0',
+                'data': '0x',
+            }, 'latest']),
+            {'result': hex(21000), 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            # try adding garbage data to increase estimate
+            build_request('eth_estimateGas', params=[{
+                'to': '0x' + '00' * 20,
+                'data': '0x01',
+            }, 'latest']),
+            {'result': hex(21068), 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            # deploy a tiny contract
+            build_request('eth_estimateGas', params=[{
+                'data': '0x3838533838f3',
+            }, 'latest']),
+            {'result': hex(65483), 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            # specifying v,r,s is invalid
+            build_request('eth_estimateGas', params=[{
+                'v': '0x' + '00' * 20,
+                'r': '0x' + '00' * 20,
+                's': '0x' + '00' * 20,
+            }, 'latest']),
+            {
+                'error': "The following invalid fields were given in a transaction: ['r', 's', 'v']. Only ['data', 'from', 'gas', 'gasPrice', 'to', 'value'] are allowed",  # noqa: E501
+                'id': 3,
+                'jsonrpc': '2.0',
+            }
+        ),
+        (
+            # specifying gas_price is invalid
+            build_request('eth_estimateGas', params=[{
+                'gas_price': '0x0',
+            }, 'latest']),
+            {
+                'error': "The following invalid fields were given in a transaction: ['gas_price']. Only ['data', 'from', 'gas', 'gasPrice', 'to', 'value'] are allowed",  # noqa: E501
+                'id': 3,
+                'jsonrpc': '2.0',
+            }
+        ),
+        (
+            # specifying nonce is invalid
+            build_request('eth_estimateGas', params=[{
+                'nonce': '0x01',
+            }, 'latest']),
+            {
+                'error': "The following invalid fields were given in a transaction: ['nonce']. Only ['data', 'from', 'gas', 'gasPrice', 'to', 'value'] are allowed",  # noqa: E501
+                'id': 3,
+                'jsonrpc': '2.0',
+            }
+        ),
+    ),
+    ids=id_from_rpc_request,
+)
+async def test_estimate_gas_on_ipc(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        expected,
+        event_loop,
+        ipc_server):
+    result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
+    assert result == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'request_msg, mock_peer_pool, expected',
+    (
         (
             build_request('net_peerCount'),
             MockPeerPool(peer_count=1),
@@ -98,31 +234,19 @@ def p2p_server(monkeypatch, p2p_server, mock_peer_pool):
             MockPeerPool(peer_count=0),
             {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
         ),
-        (
-            build_request('net_listening'),
-            MockPeerPool(),
-            {'result': True, 'id': 3, 'jsonrpc': '2.0'},
-        ),
     ),
     ids=[
-        'empty', 'notamethod', 'eth_mining', 'web3_clientVersion',
-        'web3_sha3_1', 'web3_sha3_2', 'net_version', 'net_peerCount_1',
-        'net_peerCount_0', 'net_listening_true',
+        'net_peerCount_1', 'net_peerCount_0',
     ],
 )
-async def test_ipc_requests(jsonrpc_ipc_pipe_path,
-                            request_msg,
-                            expected,
-                            event_loop,
-                            ipc_server):
-    assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
-
-    reader, writer = await asyncio.open_unix_connection(str(jsonrpc_ipc_pipe_path), loop=event_loop)
-
-    writer.write(request_msg)
-    await writer.drain()
-    result_bytes = await asyncio.tasks.wait_for(reader.readuntil(b'}'), 0.25, loop=event_loop)
-
-    result = json.loads(result_bytes.decode())
+async def test_peer_pool_over_ipc(
+        monkeypatch,
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        mock_peer_pool,
+        expected,
+        event_loop,
+        ipc_server):
+    monkeypatch.setattr(ipc_server.rpc.modules['net'], '_peer_pool', mock_peer_pool)
+    result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
     assert result == expected
-    writer.close()
