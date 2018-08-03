@@ -700,7 +700,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(peer.run(finished_callback=self._peer_finished))
+        asyncio.ensure_future(peer.run())
         await self.wait(peer.events.started.wait(), timeout=1)
         try:
             # Although connect() may seem like a more appropriate place to perform the DAO fork
@@ -726,6 +726,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         """
         self.logger.info('Adding %s to pool', peer)
         self.connected_nodes[peer.remote] = peer
+        peer.add_finished_callback(self._peer_finished)
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber)

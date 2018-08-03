@@ -29,6 +29,7 @@ class ServiceEvents:
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
     _child_services: List['BaseService']
+    _finished_callbacks: List[Callable[['BaseService'], None]]
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
@@ -43,6 +44,7 @@ class BaseService(ABC, CancellableMixin):
         self._run_lock = asyncio.Lock()
         self.events = ServiceEvents()
         self._child_services = []
+        self._finished_callbacks = []
 
         self.loop = loop
         base_token = CancelToken(type(self).__name__, loop=loop)
@@ -65,6 +67,9 @@ class BaseService(ABC, CancellableMixin):
         elif self.cancel_token.triggered:
             raise RuntimeError("Cannot restart a service that has already been cancelled")
 
+        if finished_callback:
+            self._finished_callbacks.append(finished_callback)
+
         try:
             async with self._run_lock:
                 self.events.started.set()
@@ -81,15 +86,14 @@ class BaseService(ABC, CancellableMixin):
 
             await self.cleanup()
 
-            from p2p.peer import BasePeer  # type: ignore
-            if finished_callback is not None:
-                finished_callback(self)
-            elif isinstance(self, BasePeer):
-                # XXX: Only added to help debug https://github.com/ethereum/py-evm/issues/1023;
-                # should be removed eventually.
-                self.logger.warn("%s finished but had no finished_callback", self)
+            for callback in self._finished_callbacks:
+                callback(self)
+
             self.events.finished.set()
             self.logger.debug("%s halted cleanly", self)
+
+    def add_finished_callback(self, finished_callback: Callable[['BaseService'], None]) -> None:
+        self._finished_callbacks.append(finished_callback)
 
     def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
         """
