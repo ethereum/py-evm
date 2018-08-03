@@ -149,11 +149,12 @@ class BaseChain(Configurable, ABC):
     #
     # VM API
     #
-    def get_vm_class(self, header: BlockHeader) -> Type['BaseVM']:
+    @classmethod
+    def get_vm_class(cls, header: BlockHeader) -> Type['BaseVM']:
         """
         Returns the VM instance for the given block number.
         """
-        return self.get_vm_class_for_block_number(header.block_number)
+        return cls.get_vm_class_for_block_number(header.block_number)
 
     @abstractmethod
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
