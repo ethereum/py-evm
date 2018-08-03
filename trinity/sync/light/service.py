@@ -8,6 +8,8 @@ from typing import (
     cast,
     Dict,
     List,
+    Set,
+    Type,
 )
 
 from async_lru import alru_cache
@@ -57,6 +59,7 @@ from p2p.peer import (
     PeerPool,
     PeerSubscriber,
 )
+from p2p.protocol import Command
 from p2p.service import (
     BaseService,
     service_timeout,
@@ -83,11 +86,12 @@ class LightPeerChain(PeerSubscriber, BaseService):
         self.peer_pool = peer_pool
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
 
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # Here we only care about replies to our requests, ignoring most msgs (which are supposed
-        # to be handled by the chain syncer), so our queue should never grow too much.
-        return 500
+    # TODO: be more specific about what messages we want.
+    subscription_msg_types: Set[Type[Command]] = {Command}
+
+    # Here we only care about replies to our requests, ignoring most msgs (which are supposed
+    # to be handled by the chain syncer), so our queue should never grow too much.
+    msg_queue_maxsize = 500
 
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):

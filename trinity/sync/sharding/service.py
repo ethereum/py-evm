@@ -7,6 +7,7 @@ from typing import (
     cast,
     Dict,
     Set,
+    Type,
 )
 
 from cytoolz import (
@@ -42,6 +43,7 @@ from eth.exceptions import (
     CollationBodyNotFound,
 )
 
+from p2p.protocol import Command
 from p2p.service import BaseService
 from p2p.peer import (
     PeerPool,
@@ -77,12 +79,12 @@ class ShardSyncer(BaseService, PeerSubscriber):
 
         self.start_time = time.time()
 
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # This is a rather arbitrary value, but when the sync is operating normally we never see
-        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-        # now.
-        return 2000
+    subscription_msg_types: Set[Type[Command]] = {Collations, GetCollations, NewCollationHashes}
+
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize = 2000
 
     async def _cleanup(self) -> None:
         pass

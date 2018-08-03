@@ -6,7 +6,9 @@ from typing import (
     Dict,
     List,
     NamedTuple,
+    Set,
     Tuple,
+    Type,
     Union,
     cast,
 )
@@ -32,9 +34,15 @@ from p2p import protocol
 from p2p.exceptions import NoEligiblePeers
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import PeerPool
+from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
+from trinity.protocol.eth import commands
+from trinity.protocol.eth import (
+    constants as eth_constants,
+)
 from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.requests import HeaderRequest
 from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.base_chain_syncer import BaseHeaderChainSyncer
@@ -65,6 +73,24 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
         self._downloaded_bodies: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501
+
+    subscription_msg_types: Set[Type[Command]] = {
+        commands.BlockBodies,
+        commands.Receipts,
+        commands.NewBlock,
+        commands.GetBlockHeaders,
+        commands.BlockHeaders,
+        commands.GetBlockBodies,
+        commands.GetReceipts,
+        commands.GetNodeData,
+        commands.Transactions,
+        commands.NodeData,
+        # TODO: all of the following are here to quiet warning logging output
+        # until the messages are properly handled.
+        commands.Transactions,
+        commands.NewBlock,
+        commands.NewBlockHashes,
+    }
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -191,7 +217,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             target_td: int,
             headers: List[BlockHeader],
             request_func: Callable[[ETHPeer, List[BlockHeader]], None]) -> int:
-        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
         peers = self.peer_pool.get_peers(target_td)
         if not peers:
             raise NoEligiblePeers()
@@ -235,15 +260,14 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
-        from trinity.protocol.eth.peer import ETHPeer  # noqa: F811
-        from trinity.protocol.eth import commands
-        from trinity.protocol.eth import (
-            constants as eth_constants,
-        )
-
         peer = cast(ETHPeer, peer)
 
-        if isinstance(cmd, commands.BlockBodies):
+        # TODO: stop ignoring these once we have proper handling for these messages.
+        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
+
+        if isinstance(cmd, ignored_commands):
+            pass
+        elif isinstance(cmd, commands.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
         elif isinstance(cmd, commands.Receipts):
             await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
@@ -318,8 +342,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self,
             peer: ETHPeer,
             query: Dict[str, Any]) -> None:
-        from trinity.protocol.eth.requests import HeaderRequest  # noqa: F811
-
         self.logger.debug("Peer %s made header request: %s", peer, query)
         request = HeaderRequest(
             query['block_number_or_hash'],

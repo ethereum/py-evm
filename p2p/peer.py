@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import datetime
+import functools
 import logging
 import operator
 import random
@@ -20,6 +21,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Set,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -381,13 +383,22 @@ class BasePeer(BaseService):
             raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+        cmd_type = type(cmd)
+
         if self._subscribers:
-            for subscriber in self._subscribers:
+            was_added = tuple(
                 subscriber.add_msg((self, cmd, msg))
+                for subscriber
+                in self._subscribers
+            )
+            if not any(was_added):
+                self.logger.warn(
+                    "Peer %s has no subscribers for msg type %s",
+                    self,
+                    cmd_type.__name__,
+                )
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
-
-        cmd_type = type(cmd)
 
         if cmd_type in self.pending_requests:
             request, future = self.pending_requests[cmd_type]
@@ -549,8 +560,30 @@ class PeerSubscriber(ABC):
 
     @property
     @abstractmethod
+    def subscription_msg_types(self) -> Set[Type[protocol.Command]]:
+        """
+        The `p2p.protocol.Command` types that this class subscribes to.  Any
+        command which is not in this set will not be passed to this subscriber.
+
+        The base command class `p2p.protocol.Command` can be used to enable
+        **all** command types.
+
+        .. note: This API only applies to sub-protocol commands.  Base protocol
+        commands are handled exclusively at the peer level and cannot be
+        consumed with this API.
+        """
+        pass
+
+    @functools.lru_cache(maxsize=64)
+    def is_subscription_command(self, cmd_type: Type[protocol.Command]) -> bool:
+        return bool(self.subscription_msg_types.intersection(
+            {cmd_type, protocol.Command}
+        ))
+
+    @property
+    @abstractmethod
     def msg_queue_maxsize(self) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
+        pass
 
     def register_peer(self, peer: BasePeer) -> None:
         """
@@ -577,16 +610,27 @@ class PeerSubscriber(ABC):
     def queue_size(self) -> int:
         return self.msg_queue.qsize()
 
-    def add_msg(self, msg: 'PEER_MSG_TYPE') -> None:
+    def add_msg(self, msg: 'PEER_MSG_TYPE') -> bool:
         peer, cmd, _ = msg
+
+        if not self.is_subscription_command(type(cmd)):
+            self.logger.trace(  # type: ignore
+                "Discarding %s msg from %s; not subscribed to msg type; "
+                "subscriptions: %s",
+                cmd, peer, self.subscription_msg_types,
+            )
+            return False
+
         try:
             self.logger.trace(  # type: ignore
                 "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
             self.msg_queue.put_nowait(msg)
+            return True
         except asyncio.queues.QueueFull:
             self.logger.warn(  # type: ignore
                 "%s msg queue is full; discarding %s msg from %s",
                 self.__class__.__name__, cmd, peer)
+            return False
 
     @contextlib.contextmanager
     def subscribe(self, peer_pool: 'PeerPool') -> Iterator[None]:
