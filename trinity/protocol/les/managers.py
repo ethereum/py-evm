@@ -35,7 +35,7 @@ class GetBlockHeadersRequestManager(BaseRequestManager['LESPeer', HeaderRequest,
 
     _response_msg_type: Type[Command] = BlockHeaders
 
-    async def __call__(self,
+    async def __call__(self,  # type: ignore
                        block_number_or_hash: BlockIdentifier,
                        max_headers: int = None,
                        skip: int = 0,

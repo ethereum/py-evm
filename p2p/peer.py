@@ -7,7 +7,6 @@ import logging
 import operator
 import random
 import struct
-import time
 from abc import (
     ABC,
     abstractmethod
@@ -776,8 +775,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         wait for that we may receive other messages from the peer, which are returned so that they
         can be re-added to our subscribers' queues when the peer is finally added to the pool.
         """
-        from trinity.protocol.common.commands import BaseBlockHeaders
-        msgs = []
         for start_block, vm_class in self.vm_configuration:
             if not issubclass(vm_class, HomesteadVM):
                 continue
@@ -790,47 +787,40 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             start_block = vm_class.dao_fork_block_number - 1
             # TODO: This can be either an `ETHPeer` or an `LESPeer`.  Will be
             # fixed once full awaitable request API is completed.
-            request = peer.request_block_headers(  # type: ignore
-                start_block,
-                max_headers=2,
-                reverse=False,
-            )
-            start = time.time()
             try:
-                while True:
-                    elapsed = int(time.time() - start)
-                    remaining_timeout = max(0, CHAIN_SPLIT_CHECK_TIMEOUT - elapsed)
-                    cmd, msg = await self.wait(
-                        peer.read_msg(), timeout=remaining_timeout)
-                    if isinstance(cmd, BaseBlockHeaders):
-                        headers = cmd.extract_headers(msg)
-                        break
-                    else:
-                        msgs.append((cmd, msg))
-                        continue
+                class MsgBuffer(PeerSubscriber):
+                    logger = logging.getLogger('p2p.peer.MsgBuffer')
+                    msg_queue_maxsize = 200
+                    subscription_msg_types = {protocol.Command}
+
+                msg_buffer = MsgBuffer()
+
+                with msg_buffer.subscribe_peer(peer):
+                    headers = await peer.handler.get_block_headers(  # type: ignore
+                        start_block,
+                        max_headers=2,
+                        reverse=False,
+                        timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
+                    )
+
+                msgs = [msg_buffer.msg_queue.get_nowait()[1:] for _ in range(msg_buffer.queue_size)]
+
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
-                    "Timed out waiting for DAO fork header from {}: {}".format(peer, err))
+                    "Timed out waiting for DAO fork header from {}: {}".format(peer, err)
+                ) from err
             except MalformedMessage as err:
                 raise DAOForkCheckFailure(
                     "Malformed message while doing DAO fork check with {0}: {1}".format(
                         peer, err,
                     )
                 ) from err
-
-            try:
-                request.validate_headers(headers)
             except ValidationError as err:
                 raise DAOForkCheckFailure(
                     "Invalid header response during DAO fork check: {}".format(err)
-                )
+                ) from err
 
-            if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    "Peer failed to return all requested headers for DAO fork check"
-                )
-            else:
-                parent, header = headers
+            parent, header = headers
 
             try:
                 vm_class.validate_header(header, parent, check_seal=True)

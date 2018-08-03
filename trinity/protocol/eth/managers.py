@@ -16,9 +16,7 @@ from trinity.protocol.common.managers import (
     BaseRequestManager,
 )
 
-from .commands import (
-    BlockHeaders,
-)
+from .commands import BlockHeaders
 from .requests import HeaderRequest
 
 if TYPE_CHECKING:
@@ -30,7 +28,7 @@ class GetBlockHeadersRequestManager(BaseRequestManager['ETHPeer', HeaderRequest,
 
     _response_msg_type: Type[Command] = BlockHeaders
 
-    async def __call__(self,
+    async def __call__(self,  # type: ignore
                        block_number_or_hash: BlockIdentifier,
                        max_headers: int = None,
                        skip: int = 0,

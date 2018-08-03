@@ -1,21 +1,20 @@
 from abc import abstractmethod
 from typing import (
+    Any,
     Dict,
     Type,
 )
 
 from p2p.peer import BasePeer
-from p2p.protocol import _DecodedMsgType
 from p2p.service import BaseService
 
 from .managers import BaseRequestManager
-from .requests import BaseRequest
 
 
 class BaseRequestResponseHandler(BaseService):
     @property
     @abstractmethod
-    def _managers(self) -> Dict[str, Type[BaseRequestManager[BasePeer, BaseRequest, _DecodedMsgType, _DecodedMsgType]]]:
+    def _managers(self) -> Dict[str, Type[BaseRequestManager[Any, Any, Any, Any]]]:
         pass
 
     def __init__(self, peer: BasePeer) -> None:
