@@ -201,16 +201,16 @@ class BasePeer(BaseService):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @contextlib.contextmanager
-    def collect_sub_proto_messages(self) -> Iterator['MsgCollector']:
+    def collect_sub_proto_messages(self) -> Iterator['MsgBuffer']:
         """
         Can be used to gather up all messages that are sent to the peer.
         """
         if not self.is_running:
             raise RuntimeError("Cannot collect messages if peer is not running")
-        msg_collector = MsgCollector()
+        msg_buffer = MsgBuffer()
 
-        with msg_collector.subscribe_peer(self):
-            yield msg_collector
+        with msg_buffer.subscribe_peer(self):
+            yield msg_buffer
 
     @property
     def received_msgs_count(self) -> int:
@@ -635,9 +635,9 @@ class PeerSubscriber(ABC):
             peer.remove_subscriber(self)
 
 
-class MsgCollector(PeerSubscriber):
-    logger = logging.getLogger('p2p.peer.MsgCollector')
-    msg_queue_maxsize = 200
+class MsgBuffer(PeerSubscriber):
+    logger = logging.getLogger('p2p.peer.MsgBuffer')
+    msg_queue_maxsize = 500
     subscription_msg_types = {protocol.Command}
 
     @to_tuple
@@ -706,14 +706,14 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             # Although connect() may seem like a more appropriate place to perform the DAO fork
             # check, we do it here because we want to perform it for incoming peer connections as
             # well.
-            with peer.collect_sub_proto_messages() as collector:
+            with peer.collect_sub_proto_messages() as buffer:
                 await self.ensure_same_side_on_dao_fork(peer)
         except DAOForkCheckFailure as err:
             self.logger.debug("DAO fork check with %s failed: %s", peer, err)
             await peer.disconnect(DisconnectReason.useless_peer)
             return
         else:
-            msgs = tuple((cmd, msg) for _, cmd, msg in collector.get_messages())
+            msgs = tuple((cmd, msg) for _, cmd, msg in buffer.get_messages())
             self._add_peer(peer, msgs)
 
     def _add_peer(self,
