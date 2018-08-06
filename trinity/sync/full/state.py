@@ -238,13 +238,17 @@ class StateDownloader(BaseService, PeerSubscriber):
                 peer = await self.get_peer_for_request(not_yet_requested)
             except NoIdlePeers:
                 self.logger.debug(
-                    "No idle peers have any of the trie nodes we want, sleeping a bit")
+                    "No idle peers have any of the %d trie nodes we want, sleeping a bit",
+                    len(not_yet_requested),
+                )
                 await self.sleep(0.2)
                 continue
             except NoEligiblePeers:
                 self.request_tracker.missing[time.time()] = list(not_yet_requested)
                 self.logger.debug(
-                    "No peers have any of the trie nodes in this batch, will retry later")
+                    "No peers have any of the %d trie nodes in this batch, will retry later",
+                    len(not_yet_requested),
+                )
                 # TODO: disconnect a peer if the pool is full
                 return
 
