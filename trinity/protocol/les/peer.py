@@ -1,16 +1,10 @@
-import asyncio
 from typing import (
     Any,
     cast,
     Dict,
-    Tuple,
 )
 
 from eth_utils import encode_hex
-
-from eth_typing import BlockIdentifier
-
-from eth.rlp.headers import BlockHeader
 
 from p2p.exceptions import (
     HandshakeFailure,
@@ -22,14 +16,8 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.protocol.base_request import BaseHeaderRequest
-from trinity.utils.les import (
-    gen_request_id as _gen_request_id,
-)
-
 from .commands import (
     Announce,
-    BlockHeaders,
     HeadInfo,
     Status,
     StatusV2,
@@ -41,9 +29,7 @@ from .proto import (
     LESProtocol,
     LESProtocolV2,
 )
-from .requests import (
-    HeaderRequest,
-)
+from .handlers import LESRequestResponseHandler
 
 
 class LESPeer(BasePeer):
@@ -51,6 +37,15 @@ class LESPeer(BasePeer):
     sub_proto: LESProtocol = None
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: HeadInfo = None
+
+    _requests: LESRequestResponseHandler = None
+
+    @property
+    def requests(self) -> LESRequestResponseHandler:
+        if self._requests is None:
+            self._requests = LESRequestResponseHandler(self)
+            self.run_child_service(self._requests)
+        return self._requests
 
     @property
     def max_headers_fetch(self) -> int:
@@ -89,62 +84,3 @@ class LESPeer(BasePeer):
         self.head_info = cmd.as_head_info(msg)
         self.head_td = self.head_info.total_difficulty
         self.head_hash = self.head_info.block_hash
-
-    def gen_request_id(self) -> int:
-        return _gen_request_id()
-
-    def request_block_headers(self,
-                              block_number_or_hash: BlockIdentifier,
-                              max_headers: int = None,
-                              skip: int = 0,
-                              reverse: bool = False) -> HeaderRequest:
-        if max_headers is None:
-            max_headers = self.max_headers_fetch
-        request_id = self.gen_request_id()
-        request = HeaderRequest(
-            block_number_or_hash,
-            max_headers,
-            skip,
-            reverse,
-            request_id,
-        )
-        self.sub_proto.send_get_block_headers(
-            request.block_number_or_hash,
-            request.max_headers,
-            request.skip,
-            request.reverse,
-            request_id,
-        )
-        return request
-
-    async def wait_for_block_headers(self, request: HeaderRequest) -> Tuple[BlockHeader, ...]:
-        future: 'asyncio.Future[_DecodedMsgType]' = asyncio.Future()
-        if BlockHeaders in self.pending_requests:
-            # the `finally` block below should prevent this from happening, but
-            # were two requests to the same peer to be fired off at the same
-            # time, this will prevent us from overwriting the first one.
-            raise ValueError(
-                "There is already a pending `BlockHeaders` request for peer {0}".format(self)
-            )
-        self.pending_requests[BlockHeaders] = cast(
-            Tuple[BaseHeaderRequest, 'asyncio.Future[_DecodedMsgType]'],
-            (request, future),
-        )
-        try:
-            response = cast(
-                Dict[str, Any],
-                await self.wait(future, timeout=self._response_timeout),
-            )
-        finally:
-            # We always want to be sure that this method cleans up the
-            # `pending_requests` so that we don't end up in a situation.
-            self.pending_requests.pop(BlockHeaders, None)
-        return cast(Tuple[BlockHeader, ...], response['headers'])
-
-    async def get_block_headers(self,
-                                block_number_or_hash: BlockIdentifier,
-                                max_headers: int = None,
-                                skip: int = 0,
-                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
-        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
-        return await self.wait_for_block_headers(request)

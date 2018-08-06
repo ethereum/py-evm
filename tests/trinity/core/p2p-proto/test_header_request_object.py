@@ -2,7 +2,7 @@ import pytest
 
 from p2p.exceptions import ValidationError
 
-from trinity.protocol.base_request import BaseHeaderRequest
+from trinity.protocol.common.requests import BaseHeaderRequest
 
 
 FORWARD_0_to_5 = (0, 6, 0, False)

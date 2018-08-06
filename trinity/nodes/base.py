@@ -151,7 +151,11 @@ class Node(BaseService):
             # Stop the this IPCServer-specific event loop, so that the IPCServer thread will exit
             self._ipc_loop.stop()
 
-        await asyncio.gather(*[service.cleaned_up.wait() for service in self._auxiliary_services])
+        await asyncio.gather(*[
+            service.events.cleaned_up.wait()
+            for service
+            in self._auxiliary_services
+        ])
 
     def _make_new_loop_thread(self) -> asyncio.AbstractEventLoop:
         new_loop = asyncio.new_event_loop()

@@ -10,7 +10,7 @@ from eth.rlp.headers import BlockHeader
 
 from p2p.exceptions import ValidationError
 
-from trinity.protocol.base_request import BaseHeaderRequest
+from trinity.protocol.common.requests import BaseHeaderRequest
 
 from .constants import MAX_HEADERS_FETCH
 

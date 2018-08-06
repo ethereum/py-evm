@@ -17,9 +17,19 @@ from cancel_token import CancelToken, OperationCancelled
 from p2p.cancellable import CancellableMixin
 
 
+class ServiceEvents:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+        self.stopped = asyncio.Event()
+        self.cleaned_up = asyncio.Event()
+        self.cancelled = asyncio.Event()
+        self.finished = asyncio.Event()
+
+
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
     _child_services: List['BaseService']
+    _finished_callbacks: List[Callable[['BaseService'], None]]
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
@@ -32,8 +42,9 @@ class BaseService(ABC, CancellableMixin):
                 TraceLogger, logging.getLogger(self.__module__ + '.' + self.__class__.__name__))
 
         self._run_lock = asyncio.Lock()
-        self.cleaned_up = asyncio.Event()
+        self.events = ServiceEvents()
         self._child_services = []
+        self._finished_callbacks = []
 
         self.loop = loop
         base_token = CancelToken(type(self).__name__, loop=loop)
@@ -56,8 +67,12 @@ class BaseService(ABC, CancellableMixin):
         elif self.cancel_token.triggered:
             raise RuntimeError("Cannot restart a service that has already been cancelled")
 
+        if finished_callback:
+            self._finished_callbacks.append(finished_callback)
+
         try:
             async with self._run_lock:
+                self.events.started.set()
                 await self._run()
         except OperationCancelled as e:
             self.logger.info("%s finished: %s", self, e)
@@ -66,18 +81,19 @@ class BaseService(ABC, CancellableMixin):
         finally:
             # Trigger our cancel token to ensure all pending asyncio tasks and background
             # coroutines started by this service exit cleanly.
+            self.events.cancelled.set()
             self.cancel_token.trigger()
 
             await self.cleanup()
 
-            from p2p.peer import BasePeer  # type: ignore
-            if finished_callback is not None:
-                finished_callback(self)
-            elif isinstance(self, BasePeer):
-                # XXX: Only added to help debug https://github.com/ethereum/py-evm/issues/1023;
-                # should be removed eventually.
-                self.logger.warn("%s finished but had no finished_callback", self)
+            for callback in self._finished_callbacks:
+                callback(self)
+
+            self.events.finished.set()
             self.logger.debug("%s halted cleanly", self)
+
+    def add_finished_callback(self, finished_callback: Callable[['BaseService'], None]) -> None:
+        self._finished_callbacks.append(finished_callback)
 
     def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
         """
@@ -94,13 +110,12 @@ class BaseService(ABC, CancellableMixin):
         The ``_cleanup()`` coroutine is invoked before the child services may have finished
         their cleanup.
         """
-
         await asyncio.gather(*[
-            child_service.cleaned_up.wait()
+            child_service.events.cleaned_up.wait()
             for child_service in self._child_services],
             self._cleanup()
         )
-        self.cleaned_up.set()
+        self.events.cleaned_up.set()
 
     async def cancel(self) -> None:
         """Trigger the CancelToken and wait for the cleaned_up event to be set."""
@@ -111,10 +126,11 @@ class BaseService(ABC, CancellableMixin):
             raise RuntimeError("Cannot cancel a service that has not been started")
 
         self.logger.debug("Cancelling %s", self)
+        self.events.cancelled.set()
         self.cancel_token.trigger()
         try:
             await asyncio.wait_for(
-                self.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
+                self.events.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
         except asyncio.futures.TimeoutError:
             self.logger.info("Timed out waiting for %s to finish its cleanup, exiting anyway", self)
         else:
@@ -131,7 +147,10 @@ class BaseService(ABC, CancellableMixin):
         :param poll_period: how many seconds to wait in between each check for service cleanup
         """
         asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.loop)
-        await asyncio.wait_for(self.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
+        await asyncio.wait_for(
+            self.events.cleaned_up.wait(),
+            timeout=self._wait_until_finished_timeout,
+        )
 
     async def sleep(self, delay: float) -> None:
         """Coroutine that completes after a given time (in seconds)."""

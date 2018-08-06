@@ -1,16 +1,10 @@
-import asyncio
 from typing import (
     Any,
     cast,
     Dict,
-    Tuple,
 )
 
 from eth_utils import encode_hex
-
-from eth_typing import BlockIdentifier
-
-from eth.rlp.headers import BlockHeader
 
 from p2p.exceptions import HandshakeFailure
 from p2p.p2p_proto import DisconnectReason
@@ -20,20 +14,27 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.protocol.base_request import BaseRequest
 from .commands import (
-    BlockHeaders,
     NewBlock,
     Status,
 )
 from . import constants
-from .requests import HeaderRequest
 from .proto import ETHProtocol
+from .handlers import ETHRequestResponseHandler
 
 
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [ETHProtocol]
     sub_proto: ETHProtocol = None
+
+    _requests: ETHRequestResponseHandler = None
+
+    @property
+    def requests(self) -> ETHRequestResponseHandler:
+        if self._requests is None:
+            self._requests = ETHRequestResponseHandler(self)
+            self.run_child_service(self._requests)
+        return self._requests
 
     @property
     def max_headers_fetch(self) -> int:
@@ -74,41 +75,3 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
-
-    def request_block_headers(self,
-                              block_number_or_hash: BlockIdentifier,
-                              max_headers: int = None,
-                              skip: int = 0,
-                              reverse: bool = True) -> HeaderRequest:
-        if max_headers is None:
-            max_headers = self.max_headers_fetch
-        request = HeaderRequest(
-            block_number_or_hash,
-            max_headers,
-            skip,
-            reverse,
-        )
-        self.sub_proto.send_get_block_headers(
-            request.block_number_or_hash,
-            request.max_headers,
-            request.skip,
-            request.reverse,
-        )
-        return request
-
-    async def wait_for_block_headers(self, request: HeaderRequest) -> Tuple[BlockHeader, ...]:
-        future: 'asyncio.Future[Tuple[BlockHeader, ...]]' = asyncio.Future()
-        self.pending_requests[BlockHeaders] = cast(
-            Tuple[BaseRequest, 'asyncio.Future[_DecodedMsgType]'],
-            (request, future),
-        )
-        response = await self.wait(future, timeout=self._response_timeout)
-        return response
-
-    async def get_block_headers(self,
-                                block_number_or_hash: BlockIdentifier,
-                                max_headers: int = None,
-                                skip: int = 0,
-                                reverse: bool = True) -> Tuple[BlockHeader, ...]:
-        request = self.request_block_headers(block_number_or_hash, max_headers, skip, reverse)
-        return await self.wait_for_block_headers(request)
