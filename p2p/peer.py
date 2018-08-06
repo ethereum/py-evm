@@ -1067,8 +1067,8 @@ def _test() -> None:
         hashes = [header.hash for header in headers]
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.sub_proto.send_get_block_bodies(hashes)
-            peer.sub_proto.send_get_receipts(hashes)
+            peer.sub_proto._send_get_block_bodies(hashes)
+            peer.sub_proto._send_get_receipts(hashes)
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
