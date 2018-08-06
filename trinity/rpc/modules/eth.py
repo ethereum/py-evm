@@ -125,8 +125,9 @@ class Eth(RPCModule):
     Any attribute without an underscore is publicly accessible.
     '''
 
-    def accounts(self) -> None:
-        raise NotImplementedError()
+    def accounts(self) -> List[str]:
+        # trinity does not manage accounts for the user
+        return []
 
     def blockNumber(self) -> str:
         num = self._chain.get_canonical_head().block_number

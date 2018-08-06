@@ -86,6 +86,10 @@ async def get_ipc_response(
             {'error': "Invalid RPC method: 'notamethod'", 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
+            build_request('eth_accounts'),
+            {'result': [], 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
             build_request('eth_mining'),
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
