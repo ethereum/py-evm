@@ -25,13 +25,13 @@ from trinity.exceptions import AlreadyWaiting
 from .requests import BaseRequest
 
 
-PeerClass = TypeVar('PeerClass', bound=BasePeer)
-RequestType = TypeVar('RequestType', bound=BaseRequest)
-ResponseType = TypeVar('ResponseType')
-ReturnType = TypeVar('ReturnType')
+TPeer = TypeVar('TPeer', bound=BasePeer)
+TRequest = TypeVar('TRequest', bound=BaseRequest)
+TResponse = TypeVar('TResponse')
+TReturn = TypeVar('TReturn')
 
 
-class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, RequestType, ResponseType, ReturnType]):  # noqa: E501
+class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, TResponse, TReturn]):  # noqa: E501
     #
     # PeerSubscriber
     #
@@ -43,11 +43,11 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
 
     response_timout: int = 60
 
-    pending_request: Tuple[RequestType, 'asyncio.Future[ReturnType]'] = None
+    pending_request: Tuple[TRequest, 'asyncio.Future[TReturn]'] = None
 
-    _peer: PeerClass
+    _peer: TPeer
 
-    def __init__(self, peer: PeerClass, token: CancelToken) -> None:
+    def __init__(self, peer: TPeer, token: CancelToken) -> None:
         self._peer = peer
         super().__init__(token)
 
@@ -65,14 +65,14 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
                 elif isinstance(cmd, self._response_msg_type):
-                    self._handle_msg(cast(ResponseType, msg))
+                    self._handle_msg(cast(TResponse, msg))
                 else:
                     self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
 
     async def _cleanup(self) -> None:
         pass
 
-    def _handle_msg(self, msg: ResponseType) -> None:
+    def _handle_msg(self, msg: TResponse) -> None:
         if self.pending_request is None:
             self.logger.debug(
                 "Got unexpected %s message from %", self.response_msg_name, self._peer
@@ -95,11 +95,11 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
             self.pending_request = None
 
     @abstractmethod
-    def _normalize_response(self, msg: ResponseType) -> ReturnType:
+    def _normalize_response(self, msg: TResponse) -> TReturn:
         pass
 
     @abstractmethod
-    def __call__(self) -> ReturnType:
+    def __call__(self) -> TReturn:
         """
         Subclasses must both implement this method and override the call
         signature to properly construct the `Request` object and pass it into
@@ -122,12 +122,12 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
         return self._response_msg_type.__name__
 
     @abstractmethod
-    def _send_sub_proto_request(self, request: RequestType) -> None:
+    def _send_sub_proto_request(self, request: TRequest) -> None:
         pass
 
     async def _wait_for_response(self,
-                                 request: RequestType,
-                                 timeout: int = None) -> ReturnType:
+                                 request: TRequest,
+                                 timeout: int = None) -> TReturn:
         if self.pending_request is not None:
             self.logger.error(
                 "Already waiting for response to %s for peer: %s",
@@ -141,7 +141,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
                 )
             )
 
-        future: 'asyncio.Future[ReturnType]' = asyncio.Future()
+        future: 'asyncio.Future[TReturn]' = asyncio.Future()
         self.pending_request = (request, future)
 
         try:
@@ -152,7 +152,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
 
         return response
 
-    async def _request_and_wait(self, request: RequestType, timeout: int=None) -> ReturnType:
+    async def _request_and_wait(self, request: TRequest, timeout: int=None) -> TReturn:
         if timeout is None:
             timeout = self.response_timout
         self._send_sub_proto_request(request)
