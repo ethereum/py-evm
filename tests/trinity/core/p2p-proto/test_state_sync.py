@@ -1,4 +1,3 @@
-import asyncio
 import os
 import random
 import time
@@ -19,8 +18,8 @@ from eth.db.backends.memory import MemoryDB
 from eth.db.account import AccountDB
 from eth.utils.logging import TraceLogger
 
+from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
-from trinity.sync.full.trie import HexaryTrieSync
 
 from tests.trinity.core.integration_test_helpers import FakeAsyncMemoryDB
 
@@ -51,7 +50,7 @@ def make_random_trie(random):
 @settings(max_examples=10)
 @example(random=RandomWithSeed(EXAMPLE_37968))
 @example(random=RandomWithSeed(EXAMPLE_809368))
-def test_trie_sync(random):
+def test_trie_sync(random, event_loop):
 
     # Apparently hypothesis tests cannot be used in conjunction with pytest-asyncio yet, so do it
     # like this for now. https://github.com/HypothesisWorks/hypothesis/pull/1343
@@ -70,7 +69,7 @@ def test_trie_sync(random):
         for key, value in contents.items():
             assert dest_trie[key] == value
 
-    asyncio.get_event_loop().run_until_complete(_test_trie_sync())
+    event_loop.run_until_complete(_test_trie_sync())
 
 
 def make_random_state(n):

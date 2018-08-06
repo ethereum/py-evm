@@ -68,6 +68,11 @@ class SyncRequest:
 
 def _get_children(node: Hash32, depth: int
                   ) -> Tuple[List[Tuple[int, Hash32]], List[bytes]]:
+    """Return all children of the node with the given hash.
+
+    :rtype: A two-tuple with one list containing the children that reference other nodes and
+    another containing the leaf children.
+    """
     node_type = get_node_type(node)
     references = []
     leaves = []
@@ -146,11 +151,11 @@ class HexaryTrieSync:
                        is_raw: bool = False) -> None:
         """Schedule a request for the node with the given key."""
         if node_key in self._existing_nodes:
-            self.logger.debug("Node %s already exists in db" % encode_hex(node_key))
+            self.logger.trace("Node %s already exists in db", encode_hex(node_key))
             return
         if await self.db.coro_exists(node_key):
             self._existing_nodes.add(node_key)
-            self.logger.debug("Node %s already exists in db" % encode_hex(node_key))
+            self.logger.trace("Node %s already exists in db", encode_hex(node_key))
             return
         self._schedule(node_key, parent, depth, leaf_callback, is_raw)
 
@@ -162,8 +167,8 @@ class HexaryTrieSync:
 
         existing = self.requests.get(node_key)
         if existing is not None:
-            self.logger.debug(
-                "Already requesting %s, will just update parents list" % node_key)
+            self.logger.trace(
+                "Already requesting %s, will just update parents list", node_key)
             existing.parents.append(parent)
             return
 
@@ -171,19 +176,9 @@ class HexaryTrieSync:
         # Requests get added to both self.queue and self.requests; the former is used to keep
         # track which requests should be sent next, and the latter is used to avoid scheduling a
         # request for a given node multiple times.
-        self.logger.debug("Scheduling retrieval of %s" % encode_hex(request.node_key))
+        self.logger.trace("Scheduling retrieval of %s", encode_hex(request.node_key))
         self.requests[request.node_key] = request
         bisect.insort(self.queue, request)
-
-    def get_children(self, request: SyncRequest
-                     ) -> Tuple[List[Tuple[int, Hash32]], List[bytes]]:
-        """Return all children of the node retrieved by the given request.
-
-        :rtype: A two-tuple with one list containing the children that reference other nodes and
-        another containing the leaf children.
-        """
-        node = decode_node(request.data)
-        return _get_children(node, request.depth)
 
     async def process(self, results: List[Tuple[Hash32, bytes]]) -> None:
         """Process request results.
@@ -195,9 +190,9 @@ class HexaryTrieSync:
             if request is None:
                 # This may happen if we resend a request for a node after waiting too long,
                 # and then eventually get two responses with it.
-                self.logger.debug(
-                    "No SyncRequest found for %s, maybe we got more than one response for it"
-                    % encode_hex(node_key))
+                self.logger.trace(
+                    "No SyncRequest found for %s, maybe we got more than one response for it",
+                    encode_hex(node_key))
                 return
 
             if request.data is not None:
@@ -208,7 +203,8 @@ class HexaryTrieSync:
                 await self.commit(request)
                 continue
 
-            references, leaves = self.get_children(request)
+            node = decode_node(request.data)
+            references, leaves = _get_children(node, request.depth)
 
             for depth, ref in references:
                 await self.schedule(ref, request, depth, request.leaf_callback)
@@ -221,6 +217,11 @@ class HexaryTrieSync:
                 await self.commit(request)
 
     async def commit(self, request: SyncRequest) -> None:
+        """Commit the given request's data to the database.
+
+        The request's data attribute must be set (done by the process() method) before this can be
+        called.
+        """
         self.committed_nodes += 1
         await self.db.coro_set(request.node_key, request.data)
         self._existing_nodes.add(request.node_key)

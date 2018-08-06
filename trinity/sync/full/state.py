@@ -58,7 +58,7 @@ from trinity.protocol.eth import commands
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
-from trinity.sync.full.trie import (
+from trinity.sync.full.hexary_trie import (
     HexaryTrieSync,
     SyncRequest,
 )
