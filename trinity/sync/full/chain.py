@@ -1,5 +1,6 @@
 import asyncio
 import math
+import operator
 from typing import (
     Any,
     Callable,
@@ -14,6 +15,7 @@ from typing import (
 )
 
 from cytoolz import (
+    concat,
     partition_all,
     unique,
 )
@@ -50,6 +52,7 @@ from trinity.utils.timer import Timer
 
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
+ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
 
 
 class FastChainSyncer(BaseHeaderChainSyncer):
@@ -76,15 +79,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     subscription_msg_types: Set[Type[Command]] = {
         commands.BlockBodies,
-        commands.Receipts,
         commands.NewBlock,
         commands.GetBlockHeaders,
-        commands.BlockHeaders,
         commands.GetBlockBodies,
         commands.GetReceipts,
         commands.GetNodeData,
         commands.Transactions,
-        commands.NodeData,
         # TODO: all of the following are here to quiet warning logging output
         # until the messages are properly handled.
         commands.Transactions,
@@ -121,18 +121,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             'body')
         self.logger.debug("Got block bodies for chain segment")
 
-        missing_receipts = [header for header in headers if not _is_receipts_empty(header)]
-        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
-        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
-        # so we do this to avoid requesting the same receipts multiple times.
-        missing_receipts = list(unique(missing_receipts, key=_receipts_key))
-        await self._download_block_parts(
-            target_td,
-            missing_receipts,
-            self.request_receipts,
-            self._downloaded_receipts,
-            _receipts_key,
-            'receipt')
+        await self._download_receipts(target_td, headers)
         self.logger.debug("Got block receipts for chain segment")
 
         for header in headers:
@@ -154,6 +143,87 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
             len(headers), txs, timer.elapsed, head.block_number)
         return head.block_number
+
+    async def _download_receipts(self,
+                                 target_td: int,
+                                 all_headers: Tuple[BlockHeader, ...]) -> None:
+        """
+        Downloads and persists the receipts for the given set of block headers.
+        Receipts are requested from all peers in equal sized batches.
+        """
+        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
+        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
+        # so we do this to avoid requesting the same receipts multiple times.
+        headers = tuple(unique(
+            (header for header in all_headers if not _is_receipts_empty(header)),
+            key=operator.attrgetter('receipt_root'),
+        ))
+
+        while headers:
+            # split the remaining headers into equal sized batches for each peer.
+            peers = cast(Tuple[ETHPeer, ...], self.peer_pool.get_peers(target_td))
+            batch_size = math.ceil(len(headers) / len(peers))
+            batches = tuple(partition_all(batch_size, headers))
+
+            # issue requests to all of the peers and wait for all of them to respond.
+            requests = tuple(
+                self._get_receipts(peer, batch)
+                for peer, batch
+                in zip(peers, batches)
+            )
+            responses = await self.wait(asyncio.gather(
+                *requests,
+                loop=self.get_event_loop(),
+            ))
+
+            # extract the returned receipt data and the headers for which we
+            # are still missing receipts.
+            all_receipt_bundles, all_missing_headers = zip(*responses)
+            receipt_bundles = tuple(concat(all_receipt_bundles))
+            headers = tuple(concat(all_missing_headers))
+
+            # process all of the returned receipts, storing their trie data
+            # dicts in the database
+            receipts, trie_roots_and_data_dicts = zip(*receipt_bundles)
+            trie_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
+            for trie_data in trie_data_dicts:
+                await self.wait(self.db.coro_persist_trie_data_dict(trie_data))
+        else:
+            self.logger.debug("Got receipts batch for %d headers", len(all_headers))
+
+    async def _get_receipts(self,
+                            peer: ETHPeer,
+                            batch: Tuple[BlockHeader, ...],
+                            ) -> Tuple[Tuple[ReceiptBundle, ...], Tuple[BlockHeader, ...]]:
+        """
+        Requests the batch of receipts from the given peer, returning the
+        returned receipt data and the headers for which receipts were not
+        returned for.
+        """
+        self.logger.debug("Requesting receipts for %d headers from %s", len(batch), peer)
+        try:
+            receipt_bundles = await peer.requests.get_receipts(batch)
+        except TimeoutError as err:
+            self.logger.debug(
+                "Timed out requesting receipts for %d headers from %s", len(batch), peer,
+            )
+            return tuple(), batch
+        else:
+            self.logger.debug(
+                "Got receipts for %d headers from %s", len(receipt_bundles), peer,
+            )
+
+        receipts, trie_roots_and_data_dicts = zip(*receipt_bundles)
+        receipt_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
+        receipt_roots_set = set(receipt_roots)
+        missing = tuple(
+            header
+            for header
+            in batch
+            if header.receipt_root not in receipt_roots_set
+        )
+
+        return receipt_bundles, missing
 
     async def _download_block_parts(
             self,
@@ -232,31 +302,12 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             "Requesting %d block bodies (%s) to %s", len(headers), block_numbers, peer)
         peer.sub_proto.send_get_block_bodies([header.hash for header in headers])
 
-    def _send_get_receipts(self, peer: ETHPeer, headers: List[BlockHeader]) -> None:
-        block_numbers = ", ".join(str(h.block_number) for h in headers)
-        self.logger.debug(
-            "Requesting %d block receipts (%s) to %s", len(headers), block_numbers, peer)
-        peer.sub_proto.send_get_receipts([header.hash for header in headers])
-
     def request_bodies(self, target_td: int, headers: List[BlockHeader]) -> int:
         """Ask our peers for bodies for the given headers.
 
         See request_receipts() for details of how this is done.
         """
         return self._request_block_parts(target_td, headers, self._send_get_block_bodies)
-
-    def request_receipts(self, target_td: int, headers: List[BlockHeader]) -> int:
-        """Ask our peers for receipts for the given headers.
-
-        We partition the given list of headers in batches and request each to one of our connected
-        peers. This is done because geth enforces a byte-size cap when replying to a GetReceipts
-        msg, and we then need to re-request the items that didn't fit, so by splitting the
-        requests across all our peers we reduce the likelyhood of having to make multiple
-        serialized requests to ask for missing items (which happens quite frequently in practice).
-
-        Returns the number of requests made.
-        """
-        return self._request_block_parts(target_td, headers, self._send_get_receipts)
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -269,15 +320,10 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             pass
         elif isinstance(cmd, commands.BlockBodies):
             await self._handle_block_bodies(peer, list(cast(Tuple[BlockBody], msg)))
-        elif isinstance(cmd, commands.Receipts):
-            await self._handle_block_receipts(peer, cast(List[List[Receipt]], msg))
         elif isinstance(cmd, commands.NewBlock):
             await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, commands.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, commands.BlockHeaders):
-            # `BlockHeaders` messages are handled at the peer level.
-            pass
         elif isinstance(cmd, commands.GetBlockBodies):
             # Only serve up to MAX_BODIES_FETCH items in every request.
             block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
@@ -293,32 +339,11 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         elif isinstance(cmd, commands.Transactions):
             # Transactions msgs are handled by our TxPool service.
             pass
-        elif isinstance(cmd, commands.NodeData):
-            # When doing a chain sync we never send GetNodeData requests, so peers should not send
-            # us NodeData msgs.
-            self.logger.warn("Unexpected NodeData msg from %s, disconnecting", peer)
-            await peer.disconnect(DisconnectReason.bad_protocol)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
 
     async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
         self._sync_requests.put_nowait(peer)
-
-    async def _handle_block_receipts(self,
-                                     peer: ETHPeer,
-                                     receipts_by_block: List[List[Receipt]]) -> None:
-        self.logger.debug("Got Receipts for %d blocks from %s", len(receipts_by_block), peer)
-        iterator = map(make_trie_root_and_nodes, receipts_by_block)
-        # The map() call above is lazy (it returns an iterator! ;-), so it's only evaluated in
-        # the executor when the list() is applied to it.
-        receipts_tries = await self._run_in_executor(list, iterator)
-        downloaded: List[DownloadedBlockPart] = []
-        # TODO: figure out why mypy is losing the type of the receipts_tries
-        # so we can get rid of the ignore
-        for (receipts, (receipt_root, trie_dict_data)) in zip(receipts_by_block, receipts_tries):  # type: ignore # noqa: E501
-            await self.wait(self.db.coro_persist_trie_data_dict(trie_dict_data))
-            downloaded.append(DownloadedBlockPart(receipts, receipt_root))
-        self._downloaded_receipts.put_nowait((peer, downloaded))
 
     async def _handle_block_bodies(self,
                                    peer: ETHPeer,

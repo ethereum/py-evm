@@ -1,5 +1,14 @@
+from typing import (
+    Any,
+    Dict,
+    Tuple,
+)
+
 from eth_typing import BlockIdentifier
 
+from eth.rlp.headers import BlockHeader
+
+from p2p.exceptions import ValidationError
 
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,
@@ -8,7 +17,10 @@ from trinity.protocol.common.requests import (
 from .constants import MAX_HEADERS_FETCH
 
 
-class HeaderRequest(BaseHeaderRequest):
+HeadersResponseDict = Dict[str, Any]
+
+
+class HeaderRequest(BaseHeaderRequest[HeadersResponseDict]):
     request_id: int
 
     max_size = MAX_HEADERS_FETCH
@@ -24,3 +36,10 @@ class HeaderRequest(BaseHeaderRequest):
         self.skip = skip
         self.reverse = reverse
         self.request_id = request_id
+
+    def validate_response(self,
+                          msg: HeadersResponseDict,
+                          response: Tuple[BlockHeader, ...]) -> None:
+        if msg['request_id'] != self.request_id:
+            raise ValidationError("Request `id` does not match")
+        super().validate_response(msg, response)

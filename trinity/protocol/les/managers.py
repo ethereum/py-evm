@@ -37,7 +37,7 @@ BaseRequestManager = _BaseRequestManager[
     'LESPeer',
     HeaderRequest,
     Dict[str, Any],
-    Tuple[BlockHeader, ...]
+    Tuple[BlockHeader, ...],
 ]
 
 
