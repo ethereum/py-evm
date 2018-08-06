@@ -36,6 +36,9 @@ class GetBlockHeadersRequestManager(BaseRequestManager):
 
     _response_msg_type: Type[Command] = BlockHeaders
 
+    # All `RequestManager` classes are expected to implement the `__call__`
+    # method, including changing the function signature, thus the
+    # `# type: ignore` here is both expected and required.
     async def __call__(self,  # type: ignore
                        block_number_or_hash: BlockIdentifier,
                        max_headers: int = None,

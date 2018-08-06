@@ -99,11 +99,16 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[PeerClass, Request
         pass
 
     @abstractmethod
-    def __call__(self) -> ReturnType:  # type: ignore
+    def __call__(self) -> ReturnType:
         """
         Subclasses must both implement this method and override the call
         signature to properly construct the `Request` object and pass it into
         `get_from_peer`
+
+        NOTE: It is expected that subclasses will override this method and
+        change the signature.  The change in signature is expected to result in
+        a type checking failure, and thus all subclasses will also be required
+        to add an `# type: ignore` comment to make the type checker happy.
         """
         pass
 

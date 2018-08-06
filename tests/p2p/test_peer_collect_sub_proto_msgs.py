@@ -36,7 +36,7 @@ async def test_peer_subscriber_filters_messages(request, event_loop):
 
     assert collector not in peer._subscribers
 
-    # yeild to let remote and peer transmit.
+    # yield to let remote and peer transmit.
 
     all_messages = collector.get_messages()
     assert len(all_messages) == 5
