@@ -138,6 +138,20 @@ def extcodecopy(computation):
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
+def extcodehash(computation):
+    """
+    Return the code hash for a given address.
+    EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
+    """
+    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    account_db = computation.state.account_db
+
+    if not account_db.account_exists(account):
+        computation.stack_push(constants.NULL_BYTE)
+    else:
+        computation.stack_push(account_db.get_code_hash(account))
+
+
 def returndatasize(computation):
     size = len(computation.return_data)
     computation.stack_push(size)
