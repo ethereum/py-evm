@@ -3,10 +3,10 @@ import asyncio
 from typing import (
     cast,
     Generic,
-    TypeVar,
     Set,
     Tuple,
     Type,
+    TypeVar,
 )
 
 from cancel_token import CancelToken
@@ -65,14 +65,14 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
                 elif isinstance(cmd, self._response_msg_type):
-                    self._handle_msg(cast(TResponse, msg))
+                    await self._handle_msg(cast(TResponse, msg))
                 else:
                     self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
 
     async def _cleanup(self) -> None:
         pass
 
-    def _handle_msg(self, msg: TResponse) -> None:
+    async def _handle_msg(self, msg: TResponse) -> None:
         if self.pending_request is None:
             self.logger.debug(
                 "Got unexpected %s message from %", self.response_msg_name, self._peer
@@ -82,20 +82,31 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
         request, future = self.pending_request
 
         try:
-            request.validate_response(msg)
+            response = await self._normalize_response(msg)
         except ValidationError as err:
             self.logger.debug(
-                "Response validation failure for pending %s request from peer %s: %s",
+                "Malformed response for pending %s request from peer %s: %s",
+                self.response_msg_name,
+                self._peer,
+                err,
+            )
+            return
+
+        try:
+            request.validate_response(response)
+        except ValidationError as err:
+            self.logger.debug(
+                "Response validation failed for pending %s request from peer %s: %s",
                 self.response_msg_name,
                 self._peer,
                 err,
             )
         else:
-            future.set_result(self._normalize_response(msg))
+            future.set_result(response)
             self.pending_request = None
 
     @abstractmethod
-    def _normalize_response(self, msg: TResponse) -> TReturn:
+    async def _normalize_response(self, msg: TResponse) -> TReturn:
         pass
 
     @abstractmethod

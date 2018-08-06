@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pytest
@@ -51,8 +52,6 @@ from eth_typing.enums import (
     ForkName
 )
 
-from tests.conftest import vm_logger
-
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -60,7 +59,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'GeneralStateTests')
 
 
-LOGGER = vm_logger()
+logger = logging.getLogger('eth.tests.fixtures.GeneralStateTests')
 
 
 @to_tuple
@@ -314,7 +313,7 @@ def test_state_fixtures(fixture, fixture_vm_class):
     except ValidationError as err:
         block = vm.block
         transaction_error = err
-        LOGGER.warn("Got transaction error", exc_info=True)
+        logger.warn("Got transaction error", exc_info=True)
     else:
         transaction_error = False
 

@@ -4,26 +4,38 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth_typing import BlockIdentifier
+from eth_typing import (
+    BlockIdentifier,
+    Hash32,
+)
+
+from eth_hash.auto import keccak
 
 from eth.rlp.headers import BlockHeader
 
+from p2p.exceptions import ValidationError
 from p2p.protocol import (
     Command,
 )
 
 from trinity.protocol.common.managers import (
-    BaseRequestManager as _BaseRequestManager,
+    BaseRequestManager,
 )
 
-from .commands import BlockHeaders
-from .requests import HeaderRequest
+from .commands import (
+    BlockHeaders,
+    NodeData,
+)
+from .requests import (
+    HeaderRequest,
+    NodeDataRequest,
+)
 
 if TYPE_CHECKING:
     from .peer import ETHPeer  # noqa: F401
 
 
-BaseRequestManager = _BaseRequestManager[
+BaseGetBlockHeadersRequestManager = BaseRequestManager[
     'ETHPeer',
     HeaderRequest,
     Tuple[BlockHeader, ...],
@@ -31,7 +43,7 @@ BaseRequestManager = _BaseRequestManager[
 ]
 
 
-class GetBlockHeadersRequestManager(BaseRequestManager):
+class GetBlockHeadersRequestManager(BaseGetBlockHeadersRequestManager):
     msg_queue_maxsize = 100
 
     _response_msg_type: Type[Command] = BlockHeaders
@@ -56,5 +68,41 @@ class GetBlockHeadersRequestManager(BaseRequestManager):
     def _send_sub_proto_request(self, request: HeaderRequest) -> None:
         self._peer.sub_proto.send_get_block_headers(request)
 
-    def _normalize_response(self, response: Tuple[BlockHeader, ...]) -> Tuple[BlockHeader, ...]:
-        return response
+    async def _normalize_response(self,
+                                  msg: Tuple[BlockHeader, ...]
+                                  ) -> Tuple[BlockHeader, ...]:
+        return msg
+
+
+BaseGetNodeDataRequestManager = BaseRequestManager[
+    'ETHPeer',
+    NodeDataRequest,
+    Tuple[bytes, ...],
+    Tuple[Tuple[Hash32, bytes], ...],
+]
+
+
+class GetNodeDataRequestManager(BaseGetNodeDataRequestManager):
+    msg_queue_maxsize = 100
+
+    _response_msg_type: Type[Command] = NodeData
+
+    async def __call__(self,  # type: ignore
+                       node_hashes: Tuple[Hash32, ...],
+                       timeout: int = None) -> Tuple[Tuple[Hash32, bytes], ...]:
+        request = NodeDataRequest(node_hashes)
+        return await self._request_and_wait(request, timeout)
+
+    def _send_sub_proto_request(self, request: NodeDataRequest) -> None:
+        self._peer.sub_proto.send_get_node_data(request)
+
+    async def _normalize_response(self,
+                                  msg: Tuple[bytes, ...]
+                                  ) -> Tuple[Tuple[Hash32, bytes], ...]:
+        if not isinstance(msg, tuple):
+            raise ValidationError("Invalid msg, must be tuple of byte strings")
+        elif not all(isinstance(item, bytes) for item in msg):
+            raise ValidationError("Invalid msg, must be tuple of byte strings")
+
+        node_keys = await self._run_in_executor(tuple, map(keccak, msg))
+        return tuple(zip(node_keys, msg))

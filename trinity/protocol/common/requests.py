@@ -32,6 +32,12 @@ class BaseHeaderRequest(BaseRequest):
     skip: int
     reverse: bool
 
+    def validate_response(self, response: Tuple[BlockHeader, ...]) -> None:
+        """
+        Core `Request` API used for validation.
+        """
+        return self.validate_headers(response)
+
     @property
     @abstractmethod
     def max_size(self) -> int:
