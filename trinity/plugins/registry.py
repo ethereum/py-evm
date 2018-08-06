@@ -22,6 +22,7 @@ def is_ipython_available() -> bool:
 # config file which plugin is enabled or not
 
 ENABLED_PLUGINS = [
-    AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
+    AttachPlugin(use_ipython=False),
+    #AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     TxPlugin(),
 ]

@@ -116,14 +116,14 @@ async def test_web3(event_loop, command, async_process_runner, second_async_proc
         "IPC started at",
     })
     await second_async_process_runner.run(['trinity', 'attach'], timeout_sec=30)
-    assert await contains_all(second_async_process_runner.stdout, {
+    assert await contains_all(second_async_process_runner.stderr, {
         "An instance of Web3",
-        "In [1]:",
+        ">>>"
     })
 
     stdout, stderr = await second_async_process_runner.proc.communicate(b'w3\n')
 
-    async for line in stdout:
+    async for line in stderr:
         print(line)
 
 
