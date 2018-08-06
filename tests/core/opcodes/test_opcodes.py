@@ -6,9 +6,17 @@ from eth_utils import (
     to_canonical_address,
     int_to_big_endian,
 )
-
 from eth import (
     constants
+)
+from eth.db.backends.memory import (
+    MemoryDB
+)
+from eth.db.chain import (
+    ChainDB
+)
+from eth.rlp.headers import (
+    BlockHeader,
 )
 from eth.utils.padding import (
     pad32
@@ -24,7 +32,6 @@ from eth.vm.forks import (
     HomesteadVM,
     FrontierVM,
 )
-
 from eth.vm.message import (
     Message,
 )
@@ -32,8 +39,16 @@ from eth.vm.message import (
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
 NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
+ADDRESS_WITH_CODE = ("0xddd722f3947def4cf144679da39c4c32bdc35681", b'pseudocode')
+EMPTY_ADDRESS_IN_STATE = NORMALIZED_ADDRESS_A
+ADDRESS_NOT_IN_STATE = NORMALIZED_ADDRESS_B
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
+GENESIS_HEADER = BlockHeader(
+    difficulty=constants.GENESIS_DIFFICULTY,
+    block_number=constants.GENESIS_BLOCK_NUMBER,
+    gas_limit=constants.GENESIS_GAS_LIMIT,
+)
 
 
 def prepare_computation(vm_class):
@@ -52,11 +67,17 @@ def prepare_computation(vm_class):
         origin=CANONICAL_ADDRESS_B,
     )
 
+    vm = vm_class(GENESIS_HEADER, ChainDB(MemoryDB()))
+
     computation = vm_class._state_class.computation_class(
-        state=None,
+        state=vm.state,
         message=message,
         transaction_context=tx_context,
     )
+
+    computation.state.account_db.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
+    computation.state.account_db.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+
     return computation
 
 
@@ -378,3 +399,34 @@ def test_sar(vm_class, val1, val2, expected):
 
     result = computation.stack_pop(type_hint=constants.UINT256)
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
+
+
+@pytest.mark.parametrize(
+    'vm_class, address, expected',
+    (
+        (
+            ConstantinopleVM,
+            ADDRESS_NOT_IN_STATE,
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            EMPTY_ADDRESS_IN_STATE,
+            '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
+        ),
+        (
+            ConstantinopleVM,
+            ADDRESS_WITH_CODE[0],
+            # equivalent to encode_hex(keccak(ADDRESS_WITH_CODE[1])),
+            '0xb6f5188e2984211a0de167a56a92d85bee084d7a469d97a59e1e2b573dbb4301'
+        ),
+    )
+)
+def test_extcodehash(vm_class, address, expected):
+    computation = prepare_computation(vm_class)
+
+    computation.stack_push(decode_hex(address))
+    computation.opcodes[opcode_values.EXTCODEHASH](computation)
+
+    result = computation.stack_pop(type_hint=constants.BYTES)
+    assert encode_hex(pad32(result)) == expected

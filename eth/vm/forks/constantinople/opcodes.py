@@ -13,8 +13,12 @@ from eth.vm import (
 from eth.vm.forks.byzantium.opcodes import (
     BYZANTIUM_OPCODES
 )
+from eth.vm.forks.constantinople.constants import (
+    GAS_EXTCODEHASH_EIP1052
+)
 from eth.vm.logic import (
-    arithmetic
+    arithmetic,
+    context,
 )
 from eth.vm.opcode import (
     as_opcode
@@ -36,6 +40,11 @@ UPDATED_OPCODES = {
         logic_fn=arithmetic.sar,
         mnemonic=mnemonics.SAR,
         gas_cost=constants.GAS_VERYLOW,
+    ),
+    opcode_values.EXTCODEHASH: as_opcode(
+        logic_fn=context.extcodehash,
+        mnemonic=mnemonics.EXTCODEHASH,
+        gas_cost=GAS_EXTCODEHASH_EIP1052,
     ),
 }
 
