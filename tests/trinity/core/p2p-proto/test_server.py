@@ -9,13 +9,14 @@ from eth.db.chain import ChainDB
 from eth.db.header import HeaderDB
 from eth.db.backends.memory import MemoryDB
 
-from p2p.peer import (
-    PeerPool,
-)
 from p2p.kademlia import (
     Node,
     Address,
 )
+from p2p.peer import (
+    PeerPool,
+)
+from p2p.service import ServiceContext
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.server import Server
@@ -63,6 +64,7 @@ def get_server(privkey, address, peer_class):
     chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     chain = RopstenChain(base_db)
+    service_context = ServiceContext()
     server = Server(
         privkey,
         address.tcp_port,
@@ -72,6 +74,7 @@ def get_server(privkey, address, peer_class):
         base_db,
         network_id=NETWORK_ID,
         peer_class=peer_class,
+        context=service_context,
     )
     return server
 
@@ -139,7 +142,14 @@ async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_d
     # incoming connections.
     monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
 
-    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), NETWORK_ID, INITIATOR_PRIVKEY, tuple())
+    pool = PeerPool(
+        DumbPeer,
+        HeaderDB(MemoryDB()),
+        NETWORK_ID,
+        INITIATOR_PRIVKEY,
+        tuple(),
+        context=ServiceContext(),
+    )
     nodes = [RECEIVER_REMOTE]
     await pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.

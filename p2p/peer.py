@@ -77,7 +77,7 @@ from p2p.exceptions import (
     UnreachablePeer,
     ValidationError,
 )
-from p2p.service import BaseService
+from p2p.service import BaseService, ServiceContext
 from p2p.utils import (
     get_devp2p_cmd_id,
     roundup_16,
@@ -112,6 +112,7 @@ async def handshake(remote: Node,
                     peer_class: 'Type[BasePeer]',
                     headerdb: 'BaseAsyncHeaderDB',
                     network_id: int,
+                    context: ServiceContext,
                     token: CancelToken,
                     ) -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -135,9 +136,18 @@ async def handshake(remote: Node,
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer() from e
     peer = peer_class(
-        remote=remote, privkey=privkey, reader=reader, writer=writer,
-        aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
+        remote=remote,
+        privkey=privkey,
+        reader=reader,
+        writer=writer,
+        aes_secret=aes_secret,
+        mac_secret=mac_secret,
+        egress_mac=egress_mac,
+        ingress_mac=ingress_mac,
+        headerdb=headerdb,
+        network_id=network_id,
+        context=context,
+    )
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
     return peer
@@ -166,9 +176,10 @@ class BasePeer(BaseService):
                  ingress_mac: sha3.keccak_256,
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
+                 context: ServiceContext,
                  inbound: bool = False,
                  ) -> None:
-        super().__init__()
+        super().__init__(context)
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -658,10 +669,11 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                  network_id: int,
                  privkey: datatypes.PrivateKey,
                  vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
+                 context: ServiceContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
                  ) -> None:
-        super().__init__(token)
+        super().__init__(context, token)
         self.peer_class = peer_class
         self.headerdb = headerdb
         self.network_id = network_id
@@ -768,7 +780,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer = await self.wait(
                 handshake(
                     remote, self.privkey, self.peer_class, self.headerdb, self.network_id,
-                    self.cancel_token))
+                    self.context, self.cancel_token))
 
             return peer
         except OperationCancelled:
@@ -1020,8 +1032,17 @@ def _test() -> None:
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     nodes = [Node.from_uri(args.enode)]
+    service_context = ServiceContext()
+
     peer_pool = PeerPool(
-        peer_class, headerdb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
+        peer_class,
+        headerdb,
+        network_id,
+        ecies.generate_privkey(),
+        ROPSTEN_VM_CONFIGURATION,
+        context=service_context,
+    )
+
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     async def request_stuff() -> None:

@@ -23,6 +23,7 @@ from cancel_token import CancelToken
 from p2p.exceptions import (
     HandshakeFailure,
 )
+from p2p.service import ServiceContext
 
 from eth.rlp.headers import CollationHeader
 from eth.rlp.collations import Collation
@@ -136,6 +137,8 @@ async def test_invalid_handshake():
 
 @pytest.mark.asyncio
 async def test_collation_requests(request, event_loop):
+    service_context = ServiceContext()
+
     # setup two peers
     sender, receiver = await get_directly_linked_sharding_peers(request, event_loop)
     receiver_peer_pool = MockPeerPoolWithConnectedPeers([receiver])
@@ -155,7 +158,7 @@ async def test_collation_requests(request, event_loop):
         receiver_shard.add_collation(collation)
 
     # start shard syncer
-    receiver_syncer = ShardSyncer(receiver_shard, receiver_peer_pool)
+    receiver_syncer = ShardSyncer(receiver_shard, receiver_peer_pool, context=service_context)
     asyncio.ensure_future(receiver_syncer.run())
 
     def finalizer():
@@ -202,6 +205,8 @@ async def test_collation_requests(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_new_collations_notification(request, event_loop):
+    service_context = ServiceContext()
+
     # setup a-b-c topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
     peer_b_c, peer_c_b = await get_directly_linked_sharding_peers(request, event_loop)
@@ -214,7 +219,7 @@ async def test_new_collations_notification(request, event_loop):
     shard = Shard(shard_db, 0)
 
     # start shard syncer
-    syncer = ShardSyncer(shard, peer_pool_b)
+    syncer = ShardSyncer(shard, peer_pool_b, context=service_context)
     asyncio.ensure_future(syncer.run())
 
     def finalizer():
@@ -246,6 +251,8 @@ async def test_new_collations_notification(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_syncer_requests_new_collations(request, event_loop):
+    service_context = ServiceContext()
+
     # setup a-b topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
     peer_a_b_subscriber = SamplePeerSubscriber()
@@ -257,7 +264,7 @@ async def test_syncer_requests_new_collations(request, event_loop):
     shard = Shard(shard_db, 0)
 
     # start shard syncer
-    syncer = ShardSyncer(shard, peer_pool_b)
+    syncer = ShardSyncer(shard, peer_pool_b, context=service_context)
     asyncio.ensure_future(syncer.run())
 
     def finalizer():
@@ -278,6 +285,8 @@ async def test_syncer_requests_new_collations(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_syncer_proposing(request, event_loop):
+    service_context = ServiceContext()
+
     # setup a-b topology
     peer_a_b, peer_b_a = await get_directly_linked_sharding_peers(request, event_loop)
     peer_a_b_subscriber = SamplePeerSubscriber()
@@ -289,7 +298,7 @@ async def test_syncer_proposing(request, event_loop):
     shard = Shard(shard_db, 0)
 
     # start shard syncer
-    syncer = ShardSyncer(shard, peer_pool_b)
+    syncer = ShardSyncer(shard, peer_pool_b, context=service_context)
     asyncio.ensure_future(syncer.run())
 
     def finalizer():

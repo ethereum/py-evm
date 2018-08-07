@@ -6,7 +6,10 @@ from cancel_token import CancelToken
 from eth.chains import AsyncChain
 from eth.constants import BLANK_ROOT_HASH
 
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 from p2p.peer import PeerPool
 
 from trinity.db.base import AsyncBaseDB
@@ -28,8 +31,9 @@ class FullNodeSyncer(BaseService):
                  chaindb: AsyncChainDB,
                  base_db: AsyncBaseDB,
                  peer_pool: PeerPool,
+                 context: ServiceContext,
                  token: CancelToken = None) -> None:
-        super().__init__(token)
+        super().__init__(context=context, token=token)
         self.chain = chain
         self.chaindb = chaindb
         self.base_db = base_db
@@ -44,7 +48,12 @@ class FullNodeSyncer(BaseService):
             # Fast-sync chain data.
             self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
             chain_syncer = FastChainSyncer(
-                self.chain, self.chaindb, self.peer_pool, self.cancel_token)
+                chain=self.chain,
+                db=self.chaindb,
+                peer_pool=self.peer_pool,
+                context=self.context,
+                token=self.cancel_token,
+            )
             await chain_syncer.run()
 
         # Ensure we have the state for our current head.
@@ -53,13 +62,24 @@ class FullNodeSyncer(BaseService):
             self.logger.info(
                 "Missing state for current head (#%d), downloading it", head.block_number)
             downloader = StateDownloader(
-                self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
+                chaindb=self.chaindb,
+                account_db=self.base_db,
+                root_hash=head.state_root,
+                peer_pool=self.peer_pool,
+                context=self.context,
+                token=self.cancel_token,
+            )
             await downloader.run()
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
         chain_syncer = RegularChainSyncer(
-            self.chain, self.chaindb, self.peer_pool, self.cancel_token)
+            chain=self.chain,
+            db=self.chaindb,
+            peer_pool=self.peer_pool,
+            context=self.context,
+            token=self.cancel_token,
+        )
         await chain_syncer.run()
 
     async def _cleanup(self) -> None:
@@ -86,11 +106,21 @@ def _test() -> None:
     parser.add_argument('-enode', type=str, required=False, help="The enode we should connect to")
     args = parser.parse_args()
 
+    service_context = ServiceContext()
     chaindb = FakeAsyncChainDB(LevelDB(args.db))
     chain = FakeAsyncRopstenChain(chaindb)
     network_id = RopstenChain.network_id
     privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey, ROPSTEN_VM_CONFIGURATION)
+
+    peer_pool = PeerPool(
+        ETHPeer,
+        chaindb,
+        network_id,
+        privkey,
+        ROPSTEN_VM_CONFIGURATION,
+        context=service_context,
+    )
+
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
@@ -100,7 +130,7 @@ def _test() -> None:
 
     loop = asyncio.get_event_loop()
 
-    syncer = FullNodeSyncer(chain, chaindb, chaindb.db, peer_pool)
+    syncer = FullNodeSyncer(chain, chaindb, chaindb.db, peer_pool, context=service_context)
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:

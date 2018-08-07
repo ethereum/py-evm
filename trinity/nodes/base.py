@@ -17,6 +17,7 @@ from p2p.peer import (
 )
 from p2p.service import (
     BaseService,
+    ServiceContext,
 )
 from trinity.chains import (
     ChainProxy,
@@ -54,8 +55,11 @@ class Node(BaseService):
     """
     chain_class: Type[BaseChain] = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
-        super().__init__()
+    def __init__(self,
+                 plugin_manager: PluginManager,
+                 chain_config: ChainConfig,
+                 context: ServiceContext) -> None:
+        super().__init__(context=context)
         self._plugin_manager = plugin_manager
         self._db_manager = create_db_manager(chain_config.database_ipc_path)
         self._db_manager.connect()  # type: ignore
@@ -103,7 +107,7 @@ class Node(BaseService):
         # as the `PeerPool` is available. In the long term, the peer pool may become
         # a plugin itself and we can get rid of this.
         self._plugin_manager.broadcast(ResourceAvailableEvent(
-            resource=(self.get_peer_pool(), self.cancel_token),
+            resource=(self.get_peer_pool(), self.context, self.cancel_token),
             resource_type=PeerPool
         ))
 
@@ -121,7 +125,7 @@ class Node(BaseService):
     def make_ipc_server(self, loop: asyncio.AbstractEventLoop) -> BaseService:
         if self.has_ipc_server:
             rpc = RPCServer(self.get_chain(), self.get_peer_pool())
-            return IPCServer(rpc, self._jsonrpc_ipc_path, loop=loop)
+            return IPCServer(rpc, self._jsonrpc_ipc_path, context=self.context, loop=loop)
         else:
             return None
 

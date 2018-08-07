@@ -8,6 +8,7 @@ from p2p.kademlia import Address
 from p2p.peer import (
     PeerPool,
 )
+from p2p.service import ServiceContext
 
 from trinity.chains.light import (
     LightDispatchChain,
@@ -34,8 +35,11 @@ class LightNode(Node):
     network_id: int = None
     nodekey: PrivateKey = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
-        super().__init__(plugin_manager, chain_config)
+    def __init__(self,
+                 plugin_manager: PluginManager,
+                 chain_config: ChainConfig,
+                 context: ServiceContext) -> None:
+        super().__init__(plugin_manager, chain_config, context=context)
 
         self.network_id = chain_config.network_id
         self.nodekey = chain_config.nodekey
@@ -49,7 +53,11 @@ class LightNode(Node):
         )
         self._peer_pool = self._create_peer_pool(chain_config)
         self._discovery = DiscoveryService(
-            self._discovery_proto, self._peer_pool, self.cancel_token)
+            proto=self._discovery_proto,
+            peer_pool=self._peer_pool,
+            context=self.context,
+            token=self.cancel_token,
+        )
         self._peer_chain = LightPeerChain(self.headerdb, self._peer_pool, self.cancel_token)
         self.add_service(self._discovery)
         self.add_service(self._peer_pool)
@@ -88,7 +96,9 @@ class LightNode(Node):
                 self.db_manager.get_chain(),  # type: ignore
                 self._headerdb,
                 self._peer_pool,
-                self.cancel_token)
+                context=self.context,
+                token=self.cancel_token,
+            )
         return self._p2p_server
 
     def get_peer_pool(self) -> PeerPool:
@@ -101,5 +111,6 @@ class LightNode(Node):
             chain_config.network_id,
             chain_config.nodekey,
             self.chain_class.vm_configuration,
+            context=self.context,
             token=self.cancel_token,
         )

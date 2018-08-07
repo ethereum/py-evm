@@ -35,6 +35,7 @@ from p2p.exceptions import NoEligiblePeers
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import PeerPool
 from p2p.protocol import Command
+from p2p.service import ServiceContext
 
 from trinity.db.chain import AsyncChainDB
 from trinity.protocol.eth import commands
@@ -67,8 +68,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                  chain: AsyncChain,
                  db: AsyncChainDB,
                  peer_pool: PeerPool,
+                 context: ServiceContext,
                  token: CancelToken = None) -> None:
-        super().__init__(chain, db, peer_pool, token)
+        super().__init__(chain, db, peer_pool, context=context, token=token)
         # Those are used by our msg handlers and _download_block_parts() in order to track missing
         # bodies/receipts for a given chain segment.
         self._downloaded_receipts: asyncio.Queue[Tuple[ETHPeer, List[DownloadedBlockPart]]] = asyncio.Queue()  # noqa: E501

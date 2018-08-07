@@ -32,7 +32,7 @@ class ETHPeer(BasePeer):
     @property
     def requests(self) -> ETHRequestResponseHandler:
         if self._requests is None:
-            self._requests = ETHRequestResponseHandler(self)
+            self._requests = ETHRequestResponseHandler(self, self.context, self.cancel_token)
             self.run_child_service(self._requests)
         return self._requests
 

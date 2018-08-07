@@ -18,7 +18,10 @@ from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     Command,
 )
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 
 from trinity.exceptions import AlreadyWaiting
 
@@ -47,9 +50,9 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
     _peer: TPeer
 
-    def __init__(self, peer: TPeer, token: CancelToken) -> None:
+    def __init__(self, peer: TPeer, context: ServiceContext, token: CancelToken) -> None:
+        super().__init__(context, token)
         self._peer = peer
-        super().__init__(token)
 
     #
     # Service API

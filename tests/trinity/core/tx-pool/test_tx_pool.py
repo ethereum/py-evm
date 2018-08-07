@@ -6,6 +6,8 @@ from eth.utils.address import (
     force_bytes_to_address
 )
 
+from p2p.service import ServiceContext
+
 from trinity.plugins.builtin.tx_pool.pool import (
     TxPool,
 )
@@ -40,6 +42,8 @@ class TxsRecorder():
 
 
 async def bootstrap_test_setup(monkeypatch, request, event_loop, chain, tx_validator):
+    service_context = ServiceContext()
+
     peer1, peer2 = await get_directly_linked_peers(
         request,
         event_loop,
@@ -54,7 +58,8 @@ async def bootstrap_test_setup(monkeypatch, request, event_loop, chain, tx_valid
 
     pool = TxPool(
         MockPeerPoolWithConnectedPeers([peer1, peer2]),
-        tx_validator
+        tx_validator,
+        context=service_context,
     )
 
     asyncio.ensure_future(pool.run())
@@ -167,7 +172,11 @@ async def test_tx_sending(request, event_loop, chain_with_block_validation, tx_v
     peer2_subscriber = SamplePeerSubscriber()
     peer2.add_subscriber(peer2_subscriber)
 
-    pool = TxPool(MockPeerPoolWithConnectedPeers([peer1, peer2]), tx_validator)
+    pool = TxPool(
+        MockPeerPoolWithConnectedPeers([peer1, peer2]),
+        tx_validator,
+        context=ServiceContext(),
+    )
 
     asyncio.ensure_future(pool.run())
 

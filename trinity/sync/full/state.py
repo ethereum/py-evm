@@ -38,7 +38,10 @@ from eth.constants import (
 from eth.rlp.accounts import Account
 from eth.utils.logging import TraceLogger
 
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
@@ -46,7 +49,6 @@ from p2p.protocol import (
 
 from p2p.exceptions import NoEligiblePeers, NoIdlePeers
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
-from p2p.executor import get_asyncio_executor
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -78,8 +80,9 @@ class StateDownloader(BaseService, PeerSubscriber):
                  account_db: AsyncBaseDB,
                  root_hash: bytes,
                  peer_pool: PeerPool,
+                 context: ServiceContext,
                  token: CancelToken = None) -> None:
-        super().__init__(token)
+        super().__init__(context, token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self.root_hash = root_hash
@@ -87,7 +90,6 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
-        self._executor = get_asyncio_executor()
 
     # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
     # messages related to new blocks/transactions, but we must handle requests for data from
@@ -182,8 +184,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
             _, requested_node_keys = self.request_tracker.active_requests.pop(peer)
 
-            loop = asyncio.get_event_loop()
-            node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
+            node_keys = await self._run_in_executor(list, map(keccak, msg))
 
             missing = set(requested_node_keys).difference(node_keys)
             self._peer_missing_nodes[peer].update(missing)
@@ -399,13 +400,20 @@ def _test() -> None:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
         nodes = DEFAULT_PREFERRED_NODES[network_id]
+    service_context = ServiceContext()
     peer_pool = PeerPool(
-        ETHPeer, chaindb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
+        ETHPeer,
+        chaindb,
+        network_id,
+        ecies.generate_privkey(),
+        ROPSTEN_VM_CONFIGURATION,
+        context=service_context,
+    )
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     head = chaindb.get_canonical_head()
-    downloader = StateDownloader(chaindb, db, head.state_root, peer_pool)
+    downloader = StateDownloader(chaindb, db, head.state_root, peer_pool, context=service_context)
     loop = asyncio.get_event_loop()
 
     sigint_received = asyncio.Event()

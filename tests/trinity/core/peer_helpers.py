@@ -19,6 +19,7 @@ from p2p import kademlia
 from p2p.auth import decode_authentication
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.protocol import Command
+from p2p.service import ServiceContext
 
 
 from trinity.protocol.les.peer import LESPeer
@@ -62,6 +63,7 @@ async def get_directly_linked_peers_without_handshake(
 
     Neither the P2P handshake nor the sub-protocol handshake will be performed here.
     """
+    service_context = ServiceContext()
     cancel_token = CancelToken("get_directly_linked_peers_without_handshake")
     if peer1_headerdb is None:
         peer1_headerdb = get_fresh_mainnet_headerdb()
@@ -94,7 +96,7 @@ async def get_directly_linked_peers_without_handshake(
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
             writer=peer1_writer, aes_secret=aes_secret, mac_secret=mac_secret,
             egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer1_headerdb,
-            network_id=1)
+            network_id=1, context=service_context)
 
         handshake_finished.set()
 
@@ -122,7 +124,7 @@ async def get_directly_linked_peers_without_handshake(
         remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
         writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
         egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer2_headerdb,
-        network_id=1)
+        network_id=1, context=service_context)
 
     return peer1, peer2
 
@@ -166,7 +168,7 @@ class MockPeerPoolWithConnectedPeers(PeerPool):
 
     def __init__(self, peers: List[BasePeer]) -> None:
         super().__init__(peer_class=None, headerdb=None, network_id=None, privkey=None,
-                         vm_configuration=tuple())
+                         vm_configuration=tuple(), context=ServiceContext())
         for peer in peers:
             self.connected_nodes[peer.remote] = peer
 

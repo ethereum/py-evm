@@ -8,6 +8,7 @@ from eth_utils import decode_hex
 from eth import constants
 from eth.vm.forks.frontier import FrontierVM, _PoWMiningVM
 
+from p2p.service import ServiceContext
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
@@ -39,16 +40,24 @@ def small_header_batches(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
+    service_context = ServiceContext()
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
         ETHPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
         ETHPeer, FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-    client = FastChainSyncer(FrontierTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    client = FastChainSyncer(
+        FrontierTestChain(chaindb_fresh.db),
+        chaindb_fresh,
+        client_peer_pool,
+        context=service_context
+    )
     server = RegularChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        MockPeerPoolWithConnectedPeers([server_peer]),
+        context=service_context,
+    )
     asyncio.ensure_future(server.run())
 
     def finalizer():
@@ -65,7 +74,12 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
     # Now download the state for the chain's head.
     state_downloader = StateDownloader(
-        chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
+        chaindb_fresh,
+        chaindb_fresh.db,
+        head.state_root,
+        client_peer_pool,
+        context=service_context,
+    )
     await asyncio.wait_for(state_downloader.run(), timeout=2)
 
     assert head.state_root in chaindb_fresh.db
@@ -73,6 +87,7 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 @pytest.mark.asyncio
 async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
+    service_context = ServiceContext()
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
         ETHPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
@@ -80,11 +95,15 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client = RegularChainSyncer(
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,
-        MockPeerPoolWithConnectedPeers([client_peer]))
+        MockPeerPoolWithConnectedPeers([client_peer]),
+        context=service_context,
+    )
     server = RegularChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        MockPeerPoolWithConnectedPeers([server_peer]),
+        context=service_context,
+    )
     asyncio.ensure_future(server.run())
 
     def finalizer():
@@ -106,6 +125,7 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 @pytest.mark.asyncio
 async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
+    service_context = ServiceContext()
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
         LESPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
@@ -113,11 +133,15 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client = LightChainSyncer(
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,
-        MockPeerPoolWithConnectedPeers([client_peer]))
+        MockPeerPoolWithConnectedPeers([client_peer]),
+        context=service_context,
+    )
     server = LightChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        MockPeerPoolWithConnectedPeers([server_peer]),
+        context=service_context,
+    )
     asyncio.ensure_future(server.run())
 
     def finalizer():

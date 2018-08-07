@@ -50,7 +50,10 @@ from p2p.peer import (
     DEFAULT_PREFERRED_NODES,
     PeerPool,
 )
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -78,13 +81,14 @@ class Server(BaseService):
                  headerdb: BaseAsyncHeaderDB,
                  base_db: AsyncBaseDB,
                  network_id: int,
+                 context: ServiceContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  peer_class: Type[BasePeer] = ETHPeer,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
                  token: CancelToken = None,
                  ) -> None:
-        super().__init__(token)
+        super().__init__(context, token)
         self.headerdb = headerdb
         self.chaindb = chaindb
         self.chain = chain
@@ -98,7 +102,7 @@ class Server(BaseService):
         self.preferred_nodes = preferred_nodes
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
-        self.upnp_service = UPnPService(port, token=self.cancel_token)
+        self.upnp_service = UPnPService(port, context=self.context, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
 
         if not bootstrap_nodes:
@@ -132,16 +136,23 @@ class Server(BaseService):
     def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
         # This method exists only so that ShardSyncer can provide a different implementation.
         return FullNodeSyncer(
-            self.chain, self.chaindb, self.base_db, peer_pool, self.cancel_token)
+            chain=self.chain,
+            chaindb=self.chaindb,
+            base_db=self.base_db,
+            peer_pool=peer_pool,
+            context=self.context,
+            token=self.cancel_token
+        )
 
     def _make_peer_pool(self) -> PeerPool:
         # This method exists only so that ShardSyncer can provide a different implementation.
         return PeerPool(
-            self.peer_class,
-            self.headerdb,
-            self.network_id,
-            self.privkey,
-            self.chain.get_vm_configuration(),
+            peer_class=self.peer_class,
+            headerdb=self.headerdb,
+            network_id=self.network_id,
+            privkey=self.privkey,
+            vm_configuration=self.chain.get_vm_configuration(),
+            context=self.context,
             max_peers=self.max_peers,
             token=self.cancel_token,
         )
@@ -255,6 +266,7 @@ class Server(BaseService):
             ingress_mac=ingress_mac,
             headerdb=self.headerdb,
             network_id=self.network_id,
+            context=self.context,
             inbound=True,
         )
 
@@ -342,6 +354,8 @@ def _test() -> None:
         bootstrap_nodes = ROPSTEN_BOOTNODES
     bootstrap_nodes = [Node.from_uri(enode) for enode in bootstrap_nodes]
 
+    service_context = ServiceContext()
+
     server = Server(
         privkey,
         port,
@@ -352,6 +366,7 @@ def _test() -> None:
         RopstenChain.network_id,
         peer_class=ETHPeer,
         bootstrap_nodes=bootstrap_nodes,
+        context=service_context,
     )
 
     sigint_received = asyncio.Event()

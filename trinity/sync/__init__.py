@@ -21,6 +21,7 @@ def _test() -> None:
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
+    from p2p.service import ServiceContext
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
@@ -75,7 +76,18 @@ def _test() -> None:
         privkey = load_nodekey(Path(args.nodekey))
     else:
         privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(peer_class, headerdb, network_id, privkey, vm_config)
+
+    service_context = ServiceContext()
+
+    peer_pool = PeerPool(
+        peer_class,
+        headerdb,
+        network_id,
+        privkey,
+        vm_config,
+        context=service_context,
+    )
+
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
@@ -86,11 +98,12 @@ def _test() -> None:
     chain = chain_class(base_db)
     syncer: BaseHeaderChainSyncer = None
     if args.fast:
-        syncer = FastChainSyncer(chain, chaindb, peer_pool)
+        syncer = FastChainSyncer(chain, chaindb, peer_pool, context=service_context)
     elif args.light:
-        syncer = LightChainSyncer(chain, headerdb, peer_pool)
+        syncer = LightChainSyncer(chain, headerdb, peer_pool, context=service_context)
     else:
-        syncer = RegularChainSyncer(chain, chaindb, peer_pool)
+        syncer = RegularChainSyncer(chain, chaindb, peer_pool, context=service_context)
+
     syncer.logger.setLevel(log_level)
     syncer.min_peers_to_sync = 1
 
@@ -118,12 +131,13 @@ def _test() -> None:
 
 def _run_test(profile: bool) -> None:
     import cProfile, pstats  # noqa
+    from p2p.service import BaseService
 
     async def mock_run_in_executor(self, callback, *args):  # type: ignore
         return callback(*args)
 
     if profile:
-        BaseHeaderChainSyncer._run_in_executor = mock_run_in_executor  # type: ignore
+        BaseService._run_in_executor = mock_run_in_executor  # type: ignore
         cProfile.run('_test()', 'stats')
         pstats.Stats('stats').strip_dirs().sort_stats('cumulative').print_stats(50)
     else:
