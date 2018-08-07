@@ -2,11 +2,74 @@ import os
 import random
 import time
 
+import pytest
+
+from hypothesis import (
+    given,
+    settings,
+    strategies,
+    example,
+)
+from hypothesis.types import RandomWithSeed
+
+from trie import HexaryTrie
+
 from eth.db.backends.memory import MemoryDB
 from eth.db.account import AccountDB
 from eth.utils.logging import TraceLogger
 
+from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
+
+from tests.trinity.core.integration_test_helpers import FakeAsyncMemoryDB
+
+
+# produces a branch node with an extention node who's encoding is less than 32
+# bytes in length so it is inlined.
+EXAMPLE_37968 = 37968
+
+# produces an top level extension node who's encoding is less than 32 bytes in
+# length so it gets inlined.
+EXAMPLE_809368 = 809368
+
+
+def make_random_trie(random):
+    trie = HexaryTrie({})
+    contents = {}
+    for _ in range(1000):
+        key_length = random.randint(2, 32)
+        key = bytes([random.randint(0, 255) for _ in range(key_length)])
+        value_length = random.randint(2, 64)
+        value = bytes([random.randint(0, 255) for _ in range(value_length)])
+        trie[key] = value
+        contents[key] = value
+    return trie, contents
+
+
+@given(random=strategies.randoms())
+@settings(max_examples=10)
+@example(random=RandomWithSeed(EXAMPLE_37968))
+@example(random=RandomWithSeed(EXAMPLE_809368))
+def test_trie_sync(random, event_loop):
+
+    # Apparently hypothesis tests cannot be used in conjunction with pytest-asyncio yet, so do it
+    # like this for now. https://github.com/HypothesisWorks/hypothesis/pull/1343
+    async def _test_trie_sync():
+        src_trie, contents = make_random_trie(random)
+        dest_db = FakeAsyncMemoryDB()
+        scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, TraceLogger("test"))
+        requests = scheduler.next_batch()
+        while len(requests) > 0:
+            results = []
+            for request in requests:
+                results.append([request.node_key, src_trie.db[request.node_key]])
+            await scheduler.process(results)
+            requests = scheduler.next_batch(10)
+        dest_trie = HexaryTrie(dest_db, src_trie.root_hash)
+        for key, value in contents.items():
+            assert dest_trie[key] == value
+
+    event_loop.run_until_complete(_test_trie_sync())
 
 
 def make_random_state(n):
@@ -29,16 +92,17 @@ def make_random_state(n):
     return raw_db, account_db.state_root, contents
 
 
-def test_state_sync():
+@pytest.mark.asyncio
+async def test_state_sync():
     raw_db, state_root, contents = make_random_state(1000)
-    dest_db = MemoryDB()
-    scheduler = StateSync(state_root, dest_db)
+    dest_db = FakeAsyncMemoryDB()
+    scheduler = StateSync(state_root, dest_db, TraceLogger('test'))
     requests = scheduler.next_batch(10)
     while requests:
         results = []
         for request in requests:
             results.append([request.node_key, raw_db[request.node_key]])
-        scheduler.process(results)
+        await scheduler.process(results)
         requests = scheduler.next_batch(10)
 
     result_account_db = AccountDB(dest_db, state_root)

@@ -19,12 +19,6 @@ import cytoolz
 
 import rlp
 
-from trie.sync import (
-    HexaryTrieSync,
-    SyncRequest,
-)
-from trie.exceptions import SyncRequestAlreadyProcessed
-
 from eth_utils import (
     encode_hex,
 )
@@ -41,7 +35,6 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from eth.db.backends.base import BaseDB
 from eth.rlp.accounts import Account
 from eth.utils.logging import TraceLogger
 
@@ -55,7 +48,9 @@ from p2p.exceptions import NoEligiblePeers, NoIdlePeers
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.executor import get_asyncio_executor
 
+from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
+from trinity.exceptions import SyncRequestAlreadyProcessed
 from trinity.p2p.handlers import PeerRequestHandler
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.requests import HeaderRequest
@@ -63,6 +58,11 @@ from trinity.protocol.eth import commands
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
+from trinity.sync.full.hexary_trie import (
+    HexaryTrieSync,
+    SyncRequest,
+)
+
 from trinity.utils.timer import Timer
 
 
@@ -75,7 +75,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     def __init__(self,
                  chaindb: AsyncChainDB,
-                 account_db: BaseDB,
+                 account_db: AsyncBaseDB,
                  root_hash: bytes,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
@@ -83,7 +83,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self.root_hash = root_hash
-        self.scheduler = StateSync(root_hash, account_db)
+        self.scheduler = StateSync(root_hash, account_db, self.logger)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
@@ -153,19 +153,14 @@ class StateDownloader(BaseService, PeerSubscriber):
             asyncio.ensure_future(self._handle_msg(peer, cmd, msg))
 
     async def _process_nodes(self, nodes: Iterable[Tuple[Hash32, bytes]]) -> None:
-        for idx, (node_key, node) in enumerate(nodes):
+        for node_key, node in nodes:
             self._total_processed_nodes += 1
             try:
-                self.scheduler.process([(node_key, node)])
+                await self.scheduler.process([(node_key, node)])
             except SyncRequestAlreadyProcessed:
                 # This means we received a node more than once, which can happen when we
                 # retry after a timeout.
                 pass
-            if idx % 10 == 0:
-                # XXX: This is a quick workaround for
-                # https://github.com/ethereum/py-evm/issues/1074, which will be replaced soon
-                # with a proper fix.
-                await self.sleep(0)
 
     async def _handle_msg(
             self, peer: ETHPeer, cmd: Command, msg: _DecodedMsgType) -> None:
@@ -365,32 +360,31 @@ class TrieNodeRequestTracker:
 
 class StateSync(HexaryTrieSync):
 
-    def __init__(self, root_hash: Hash32, db: BaseDB) -> None:
-        super().__init__(root_hash, db, logging.getLogger("p2p.state.StateSync"))
-
-    def leaf_callback(self, data: bytes, parent: SyncRequest) -> None:
+    async def leaf_callback(self, data: bytes, parent: SyncRequest) -> None:
         # TODO: Need to figure out why geth uses 64 as the depth here, and then document it.
         depth = 64
         account = rlp.decode(data, sedes=Account)
         if account.storage_root != BLANK_ROOT_HASH:
-            self.schedule(account.storage_root, parent, depth, leaf_callback=None)
+            await self.schedule(account.storage_root, parent, depth, leaf_callback=None)
         if account.code_hash != EMPTY_SHA3:
-            self.schedule(account.code_hash, parent, depth, leaf_callback=None, is_raw=True)
+            await self.schedule(account.code_hash, parent, depth, leaf_callback=None, is_raw=True)
 
 
 def _test() -> None:
     import argparse
     import signal
     from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
-    from eth.db.backends.level import LevelDB
     from p2p import ecies
+    from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from tests.p2p.integration_test_helpers import FakeAsyncChainDB, connect_to_peers_loop
+    from tests.p2p.integration_test_helpers import (
+        FakeAsyncChainDB, FakeAsyncLevelDB, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-debug', action="store_true")
+    parser.add_argument('-enode', type=str, required=False, help="The enode we should connect to")
     args = parser.parse_args()
 
     log_level = logging.INFO
@@ -398,10 +392,13 @@ def _test() -> None:
         log_level = logging.DEBUG
     logging.getLogger('p2p.state.StateDownloader').setLevel(log_level)
 
-    db = LevelDB(args.db)
+    db = FakeAsyncLevelDB(args.db)
     chaindb = FakeAsyncChainDB(db)
     network_id = RopstenChain.network_id
-    nodes = DEFAULT_PREFERRED_NODES[network_id]
+    if args.enode:
+        nodes = tuple([Node.from_uri(args.enode)])
+    else:
+        nodes = DEFAULT_PREFERRED_NODES[network_id]
     peer_pool = PeerPool(
         ETHPeer, chaindb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
     asyncio.ensure_future(peer_pool.run())

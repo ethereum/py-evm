@@ -4,6 +4,10 @@ from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
 
+from eth.db.backends.base import BaseDB
+
+from trinity.utils.mp import async_method
+
 
 class DBProxy(BaseProxy):
     _exposed_ = (
@@ -15,7 +19,11 @@ class DBProxy(BaseProxy):
         'exists',
         'get',
         'set',
+        'coro_set',
+        'coro_exists',
     )
+    coro_set = async_method('set')
+    coro_exists = async_method('exists')
 
     def get(self, key: bytes) -> bytes:
         return self._callmethod('get', (key,))
@@ -40,3 +48,12 @@ class DBProxy(BaseProxy):
 
     def __contains__(self, key: bytes) -> bool:
         return self._callmethod('__contains__', (key,))
+
+
+class AsyncBaseDB(BaseDB):
+
+    async def coro_set(self, key: bytes, value: bytes) -> None:
+        raise NotImplementedError()
+
+    async def coro_exists(self, key: bytes) -> bool:
+        raise NotImplementedError()

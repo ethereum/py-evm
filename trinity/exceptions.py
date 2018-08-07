@@ -30,3 +30,10 @@ class AlreadyWaiting(BaseTrinityError):
     peer when there is already an active wait for that message type.
     """
     pass
+
+
+class SyncRequestAlreadyProcessed(BaseTrinityError):
+    """
+    Raised when a trie SyncRequest has already been processed.
+    """
+    pass
