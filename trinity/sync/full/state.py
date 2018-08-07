@@ -232,7 +232,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             try:
                 peer = await self.get_peer_for_request(not_yet_requested)
             except NoIdlePeers:
-                self.logger.debug(
+                self.logger.trace(
                     "No idle peers have any of the %d trie nodes we want, sleeping a bit",
                     len(not_yet_requested),
                 )
