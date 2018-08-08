@@ -30,7 +30,7 @@ from p2p.service import (
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.commands import (
-    Transactions
+    Transactions,
 )
 
 

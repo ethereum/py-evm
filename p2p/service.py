@@ -15,6 +15,7 @@ from eth.utils.logging import TraceLogger
 from cancel_token import CancelToken, OperationCancelled
 
 from p2p.cancellable import CancellableMixin
+from p2p.utils import get_asyncio_executor
 
 
 class ServiceEvents:
@@ -34,25 +35,43 @@ class BaseService(ABC, CancellableMixin):
     _wait_until_finished_timeout = 5
 
     # the custom event loop to run in, or None if the default loop should be used
-    loop: asyncio.AbstractEventLoop = None
+    _loop: asyncio.AbstractEventLoop = None
 
-    def __init__(self, token: CancelToken=None, loop: asyncio.AbstractEventLoop = None) -> None:
-        if self.logger is None:
-            self.logger = cast(
-                TraceLogger, logging.getLogger(self.__module__ + '.' + self.__class__.__name__))
+    _logger: TraceLogger = None
 
-        self._run_lock = asyncio.Lock()
+    def __init__(self,
+                 token: CancelToken=None,
+                 loop: asyncio.AbstractEventLoop = None) -> None:
         self.events = ServiceEvents()
+        self._run_lock = asyncio.Lock()
         self._child_services = []
         self._finished_callbacks = []
 
-        self.loop = loop
+        self._loop = loop
+
         base_token = CancelToken(type(self).__name__, loop=loop)
 
         if token is None:
             self.cancel_token = base_token
         else:
             self.cancel_token = base_token.chain(token)
+
+        self._executor = get_asyncio_executor()
+
+    @property
+    def logger(self) -> TraceLogger:
+        if self._logger is None:
+            self._logger = cast(
+                TraceLogger,
+                logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+            )
+        return self._logger
+
+    def get_event_loop(self) -> asyncio.AbstractEventLoop:
+        if self._loop is None:
+            return asyncio.get_event_loop()
+        else:
+            return self._loop
 
     async def run(
             self,
@@ -102,6 +121,10 @@ class BaseService(ABC, CancellableMixin):
         self._child_services.append(child_service)
         return asyncio.ensure_future(child_service.run())
 
+    async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
+        loop = self.get_event_loop()
+        return await self.wait(loop.run_in_executor(self._executor, callback, *args))
+
     async def cleanup(self) -> None:
         """
         Run the ``_cleanup()`` coroutine and set the ``cleaned_up`` event after the service as
@@ -146,7 +169,7 @@ class BaseService(ABC, CancellableMixin):
 
         :param poll_period: how many seconds to wait in between each check for service cleanup
         """
-        asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.loop)
+        asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.get_event_loop())
         await asyncio.wait_for(
             self.events.cleaned_up.wait(),
             timeout=self._wait_until_finished_timeout,

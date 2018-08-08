@@ -135,9 +135,18 @@ async def handshake(remote: Node,
     except (ConnectionRefusedError, OSError) as e:
         raise UnreachablePeer() from e
     peer = peer_class(
-        remote=remote, privkey=privkey, reader=reader, writer=writer,
-        aes_secret=aes_secret, mac_secret=mac_secret, egress_mac=egress_mac,
-        ingress_mac=ingress_mac, headerdb=headerdb, network_id=network_id)
+        remote=remote,
+        privkey=privkey,
+        reader=reader,
+        writer=writer,
+        aes_secret=aes_secret,
+        mac_secret=mac_secret,
+        egress_mac=egress_mac,
+        ingress_mac=ingress_mac,
+        headerdb=headerdb,
+        network_id=network_id,
+        token=token,
+    )
     await peer.do_p2p_handshake()
     await peer.do_sub_proto_handshake()
     return peer
@@ -167,8 +176,9 @@ class BasePeer(BaseService):
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  inbound: bool = False,
+                 token: CancelToken = None,
                  ) -> None:
-        super().__init__()
+        super().__init__(token)
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
@@ -1027,8 +1037,15 @@ def _test() -> None:
     network_id = RopstenChain.network_id
     loop = asyncio.get_event_loop()
     nodes = [Node.from_uri(args.enode)]
+
     peer_pool = PeerPool(
-        peer_class, headerdb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
+        peer_class,
+        headerdb,
+        network_id,
+        ecies.generate_privkey(),
+        ROPSTEN_VM_CONFIGURATION,
+    )
+
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
 
     async def request_stuff() -> None:

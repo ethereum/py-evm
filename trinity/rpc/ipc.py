@@ -20,7 +20,7 @@ from p2p.service import (
 )
 
 from trinity.rpc.main import (
-    RPCServer
+    RPCServer,
 )
 
 MAXIMUM_REQUEST_BYTES = 10000
@@ -144,7 +144,7 @@ class IPCServer(BaseService):
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
             str(self.ipc_path),
-            loop=self.loop,
+            loop=self.get_event_loop(),
             limit=MAXIMUM_REQUEST_BYTES,
         )
         self.logger.info('IPC started at: %s', self.ipc_path.resolve())
