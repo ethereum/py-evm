@@ -275,7 +275,7 @@ def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
 
 
 async def exit_on_signal(service_to_exit: BaseService) -> None:
-    loop = asyncio.get_event_loop()
+    loop = service_to_exit.get_event_loop()
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
         # TODO also support Windows
@@ -318,9 +318,9 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
 
 
 def run_service_until_quit(service: BaseService) -> None:
-    loop = asyncio.get_event_loop()
-    asyncio.ensure_future(exit_on_signal(service))
-    asyncio.ensure_future(service.run())
+    loop = service.get_event_loop()
+    asyncio.ensure_future(exit_on_signal(service), loop=loop)
+    asyncio.ensure_future(service.run(), loop=loop)
     loop.run_forever()
     loop.close()
 

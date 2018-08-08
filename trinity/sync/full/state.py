@@ -46,7 +46,6 @@ from p2p.protocol import (
 
 from p2p.exceptions import NoEligiblePeers, NoIdlePeers
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
-from p2p.executor import get_asyncio_executor
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -87,7 +86,6 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
-        self._executor = get_asyncio_executor()
 
     # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
     # messages related to new blocks/transactions, but we must handle requests for data from
@@ -182,8 +180,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
             _, requested_node_keys = self.request_tracker.active_requests.pop(peer)
 
-            loop = asyncio.get_event_loop()
-            node_keys = await loop.run_in_executor(self._executor, list, map(keccak, msg))
+            node_keys = await self._run_in_executor(list, map(keccak, msg))
 
             missing = set(requested_node_keys).difference(node_keys)
             self._peer_missing_nodes[peer].update(missing)

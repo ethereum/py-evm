@@ -3,7 +3,6 @@ from abc import abstractmethod
 from typing import (
     Any,
     AsyncGenerator,
-    Callable,
     Tuple,
     Union,
     cast,
@@ -25,7 +24,6 @@ from p2p.exceptions import NoEligiblePeers, ValidationError
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
-from p2p.executor import get_asyncio_executor
 
 from trinity.db.header import AsyncHeaderDB
 from trinity.p2p.handlers import PeerRequestHandler
@@ -65,7 +63,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
-        self._executor = get_asyncio_executor()
 
     @property
     def msg_queue_maxsize(self) -> int:
@@ -105,8 +102,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         asyncio.ensure_future(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
             while True:
-                peer_or_finished = await self.wait_first(
-                    self._sync_requests.get(), self._sync_complete.wait())  # type: Any
+                peer_or_finished: Any = await self.wait_first(
+                    self._sync_requests.get(),
+                    self._sync_complete.wait()
+                )
 
                 # In the case of a fast sync, we return once the sync is completed, and our caller
                 # must then run the StateDownloader.
@@ -121,10 +120,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
         # run in the background notice the cancel token has been triggered and return.
         await asyncio.sleep(0)
-
-    async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
-        loop = asyncio.get_event_loop()
-        return await self.wait(loop.run_in_executor(self._executor, callback, *args))
 
     async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:
