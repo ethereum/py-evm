@@ -47,7 +47,10 @@ def make_random_trie(random):
 
 
 @given(random=strategies.randoms())
-@settings(max_examples=10)
+@settings(
+    max_examples=10,
+    deadline=4000,
+)
 @example(random=RandomWithSeed(EXAMPLE_37968))
 @example(random=RandomWithSeed(EXAMPLE_809368))
 def test_trie_sync(random, event_loop):
