@@ -35,6 +35,7 @@ from .commands import (
 )
 from . import constants
 from .requests import (
+    BlockBodiesRequest,
     HeaderRequest,
     NodeDataRequest,
     ReceiptsRequest,
@@ -112,8 +113,13 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(headers)
         self.send(header, body)
 
-    def send_get_block_bodies(self, block_hashes: List[Hash32]) -> None:
+    def send_get_block_bodies(self,
+                              request: Union[BlockBodiesRequest, Tuple[Hash32, ...]]) -> None:
         cmd = GetBlockBodies(self.cmd_id_offset)
+        if isinstance(request, BlockBodiesRequest):
+            block_hashes = cast(BlockBodiesRequest, request).block_hashes
+        else:
+            block_hashes = cast(Tuple[Hash32, ...], request)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
 

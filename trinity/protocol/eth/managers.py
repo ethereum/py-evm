@@ -5,7 +5,12 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from cytoolz import concat
+from cytoolz import (
+    concat,
+    compose,
+)
+
+import rlp
 
 from eth_typing import (
     BlockIdentifier,
@@ -26,13 +31,16 @@ from p2p.protocol import (
 from trinity.protocol.common.managers import (
     BaseRequestManager,
 )
+from trinity.rlp.block_body import BlockBody
 
 from .commands import (
+    BlockBodies,
     BlockHeaders,
     NodeData,
     Receipts,
 )
 from .requests import (
+    BlockBodiesRequest,
     HeaderRequest,
     NodeDataRequest,
     ReceiptsRequest,
@@ -171,3 +179,56 @@ class GetReceiptsRequestManager(BaseGetReceiptsRequestManager):
 
     def _get_item_count(self, msg: ReceiptsByBlock) -> int:
         return len(concat(msg))
+
+
+# (BlockBody, (txn_root, txn_trie_data), uncles_hash)
+BlockBodyBundles = Tuple[Tuple[
+    BlockBody,
+    Tuple[Hash32, Dict[Hash32, bytes]],
+    Hash32,
+], ...]
+BaseGetBlockBodiesManager = BaseRequestManager[
+    'ETHPeer',
+    BlockBodiesRequest,
+    Tuple[BlockBody, ...],
+    BlockBodyBundles,
+]
+
+
+class GetBlockBodiesRequestManager(BaseGetBlockBodiesManager):
+    msg_queue_maxsize = 100
+
+    _response_msg_type: Type[Command] = BlockBodies
+
+    async def __call__(self,  # type: ignore
+                       headers: Tuple[Hash32, ...],
+                       timeout: int = None) -> BlockBodyBundles:
+        request = BlockBodiesRequest(headers)
+        return await self._request_and_wait(request, timeout)
+
+    def _send_sub_proto_request(self, request: BlockBodiesRequest) -> None:
+        self._peer.sub_proto.send_get_block_bodies(request)
+
+    async def _normalize_response(self,
+                                  response: Tuple[BlockBody, ...]) -> BlockBodyBundles:
+        if not isinstance(response, tuple):
+            raise MalformedMessage(
+                "`GetBlockBodies` response must be a tuple. Got: {0}".format(type(response))
+            )
+        elif not all(isinstance(item, BlockBody) for item in response):
+            raise MalformedMessage("`GetBlockBodies` response must be a tuple of block bodies")
+
+        uncles_hashes = await self._run_in_executor(
+            tuple,
+            map(compose(keccak, rlp.encode), tuple(body.uncles for body in response)),
+        )
+        transaction_roots_and_trie_data = await self._run_in_executor(
+            tuple,
+            map(make_trie_root_and_nodes, tuple(body.transactions for body in response)),
+        )
+
+        body_bundles = tuple(zip(response, transaction_roots_and_trie_data, uncles_hashes))
+        return body_bundles
+
+    def _get_item_count(self, msg: Tuple[BlockBody, ...]) -> int:
+        return len(msg)

@@ -1063,7 +1063,7 @@ def _test() -> None:
             peer_pool.logger.info("Waiting for peer connection...")
             await asyncio.sleep(0.2)
         peer = peer_pool.highest_td_peer
-        headers = await peer.requests.get_block_headers(2440319, max_headers=100)  # type: ignore
+        headers = await peer.requests.get_block_headers(2440319, max_headers=100)
         hashes = [header.hash for header in headers]
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)

@@ -13,6 +13,7 @@ from eth.rlp.receipts import Receipt
 
 from p2p.exceptions import ValidationError
 
+from trinity.rlp.block_body import BlockBody
 from trinity.protocol.common.requests import (
     BaseRequest,
     BaseHeaderRequest,
@@ -96,4 +97,40 @@ class ReceiptsRequest(BaseRequest[ReceiptsTuples, ReceiptsBundles]):
         if unexpected_roots:
             raise ValidationError(
                 "Got {0} unexpected receipt roots".format(len(unexpected_roots))
+            )
+
+
+# (BlockBody, (txn_root, txn_trie_data), uncles_hash)
+BlockBodyBundles = Tuple[Tuple[
+    BlockBody,
+    Tuple[Hash32, Dict[Hash32, bytes]],
+    Hash32,
+], ...]
+BodiesTuple = Tuple[BlockBody, ...]
+
+
+class BlockBodiesRequest(BaseRequest[BodiesTuple, BlockBodyBundles]):
+    def __init__(self, headers: Tuple[BlockHeader, ...]) -> None:
+        self.headers = headers
+
+    @property
+    def block_hashes(self) -> Tuple[Hash32, ...]:
+        return tuple(header.hash for header in self.headers)
+
+    def validate_response(self,
+                          msg: BodiesTuple,
+                          response: BlockBodyBundles) -> None:
+        expected_keys = {
+            (header.transaction_root, header.uncles_hash)
+            for header in self.headers
+        }
+        actual_keys = {
+            (txn_root, uncles_hash)
+            for body, (txn_root, trie_data), uncles_hash
+            in response
+        }
+        unexpected_keys = actual_keys.difference(expected_keys)
+        if unexpected_keys:
+            raise ValidationError(
+                "Got {0} unexpected block bodies".format(len(unexpected_keys))
             )
