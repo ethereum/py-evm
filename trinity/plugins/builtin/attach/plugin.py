@@ -1,3 +1,6 @@
+from abc import (
+    abstractmethod
+)
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -19,10 +22,6 @@ from trinity.plugins.builtin.attach.console import (
 
 class AttachPlugin(BasePlugin):
 
-    def __init__(self, use_ipython: bool = True) -> None:
-        super().__init__()
-        self.use_ipython = use_ipython
-
     @property
     def name(self) -> str:
         return "Attach"
@@ -36,9 +35,25 @@ class AttachPlugin(BasePlugin):
 
         attach_parser.set_defaults(func=self.run_console)
 
+    @abstractmethod
+    def console(self, chain_config: ChainConfig) -> None:
+        raise NotImplementedError('Must be implemented in subclasses')
+
     def run_console(self, args: Namespace, chain_config: ChainConfig) -> None:
         try:
-            console(chain_config.jsonrpc_ipc_path, use_ipython=self.use_ipython)
+            self.console(chain_config)
         except FileNotFoundError as err:
             self.logger.error(str(err))
             sys.exit(1)
+
+
+class IPythonShellAttachPlugin(AttachPlugin):
+
+    def console(self, chain_config: ChainConfig) -> None:
+        console(chain_config.jsonrpc_ipc_path, use_ipython=True)
+
+
+class VanillaShellAttachPlugin(AttachPlugin):
+
+    def console(self, chain_config: ChainConfig) -> None:
+        console(chain_config.jsonrpc_ipc_path, use_ipython=False)
