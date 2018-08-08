@@ -62,6 +62,7 @@ from p2p.peer import (
 from p2p.protocol import Command
 from p2p.service import (
     BaseService,
+    ServiceContext,
     service_timeout,
 )
 
@@ -79,9 +80,9 @@ class LightPeerChain(PeerSubscriber, BaseService):
             self,
             headerdb: BaseAsyncHeaderDB,
             peer_pool: PeerPool,
+            context: ServiceContext,
             token: CancelToken = None) -> None:
-        PeerSubscriber.__init__(self)
-        BaseService.__init__(self, token)
+        super().__init__(context, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}

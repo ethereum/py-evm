@@ -25,12 +25,13 @@ from p2p.peer import (
 )
 from p2p.protocol import Command
 from p2p.service import (
-    BaseService
+    BaseService,
+    ServiceContext,
 )
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.commands import (
-    Transactions
+    Transactions,
 )
 
 
@@ -49,8 +50,9 @@ class TxPool(BaseService, PeerSubscriber):
     def __init__(self,
                  peer_pool: PeerPool,
                  tx_validation_fn: Callable[[BaseTransactionFields], bool],
+                 context: ServiceContext,
                  token: CancelToken = None) -> None:
-        super().__init__(token)
+        super().__init__(context, token)
         self._peer_pool = peer_pool
 
         if tx_validation_fn is None:

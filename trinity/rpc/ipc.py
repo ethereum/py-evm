@@ -17,10 +17,11 @@ from cancel_token import (
 
 from p2p.service import (
     BaseService,
+    ServiceContext,
 )
 
 from trinity.rpc.main import (
-    RPCServer
+    RPCServer,
 )
 
 MAXIMUM_REQUEST_BYTES = 10000
@@ -134,9 +135,10 @@ class IPCServer(BaseService):
             self,
             rpc: RPCServer,
             ipc_path: pathlib.Path,
+            context: ServiceContext,
             token: CancelToken = None,
             loop: asyncio.AbstractEventLoop = None) -> None:
-        super().__init__(token=token, loop=loop)
+        super().__init__(context, token=token, loop=loop)
         self.rpc = rpc
         self.ipc_path = ipc_path
 
@@ -144,7 +146,7 @@ class IPCServer(BaseService):
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
             str(self.ipc_path),
-            loop=self.loop,
+            loop=self.get_event_loop(),
             limit=MAXIMUM_REQUEST_BYTES,
         )
         self.logger.info('IPC started at: %s', self.ipc_path.resolve())

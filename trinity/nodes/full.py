@@ -5,6 +5,9 @@ from eth.chains.base import (
 from p2p.peer import (
     PeerPool,
 )
+from p2p.service import (
+    ServiceContext,
+)
 
 from trinity.nodes.base import Node
 from trinity.config import ChainConfig
@@ -16,8 +19,11 @@ class FullNode(Node):
     _chain: BaseChain = None
     _p2p_server: Server = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
-        super().__init__(plugin_manager, chain_config)
+    def __init__(self,
+                 plugin_manager: PluginManager,
+                 chain_config: ChainConfig,
+                 context: ServiceContext) -> None:
+        super().__init__(plugin_manager, chain_config, context=context)
         self._bootstrap_nodes = chain_config.bootstrap_nodes
         self._preferred_nodes = chain_config.preferred_nodes
         self._network_id = chain_config.network_id
@@ -43,6 +49,7 @@ class FullNode(Node):
                 self.headerdb,
                 manager.get_db(),  # type: ignore
                 self._network_id,
+                context=self.context,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,

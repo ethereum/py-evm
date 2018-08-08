@@ -19,7 +19,10 @@ from eth.chains.ropsten import (
 from eth.db.backends.base import BaseDB
 from eth.db.backends.level import LevelDB
 
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 
 from trinity.exceptions import (
     AmbigiousFileSystem,
@@ -154,16 +157,19 @@ def main() -> None:
         'profile': args.profile,
     }
 
+    service_context = ServiceContext()
+
     # Plugins can provide a subcommand with a `func` which does then control
     # the entire process from here.
     if hasattr(args, 'func'):
         args.func(args, chain_config)
     else:
-        trinity_boot(args, chain_config, extra_kwargs, listener, logger)
+        trinity_boot(args, chain_config, service_context, extra_kwargs, listener, logger)
 
 
 def trinity_boot(args: Namespace,
                  chain_config: ChainConfig,
+                 service_context: ServiceContext,
                  extra_kwargs: Dict[str, Any],
                  listener: logging.handlers.QueueListener,
                  logger: logging.Logger) -> None:
@@ -183,7 +189,7 @@ def trinity_boot(args: Namespace,
 
     networking_process = ctx.Process(
         target=launch_node,
-        args=(args, chain_config, ),
+        args=(args, chain_config, service_context),
         kwargs=extra_kwargs,
     )
 
@@ -275,7 +281,7 @@ def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
 
 
 async def exit_on_signal(service_to_exit: BaseService) -> None:
-    loop = asyncio.get_event_loop()
+    loop = service_to_exit.get_event_loop()
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
         # TODO also support Windows
@@ -290,7 +296,9 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
+def launch_node(args: Namespace,
+                chain_config: ChainConfig,
+                service_context: ServiceContext) -> None:
     with chain_config.process_id_file('networking'):
         NodeClass = chain_config.node_class
         # Temporary hack: We setup a second instance of the PluginManager.
@@ -305,7 +313,7 @@ def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
             chain_config
         ))
 
-        node = NodeClass(plugin_manager, chain_config)
+        node = NodeClass(plugin_manager, chain_config, context=service_context)
 
         run_service_until_quit(node)
 
@@ -318,9 +326,9 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
 
 
 def run_service_until_quit(service: BaseService) -> None:
-    loop = asyncio.get_event_loop()
-    asyncio.ensure_future(exit_on_signal(service))
-    asyncio.ensure_future(service.run())
+    loop = service.get_event_loop()
+    asyncio.ensure_future(exit_on_signal(service), loop=loop)
+    asyncio.ensure_future(service.run(), loop=loop)
     loop.run_forever()
     loop.close()
 

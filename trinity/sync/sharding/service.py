@@ -44,7 +44,10 @@ from eth.exceptions import (
 )
 
 from p2p.protocol import Command
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 from p2p.peer import (
     PeerPool,
     PeerSubscriber,
@@ -69,8 +72,12 @@ COLLATION_PERIOD = 1
 
 class ShardSyncer(BaseService, PeerSubscriber):
 
-    def __init__(self, shard: Shard, peer_pool: PeerPool, token: CancelToken=None) -> None:
-        super().__init__(token)
+    def __init__(self,
+                 shard: Shard,
+                 peer_pool: PeerPool,
+                 context: ServiceContext,
+                 token: CancelToken=None) -> None:
+        super().__init__(context, token)
 
         self.shard = shard
         self.peer_pool = peer_pool

@@ -43,7 +43,7 @@ class LESPeer(BasePeer):
     @property
     def requests(self) -> LESRequestResponseHandler:
         if self._requests is None:
-            self._requests = LESRequestResponseHandler(self)
+            self._requests = LESRequestResponseHandler(self, self.context, self.cancel_token)
             self.run_child_service(self._requests)
         return self._requests
 

@@ -18,6 +18,7 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.auth import decode_authentication
+from p2p.service import ServiceContext
 
 from auth_constants import (
     eip8_values,
@@ -100,6 +101,8 @@ async def test_handshake():
     assert initiator_ingress_mac.digest() == test_values['initial_ingress_MAC']
     assert initiator_egress_mac.digest() == test_values['initial_egress_MAC']
 
+    service_context = ServiceContext()
+
     # Finally, check that two Peers configured with the secrets generated above understand each
     # other.
     responder_reader = asyncio.StreamReader()
@@ -112,12 +115,13 @@ async def test_handshake():
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
         egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
-        network_id=1)
+        network_id=1, context=service_context)
     initiator_peer.base_protocol.send_handshake()
     responder_peer = DumbPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
+        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1,
+        context=service_context)
     responder_peer.base_protocol.send_handshake()
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
@@ -192,6 +196,8 @@ async def test_handshake_eip8():
     assert initiator_aes_secret == eip8_values['expected_aes_secret']
     assert initiator_mac_secret == eip8_values['expected_mac_secret']
 
+    service_context = ServiceContext()
+
     # Finally, check that two Peers configured with the secrets generated above understand each
     # other.
     responder_reader = asyncio.StreamReader()
@@ -204,12 +210,13 @@ async def test_handshake_eip8():
         remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
         writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
         egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
-        network_id=1)
+        network_id=1, context=service_context)
     initiator_peer.base_protocol.send_handshake()
     responder_peer = DumbPeer(
         remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
         writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
+        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1,
+        context=service_context)
     responder_peer.base_protocol.send_handshake()
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's

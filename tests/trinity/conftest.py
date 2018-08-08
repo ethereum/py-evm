@@ -6,6 +6,7 @@ import tempfile
 import uuid
 
 from p2p.peer import PeerPool
+from p2p.service import ServiceContext
 
 from trinity.rpc.main import (
     RPCServer,
@@ -61,7 +62,7 @@ def jsonrpc_ipc_pipe_path():
 def p2p_server(monkeypatch, jsonrpc_ipc_pipe_path):
     monkeypatch.setattr(
         Server, '_make_peer_pool', lambda s: PeerPool(None, None, None, None, None, None))
-    return Server(None, None, None, None, None, None, None)
+    return Server(None, None, None, None, None, None, None, None)
 
 
 @pytest.mark.asyncio
@@ -79,7 +80,7 @@ async def ipc_server(
     '''
 
     rpc = RPCServer(chain_with_block_validation, p2p_server.peer_pool)
-    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
+    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop, context=ServiceContext())
 
     asyncio.ensure_future(ipc_server.run(), loop=event_loop)
 

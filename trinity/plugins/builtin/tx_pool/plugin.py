@@ -21,6 +21,9 @@ from eth.chains.ropsten import (
 from p2p.peer import (
     PeerPool
 )
+from p2p.service import (
+    ServiceContext,
+)
 
 from trinity.extensibility import (
     BaseEvent,
@@ -43,6 +46,7 @@ class TxPlugin(BasePlugin):
 
     def __init__(self) -> None:
         self.peer_pool: PeerPool = None
+        self.service_context: ServiceContext = None
         self.cancel_token: CancelToken = None
         self.chain: BaseChain = None
         self.is_enabled: bool = False
@@ -63,7 +67,7 @@ class TxPlugin(BasePlugin):
             self.is_enabled = activation_event.args.tx_pool
         if isinstance(activation_event, ResourceAvailableEvent):
             if activation_event.resource_type is PeerPool:
-                self.peer_pool, self.cancel_token = activation_event.resource
+                self.peer_pool, self.service_context, self.cancel_token = activation_event.resource
             elif activation_event.resource_type is BaseChain:
                 self.chain = activation_event.resource
 
@@ -80,5 +84,5 @@ class TxPlugin(BasePlugin):
             # tx pool without tx validation in this case
             raise ValueError("The TxPool plugin only supports MainnetChain or RopstenChain")
 
-        tx_pool = TxPool(self.peer_pool, validator, self.cancel_token)
+        tx_pool = TxPool(self.peer_pool, validator, self.service_context, self.cancel_token)
         asyncio.ensure_future(tx_pool.run())

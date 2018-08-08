@@ -47,7 +47,10 @@ from cancel_token import CancelToken, OperationCancelled
 from p2p.exceptions import NoEligibleNodes
 from p2p import kademlia
 from p2p.peer import PeerPool
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+    ServiceContext,
+)
 
 # UDP packet constants.
 MAC_SIZE = 256 // 8  # 32
@@ -327,9 +330,12 @@ class DiscoveryService(BaseService):
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
-    def __init__(
-            self, proto: DiscoveryProtocol, peer_pool: PeerPool, token: CancelToken = None) -> None:
-        super().__init__(token)
+    def __init__(self,
+                 proto: DiscoveryProtocol,
+                 peer_pool: PeerPool,
+                 context: ServiceContext,
+                 token: CancelToken = None) -> None:
+        super().__init__(context, token)
         self.proto = proto
         self.peer_pool = peer_pool
 

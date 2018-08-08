@@ -17,7 +17,7 @@ from p2p.exceptions import (
     NoInternalAddressMatchesDevice,
 )
 import netifaces
-from p2p.service import BaseService
+from p2p.service import BaseService, ServiceContext
 import upnpclient
 
 
@@ -57,12 +57,12 @@ class UPnPService(BaseService):
 
     _nat_portmap_lifetime = 30 * 60
 
-    def __init__(self, port: int, token: CancelToken = None) -> None:
+    def __init__(self, port: int, context: ServiceContext, token: CancelToken = None) -> None:
         """
         :param port: The port that a server wants to bind to on this machine, and
         make publicly accessible.
         """
-        super().__init__(token)
+        super().__init__(context, token)
         self.port = port
         self._mapping: PortMapping = None  # when called externally, this never returns None
 
