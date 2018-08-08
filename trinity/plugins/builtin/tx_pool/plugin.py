@@ -41,7 +41,8 @@ from trinity.plugins.builtin.tx_pool.validators import (
 
 class TxPlugin(BasePlugin):
 
-    def __init__(self) -> None:
+    def __init__(self, context: PluginContext) -> None:
+        super().__init__(context)
         self.peer_pool: PeerPool = None
         self.cancel_token: CancelToken = None
         self.chain: BaseChain = None
@@ -70,7 +71,7 @@ class TxPlugin(BasePlugin):
     def should_start(self) -> bool:
         return all((self.peer_pool is not None, self.chain is not None, self.is_enabled))
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         if isinstance(self.chain, BaseMainnetChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
         elif isinstance(self.chain, BaseRopstenChain):

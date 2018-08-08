@@ -7,16 +7,17 @@ from argparse import (
     _SubParsersAction,
 )
 import logging
-from typing import (
-    Any
-)
+import sys
 
 from trinity.extensibility.events import (
     BaseEvent
 )
 
-# TODO: we spec this out later
-PluginContext = Any
+
+class PluginContext:
+
+    def shutdown_trinity(self, exit_code: int = 0) -> None:
+        sys.exit(exit_code)
 
 
 class BasePlugin(ABC):
@@ -34,6 +35,13 @@ class BasePlugin(ABC):
     @property
     def logger(self) -> logging.Logger:
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
+
+    @property
+    def context(self) -> PluginContext:
+        return self._context
+
+    def __init__(self, context: PluginContext) -> None:
+        self._context = context
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
@@ -56,7 +64,7 @@ class BasePlugin(ABC):
 
         return False
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         """
         The ``start`` method is called only once when the plugin is started
         """
@@ -89,5 +97,5 @@ class DebugPlugin(BasePlugin):
         self.logger.info("Debug plugin: should_start called")
         return True
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         self.logger.info("Debug plugin: start called")

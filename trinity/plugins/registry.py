@@ -23,6 +23,6 @@ def is_ipython_available() -> bool:
 # config file which plugin is enabled or not
 
 ENABLED_PLUGINS = [
-    IPythonShellAttachPlugin() if is_ipython_available() else VanillaShellAttachPlugin,
-    TxPlugin(),
+    IPythonShellAttachPlugin if is_ipython_available() else VanillaShellAttachPlugin,
+    TxPlugin,
 ]

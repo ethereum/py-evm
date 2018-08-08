@@ -329,5 +329,6 @@ def setup_plugins() -> PluginManager:
     plugin_manager = PluginManager()
     # TODO: Implement auto-discovery of plugins based on some convention/configuration scheme
     plugin_manager.register(ENABLED_PLUGINS)
+    plugin_manager.initialize_plugins()
 
     return plugin_manager
