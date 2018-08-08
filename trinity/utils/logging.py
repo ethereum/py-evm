@@ -15,12 +15,19 @@ import os
 import sys
 from typing import (
     Any,
+    cast,
+    Dict,
     Tuple,
     TYPE_CHECKING,
-    Callable
+    Callable,
+    Union,
 )
 
 from cytoolz import dissoc
+
+from eth.tools.logging import (
+    TraceLogger,
+)
 
 from trinity.config import (
     ChainConfig,
@@ -33,7 +40,14 @@ LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
 
 
-def setup_trinity_stderr_logging(level: int) -> Tuple[Logger, Formatter, StreamHandler]:
+def setup_log_levels(log_levels: Dict[Union[None, str], int]) -> None:
+    for name, level in log_levels.items():
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+
+
+def setup_trinity_stderr_logging(level: int=logging.INFO,
+                                 ) -> Tuple[Logger, Formatter, StreamHandler]:
     logger = logging.getLogger('trinity')
     logger.setLevel(logging.DEBUG)
 
@@ -60,7 +74,7 @@ def setup_trinity_file_and_queue_logging(
         formatter: Formatter,
         handler_stream: StreamHandler,
         chain_config: ChainConfig,
-        level: int) -> Tuple[Logger, 'Queue[str]', QueueListener]:
+        level: int=logging.DEBUG) -> Tuple[Logger, 'Queue[str]', QueueListener]:
     from .mp import ctx
 
     log_queue = ctx.Queue()
@@ -71,7 +85,7 @@ def setup_trinity_file_and_queue_logging(
         backupCount=LOG_BACKUP_COUNT
     )
 
-    handler_file.setLevel(logging.DEBUG)
+    handler_file.setLevel(level)
     handler_file.setFormatter(formatter)
 
     logger.addHandler(handler_file)
@@ -88,11 +102,12 @@ def setup_trinity_file_and_queue_logging(
 
 def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     queue_handler = QueueHandler(log_queue)
-    queue_handler.setLevel(logging.DEBUG)
+    queue_handler.setLevel(level)
 
-    logger = logging.getLogger()
+    logger = cast(TraceLogger, logging.getLogger())
     logger.addHandler(queue_handler)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(level)
+
     # These loggers generates too much DEBUG noise, drowning out the important things, so force
     # the INFO level for it until https://github.com/ethereum/py-evm/issues/806 is fixed.
     logging.getLogger('p2p.kademlia').setLevel(logging.INFO)
@@ -110,8 +125,8 @@ def with_queued_logging(fn: Callable[..., Any]) -> Callable[..., Any]:
                 fn.__name__,
             ))
         else:
-            log_level = kwargs.get('log_level', logging.INFO)
-            setup_queue_logging(log_queue, level=log_level)
+            level = kwargs.get('log_level', logging.INFO)
+            setup_queue_logging(log_queue, level)
 
             inner_kwargs = dissoc(kwargs, 'log_queue', 'log_level')
 

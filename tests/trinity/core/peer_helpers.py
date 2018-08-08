@@ -10,7 +10,7 @@ from cancel_token import CancelToken
 
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 from eth.db.backends.memory import MemoryDB
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from p2p import auth
 from p2p import constants

@@ -1014,9 +1014,9 @@ def _test() -> None:
     """
     import argparse
     import signal
-    from eth.utils.logging import TRACE_LEVEL_NUM
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.memory import MemoryDB
+    from eth.tools.logging import TRACE_LEVEL_NUM
     from trinity.protocol.eth.peer import ETHPeer
     from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
     from trinity.protocol.les.peer import LESPeer

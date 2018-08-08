@@ -10,7 +10,7 @@ from eth.exceptions import (
 from eth.validation import (
     validate_uint256,
 )
-from eth.utils.logging import (
+from eth.tools.logging import (
     TraceLogger
 )
 

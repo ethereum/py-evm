@@ -42,8 +42,7 @@ from eth.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-
-from eth.utils.logging import (
+from eth.tools.logging import (
     TraceLogger
 )
 from eth.utils.numeric import (

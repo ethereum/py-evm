@@ -16,7 +16,7 @@ from eth_typing import (
 )
 
 from eth.db.backends.base import BaseDB
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from trie.constants import (
     NODE_TYPE_BLANK,

@@ -16,7 +16,7 @@ from trie import HexaryTrie
 
 from eth.db.backends.memory import MemoryDB
 from eth.db.account import AccountDB
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker

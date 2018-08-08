@@ -26,6 +26,9 @@ from eth.exceptions import (
     Halt,
     VMError,
 )
+from eth.tools.logging import (
+    TraceLogger
+)
 from eth.utils.datatypes import (
     Configurable,
 )
@@ -34,9 +37,6 @@ from eth.utils.hexadecimal import (
 )
 from eth.utils.numeric import (
     ceil32,
-)
-from eth.utils.logging import (
-    TraceLogger
 )
 from eth.validation import (
     validate_canonical_address,

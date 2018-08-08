@@ -52,6 +52,7 @@ from trinity.utils.ipc import (
     kill_process_id_gracefully,
 )
 from trinity.utils.logging import (
+    setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
     with_queued_logging,
@@ -99,15 +100,17 @@ def main() -> None:
     plugin_manager.amend_argparser_config(parser, subparser)
     args = parser.parse_args()
 
-    log_level = getattr(logging, args.log_level.upper())
-
     if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
             "Unsupported network id: {0}.  Only the ropsten and mainnet "
             "networks are supported.".format(args.network_id)
         )
 
-    logger, formatter, handler_stream = setup_trinity_stderr_logging(log_level)
+    logger, formatter, handler_stream = setup_trinity_stderr_logging(
+        args.stderr_log_level
+    )
+    if args.log_levels:
+        setup_log_levels(args.log_levels)
 
     try:
         chain_config = ChainConfig.from_parser_args(args)
@@ -138,7 +141,7 @@ def main() -> None:
         formatter,
         handler_stream,
         chain_config,
-        log_level
+        args.file_log_level,
     )
 
     # if cleanup command, try to shutdown dangling processes and exit
@@ -148,9 +151,16 @@ def main() -> None:
 
     display_launch_logs(chain_config)
 
+    # compute the minimum configured log level across all configured loggers.
+    min_configured_log_level = min(
+        args.stderr_log_level,
+        args.file_log_level,
+        *(args.log_levels or {}).values()
+    )
+
     extra_kwargs = {
         'log_queue': log_queue,
-        'log_level': log_level,
+        'log_level': min_configured_log_level,
         'profile': args.profile,
     }
 
