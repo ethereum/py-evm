@@ -1,16 +1,18 @@
 from typing import (
-    Any,
-    cast,
     Tuple,
 )
 
-from eth_typing import BlockIdentifier
-
-from eth.rlp.headers import BlockHeader
+from eth_typing import (
+    BlockIdentifier,
+    Hash32,
+)
 
 from p2p.exceptions import ValidationError
 
-from trinity.protocol.common.requests import BaseHeaderRequest
+from trinity.protocol.common.requests import (
+    BaseRequest,
+    BaseHeaderRequest,
+)
 
 from . import constants
 
@@ -30,13 +32,27 @@ class HeaderRequest(BaseHeaderRequest):
         self.skip = skip
         self.reverse = reverse
 
-    def validate_response(self, response: Any) -> None:
-        """
-        Core `Request` API used for validation.
-        """
-        if not isinstance(response, tuple):
-            raise ValidationError("Response to `HeaderRequest` must be a tuple")
-        elif not all(isinstance(item, BlockHeader) for item in response):
-            raise ValidationError("Response must be a tuple of `BlockHeader` objects")
 
-        return self.validate_headers(cast(Tuple[BlockHeader, ...], response))
+class NodeDataRequest(BaseRequest):
+    node_keys_cache: Tuple[Hash32, ...]
+
+    def __init__(self, node_hashes: Tuple[Hash32, ...]) -> None:
+        self.node_hashes = node_hashes
+
+    def validate_response(self, response: Tuple[Tuple[Hash32, bytes], ...]) -> None:
+        if not response:
+            # an empty response is always valid
+            return
+
+        node_keys = tuple(node_key for node_key, node in response)
+        node_key_set = set(node_keys)
+
+        if len(node_keys) != len(node_key_set):
+            raise ValidationError("Response may not contain duplicate nodes")
+
+        unexpected_keys = node_key_set.difference(self.node_hashes)
+
+        if unexpected_keys:
+            raise ValidationError(
+                "Response contains {0} unexpected nodes".format(len(unexpected_keys))
+            )

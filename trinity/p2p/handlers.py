@@ -77,7 +77,7 @@ class PeerRequestHandler(CancellableMixin):
                 continue
             nodes.append(node)
         self.logger.trace("Replying to %s with %d trie nodes", peer, len(nodes))
-        peer.sub_proto.send_node_data(nodes)
+        peer.sub_proto.send_node_data(tuple(nodes))
 
     async def lookup_headers(self,
                              request: BaseHeaderRequest) -> Tuple[BlockHeader, ...]:

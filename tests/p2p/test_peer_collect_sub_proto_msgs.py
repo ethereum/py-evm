@@ -5,7 +5,10 @@ import pytest
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.commands import GetBlockHeaders, GetNodeData
-from trinity.protocol.eth.requests import HeaderRequest
+from trinity.protocol.eth.requests import (
+    HeaderRequest,
+    NodeDataRequest,
+)
 
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
@@ -27,11 +30,11 @@ async def test_peer_subscriber_filters_messages(request, event_loop):
 
     with peer.collect_sub_proto_messages() as collector:
         assert collector in peer._subscribers
-        remote.sub_proto.send_get_node_data([b'\x00' * 32])
+        remote.sub_proto.send_get_node_data(NodeDataRequest([b'\x00' * 32]))
         remote.sub_proto.send_get_block_headers(HeaderRequest(0, 1, 0, False))
-        remote.sub_proto.send_get_node_data([b'\x00' * 32])
+        remote.sub_proto.send_get_node_data(NodeDataRequest([b'\x00' * 32]))
         remote.sub_proto.send_get_block_headers(HeaderRequest(1, 1, 0, False))
-        remote.sub_proto.send_get_node_data([b'\x00' * 32])
+        remote.sub_proto.send_get_node_data(NodeDataRequest([b'\x00' * 32]))
         await asyncio.sleep(0.01)
 
     assert collector not in peer._subscribers

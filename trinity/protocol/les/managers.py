@@ -10,6 +10,9 @@ from eth_typing import BlockIdentifier
 
 from eth.rlp.headers import BlockHeader
 
+from p2p.exceptions import (
+    MalformedMessage,
+)
 from p2p.protocol import (
     Command,
 )
@@ -65,5 +68,16 @@ class GetBlockHeadersRequestManager(BaseRequestManager):
     def _send_sub_proto_request(self, request: HeaderRequest) -> None:
         self._peer.sub_proto.send_get_block_headers(request)
 
-    def _normalize_response(self, response: Dict[str, Any]) -> Tuple[BlockHeader, ...]:
-        return response['headers']
+    async def _normalize_response(self,
+                                  msg: Dict[str, Any]
+                                  ) -> Tuple[BlockHeader, ...]:
+        if not isinstance(msg, dict):
+            raise MalformedMessage("msg must be a dictionary")
+        elif 'headers' not in msg:
+            raise MalformedMessage("No 'headers' key found in response")
+        elif not all(isinstance(item, BlockHeader) for item in msg['headers']):
+            raise MalformedMessage(
+                "`headers` key must be a tuple of `BlockHeader` instances"
+            )
+
+        return msg['headers']

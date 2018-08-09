@@ -130,7 +130,7 @@ async def test_server_authenticates_incoming_connections(monkeypatch, server, ev
 async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_dumb_peer):
     started_peers = []
 
-    def mock_start_peer(peer):
+    async def mock_start_peer(peer):
         nonlocal started_peers
         started_peers.append(peer)
 

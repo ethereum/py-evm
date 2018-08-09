@@ -3,17 +3,19 @@ import asyncio
 from typing import (
     cast,
     Generic,
-    TypeVar,
     Set,
     Tuple,
     Type,
+    TypeVar,
 )
 
 from cancel_token import CancelToken
 
 from p2p.exceptions import (
+    MalformedMessage,
     ValidationError,
 )
+from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     Command,
@@ -65,14 +67,14 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
                 elif isinstance(cmd, self._response_msg_type):
-                    self._handle_msg(cast(TResponse, msg))
+                    await self._handle_msg(cast(TResponse, msg))
                 else:
                     self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
 
     async def _cleanup(self) -> None:
         pass
 
-    def _handle_msg(self, msg: TResponse) -> None:
+    async def _handle_msg(self, msg: TResponse) -> None:
         if self.pending_request is None:
             self.logger.debug(
                 "Got unexpected %s message from %", self.response_msg_name, self._peer
@@ -82,20 +84,32 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
         request, future = self.pending_request
 
         try:
-            request.validate_response(msg)
+            response = await self._normalize_response(msg)
+        except MalformedMessage as err:
+            self.logger.warn(
+                "Malformed response for pending %s request from peer %s, disconnecting: %s",
+                self.response_msg_name,
+                self._peer,
+                err,
+            )
+            await self._peer.disconnect(DisconnectReason.bad_protocol)
+            return
+
+        try:
+            request.validate_response(response)
         except ValidationError as err:
             self.logger.debug(
-                "Response validation failure for pending %s request from peer %s: %s",
+                "Response validation failed for pending %s request from peer %s: %s",
                 self.response_msg_name,
                 self._peer,
                 err,
             )
         else:
-            future.set_result(self._normalize_response(msg))
+            future.set_result(response)
             self.pending_request = None
 
     @abstractmethod
-    def _normalize_response(self, msg: TResponse) -> TReturn:
+    async def _normalize_response(self, msg: TResponse) -> TReturn:
         pass
 
     @abstractmethod

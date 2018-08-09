@@ -23,8 +23,6 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth_hash.auto import keccak
-
 from eth_typing import (
     Hash32
 )
@@ -91,7 +89,6 @@ class StateDownloader(BaseService, PeerSubscriber):
     # messages related to new blocks/transactions, but we must handle requests for data from
     # other peers or else they will disconnect from us.
     subscription_msg_types: Set[Type[Command]] = {
-        commands.NodeData,
         commands.GetBlockHeaders,
         commands.GetBlockBodies,
         commands.GetReceipts,
@@ -167,27 +164,6 @@ class StateDownloader(BaseService, PeerSubscriber):
 
         if isinstance(cmd, ignored_commands):
             pass
-        elif isinstance(cmd, commands.NodeData):
-            msg = cast(List[bytes], msg)
-            if peer not in self.request_tracker.active_requests:
-                # This is probably a batch that we retried after a timeout and ended up receiving
-                # more than once, so ignore but log as an INFO just in case.
-                self.logger.info(
-                    "Got %d NodeData entries from %s that were not expected, ignoring them",
-                    len(msg), peer)
-                return
-
-            self.logger.debug("Got %d NodeData entries from %s", len(msg), peer)
-            _, requested_node_keys = self.request_tracker.active_requests.pop(peer)
-
-            node_keys = await self._run_in_executor(list, map(keccak, msg))
-
-            missing = set(requested_node_keys).difference(node_keys)
-            self._peer_missing_nodes[peer].update(missing)
-            if missing:
-                await self.request_nodes(missing)
-
-            await self._process_nodes(zip(node_keys, msg))
         elif isinstance(cmd, commands.GetBlockHeaders):
             query = cast(Dict[Any, Union[bool, int]], msg)
             request = HeaderRequest(
@@ -245,11 +221,45 @@ class StateDownloader(BaseService, PeerSubscriber):
                 return
 
             candidates = list(not_yet_requested.difference(self._peer_missing_nodes[peer]))
-            batch = candidates[:eth_constants.MAX_STATE_FETCH]
+            batch = tuple(candidates[:eth_constants.MAX_STATE_FETCH])
             not_yet_requested = not_yet_requested.difference(batch)
             self.request_tracker.active_requests[peer] = (time.time(), batch)
-            self.logger.debug("Requesting %d trie nodes to %s", len(batch), peer)
-            peer.sub_proto.send_get_node_data(batch)
+            asyncio.ensure_future(self._request_and_process_nodes(peer, batch))
+
+    async def _request_and_process_nodes(self, peer: ETHPeer, batch: Tuple[Hash32, ...]) -> None:
+        self.logger.debug("Requesting %d trie nodes from %s", len(batch), peer)
+        node_data = await peer.requests.get_node_data(batch)
+        try:
+            self.request_tracker.active_requests.pop(peer)
+        except KeyError:
+            self.logger.warn("Unexpected error removing peer from active requests: %s", peer)
+
+        self.logger.debug("Got %d NodeData entries from %s", len(node_data), peer)
+
+        if node_data:
+            node_keys, _ = zip(*node_data)
+        else:
+            node_keys = tuple()
+
+        # check for missing nodes and re-schedule them
+        missing = set(batch).difference(node_keys)
+
+        # TODO: this doesn't necessarily mean the peer doesn't have them, just
+        # that they didn't respond with them this time.  We should explore
+        # alternate ways to do this since a false negative here will result in
+        # not requesting this node from this peer again.
+        if missing:
+            self._peer_missing_nodes[peer].update(missing)
+            self.logger.debug(
+                "Re-requesting %d/%d NodeData entries not returned by %s",
+                len(missing),
+                len(batch),
+                peer,
+            )
+            await self.request_nodes(missing)
+
+        if node_data:
+            await self._process_nodes(node_data)
 
     async def _periodically_retry_timedout_and_missing(self) -> None:
         while self.is_running:
@@ -331,7 +341,7 @@ class TrieNodeRequestTracker:
     def __init__(self, reply_timeout: int, logger: TraceLogger) -> None:
         self.reply_timeout = reply_timeout
         self.logger = logger
-        self.active_requests: Dict[ETHPeer, Tuple[float, List[Hash32]]] = {}
+        self.active_requests: Dict[ETHPeer, Tuple[float, Tuple[Hash32, ...]]] = {}
         self.missing: Dict[float, List[Hash32]] = {}
 
     def get_timed_out(self) -> List[Hash32]:
