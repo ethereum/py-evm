@@ -37,3 +37,10 @@ class SyncRequestAlreadyProcessed(BaseTrinityError):
     Raised when a trie SyncRequest has already been processed.
     """
     pass
+
+
+class OversizeObject(BaseTrinityError):
+    """
+    Raised when an object is bigger than comfortably fits in memory.
+    """
+    pass
