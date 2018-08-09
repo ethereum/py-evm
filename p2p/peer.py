@@ -1018,7 +1018,9 @@ def _test() -> None:
     from eth.db.backends.memory import MemoryDB
     from eth.tools.logging import TRACE_LEVEL_NUM
     from trinity.protocol.eth.peer import ETHPeer
-    from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
+    from trinity.protocol.eth.requests import (
+        HeaderRequest as ETHHeaderRequest,
+    )
     from trinity.protocol.les.peer import LESPeer
     from trinity.protocol.les.requests import HeaderRequest as LESHeaderRequest
     from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
@@ -1062,7 +1064,7 @@ def _test() -> None:
             peer = cast(ETHPeer, peer)
             peer.sub_proto.send_get_block_headers(ETHHeaderRequest(block_hash, 1, 0, False))
             peer.sub_proto.send_get_block_bodies([block_hash])
-            peer.sub_proto.send_get_receipts([block_hash])
+            peer.sub_proto.send_get_receipts((block_hash,))
         else:
             peer = cast(LESPeer, peer)
             request_id = 1

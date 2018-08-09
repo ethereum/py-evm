@@ -1,8 +1,10 @@
 import logging
 from typing import (
+    cast,
     List,
     Tuple,
     TYPE_CHECKING,
+    Union,
 )
 
 from eth_typing import Hash32
@@ -35,6 +37,7 @@ from . import constants
 from .requests import (
     HeaderRequest,
     NodeDataRequest,
+    ReceiptsRequest,
 )
 
 if TYPE_CHECKING:
@@ -65,9 +68,13 @@ class ETHProtocol(Protocol):
         self.logger.debug("Sending ETH/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
-    def send_get_node_data(self, request: NodeDataRequest) -> None:
+    def send_get_node_data(self, request: Union[NodeDataRequest, Tuple[Hash32, ...]]) -> None:
         cmd = GetNodeData(self.cmd_id_offset)
-        header, body = cmd.encode(request.node_hashes)
+        if isinstance(request, NodeDataRequest):
+            node_hashes = cast(NodeDataRequest, request).node_hashes
+        else:
+            node_hashes = cast(Tuple[Hash32, ...], request)
+        header, body = cmd.encode(node_hashes)
         self.send(header, body)
 
     def send_node_data(self, nodes: Tuple[bytes, ...]) -> None:
@@ -115,7 +122,12 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(blocks)
         self.send(header, body)
 
-    def send_get_receipts(self, block_hashes: List[Hash32]) -> None:
+    def send_get_receipts(self,
+                          request: Union[ReceiptsRequest, Tuple[Hash32, ...]]) -> None:
+        if isinstance(request, ReceiptsRequest):
+            block_hashes = cast(ReceiptsRequest, request).block_hashes
+        else:
+            block_hashes = cast(Tuple[Hash32, ...], request)
         cmd = GetReceipts(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
