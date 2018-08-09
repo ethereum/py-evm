@@ -3,6 +3,7 @@ from multiprocessing import Process
 import os
 import pathlib
 import signal
+import subprocess
 import time
 from typing import Callable
 
@@ -15,11 +16,27 @@ def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=1) -> None:
         time.sleep(0.05)
 
 
-def kill_process_gracefully(process: Process,
-                            logger: Logger,
-                            SIGINT_timeout: int=5,
-                            SIGTERM_timeout: int=3) -> None:
+def kill_process_gracefully(
+        process: Process,
+        logger: Logger,
+        SIGINT_timeout: int=5,
+        SIGTERM_timeout: int=3) -> None:
     kill_process_id_gracefully(process.pid, process.join, logger, SIGINT_timeout, SIGTERM_timeout)
+
+
+def kill_popen_gracefully(
+        popen: subprocess.Popen,
+        logger: Logger,
+        SIGINT_timeout: int=5,
+        SIGTERM_timeout: int=3) -> None:
+
+    def silent_timeout(timeout_len: int) -> None:
+        try:
+            popen.wait(timeout_len)
+        except subprocess.TimeoutExpired:
+            pass
+
+    kill_process_id_gracefully(popen.pid, silent_timeout, logger, SIGINT_timeout, SIGTERM_timeout)
 
 
 def kill_process_id_gracefully(

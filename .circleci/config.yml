@@ -39,6 +39,48 @@ common: &common
           - ./eggs
         key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
+geth_steps: &geth_steps
+  working_directory: ~/repo
+  steps:
+    - checkout
+    - restore_cache:
+        keys:
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run:
+        name: install dependencies
+        command: pip install --user tox
+    - run:
+        name: build geth if missing
+        command: |
+          mkdir -p $HOME/.ethash
+          pip install --user py-geth>=1.10.1
+          export GOROOT=/usr/local/go
+          export GETH_BINARY="$HOME/.py-geth/geth-$GETH_VERSION/bin/geth"
+          if [ ! -e "$GETH_BINARY" ]; then
+            curl -O https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
+            tar xvf go1.7.4.linux-amd64.tar.gz
+            sudo chown -R root:root ./go
+            sudo mv go /usr/local
+            sudo ln -s /usr/local/go/bin/go /usr/local/bin/go
+            sudo apt-get update;
+            sudo apt-get install -y build-essential;
+            python -m geth.install $GETH_VERSION;
+          fi
+          sudo ln -s /home/circleci/.py-geth/geth-$GETH_VERSION/bin/geth /usr/local/bin/geth
+          geth version
+    - run:
+        name: run tox
+        command: ~/.local/bin/tox -r
+    - save_cache:
+        paths:
+          - .tox
+          - ~/.cache/pip
+          - ~/.local
+          - ./eggs
+          - ~/.ethash
+          - ~/.py-geth
+        key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+
 jobs:
   lint-py35:
     <<: *common
@@ -223,6 +265,14 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-trinity-integration
+  py36-trinity-lightchain_integration:
+    <<: *common
+    <<: *geth_steps
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-lightchain_integration
+          GETH_VERSION: v1.8.1
   py36-transactions:
     <<: *common
     docker:
@@ -294,6 +344,7 @@ workflows:
       - py36-core
       - py36-trinity
       - py36-trinity-integration
+      - py36-trinity-lightchain_integration
       - py36-transactions
       - py36-p2p
       - py36-database
