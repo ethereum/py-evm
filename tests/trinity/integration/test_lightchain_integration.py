@@ -1,11 +1,16 @@
 import asyncio
 import logging
+from pathlib import Path
+import socket
+import subprocess
+import time
 
 import pytest
 import rlp
 from eth_utils import (
     decode_hex,
     encode_hex,
+    to_text,
 )
 
 from eth_hash.auto import keccak
@@ -24,6 +29,9 @@ from p2p.peer import PeerPool
 from trinity.protocol.les.peer import LESPeer
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
+from trinity.utils.ipc import (
+    kill_popen_gracefully,
+)
 
 from tests.trinity.core.integration_test_helpers import (
     FakeAsyncChainDB,
@@ -33,31 +41,124 @@ from tests.trinity.core.integration_test_helpers import (
 )
 
 
+@pytest.fixture
+async def geth_port(unused_tcp_port):
+    return unused_tcp_port
+
+
+@pytest.fixture
+def geth_datadir():
+    datadir = Path(__file__).parent / 'fixtures' / 'geth_lightchain_datadir'
+    return datadir.absolute()
+
+
+@pytest.fixture
+def enode(geth_port):
+    return (
+        "enode://"
+        "96b3d566ca9b9db43e4e5efa2e17fb95f7ddfe72981aadadda2080b4cab23c4d863acf31d715422cd87bec4faf3c8ad2e74da0065332d870b6bd07d0433bec71"  # noqa: E501
+        "@127.0.0.1:%d" % geth_port
+    )
+
+
+@pytest.fixture
+def geth_ipc_path(geth_datadir):
+    return geth_datadir / 'geth.ipc'
+
+
+@pytest.fixture
+def geth_binary():
+    path_result = subprocess.check_output('which geth', shell=True)
+    path = path_result.decode().strip('\n')
+    if not path:
+        raise EnvironmentError("geth must be installed, but was not found")
+    else:
+        return path
+
+
+@pytest.fixture
+def geth_command_arguments(geth_binary, geth_ipc_path, geth_datadir, geth_port):
+    return (
+        geth_binary,
+        '--testnet',
+        '--datadir', str(geth_datadir),
+        '--ipcpath', geth_ipc_path,
+        '--lightserv', '90',
+        '--nodiscover',
+        '--fakepow',
+        '--port', str(geth_port),
+    )
+
+
+@pytest.fixture
+def geth_process(geth_command_arguments):
+    proc = subprocess.Popen(
+        geth_command_arguments,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=1,
+    )
+    logging.warning('start geth: %r' % (geth_command_arguments,))
+    try:
+        yield proc
+    finally:
+        logging.warning('shutting down geth')
+        kill_popen_gracefully(proc, logging.getLogger('tests.trinity.integration.lightchain'))
+        output, errors = proc.communicate()
+        logging.warning(
+            "Geth Process Exited:\n"
+            "stdout:{0}\n\n"
+            "stderr:{1}\n\n".format(
+                to_text(output),
+                to_text(errors),
+            )
+        )
+
+
+def wait_for_socket(ipc_path, timeout=10):
+    start = time.time()
+    while time.time() < start + timeout:
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(str(ipc_path))
+            sock.settimeout(timeout)
+        except (FileNotFoundError, socket.error):
+            time.sleep(0.01)
+        else:
+            break
+
+
 @pytest.mark.asyncio
-async def test_lightchain_integration(request, event_loop, caplog):
+async def test_lightchain_integration(
+        request,
+        event_loop,
+        caplog,
+        geth_ipc_path,
+        enode,
+        geth_process):
     """Test LightChainSyncer/LightPeerChain against a running geth instance.
 
-    In order to run this you need to pass the following to pytest:
+    In order to run this manually, you can use `tox -e py36-lightchain_integration` or:
 
-        pytest --integration --capture=no --enode=...
+        pytest --integration --capture=no tests/trinity/integration/test_lightchain_integration.py
 
-    If you don't have any geth testnet data ready, it is very quick to generate some with:
+    The fixture for this test was generated with:
 
         geth --testnet --syncmode full
 
-    You only need the first 11 blocks for this test to succeed. Then you can restart geth with:
-
-        geth --testnet --lightserv 90 --nodiscover
+    It only needs the first 11 blocks for this test to succeed.
     """
-    # TODO: Implement a pytest fixture that runs geth as above, so that we don't need to run it
-    # manually.
     if not pytest.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
     # will almost certainly want verbose logging in a failure
     caplog.set_level(logging.DEBUG)
 
-    remote = Node.from_uri(pytest.config.getoption("--enode"))
+    # make sure geth has been launched
+    wait_for_socket(geth_ipc_path)
+
+    remote = Node.from_uri(enode)
     base_db = MemoryDB()
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
