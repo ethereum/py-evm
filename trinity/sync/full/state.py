@@ -37,7 +37,7 @@ from eth.constants import (
 )
 from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from p2p.service import BaseService
 from p2p.protocol import (

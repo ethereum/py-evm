@@ -9,6 +9,9 @@ except pkg_resources.DistributionNotFound:
         pkg_resources.get_distribution("py-evm").version,
     )
 
+# This is to ensure we call setup_trace_logging() before anything else.
+import eth as _eth_module  # noqa: F401
+
 from .main import (  # noqa: F401
     main,
 )

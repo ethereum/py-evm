@@ -1,7 +1,7 @@
 import pkg_resources
 import sys
 
-from eth.utils.logging import (
+from eth.tools.logging import (
     setup_trace_logging
 )
 

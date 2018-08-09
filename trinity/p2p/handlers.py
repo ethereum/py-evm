@@ -15,7 +15,7 @@ from eth.exceptions import (
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from p2p.cancellable import CancellableMixin
 

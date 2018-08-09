@@ -10,7 +10,7 @@ from typing import (
     cast,
 )
 
-from eth.utils.logging import TraceLogger
+from eth.tools.logging import TraceLogger
 
 from cancel_token import CancelToken, OperationCancelled
 
