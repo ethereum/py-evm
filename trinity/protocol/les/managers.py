@@ -11,7 +11,7 @@ from eth_typing import BlockIdentifier
 from eth.rlp.headers import BlockHeader
 
 from p2p.exceptions import (
-    ValidationError,
+    MalformedMessage,
 )
 from p2p.protocol import (
     Command,
@@ -72,11 +72,11 @@ class GetBlockHeadersRequestManager(BaseRequestManager):
                                   msg: Dict[str, Any]
                                   ) -> Tuple[BlockHeader, ...]:
         if not isinstance(msg, dict):
-            raise ValidationError("msg must be a dictionary")
+            raise MalformedMessage("msg must be a dictionary")
         elif 'headers' not in msg:
-            raise ValidationError("No 'headers' key found in response")
+            raise MalformedMessage("No 'headers' key found in response")
         elif not all(isinstance(item, BlockHeader) for item in msg['headers']):
-            raise ValidationError(
+            raise MalformedMessage(
                 "`headers` key must be a tuple of `BlockHeader` instances"
             )
 

@@ -32,12 +32,6 @@ class BaseHeaderRequest(BaseRequest):
     skip: int
     reverse: bool
 
-    def validate_response(self, response: Tuple[BlockHeader, ...]) -> None:
-        """
-        Core `Request` API used for validation.
-        """
-        return self.validate_headers(response)
-
     @property
     @abstractmethod
     def max_size(self) -> int:
@@ -73,13 +67,12 @@ class BaseHeaderRequest(BaseRequest):
     def is_numbered(self) -> bool:
         return isinstance(self.block_number_or_hash, int)
 
-    def validate_headers(self,
-                         headers: Tuple[BlockHeader, ...]) -> None:
-        if not headers:
+    def validate_response(self, response: Tuple[BlockHeader, ...]) -> None:
+        if not response:
             # An empty response is always valid
             return
         elif not self.is_numbered:
-            first_header = headers[0]
+            first_header = response[0]
             if first_header.hash != self.block_number_or_hash:
                 raise ValidationError(
                     "Returned headers cannot be matched to header request. "
@@ -91,7 +84,7 @@ class BaseHeaderRequest(BaseRequest):
                 )
 
         block_numbers: Tuple[BlockNumber, ...] = tuple(
-            header.block_number for header in headers
+            header.block_number for header in response
         )
         return self.validate_sequence(block_numbers)
 

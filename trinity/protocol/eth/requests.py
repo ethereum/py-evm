@@ -40,17 +40,11 @@ class NodeDataRequest(BaseRequest):
         self.node_hashes = node_hashes
 
     def validate_response(self, response: Tuple[Tuple[Hash32, bytes], ...]) -> None:
-        """
-        Core `Request` API used for validation.
-        """
-        return self.validate_node_data(response)
-
-    def validate_node_data(self, node_data: Tuple[Tuple[Hash32, bytes], ...]) -> None:
-        if not node_data:
+        if not response:
             # an empty response is always valid
             return
 
-        node_keys = tuple(node_key for node_key, node in node_data)
+        node_keys = tuple(node_key for node_key, node in response)
         node_key_set = set(node_keys)
 
         if len(node_keys) != len(node_key_set):

@@ -12,8 +12,10 @@ from typing import (
 from cancel_token import CancelToken
 
 from p2p.exceptions import (
+    MalformedMessage,
     ValidationError,
 )
+from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     Command,
@@ -83,13 +85,14 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
         try:
             response = await self._normalize_response(msg)
-        except ValidationError as err:
-            self.logger.debug(
-                "Malformed response for pending %s request from peer %s: %s",
+        except MalformedMessage as err:
+            self.logger.warn(
+                "Malformed response for pending %s request from peer %s, disconnecting: %s",
                 self.response_msg_name,
                 self._peer,
                 err,
             )
+            await self._peer.disconnect(DisconnectReason.bad_protocol)
             return
 
         try:

@@ -1,19 +1,11 @@
-from typing import (
-    Tuple,
-)
-
 from eth_typing import BlockIdentifier
 
-from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,
 )
 
 from .constants import MAX_HEADERS_FETCH
-
-
-BlockHeaders_R = Tuple[BlockHeader, ...]
 
 
 class HeaderRequest(BaseHeaderRequest):

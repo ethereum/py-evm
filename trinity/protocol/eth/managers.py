@@ -13,7 +13,7 @@ from eth_hash.auto import keccak
 
 from eth.rlp.headers import BlockHeader
 
-from p2p.exceptions import ValidationError
+from p2p.exceptions import MalformedMessage
 from p2p.protocol import (
     Command,
 )
@@ -100,9 +100,9 @@ class GetNodeDataRequestManager(BaseGetNodeDataRequestManager):
                                   msg: Tuple[bytes, ...]
                                   ) -> Tuple[Tuple[Hash32, bytes], ...]:
         if not isinstance(msg, tuple):
-            raise ValidationError("Invalid msg, must be tuple of byte strings")
+            raise MalformedMessage("Invalid msg, must be tuple of byte strings")
         elif not all(isinstance(item, bytes) for item in msg):
-            raise ValidationError("Invalid msg, must be tuple of byte strings")
+            raise MalformedMessage("Invalid msg, must be tuple of byte strings")
 
         node_keys = await self._run_in_executor(tuple, map(keccak, msg))
         return tuple(zip(node_keys, msg))

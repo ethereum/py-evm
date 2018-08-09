@@ -229,7 +229,10 @@ class StateDownloader(BaseService, PeerSubscriber):
     async def _request_and_process_nodes(self, peer: ETHPeer, batch: Tuple[Hash32, ...]) -> None:
         self.logger.debug("Requesting %d trie nodes from %s", len(batch), peer)
         node_data = await peer.requests.get_node_data(batch)
-        self.request_tracker.active_requests.pop(peer)
+        try:
+            self.request_tracker.active_requests.pop(peer)
+        except KeyError:
+            self.logger.warn("Unexpected error removing peer from active requests: %s", peer)
 
         self.logger.debug("Got %d NodeData entries from %s", len(node_data), peer)
 
@@ -241,7 +244,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         # check for missing nodes and re-schedule them
         missing = set(batch).difference(node_keys)
 
-        # TODO: this doesn't actually mean the peer doesn't have them, just
+        # TODO: this doesn't necessarily mean the peer doesn't have them, just
         # that they didn't respond with them this time.  We should explore
         # alternate ways to do this since a false negative here will result in
         # not requesting this node from this peer again.
