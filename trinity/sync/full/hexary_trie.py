@@ -4,18 +4,19 @@ from typing import (
     Callable,
     Dict,
     List,
-    Set,
     Tuple,
 )
 
 from eth_utils import (
     encode_hex,
 )
-from eth.utils.logging import TraceLogger
 
 from eth_typing import (
     Hash32
 )
+
+from eth.db.backends.base import BaseDB
+from eth.utils.logging import TraceLogger
 
 from trie.constants import (
     NODE_TYPE_BLANK,
@@ -111,8 +112,16 @@ def _get_children(node: Hash32, depth: int
 
 class HexaryTrieSync:
 
-    def __init__(self, root_hash: Hash32, db: AsyncBaseDB, logger: TraceLogger) -> None:
+    def __init__(self,
+                 root_hash: Hash32,
+                 db: AsyncBaseDB,
+                 nodes_cache: BaseDB,
+                 logger: TraceLogger) -> None:
+        # Nodes that haven't been requested yet.
         self.queue: List[SyncRequest] = []
+        # Nodes that have been requested to a peer, but not yet committed to the DB, either
+        # because we haven't processed a reply containing them or because some of their children
+        # haven't been retrieved/committed yet.
         self.requests: Dict[Hash32, SyncRequest] = {}
         self.db = db
         self.root_hash = root_hash
@@ -120,7 +129,7 @@ class HexaryTrieSync:
         # A cache of node hashes we know to exist in our DB, used to avoid querying the DB
         # unnecessarily as that's the main bottleneck when dealing with a large DB like for
         # ethereum's mainnet/ropsten.
-        self._existing_nodes: Set[Hash32] = set()
+        self.nodes_cache = nodes_cache
         self.committed_nodes = 0
         if root_hash in self.db:
             self.logger.info("Root node (%s) already exists in DB, nothing to do", root_hash)
@@ -150,11 +159,11 @@ class HexaryTrieSync:
                        leaf_callback: Callable[[bytes, 'SyncRequest'], Awaitable[None]],
                        is_raw: bool = False) -> None:
         """Schedule a request for the node with the given key."""
-        if node_key in self._existing_nodes:
+        if node_key in self.nodes_cache:
             self.logger.trace("Node %s already exists in db", encode_hex(node_key))
             return
         if await self.db.coro_exists(node_key):
-            self._existing_nodes.add(node_key)
+            self.nodes_cache[node_key] = b''
             self.logger.trace("Node %s already exists in db", encode_hex(node_key))
             return
         self._schedule(node_key, parent, depth, leaf_callback, is_raw)
@@ -224,7 +233,7 @@ class HexaryTrieSync:
         """
         self.committed_nodes += 1
         await self.db.coro_set(request.node_key, request.data)
-        self._existing_nodes.add(request.node_key)
+        self.nodes_cache[request.node_key] = b''
         self.requests.pop(request.node_key)
         for ancestor in request.parents:
             ancestor.dependencies -= 1
