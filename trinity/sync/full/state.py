@@ -274,7 +274,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
             retriable_missing = self.request_tracker.get_retriable_missing()
             if retriable_missing:
-                self.logger.debug("Re-requesting %d missing trie nodes", len(timed_out))
+                self.logger.debug("Re-requesting %d missing trie nodes", len(retriable_missing))
                 try:
                     await self.request_nodes(retriable_missing)
                 except OperationCancelled:
@@ -326,8 +326,10 @@ class StateDownloader(BaseService, PeerSubscriber):
             msg = "processed=%d  " % self._total_processed_nodes
             msg += "tnps=%d  " % (self._total_processed_nodes / self._timer.elapsed)
             msg += "committed=%d  " % self.scheduler.committed_nodes
-            msg += "requested=%d  " % requested_nodes
-            msg += "scheduled=%d  " % len(self.scheduler.requests)
+            msg += "active_requests=%d  " % requested_nodes
+            msg += "queued=%d  " % len(self.scheduler.queue)
+            msg += "pending=%d  " % len(self.scheduler.requests)
+            msg += "missing=%d  " % len(self.request_tracker.missing)
             msg += "timeouts=%d" % self._total_timeouts
             self.logger.info("State-Sync: %s", msg)
             try:
