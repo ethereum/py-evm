@@ -91,10 +91,13 @@ def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBloc
         return chain.get_block_by_header(at_header)
 
 
-def dict_to_transaction(
+def dict_to_spoof_transaction(
         chain: BaseChain,
         header: BlockHeader,
         transaction_dict: Dict[str, Any]) -> SpoofTransaction:
+    """
+    Convert dicts used in calls & gas estimates into a spoof transaction
+    """
     txn_dict = normalize_transaction_dict(transaction_dict)
     sender = txn_dict.get('from', ZERO_ADDRESS)
 
@@ -140,7 +143,7 @@ class Eth(RPCModule):
     def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = get_header(self._chain, at_block)
         validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
-        transaction = dict_to_transaction(self._chain, header, txn_dict)
+        transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
         gas = self._chain.estimate_gas(transaction, header)
         return hex(gas)
 
