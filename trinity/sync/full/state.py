@@ -2,6 +2,8 @@ import asyncio
 import collections
 import itertools
 import logging
+from pathlib import Path
+import tempfile
 import time
 from typing import (
     Any,
@@ -33,6 +35,7 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
 from eth.utils.logging import TraceLogger
 
@@ -80,7 +83,11 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.chaindb = chaindb
         self.peer_pool = peer_pool
         self.root_hash = root_hash
-        self.scheduler = StateSync(root_hash, account_db, self.logger)
+        # We use a LevelDB instance for the nodes cache because a full state download, if run
+        # uninterrupted will visit more than 180M nodes, making an in-memory cache unfeasible.
+        self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="pyevm-state-sync-cache")
+        self.scheduler = StateSync(
+            root_hash, account_db, LevelDB(cast(Path, self._nodes_cache_dir.name)), self.logger)
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
@@ -193,6 +200,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         peer.sub_proto.send_block_headers(headers)
 
     async def _cleanup(self) -> None:
+        self._nodes_cache_dir.cleanup()
         # We don't need to cancel() anything, but we yield control just so that the coroutines we
         # run in the background notice the cancel token has been triggered and return.
         # Also, don't use self.sleep() here as the cancel token will be triggered and that will

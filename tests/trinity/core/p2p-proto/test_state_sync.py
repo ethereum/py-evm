@@ -60,7 +60,8 @@ def test_trie_sync(random, event_loop):
     async def _test_trie_sync():
         src_trie, contents = make_random_trie(random)
         dest_db = FakeAsyncMemoryDB()
-        scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, TraceLogger("test"))
+        nodes_cache = MemoryDB()
+        scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, nodes_cache, TraceLogger("test"))
         requests = scheduler.next_batch()
         while len(requests) > 0:
             results = []
@@ -99,7 +100,8 @@ def make_random_state(n):
 async def test_state_sync():
     raw_db, state_root, contents = make_random_state(1000)
     dest_db = FakeAsyncMemoryDB()
-    scheduler = StateSync(state_root, dest_db, TraceLogger('test'))
+    nodes_cache = MemoryDB()
+    scheduler = StateSync(state_root, dest_db, nodes_cache, TraceLogger('test'))
     requests = scheduler.next_batch(10)
     while requests:
         results = []
