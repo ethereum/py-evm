@@ -394,7 +394,7 @@ def _test() -> None:
     from p2p import ecies
     from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
-    from tests.p2p.integration_test_helpers import (
+    from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncLevelDB, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
@@ -407,7 +407,6 @@ def _test() -> None:
     log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
-    logging.getLogger('p2p.state.StateDownloader').setLevel(log_level)
 
     db = FakeAsyncLevelDB(args.db)
     chaindb = FakeAsyncChainDB(db)
@@ -423,6 +422,7 @@ def _test() -> None:
 
     head = chaindb.get_canonical_head()
     downloader = StateDownloader(chaindb, db, head.state_root, peer_pool)
+    downloader.logger.setLevel(log_level)
     loop = asyncio.get_event_loop()
 
     sigint_received = asyncio.Event()

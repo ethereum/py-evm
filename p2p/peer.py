@@ -1021,7 +1021,7 @@ def _test() -> None:
     from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
     from trinity.protocol.les.peer import LESPeer
     from trinity.protocol.les.requests import HeaderRequest as LESHeaderRequest
-    from tests.p2p.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
+    from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()

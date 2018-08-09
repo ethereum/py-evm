@@ -302,7 +302,7 @@ def _test() -> None:
 
     from trinity.utils.chains import load_nodekey
 
-    from tests.p2p.integration_test_helpers import (
+    from tests.trinity.core.integration_test_helpers import (
         FakeAsyncLevelDB, FakeAsyncHeaderDB, FakeAsyncChainDB, FakeAsyncRopstenChain)
 
     parser = argparse.ArgumentParser()
@@ -318,7 +318,6 @@ def _test() -> None:
     log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
-    logging.getLogger('p2p.server.Server').setLevel(log_level)
 
     loop = asyncio.get_event_loop()
     db = FakeAsyncLevelDB(args.db)
@@ -353,6 +352,7 @@ def _test() -> None:
         peer_class=ETHPeer,
         bootstrap_nodes=bootstrap_nodes,
     )
+    server.logger.setLevel(log_level)
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:

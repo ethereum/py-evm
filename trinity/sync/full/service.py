@@ -77,7 +77,7 @@ def _test() -> None:
     from p2p.kademlia import Node
     from p2p.peer import DEFAULT_PREFERRED_NODES
     from trinity.protocol.eth.peer import ETHPeer
-    from tests.p2p.integration_test_helpers import (
+    from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
