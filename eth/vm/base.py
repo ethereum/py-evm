@@ -238,8 +238,9 @@ class BaseVM(Configurable, ABC):
     def create_transaction(self, *args, **kwargs):
         raise NotImplementedError("VM classes must implement this method")
 
+    @classmethod
     @abstractmethod
-    def create_unsigned_transaction(self, *args, **kwargs):
+    def create_unsigned_transaction(cls, *args, **kwargs):
         raise NotImplementedError("VM classes must implement this method")
 
     @classmethod
@@ -646,11 +647,12 @@ class VM(BaseVM):
         """
         return self.get_transaction_class()(*args, **kwargs)
 
-    def create_unsigned_transaction(self, *args, **kwargs):
+    @classmethod
+    def create_unsigned_transaction(cls, *args, **kwargs):
         """
         Proxy for instantiating an unsigned transaction for this VM.
         """
-        return self.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
+        return cls.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
 
     @classmethod
     def get_transaction_class(cls):

@@ -2,6 +2,7 @@ from cytoolz import (
     identity,
 )
 from typing import (
+    Any,
     Dict,
     List,
     Union,
@@ -18,6 +19,9 @@ from eth_utils import (
     is_integer,
 )
 
+from eth.constants import (
+    ZERO_ADDRESS,
+)
 from eth.chains.base import (
     BaseChain
 )
@@ -27,6 +31,9 @@ from eth.rlp.blocks import (
 from eth.rlp.headers import (
     BlockHeader
 )
+from eth.utils.spoof import (
+    SpoofTransaction,
+)
 from eth.vm.state import (
     BaseAccountDB
 )
@@ -35,11 +42,15 @@ from trinity.rpc.format import (
     block_to_dict,
     header_to_dict,
     format_params,
+    normalize_transaction_dict,
     to_int_if_hex,
     transaction_to_dict,
 )
 from trinity.rpc.modules import (
     RPCModule,
+)
+from trinity.utils.validation import (
+    validate_transaction_call_dict,
 )
 
 
@@ -80,6 +91,36 @@ def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBloc
         return chain.get_block_by_header(at_header)
 
 
+def dict_to_spoof_transaction(
+        chain: BaseChain,
+        header: BlockHeader,
+        transaction_dict: Dict[str, Any]) -> SpoofTransaction:
+    """
+    Convert dicts used in calls & gas estimates into a spoof transaction
+    """
+    txn_dict = normalize_transaction_dict(transaction_dict)
+    sender = txn_dict.get('from', ZERO_ADDRESS)
+
+    if 'nonce' in txn_dict:
+        nonce = txn_dict['nonce']
+    else:
+        vm = chain.get_vm(header)
+        nonce = vm.state.account_db.get_nonce(sender)
+
+    gas_price = txn_dict.get('gasPrice', 0)
+    gas = txn_dict.get('gas', header.gas_limit)
+
+    unsigned = chain.get_vm_class(header).create_unsigned_transaction(
+        nonce=nonce,
+        gas_price=gas_price,
+        gas=gas,
+        to=txn_dict['to'],
+        value=txn_dict['value'],
+        data=txn_dict['data'],
+    )
+    return SpoofTransaction(unsigned, from_=sender)
+
+
 class Eth(RPCModule):
     '''
     All the methods defined by JSON-RPC API, starting with "eth_"...
@@ -87,8 +128,9 @@ class Eth(RPCModule):
     Any attribute without an underscore is publicly accessible.
     '''
 
-    def accounts(self) -> None:
-        raise NotImplementedError()
+    def accounts(self) -> List[str]:
+        # trinity does not manage accounts for the user
+        return []
 
     def blockNumber(self) -> str:
         num = self._chain.get_canonical_head().block_number
@@ -96,6 +138,14 @@ class Eth(RPCModule):
 
     def coinbase(self) -> Hash32:
         raise NotImplementedError()
+
+    @format_params(identity, to_int_if_hex)
+    def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
+        header = get_header(self._chain, at_block)
+        validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
+        transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
+        gas = self._chain.estimate_gas(transaction, header)
+        return hex(gas)
 
     def gasPrice(self) -> int:
         raise NotImplementedError()

@@ -59,6 +59,9 @@ from eth.exceptions import (
     ValidationError,
     VMNotFound,
 )
+from eth.utils.spoof import (
+    SpoofTransaction,
+)
 from eth.validation import (
     validate_block_number,
     validate_uint256,
@@ -149,11 +152,12 @@ class BaseChain(Configurable, ABC):
     #
     # VM API
     #
-    def get_vm_class(self, header: BlockHeader) -> Type['BaseVM']:
+    @classmethod
+    def get_vm_class(cls, header: BlockHeader) -> Type['BaseVM']:
         """
         Returns the VM instance for the given block number.
         """
-        return self.get_vm_class_for_block_number(header.block_number)
+        return cls.get_vm_class_for_block_number(header.block_number)
 
     @abstractmethod
     def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
@@ -247,7 +251,10 @@ class BaseChain(Configurable, ABC):
     # Execution API
     #
     @abstractmethod
-    def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
+    def estimate_gas(
+            self,
+            transaction: Union[BaseTransaction, SpoofTransaction],
+            at_header: BlockHeader=None) -> int:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -543,7 +550,10 @@ class Chain(BaseChain):
     #
     # Execution API
     #
-    def estimate_gas(self, transaction: BaseTransaction, at_header: BlockHeader=None) -> int:
+    def estimate_gas(
+            self,
+            transaction: Union[BaseTransaction, SpoofTransaction],
+            at_header: BlockHeader=None) -> int:
         """
         Returns an estimation of the amount of gas the given transaction will
         use if executed on top of the block specified by the given header.

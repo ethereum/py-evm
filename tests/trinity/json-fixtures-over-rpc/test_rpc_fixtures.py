@@ -113,6 +113,7 @@ RPC_BLOCK_NORMALIZERS = {
 
 RPC_TRANSACTION_REMAPPERS = {
     'data': 'input',
+    'gasLimit': 'gas',
 }
 
 RPC_TRANSACTION_NORMALIZERS = {

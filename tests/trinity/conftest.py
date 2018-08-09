@@ -74,8 +74,7 @@ async def ipc_server(
         chain_with_block_validation):
     '''
     This fixture runs a single RPC server over IPC over
-    the course of all tests. It never needs to be actually
-    used as a fixture, so it doesn't return (yield) a value.
+    the course of all tests. It yields the IPC server only for monkeypatching purposes
     '''
 
     rpc = RPCServer(chain_with_block_validation, p2p_server.peer_pool)
@@ -84,6 +83,6 @@ async def ipc_server(
     asyncio.ensure_future(ipc_server.run(), loop=event_loop)
 
     try:
-        yield
+        yield ipc_server
     finally:
         await ipc_server.cancel()
