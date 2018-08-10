@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import (
     Any,
     Dict,
+    List,
     Type,
 )
 
@@ -39,3 +40,7 @@ class BaseRequestResponseHandler(BaseService):
 
     async def _cleanup(self) -> None:
         pass
+
+    def get_stats(self) -> List[str]:
+        manager_attrs = self._managers.keys()
+        return [getattr(self, attr).get_stats() for attr in manager_attrs]

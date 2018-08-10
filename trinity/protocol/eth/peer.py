@@ -2,6 +2,7 @@ from typing import (
     Any,
     cast,
     Dict,
+    List,
 )
 
 from eth_utils import encode_hex
@@ -28,6 +29,9 @@ class ETHPeer(BasePeer):
     sub_proto: ETHProtocol = None
 
     _requests: ETHRequestResponseHandler = None
+
+    def get_extra_stats(self) -> List[str]:
+        return self.requests.get_stats()
 
     @property
     def requests(self) -> ETHRequestResponseHandler:

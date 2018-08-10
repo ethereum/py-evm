@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import asyncio
+import time
 from typing import (
     cast,
     Generic,
@@ -33,6 +34,31 @@ TResponse = TypeVar('TResponse')
 TReturn = TypeVar('TReturn')
 
 
+class ResponseTimeTracker:
+
+    def __init__(self) -> None:
+        self.total_msgs = 0
+        self.total_items = 0
+        self.total_timeouts = 0
+        self.total_response_time = 0.0
+
+    def get_stats(self) -> str:
+        if not self.total_msgs:
+            return 'None'
+        avg_rtt = self.total_response_time / self.total_msgs
+        if not self.total_items:
+            per_item_rtt = 0.0
+        else:
+            per_item_rtt = self.total_response_time / self.total_items
+        return 'count=%d, items=%d, avg_rtt=%.2f, avg_time_per_item=%.5f, timeouts=%d' % (
+            self.total_msgs, self.total_items, avg_rtt, per_item_rtt, self.total_timeouts)
+
+    def add(self, time: float, size: int) -> None:
+        self.total_msgs += 1
+        self.total_items += size
+        self.total_response_time += time
+
+
 class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, TResponse, TReturn]):  # noqa: E501
     #
     # PeerSubscriber
@@ -51,6 +77,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
     def __init__(self, peer: TPeer, token: CancelToken) -> None:
         self._peer = peer
+        self.response_times = ResponseTimeTracker()
         super().__init__(token)
 
     #
@@ -61,8 +88,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
         with self.subscribe_peer(self._peer):
             while self.is_running:
-                peer, cmd, msg = await self.wait(
-                    self.msg_queue.get(), token=self.cancel_token)
+                peer, cmd, msg = await self.wait(self.msg_queue.get())
                 if peer != self._peer:
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
@@ -81,12 +107,15 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
             )
             return
 
+        self.response_times.add(
+            time.time() - self._pending_request_start, self._get_item_count(msg))
+
         request, future = self.pending_request
 
         try:
             response = await self._normalize_response(msg)
         except MalformedMessage as err:
-            self.logger.warn(
+            self.logger.warning(
                 "Malformed response for pending %s request from peer %s, disconnecting: %s",
                 self.response_msg_name,
                 self._peer,
@@ -110,6 +139,10 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
     @abstractmethod
     async def _normalize_response(self, msg: TResponse) -> TReturn:
+        pass
+
+    @abstractmethod
+    def _get_item_count(self, msg: TResponse) -> int:
         pass
 
     @abstractmethod
@@ -141,7 +174,23 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
     async def _wait_for_response(self,
                                  request: TRequest,
-                                 timeout: int = None) -> TReturn:
+                                 timeout: int) -> TReturn:
+        future: 'asyncio.Future[TReturn]' = asyncio.Future()
+        self._pending_request_start = time.time()
+        self.pending_request = (request, future)
+
+        try:
+            response = await self.wait(future, timeout=timeout)
+        except TimeoutError:
+            self.response_times.total_timeouts += 1
+            raise
+        finally:
+            # Always ensure that we reset the `pending_request` to `None` on exit.
+            self.pending_request = None
+
+        return response
+
+    async def _request_and_wait(self, request: TRequest, timeout: int=None) -> TReturn:
         if self.pending_request is not None:
             self.logger.error(
                 "Already waiting for response to %s for peer: %s",
@@ -155,19 +204,10 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                 )
             )
 
-        future: 'asyncio.Future[TReturn]' = asyncio.Future()
-        self.pending_request = (request, future)
-
-        try:
-            response = await self.wait(future, timeout=timeout)
-        finally:
-            # Always ensure that we reset the `pending_request` to `None` on exit.
-            self.pending_request = None
-
-        return response
-
-    async def _request_and_wait(self, request: TRequest, timeout: int=None) -> TReturn:
         if timeout is None:
             timeout = self.response_timout
         self._send_sub_proto_request(request)
         return await self._wait_for_response(request, timeout=timeout)
+
+    def get_stats(self) -> str:
+        return '%s: %s' % (self.response_msg_name, self.response_times.get_stats())

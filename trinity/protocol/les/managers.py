@@ -81,3 +81,6 @@ class GetBlockHeadersRequestManager(BaseRequestManager):
             )
 
         return msg['headers']
+
+    def _get_item_count(self, msg: Dict[str, Any]) -> int:
+        return len(msg['headers'])

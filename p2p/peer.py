@@ -201,6 +201,9 @@ class BasePeer(BaseService):
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self.mac_enc = mac_cipher.encryptor().update
 
+    def get_extra_stats(self) -> List[str]:
+        return []
+
     @abstractmethod
     async def send_sub_proto_handshake(self) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
@@ -916,12 +919,18 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             self.logger.debug("== Peer details == ")
             for peer in self.connected_nodes.values():
+                if not peer.is_running:
+                    self.logger.warning(
+                        "%s is no longer alive but has not been removed from pool", peer)
+                    continue
                 most_received_type, count = max(
                     peer.received_msgs.items(), key=operator.itemgetter(1))
                 self.logger.debug(
-                    "%s: running=%s, uptime=%s, received_msgs=%d, most_received=%s(%d)",
-                    peer, peer.is_running, peer.uptime, peer.received_msgs_count,
+                    "%s: uptime=%s, received_msgs=%d, most_received=%s(%d)",
+                    peer, peer.uptime, peer.received_msgs_count,
                     most_received_type, count)
+                for line in peer.get_extra_stats():
+                    self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
             try:
                 await self.wait(asyncio.sleep(self._report_interval))
@@ -1018,9 +1027,7 @@ def _test() -> None:
     from eth.db.backends.memory import MemoryDB
     from eth.tools.logging import TRACE_LEVEL_NUM
     from trinity.protocol.eth.peer import ETHPeer
-    from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
     from trinity.protocol.les.peer import LESPeer
-    from trinity.protocol.les.requests import HeaderRequest as LESHeaderRequest
     from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
@@ -1056,21 +1063,17 @@ def _test() -> None:
             peer_pool.logger.info("Waiting for peer connection...")
             await asyncio.sleep(0.2)
         peer = peer_pool.highest_td_peer
-        block_hash = decode_hex(
-            '0x59af08ab31822c992bb3dad92ddb68d820aa4c69e9560f07081fa53f1009b152')
+        headers = await peer.requests.get_block_headers(2440319, max_headers=100)  # type: ignore
+        hashes = [header.hash for header in headers]
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.sub_proto.send_get_block_headers(ETHHeaderRequest(block_hash, 1, 0, False))
-            peer.sub_proto.send_get_block_bodies([block_hash])
-            peer.sub_proto.send_get_receipts([block_hash])
+            peer.sub_proto.send_get_block_bodies(hashes)
+            peer.sub_proto.send_get_receipts(hashes)
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
-            peer.sub_proto.send_get_block_headers(
-                LESHeaderRequest(block_hash, 1, 0, False, request_id)
-            )
-            peer.sub_proto.send_get_block_bodies([block_hash], request_id + 1)
-            peer.sub_proto.send_get_receipts(block_hash, request_id + 2)
+            peer.sub_proto.send_get_block_bodies(hashes, request_id + 1)
+            peer.sub_proto.send_get_receipts(hashes[0], request_id + 2)
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:

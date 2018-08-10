@@ -2,6 +2,7 @@ from typing import (
     Any,
     cast,
     Dict,
+    List,
 )
 
 from eth_utils import encode_hex
@@ -39,6 +40,9 @@ class LESPeer(BasePeer):
     head_info: HeadInfo = None
 
     _requests: LESRequestResponseHandler = None
+
+    def get_extra_stats(self) -> List[str]:
+        return self.requests.get_stats()
 
     @property
     def requests(self) -> LESRequestResponseHandler:

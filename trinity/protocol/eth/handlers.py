@@ -14,5 +14,6 @@ class ETHRequestResponseHandler(BaseRequestResponseHandler):
         'get_node_data': GetNodeDataRequestManager,
     }
 
+    # These are needed only to please mypy.
     get_block_headers: GetBlockHeadersRequestManager
     get_node_data: GetNodeDataRequestManager
