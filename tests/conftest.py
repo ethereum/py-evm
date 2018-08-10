@@ -105,7 +105,7 @@ def funded_address_initial_balance():
 
 
 @pytest.fixture
-def chain_with_block_validation(base_db, funded_address, funded_address_initial_balance):
+def chain_with_block_validation(base_db, genesis_state):
     """
     Return a Chain object containing just the genesis block.
 
@@ -133,14 +133,6 @@ def chain_with_block_validation(base_db, funded_address, funded_address_initial_
         "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
         "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
     }
-    genesis_state = {
-        funded_address: {
-            "balance": funded_address_initial_balance,
-            "nonce": 0,
-            "code": b"",
-            "storage": {}
-        }
-    }
     klass = Chain.configure(
         __name__='TestChain',
         vm_configuration=(
@@ -156,12 +148,28 @@ def import_block_without_validation(chain, block):
     return super(type(chain), chain).import_block(block, perform_validation=False)
 
 
+@pytest.fixture
+def base_genesis_state(funded_address, funded_address_initial_balance):
+    return {
+        funded_address: {
+            'balance': funded_address_initial_balance,
+            'nonce': 0,
+            'code': b'',
+            'storage': {},
+        }
+    }
+
+
+@pytest.fixture
+def genesis_state(base_genesis_state):
+    return base_genesis_state
+
+
 @pytest.fixture(params=[Chain, MiningChain])
 def chain_without_block_validation(
         request,
         base_db,
-        funded_address,
-        funded_address_initial_balance):
+        genesis_state):
     """
     Return a Chain object containing just the genesis block.
 
@@ -183,6 +191,7 @@ def chain_without_block_validation(
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
         ),
+        network_id=1337,
         **overrides,
     )
     genesis_params = {
@@ -195,14 +204,6 @@ def chain_without_block_validation(
         'mix_hash': constants.GENESIS_MIX_HASH,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
-    }
-    genesis_state = {
-        funded_address: {
-            'balance': funded_address_initial_balance,
-            'nonce': 0,
-            'code': b'',
-            'storage': {},
-        }
     }
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain

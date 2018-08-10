@@ -3,6 +3,10 @@ from typing import (
     Dict,
 )
 
+from eth_utils import (
+    is_address,
+)
+
 from eth.vm.base import (
     BaseVM,
 )
@@ -13,7 +17,7 @@ DERIVED_KEYS = {'from'}
 RENAMED_KEYS = {'gas_price': 'gasPrice'}
 
 
-def validate_transaction_call_dict(transaction_dict: Dict[str, Any], vm: BaseVM) -> None:
+def validate_transaction_gas_estimation_dict(transaction_dict: Dict[str, Any], vm: BaseVM) -> None:
     """Validate a transaction dictionary supplied for an RPC method call"""
     transaction_class = vm.get_transaction_class()
 
@@ -30,3 +34,11 @@ def validate_transaction_call_dict(transaction_dict: Dict[str, Any], vm: BaseVM)
                 list(sorted(spec_keys)),
             )
         )
+
+
+def validate_transaction_call_dict(transaction_dict: Dict[str, Any], vm: BaseVM) -> None:
+    validate_transaction_gas_estimation_dict(transaction_dict, vm)
+
+    # 'to' is required in a call, but not a gas estimation
+    if not is_address(transaction_dict.get('to', None)):
+        raise ValueError("The 'to' field must be supplied when getting the result of a transaction")

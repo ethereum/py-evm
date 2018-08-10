@@ -46,8 +46,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
     def build_evm_message(self, transaction):
 
-        transaction_context = self.get_transaction_context(transaction)
-        gas_fee = transaction.gas * transaction_context.gas_price
+        gas_fee = transaction.gas * transaction.gas_price
 
         # Buy Gas
         self.vm_state.account_db.delta_balance(transaction.sender, -1 * gas_fee)
@@ -99,7 +98,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
     def build_computation(self, message, transaction):
         """Apply the message to the VM."""
-        transaction_context = self.get_transaction_context(transaction)
+        transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
             is_collision = self.vm_state.account_db.account_has_code_or_nonce(
                 message.storage_address

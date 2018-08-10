@@ -192,6 +192,12 @@ class LightDispatchChain(BaseChain):
             transaction: BaseTransaction) -> Tuple[BaseBlock, Receipt, BaseComputation]:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
+    def get_transaction_result(
+            self,
+            transaction: Union[BaseTransaction, SpoofTransaction],
+            at_header: BlockHeader) -> bytes:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
     def estimate_gas(
             self,
             transaction: Union[BaseTransaction, SpoofTransaction],

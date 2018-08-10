@@ -163,6 +163,15 @@ class BaseComputation(Configurable, ABC):
         """
         return not self.is_success
 
+    def raise_if_error(self) -> None:
+        """
+        If there was an error during computation, raise it as an exception immediately.
+
+        :raise VMError:
+        """
+        if self._error is not None:
+            raise self._error
+
     @property
     def should_burn_gas(self) -> bool:
         """
