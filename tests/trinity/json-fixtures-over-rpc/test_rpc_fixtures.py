@@ -15,6 +15,9 @@ from eth_utils import (
     is_string,
 )
 
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.tools.fixture_tests import (
     filter_fixtures,
     generate_fixture_tests,
@@ -341,7 +344,16 @@ def chain_fixture(fixture_data):
     return fixture
 
 
-def test_rpc_against_fixtures(ipc_server, chain_fixture, fixture_data):
+@pytest.fixture
+def chain(chain_without_block_validation):
+    if isinstance(chain_without_block_validation, MiningChain):
+        # These tests are long. For RPC state tests, there shouldn't be any
+        # significant difference between a mining chain and a basic chain.
+        pytest.skip("Only need to test basic chain")
+        return
+
+
+def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
     rpc = RPCServer(None)
 
     setup_result, setup_error = call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
