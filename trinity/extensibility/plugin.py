@@ -9,6 +9,13 @@ from argparse import (
 import logging
 import sys
 
+from lahja import (
+    Endpoint
+)
+
+from trinity.events import (
+    ShutdownRequested
+)
 from trinity.extensibility.events import (
     BaseEvent
 )
@@ -16,8 +23,11 @@ from trinity.extensibility.events import (
 
 class PluginContext:
 
+    def __init__(self, endpoint: Endpoint):
+        self.eventbus = endpoint
+
     def shutdown_trinity(self, exit_code: int = 0) -> None:
-        sys.exit(exit_code)
+        self.eventbus.broadcast(ShutdownRequested('meh'))
 
 
 class BasePlugin(ABC):

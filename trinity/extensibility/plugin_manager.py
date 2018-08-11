@@ -30,11 +30,11 @@ class PluginManager:
         This API is very much in flux and is expected to change heavily.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, context: PluginContext) -> None:
         self._plugin_store: List[Type[BasePlugin]] = []
         self._initialized_plugins: List[BasePlugin] = []
         self._started_plugins: List[BasePlugin] = []
-        self._plugin_context = PluginContext()
+        self._plugin_context = context
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
     def register(self, plugins: Union[Type[BasePlugin], Iterable[Type[BasePlugin]]]) -> None:
