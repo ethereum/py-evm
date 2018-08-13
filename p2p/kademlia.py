@@ -241,13 +241,15 @@ class RoutingTable:
     logger = logging.getLogger("p2p.kademlia.RoutingTable")
 
     def __init__(self, node: Node) -> None:
+        self._initialized_at = time.time()
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
     def get_random_nodes(self, count: int) -> Iterator[Node]:
         if count > len(self):
-            self.logger.warn(
-                "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
+            if time.time() - self._initialized_at > 30:
+                self.logger.warn(
+                    "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
             count = len(self)
         seen: List[Node] = []
         # This is a rather inneficient way of randomizing nodes from all buckets, but even if we
