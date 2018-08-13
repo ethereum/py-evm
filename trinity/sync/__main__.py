@@ -82,7 +82,7 @@ def _test() -> None:
         nodes = DEFAULT_PREFERRED_NODES[network_id]
 
     asyncio.ensure_future(peer_pool.run())
-    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
+    peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
     chain = chain_class(base_db)
     syncer: BaseHeaderChainSyncer = None
     if args.fast:

@@ -17,18 +17,17 @@ library.
 
 ## BaseService
 
-- If your service runs coroutines in the background (e.g. via `asyncio.ensure_future`), you must
-  ensure they exit when `is_running` is False or when the cancel token is triggered
+- If your service needs to run coroutines in the background, you should use the `BaseService.run_task()` method and
+  ensure they exit when `is_running` is False or when the cancel token is triggered.
 - If your service runs other services in the background, you should pass your CancelToken down to
-  those services and ensure your `_cleanup()` waits for them to cleanup as well
+  those services and run those using `BaseService.run_child_service()`.
 
 ```Python
 class Node(BaseService):
     async def _run(self):
         self.discovery = DiscoveryService(token=self.cancel_token)
-        asyncio.ensure_future(self.discovery.run())
+        self.run_child_service(self.discovery)
+        self.run_task(self.discovery.bootstrap())
         # Node's run logic goes here...
 
-    async def _cleanup(self):
-        await self.discovery.cleaned_up.wait()
 ```

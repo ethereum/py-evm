@@ -76,30 +76,25 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
-            try:
-                peer, cmd, msg = await self.wait(self.msg_queue.get())
-            except OperationCancelled:
-                break
-
+            peer, cmd, msg = await self.wait(self.msg_queue.get())
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
-            # loop can keep processing msgs, and that's why we use ensure_future() instead of
+            # loop can keep processing msgs, and that's why we use self.run_task() instead of
             # awaiting for it to finish here.
-            asyncio.ensure_future(self.handle_msg(cast(HeaderRequestingPeer, peer), cmd, msg))
+            self.run_task(self.handle_msg(cast(HeaderRequestingPeer, peer), cmd, msg))
 
     async def handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
         try:
             await self._handle_msg(peer, cmd, msg)
         except OperationCancelled:
-            # Silently swallow OperationCancelled exceptions because we run unsupervised (i.e.
-            # with ensure_future()). Our caller will also get an OperationCancelled anyway, and
-            # there it will be handled.
+            # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
+            # by the except below and treated as unexpected.
             pass
         except Exception:
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     async def _run(self) -> None:
-        asyncio.ensure_future(self._handle_msg_loop())
+        self.run_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
             while True:
                 peer_or_finished: Any = await self.wait_first(
@@ -114,12 +109,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
                 # Since self._sync_complete is not set, peer_or_finished can only be a Peer
                 # instance.
-                asyncio.ensure_future(self.sync(peer_or_finished))
-
-    async def _cleanup(self) -> None:
-        # We don't need to cancel() anything, but we yield control just so that the coroutines we
-        # run in the background notice the cancel token has been triggered and return.
-        await asyncio.sleep(0)
+                self.run_task(self.sync(peer_or_finished))
 
     async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:

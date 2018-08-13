@@ -38,9 +38,6 @@ class BaseRequestResponseHandler(BaseService):
 
         await self.cancel_token.wait()
 
-    async def _cleanup(self) -> None:
-        pass
-
     def get_stats(self) -> List[str]:
         manager_attrs = self._managers.keys()
         return [getattr(self, attr).get_stats() for attr in manager_attrs]

@@ -4,11 +4,13 @@ import functools
 import logging
 from typing import (
     Any,
+    Awaitable,
     Callable,
     List,
     Optional,
     cast,
 )
+from weakref import WeakSet
 
 from eth.tools.logging import TraceLogger
 
@@ -30,6 +32,8 @@ class ServiceEvents:
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
     _child_services: List['BaseService']
+    # Use a WeakSet so that we don't have to bother updating it when tasks finish.
+    _tasks: 'WeakSet[asyncio.Future[Any]]'
     _finished_callbacks: List[Callable[['BaseService'], None]]
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
@@ -45,6 +49,7 @@ class BaseService(ABC, CancellableMixin):
         self.events = ServiceEvents()
         self._run_lock = asyncio.Lock()
         self._child_services = []
+        self._tasks = WeakSet()
         self._finished_callbacks = []
 
         self._loop = loop
@@ -114,12 +119,26 @@ class BaseService(ABC, CancellableMixin):
     def add_finished_callback(self, finished_callback: Callable[['BaseService'], None]) -> None:
         self._finished_callbacks.append(finished_callback)
 
-    def run_child_service(self, child_service: 'BaseService') -> 'asyncio.Future[Any]':
+    def run_task(self, awaitable: Awaitable[Any]) -> None:
+        """Run the given awaitable in the background.
+
+        The awaitable should return whenever this service's cancel token is triggered.
+
+        If it raises OperationCancelled, that is caught and ignored.
+        """
+        async def f() -> None:
+            try:
+                await awaitable
+            except OperationCancelled:
+                pass
+        self._tasks.add(asyncio.ensure_future(f()))
+
+    def run_child_service(self, child_service: 'BaseService') -> None:
         """
         Run a child service and keep a reference to it to be considered during the cleanup.
         """
         self._child_services.append(child_service)
-        return asyncio.ensure_future(child_service.run())
+        self.run_task(child_service.run())
 
     async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
         loop = self.get_event_loop()
@@ -136,6 +155,7 @@ class BaseService(ABC, CancellableMixin):
         await asyncio.gather(*[
             child_service.events.cleaned_up.wait()
             for child_service in self._child_services],
+            *[task for task in self._tasks],
             self._cleanup()
         )
         self.events.cleaned_up.set()
@@ -155,9 +175,19 @@ class BaseService(ABC, CancellableMixin):
             await asyncio.wait_for(
                 self.events.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
         except asyncio.futures.TimeoutError:
-            self.logger.info("Timed out waiting for %s to finish its cleanup, exiting anyway", self)
+            self.logger.info(
+                "Timed out waiting for %s to finish its cleanup, forcibly cancelling pending "
+                "tasks and exiting anyway", self)
+            self._forcibly_cancel_all_tasks()
+            # Sleep a bit because the Future.cancel() method just schedules the callbacks, so we
+            # need to give the event loop a chance to actually call them.
+            await asyncio.sleep(0.5)
         else:
             self.logger.debug("%s finished cleanly", self)
+
+    def _forcibly_cancel_all_tasks(self) -> None:
+        for task in self._tasks:
+            task.cancel()
 
     @property
     def is_running(self) -> bool:
@@ -187,13 +217,12 @@ class BaseService(ABC, CancellableMixin):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     async def _cleanup(self) -> None:
         """Clean up any resources held by this service.
 
         Called after the service's _run() method returns.
         """
-        raise NotImplementedError()
+        pass
 
 
 def service_timeout(timeout: int) -> Callable[..., Any]:
