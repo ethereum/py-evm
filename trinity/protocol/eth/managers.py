@@ -73,6 +73,9 @@ class GetBlockHeadersRequestManager(BaseGetBlockHeadersRequestManager):
                                   ) -> Tuple[BlockHeader, ...]:
         return msg
 
+    def _get_item_count(self, msg: Tuple[BlockHeader, ...]) -> int:
+        return len(msg)
+
 
 BaseGetNodeDataRequestManager = BaseRequestManager[
     'ETHPeer',
@@ -106,3 +109,6 @@ class GetNodeDataRequestManager(BaseGetNodeDataRequestManager):
 
         node_keys = await self._run_in_executor(tuple, map(keccak, msg))
         return tuple(zip(node_keys, msg))
+
+    def _get_item_count(self, msg: Tuple[bytes, ...]) -> int:
+        return len(msg)
