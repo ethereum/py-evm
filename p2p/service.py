@@ -94,7 +94,7 @@ class BaseService(ABC, CancellableMixin):
                 self.events.started.set()
                 await self._run()
         except OperationCancelled as e:
-            self.logger.info("%s finished: %s", self, e)
+            self.logger.debug("%s finished: %s", self, e)
         except Exception:
             self.logger.exception("Unexpected error in %r, exiting", self)
         finally:
