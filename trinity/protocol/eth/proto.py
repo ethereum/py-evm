@@ -73,7 +73,7 @@ class ETHProtocol(Protocol):
     #
     # Node Data
     #
-    def send_get_node_data(self, request: Union[NodeDataRequest, Tuple[Hash32, ...]]) -> None:
+    def send_get_node_data(self, request: NodeDataRequest) -> None:
         self._send_get_node_data(request.node_hashes)
 
     def _send_get_node_data(self, node_hashes: Tuple[Hash32, ...]) -> None:

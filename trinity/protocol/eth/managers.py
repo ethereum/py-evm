@@ -6,7 +6,6 @@ from typing import (
 )
 
 from cytoolz import (
-    concat,
     compose,
 )
 
@@ -178,7 +177,7 @@ class GetReceiptsRequestManager(BaseGetReceiptsRequestManager):
         return receipt_bundles
 
     def _get_item_count(self, msg: ReceiptsByBlock) -> int:
-        return len(concat(msg))
+        return sum(len(item) for item in msg)
 
 
 # (BlockBody, (txn_root, txn_trie_data), uncles_hash)
