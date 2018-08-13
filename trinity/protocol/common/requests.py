@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import (
-    Any,
     cast,
+    Generic,
     Tuple,
+    TypeVar,
 )
 
 from eth_utils import encode_hex
@@ -16,17 +17,21 @@ from p2p.exceptions import (
 )
 
 
-class BaseRequest(ABC):
+TMsg = TypeVar('TMsg')
+TResponse = TypeVar('TResponse')
+
+
+class BaseRequest(ABC, Generic[TMsg, TResponse]):
     """
     Base representation of a *request* to a connected peer which has a matching
     *response*.
     """
     @abstractmethod
-    def validate_response(self, response: Any) -> None:
+    def validate_response(self, msg: TMsg, response: TResponse) -> None:
         pass
 
 
-class BaseHeaderRequest(BaseRequest):
+class BaseHeaderRequest(BaseRequest[TMsg, Tuple[BlockHeader, ...]]):
     block_number_or_hash: BlockIdentifier
     max_headers: int
     skip: int
@@ -36,6 +41,27 @@ class BaseHeaderRequest(BaseRequest):
     @abstractmethod
     def max_size(self) -> int:
         pass
+
+    def validate_response(self, msg: TMsg, response: Tuple[BlockHeader, ...]) -> None:
+        if not response:
+            # An empty response is always valid
+            return
+        elif not self.is_numbered:
+            first_header = response[0]
+            if first_header.hash != self.block_number_or_hash:
+                raise ValidationError(
+                    "Returned headers cannot be matched to header request. "
+                    "Expected first header to have hash of {0} but instead got "
+                    "{1}.".format(
+                        encode_hex(self.block_number_or_hash),
+                        encode_hex(first_header.hash),
+                    )
+                )
+
+        block_numbers: Tuple[BlockNumber, ...] = tuple(
+            header.block_number for header in response
+        )
+        return self.validate_sequence(block_numbers)
 
     def generate_block_numbers(self,
                                block_number: BlockNumber=None) -> Tuple[BlockNumber, ...]:
@@ -66,27 +92,6 @@ class BaseHeaderRequest(BaseRequest):
     @property
     def is_numbered(self) -> bool:
         return isinstance(self.block_number_or_hash, int)
-
-    def validate_response(self, response: Tuple[BlockHeader, ...]) -> None:
-        if not response:
-            # An empty response is always valid
-            return
-        elif not self.is_numbered:
-            first_header = response[0]
-            if first_header.hash != self.block_number_or_hash:
-                raise ValidationError(
-                    "Returned headers cannot be matched to header request. "
-                    "Expected first header to have hash of {0} but instead got "
-                    "{1}.".format(
-                        encode_hex(self.block_number_or_hash),
-                        encode_hex(first_header.hash),
-                    )
-                )
-
-        block_numbers: Tuple[BlockNumber, ...] = tuple(
-            header.block_number for header in response
-        )
-        return self.validate_sequence(block_numbers)
 
     def validate_sequence(self, block_numbers: Tuple[BlockNumber, ...]) -> None:
         if not block_numbers:

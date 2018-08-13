@@ -3,9 +3,13 @@ from typing import (
     List,
     Tuple,
     TYPE_CHECKING,
+    Union,
 )
 
-from eth_typing import Hash32
+from eth_typing import (
+    Hash32,
+    BlockNumber,
+)
 
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
@@ -31,10 +35,11 @@ from .commands import (
     Status,
     Transactions,
 )
-from . import constants
 from .requests import (
+    BlockBodiesRequest,
     HeaderRequest,
     NodeDataRequest,
+    ReceiptsRequest,
 )
 
 if TYPE_CHECKING:
@@ -65,9 +70,15 @@ class ETHProtocol(Protocol):
         self.logger.debug("Sending ETH/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
+    #
+    # Node Data
+    #
     def send_get_node_data(self, request: NodeDataRequest) -> None:
+        self._send_get_node_data(request.node_hashes)
+
+    def _send_get_node_data(self, node_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetNodeData(self.cmd_id_offset)
-        header, body = cmd.encode(request.node_hashes)
+        header, body = cmd.encode(node_hashes)
         self.send(header, body)
 
     def send_node_data(self, nodes: Tuple[bytes, ...]) -> None:
@@ -75,6 +86,9 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(nodes)
         self.send(header, body)
 
+    #
+    # Block Headers
+    #
     def send_get_block_headers(self, request: HeaderRequest) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
@@ -82,20 +96,24 @@ class ETHProtocol(Protocol):
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        if request.max_headers > constants.MAX_HEADERS_FETCH:
-            raise ValueError(
-                "Cannot ask for more than {} block headers in a single request. "
-                "Asked for {}".format(
-                    constants.MAX_HEADERS_FETCH,
-                    request.max_headers,
-                )
-            )
+        self._send_get_block_headers(
+            block_number_or_hash=request.block_number_or_hash,
+            max_headers=request.max_headers,
+            skip=request.skip,
+            reverse=request.reverse,
+        )
+
+    def _send_get_block_headers(self,
+                                block_number_or_hash: Union[BlockNumber, Hash32],
+                                max_headers: int,
+                                skip: int,
+                                reverse: bool) -> None:
         cmd = GetBlockHeaders(self.cmd_id_offset)
         data = {
-            'block_number_or_hash': request.block_number_or_hash,
-            'max_headers': request.max_headers,
-            'skip': request.skip,
-            'reverse': request.reverse
+            'block_number_or_hash': block_number_or_hash,
+            'max_headers': max_headers,
+            'skip': skip,
+            'reverse': reverse
         }
         header, body = cmd.encode(data)
         self.send(header, body)
@@ -105,7 +123,13 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(headers)
         self.send(header, body)
 
-    def send_get_block_bodies(self, block_hashes: List[Hash32]) -> None:
+    #
+    # Block Bodies
+    #
+    def send_get_block_bodies(self, request: BlockBodiesRequest) -> None:
+        self._send_get_block_bodies(request.block_hashes)
+
+    def _send_get_block_bodies(self, block_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetBlockBodies(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
@@ -115,7 +139,13 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(blocks)
         self.send(header, body)
 
-    def send_get_receipts(self, block_hashes: List[Hash32]) -> None:
+    #
+    # Receipts
+    #
+    def send_get_receipts(self, request: ReceiptsRequest) -> None:
+        self._send_get_receipts(request.block_hashes)
+
+    def _send_get_receipts(self, block_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetReceipts(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
@@ -125,6 +155,9 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(receipts)
         self.send(header, body)
 
+    #
+    # Transactions
+    #
     def send_transactions(self, transactions: List[BaseTransactionFields]) -> None:
         cmd = Transactions(self.cmd_id_offset)
         header, body = cmd.encode(transactions)

@@ -1063,16 +1063,16 @@ def _test() -> None:
             peer_pool.logger.info("Waiting for peer connection...")
             await asyncio.sleep(0.2)
         peer = peer_pool.highest_td_peer
-        headers = await peer.requests.get_block_headers(2440319, max_headers=100)  # type: ignore
-        hashes = [header.hash for header in headers]
+        headers = await cast(ETHPeer, peer).requests.get_block_headers(2440319, max_headers=100)
+        hashes = tuple(header.hash for header in headers)
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.sub_proto.send_get_block_bodies(hashes)
-            peer.sub_proto.send_get_receipts(hashes)
+            peer.sub_proto._send_get_block_bodies(hashes)
+            peer.sub_proto._send_get_receipts(hashes)
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
-            peer.sub_proto.send_get_block_bodies(hashes, request_id + 1)
+            peer.sub_proto.send_get_block_bodies(list(hashes), request_id + 1)
             peer.sub_proto.send_get_receipts(hashes[0], request_id + 2)
 
     sigint_received = asyncio.Event()

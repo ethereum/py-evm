@@ -2,6 +2,7 @@ from abc import abstractmethod
 import asyncio
 import time
 from typing import (
+    Any,
     cast,
     Generic,
     Set,
@@ -28,10 +29,14 @@ from trinity.exceptions import AlreadyWaiting
 from .requests import BaseRequest
 
 
+# The peer class that this will be connected to
 TPeer = TypeVar('TPeer', bound=BasePeer)
-TRequest = TypeVar('TRequest', bound=BaseRequest)
-TResponse = TypeVar('TResponse')
+# The `Request` class that will be used.
+TRequest = TypeVar('TRequest', bound=BaseRequest[Any, Any])
+# The type that will be returned to the caller
 TReturn = TypeVar('TReturn')
+# The type of the command payload
+TMsg = TypeVar('TMsg')
 
 
 class ResponseTimeTracker:
@@ -59,7 +64,7 @@ class ResponseTimeTracker:
         self.total_response_time += time
 
 
-class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, TResponse, TReturn]):  # noqa: E501
+class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, TMsg, TReturn]):
     #
     # PeerSubscriber
     #
@@ -93,14 +98,14 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
                 elif isinstance(cmd, self._response_msg_type):
-                    await self._handle_msg(cast(TResponse, msg))
+                    await self._handle_msg(cast(TMsg, msg))
                 else:
                     self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
 
     async def _cleanup(self) -> None:
         pass
 
-    async def _handle_msg(self, msg: TResponse) -> None:
+    async def _handle_msg(self, msg: TMsg) -> None:
         if self.pending_request is None:
             self.logger.debug(
                 "Got unexpected %s message from %", self.response_msg_name, self._peer
@@ -125,7 +130,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
             return
 
         try:
-            request.validate_response(response)
+            request.validate_response(msg, response)
         except ValidationError as err:
             self.logger.debug(
                 "Response validation failed for pending %s request from peer %s: %s",
@@ -133,16 +138,17 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                 self._peer,
                 err,
             )
-        else:
-            future.set_result(response)
-            self.pending_request = None
+            return
+
+        future.set_result(response)
+        self.pending_request = None
 
     @abstractmethod
-    async def _normalize_response(self, msg: TResponse) -> TReturn:
+    async def _normalize_response(self, msg: TMsg) -> TReturn:
         pass
 
     @abstractmethod
-    def _get_item_count(self, msg: TResponse) -> int:
+    def _get_item_count(self, msg: TMsg) -> int:
         pass
 
     @abstractmethod

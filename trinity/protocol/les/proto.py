@@ -2,6 +2,12 @@ from typing import (
     List,
     Tuple,
     TYPE_CHECKING,
+    Union,
+)
+
+from eth_typing import (
+    BlockNumber,
+    Hash32,
 )
 
 from eth.rlp.headers import BlockHeader
@@ -81,19 +87,28 @@ class LESProtocol(Protocol):
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        if request.max_headers > constants.MAX_HEADERS_FETCH:
-            raise ValueError(
-                "Cannot ask for more than {} block headers in a single request".format(
-                    constants.MAX_HEADERS_FETCH))
+        self._send_get_block_headers(
+            request.block_number_or_hash,
+            request.max_headers,
+            request.skip,
+            request.reverse,
+            request.request_id,
+        )
+
+    def _send_get_block_headers(self,
+                                block_number_or_hash: Union[BlockNumber, Hash32],
+                                max_headers: int,
+                                skip: int,
+                                reverse: bool,
+                                request_id: int) -> None:
         cmd = GetBlockHeaders(self.cmd_id_offset)
-        # Number of block headers to skip between each item (i.e. step in python APIs).
         data = {
-            'request_id': request.request_id,
+            'request_id': request_id,
             'query': GetBlockHeadersQuery(
-                request.block_number_or_hash,
-                request.max_headers,
-                request.skip,
-                request.reverse,
+                block_number_or_hash,
+                max_headers,
+                skip,
+                reverse,
             ),
         }
         header, body = cmd.encode(data)
