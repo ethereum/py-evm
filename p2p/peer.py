@@ -342,7 +342,7 @@ class BasePeer(BaseService):
         self.close()
 
     async def _run(self) -> None:
-        while True:
+        while self.is_running:
             try:
                 cmd, msg = await self.read_msg()
             except (PeerConnectionLost, TimeoutError) as err:

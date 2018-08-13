@@ -336,7 +336,7 @@ class DiscoveryService(BaseService):
     async def _run(self) -> None:
         connect_loop_sleep = 2
         self.run_task(self.proto.bootstrap())
-        while True:
+        while self.is_running:
             await self.maybe_connect_to_more_peers()
             await self.sleep(connect_loop_sleep)
 

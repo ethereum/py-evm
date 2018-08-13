@@ -96,7 +96,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.run_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
-            while True:
+            while self.is_running:
                 peer_or_finished: Any = await self.wait_first(
                     self._sync_requests.get(),
                     self._sync_complete.wait()
@@ -154,7 +154,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # will be discarded by _fetch_missing_headers() so we don't unnecessarily process them
         # again.
         start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - MAX_REORG_DEPTH)
-        while True:
+        while self.is_running:
             if not peer.is_running:
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
