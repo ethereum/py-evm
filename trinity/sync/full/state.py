@@ -62,7 +62,6 @@ from trinity.sync.full.hexary_trie import (
     HexaryTrieSync,
     SyncRequest,
 )
-from trinity.utils.cancellation import async_handle_cancellation
 from trinity.utils.timer import Timer
 
 
@@ -225,7 +224,6 @@ class StateDownloader(BaseService, PeerSubscriber):
             self.request_tracker.active_requests[peer] = (time.time(), batch)
             self.run_task(self._request_and_process_nodes(peer, batch))
 
-    @async_handle_cancellation
     async def _request_and_process_nodes(self, peer: ETHPeer, batch: Tuple[Hash32, ...]) -> None:
         self.logger.debug("Requesting %d trie nodes from %s", len(batch), peer)
         try:
