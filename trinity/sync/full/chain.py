@@ -161,12 +161,17 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             # are still missing block bodies.
             all_block_body_bundles, all_missing_headers = zip(*responses)
 
+            for (body, (tx_root, trie_data_dict), uncles_hash) in concat(all_block_body_bundles):
+                await self.wait(self.db.coro_persist_trie_data_dict(trie_data_dict))
+
             block_bodies_by_key = merge(block_bodies_by_key, {
                 (transaction_root, uncles_hash): block_body
                 for block_body, (transaction_root, trie_dict_data), uncles_hash
                 in concat(all_block_body_bundles)
             })
             headers = tuple(concat(all_missing_headers))
+
+        self.logger.debug("Got block bodies batch for %d headers", len(all_headers))
         return block_bodies_by_key
 
     async def _get_block_bodies(self,
@@ -186,7 +191,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
-        else:
             self.logger.debug(
                 "Got block bodies for %d headers from %s", len(block_body_bundles), peer,
             )
@@ -195,11 +199,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             return tuple(), batch
 
         _, trie_roots_and_data_dicts, uncles_hashes = zip(*block_body_bundles)
-
-        # TODO: figure out why mypy is losing the type of the transactions_tries
-        # so we can get rid of the ignore
-        for (body, (tx_root, trie_data_dict), uncles_hash) in block_body_bundles:
-            await self.wait(self.db.coro_persist_trie_data_dict(trie_data_dict))
 
         received_keys = {
             (root_hash, uncles_hash)
@@ -264,8 +263,8 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             trie_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
             for trie_data in trie_data_dicts:
                 await self.wait(self.db.coro_persist_trie_data_dict(trie_data))
-        else:
-            self.logger.debug("Got receipts batch for %d headers", len(all_headers))
+
+        self.logger.debug("Got receipts batch for %d headers", len(all_headers))
 
     async def _get_receipts(self,
                             peer: ETHPeer,

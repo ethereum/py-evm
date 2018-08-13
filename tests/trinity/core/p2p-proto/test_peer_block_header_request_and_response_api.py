@@ -73,8 +73,10 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
     async def send_headers():
         remote.sub_proto.send_block_headers(headers)
 
+    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
     asyncio.ensure_future(send_headers())
-    response = await peer.requests.get_block_headers(*params)
+
+    response = await get_headers_task
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -100,8 +102,10 @@ async def test_les_peer_get_headers_round_trip(les_peer_and_remote,
         remote.sub_proto.send_block_headers(headers, 0, request_id)
         await asyncio.sleep(0)
 
+    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
     asyncio.ensure_future(send_headers())
-    response = await peer.requests.get_block_headers(*params)
+
+    response = await get_headers_task
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -120,8 +124,10 @@ async def test_eth_peer_get_headers_round_trip_with_noise(eth_peer_and_remote):
         remote.sub_proto.send_block_headers(headers)
         await asyncio.sleep(0)
 
+    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(0, 10, 0, False))
     asyncio.ensure_future(send_responses())
-    response = await peer.requests.get_block_headers(0, 10, 0, False)
+
+    response = await get_headers_task
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
@@ -144,8 +150,10 @@ async def test_eth_peer_get_headers_round_trip_does_not_match_invalid_response(e
         remote.sub_proto.send_block_headers(headers)
         await asyncio.sleep(0)
 
+    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(0, 5, 0, False))
     asyncio.ensure_future(send_responses())
-    response = await peer.requests.get_block_headers(0, 5, 0, False)
+
+    response = await get_headers_task
 
     assert len(response) == len(headers)
     for expected, actual in zip(headers, response):
