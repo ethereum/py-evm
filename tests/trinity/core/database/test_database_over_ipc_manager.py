@@ -13,7 +13,7 @@ from eth.db.chain import (
 )
 
 from trinity.chains import (
-    serve_chaindb,
+    get_chaindb_manager,
 )
 from trinity.config import (
     ChainConfig,
@@ -29,6 +29,11 @@ from trinity.utils.ipc import (
 )
 
 
+def serve_chaindb(manager):
+    server = manager.get_server()
+    server.serve_forever()
+
+
 @pytest.fixture
 def database_server_ipc_path():
     core_db = MemoryDB()
@@ -41,9 +46,10 @@ def database_server_ipc_path():
     with tempfile.TemporaryDirectory() as temp_dir:
         chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, data_dir=temp_dir)
 
+        manager = get_chaindb_manager(chain_config, core_db)
         chaindb_server_process = multiprocessing.Process(
             target=serve_chaindb,
-            args=(chain_config, core_db),
+            args=(manager,),
         )
         chaindb_server_process.start()
 
