@@ -102,9 +102,6 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                 else:
                     self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
 
-    async def _cleanup(self) -> None:
-        pass
-
     async def _handle_msg(self, msg: TMsg) -> None:
         if self.pending_request is None:
             self.logger.debug(

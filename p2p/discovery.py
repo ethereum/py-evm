@@ -335,10 +335,10 @@ class DiscoveryService(BaseService):
 
     async def _run(self) -> None:
         connect_loop_sleep = 2
-        asyncio.ensure_future(self.proto.bootstrap())
+        self.run_task(self.proto.bootstrap())
         while True:
             await self.maybe_connect_to_more_peers()
-            await self.wait(asyncio.sleep(connect_loop_sleep))
+            await self.sleep(connect_loop_sleep)
 
     async def maybe_connect_to_more_peers(self) -> None:
         """Connect to more peers if we're not yet maxed out to max_peers"""
@@ -346,7 +346,7 @@ class DiscoveryService(BaseService):
             self.logger.debug("Already connected to %s peers; sleeping", len(self.peer_pool))
             return
 
-        asyncio.ensure_future(self.maybe_lookup_random_node())
+        self.run_task(self.maybe_lookup_random_node())
 
         await self.peer_pool.connect_to_nodes(
             self.proto.get_nodes_to_connect(self.peer_pool.max_peers))

@@ -29,7 +29,7 @@ from eth_typing import (
     Hash32
 )
 
-from cancel_token import CancelToken, OperationCancelled
+from cancel_token import CancelToken
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -143,16 +143,12 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _handle_msg_loop(self) -> None:
         while self.is_running:
-            try:
-                peer, cmd, msg = await self.wait(self.msg_queue.get())
-            except OperationCancelled:
-                break
-
-            # Run self._handle_msg() with ensure_future() instead of awaiting for it so that we
+            peer, cmd, msg = await self.wait(self.msg_queue.get())
+            # Run self._handle_msg() with self.run_task() instead of awaiting for it so that we
             # can keep consuming msgs while _handle_msg() performs cpu-intensive tasks in separate
             # processes.
             peer = cast(ETHPeer, peer)
-            asyncio.ensure_future(self._handle_msg(peer, cmd, msg))
+            self.run_task(self._handle_msg(peer, cmd, msg))
 
     async def _process_nodes(self, nodes: Iterable[Tuple[Hash32, bytes]]) -> None:
         for node_key, node in nodes:
@@ -201,11 +197,6 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     async def _cleanup(self) -> None:
         self._nodes_cache_dir.cleanup()
-        # We don't need to cancel() anything, but we yield control just so that the coroutines we
-        # run in the background notice the cancel token has been triggered and return.
-        # Also, don't use self.sleep() here as the cancel token will be triggered and that will
-        # raise OperationCancelled.
-        await asyncio.sleep(0)
 
     async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
         not_yet_requested = set(node_keys)
@@ -232,7 +223,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             batch = tuple(candidates[:eth_constants.MAX_STATE_FETCH])
             not_yet_requested = not_yet_requested.difference(batch)
             self.request_tracker.active_requests[peer] = (time.time(), batch)
-            asyncio.ensure_future(self._request_and_process_nodes(peer, batch))
+            self.run_task(self._request_and_process_nodes(peer, batch))
 
     @async_handle_cancellation
     async def _request_and_process_nodes(self, peer: ETHPeer, batch: Tuple[Hash32, ...]) -> None:
@@ -286,26 +277,17 @@ class StateDownloader(BaseService, PeerSubscriber):
             if timed_out:
                 self.logger.debug("Re-requesting %d timed out trie nodes", len(timed_out))
                 self._total_timeouts += len(timed_out)
-                try:
-                    await self.request_nodes(timed_out)
-                except OperationCancelled:
-                    break
+                await self.request_nodes(timed_out)
 
             retriable_missing = self.request_tracker.get_retriable_missing()
             if retriable_missing:
                 self.logger.debug("Re-requesting %d missing trie nodes", len(retriable_missing))
-                try:
-                    await self.request_nodes(retriable_missing)
-                except OperationCancelled:
-                    break
+                await self.request_nodes(retriable_missing)
 
             # Finally, sleep until the time either our oldest request is scheduled to timeout or
             # one of our missing batches is scheduled to be retried.
             next_timeout = self.request_tracker.get_next_timeout()
-            try:
-                await self.sleep(next_timeout - time.time())
-            except OperationCancelled:
-                break
+            await self.sleep(next_timeout - time.time())
 
     async def _run(self) -> None:
         """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
@@ -314,9 +296,9 @@ class StateDownloader(BaseService, PeerSubscriber):
         """
         self._timer.start()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
-        asyncio.ensure_future(self._handle_msg_loop())
-        asyncio.ensure_future(self._periodically_report_progress())
-        asyncio.ensure_future(self._periodically_retry_timedout_and_missing())
+        self.run_task(self._handle_msg_loop())
+        self.run_task(self._periodically_report_progress())
+        self.run_task(self._periodically_retry_timedout_and_missing())
         with self.subscribe(self.peer_pool):
             while self.scheduler.has_pending_requests:
                 # This ensures we yield control and give _handle_msg() a chance to process any nodes
@@ -351,10 +333,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             msg += "missing=%d  " % len(self.request_tracker.missing)
             msg += "timeouts=%d" % self._total_timeouts
             self.logger.info("State-Sync: %s", msg)
-            try:
-                await self.sleep(self._report_interval)
-            except OperationCancelled:
-                break
+            await self.sleep(self._report_interval)
 
 
 class TrieNodeRequestTracker:
@@ -429,7 +408,7 @@ def _test() -> None:
     peer_pool = PeerPool(
         ETHPeer, chaindb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
     asyncio.ensure_future(peer_pool.run())
-    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
+    peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
 
     head = chaindb.get_canonical_head()
     downloader = StateDownloader(chaindb, db, head.state_root, peer_pool)

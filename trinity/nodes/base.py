@@ -6,7 +6,6 @@ from multiprocessing.managers import (
 )
 from threading import Thread
 from typing import (
-    List,
     Type,
 )
 
@@ -62,7 +61,6 @@ class Node(BaseService):
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = chain_config.jsonrpc_ipc_path
-        self._auxiliary_services: List[BaseService] = []
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
@@ -90,12 +88,6 @@ class Node(BaseService):
     @property
     def headerdb(self) -> BaseAsyncHeaderDB:
         return self._headerdb
-
-    def add_service(self, service: BaseService) -> None:
-        if self.is_running:
-            raise RuntimeError("Cannot add an auxiliary service while the node is running")
-        else:
-            self._auxiliary_services.append(service)
 
     def notify_resource_available(self) -> None:
 
@@ -139,9 +131,6 @@ class Node(BaseService):
 
             asyncio.run_coroutine_threadsafe(self._ipc_server.run(), loop=ipc_loop)
 
-        for service in self._auxiliary_services:
-            asyncio.ensure_future(service.run())
-
         await self.get_p2p_server().run()
 
     async def _cleanup(self) -> None:
@@ -150,12 +139,6 @@ class Node(BaseService):
             await self._ipc_server.threadsafe_cancel()
             # Stop the this IPCServer-specific event loop, so that the IPCServer thread will exit
             self._ipc_loop.stop()
-
-        await asyncio.gather(*[
-            service.events.cleaned_up.wait()
-            for service
-            in self._auxiliary_services
-        ])
 
     def _make_new_loop_thread(self) -> asyncio.AbstractEventLoop:
         new_loop = asyncio.new_event_loop()

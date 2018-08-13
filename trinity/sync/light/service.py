@@ -107,9 +107,6 @@ class LightPeerChain(PeerSubscriber, BaseService):
                         callback = self._pending_replies.pop(request_id)
                         callback(msg)
 
-    async def _cleanup(self) -> None:
-        pass
-
     async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
         reply = None
         got_reply = asyncio.Event()

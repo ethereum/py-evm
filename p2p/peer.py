@@ -720,7 +720,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
-        asyncio.ensure_future(peer.run())
+        self.run_task(peer.run())
         await self.wait(peer.events.started.wait(), timeout=1)
         try:
             # Although connect() may seem like a more appropriate place to perform the DAO fork
@@ -756,7 +756,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
-        asyncio.ensure_future(self._periodically_report_stats())
+        self.run_task(self._periodically_report_stats())
         await self.cancel_token.wait()
 
     async def stop_all_peers(self) -> None:
@@ -933,7 +933,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
             try:
-                await self.wait(asyncio.sleep(self._report_interval))
+                await self.sleep(self._report_interval)
             except OperationCancelled:
                 break
 
@@ -1053,7 +1053,8 @@ def _test() -> None:
         ROPSTEN_VM_CONFIGURATION,
     )
 
-    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
+    asyncio.ensure_future(peer_pool.run())
+    peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
 
     async def request_stuff() -> None:
         # Request some stuff from ropsten's block 2440319
@@ -1086,7 +1087,6 @@ def _test() -> None:
 
     asyncio.ensure_future(exit_on_sigint())
     asyncio.ensure_future(request_stuff())
-    asyncio.ensure_future(peer_pool.run())
     loop.set_debug(True)
     loop.run_forever()
     loop.close()

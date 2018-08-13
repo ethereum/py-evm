@@ -51,13 +51,13 @@ class LightNode(Node):
         self._discovery = DiscoveryService(
             self._discovery_proto, self._peer_pool, self.cancel_token)
         self._peer_chain = LightPeerChain(self.headerdb, self._peer_pool, self.cancel_token)
-        self.add_service(self._discovery)
-        self.add_service(self._peer_pool)
-        self.add_service(self._peer_chain)
         self.notify_resource_available()
 
     async def _run(self) -> None:
-        # TODO add a datagram endpoint service that can be added with self.add_service
+        self.run_child_service(self._discovery)
+        self.run_child_service(self._peer_pool)
+        self.run_child_service(self._peer_chain)
+        # TODO add a datagram endpoint service that can be added with self.run_child_service
         self.logger.info(
             "enode://%s@%s:%s",
             self.nodekey.public_key.to_hex()[2:],

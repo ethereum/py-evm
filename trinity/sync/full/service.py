@@ -62,10 +62,6 @@ class FullNodeSyncer(BaseService):
             self.chain, self.chaindb, self.peer_pool, self.cancel_token)
         await chain_syncer.run()
 
-    async def _cleanup(self) -> None:
-        # We don't run anything in the background, so nothing to do here.
-        pass
-
 
 def _test() -> None:
     import argparse
@@ -96,7 +92,7 @@ def _test() -> None:
     else:
         nodes = DEFAULT_PREFERRED_NODES[network_id]
     asyncio.ensure_future(peer_pool.run())
-    asyncio.ensure_future(connect_to_peers_loop(peer_pool, nodes))
+    peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
 
     loop = asyncio.get_event_loop()
 
