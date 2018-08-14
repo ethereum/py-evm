@@ -16,7 +16,7 @@ from trinity.config import (
 
 @pytest.fixture
 def chain_config():
-    _chain_config = ChainConfig(network_id=1)
+    _chain_config = ChainConfig(network_id=1, max_peers=1)
     initialize_data_dir(_chain_config)
     return _chain_config
 

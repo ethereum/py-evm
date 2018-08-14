@@ -44,7 +44,7 @@ def database_server_ipc_path():
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, data_dir=temp_dir)
+        chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, max_peers=1, data_dir=temp_dir)
 
         manager = get_chaindb_manager(chain_config, core_db)
         chaindb_server_process = multiprocessing.Process(

@@ -18,7 +18,6 @@ from eth.chains.ropsten import (
 )
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
-    DEFAULT_MAX_PEERS,
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
 )
@@ -62,7 +61,7 @@ class ChainConfig:
 
     def __init__(self,
                  network_id: int,
-                 max_peers: int=DEFAULT_MAX_PEERS,
+                 max_peers: int,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  logfile_path: str=None,

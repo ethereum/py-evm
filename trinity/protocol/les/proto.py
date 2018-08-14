@@ -62,7 +62,8 @@ class LESProtocol(Protocol):
             'genesisHash': chain_info.genesis_hash,
             'serveHeaders': None,
             'serveChainSince': 0,
-            'txRelay': None,
+            # TODO: Uncomment once we start relaying transactions.
+            # 'txRelay': None,
         }
         cmd = Status(self.cmd_id_offset)
         self.send(*cmd.encode(resp))

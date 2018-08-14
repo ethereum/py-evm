@@ -54,9 +54,10 @@ from p2p.service import BaseService
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.sync.full.service import FullNodeSyncer
+from trinity.sync.light.chain import LightChainSyncer
 
 
 DIAL_IN_OUT_RATIO = 0.75
@@ -75,7 +76,7 @@ class Server(BaseService):
                  port: int,
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
-                 headerdb: BaseAsyncHeaderDB,
+                 headerdb: AsyncHeaderDB,
                  base_db: AsyncBaseDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
@@ -288,6 +289,12 @@ class Server(BaseService):
     async def _start_peer(self, peer: BasePeer) -> None:
         # This method exists only so that we can monkey-patch it in tests.
         await self.peer_pool.start_peer(peer)
+
+
+class LightServer(Server):
+
+    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
+        return LightChainSyncer(self.chain, self.headerdb, peer_pool, self.cancel_token)
 
 
 def _test() -> None:

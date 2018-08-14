@@ -13,7 +13,7 @@ from trinity.config import (
 
 @pytest.fixture
 def chain_config():
-    return ChainConfig(network_id=1)
+    return ChainConfig(network_id=1, max_peers=1)
 
 
 @pytest.fixture

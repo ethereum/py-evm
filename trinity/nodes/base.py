@@ -26,7 +26,7 @@ from trinity.chains.header import (
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.db.header import (
-    BaseAsyncHeaderDB,
+    AsyncHeaderDB,
     AsyncHeaderDBProxy
 )
 from trinity.rpc.main import (
@@ -86,7 +86,7 @@ class Node(BaseService):
         return self._db_manager
 
     @property
-    def headerdb(self) -> BaseAsyncHeaderDB:
+    def headerdb(self) -> AsyncHeaderDB:
         return self._headerdb
 
     def notify_resource_available(self) -> None:
