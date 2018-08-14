@@ -28,12 +28,14 @@ from eth.vm.forks import (
     HomesteadVM,
     SpuriousDragonVM,
     ByzantiumVM,
+    ConstantinopleVM,
 )
 from eth.vm.forks.tangerine_whistle.state import TangerineWhistleState
 from eth.vm.forks.frontier.state import FrontierState
 from eth.vm.forks.homestead.state import HomesteadState
 from eth.vm.forks.spurious_dragon.state import SpuriousDragonState
 from eth.vm.forks.byzantium.state import ByzantiumState
+from eth.vm.forks.constantinople.state import ConstantinopleState
 
 from eth.rlp.headers import (
     BlockHeader,
@@ -245,6 +247,10 @@ ByzantiumStateForTesting = ByzantiumState.configure(
     __name__='ByzantiumStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
 )
+ConstantinopleStateForTesting = ConstantinopleState.configure(
+    __name__='ConstantinopleStateForTesting',
+    get_ancestor_hash=get_block_hash_for_testing,
+)
 
 FrontierVMForTesting = FrontierVM.configure(
     __name__='FrontierVMForTesting',
@@ -271,6 +277,11 @@ ByzantiumVMForTesting = ByzantiumVM.configure(
     _state_class=ByzantiumStateForTesting,
     get_prev_hashes=get_prev_hashes_testing,
 )
+ConstantinopleVMForTesting = ConstantinopleVM.configure(
+    __name__='ConstantinopleVMForTesting',
+    _state_class=ConstantinopleStateForTesting,
+    get_prev_hashes=get_prev_hashes_testing,
+)
 
 
 @pytest.fixture
@@ -287,7 +298,7 @@ def fixture_vm_class(fixture_data):
     elif fork_name == ForkName.Byzantium:
         return ByzantiumVMForTesting
     elif fork_name == ForkName.Constantinople:
-        pytest.skip("Constantinople VM has not been implemented")
+        return ConstantinopleVMForTesting
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis VM has not been implemented")
     else:

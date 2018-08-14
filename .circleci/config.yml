@@ -108,6 +108,12 @@ jobs:
       - image: circleci/python:3.5
         environment:
           TOXENV: py35-native-state-byzantium
+  py35-native-state-constantinople:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-state-constantinople
   py35-native-state-frontier:
     <<: *common
     docker:
@@ -175,6 +181,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-native-state-byzantium
+  py36-native-state-constantinople:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-state-constantinople
   py36-native-state-frontier:
     <<: *common
     docker:
@@ -205,6 +217,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-byzantium
+  py36-rpc-state-constantinople:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-constantinople
   py36-rpc-state-frontier:
     <<: *common
     docker:
@@ -340,11 +358,13 @@ workflows:
       - py37-beacon
 
       - py36-native-state-byzantium
+      - py36-native-state-constantinople
       - py36-native-state-frontier
       - py36-native-state-homestead
       - py36-native-state-eip150
       - py36-native-state-eip158
       - py36-rpc-state-byzantium
+      - py36-rpc-state-constantinople
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
       - py36-rpc-state-eip150
@@ -364,6 +384,7 @@ workflows:
       - py36-beacon
 
       - py35-native-state-byzantium
+      - py35-native-state-constantinople
       - py35-native-state-frontier
       - py35-native-state-homestead
       - py35-native-state-eip150
