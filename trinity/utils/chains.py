@@ -22,6 +22,10 @@ from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from p2p.constants import DEFAULT_MAX_PEERS
+
+from trinity.constants import SYNC_LIGHT
+
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -125,7 +129,7 @@ def load_nodekey(nodekey_path: Path) -> PrivateKey:
 
 @to_dict
 def construct_chain_config_params(
-        args: argparse.Namespace) -> Iterable[Tuple[str, Union[str, Tuple[str, ...]]]]:
+        args: argparse.Namespace) -> Iterable[Tuple[str, Union[int, str, Tuple[str, ...]]]]:
     """
     Helper function for constructing the kwargs to initialize a ChainConfig object.
     """
@@ -146,6 +150,8 @@ def construct_chain_config_params(
 
     if args.max_peers is not None:
         yield 'max_peers', args.max_peers
+    else:
+        yield 'max_peers', _default_max_peers(args.sync_mode)
 
     if args.port is not None:
         yield 'port', args.port
@@ -154,3 +160,10 @@ def construct_chain_config_params(
         yield 'preferred_nodes', tuple()
     else:
         yield 'preferred_nodes', tuple(args.preferred_nodes)
+
+
+def _default_max_peers(sync_mode: str) -> int:
+    if sync_mode == SYNC_LIGHT:
+        return DEFAULT_MAX_PEERS // 2
+    else:
+        return DEFAULT_MAX_PEERS

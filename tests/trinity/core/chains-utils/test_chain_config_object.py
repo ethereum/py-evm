@@ -21,7 +21,7 @@ from trinity.utils.filesystem import (
 
 def test_chain_config_computed_properties():
     data_dir = get_local_data_dir('muffin')
-    chain_config = ChainConfig(network_id=1234, data_dir=data_dir)
+    chain_config = ChainConfig(network_id=1234, max_peers=1, data_dir=data_dir)
 
     assert chain_config.network_id == 1234
     assert chain_config.data_dir == data_dir
@@ -32,6 +32,7 @@ def test_chain_config_computed_properties():
 def test_chain_config_explicit_properties():
     chain_config = ChainConfig(
         network_id=1,
+        max_peers=1,
         data_dir='./data-dir',
         nodekey_path='./nodekey'
     )
@@ -60,6 +61,7 @@ def nodekey_path(tmpdir, nodekey_bytes):
 def test_chain_config_nodekey_loading(nodekey_bytes, nodekey_path):
     chain_config = ChainConfig(
         network_id=1,
+        max_peers=1,
         nodekey_path=nodekey_path,
     )
 
@@ -70,6 +72,7 @@ def test_chain_config_nodekey_loading(nodekey_bytes, nodekey_path):
 def test_chain_config_explictely_provided_nodekey(nodekey_bytes, as_bytes):
     chain_config = ChainConfig(
         network_id=1,
+        max_peers=1,
         nodekey=nodekey_bytes if as_bytes else keys.PrivateKey(nodekey_bytes),
     )
 
