@@ -67,6 +67,7 @@ SLOW_TESTS = (
     'static_Call50000_d0g0v0_Byzantium',
     'static_Call50000_ecrec_d0g0v0_Byzantium',
     'static_Call50000_identity2_d0g0v0_Byzantium',
+    'static_Call50000_identity2_d1g0v0_Byzantium',
     'static_Call50000_identity_d1g0v0_Byzantium',
     'static_Call50000_identity_d0g0v0_Byzantium',
     'static_Call50000bytesContract50_1_d1g0v0_Byzantium',
