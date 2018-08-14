@@ -7,6 +7,7 @@ from typing import (
     Iterable,
     List,
     Union,
+    Type,
 )
 
 from trinity.extensibility.events import (
@@ -15,6 +16,7 @@ from trinity.extensibility.events import (
 )
 from trinity.extensibility.plugin import (
     BasePlugin,
+    PluginContext,
 )
 
 
@@ -28,19 +30,26 @@ class PluginManager:
         This API is very much in flux and is expected to change heavily.
     """
 
-    def __init__(self) -> None:
-        self._plugin_store: List[BasePlugin] = []
+    def __init__(self, context: PluginContext) -> None:
+        self._plugin_store: List[Type[BasePlugin]] = []
+        self._initialized_plugins: List[BasePlugin] = []
         self._started_plugins: List[BasePlugin] = []
+        self._plugin_context = context
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
-    def register(self, plugins: Union[BasePlugin, Iterable[BasePlugin]]) -> None:
+    def register(self, plugins: Union[Type[BasePlugin], Iterable[Type[BasePlugin]]]) -> None:
         """
         Register one or multiple instances of :class:`~trinity.extensibility.plugin.BasePlugin`
         with the plugin manager.
         """
 
-        new_plugins = [plugins] if isinstance(plugins, BasePlugin) else plugins
+        new_plugins = [plugins] if not isinstance(plugins, Iterable) else plugins
         self._plugin_store.extend(new_plugins)
+
+    def initialize_plugins(self) -> None:
+        for plugin in self._plugin_store:
+            initialized_plugin = plugin(self._plugin_context)
+            self._initialized_plugins.append(initialized_plugin)
 
     def amend_argparser_config(self,
                                arg_parser: ArgumentParser,
@@ -49,7 +58,7 @@ class PluginManager:
         Call :meth:`~trinity.extensibility.plugin.BasePlugin.configure_parser` for every registered
         plugin, giving them the option to amend the global parser setup.
         """
-        for plugin in self._plugin_store:
+        for plugin in self._initialized_plugins:
             plugin.configure_parser(arg_parser, subparser)
 
     def broadcast(self, event: BaseEvent, exclude: BasePlugin = None) -> None:
@@ -61,7 +70,7 @@ class PluginManager:
         :class:`~trinity.extensibility.events.PluginStartedEvent` to get
         broadcasted to all other plugins, giving them the chance to start based on that.
         """
-        for plugin in self._plugin_store:
+        for plugin in self._initialized_plugins:
 
             if plugin is exclude:
                 continue
@@ -74,7 +83,7 @@ class PluginManager:
             if not plugin.should_start():
                 continue
 
-            plugin.start(None)
+            plugin.start()
             self._started_plugins.append(plugin)
             self._logger.info("Plugin started: {}".format(plugin.name))
             self.broadcast(PluginStartedEvent(plugin), plugin)

@@ -1,7 +1,8 @@
 import pkg_resources
 
 from trinity.plugins.builtin.attach.plugin import (
-    AttachPlugin
+    IPythonShellAttachPlugin,
+    VanillaShellAttachPlugin,
 )
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
@@ -22,6 +23,6 @@ def is_ipython_available() -> bool:
 # config file which plugin is enabled or not
 
 ENABLED_PLUGINS = [
-    AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
-    TxPlugin(),
+    IPythonShellAttachPlugin if is_ipython_available() else VanillaShellAttachPlugin,
+    TxPlugin,
 ]

@@ -22,6 +22,9 @@ from p2p.peer import (
     PeerPool
 )
 
+from trinity.constants import (
+    SYNC_LIGHT
+)
 from trinity.extensibility import (
     BaseEvent,
     BasePlugin,
@@ -41,7 +44,8 @@ from trinity.plugins.builtin.tx_pool.validators import (
 
 class TxPlugin(BasePlugin):
 
-    def __init__(self) -> None:
+    def __init__(self, context: PluginContext) -> None:
+        super().__init__(context)
         self.peer_pool: PeerPool = None
         self.cancel_token: CancelToken = None
         self.chain: BaseChain = None
@@ -60,7 +64,11 @@ class TxPlugin(BasePlugin):
 
     def handle_event(self, activation_event: BaseEvent) -> None:
         if isinstance(activation_event, TrinityStartupEvent):
-            self.is_enabled = activation_event.args.tx_pool
+            light_mode = activation_event.args.sync_mode == SYNC_LIGHT
+            self.is_enabled = activation_event.args.tx_pool and not light_mode
+            if light_mode:
+                self.logger.warning('The transaction pool is not yet available in light mode')
+                self.context.shutdown_trinity(exit_code=1)
         if isinstance(activation_event, ResourceAvailableEvent):
             if activation_event.resource_type is PeerPool:
                 self.peer_pool, self.cancel_token = activation_event.resource
@@ -70,7 +78,7 @@ class TxPlugin(BasePlugin):
     def should_start(self) -> bool:
         return all((self.peer_pool is not None, self.chain is not None, self.is_enabled))
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         if isinstance(self.chain, BaseMainnetChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
         elif isinstance(self.chain, BaseRopstenChain):

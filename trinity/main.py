@@ -1,6 +1,8 @@
 from argparse import Namespace
 import asyncio
 import logging
+import multiprocessing
+import os
 import signal
 import sys
 import time
@@ -8,6 +10,12 @@ from typing import (
     Any,
     Dict,
     Type,
+)
+
+from lahja import (
+    EventBus,
+    Endpoint,
+    BaseEvent
 )
 
 from eth.chains.mainnet import (
@@ -37,8 +45,12 @@ from trinity.cli_parser import (
 from trinity.config import (
     ChainConfig,
 )
+from trinity.events import (
+    ShutdownRequested,
+)
 from trinity.extensibility import (
     PluginManager,
+    PluginContext,
 )
 from trinity.extensibility.events import (
     TrinityStartupEvent
@@ -181,6 +193,12 @@ def trinity_boot(args: Namespace,
     # the local logger.
     listener.start()
 
+    event_bus = EventBus()
+    main_endpoint = event_bus.create_endpoint('main')
+    networking_endpoint = event_bus.create_endpoint('networking')
+    event_bus.start()
+    main_endpoint.connect()
+
     # First initialize the database process.
     database_server_process = ctx.Process(
         target=run_database_process,
@@ -191,10 +209,19 @@ def trinity_boot(args: Namespace,
         kwargs=extra_kwargs,
     )
 
-    networking_process = ctx.Process(
+    networking_process = multiprocessing.Process(
         target=launch_node,
-        args=(args, chain_config, ),
+        args=(args, chain_config, networking_endpoint,),
         kwargs=extra_kwargs,
+    )
+
+    main_endpoint.subscribe(
+        ShutdownRequested,
+        lambda event: kill_trinity_gracefully(
+            database_server_process,
+            networking_process,
+            logger
+        )
     )
 
     # start the processes
@@ -206,7 +233,9 @@ def trinity_boot(args: Namespace,
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
     try:
-        networking_process.join()
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
+        loop.close()
     except KeyboardInterrupt:
         # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
         # foreground *process group*, so both our networking and database processes will terminate
@@ -219,13 +248,18 @@ def trinity_boot(args: Namespace,
         # simply uses 'kill' to send a signal to the main process, but also because they will
         # perform a non-gracefull shutdown if the process takes too long to terminate.
         logger.info('Keyboard Interrupt: Stopping')
-        kill_process_gracefully(database_server_process, logger)
-        logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
-        # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
-        # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-        time.sleep(0.2)
-        kill_process_gracefully(networking_process, logger)
-        logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+        kill_trinity_gracefully(database_server_process, networking_process, logger)
+
+def kill_trinity_gracefully(database_server_process, networking_process, logger):
+    kill_process_gracefully(database_server_process, logger)
+    logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
+    # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
+    # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
+    time.sleep(0.2)
+    kill_process_gracefully(networking_process, logger)
+    logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+    # FIXME: This is just until I figured out why we can't have a clean, full, shutdown
+    os._exit(0)
 
 
 def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> None:
@@ -300,8 +334,11 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
+def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) -> None:
     with chain_config.process_id_file('networking'):
+
+        endpoint.connect()
+
         NodeClass = chain_config.node_class
         # Temporary hack: We setup a second instance of the PluginManager.
         # The first instance was only to configure the ArgumentParser whereas
@@ -309,16 +346,15 @@ def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
         # performs the bulk of the work. In the future, the PluginManager
         # should probably live in its own process and manage whether plugins
         # run in the shared plugin process or spawn their own.
-        plugin_manager = setup_plugins()
+        plugin_context = PluginContext(endpoint)
+        plugin_manager = setup_plugins(plugin_context)
         plugin_manager.broadcast(TrinityStartupEvent(
             args,
             chain_config
         ))
 
         node = NodeClass(plugin_manager, chain_config)
-
         run_service_until_quit(node)
-
 
 def display_launch_logs(chain_config: ChainConfig) -> None:
     logger = logging.getLogger('trinity')
@@ -335,9 +371,10 @@ def run_service_until_quit(service: BaseService) -> None:
     loop.close()
 
 
-def setup_plugins() -> PluginManager:
-    plugin_manager = PluginManager()
+def setup_plugins(plugin_context: PluginContext = None) -> PluginManager:
+    plugin_manager = PluginManager(plugin_context)
     # TODO: Implement auto-discovery of plugins based on some convention/configuration scheme
     plugin_manager.register(ENABLED_PLUGINS)
+    plugin_manager.initialize_plugins()
 
     return plugin_manager
