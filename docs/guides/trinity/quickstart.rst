@@ -53,6 +53,53 @@ Then, install the ``trinity`` package via pip:
 
   pip3 install -U trinity
 
+Installing through Docker
+-------------------------
+
+Trinity can also be installed using ``Docker`` which can be a lightweight alternative where no
+changes need to be made to the host system apart from having ``Docker`` itself installed.
+
+.. note::
+  While we don't officially support Windows just yet, running Trinity through ``Docker`` is a great
+  way to bypass this current limitation as Trinity can run on any system that runs ``Docker``,
+  including Windows.
+
+Using ``Docker`` we have two different options to choose from.
+
+
+**1. Run an existing official image**
+
+This is the default way of running Trinity through ``Docker``. If all we care about is running
+a Trinity node, using one of the latest released versions, this method is perfect.
+
+Run:
+
+.. code:: sh
+
+  docker run -it ethereum/trinity
+
+Alternatively, we can run a specific image version, following the usual docker version schema.
+
+.. code:: sh
+
+  docker run -it ethereum/trinity:0.1.0-alpha.13
+
+**2. Build your own image**
+
+Alternatively, we may want to try out a specific (unreleased) version. In that case, we can create
+our very own image directly from the source code.
+
+
+.. code:: sh
+
+  make create-docker-image version=my-own-version
+
+After the images was built successfully we can run it by invoking:
+
+.. code:: sh
+
+  docker run -it ethereum/trinity:my-own-version
+
 Running Trinity
 ~~~~~~~~~~~~~~~
 
