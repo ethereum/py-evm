@@ -209,7 +209,7 @@ def rebuild_exc(exc, tb):  # type: ignore
     return exc
 
 
-def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
+def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManager:
     chaindb = AsyncChainDB(base_db)
     chain_class: Type[BaseChain]
     if not is_database_initialized(chaindb):
@@ -255,9 +255,7 @@ def serve_chaindb(chain_config: ChainConfig, base_db: BaseDB) -> None:
     )
 
     manager = DBManager(address=str(chain_config.database_ipc_path))  # type: ignore
-    server = manager.get_server()  # type: ignore
-
-    server.serve_forever()
+    return manager
 
 
 class ChainProxy(BaseProxy):
