@@ -277,11 +277,11 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
         base_db = db_class(db_path=chain_config.database_dir)
 
         manager = get_chaindb_manager(chain_config, base_db)
+        server = manager.get_server()  # type: ignore
 
         def _sigint_handler(*args: Any) -> None:
             server.stop_event.set()
 
-        server = manager.get_server()  # type: ignore
         signal.signal(signal.SIGINT, _sigint_handler)
 
         try:

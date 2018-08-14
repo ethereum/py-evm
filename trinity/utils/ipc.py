@@ -16,19 +16,23 @@ def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=1) -> None:
         time.sleep(0.05)
 
 
+DEFAULT_SIGINT_TIMEOUT = 10
+DEFAULT_SIGTERM_TIMEOUT = 5
+
+
 def kill_process_gracefully(
         process: Process,
         logger: Logger,
-        SIGINT_timeout: int=5,
-        SIGTERM_timeout: int=3) -> None:
+        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
     kill_process_id_gracefully(process.pid, process.join, logger, SIGINT_timeout, SIGTERM_timeout)
 
 
 def kill_popen_gracefully(
         popen: subprocess.Popen,
         logger: Logger,
-        SIGINT_timeout: int=5,
-        SIGTERM_timeout: int=3) -> None:
+        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
 
     def silent_timeout(timeout_len: int) -> None:
         try:
@@ -43,8 +47,8 @@ def kill_process_id_gracefully(
         process_id: int,
         wait_for_completion: Callable[[int], None],
         logger: Logger,
-        SIGINT_timeout: int=5,
-        SIGTERM_timeout: int=3) -> None:
+        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
     try:
         try:
             os.kill(process_id, signal.SIGINT)

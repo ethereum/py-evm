@@ -75,11 +75,25 @@ def get_asyncio_executor(cpu_count: int=None) -> Executor:
                 cpu_count = 1
             else:
                 cpu_count = max(1, os_cpu_count - 1)
-        # we need the child processes to ignore `KeyboardInterrupt`
+        # The following block of code allows us to gracefully handle
+        # `KeyboardInterrupt` in the worker processes.  This is accomplished
+        # via two "hacks".
+        #
+        # First: We set the signal handler for SIGINT to the special case
+        # `SIG_IGN` which instructs the process to ignore SIGINT, while
+        # preserving the original signal handler.  We do this because child
+        # processes inherit the signal handlers of their parent processes.
+        #
+        # Second, we have to force the executor to initialize the worker
+        # processes, as they are not initialized on instantiation, but rather
+        # lazily when the first work is submitted.  We do this by calling the
+        # private method `_start_queue_management_thread`.
+        #
+        # Finally, we restore the original signal handler now that we know the
+        # child processes have been initialized to ensure that
+        # `KeyboardInterrupt` in the main process is still handled normally.
         original_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
         _executor = ProcessPoolExecutor(cpu_count)
-        # this is needed to force the `ProcessPoolExecutor` to start it's
-        # worker processes.
         _executor._start_queue_management_thread()  # type: ignore
         signal.signal(signal.SIGINT, original_handler)
     return _executor
