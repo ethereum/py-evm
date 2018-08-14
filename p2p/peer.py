@@ -356,6 +356,9 @@ class BasePeer(BaseService):
                     exc_info=True,
                 )
                 return
+            except MalformedMessage as err:
+                await self.disconnect(DisconnectReason.bad_protocol)
+                return
 
             try:
                 self.process_msg(cmd, msg)
@@ -846,12 +849,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
                     "Timed out waiting for DAO fork header from {}: {}".format(peer, err)
-                ) from err
-            except MalformedMessage as err:
-                raise DAOForkCheckFailure(
-                    "Malformed message while doing DAO fork check with {0}: {1}".format(
-                        peer, err,
-                    )
                 ) from err
             except ValidationError as err:
                 raise DAOForkCheckFailure(
