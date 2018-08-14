@@ -47,6 +47,9 @@ class FullNodeSyncer(BaseService):
                 self.chain, self.chaindb, self.peer_pool, self.cancel_token)
             await chain_syncer.run()
 
+        if not self.is_running:
+            return
+
         # Ensure we have the state for our current head.
         head = await self.wait(self.chaindb.coro_get_canonical_head())
         if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
@@ -55,6 +58,9 @@ class FullNodeSyncer(BaseService):
             downloader = StateDownloader(
                 self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
+
+        if not self.is_running:
+            return
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)

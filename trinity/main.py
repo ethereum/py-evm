@@ -28,7 +28,7 @@ from trinity.exceptions import (
 from trinity.chains import (
     initialize_data_dir,
     is_data_dir_initialized,
-    serve_chaindb,
+    get_chaindb_manager,
 )
 from trinity.cli_parser import (
     parser,
@@ -276,7 +276,19 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
     with chain_config.process_id_file('database'):
         base_db = db_class(db_path=chain_config.database_dir)
 
-        serve_chaindb(chain_config, base_db)
+        manager = get_chaindb_manager(chain_config, base_db)
+        server = manager.get_server()  # type: ignore
+
+        def _sigint_handler(*args: Any) -> None:
+            server.stop_event.set()
+
+        signal.signal(signal.SIGINT, _sigint_handler)
+
+        try:
+            server.serve_forever()
+        except SystemExit:
+            server.stop_event.set()
+            raise
 
 
 def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
@@ -294,6 +306,7 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
     await sigint_received.wait()
     try:
         await service_to_exit.cancel()
+        service_to_exit._executor.shutdown(wait=True)
     finally:
         loop.stop()
 

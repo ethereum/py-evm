@@ -158,6 +158,7 @@ class BaseService(ABC, CancellableMixin):
             *[task for task in self._tasks],
             self._cleanup()
         )
+
         self.events.cleaned_up.set()
 
     async def cancel(self) -> None:

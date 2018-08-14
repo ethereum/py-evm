@@ -115,7 +115,7 @@ class ShardSyncer(BaseService, PeerSubscriber):
     #
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
-            while True:
+            while self.is_running:
                 peer, cmd, msg = await self.cancel_token.cancellable_wait(
                     self.msg_queue.get())
 
