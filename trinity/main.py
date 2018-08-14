@@ -49,7 +49,6 @@ from trinity.plugins.registry import (
 from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
-    kill_process_id_gracefully,
 )
 from trinity.utils.logging import (
     setup_log_levels,
@@ -144,11 +143,6 @@ def main() -> None:
         args.file_log_level,
     )
 
-    # if cleanup command, try to shutdown dangling processes and exit
-    if args.subcommand == 'fix-unclean-shutdown':
-        fix_unclean_shutdown(chain_config, logger)
-        sys.exit(0)
-
     display_launch_logs(chain_config)
 
     # compute the minimum configured log level across all configured loggers.
@@ -226,48 +220,6 @@ def trinity_boot(args: Namespace,
         time.sleep(0.2)
         kill_process_gracefully(networking_process, logger)
         logger.info('Networking process (pid=%d) terminated', networking_process.pid)
-
-
-def fix_unclean_shutdown(chain_config: ChainConfig, logger: logging.Logger) -> None:
-    logger.info("Cleaning up unclean shutdown...")
-
-    logger.info("Searching for process id files in %s..." % chain_config.data_dir)
-    pidfiles = tuple(chain_config.data_dir.glob('*.pid'))
-    if len(pidfiles) > 1:
-        logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
-    elif len(pidfiles) == 1:
-        logger.info('Found 1 process from a previous run. Closing...')
-    else:
-        logger.info('Found 0 processes from a previous run. No processes to kill.')
-
-    for pidfile in pidfiles:
-        process_id = int(pidfile.read_text())
-        kill_process_id_gracefully(process_id, time.sleep, logger)
-        try:
-            pidfile.unlink()
-            logger.info('Manually removed %s after killing process id %d' % (pidfile, process_id))
-        except FileNotFoundError:
-            logger.debug('pidfile %s was gone after killing process id %d' % (pidfile, process_id))
-
-    db_ipc = chain_config.database_ipc_path
-    try:
-        db_ipc.unlink()
-        logger.info('Removed a dangling IPC socket file for database connections at %s', db_ipc)
-    except FileNotFoundError:
-        logger.debug('The IPC socket file for database connections at %s was already gone', db_ipc)
-
-    jsonrpc_ipc = chain_config.jsonrpc_ipc_path
-    try:
-        jsonrpc_ipc.unlink()
-        logger.info(
-            'Removed a dangling IPC socket file for JSON-RPC connections at %s',
-            jsonrpc_ipc,
-        )
-    except FileNotFoundError:
-        logger.debug(
-            'The IPC socket file for JSON-RPC connections at %s was already gone',
-            jsonrpc_ipc,
-        )
 
 
 @setup_cprofiler('run_database_process')
