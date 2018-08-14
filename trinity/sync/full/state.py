@@ -45,12 +45,18 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from p2p.exceptions import NoEligiblePeers, NoIdlePeers
+from p2p.exceptions import (
+    NoEligiblePeers,
+    NoIdlePeers,
+)
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
-from trinity.exceptions import SyncRequestAlreadyProcessed
+from trinity.exceptions import (
+    AlreadyWaiting,
+    SyncRequestAlreadyProcessed,
+)
 from trinity.p2p.handlers import PeerRequestHandler
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.requests import HeaderRequest
@@ -236,6 +242,11 @@ class StateDownloader(BaseService, PeerSubscriber):
                 err,
             )
             node_data = tuple()
+        except AlreadyWaiting as err:
+            self.logger.warn(
+                "Already waiting for a NodeData response from %s", peer,
+            )
+            return
 
         try:
             self.request_tracker.active_requests.pop(peer)
