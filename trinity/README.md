@@ -3,8 +3,9 @@
 1. Populate CHANGELOG
 2. Release `py-evm`
 3. Bump py-evm dependency version in `setup_trinity.py`
-3. Manual bump of trinity version in `setup_trinity.py`
-4. Release `trinity`
+4. Manual bump of trinity version in `setup_trinity.py`
+5. Release `trinity`
+6. Tag trinity release
 
 
 ## Environment Configuration
