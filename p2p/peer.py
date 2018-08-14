@@ -765,7 +765,9 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
         peers = self.connected_nodes.values()
-        await asyncio.gather(*[peer.disconnect(DisconnectReason.client_quitting) for peer in peers])
+        await asyncio.gather(*[
+            peer.disconnect(DisconnectReason.client_quitting) for peer in peers if peer.is_running
+        ])
 
     async def _cleanup(self) -> None:
         await self.stop_all_peers()
