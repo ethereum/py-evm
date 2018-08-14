@@ -23,7 +23,7 @@ from eth.constants import (
     ZERO_ADDRESS,
 )
 from eth.chains.base import (
-    BaseChain
+    BaseChain,
 )
 from eth.rlp.blocks import (
     BaseBlock
@@ -51,6 +51,7 @@ from trinity.rpc.modules import (
 )
 from trinity.utils.validation import (
     validate_transaction_call_dict,
+    validate_transaction_gas_estimation_dict,
 )
 
 
@@ -136,13 +137,21 @@ class Eth(RPCModule):
         num = self._chain.get_canonical_head().block_number
         return hex(num)
 
+    @format_params(identity, to_int_if_hex)
+    def call(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
+        header = get_header(self._chain, at_block)
+        validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
+        transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
+        result = self._chain.get_transaction_result(transaction, header)
+        return encode_hex(result)
+
     def coinbase(self) -> Hash32:
         raise NotImplementedError()
 
     @format_params(identity, to_int_if_hex)
     def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = get_header(self._chain, at_block)
-        validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
+        validate_transaction_gas_estimation_dict(txn_dict, self._chain.get_vm(header))
         transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
         gas = self._chain.estimate_gas(transaction, header)
         return hex(gas)

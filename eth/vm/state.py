@@ -2,6 +2,7 @@ from abc import (
     ABC,
     abstractmethod
 )
+import contextlib
 import logging
 from typing import (  # noqa: F401
     Type,
@@ -223,20 +224,44 @@ class BaseState(Configurable, ABC):
     def get_transaction_executor(self):
         return self.transaction_executor(self)
 
+    def costless_execute_transaction(self, transaction):
+        with self.override_transaction_context(gas_price=transaction.gas_price):
+            free_transaction = transaction.copy(gas_price=0)
+            return self.execute_transaction(free_transaction)
+
+    @contextlib.contextmanager
+    def override_transaction_context(self, gas_price):
+        original_context = self.get_transaction_context
+
+        def get_custom_transaction_context(transaction):
+            custom_transaction = transaction.copy(gas_price=gas_price)
+            return original_context(custom_transaction)
+
+        self.get_transaction_context = get_custom_transaction_context
+        try:
+            yield
+        finally:
+            self.get_transaction_context = original_context
+
     @abstractmethod
-    def execute_transaction(self):
+    def execute_transaction(self, transaction):
         raise NotImplementedError()
+
+    @abstractmethod
+    def validate_transaction(self, transaction):
+        raise NotImplementedError
+
+    @classmethod
+    def get_transaction_context(cls, transaction):
+        return cls.get_transaction_context_class()(
+            gas_price=transaction.gas_price,
+            origin=transaction.sender,
+        )
 
 
 class BaseTransactionExecutor(ABC):
     def __init__(self, vm_state):
         self.vm_state = vm_state
-
-    def get_transaction_context(self, transaction):
-        return self.vm_state.get_transaction_context_class()(
-            gas_price=transaction.gas_price,
-            origin=transaction.sender,
-        )
 
     def __call__(self, transaction):
         valid_transaction = self.validate_transaction(transaction)

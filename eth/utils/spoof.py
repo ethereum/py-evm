@@ -1,3 +1,7 @@
+from cytoolz import (
+    merge,
+)
+
 from eth.constants import (
     DEFAULT_SPOOF_V,
     DEFAULT_SPOOF_R,
@@ -44,6 +48,11 @@ class SpoofAttributes:
             return self.overrides[attr]
         else:
             return getattr(self.spoof_target, attr)
+
+    def copy(self, **kwargs):
+        new_target = self.spoof_target.copy(**kwargs)
+        new_overrides = merge(self.overrides, kwargs)
+        return type(self)(new_target, **new_overrides)
 
 
 class SpoofTransaction(SpoofAttributes):

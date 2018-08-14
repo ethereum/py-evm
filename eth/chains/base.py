@@ -251,6 +251,13 @@ class BaseChain(Configurable, ABC):
     # Execution API
     #
     @abstractmethod
+    def get_transaction_result(
+            self,
+            transaction: Union[BaseTransaction, SpoofTransaction],
+            at_header: BlockHeader) -> bytes:
+        raise NotImplementedError("Chain classes must implement this method")
+
+    @abstractmethod
     def estimate_gas(
             self,
             transaction: Union[BaseTransaction, SpoofTransaction],
@@ -550,6 +557,20 @@ class Chain(BaseChain):
     #
     # Execution API
     #
+    def get_transaction_result(
+            self,
+            transaction: Union[BaseTransaction, SpoofTransaction],
+            at_header: BlockHeader) -> bytes:
+        """
+        Return the result of running the given transaction.
+        This is referred to as a `call()` in web3.
+        """
+        with self.get_vm(at_header).state_in_temp_block() as state:
+            computation = state.costless_execute_transaction(transaction)
+
+        computation.raise_if_error()
+        return computation.output
+
     def estimate_gas(
             self,
             transaction: Union[BaseTransaction, SpoofTransaction],

@@ -14,7 +14,7 @@ deps = {
         "lru-dict>=1.1.6",
         "py-ecc>=1.4.2,<2.0.0",
         "pyethash>=0.1.27,<1.0.0",
-        "rlp>=1.0.1,<2.0.0",
+        "rlp>=1.0.2,<2.0.0",
         "trie>=1.3.5,<2.0.0",
     ],
     # The eth-extra sections is for libraries that the evm does not
