@@ -41,7 +41,7 @@ def tx(chain, funded_address, funded_address_private_key):
 @pytest.mark.xfail(reason="modification to initial allocation made the block fixture invalid")
 def test_import_block_validation(valid_chain, funded_address, funded_address_initial_balance):
     block = rlp.decode(valid_block_rlp, sedes=FrontierBlock)
-    imported_blocks, _, import_success = valid_chain.import_block(block)
+    imported_blocks, _ = valid_chain.import_block(block)
     imported_block = imported_blocks[-1]
 
     assert len(imported_block.transactions) == 1
@@ -66,7 +66,7 @@ def test_import_block(chain, tx):
         new_block, receipts, computations = chain.build_block_with_transactions([tx])
         assert computations[0].is_success
 
-    imported_blocks, _, import_success = chain.import_block(new_block)
+    imported_blocks, _ = chain.import_block(new_block)
     block = imported_blocks[-1]
 
     assert block.transactions == (tx,)

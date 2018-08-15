@@ -204,24 +204,24 @@ class HeaderDB(BaseHeaderDB):
             )
 
         new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
-        old_headers = []
+        orphaned_headers = []
 
         for h in new_canonical_headers:
             try:
-                old_hash = self.get_canonical_block_hash(h.block_number)
+                orphaned_hash = self.get_canonical_block_hash(h.block_number)
             except HeaderNotFound:
-                # no old block, and no more possible
+                # no orphaned block, and no more possible
                 break
             else:
-                old_header = self.get_block_header_by_hash(old_hash)
-                old_headers.append(old_header)
+                orphaned_header = self.get_block_header_by_hash(orphaned_hash)
+                orphaned_headers.append(orphaned_header)
 
         for h in new_canonical_headers:
             self._add_block_number_to_hash_lookup(h)
 
         self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
-        return new_canonical_headers, tuple(old_headers)
+        return new_canonical_headers, tuple(orphaned_headers)
 
     @to_tuple
     def _find_new_ancestors(self, header: BlockHeader) -> Iterable[BlockHeader]:

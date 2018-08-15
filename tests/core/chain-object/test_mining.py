@@ -43,6 +43,7 @@ def test_pow_mining():
         }
     }
     chain = PowMiningChain.from_genesis(MemoryDB(), genesis_params, state)
+    # import ipdb; ipdb.set_trace()
     for i in range(10):
         tx = chain.create_unsigned_transaction(
             nonce=i,

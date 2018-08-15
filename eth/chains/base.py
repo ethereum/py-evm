@@ -255,7 +255,7 @@ class BaseChain(Configurable, ABC):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True,
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...], bool]:
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -560,9 +560,9 @@ class Chain(BaseChain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...], bool]:
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
-        Imports a complete block.
+        Imports a complete block and returns new_blocks and orphaned_canonical_blocks.
         """
 
         try:
@@ -585,23 +585,26 @@ class Chain(BaseChain):
             ensure_imported_block_unchanged(imported_block, block)
             self.validate_block(imported_block)
 
-        new_canonical_headers, old_headers = self.chaindb.persist_block(imported_block)
+        (
+            new_canonical_header_hashes,
+            orphaned_header_hashes,
+        ) = self.chaindb.persist_block(imported_block)
+
         self.logger.debug(
             'IMPORTED_BLOCK: number %s | hash %s',
             imported_block.number,
             encode_hex(imported_block.hash),
         )
 
-        new_canonical_blocks = [
-            self.get_block_by_header(header) for header in new_canonical_headers]
-        old_canonical_blocks = [
-            self.get_block_by_header(header) for header in old_headers]
+        new_blocks = tuple(
+            self.get_block_by_hash(header_hash) for header_hash in new_canonical_header_hashes)
+        orphaned_canonical_blocks = tuple(
+            self.get_block_by_hash(header_hash) for header_hash in orphaned_header_hashes)
+        # add imported block to new block when no chain re-org
+        if not new_blocks:
+            new_blocks = (imported_block, )
 
-        import_success = True
-        if not new_canonical_blocks:
-            new_canonical_blocks.append(imported_block)
-            import_success = False
-        return tuple(new_canonical_blocks), tuple(old_canonical_blocks), import_success
+        return new_blocks, orphaned_canonical_blocks
 
     #
     # Validation API
@@ -770,12 +773,12 @@ class MiningChain(Chain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...], bool]:
-        new_canonical_blocks, old_canonical_blocks, import_success = super().import_block(
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        new_canonical_blocks, orphaned_canonical_blocks = super().import_block(
             block, perform_validation)
 
         self.header = self.ensure_header()
-        return new_canonical_blocks, old_canonical_blocks, import_success
+        return new_canonical_blocks, orphaned_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         """
