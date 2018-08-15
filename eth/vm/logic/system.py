@@ -1,3 +1,7 @@
+from eth_typing import (
+    Address,
+)
+
 from eth import constants
 from eth.exceptions import (
     Halt,
@@ -13,6 +17,9 @@ from eth.utils.hexadecimal import (
     encode_hex,
 )
 from eth.vm import mnemonics
+from eth.vm.computation import (
+    BaseComputation
+)
 from eth.vm.opcode import (
     Opcode,
 )
@@ -20,7 +27,7 @@ from eth.vm.opcode import (
 from .call import max_child_gas_eip150
 
 
-def return_op(computation):
+def return_op(computation: BaseComputation) -> None:
     start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
@@ -30,7 +37,7 @@ def return_op(computation):
     raise Halt('RETURN')
 
 
-def revert(computation):
+def revert(computation: BaseComputation) -> None:
     start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
@@ -40,13 +47,13 @@ def revert(computation):
     raise Revert(computation.output)
 
 
-def selfdestruct(computation):
+def selfdestruct(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     _selfdestruct(computation, beneficiary)
     raise Halt('SELFDESTRUCT')
 
 
-def selfdestruct_eip150(computation):
+def selfdestruct_eip150(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     if not computation.state.account_db.account_exists(beneficiary):
         computation.consume_gas(
@@ -56,7 +63,7 @@ def selfdestruct_eip150(computation):
     _selfdestruct(computation, beneficiary)
 
 
-def selfdestruct_eip161(computation):
+def selfdestruct_eip161(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     is_dead = (
         not computation.state.account_db.account_exists(beneficiary) or
@@ -70,7 +77,7 @@ def selfdestruct_eip161(computation):
     _selfdestruct(computation, beneficiary)
 
 
-def _selfdestruct(computation, beneficiary):
+def _selfdestruct(computation: BaseComputation, beneficiary: Address) -> None:
     local_balance = computation.state.account_db.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.state.account_db.get_balance(beneficiary)
 
@@ -94,10 +101,11 @@ def _selfdestruct(computation, beneficiary):
 
 
 class Create(Opcode):
-    def max_child_gas_modifier(self, gas):
+
+    def max_child_gas_modifier(self, gas: int) -> int:
         return gas
 
-    def __call__(self, computation):
+    def __call__(self, computation: BaseComputation) -> None:
         computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
         value, start_position, size = computation.stack_pop(
@@ -160,12 +168,12 @@ class Create(Opcode):
 
 
 class CreateEIP150(Create):
-    def max_child_gas_modifier(self, gas):
+    def max_child_gas_modifier(self, gas: int) -> int:
         return max_child_gas_eip150(gas)
 
 
 class CreateByzantium(CreateEIP150):
-    def __call__(self, computation):
+    def __call__(self, computation: BaseComputation) -> None:
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return super().__call__(computation)
