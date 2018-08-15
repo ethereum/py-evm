@@ -48,7 +48,7 @@ class FullNodeSyncer(BaseService):
             await chain_syncer.run()
 
         await self.sleep(0)
-        if not self.is_running:
+        if self.cancel_token.triggered:
             return
 
         # Ensure we have the state for our current head.
@@ -61,7 +61,7 @@ class FullNodeSyncer(BaseService):
             await downloader.run()
 
         await self.sleep(0)
-        if not self.is_running:
+        if self.cancel_token.triggered:
             return
 
         # Now, loop forever, fetching missing blocks and applying them.
