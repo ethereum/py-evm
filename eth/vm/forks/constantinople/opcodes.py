@@ -19,6 +19,7 @@ from eth.vm.forks.constantinople.constants import (
 from eth.vm.logic import (
     arithmetic,
     context,
+    system,
 )
 from eth.vm.opcode import (
     as_opcode
@@ -46,6 +47,11 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.EXTCODEHASH,
         gas_cost=GAS_EXTCODEHASH_EIP1052,
     ),
+    opcode_values.CREATE2: system.Create2.configure(
+        __name__='opcode:CREATE2',
+        mnemonic=mnemonics.CREATE2,
+        gas_cost=constants.GAS_CREATE,
+    )(),
 }
 
 CONSTANTINOPLE_OPCODES = merge(

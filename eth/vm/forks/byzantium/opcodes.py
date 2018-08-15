@@ -103,7 +103,6 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     )(),
-    # TODO: CREATE2
     #
     # Storage
     #
