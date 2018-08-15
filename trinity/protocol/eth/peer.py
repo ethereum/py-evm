@@ -19,25 +19,24 @@ from .commands import (
     NewBlock,
     Status,
 )
-from . import constants
+from trinity.protocol.eth import constants
 from .proto import ETHProtocol
-from .handlers import ETHRequestResponseHandler
+from .handlers import ETHExchangeHandler
 
 
 class ETHPeer(BasePeer):
     _supported_sub_protocols = [ETHProtocol]
     sub_proto: ETHProtocol = None
 
-    _requests: ETHRequestResponseHandler = None
+    _requests: ETHExchangeHandler = None
 
     def get_extra_stats(self) -> List[str]:
         return self.requests.get_stats()
 
     @property
-    def requests(self) -> ETHRequestResponseHandler:
+    def requests(self) -> ETHExchangeHandler:
         if self._requests is None:
-            self._requests = ETHRequestResponseHandler(self)
-            self.run_daemon(self._requests)
+            self._requests = ETHExchangeHandler(self)
         return self._requests
 
     @property

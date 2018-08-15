@@ -1,14 +1,13 @@
-from abc import abstractmethod
 import asyncio
 import time
 from typing import (
     Any,
-    cast,
+    Callable,
     Generic,
     Set,
     Tuple,
     Type,
-    TypeVar,
+    cast,
 )
 
 from cancel_token import CancelToken
@@ -17,29 +16,21 @@ from eth_utils import (
     ValidationError,
 )
 
-from p2p.exceptions import (
-    MalformedMessage,
-)
-from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
+    BaseRequest,
     Command,
 )
 from p2p.service import BaseService
 
 from trinity.exceptions import AlreadyWaiting
 
-from .requests import BaseRequest
-
-
-# The peer class that this will be connected to
-TPeer = TypeVar('TPeer', bound=BasePeer)
-# The `Request` class that will be used.
-TRequest = TypeVar('TRequest', bound=BaseRequest[Any, Any])
-# The type that will be returned to the caller
-TReturn = TypeVar('TReturn')
-# The type of the command payload
-TMsg = TypeVar('TMsg')
+from .normalizers import BaseNormalizer
+from .types import (
+    TCommandPayload,
+    TMsg,
+    TResult,
+)
 
 
 class ResponseTimeTracker:
@@ -67,7 +58,8 @@ class ResponseTimeTracker:
         self.total_response_time += time
 
 
-class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, TMsg, TReturn]):
+class MessageManager(PeerSubscriber, BaseService, Generic[TMsg]):
+
     #
     # PeerSubscriber
     #
@@ -79,14 +71,41 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
 
     response_timout: int = 60
 
-    pending_request: Tuple[TRequest, 'asyncio.Future[TReturn]'] = None
+    pending_request: Tuple[float, 'asyncio.Future[TMsg]'] = None
 
-    _peer: TPeer
+    _peer: BasePeer
 
-    def __init__(self, peer: TPeer, token: CancelToken) -> None:
+    def __init__(
+            self,
+            peer: BasePeer,
+            response_msg_type: Type[Command],
+            token: CancelToken) -> None:
+        super().__init__(token)
         self._peer = peer
         self.response_times = ResponseTimeTracker()
-        super().__init__(token)
+        self._response_msg_type = response_msg_type
+
+    async def message_candidates(
+            self,
+            request: BaseRequest[Any],
+            timeout: int) -> 'AsyncGenerator[TMsg, None]':
+        """
+        Make a request and iterate through candidates for a valid response.
+
+        To mark a response as valid, use `complete_request`. After that call, message
+        candidates will stop arriving.
+        """
+        self._request(request)
+        while self._is_pending():
+            yield await self._get_message(timeout)
+
+    @property
+    def response_msg_name(self) -> str:
+        return self._response_msg_type.__name__
+
+    def complete_request(self, item_count: int) -> None:
+        self.pending_request = None
+        self.response_times.add(self.last_response_time, item_count)
 
     #
     # Service API
@@ -112,91 +131,25 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
             )
             return
 
-        self.response_times.add(
-            time.time() - self._pending_request_start, self._get_item_count(msg))
+        send_time, future = self.pending_request
+        self.last_response_time = time.perf_counter() - send_time
+        future.set_result(msg)
 
-        request, future = self.pending_request
-
+    async def _get_message(self, timeout: int) -> TMsg:
+        send_time, future = self.pending_request
         try:
-            response = await self._normalize_response(msg)
-        except MalformedMessage as err:
-            self.logger.warning(
-                "Malformed response for pending %s request from peer %s, disconnecting: %s",
-                self.response_msg_name,
-                self._peer,
-                err,
-            )
-            await self._peer.disconnect(DisconnectReason.bad_protocol)
-            return
-
-        try:
-            request.validate_response(msg, response)
-        except ValidationError as err:
-            self.logger.debug(
-                "Response validation failed for pending %s request from peer %s: %s",
-                self.response_msg_name,
-                self._peer,
-                err,
-            )
-            return
-
-        future.set_result(response)
-        self.pending_request = None
-
-    @abstractmethod
-    async def _normalize_response(self, msg: TMsg) -> TReturn:
-        pass
-
-    @abstractmethod
-    def _get_item_count(self, msg: TMsg) -> int:
-        pass
-
-    @abstractmethod
-    def __call__(self) -> TReturn:
-        """
-        Subclasses must both implement this method and override the call
-        signature to properly construct the `Request` object and pass it into
-        `get_from_peer`
-
-        NOTE: It is expected that subclasses will override this method and
-        change the signature.  The change in signature is expected to result in
-        a type checking failure, and thus all subclasses will also be required
-        to add an `# type: ignore` comment to make the type checker happy.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def _response_msg_type(self) -> Type[Command]:
-        pass
-
-    @property
-    def response_msg_name(self) -> str:
-        return self._response_msg_type.__name__
-
-    @abstractmethod
-    def _send_sub_proto_request(self, request: TRequest) -> None:
-        pass
-
-    async def _wait_for_response(self,
-                                 request: TRequest,
-                                 timeout: int) -> TReturn:
-        future: 'asyncio.Future[TReturn]' = asyncio.Future()
-        self._pending_request_start = time.time()
-        self.pending_request = (request, future)
-
-        try:
-            response = await self.wait(future, timeout=timeout)
+            message = await self.wait(future, timeout=timeout)
         except TimeoutError:
             self.response_times.total_timeouts += 1
-            raise
-        finally:
-            # Always ensure that we reset the `pending_request` to `None` on exit.
             self.pending_request = None
+            raise
+        else:
+            # message might be invalid, so allow another attempt to wait for a valid response
+            self.pending_request = (send_time, asyncio.Future())
 
-        return response
+        return message
 
-    async def _request_and_wait(self, request: TRequest, timeout: int=None) -> TReturn:
+    def _request(self, request: BaseRequest[Any]) -> None:
         if self.pending_request is not None:
             self.logger.error(
                 "Already waiting for response to %s for peer: %s",
@@ -210,10 +163,86 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
                 )
             )
 
-        if timeout is None:
-            timeout = self.response_timout
-        self._send_sub_proto_request(request)
-        return await self._wait_for_response(request, timeout=timeout)
+        self._peer.sub_proto.send_request(request)
+
+        future: 'asyncio.Future[TMsg]' = asyncio.Future()
+        self.pending_request = (time.perf_counter(), future)
+
+    def _is_pending(self) -> bool:
+        return self.pending_request is not None
 
     def get_stats(self) -> str:
         return '%s: %s' % (self.response_msg_name, self.response_times.get_stats())
+
+
+class ExchangeManager(Generic[TCommandPayload, TMsg, TResult]):
+    _message_manager: MessageManager[TMsg] = None
+
+    def __init__(
+            self,
+            peer: BasePeer,
+            cancel_token: CancelToken) -> None:
+        self._peer = peer
+        self._cancel_token = cancel_token
+
+    async def launch_service(self, listening_for: Type[Command]) -> None:
+        self._message_manager = MessageManager(
+            self._peer,
+            listening_for,
+            self._cancel_token,
+        )
+        self._peer.run_daemon(self._message_manager)
+        await self._message_manager.events.started.wait()
+
+    @property
+    def is_running(self) -> bool:
+        return self.service is not None and self.service.is_running
+
+    async def get_result(
+            self,
+            request: BaseRequest[TCommandPayload],
+            normalizer: BaseNormalizer[TMsg, TResult],
+            validate_result: Callable[[TResult], None],
+            message_validator: Callable[[TMsg], None] = None,
+            timeout: int = None) -> TResult:
+
+        if not self.is_running:
+            raise ValidationError("You must call `launch_service` before initiating a peer request")
+
+        manager = self._message_manager
+
+        async for message in manager.message_candidates(request, timeout):
+            try:
+                if message_validator is not None:
+                    message_validator(message)
+
+                if normalizer.is_normalization_slow:
+                    result = await manager._run_in_executor(normalizer.normalize_result, message)
+                else:
+                    result = normalizer.normalize_result(message)
+
+                validate_result(result)
+            except ValidationError as err:
+                self.service.logger.debug(
+                    "Response validation failed for pending %s request from peer %s: %s",
+                    manager.response_msg_name,
+                    self._peer,
+                    err,
+                )
+                continue
+            else:
+                num_items = normalizer.get_num_results(result)
+                manager.complete_request(num_items)
+                return result
+
+        raise ValidationError("Manager is not pending a response, but no valid response received")
+
+    @property
+    def service(self) -> BaseService:
+        """
+        This service that needs to be running for calls to execute properly
+        """
+        return self._message_manager
+
+    def get_stats(self) -> str:
+        return self._message_manager.get_stats()

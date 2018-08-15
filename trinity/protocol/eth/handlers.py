@@ -1,25 +1,25 @@
 from trinity.protocol.common.handlers import (
-    BaseRequestResponseHandler,
+    BaseExchangeHandler,
 )
 
-from .managers import (
-    GetBlockBodiesRequestManager,
-    GetBlockHeadersRequestManager,
-    GetNodeDataRequestManager,
-    GetReceiptsRequestManager,
+from .exchanges import (
+    GetBlockBodiesExchange,
+    GetBlockHeadersExchange,
+    GetNodeDataExchange,
+    GetReceiptsExchange,
 )
 
 
-class ETHRequestResponseHandler(BaseRequestResponseHandler):
-    _managers = {
-        'get_block_bodies': GetBlockBodiesRequestManager,
-        'get_block_headers': GetBlockHeadersRequestManager,
-        'get_node_data': GetNodeDataRequestManager,
-        'get_receipts': GetReceiptsRequestManager,
+class ETHExchangeHandler(BaseExchangeHandler):
+    _exchanges = {
+        'get_block_bodies': GetBlockBodiesExchange,
+        'get_block_headers': GetBlockHeadersExchange,
+        'get_node_data': GetNodeDataExchange,
+        'get_receipts': GetReceiptsExchange,
     }
 
     # These are needed only to please mypy.
-    get_block_bodies: GetBlockBodiesRequestManager
-    get_block_headers: GetBlockHeadersRequestManager
-    get_node_data: GetNodeDataRequestManager
-    get_receipts: GetReceiptsRequestManager
+    get_block_bodies: GetBlockBodiesExchange
+    get_block_headers: GetBlockHeadersExchange
+    get_node_data: GetNodeDataExchange
+    get_receipts: GetReceiptsExchange

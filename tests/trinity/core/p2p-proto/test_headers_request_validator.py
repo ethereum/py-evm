@@ -5,6 +5,7 @@ from eth_utils import (
 )
 
 from trinity.protocol.common.requests import BaseHeaderRequest
+from trinity.protocol.common.validators import BaseBlockHeadersValidator
 
 
 FORWARD_0_to_5 = (0, 6, 0, False)
@@ -30,8 +31,9 @@ class HeaderRequest(BaseHeaderRequest):
         self.skip = skip
         self.reverse = reverse
 
-    def validate_response(self, response):
-        pass
+
+class BlockHeadersValidator(BaseBlockHeadersValidator):
+    protocol_max_request_size = 192
 
 
 @pytest.mark.parametrize(
@@ -127,10 +129,10 @@ def test_header_request_sequence_matching(
         params,
         sequence,
         is_match):
-    request = HeaderRequest(*params)
+    request = BlockHeadersValidator(*params)
 
     if is_match:
-        request.validate_sequence(sequence)
+        request._validate_sequence(sequence)
     else:
         with pytest.raises(ValidationError):
-            request.validate_sequence(sequence)
+            request._validate_sequence(sequence)

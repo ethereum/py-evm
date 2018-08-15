@@ -62,8 +62,9 @@ async def test_eth_peer_get_node_data_round_trip(eth_peer_and_remote, node_keys,
     async def send_node_data():
         remote.sub_proto.send_node_data(nodes)
 
+    request = asyncio.ensure_future(peer.requests.get_node_data(node_keys))
     asyncio.ensure_future(send_node_data())
-    response = await peer.requests.get_node_data(node_keys)
+    response = await request
 
     assert len(response) == len(node_keys)
     assert response == node_data

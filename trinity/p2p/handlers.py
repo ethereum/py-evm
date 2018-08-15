@@ -1,5 +1,4 @@
 from typing import (
-    Any,
     AsyncGenerator,
     List,
     Tuple,
@@ -81,7 +80,7 @@ class PeerRequestHandler(CancellableMixin):
         peer.sub_proto.send_node_data(tuple(nodes))
 
     async def lookup_headers(self,
-                             request: BaseHeaderRequest[Any]) -> Tuple[BlockHeader, ...]:
+                             request: BaseHeaderRequest) -> Tuple[BlockHeader, ...]:
         """
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
@@ -102,7 +101,7 @@ class PeerRequestHandler(CancellableMixin):
         return headers
 
     async def _get_block_numbers_for_request(self,
-                                             request: BaseHeaderRequest[Any],
+                                             request: BaseHeaderRequest,
                                              ) -> Tuple[BlockNumber, ...]:
         """
         Generate the block numbers for a given `HeaderRequest`.

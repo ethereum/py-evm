@@ -35,12 +35,6 @@ from .commands import (
     Status,
     Transactions,
 )
-from .requests import (
-    BlockBodiesRequest,
-    HeaderRequest,
-    NodeDataRequest,
-    ReceiptsRequest,
-)
 
 if TYPE_CHECKING:
     from p2p.peer import (  # noqa: F401
@@ -73,10 +67,7 @@ class ETHProtocol(Protocol):
     #
     # Node Data
     #
-    def send_get_node_data(self, request: NodeDataRequest) -> None:
-        self._send_get_node_data(request.node_hashes)
-
-    def _send_get_node_data(self, node_hashes: Tuple[Hash32, ...]) -> None:
+    def send_get_node_data(self, node_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetNodeData(self.cmd_id_offset)
         header, body = cmd.encode(node_hashes)
         self.send(header, body)
@@ -89,25 +80,18 @@ class ETHProtocol(Protocol):
     #
     # Block Headers
     #
-    def send_get_block_headers(self, request: HeaderRequest) -> None:
+    def send_get_block_headers(
+            self,
+            block_number_or_hash: Union[BlockNumber, Hash32],
+            max_headers: int,
+            skip: int,
+            reverse: bool) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        self._send_get_block_headers(
-            block_number_or_hash=request.block_number_or_hash,
-            max_headers=request.max_headers,
-            skip=request.skip,
-            reverse=request.reverse,
-        )
-
-    def _send_get_block_headers(self,
-                                block_number_or_hash: Union[BlockNumber, Hash32],
-                                max_headers: int,
-                                skip: int,
-                                reverse: bool) -> None:
         cmd = GetBlockHeaders(self.cmd_id_offset)
         data = {
             'block_number_or_hash': block_number_or_hash,
@@ -126,10 +110,7 @@ class ETHProtocol(Protocol):
     #
     # Block Bodies
     #
-    def send_get_block_bodies(self, request: BlockBodiesRequest) -> None:
-        self._send_get_block_bodies(request.block_hashes)
-
-    def _send_get_block_bodies(self, block_hashes: Tuple[Hash32, ...]) -> None:
+    def send_get_block_bodies(self, block_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetBlockBodies(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)
@@ -142,10 +123,7 @@ class ETHProtocol(Protocol):
     #
     # Receipts
     #
-    def send_get_receipts(self, request: ReceiptsRequest) -> None:
-        self._send_get_receipts(request.block_hashes)
-
-    def _send_get_receipts(self, block_hashes: Tuple[Hash32, ...]) -> None:
+    def send_get_receipts(self, block_hashes: Tuple[Hash32, ...]) -> None:
         cmd = GetReceipts(self.cmd_id_offset)
         header, body = cmd.encode(block_hashes)
         self.send(header, body)

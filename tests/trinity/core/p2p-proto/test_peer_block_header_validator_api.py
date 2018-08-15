@@ -6,6 +6,7 @@ from eth_utils import to_tuple
 
 from eth.rlp.headers import BlockHeader
 
+import trinity
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 
@@ -94,11 +95,13 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
 @pytest.mark.asyncio
 async def test_les_peer_get_headers_round_trip(les_peer_and_remote,
                                                params,
+                                               monkeypatch,
                                                headers):
     peer, remote = les_peer_and_remote
+    request_id = 9
+    monkeypatch.setattr(trinity.protocol.les.exchanges, 'gen_request_id', lambda: request_id)
 
     async def send_headers():
-        request_id = peer.requests.get_block_headers.pending_request[0].request_id
         remote.sub_proto.send_block_headers(headers, 0, request_id)
         await asyncio.sleep(0)
 

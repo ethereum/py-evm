@@ -1,11 +1,14 @@
+from abc import ABC, abstractmethod
 import logging
 import struct
 from typing import (
     Any,
     Dict,
+    Generic,
     List,
     Tuple,
     Type,
+    TypeVar,
     TYPE_CHECKING,
     Union,
 )
@@ -123,6 +126,27 @@ class Command:
         return header, body
 
 
+TCommandPayload = TypeVar('TCommandPayload', bound=_DecodedMsgType)
+
+
+class BaseRequest(ABC, Generic[TCommandPayload]):
+    """
+    Must define command_payload during init. This is the data that will
+    be sent to the peer with the request command.
+    """
+    command_payload: TCommandPayload
+
+    @property
+    @abstractmethod
+    def cmd_type(self) -> Type[Command]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def response_type(self) -> Type[Command]:
+        raise NotImplementedError
+
+
 class Protocol:
     logger = logging.getLogger("p2p.protocol.Protocol")
     name: str = None
@@ -135,10 +159,19 @@ class Protocol:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
+        self.cmd_by_type = {cmd_class: cmd_class(cmd_id_offset) for cmd_class in self._commands}
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
 
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
+
+    def send_request(self, request: BaseRequest[_DecodedMsgType]) -> None:
+        command = self.cmd_by_type[request.cmd_type]
+        header, body = command.encode(request.command_payload)
+        self.send(header, body)
+
+    def supports_command(self, cmd_type: Type[Command]) -> bool:
+        return cmd_type in self.cmd_by_type
 
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)

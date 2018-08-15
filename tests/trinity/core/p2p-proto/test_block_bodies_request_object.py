@@ -19,7 +19,7 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.transactions import BaseTransactionFields
 
 from trinity.rlp.block_body import BlockBody
-from trinity.protocol.eth.requests import BlockBodiesRequest
+from trinity.protocol.eth.validators import GetBlockBodiesValidator
 
 
 def mk_uncle(block_number):
@@ -76,8 +76,8 @@ def mk_headers(*counts):
 def test_block_bodies_request_empty_response_is_valid():
     headers_bundle = mk_headers((2, 3), (8, 4), (0, 1), (0, 0))
     headers, _, _, _, _ = zip(*headers_bundle)
-    request = BlockBodiesRequest(headers)
-    request.validate_response(tuple(), tuple())
+    request = GetBlockBodiesValidator(headers)
+    request.validate_result(tuple())
 
 
 def test_block_bodies_request_valid_with_full_response():
@@ -85,8 +85,8 @@ def test_block_bodies_request_valid_with_full_response():
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
-    request = BlockBodiesRequest(headers)
-    request.validate_response(bodies, bodies_bundle)
+    request = GetBlockBodiesValidator(headers)
+    request.validate_result(bodies_bundle)
 
 
 def test_block_bodies_request_valid_with_partial_response():
@@ -94,14 +94,11 @@ def test_block_bodies_request_valid_with_partial_response():
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
-    request = BlockBodiesRequest(headers)
+    request = GetBlockBodiesValidator(headers)
 
-    request.validate_response(bodies[:2], bodies_bundle[:2])
-    request.validate_response(bodies[2:], bodies_bundle[2:])
-    request.validate_response(
-        (bodies[0], bodies[2], bodies[3]),
-        (bodies_bundle[0], bodies_bundle[2], bodies_bundle[3]),
-    )
+    request.validate_result(bodies_bundle[:2])
+    request.validate_result(bodies_bundle[2:])
+    request.validate_result((bodies_bundle[0], bodies_bundle[2], bodies_bundle[3]))
 
 
 def test_block_bodies_request_with_fully_invalid_response():
@@ -115,9 +112,9 @@ def test_block_bodies_request_with_fully_invalid_response():
     w_transactions_bundles = tuple(zip(w_transactions_roots, w_trie_data_dicts))
     w_bodies_bundle = tuple(zip(w_bodies, w_transactions_bundles, w_uncles_hashes))
 
-    request = BlockBodiesRequest(headers)
+    request = GetBlockBodiesValidator(headers)
     with pytest.raises(ValidationError):
-        request.validate_response(w_bodies, w_bodies_bundle)
+        request.validate_result(w_bodies_bundle)
 
 
 def test_block_bodies_request_with_extra_unrequested_bodies():
@@ -125,7 +122,7 @@ def test_block_bodies_request_with_extra_unrequested_bodies():
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
-    request = BlockBodiesRequest(headers)
+    request = GetBlockBodiesValidator(headers)
 
     wrong_headers_bundle = mk_headers((3, 2), (4, 8), (1, 0), (0, 0))
     w_headers, w_bodies, w_transactions_roots, w_trie_data_dicts, w_uncles_hashes = zip(
@@ -134,9 +131,6 @@ def test_block_bodies_request_with_extra_unrequested_bodies():
     w_transactions_bundles = tuple(zip(w_transactions_roots, w_trie_data_dicts))
     w_bodies_bundle = tuple(zip(w_bodies, w_transactions_bundles, w_uncles_hashes))
 
-    request = BlockBodiesRequest(headers)
+    request = GetBlockBodiesValidator(headers)
     with pytest.raises(ValidationError):
-        request.validate_response(
-            bodies + w_bodies,
-            bodies_bundle + w_bodies_bundle,
-        )
+        request.validate_result(bodies_bundle + w_bodies_bundle)

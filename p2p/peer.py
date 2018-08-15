@@ -478,7 +478,7 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise DecryptionError('Invalid header mac: expected %s, got %s'.format(
+            raise DecryptionError('Invalid header mac: expected {}, got {}'.format(
                 expected_header_mac, header_mac))
         return self.aes_dec.update(header_ciphertext)
 
@@ -1066,8 +1066,8 @@ def _test() -> None:
         hashes = tuple(header.hash for header in headers)
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)
-            peer.sub_proto._send_get_block_bodies(hashes)
-            peer.sub_proto._send_get_receipts(hashes)
+            peer.sub_proto.send_get_block_bodies(hashes)
+            peer.sub_proto.send_get_receipts(hashes)
         else:
             peer = cast(LESPeer, peer)
             request_id = 1
