@@ -183,6 +183,7 @@ LOG4 = 0xa4
 # System
 #
 CREATE = 0xf0
+CREATE2 = 0xf5
 CALL = 0xf1
 CALLCODE = 0xf2
 RETURN = 0xf3

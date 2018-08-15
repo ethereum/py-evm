@@ -12,6 +12,7 @@ from eth.exceptions import (
 from eth.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
+    generate_safe_contract_address,
 )
 from eth.utils.hexadecimal import (
     encode_hex,
@@ -100,36 +101,29 @@ def _selfdestruct(computation: BaseComputation, beneficiary: Address) -> None:
     raise Halt('SELFDESTRUCT')
 
 
+class CreateOpcodeStackData:
+
+    def __init__(self,
+                 endowment: int,
+                 memory_start: int,
+                 memory_length: int,
+                 salt: int = None) -> None:
+
+        self.endowment = endowment
+        self.memory_start = memory_start
+        self.memory_length = memory_length
+        self.salt = salt
+
+
 class Create(Opcode):
 
     def max_child_gas_modifier(self, gas: int) -> int:
         return gas
 
-    def __call__(self, computation: BaseComputation) -> None:
-        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
-
-        value, start_position, size = computation.stack_pop(
-            num_items=3,
-            type_hint=constants.UINT256,
-        )
-
-        computation.extend_memory(start_position, size)
-
-        insufficient_funds = computation.state.account_db.get_balance(
-            computation.msg.storage_address
-        ) < value
-        stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
-
-        if insufficient_funds or stack_too_deep:
-            computation.stack_push(0)
-            return
-
-        call_data = computation.memory_read(start_position, size)
-
-        create_msg_gas = self.max_child_gas_modifier(
-            computation.get_gas_remaining()
-        )
-        computation.consume_gas(create_msg_gas, reason="CREATE")
+    def generate_contract_address(self,
+                                  stack_data: CreateOpcodeStackData,
+                                  call_data: bytes,
+                                  computation: BaseComputation) -> Address:
 
         creation_nonce = computation.state.account_db.get_nonce(computation.msg.storage_address)
         computation.state.account_db.increment_nonce(computation.msg.storage_address)
@@ -138,6 +132,41 @@ class Create(Opcode):
             computation.msg.storage_address,
             creation_nonce,
         )
+
+        return contract_address
+
+    def get_stack_data(self, computation: BaseComputation) -> CreateOpcodeStackData:
+        endowment, memory_start, memory_length = computation.stack_pop(
+            num_items=3,
+            type_hint=constants.UINT256,
+        )
+
+        return CreateOpcodeStackData(endowment, memory_start, memory_length)
+
+    def __call__(self, computation: BaseComputation) -> None:
+        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
+
+        stack_data = self.get_stack_data(computation)
+
+        computation.extend_memory(stack_data.memory_start, stack_data.memory_length)
+
+        insufficient_funds = computation.state.account_db.get_balance(
+            computation.msg.storage_address
+        ) < stack_data.endowment
+        stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
+
+        if insufficient_funds or stack_too_deep:
+            computation.stack_push(0)
+            return
+
+        call_data = computation.memory_read(stack_data.memory_start, stack_data.memory_length)
+
+        create_msg_gas = self.max_child_gas_modifier(
+            computation.get_gas_remaining()
+        )
+        computation.consume_gas(create_msg_gas, reason=self.mnemonic)
+
+        contract_address = self.generate_contract_address(stack_data, call_data, computation)
 
         is_collision = computation.state.account_db.account_has_code_or_nonce(contract_address)
 
@@ -152,7 +181,7 @@ class Create(Opcode):
         child_msg = computation.prepare_child_message(
             gas=create_msg_gas,
             to=constants.CREATE_CONTRACT_ADDRESS,
-            value=value,
+            value=stack_data.endowment,
             data=b'',
             code=call_data,
             create_address=contract_address,
@@ -177,3 +206,26 @@ class CreateByzantium(CreateEIP150):
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return super().__call__(computation)
+
+
+class Create2(CreateByzantium):
+
+    def get_stack_data(self, computation: BaseComputation) -> CreateOpcodeStackData:
+
+        endowment, memory_start, memory_length, salt = computation.stack_pop(
+            num_items=4,
+            type_hint=constants.UINT256,
+        )
+
+        return CreateOpcodeStackData(endowment, memory_start, memory_length, salt)
+
+    def generate_contract_address(self,
+                                  stack_data: CreateOpcodeStackData,
+                                  call_data: bytes,
+                                  computation: BaseComputation) -> Address:
+
+        return generate_safe_contract_address(
+            computation.msg.storage_address,
+            stack_data.salt,
+            call_data
+        )
