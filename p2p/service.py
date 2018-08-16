@@ -8,6 +8,7 @@ from typing import (
     Callable,
     List,
     Optional,
+    Set,
     cast,
 )
 from weakref import WeakSet
@@ -31,7 +32,7 @@ class ServiceEvents:
 
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
-    _child_services: List['BaseService']
+    _child_services: Set['BaseService']
     # Use a WeakSet so that we don't have to bother updating it when tasks finish.
     _tasks: 'WeakSet[asyncio.Future[Any]]'
     _finished_callbacks: List[Callable[['BaseService'], None]]
@@ -48,7 +49,7 @@ class BaseService(ABC, CancellableMixin):
                  loop: asyncio.AbstractEventLoop = None) -> None:
         self.events = ServiceEvents()
         self._run_lock = asyncio.Lock()
-        self._child_services = []
+        self._child_services = set()
         self._tasks = WeakSet()
         self._finished_callbacks = []
 
@@ -126,19 +127,43 @@ class BaseService(ABC, CancellableMixin):
 
         If it raises OperationCancelled, that is caught and ignored.
         """
-        async def f() -> None:
+        async def _run_task_wrapper() -> None:
+            self.logger.debug("Running task %s", awaitable)
             try:
                 await awaitable
             except OperationCancelled:
                 pass
-        self._tasks.add(asyncio.ensure_future(f()))
+            except Exception as e:
+                self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
+            else:
+                self.logger.debug("Task %s finished with no errors", awaitable)
+        self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
 
     def run_child_service(self, child_service: 'BaseService') -> None:
         """
         Run a child service and keep a reference to it to be considered during the cleanup.
         """
-        self._child_services.append(child_service)
+        self._child_services.add(child_service)
         self.run_task(child_service.run())
+
+    def run_daemon(self, service: 'BaseService') -> None:
+        """
+        Run a service and keep a reference to it to be considered during the cleanup.
+
+        If the service finishes while we're still running, we'll terminate as well.
+        """
+        self._child_services.add(service)
+
+        async def _run_daemon_wrapper() -> None:
+            try:
+                await service.run()
+            finally:
+                if not self.cancel_token.triggered:
+                    self.logger.debug(
+                        "%s finished while we're still running, terminating as well", service)
+                    self.cancel_token.trigger()
+
+        self.run_task(_run_daemon_wrapper())
 
     async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
         loop = self.get_event_loop()
