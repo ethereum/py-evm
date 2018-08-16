@@ -4,11 +4,13 @@ import socket
 
 from eth_keys import keys
 
+from cancel_token import CancelToken
+
 from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
 from eth.db.chain import ChainDB
-from eth.db.header import HeaderDB
 from eth.db.backends.memory import MemoryDB
 
+from p2p.auth import HandshakeInitiator, _handshake
 from p2p.peer import (
     PeerPool,
 )
@@ -22,6 +24,7 @@ from trinity.server import Server
 
 from tests.p2p.auth_constants import eip8_values
 from tests.trinity.core.dumb_peer import DumbPeer
+from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_open_port():
@@ -50,6 +53,9 @@ class MockPeerPool:
     is_full = False
     connected_nodes = {}
 
+    async def start_peer(self, peer):
+        self.connected_nodes[peer.remote] = peer
+
     def is_valid_connection_candidate(self, node):
         return True
 
@@ -59,7 +65,7 @@ class MockPeerPool:
 
 def get_server(privkey, address, peer_class):
     base_db = MemoryDB()
-    headerdb = HeaderDB(base_db)
+    headerdb = FakeAsyncHeaderDB(base_db)
     chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     chain = RopstenChain(base_db)
@@ -95,35 +101,36 @@ async def receiver_server_with_dumb_peer():
 
 
 @pytest.mark.asyncio
-async def test_server_authenticates_incoming_connections(monkeypatch, server, event_loop):
-    connected_peer = None
-
-    async def mock_do_handshake(peer):
-        nonlocal connected_peer
-        connected_peer = peer
-
-    # Only test the authentication in this test.
-    monkeypatch.setattr(server, 'do_handshake', mock_do_handshake)
+async def test_server_incoming_connection(monkeypatch, server, event_loop):
     # We need this to ensure the server can check if the peer pool is full for
     # incoming connections.
     monkeypatch.setattr(server, 'peer_pool', MockPeerPool())
 
-    # Send auth init message to the server.
-    reader, writer = await asyncio.wait_for(
-        asyncio.open_connection(SERVER_ADDRESS.ip, SERVER_ADDRESS.tcp_port),
-        timeout=1)
-    writer.write(eip8_values['auth_init_ciphertext'])
-    await asyncio.wait_for(writer.drain(), timeout=1)
+    use_eip8 = False
+    token = CancelToken("initiator")
+    initiator = HandshakeInitiator(RECEIVER_REMOTE, INITIATOR_PRIVKEY, use_eip8, token)
+    reader, writer = await initiator.connect()
+    # Send auth init message to the server, then read and decode auth ack
+    aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
+        initiator, reader, writer, token)
 
-    # Await the server replying auth ack.
-    await asyncio.wait_for(
-        reader.read(len(eip8_values['auth_ack_ciphertext'])),
-        timeout=1)
+    initiator_peer = ETHPeer(
+        remote=initiator.remote, privkey=initiator.privkey, reader=reader,
+        writer=writer, aes_secret=aes_secret, mac_secret=mac_secret,
+        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=server.headerdb,
+        network_id=NETWORK_ID)
+    # Perform p2p/sub-proto handshake, completing the full handshake and causing a new peer to be
+    # added to the server's pool.
+    await initiator_peer.do_p2p_handshake()
+    await initiator_peer.do_sub_proto_handshake()
 
-    # The sole connected node is our initiator.
-    assert connected_peer is not None
-    assert isinstance(connected_peer, ETHPeer)
-    assert connected_peer.privkey == RECEIVER_PRIVKEY
+    assert len(server.peer_pool.connected_nodes) == 1
+    receiver_peer = list(server.peer_pool.connected_nodes.values())[0]
+    assert isinstance(receiver_peer, ETHPeer)
+    assert initiator_peer.sub_proto is not None
+    assert initiator_peer.sub_proto.name == receiver_peer.sub_proto.name
+    assert initiator_peer.sub_proto.version == receiver_peer.sub_proto.version
+    assert receiver_peer.privkey == RECEIVER_PRIVKEY
 
 
 @pytest.mark.asyncio
@@ -139,7 +146,7 @@ async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_d
     # incoming connections.
     monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
 
-    pool = PeerPool(DumbPeer, HeaderDB(MemoryDB()), NETWORK_ID, INITIATOR_PRIVKEY, tuple())
+    pool = PeerPool(DumbPeer, FakeAsyncHeaderDB(MemoryDB()), NETWORK_ID, INITIATOR_PRIVKEY, tuple())
     nodes = [RECEIVER_REMOTE]
     await pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.
