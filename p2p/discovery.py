@@ -9,6 +9,7 @@ import asyncio
 import collections
 import logging
 import random
+import socket
 import time
 from typing import (
     Any,
@@ -327,18 +328,28 @@ class DiscoveryService(BaseService):
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
-    def __init__(
-            self, proto: DiscoveryProtocol, peer_pool: PeerPool, token: CancelToken = None) -> None:
+    def __init__(self, proto: DiscoveryProtocol, peer_pool: PeerPool,
+                 port: int, token: CancelToken = None) -> None:
         super().__init__(token)
         self.proto = proto
         self.peer_pool = peer_pool
+        self.port = port
 
     async def _run(self) -> None:
+        await self._start_udp_listener()
         connect_loop_sleep = 2
         self.run_task(self.proto.bootstrap())
         while not self.cancel_token.triggered:
             await self.maybe_connect_to_more_peers()
             await self.sleep(connect_loop_sleep)
+
+    async def _start_udp_listener(self) -> None:
+        loop = asyncio.get_event_loop()
+        # TODO: Support IPv6 addresses as well.
+        await loop.create_datagram_endpoint(
+            lambda: self.proto,
+            local_addr=('0.0.0.0', self.port),
+            family=socket.AF_INET)
 
     async def maybe_connect_to_more_peers(self) -> None:
         """Connect to more peers if we're not yet maxed out to max_peers"""

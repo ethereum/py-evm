@@ -1,9 +1,7 @@
 import asyncio
 import logging
 import secrets
-import socket
 from typing import (
-    cast,
     Sequence,
     Tuple,
     Type,
@@ -28,7 +26,6 @@ from p2p.constants import (
     REPLY_TIMEOUT,
 )
 from p2p.discovery import (
-    DiscoveryProtocol,
     DiscoveryService,
     PreferredNodeDiscoveryProtocol,
 )
@@ -66,8 +63,6 @@ DIAL_IN_OUT_RATIO = 0.75
 class Server(BaseService):
     """Server listening for incoming connections"""
     _tcp_listener = None
-    _udp_listener = None
-    _udp_transport = None
 
     peer_pool: PeerPool = None
 
@@ -118,18 +113,6 @@ class Server(BaseService):
             self._tcp_listener.close()
             await self._tcp_listener.wait_closed()
 
-    async def _start_udp_listener(self, discovery: DiscoveryProtocol) -> None:
-        loop = asyncio.get_event_loop()
-        # TODO: Support IPv6 addresses as well.
-        self._udp_transport, _ = await loop.create_datagram_endpoint(
-            lambda: discovery,
-            local_addr=('0.0.0.0', self.port),
-            family=socket.AF_INET)
-
-    async def _close_udp_listener(self) -> None:
-        if self._udp_transport:
-            cast(asyncio.DatagramTransport, self._udp_transport).abort()
-
     def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
         # This method exists only so that ShardSyncer can provide a different implementation.
         return FullNodeSyncer(
@@ -166,8 +149,8 @@ class Server(BaseService):
         addr = Address(external_ip, self.port, self.port)
         discovery_proto = PreferredNodeDiscoveryProtocol(
             self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
-        await self._start_udp_listener(discovery_proto)
-        self.discovery = DiscoveryService(discovery_proto, self.peer_pool, self.cancel_token)
+        self.discovery = DiscoveryService(
+            discovery_proto, self.peer_pool, self.port, self.cancel_token)
         self.run_child_service(self.peer_pool)
         self.run_child_service(self.discovery)
         self.run_child_service(self.upnp_service)
@@ -176,8 +159,7 @@ class Server(BaseService):
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
-        await asyncio.gather(
-            self._close_tcp_listener(), self._close_udp_listener())
+        await self._close_tcp_listener()
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
