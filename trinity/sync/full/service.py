@@ -47,7 +47,6 @@ class FullNodeSyncer(BaseService):
                 self.chain, self.chaindb, self.peer_pool, self.cancel_token)
             await chain_syncer.run()
 
-        await self.sleep(0)
         if self.cancel_token.triggered:
             return
 
@@ -60,7 +59,6 @@ class FullNodeSyncer(BaseService):
                 self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
 
-        await self.sleep(0)
         if self.cancel_token.triggered:
             return
 
