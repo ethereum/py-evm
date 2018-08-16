@@ -92,7 +92,7 @@ class BaseRequestManager(PeerSubscriber, BaseService, Generic[TPeer, TRequest, T
         self.logger.debug("Launching %s for peer %s", self.__class__.__name__, self._peer)
 
         with self.subscribe_peer(self._peer):
-            while self.is_running:
+            while not self.cancel_token.triggered:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
                 if peer != self._peer:
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)

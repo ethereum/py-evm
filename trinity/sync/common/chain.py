@@ -96,7 +96,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.run_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
-            while self.is_running:
+            while not self.cancel_token.triggered:
                 peer_or_finished: Any = await self.wait_first(
                     self._sync_requests.get(),
                     self._sync_complete.wait()

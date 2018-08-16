@@ -72,7 +72,7 @@ class UPnPService(BaseService):
         On every iteration we configure the port mapping with a lifetime of 30 minutes and then
         sleep for that long as well.
         """
-        while self.is_running:
+        while not self.cancel_token.triggered:
             try:
                 # Wait for the port mapping lifetime, and then try registering it again
                 await self.wait(asyncio.sleep(self._nat_portmap_lifetime))

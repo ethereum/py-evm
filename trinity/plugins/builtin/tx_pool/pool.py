@@ -73,7 +73,7 @@ class TxPool(BaseService, PeerSubscriber):
         self.logger.info("Running Tx Pool")
 
         with self.subscribe(self._peer_pool):
-            while self.is_running:
+            while not self.cancel_token.triggered:
                 peer, cmd, msg = await self.wait(
                     self.msg_queue.get(), token=self.cancel_token)
                 peer = cast(ETHPeer, peer)
