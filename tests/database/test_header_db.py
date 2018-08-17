@@ -8,6 +8,7 @@ from cytoolz import accumulate
 from eth_utils import (
     to_tuple,
     keccak,
+    ValidationError,
 )
 
 from eth.constants import (
@@ -80,8 +81,7 @@ def test_headerdb_get_canonical_head_with_header_chain(headerdb, genesis_header)
 
     headers = mk_header_chain(genesis_header, length=10)
 
-    for header in headers:
-        headerdb.persist_header(header)
+    headerdb.persist_header_chain(headers)
 
     head = headerdb.get_canonical_head()
     assert_headers_eq(head, headers[-1])
@@ -96,6 +96,17 @@ def test_headerdb_persist_header_disallows_unknown_parent(headerdb):
     )
     with pytest.raises(ParentNotFound, match="unknown parent"):
         headerdb.persist_header(header)
+
+
+def test_headerdb_persist_header_chain_disallows_non_contiguous_chain(headerdb, genesis_header):
+    headerdb.persist_header(genesis_header)
+
+    headers = mk_header_chain(genesis_header, length=3)
+
+    non_contiguous_headers = (headers[0], headers[2], headers[1],)
+
+    with pytest.raises(ValidationError, match="Non-contiguous chain"):
+        headerdb.persist_header_chain(non_contiguous_headers)
 
 
 def test_headerdb_persist_header_returns_new_canonical_chain(headerdb, genesis_header):
@@ -144,8 +155,7 @@ def test_headerdb_get_score_for_non_genesis_headers(headerdb, genesis_header):
     difficulties = tuple(h.difficulty for h in headers)
     scores = tuple(accumulate(operator.add, difficulties, genesis_header.difficulty))
 
-    for header in headers:
-        headerdb.persist_header(header)
+    headerdb.persist_header_chain(headers)
 
     for header, expected_score in zip(headers, scores[1:]):
         actual_score = headerdb.get_score(header.hash)
@@ -212,8 +222,7 @@ def test_headerdb_header_retrieval_by_hash(headerdb, genesis_header):
 
     headers = mk_header_chain(genesis_header, length=10)
 
-    for header in headers:
-        headerdb.persist_header(header)
+    headerdb.persist_header_chain(headers)
 
     # can we get the genesis header by hash
     actual = headerdb.get_block_header_by_hash(genesis_header.hash)
@@ -229,8 +238,7 @@ def test_headerdb_canonical_header_retrieval_by_number(headerdb, genesis_header)
 
     headers = mk_header_chain(genesis_header, length=10)
 
-    for header in headers:
-        headerdb.persist_header(header)
+    headerdb.persist_header_chain(headers)
 
     # can we get the genesis header by hash
     actual = headerdb.get_canonical_block_header_by_number(genesis_header.block_number)

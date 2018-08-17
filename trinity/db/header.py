@@ -4,7 +4,10 @@ from abc import abstractmethod
 from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
-from typing import Tuple
+from typing import (
+    Iterable,
+    Tuple,
+)
 
 from eth_typing import (
     Hash32,
@@ -58,6 +61,11 @@ class BaseAsyncHeaderDB(BaseHeaderDB):
     async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    @abstractmethod
+    async def coro_persist_header_chain(self,
+                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
 
 class AsyncHeaderDB(HeaderDB, BaseAsyncHeaderDB):
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
@@ -81,6 +89,10 @@ class AsyncHeaderDB(HeaderDB, BaseAsyncHeaderDB):
     async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
+    async def coro_persist_header_chain(self,
+                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
 
 class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
@@ -91,6 +103,7 @@ class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
     coro_header_exists = async_method('header_exists')
     coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
     coro_persist_header = async_method('persist_header')
+    coro_persist_header_chain = async_method('persist_header_chain')
 
     get_block_header_by_hash = sync_method('get_block_header_by_hash')
     get_canonical_block_hash = sync_method('get_canonical_block_hash')
@@ -100,3 +113,4 @@ class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
     header_exists = sync_method('header_exists')
     get_canonical_block_hash = sync_method('get_canonical_block_hash')
     persist_header = sync_method('persist_header')
+    persist_header_chain = sync_method('persist_header_chain')
