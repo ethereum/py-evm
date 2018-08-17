@@ -34,12 +34,9 @@ from eth_hash.auto import keccak
 
 from eth.constants import (
     EMPTY_UNCLE_HASH,
-    GENESIS_PARENT_HASH,
 )
 from eth.exceptions import (
-    CanonicalHeadNotFound,
     HeaderNotFound,
-    ParentNotFound,
     TransactionNotFound,
 )
 from eth.db.header import BaseHeaderDB, HeaderDB
@@ -186,63 +183,14 @@ class ChainDB(HeaderDB, BaseChainDB):
         else:
             return rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader))
 
-    # TODO: This method should take a chain of headers as that's the most common use case
-    # and it'd be much faster than inserting each header individually.
-    def persist_header(self,
-                       header: BlockHeader
-                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
-        """
-        Returns iterable of headers newly on the canonical chain
-        """
-        is_genesis = header.parent_hash == GENESIS_PARENT_HASH
-        if not is_genesis and not self.header_exists(header.parent_hash):
-            raise ParentNotFound(
-                "Cannot persist block header ({}) with unknown parent ({})".format(
-                    encode_hex(header.hash), encode_hex(header.parent_hash)))
-
-        self.db.set(
-            header.hash,
-            rlp.encode(header),
-        )
-
-        if is_genesis:
-            score = header.difficulty
-        else:
-            score = self.get_score(header.parent_hash) + header.difficulty
-
-        self.db.set(
-            SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
-            rlp.encode(score, sedes=rlp.sedes.big_endian_int),
-        )
-
-        try:
-            head_score = self.get_score(self.get_canonical_head().hash)
-        except CanonicalHeadNotFound:
-            (
-                new_canonical_headers,
-                old_canonical_headers
-            ) = self._set_as_canonical_chain_head(header)
-        else:
-            if score > head_score:
-                (
-                    new_canonical_headers,
-                    old_canonical_headers
-                ) = self._set_as_canonical_chain_head(header)
-            else:
-                new_canonical_headers = tuple()
-                old_canonical_headers = tuple()
-
-        return new_canonical_headers, old_canonical_headers
-
-    # TODO: update this to take a `hash` rather than a full header object.
     def _set_as_canonical_chain_head(self,
-                                     header: BlockHeader
+                                     block_hash: Hash32
                                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
         Returns iterable of headers newly on the canonical head
         """
         try:
-            self.get_block_header_by_hash(header.hash)
+            header = self.get_block_header_by_hash(block_hash)
         except HeaderNotFound:
             raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
                 header.hash))

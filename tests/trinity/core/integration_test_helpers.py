@@ -52,6 +52,7 @@ class FakeAsyncHeaderDB(AsyncHeaderDB):
     coro_get_score = async_passthrough('get_score')
     coro_header_exists = async_passthrough('header_exists')
     coro_persist_header = async_passthrough('persist_header')
+    coro_persist_header_chain = async_passthrough('persist_header_chain')
 
 
 class FakeAsyncChainDB(FakeAsyncHeaderDB, AsyncChainDB):

@@ -1,12 +1,18 @@
 from abc import ABC, abstractmethod
 import functools
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
 
 import rlp
+
+from cytoolz import (
+    first,
+    sliding_window,
+)
 
 from eth_utils import (
     encode_hex,
     to_tuple,
+    ValidationError,
 )
 
 from eth_typing import (
@@ -71,6 +77,12 @@ class BaseHeaderDB(ABC):
     def persist_header(self,
                        header: BlockHeader
                        ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @abstractmethod
+    def persist_header_chain(self,
+                             headers: Iterable[BlockHeader]
+                             ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -149,43 +161,66 @@ class HeaderDB(BaseHeaderDB):
     def persist_header(self,
                        header: BlockHeader
                        ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+        return self.persist_header_chain((header,))
+
+    def persist_header_chain(self,
+                             headers: Iterable[BlockHeader]
+                             ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
-        :returns: iterable of headers newly on the canonical chain
+        Return two iterable of headers, the first containing the new canonical headers,
+        the second containing the old canonical headers
         """
-        if header.parent_hash != GENESIS_PARENT_HASH:
-            try:
-                self.get_block_header_by_hash(header.parent_hash)
-            except HeaderNotFound:
+
+        try:
+            first_header = first(headers)
+        except StopIteration:
+            return tuple(), tuple()
+        else:
+
+            for parent, child in sliding_window(2, headers):
+                if parent.hash != child.parent_hash:
+                    raise ValidationError(
+                        "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
+                            encode_hex(child.hash),
+                            encode_hex(parent.hash),
+                            encode_hex(child.parent_hash),
+                        )
+                    )
+
+            is_genesis = first_header.parent_hash == GENESIS_PARENT_HASH
+            if not is_genesis and not self.header_exists(first_header.parent_hash):
                 raise ParentNotFound(
                     "Cannot persist block header ({}) with unknown parent ({})".format(
-                        encode_hex(header.hash), encode_hex(header.parent_hash)))
+                        encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
 
-        self.db.set(
-            header.hash,
-            rlp.encode(header),
-        )
+            score = 0 if is_genesis else self.get_score(first_header.parent_hash)
 
-        if header.parent_hash == GENESIS_PARENT_HASH:
-            score = header.difficulty
-        else:
-            score = self.get_score(header.parent_hash) + header.difficulty
+        for header in headers:
+            self.db.set(
+                header.hash,
+                rlp.encode(header),
+            )
 
-        self.db.set(
-            SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
-            rlp.encode(score, sedes=rlp.sedes.big_endian_int),
-        )
+            score += header.difficulty
+
+            self.db.set(
+                SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
+                rlp.encode(score, sedes=rlp.sedes.big_endian_int),
+            )
 
         try:
             head_score = self.get_score(self.get_canonical_head().hash)
         except CanonicalHeadNotFound:
-            new_canonical_headers, old_canonical_headers = self._set_as_canonical_chain_head(
-                header.hash,
-            )
+            (
+                new_canonical_headers,
+                old_canonical_headers
+            ) = self._set_as_canonical_chain_head(header.hash)
         else:
             if score > head_score:
-                new_canonical_headers, old_canonical_headers = self._set_as_canonical_chain_head(
-                    header.hash
-                )
+                (
+                    new_canonical_headers,
+                    old_canonical_headers
+                ) = self._set_as_canonical_chain_head(header.hash)
             else:
                 new_canonical_headers = tuple()
                 old_canonical_headers = tuple()
@@ -295,6 +330,10 @@ class AsyncHeaderDB(HeaderDB):
         raise NotImplementedError()
 
     async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+        raise NotImplementedError()
+
+    async def coro_persist_header_chain(self,
+                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
         raise NotImplementedError()
 
 
