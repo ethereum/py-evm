@@ -15,7 +15,7 @@ def force_bytes_to_address(value: bytes) -> Address:
 
 
 def generate_contract_address(address: Address, nonce: bytes) -> Address:
-    return Address(keccak(rlp.encode([address, nonce]))[-20:])
+    return force_bytes_to_address(keccak(rlp.encode([address, nonce])))
 
 
 def generate_safe_contract_address(address: Address,
