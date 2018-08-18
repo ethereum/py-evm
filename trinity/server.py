@@ -151,8 +151,10 @@ class Server(BaseService):
             self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
         self.discovery = DiscoveryService(
             discovery_proto, self.peer_pool, self.port, self.cancel_token)
-        self.run_child_service(self.peer_pool)
-        self.run_child_service(self.discovery)
+        self.run_daemon(self.peer_pool)
+        self.run_daemon(self.discovery)
+        # UPNP service is still experimental and not essential, so we don't use run_daemon() for
+        # it as that means if it crashes we'd be terminated as well.
         self.run_child_service(self.upnp_service)
         self.syncer = self._make_syncer(self.peer_pool)
         await self.syncer.run()

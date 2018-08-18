@@ -20,14 +20,19 @@ library.
 - If your service needs to run coroutines in the background, you should use the `BaseService.run_task()` method and
   ensure they exit when `is_running` is False or when the cancel token is triggered.
 - If your service runs other services in the background, you should pass your CancelToken down to
-  those services and run those using `BaseService.run_child_service()`.
+  those services and run those using `BaseService.run_child_service()`, or
+  `BaseService.run_daemon()` if you want the parent to be terminated when the child dies
+  unexpectedly.
 
 ```Python
 class Node(BaseService):
     async def _run(self):
         self.discovery = DiscoveryService(token=self.cancel_token)
-        self.run_child_service(self.discovery)
+        self.run_daemon(self.discovery)
         self.run_task(self.discovery.bootstrap())
+        # UPNP service is still experimental and not essential, so we don't use run_daemon() for
+        # it as that means if it crashes we'd be terminated as well.
+        self.run_child_service(UPnPService(token=self.cancel_token))
         # Node's run logic goes here...
 
 ```

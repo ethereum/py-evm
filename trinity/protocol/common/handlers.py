@@ -34,7 +34,7 @@ class BaseRequestResponseHandler(BaseService):
     async def _run(self) -> None:
         for attr in self._managers.keys():
             manager = getattr(self, attr)
-            self.run_child_service(manager)
+            self.run_daemon(manager)
 
         await self.cancel_token.wait()
 
