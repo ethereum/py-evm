@@ -45,7 +45,7 @@ class LightNode(Node):
         self.notify_resource_available()
 
     async def _run(self) -> None:
-        self.run_child_service(self._peer_chain)
+        self.run_daemon(self._peer_chain)
         await super()._run()
 
     def get_chain(self) -> LightDispatchChain:
