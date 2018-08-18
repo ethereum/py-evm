@@ -2,14 +2,14 @@ import os
 
 import pytest
 
+from eth_utils import (
+    to_bytes,
+)
+
 from eth.db import (
     get_db_backend,
 )
 from eth.db.chain import ChainDB
-
-from eth_utils import (
-    to_bytes,
-)
 
 from eth_hash.auto import keccak
 

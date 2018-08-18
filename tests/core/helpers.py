@@ -1,12 +1,13 @@
 from cytoolz import curry
 
-from eth_utils import decode_hex
 import pytest
 
-from eth.chains.base import MiningChain
-from eth.exceptions import (
+from eth_utils import (
+    decode_hex,
     ValidationError,
 )
+
+from eth.chains.base import MiningChain
 
 from eth.utils.spoof import (
     SpoofTransaction,

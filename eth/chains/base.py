@@ -36,6 +36,7 @@ from eth_typing import (
 from eth_utils import (
     to_tuple,
     to_set,
+    ValidationError,
 )
 
 from eth.db.backends.base import BaseDB
@@ -56,7 +57,6 @@ from eth.estimators import (
 from eth.exceptions import (
     HeaderNotFound,
     TransactionNotFound,
-    ValidationError,
     VMNotFound,
 )
 from eth.utils.spoof import (

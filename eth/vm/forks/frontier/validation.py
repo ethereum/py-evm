@@ -1,4 +1,4 @@
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

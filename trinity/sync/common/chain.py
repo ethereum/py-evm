@@ -14,13 +14,15 @@ from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.chains import AsyncChain
 from eth.exceptions import (
     HeaderNotFound,
-    ValidationError as EthValidationError,
+)
+from eth_utils import (
+    ValidationError,
 )
 from eth.rlp.headers import BlockHeader
 
 from p2p import protocol
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
-from p2p.exceptions import NoEligiblePeers, ValidationError
+from p2p.exceptions import NoEligiblePeers
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerPool, PeerSubscriber
 from p2p.service import BaseService
@@ -187,7 +189,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
             try:
                 await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
-            except EthValidationError as e:
+            except ValidationError as e:
                 self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
                 break
             try:

@@ -2,15 +2,13 @@ import pytest
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from cytoolz import sliding_window
 
 from eth.chains.mainnet import (
     MainnetHomesteadVM,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 from eth.rlp.headers import BlockHeader
 

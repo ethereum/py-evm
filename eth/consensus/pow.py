@@ -13,14 +13,14 @@ from pyethash import (
 from eth_typing import (
     Hash32
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from eth_hash.auto import keccak
 
 from eth.utils.hexadecimal import (
     encode_hex,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 from eth.utils.numeric import (
     big_endian_to_int,

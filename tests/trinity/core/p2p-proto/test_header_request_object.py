@@ -1,6 +1,8 @@
 import pytest
 
-from p2p.exceptions import ValidationError
+from eth_utils import (
+    ValidationError,
+)
 
 from trinity.protocol.common.requests import BaseHeaderRequest
 

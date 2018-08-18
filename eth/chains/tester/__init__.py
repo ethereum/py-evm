@@ -16,11 +16,11 @@ from cytoolz import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth.chains.base import Chain
 from eth.chains.mainnet import MainnetChain
-from eth.exceptions import ValidationError
 from eth.rlp.headers import (
     BlockHeader
 )

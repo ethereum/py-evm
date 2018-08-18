@@ -1,11 +1,12 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.vm import opcode_values
 from eth.vm.code_stream import (
     CodeStream,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 

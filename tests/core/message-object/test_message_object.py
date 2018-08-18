@@ -4,6 +4,7 @@ import pytest
 
 from eth_utils import (
     to_normalized_address,
+    ValidationError,
 )
 
 from eth.vm.message import (
@@ -11,9 +12,6 @@ from eth.vm.message import (
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 

@@ -3,6 +3,7 @@ from typing import Tuple, Type  # noqa: F401
 from eth_utils import (
     decode_hex,
     encode_hex,
+    ValidationError,
 )
 
 from .constants import (
@@ -17,7 +18,6 @@ from eth import constants
 from eth.chains.base import (
     Chain,
 )
-from eth.exceptions import ValidationError
 from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM  # noqa: F401
 from eth.vm.forks import (

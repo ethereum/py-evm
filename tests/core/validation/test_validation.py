@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import pytest
 
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 from eth.constants import (

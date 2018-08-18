@@ -8,10 +8,12 @@ from eth_typing import (
     Hash32,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
-
-from p2p.exceptions import ValidationError
 
 from trinity.rlp.block_body import BlockBody
 from trinity.protocol.common.requests import (

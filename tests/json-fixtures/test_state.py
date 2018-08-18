@@ -5,21 +5,19 @@ import pytest
 
 from eth_keys import keys
 
-from eth.db import (
-    get_db_backend,
-)
-
 from eth_utils import (
     to_bytes,
     to_tuple,
+    ValidationError,
+)
+
+from eth.db import (
+    get_db_backend,
 )
 
 from eth_hash.auto import keccak
 
 from eth.db.chain import ChainDB
-from eth.exceptions import (
-    ValidationError,
-)
 from eth.vm.forks import (
     TangerineWhistleVM,
     FrontierVM,

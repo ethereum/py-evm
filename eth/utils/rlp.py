@@ -8,9 +8,8 @@ from cytoolz import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
-
-from eth.exceptions import ValidationError
 
 
 @to_tuple

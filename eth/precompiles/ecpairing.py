@@ -6,9 +6,13 @@ from py_ecc import (
     optimized_bn128 as bn128,
 )
 
-from eth import constants
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
+)
+
+from eth import constants
+
+from eth.exceptions import (
     VMError,
 )
 from eth.utils.bn128 import (

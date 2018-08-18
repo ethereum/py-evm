@@ -7,9 +7,11 @@ from cytoolz import (
     merge,
     last,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from eth.db.backends.base import BaseDB
-from eth.exceptions import ValidationError
 
 
 class DeletedEntry:

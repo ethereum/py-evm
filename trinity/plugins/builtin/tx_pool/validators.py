@@ -3,12 +3,12 @@ import cachetools.func
 from typing import (
     Type
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from eth.chains.base import (
     BaseChain
-)
-from eth.exceptions import (
-    ValidationError
 )
 from eth.rlp.transactions import (
     BaseTransaction,

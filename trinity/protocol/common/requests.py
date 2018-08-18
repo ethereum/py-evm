@@ -6,15 +6,14 @@ from typing import (
     TypeVar,
 )
 
-from eth_utils import encode_hex
-
 from eth_typing import BlockIdentifier, BlockNumber
 
-from eth.rlp.headers import BlockHeader
-
-from p2p.exceptions import (
+from eth_utils import (
+    encode_hex,
     ValidationError,
 )
+
+from eth.rlp.headers import BlockHeader
 
 
 TMsg = TypeVar('TMsg')

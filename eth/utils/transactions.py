@@ -6,7 +6,7 @@ from eth_keys.exceptions import (
     BadSignature,
 )
 
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 from eth.utils.numeric import (

@@ -6,9 +6,11 @@ from typing import (
 
 from eth_typing import BlockIdentifier
 
-from eth.rlp.headers import BlockHeader
+from eth_utils import (
+    ValidationError,
+)
 
-from p2p.exceptions import ValidationError
+from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,

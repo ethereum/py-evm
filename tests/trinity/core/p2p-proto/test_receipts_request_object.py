@@ -3,13 +3,14 @@ import time
 
 import pytest
 
-from eth_utils import to_tuple
+from eth_utils import (
+    to_tuple,
+    ValidationError,
+)
 
 from eth.db.trie import make_trie_root_and_nodes
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
-
-from p2p.exceptions import ValidationError
 
 from trinity.protocol.eth.requests import ReceiptsRequest
 

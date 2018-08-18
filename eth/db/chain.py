@@ -27,6 +27,7 @@ from eth_typing import (
 from eth_utils import (
     to_list,
     to_tuple,
+    ValidationError,
 )
 
 from eth_hash.auto import keccak
@@ -40,7 +41,6 @@ from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
     TransactionNotFound,
-    ValidationError,
 )
 from eth.db.header import BaseHeaderDB, HeaderDB
 from eth.db.backends.base import (

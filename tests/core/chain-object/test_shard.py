@@ -3,6 +3,10 @@ import pytest
 import random
 import itertools
 
+from eth_utils import (
+    int_to_big_endian,
+)
+
 from eth.chains.shard import (
     Shard,
 )
@@ -30,9 +34,6 @@ from eth.utils.blobs import (
 )
 from eth.utils.padding import (
     zpad_right,
-)
-from eth_utils import (
-    int_to_big_endian,
 )
 
 

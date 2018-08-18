@@ -25,15 +25,13 @@ from typing import (
 )
 
 import rlp
+
 from eth_utils import (
     encode_hex,
     text_if_str,
     to_bytes,
     to_list,
     to_tuple,
-)
-
-from eth_utils import (
     int_to_big_endian,
     big_endian_to_int,
 )

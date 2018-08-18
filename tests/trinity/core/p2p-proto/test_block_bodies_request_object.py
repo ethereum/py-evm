@@ -11,13 +11,12 @@ from eth_hash.auto import keccak
 from eth_utils import (
     to_tuple,
     big_endian_to_int,
+    ValidationError,
 )
 
 from eth.db.trie import make_trie_root_and_nodes
 from eth.rlp.headers import BlockHeader
 from eth.rlp.transactions import BaseTransactionFields
-
-from p2p.exceptions import ValidationError
 
 from trinity.rlp.block_body import BlockBody
 from trinity.protocol.eth.requests import BlockBodiesRequest

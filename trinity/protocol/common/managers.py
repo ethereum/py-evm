@@ -13,9 +13,12 @@ from typing import (
 
 from cancel_token import CancelToken
 
+from eth_utils import (
+    ValidationError,
+)
+
 from p2p.exceptions import (
     MalformedMessage,
-    ValidationError,
 )
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber

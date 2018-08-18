@@ -7,8 +7,6 @@ from collections.abc import (
     Mapping,
 )
 
-from eth.db.backends.memory import MemoryDB
-
 from cytoolz import (
     first,
     merge_with,
@@ -17,6 +15,8 @@ from eth_utils import (
     to_text,
     int_to_big_endian,
 )
+
+from eth.db.backends.memory import MemoryDB
 
 from eth.utils.db import (
     apply_state_dict,

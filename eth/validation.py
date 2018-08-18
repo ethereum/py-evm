@@ -1,5 +1,9 @@
 import functools
 
+from eth_utils import (
+    ValidationError,
+)
+
 from cytoolz.dicttoolz import (
     valfilter,
 )
@@ -18,9 +22,6 @@ from eth.constants import (
     GAS_LIMIT_MINIMUM,
     SECPK1_N,
     UINT_256_MAX,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 

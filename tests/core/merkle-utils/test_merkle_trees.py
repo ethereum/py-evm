@@ -1,5 +1,9 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth_hash.auto import (
     keccak,
 )
@@ -10,10 +14,6 @@ from eth.utils.merkle import (
     get_root,
     get_merkle_proof,
     verify_merkle_proof,
-)
-
-from eth.exceptions import (
-    ValidationError,
 )
 
 

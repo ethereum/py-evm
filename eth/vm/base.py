@@ -19,6 +19,7 @@ from eth_bloom import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth_hash.auto import keccak
@@ -34,7 +35,6 @@ from eth.db.trie import make_trie_root_and_nodes
 from eth.db.chain import BaseChainDB  # noqa: F401
 from eth.exceptions import (
     HeaderNotFound,
-    ValidationError,
 )
 from eth.rlp.blocks import (  # noqa: F401
     BaseBlock,
