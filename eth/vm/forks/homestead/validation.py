@@ -1,8 +1,9 @@
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.constants import (
     SECPK1_N,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 from eth.vm.forks.frontier.validation import (

@@ -26,8 +26,7 @@ from eth_hash.auto import (
 from eth_typing import (
     Hash32,
 )
-
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

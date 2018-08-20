@@ -6,10 +6,11 @@ from rlp.sedes import (
     CountableList,
     binary,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from eth_bloom import BloomFilter
-
-from eth.exceptions import ValidationError
 
 from .sedes import (
     int256,

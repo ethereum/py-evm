@@ -10,6 +10,7 @@ from typing import (
 from eth_utils import (
     apply_to_return_value,
     int_to_big_endian,
+    ValidationError,
 )
 
 from eth.utils.padding import (
@@ -24,10 +25,6 @@ from eth.constants import (
     CHUNK_DATA_SIZE,
     COLLATION_SIZE,
     MAX_BLOB_SIZE,
-)
-
-from eth.exceptions import (
-    ValidationError,
 )
 
 from typing import (

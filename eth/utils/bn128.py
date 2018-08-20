@@ -2,7 +2,7 @@ from py_ecc import (
     optimized_bn128 as bn128,
 )
 
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

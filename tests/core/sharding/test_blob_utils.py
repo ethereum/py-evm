@@ -4,6 +4,10 @@ from itertools import (
     zip_longest,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.utils.blobs import (
     calc_chunk_root,
     calc_merkle_root,
@@ -22,9 +26,6 @@ from eth.constants import (
     CHUNK_SIZE,
     COLLATION_SIZE,
     MAX_BLOB_SIZE
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 

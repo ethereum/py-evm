@@ -1,10 +1,11 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.vm.memory import (
     Memory,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 

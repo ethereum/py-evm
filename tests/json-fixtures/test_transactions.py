@@ -7,9 +7,6 @@ import rlp
 from eth_utils import (
     is_same_address,
     to_tuple,
-)
-
-from eth.exceptions import (
     ValidationError,
 )
 from eth.tools.fixture_tests import (

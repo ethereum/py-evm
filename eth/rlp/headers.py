@@ -25,6 +25,7 @@ from eth_typing import (
 )
 from eth_utils import (
     to_dict,
+    ValidationError,
 )
 
 from eth_hash.auto import keccak
@@ -36,9 +37,6 @@ from eth.constants import (
     GENESIS_NONCE,
     GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 from eth.utils.hexadecimal import (

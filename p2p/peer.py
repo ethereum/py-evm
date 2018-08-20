@@ -39,6 +39,7 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import (
     decode_hex,
     to_tuple,
+    ValidationError,
 )
 
 from eth_typing import BlockNumber, Hash32
@@ -53,7 +54,6 @@ from cancel_token import CancelToken, OperationCancelled
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.exceptions import ValidationError as EthValidationError
 from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM
 from eth.vm.forks import HomesteadVM
@@ -75,7 +75,6 @@ from p2p.exceptions import (
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
-    ValidationError,
 )
 from p2p.service import BaseService
 from p2p.utils import (
@@ -866,7 +865,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             try:
                 vm_class.validate_header(header, parent, check_seal=True)
-            except EthValidationError as err:
+            except ValidationError as err:
                 raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(err))
 
     def _peer_finished(self, peer: BaseService) -> None:

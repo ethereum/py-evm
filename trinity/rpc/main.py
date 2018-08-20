@@ -7,11 +7,12 @@ from typing import (
     Union,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.chains.base import (
     BaseChain
-)
-from eth.exceptions import (
-    ValidationError,
 )
 
 from p2p.peer import (

@@ -74,13 +74,6 @@ class CanonicalCollationNotFound(PyEVMError):
     pass
 
 
-class ValidationError(PyEVMError):
-    """
-    Raised when something does not pass a validation check.
-    """
-    pass
-
-
 class Halt(PyEVMError):
     """
     Raised when an opcode function halts vm execution.

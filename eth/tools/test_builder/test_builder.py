@@ -10,14 +10,6 @@ from typing import (  # noqa: F401
     Dict,
     List,
 )
-
-from eth.db.account import (
-    AccountDB,
-)
-from eth.tools.fixture_tests import (
-    hash_log_entries,
-)
-
 from cytoolz import (
     assoc,
     assoc_in,
@@ -29,6 +21,13 @@ from eth_utils import (
     decode_hex,
     encode_hex,
     to_canonical_address,
+)
+
+from eth.db.account import (
+    AccountDB,
+)
+from eth.tools.fixture_tests import (
+    hash_log_entries,
 )
 
 from .normalization import (

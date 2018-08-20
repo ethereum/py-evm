@@ -2,7 +2,7 @@ import pytest
 
 from eth_hash.auto import keccak
 
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

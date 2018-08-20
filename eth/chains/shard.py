@@ -4,16 +4,13 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
-
+from eth_utils import (
+    ValidationError,
+)
 from eth.db.shard import (
     Availability,
     ShardDB,
 )
-
-from eth.exceptions import (
-    ValidationError,
-)
-
 from eth.rlp.headers import (
     CollationHeader,
 )

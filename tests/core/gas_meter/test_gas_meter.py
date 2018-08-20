@@ -1,10 +1,11 @@
 import pytest
-
+from eth_utils import (
+    ValidationError,
+)
 from eth.vm.gas_meter import (
     GasMeter,
 )
 from eth.exceptions import (
-    ValidationError,
     OutOfGas,
 )
 

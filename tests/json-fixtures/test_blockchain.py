@@ -2,7 +2,7 @@ import os
 import pytest
 import rlp
 
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

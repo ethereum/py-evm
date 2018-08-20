@@ -3,10 +3,12 @@ from eth_keys.exceptions import (
     BadSignature,
 )
 
-from eth import constants
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
 )
+
+from eth import constants
+
 from eth.validation import (
     validate_lt_secpk1n,
     validate_gte,

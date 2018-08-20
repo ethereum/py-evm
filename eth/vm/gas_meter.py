@@ -2,9 +2,10 @@ import logging
 from typing import (
     cast
 )
-
-from eth.exceptions import (
+from eth_utils import (
     ValidationError,
+)
+from eth.exceptions import (
     OutOfGas,
 )
 from eth.validation import (
