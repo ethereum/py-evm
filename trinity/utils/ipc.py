@@ -8,16 +8,12 @@ import time
 from typing import Callable
 
 
-def wait_for_ipc(ipc_path: pathlib.Path, logger: Logger, timeout: int=10) -> None:
+def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=10) -> None:
     start_at = time.time()
-    wait_duration = 0
-    while not ipc_path.exists():
-        wait_duration = time.time() - start_at
-        if wait_duration >= timeout:
-            logger.warn("IPC socket file has not appeared in %1.3f seconds!", wait_duration)
-            return
+    while time.time() - start_at < timeout:
+        if ipc_path.exists():
+            break
         time.sleep(0.05)
-    logger.debug("Waited %1.3f seconds for IPC socket file to appear", wait_duration)
 
 
 DEFAULT_SIGINT_TIMEOUT = 10
