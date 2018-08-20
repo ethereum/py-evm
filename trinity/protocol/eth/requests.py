@@ -32,9 +32,7 @@ from .commands import (
 
 
 class HeaderRequest(BaseHeaderRequest):
-    @property
-    def max_size(self) -> int:
-        return MAX_HEADERS_FETCH
+    max_size = MAX_HEADERS_FETCH
 
     def __init__(self,
                  block_number_or_hash: BlockIdentifier,

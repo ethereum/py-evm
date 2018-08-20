@@ -3,7 +3,6 @@ from typing import (
     Dict,
     Tuple,
     TypeVar,
-    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -11,19 +10,24 @@ from eth_typing import (
     Hash32,
 )
 from eth.rlp.headers import BlockHeader
+from p2p.protocol import (
+    TRequestPayload,
+)
 
 from trinity.protocol.common.exchanges import (
     BaseExchange,
 )
 from trinity.protocol.common.normalizers import (
-    TrivialNormalizer,
+    NoopNormalizer,
+)
+from trinity.protocol.common.validators import (
+    noop_payload_validator,
 )
 from trinity.protocol.common.types import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsByBlock,
     ReceiptsBundles,
-    TCommandPayload,
 )
 from trinity.rlp.block_body import BlockBody
 
@@ -45,20 +49,17 @@ from .validators import (
     ReceiptsValidator,
 )
 
-if TYPE_CHECKING:
-    from .peer import ETHPeer  # noqa: F401
-
 # when the message equals the result
 TMsgResult = TypeVar('TMsgResult')
 
 # For when the result type is the same as the message type
-EthExchangePassthrough = BaseExchange[TCommandPayload, TMsgResult, TMsgResult]
+EthExchangePassthrough = BaseExchange[TRequestPayload, TMsgResult, TMsgResult]
 
 BaseGetBlockHeadersExchange = EthExchangePassthrough[Dict[str, Any], Tuple[BlockHeader, ...]]
 
 
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
-    _normalizer: TrivialNormalizer[Tuple[BlockHeader, ...]] = TrivialNormalizer()
+    _normalizer = NoopNormalizer[Tuple[BlockHeader, ...]]()
 
     async def __call__(  # type: ignore
             self,
@@ -71,7 +72,7 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
         validator = GetBlockHeadersValidator(*original_request_args)
         request = GetBlockHeadersRequest(*original_request_args)
 
-        return await self.get_result(request, self._normalizer, validator)
+        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
 
 
 BaseNodeDataExchange = BaseExchange[Tuple[Hash32, ...], Tuple[bytes, ...], NodeDataBundles]
@@ -83,7 +84,7 @@ class GetNodeDataExchange(BaseNodeDataExchange):
     async def __call__(self, node_hashes: Tuple[Hash32, ...]) -> NodeDataBundles:  # type: ignore
         validator = GetNodeDataValidator(node_hashes)
         request = GetNodeDataRequest(node_hashes)
-        return await self.get_result(request, self._normalizer, validator)
+        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
 
 
 class GetReceiptsExchange(BaseExchange[Tuple[Hash32, ...], ReceiptsByBlock, ReceiptsBundles]):
@@ -95,7 +96,7 @@ class GetReceiptsExchange(BaseExchange[Tuple[Hash32, ...], ReceiptsByBlock, Rece
         block_hashes = tuple(header.hash for header in headers)
         request = GetReceiptsRequest(block_hashes)
 
-        return await self.get_result(request, self._normalizer, validator)
+        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
 
 
 BaseGetBlockBodiesExchange = BaseExchange[
@@ -114,4 +115,4 @@ class GetBlockBodiesExchange(BaseGetBlockBodiesExchange):
         block_hashes = tuple(header.hash for header in headers)
         request = GetBlockBodiesRequest(block_hashes)
 
-        return await self.get_result(request, self._normalizer, validator)
+        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)

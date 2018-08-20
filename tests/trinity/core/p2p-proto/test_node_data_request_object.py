@@ -27,46 +27,46 @@ def mk_node_data(n):
 
 def test_node_data_request_empty_response_is_valid():
     node_keys, _ = mk_node_data(10)
-    request = GetNodeDataValidator(node_keys)
+    validator = GetNodeDataValidator(node_keys)
 
-    request.validate_result(tuple())
+    validator.validate_result(tuple())
 
 
 def test_node_data_request_with_full_response():
     node_keys, nodes = mk_node_data(10)
-    request = GetNodeDataValidator(node_keys)
+    validator = GetNodeDataValidator(node_keys)
     node_data = tuple(zip(node_keys, nodes))
 
-    request.validate_result(node_data)
+    validator.validate_result(node_data)
 
 
 def test_node_data_request_with_partial_response():
     node_keys, nodes = mk_node_data(10)
-    request = GetNodeDataValidator(node_keys)
+    validator = GetNodeDataValidator(node_keys)
     node_data = tuple(zip(node_keys, nodes))
 
-    request.validate_result(node_data[3:])
+    validator.validate_result(node_data[3:])
 
-    request.validate_result(node_data[:3])
+    validator.validate_result(node_data[:3])
 
-    request.validate_result((node_data[1], node_data[8], node_data[4]))
+    validator.validate_result((node_data[1], node_data[8], node_data[4]))
 
 
 def test_node_data_request_with_fully_invalid_response():
     node_keys, nodes = mk_node_data(10)
-    request = GetNodeDataValidator(node_keys)
+    validator = GetNodeDataValidator(node_keys)
 
     # construct a unique set of other nodes
     other_nodes = tuple(set(mk_node() for _ in range(10)).difference(nodes))
     other_node_data = tuple((keccak(node), node) for node in other_nodes)
 
     with pytest.raises(ValidationError):
-        request.validate_result(other_node_data)
+        validator.validate_result(other_node_data)
 
 
 def test_node_data_request_with_extra_unrequested_nodes():
     node_keys, nodes = mk_node_data(10)
-    request = GetNodeDataValidator(node_keys)
+    validator = GetNodeDataValidator(node_keys)
     node_data = tuple(zip(node_keys, nodes))
 
     # construct a unique set of other nodes
@@ -74,4 +74,4 @@ def test_node_data_request_with_extra_unrequested_nodes():
     other_node_data = tuple((keccak(node), node) for node in other_nodes)
 
     with pytest.raises(ValidationError):
-        request.validate_result(node_data + other_node_data)
+        validator.validate_result(node_data + other_node_data)

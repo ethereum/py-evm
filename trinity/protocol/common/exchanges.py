@@ -8,65 +8,58 @@ from typing import (
 
 from p2p.protocol import (
     BaseRequest,
+    TRequestPayload,
 )
 
 from .managers import ExchangeManager
 from .normalizers import BaseNormalizer
 from .types import (
-    TCommandPayload,
     TMsg,
     TResult,
 )
 from .validators import BaseValidator
 
 
-class BaseExchange(ABC, Generic[TCommandPayload, TMsg, TResult]):
+class BaseExchange(ABC, Generic[TRequestPayload, TMsg, TResult]):
     """
     The exchange object handles a few things, in rough order:
 
-     - store the request_args from initialization for later use by a validator
      - convert from friendly input arguments to the protocol arguments
-     - issue the protocol request
-     - identify the Command type of the message that comes as a response to the request
-     - convert from protocol response message to a friendly result (aka normalization)
-     - identify whether normalization is slow
-        (which is used to decide if it should be run in another process)
-     - identify the validator class used to validate the response message and the normalized result
+     - generate the appropriate BaseRequest object
+     - identify the BaseNormalizer that can convert the response payload to the desired result
+     - prepare the BaseValidator that can validate the final result against the requested data
+     - (if necessary) prepare a response payload validator, which validates data that is *not*
+        present in the final result
+     - issue the request to the ExchangeManager, with the request, normalizer, and validators
+     - await the normalized & validated response, and return it
 
-    The init function should take whatever arguments are used to send the request.
+    TRequestPayload is the data as passed directly to the p2p command
+    TMsg is the data as received directly from the p2p command response
+    TResult is the response data after normalization
     """
 
-    is_normalization_slow = False
-    """
-    This variable indicates how slow normalization is. If normalization requires
-    any non-trivial computation, consider it slow. Then, the Manager will run it in
-    a different process.
-    """
-
-    request_args: Any = None
-
-    def __init__(self, manager: ExchangeManager[TCommandPayload, TMsg, TResult]) -> None:
+    def __init__(self, manager: ExchangeManager[TRequestPayload, TMsg, TResult]) -> None:
         self._manager = manager
 
     async def get_result(
             self,
-            request: BaseRequest[TCommandPayload],
+            request: BaseRequest[TRequestPayload],
             normalizer: BaseNormalizer[TMsg, TResult],
             result_validator: BaseValidator[TResult],
-            command_validator: Callable[[TCommandPayload, TMsg], None] = None,
+            payload_validator: Callable[[TRequestPayload, TMsg], None],
             timeout: int = None) -> TResult:
-
         """
-        The type of message that the peer will send in response to this exchange's request
+        This is a light convenience wrapper around the ExchangeManager's get_result() method.
+
+        It makes sure that:
+        - the manager service is running
+        - the payload validator is primed with the request payload
         """
         if not self._manager.is_running:
             await self._manager.launch_service(request.response_type)
 
-        if command_validator is None:
-            message_validator = None
-        else:
-            # bind the outbound request to the message validator
-            message_validator = partial(command_validator, request.command_payload)
+        # bind the outbound request payload to the payload validator
+        message_validator = partial(payload_validator, request.command_payload)
 
         return await self._manager.get_result(
             request,

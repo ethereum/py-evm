@@ -129,10 +129,10 @@ def test_header_request_sequence_matching(
         params,
         sequence,
         is_match):
-    request = BlockHeadersValidator(*params)
+    validator = BlockHeadersValidator(*params)
 
     if is_match:
-        request._validate_sequence(sequence)
+        validator._validate_sequence(sequence)
     else:
         with pytest.raises(ValidationError):
-            request._validate_sequence(sequence)
+            validator._validate_sequence(sequence)

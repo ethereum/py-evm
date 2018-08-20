@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import (
+    Any,
     Generic,
     Tuple,
     TypeVar,
@@ -17,6 +18,10 @@ from p2p.exceptions import ValidationError
 from trinity.utils.headers import sequence_builder
 
 TResponse = TypeVar('TResponse')
+
+
+def noop_payload_validator(request: Any, response: Any) -> None:
+    pass
 
 
 class BaseValidator(ABC, Generic[TResponse]):

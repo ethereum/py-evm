@@ -23,18 +23,22 @@ from p2p.exceptions import (
 )
 from p2p.utils import get_devp2p_cmd_id
 
-
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
-
-_DecodedMsgType = Union[
+PayloadType = Union[
     Dict[str, Any],
     List[rlp.Serializable],
     Tuple[rlp.Serializable, ...],
 ]
+
+# A payload to be delivered with a request
+TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
+
+# for backwards compatibility for internal references in p2p:
+_DecodedMsgType = PayloadType
 
 
 class Command:
@@ -63,7 +67,7 @@ class Command:
     def __str__(self) -> str:
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
-    def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
+    def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):  # convert dict to ordered list
             if not isinstance(self.structure, list):
                 raise ValueError("Command.structure must be a list when data is a dict")
@@ -79,7 +83,7 @@ class Command:
             encoder = sedes.List([type_ for _, type_ in self.structure])
         return rlp.encode(data, sedes=encoder)
 
-    def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
+    def decode_payload(self, rlp_data: bytes) -> PayloadType:
         if isinstance(self.structure, sedes.CountableList):
             decoder = self.structure
         else:
@@ -100,13 +104,13 @@ class Command:
             in zip(self.structure, data)
         }
 
-    def decode(self, data: bytes) -> _DecodedMsgType:
+    def decode(self, data: bytes) -> PayloadType:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise MalformedMessage("Wrong packet type: {}".format(packet_type))
         return self.decode_payload(data[1:])
 
-    def encode(self, data: _DecodedMsgType) -> Tuple[bytes, bytes]:
+    def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
         payload = self.encode_payload(data)
         enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
         frame_size = len(enc_cmd_id) + len(payload)
@@ -126,15 +130,12 @@ class Command:
         return header, body
 
 
-TCommandPayload = TypeVar('TCommandPayload', bound=_DecodedMsgType)
-
-
-class BaseRequest(ABC, Generic[TCommandPayload]):
+class BaseRequest(ABC, Generic[TRequestPayload]):
     """
     Must define command_payload during init. This is the data that will
     be sent to the peer with the request command.
     """
-    command_payload: TCommandPayload
+    command_payload: TRequestPayload
 
     @property
     @abstractmethod
@@ -165,7 +166,7 @@ class Protocol:
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
 
-    def send_request(self, request: BaseRequest[_DecodedMsgType]) -> None:
+    def send_request(self, request: BaseRequest[PayloadType]) -> None:
         command = self.cmd_by_type[request.cmd_type]
         header, body = command.encode(request.command_payload)
         self.send(header, body)

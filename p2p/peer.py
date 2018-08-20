@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    NamedTuple,
     Set,
     TYPE_CHECKING,
     Tuple,
@@ -209,7 +210,7 @@ class BasePeer(BaseService):
 
     @abstractmethod
     async def process_sub_proto_handshake(
-            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+            self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @contextlib.contextmanager
@@ -365,7 +366,7 @@ class BasePeer(BaseService):
                 self.logger.debug("%s disconnected: %s", self, e)
                 return
 
-    async def read_msg(self) -> Tuple[protocol.Command, protocol._DecodedMsgType]:
+    async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
         header = self.decrypt_header(header_data)
         frame_size = self.get_frame_size(header)
@@ -392,7 +393,7 @@ class BasePeer(BaseService):
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
-    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
@@ -406,12 +407,12 @@ class BasePeer(BaseService):
         else:
             raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
 
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         cmd_type = type(cmd)
 
         if self._subscribers:
             was_added = tuple(
-                subscriber.add_msg((self, cmd, msg))
+                subscriber.add_msg(PeerMessage(self, cmd, msg))
                 for subscriber
                 in self._subscribers
             )
@@ -424,14 +425,14 @@ class BasePeer(BaseService):
         else:
             self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
-    def process_msg(self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+    def process_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
         else:
             self.handle_sub_proto_msg(cmd, msg)
 
     async def process_p2p_handshake(
-            self, cmd: protocol.Command, msg: protocol._DecodedMsgType) -> None:
+            self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
@@ -563,8 +564,14 @@ class BasePeer(BaseService):
         return hash(self.remote)
 
 
+class PeerMessage(NamedTuple):
+    peer: BasePeer
+    command: protocol.Command
+    payload: protocol.PayloadType
+
+
 class PeerSubscriber(ABC):
-    _msg_queue: 'asyncio.Queue[PEER_MSG_TYPE]' = None
+    _msg_queue: 'asyncio.Queue[PeerMessage]' = None
 
     @property
     @abstractmethod
@@ -609,7 +616,7 @@ class PeerSubscriber(ABC):
         pass
 
     @property
-    def msg_queue(self) -> 'asyncio.Queue[PEER_MSG_TYPE]':
+    def msg_queue(self) -> 'asyncio.Queue[PeerMessage]':
         if self._msg_queue is None:
             self._msg_queue = asyncio.Queue(maxsize=self.msg_queue_maxsize)
         return self._msg_queue
@@ -618,26 +625,29 @@ class PeerSubscriber(ABC):
     def queue_size(self) -> int:
         return self.msg_queue.qsize()
 
-    def add_msg(self, msg: 'PEER_MSG_TYPE') -> bool:
+    def add_msg(self, msg: PeerMessage) -> bool:
         peer, cmd, _ = msg
 
         if not self.is_subscription_command(type(cmd)):
-            self.logger.trace(  # type: ignore
-                "Discarding %s msg from %s; not subscribed to msg type; "
-                "subscriptions: %s",
-                cmd, peer, self.subscription_msg_types,
-            )
+            if hasattr(self, 'logger'):
+                self.logger.trace(  # type: ignore
+                    "Discarding %s msg from %s; not subscribed to msg type; "
+                    "subscriptions: %s",
+                    cmd, peer, self.subscription_msg_types,
+                )
             return False
 
         try:
-            self.logger.trace(  # type: ignore
-                "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
+            if hasattr(self, 'logger'):
+                self.logger.trace(  # type: ignore
+                    "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
             self.msg_queue.put_nowait(msg)
             return True
         except asyncio.queues.QueueFull:
-            self.logger.warn(  # type: ignore
-                "%s msg queue is full; discarding %s msg from %s",
-                self.__class__.__name__, cmd, peer)
+            if hasattr(self, 'logger'):
+                self.logger.warn(  # type: ignore
+                    "%s msg queue is full; discarding %s msg from %s",
+                    self.__class__.__name__, cmd, peer)
             return False
 
     @contextlib.contextmanager
@@ -663,7 +673,7 @@ class MsgBuffer(PeerSubscriber):
     subscription_msg_types = {protocol.Command}
 
     @to_tuple
-    def get_messages(self) -> Iterator['PEER_MSG_TYPE']:
+    def get_messages(self) -> Iterator[PeerMessage]:
         while not self.msg_queue.empty():
             yield self.msg_queue.get_nowait()
 
@@ -740,7 +750,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
     def _add_peer(self,
                   peer: BasePeer,
-                  msgs: Tuple[Tuple[protocol.Command, protocol._DecodedMsgType], ...]) -> None:
+                  msgs: Tuple[Tuple[protocol.Command, protocol.PayloadType], ...]) -> None:
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
@@ -753,7 +763,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber)
             for cmd, msg in msgs:
-                subscriber.add_msg((peer, cmd, msg))
+                subscriber.add_msg(PeerMessage(peer, cmd, msg))
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -1004,9 +1014,6 @@ class ChainInfo:
         self.block_hash = block_hash
         self.total_difficulty = total_difficulty
         self.genesis_hash = genesis_hash
-
-
-PEER_MSG_TYPE = Tuple[BasePeer, protocol.Command, protocol._DecodedMsgType]
 
 
 def _test() -> None:

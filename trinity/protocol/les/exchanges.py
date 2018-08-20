@@ -2,13 +2,11 @@ from typing import (
     Any,
     Dict,
     Tuple,
-    TYPE_CHECKING,
     TypeVar,
 )
 
 from eth_typing import BlockIdentifier
 from eth.rlp.headers import BlockHeader
-from p2p.exceptions import ValidationError
 
 from trinity.protocol.common.exchanges import (
     BaseExchange,
@@ -25,18 +23,13 @@ from .requests import (
 )
 from .validators import (
     GetBlockHeadersValidator,
+    match_payload_request_id,
 )
-
-if TYPE_CHECKING:
-    from .peer import LESPeer  # noqa: #401
 
 TResult = TypeVar('TResult')
 
 
-class LESExchange(BaseExchange[Dict[str, Any], Dict[str, Any], TResult]):
-    def _match_message_request_id(self, payload: Dict[str, Any], message: Dict[str, Any]) -> None:
-        if payload['request_id'] != message['request_id']:
-            raise ValidationError("Request `id` does not match")
+LESExchange = BaseExchange[Dict[str, Any], Dict[str, Any], TResult]
 
 
 class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
@@ -59,5 +52,5 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
             request,
             self._normalizer,
             validator,
-            self._match_message_request_id,
+            match_payload_request_id,
         )

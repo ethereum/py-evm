@@ -1,10 +1,8 @@
 from typing import (
-    Dict,
     Tuple,
 )
 
 from eth.rlp.headers import BlockHeader
-from eth.rlp.receipts import Receipt
 from eth_typing import (
     Hash32,
 )
@@ -12,10 +10,14 @@ from p2p.exceptions import (
     ValidationError,
 )
 
-from trinity.rlp.block_body import BlockBody
 from trinity.protocol.common.validators import (
     BaseValidator,
     BaseBlockHeadersValidator,
+)
+from trinity.protocol.common.types import (
+    BlockBodyBundles,
+    NodeDataBundles,
+    ReceiptsBundles,
 )
 
 from . import constants
@@ -23,9 +25,6 @@ from . import constants
 
 class GetBlockHeadersValidator(BaseBlockHeadersValidator):
     protocol_max_request_size = constants.MAX_HEADERS_FETCH
-
-
-NodeDataBundles = Tuple[Tuple[Hash32, bytes], ...]
 
 
 class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
@@ -51,9 +50,6 @@ class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
             )
 
 
-ReceiptsBundles = Tuple[Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]], ...]
-
-
 class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
     def __init__(self, headers: Tuple[BlockHeader, ...]) -> None:
         self.headers = headers
@@ -76,14 +72,6 @@ class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
             raise ValidationError(
                 "Got {0} unexpected receipt roots".format(len(unexpected_roots))
             )
-
-
-# (BlockBody, (txn_root, txn_trie_data), uncles_hash)
-BlockBodyBundles = Tuple[Tuple[
-    BlockBody,
-    Tuple[Hash32, Dict[Hash32, bytes]],
-    Hash32,
-], ...]
 
 
 class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):

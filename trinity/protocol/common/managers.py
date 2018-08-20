@@ -1,7 +1,8 @@
 import asyncio
 import time
-from typing import (
+from typing import (  # noqa: F401 -- AsyncGenerator needed by mypy
     Any,
+    AsyncGenerator,
     Callable,
     Generic,
     Set,
@@ -20,6 +21,7 @@ from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     BaseRequest,
     Command,
+    TRequestPayload,
 )
 from p2p.service import BaseService
 
@@ -27,7 +29,6 @@ from trinity.exceptions import AlreadyWaiting
 
 from .normalizers import BaseNormalizer
 from .types import (
-    TCommandPayload,
     TMsg,
     TResult,
 )
@@ -58,7 +59,7 @@ class ResponseTimeTracker:
         self.total_response_time += time
 
 
-class MessageManager(PeerSubscriber, BaseService, Generic[TMsg]):
+class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]):
 
     #
     # PeerSubscriber
@@ -87,7 +88,7 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TMsg]):
 
     async def message_candidates(
             self,
-            request: BaseRequest[Any],
+            request: BaseRequest[TRequestPayload],
             timeout: int) -> 'AsyncGenerator[TMsg, None]':
         """
         Make a request and iterate through candidates for a valid response.
@@ -141,15 +142,16 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TMsg]):
             message = await self.wait(future, timeout=timeout)
         except TimeoutError:
             self.response_times.total_timeouts += 1
-            self.pending_request = None
             raise
-        else:
-            # message might be invalid, so allow another attempt to wait for a valid response
-            self.pending_request = (send_time, asyncio.Future())
+        finally:
+            self.pending_request = None
+
+        # message might be invalid, so prepare for another call to _get_message()
+        self.pending_request = (send_time, asyncio.Future())
 
         return message
 
-    def _request(self, request: BaseRequest[Any]) -> None:
+    def _request(self, request: BaseRequest[TRequestPayload]) -> None:
         if self.pending_request is not None:
             self.logger.error(
                 "Already waiting for response to %s for peer: %s",
@@ -175,8 +177,8 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TMsg]):
         return '%s: %s' % (self.response_msg_name, self.response_times.get_stats())
 
 
-class ExchangeManager(Generic[TCommandPayload, TMsg, TResult]):
-    _message_manager: MessageManager[TMsg] = None
+class ExchangeManager(Generic[TRequestPayload, TMsg, TResult]):
+    _message_manager: MessageManager[TRequestPayload, TMsg] = None
 
     def __init__(
             self,
@@ -200,7 +202,7 @@ class ExchangeManager(Generic[TCommandPayload, TMsg, TResult]):
 
     async def get_result(
             self,
-            request: BaseRequest[TCommandPayload],
+            request: BaseRequest[TRequestPayload],
             normalizer: BaseNormalizer[TMsg, TResult],
             validate_result: Callable[[TResult], None],
             message_validator: Callable[[TMsg], None] = None,

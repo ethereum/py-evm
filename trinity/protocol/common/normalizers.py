@@ -40,7 +40,7 @@ class BaseNormalizer(ABC, Generic[TMsg, TResult]):
 TPassthrough = TypeVar('TPassthrough', bound=Sized)
 
 
-class TrivialNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):
+class NoopNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):
     @staticmethod
     def normalize_result(message: TPassthrough) -> TPassthrough:
         return message
