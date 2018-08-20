@@ -13,8 +13,7 @@ def state(chain_without_block_validation):
 def test_block_properties(chain_without_block_validation):
     chain = chain_without_block_validation
     vm = chain.get_vm()
-    imported_blocks, _ = chain.import_block(vm.mine_block())
-    block = imported_blocks[-1]
+    block, _, _ = chain.import_block(vm.mine_block())
 
     assert vm.state.coinbase == block.header.coinbase
     assert vm.state.timestamp == block.header.timestamp

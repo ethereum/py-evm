@@ -178,15 +178,17 @@ class HeaderDB(BaseHeaderDB):
         try:
             head_score = self.get_score(self.get_canonical_head().hash)
         except CanonicalHeadNotFound:
-            new_canonical_headers, old_headers = self._set_as_canonical_chain_head(header.hash)
+            new_canonical_headers, orphaned_headers = self._set_as_canonical_chain_head(header.hash)
         else:
             if score > head_score:
-                new_canonical_headers, old_headers = self._set_as_canonical_chain_head(header.hash)
+                new_canonical_headers, orphaned_headers = self._set_as_canonical_chain_head(
+                    header.hash
+                )
             else:
                 new_canonical_headers = tuple()
-                old_headers = tuple()
+                orphaned_headers = tuple()
 
-        return new_canonical_headers, old_headers
+        return new_canonical_headers, orphaned_headers
 
     def _set_as_canonical_chain_head(self, block_hash: Hash32
                                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
