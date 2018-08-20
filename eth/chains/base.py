@@ -8,12 +8,13 @@ import operator
 import random
 from typing import (  # noqa: F401
     Any,
-    Optional,
     Callable,
     cast,
     Dict,
     Generator,
     Iterator,
+    List,
+    Optional,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -265,7 +266,10 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+    def import_block(self,
+                     block: BaseBlock,
+                     perform_validation: bool=True,
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -584,10 +588,14 @@ class Chain(BaseChain):
         with self.get_vm(at_header).state_in_temp_block() as state:
             return self.gas_estimator(state, transaction)
 
-    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+    def import_block(self,
+                     block: BaseBlock,
+                     perform_validation: bool=True
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
-        Imports a complete block.
+        Imports a complete block and returns new_blocks and orphaned_canonical_blocks.
         """
+
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         except HeaderNotFound:
@@ -608,13 +616,26 @@ class Chain(BaseChain):
             ensure_imported_block_unchanged(imported_block, block)
             self.validate_block(imported_block)
 
-        self.chaindb.persist_block(imported_block)
+        (
+            new_canonical_header_hashes,
+            orphaned_header_hashes,
+        ) = self.chaindb.persist_block(imported_block)
+
         self.logger.debug(
             'IMPORTED_BLOCK: number %s | hash %s',
             imported_block.number,
             encode_hex(imported_block.hash),
         )
-        return imported_block
+
+        new_blocks = tuple(
+            self.get_block_by_hash(header_hash) for header_hash in new_canonical_header_hashes)
+        orphaned_canonical_blocks = tuple(
+            self.get_block_by_hash(header_hash) for header_hash in orphaned_header_hashes)
+        # add imported block to new block when no chain re-org
+        if not new_blocks:
+            new_blocks = (imported_block, )
+
+        return new_blocks, orphaned_canonical_blocks
 
     #
     # Validation API
@@ -780,10 +801,15 @@ class MiningChain(Chain):
 
         return new_block, receipt, computation
 
-    def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
-        result_block = super().import_block(block, perform_validation)
+    def import_block(self,
+                     block: BaseBlock,
+                     perform_validation: bool=True
+                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        new_canonical_blocks, orphaned_canonical_blocks = super().import_block(
+            block, perform_validation)
+
         self.header = self.ensure_header()
-        return result_block
+        return new_canonical_blocks, orphaned_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         """

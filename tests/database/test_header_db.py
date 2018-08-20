@@ -102,7 +102,7 @@ def test_headerdb_persist_header_disallows_unknown_parent(headerdb):
 
 
 def test_headerdb_persist_header_returns_new_canonical_chain(headerdb, genesis_header):
-    gen_result = headerdb.persist_header(genesis_header)
+    gen_result, _ = headerdb.persist_header(genesis_header)
     assert gen_result == (genesis_header,)
 
     chain_a = mk_header_chain(genesis_header, 3)
@@ -110,15 +110,15 @@ def test_headerdb_persist_header_returns_new_canonical_chain(headerdb, genesis_h
     chain_c = mk_header_chain(genesis_header, 5)
 
     for header in chain_a:
-        res = headerdb.persist_header(header)
+        res, _ = headerdb.persist_header(header)
         assert res == (header,)
 
     for header in chain_b:
-        res = headerdb.persist_header(header)
+        res, _ = headerdb.persist_header(header)
         assert res == tuple()
 
     for idx, header in enumerate(chain_c, 1):
-        res = headerdb.persist_header(header)
+        res, _ = headerdb.persist_header(header)
         if idx <= 3:
             # prior to passing up `chain_a` each import should not return new
             # canonical headers.

@@ -68,7 +68,9 @@ class BaseHeaderDB(ABC):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    def persist_header(self,
+                       header: BlockHeader
+                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -144,7 +146,9 @@ class HeaderDB(BaseHeaderDB):
         validate_word(block_hash, title="Block Hash")
         return block_hash in self.db
 
-    def persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    def persist_header(self,
+                       header: BlockHeader
+                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
         :returns: iterable of headers newly on the canonical chain
         """
@@ -174,16 +178,18 @@ class HeaderDB(BaseHeaderDB):
         try:
             head_score = self.get_score(self.get_canonical_head().hash)
         except CanonicalHeadNotFound:
-            new_canonical_headers = self._set_as_canonical_chain_head(header.hash)
+            new_canonical_headers, old_headers = self._set_as_canonical_chain_head(header.hash)
         else:
             if score > head_score:
-                new_canonical_headers = self._set_as_canonical_chain_head(header.hash)
+                new_canonical_headers, old_headers = self._set_as_canonical_chain_head(header.hash)
             else:
                 new_canonical_headers = tuple()
+                old_headers = tuple()
 
-        return new_canonical_headers
+        return new_canonical_headers, old_headers
 
-    def _set_as_canonical_chain_head(self, block_hash: Hash32) -> Tuple[BlockHeader, ...]:
+    def _set_as_canonical_chain_head(self, block_hash: Hash32
+                                     ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
         Sets the canonical chain HEAD to the block header as specified by the
         given block hash.
@@ -198,13 +204,24 @@ class HeaderDB(BaseHeaderDB):
             )
 
         new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
+        orphaned_headers = []
+
+        for h in new_canonical_headers:
+            try:
+                orphaned_hash = self.get_canonical_block_hash(h.block_number)
+            except HeaderNotFound:
+                # no orphaned block, and no more possible
+                break
+            else:
+                orphaned_header = self.get_block_header_by_hash(orphaned_hash)
+                orphaned_headers.append(orphaned_header)
 
         for h in new_canonical_headers:
             self._add_block_number_to_hash_lookup(h)
 
         self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
-        return new_canonical_headers
+        return new_canonical_headers, tuple(orphaned_headers)
 
     @to_tuple
     def _find_new_ancestors(self, header: BlockHeader) -> Iterable[BlockHeader]:
