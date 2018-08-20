@@ -53,12 +53,13 @@ def database_server_ipc_path():
         )
         chaindb_server_process.start()
 
-        wait_for_ipc(chain_config.database_ipc_path)
+        logger = logging.getLogger()
+        wait_for_ipc(chain_config.database_ipc_path, logger)
 
         try:
             yield chain_config.database_ipc_path
         finally:
-            kill_process_gracefully(chaindb_server_process, logging.getLogger())
+            kill_process_gracefully(chaindb_server_process, logger)
 
 
 @pytest.fixture
