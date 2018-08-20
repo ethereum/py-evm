@@ -194,7 +194,13 @@ def trinity_boot(args: Namespace,
     # start the processes
     database_server_process.start()
     logger.info("Started DB server process (pid=%d)", database_server_process.pid)
-    wait_for_ipc(chain_config.database_ipc_path)
+
+    # networking process needs the IPC socket file provided by the database process
+    try:
+        wait_for_ipc(chain_config.database_ipc_path)
+    except TimeoutError as e:
+        logger.error(e)
+        logger.warn("Networking process is likely to fail - proceeding optimistically...")
 
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
