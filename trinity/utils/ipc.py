@@ -8,7 +8,7 @@ import time
 from typing import Callable
 
 
-def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=1) -> None:
+def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=10) -> None:
     start_at = time.time()
     while time.time() - start_at < timeout:
         if ipc_path.exists():
