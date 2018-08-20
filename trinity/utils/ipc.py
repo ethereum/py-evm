@@ -13,7 +13,7 @@ def wait_for_ipc(ipc_path: pathlib.Path, logger: Logger, timeout: int=10) -> Non
     wait_duration = 0
     while not ipc_path.exists():
         wait_duration = time.time() - start_at
-        if wait_duration > timeout:
+        if wait_duration >= timeout:
             logger.warn("IPC socket file has not appeared in %1.3f seconds!", wait_duration)
             return
         time.sleep(0.05)
