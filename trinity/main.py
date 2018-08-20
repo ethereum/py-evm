@@ -194,8 +194,8 @@ def trinity_boot(args: Namespace,
     # start the processes
     database_server_process.start()
     logger.info("Started DB server process (pid=%d)", database_server_process.pid)
-    wait_for_ipc(chain_config.database_ipc_path, logger)
 
+    wait_for_ipc(chain_config.database_ipc_path, logger)
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
