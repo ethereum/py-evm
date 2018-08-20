@@ -157,27 +157,10 @@ def get_transient_ipc_path():
 
 
 class PeerPoolProxy(BaseProxy):
-    _loop: asyncio.AbstractEventLoop = None
+    _exposed_ = ('__len__',)
 
-    @property
-    def loop(self) -> asyncio.AbstractEventLoop:
-        if self._loop is None:
-            return asyncio.get_event_loop()
-        else:
-            return self._loop
-
-    @loop.setter
-    def loop(self, value: asyncio.AbstractEventLoop) -> None:
-        self._loop = value
-
-    _exposed_ = tuple()
-
-    async def get_num_peers(self):
-        return await self.loop.run_in_executor(
-            None,
-            self._callmethod,
-            '__len__',
-        )
+    def __len__(self):
+        return self._callmethod('__len__')
 
 
 class BasePeerPoolManager(BaseManager):
@@ -223,13 +206,10 @@ def setup_cancel_token_client(address):
 
 @with_queued_logging
 def run_service_process(ServiceClass, args, kwargs):
-    import logging
-    logger = logging.getLogger('trinity')
-    logger.info('IN run_service_process')
+    from trinity.main import run_service_until_quit
     service = ServiceClass(*args, **kwargs)
 
-    loop = service.get_event_loop()
-    loop.run_until_complete(service.run())
+    run_service_until_quit(service)
 
 
 class IPCServiceWrapper(BaseService):
