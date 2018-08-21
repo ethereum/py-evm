@@ -47,8 +47,7 @@ class ImportEmptyBlocksBenchmark(BaseBenchmark):
 
         total_gas_used = 0
         for _ in range(1, number_blocks + 1):
-            imported_blocks, _ = chain.import_block(chain.get_vm().block, False)
-            block = imported_blocks[-1]
+            block, _, _ = chain.import_block(chain.get_vm().block, False)
 
             total_gas_used = total_gas_used + block.header.gas_used
             logging.debug(format_block(block))

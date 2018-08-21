@@ -269,7 +269,7 @@ class BaseChain(Configurable, ABC):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True,
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+                     ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -591,9 +591,13 @@ class Chain(BaseChain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+                     ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
-        Imports a complete block and returns new_blocks and orphaned_canonical_blocks.
+        Imports a complete block and returns a 3-tuple
+
+        - the imported block
+        - a tuple of blocks which are now part of the canonical chain.
+        - a tuple of blocks which are were canonical and now are no longer canonical.
         """
 
         try:
@@ -617,8 +621,8 @@ class Chain(BaseChain):
             self.validate_block(imported_block)
 
         (
-            new_canonical_header_hashes,
-            orphaned_header_hashes,
+            new_canonical_hashes,
+            old_canonical_hashes,
         ) = self.chaindb.persist_block(imported_block)
 
         self.logger.debug(
@@ -627,15 +631,18 @@ class Chain(BaseChain):
             encode_hex(imported_block.hash),
         )
 
-        new_blocks = tuple(
-            self.get_block_by_hash(header_hash) for header_hash in new_canonical_header_hashes)
-        orphaned_canonical_blocks = tuple(
-            self.get_block_by_hash(header_hash) for header_hash in orphaned_header_hashes)
-        # add imported block to new block when no chain re-org
-        if not new_blocks:
-            new_blocks = (imported_block, )
+        new_canonical_blocks = tuple(
+            self.get_block_by_hash(header_hash)
+            for header_hash
+            in new_canonical_hashes
+        )
+        old_canonical_blocks = tuple(
+            self.get_block_by_hash(header_hash)
+            for header_hash
+            in old_canonical_hashes
+        )
 
-        return new_blocks, orphaned_canonical_blocks
+        return imported_block, new_canonical_blocks, old_canonical_blocks
 
     #
     # Validation API
@@ -804,12 +811,12 @@ class MiningChain(Chain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True
-                     ) -> Tuple[Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        new_canonical_blocks, orphaned_canonical_blocks = super().import_block(
+                     ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        imported_block, new_canonical_blocks, old_canonical_blocks = super().import_block(
             block, perform_validation)
 
         self.header = self.ensure_header()
-        return new_canonical_blocks, orphaned_canonical_blocks
+        return imported_block, new_canonical_blocks, old_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         """
@@ -834,10 +841,12 @@ class MiningChain(Chain):
 # This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
 # Chain implementation.
 class AsyncChain(Chain):
+    # TODO: this really belongs in the `trinity` module.
 
     async def coro_import_block(self,
                                 block: BlockHeader,
-                                perform_validation: bool=True) -> BaseBlock:
+                                perform_validation: bool=True,
+                                ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         raise NotImplementedError()
 
     async def coro_validate_chain(

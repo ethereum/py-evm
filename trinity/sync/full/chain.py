@@ -383,9 +383,30 @@ class RegularChainSyncer(FastChainSyncer):
 
             block = block_class(header, transactions, uncles)
             timer = Timer()
-            await self.wait(self.chain.coro_import_block(block, perform_validation=True))
-            self.logger.info("Imported block %d (%d txs) in %f seconds",
-                             block.number, len(transactions), timer.elapsed)
+            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
+                self.chain.coro_import_block(block, perform_validation=True)
+            )
+
+            if new_canonical_blocks == (block,):
+                # simple import of a single new block.
+                self.logger.info("Imported block %d (%d txs) in %f seconds",
+                                 block.number, len(transactions), timer.elapsed)
+            elif not new_canonical_blocks:
+                # imported block from a fork.
+                self.logger.info("Imported non-canonical block %d (%d txs) in %f seconds",
+                                 block.number, len(transactions), timer.elapsed)
+            elif old_canonical_blocks:
+                self.logger.info(
+                    "Chain Reorganization: Imported block %d (%d txs) in %f "
+                    "seconds, %d blocks discarded and %d new canonical blocks added",
+                    block.number,
+                    len(transactions),
+                    timer.elapsed,
+                    len(old_canonical_blocks),
+                    len(new_canonical_blocks),
+                )
+            else:
+                raise Exception("Invariant: unreachable code path")
 
         head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
