@@ -562,7 +562,7 @@ class VM(BaseVM):
         """
         if 'uncles' in kwargs:
             uncles = kwargs.pop('uncles')
-            kwargs.setdefault('uncles_hash', keccak(rlp.encode(block.uncles)))
+            kwargs.setdefault('uncles_hash', keccak(rlp.encode(uncles)))
         else:
             uncles = block.uncles
 
@@ -710,7 +710,7 @@ class VM(BaseVM):
                 " - header uncle_hash: {2}".format(
                     len(block.uncles),
                     local_uncle_hash,
-                    block.header.uncle_hash,
+                    block.header.uncles_hash,
                 )
             )
 

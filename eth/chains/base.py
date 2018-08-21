@@ -25,7 +25,10 @@ import logging
 
 from cytoolz import (
     assoc,
+    compose,
     groupby,
+    iterate,
+    take,
 )
 
 from eth_typing import (
@@ -35,7 +38,6 @@ from eth_typing import (
 )
 
 from eth_utils import (
-    to_tuple,
     to_set,
     ValidationError,
 )
@@ -204,7 +206,7 @@ class BaseChain(Configurable, ABC):
     # Block API
     #
     @abstractmethod
-    def get_ancestors(self, limit: int, header: BlockHeader) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader) -> Tuple[BaseBlock, ...]:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -447,14 +449,27 @@ class Chain(BaseChain):
     #
     # Block API
     #
-    @to_tuple
-    def get_ancestors(self, limit: int, header: BlockHeader) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader) -> Tuple[BaseBlock, ...]:
         """
         Return `limit` number of ancestor blocks from the current canonical head.
         """
-        lower_limit = max(header.block_number - limit, 0)
-        for n in reversed(range(lower_limit, header.block_number)):
-            yield self.get_canonical_block_by_number(BlockNumber(n))
+        ancestor_count = min(header.block_number, limit)
+
+        # We construct a temporary block object
+        vm_class = self.get_vm_class_for_block_number(header.block_number)
+        block_class = vm_class.get_block_class()
+        block = block_class(header=header, uncles=[])
+
+        ancestor_generator = iterate(compose(
+            self.get_block_by_hash,
+            operator.attrgetter('parent_hash'),
+            operator.attrgetter('header'),
+        ), block)
+        # we peel off the first element from the iterator which will be the
+        # temporary block object we constructed.
+        next(ancestor_generator)
+
+        return tuple(take(ancestor_count, ancestor_generator))
 
     def get_block(self) -> BaseBlock:
         """
