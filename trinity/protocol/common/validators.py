@@ -12,8 +12,10 @@ from eth_typing import (
     BlockIdentifier,
     BlockNumber,
 )
-from eth_utils import encode_hex
-from p2p.exceptions import ValidationError
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+)
 
 from trinity.utils.headers import sequence_builder
 

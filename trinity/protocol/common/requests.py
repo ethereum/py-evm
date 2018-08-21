@@ -6,10 +6,6 @@ from typing import (
 
 from eth_typing import BlockIdentifier, BlockNumber
 
-from eth_utils import (
-    ValidationError,
-)
-
 from trinity.utils.headers import sequence_builder
 
 

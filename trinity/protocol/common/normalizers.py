@@ -1,18 +1,18 @@
 from abc import abstractmethod, ABC
-
 from typing import (
     Generic,
-    Sized,
     TypeVar,
 )
 
+from p2p.protocol import PayloadType
+
 from .types import (
-    TMsg,
+    TResponsePayload,
     TResult,
 )
 
 
-class BaseNormalizer(ABC, Generic[TMsg, TResult]):
+class BaseNormalizer(ABC, Generic[TResponsePayload, TResult]):
     is_normalization_slow = False
     """
     This variable indicates how slow normalization is. If normalization requires
@@ -22,7 +22,7 @@ class BaseNormalizer(ABC, Generic[TMsg, TResult]):
 
     @staticmethod
     @abstractmethod
-    def normalize_result(message: TMsg) -> TResult:
+    def normalize_result(message: TResponsePayload) -> TResult:
         """
         Convert underlying peer message to final result
         """
@@ -37,7 +37,7 @@ class BaseNormalizer(ABC, Generic[TMsg, TResult]):
         raise NotImplementedError()
 
 
-TPassthrough = TypeVar('TPassthrough', bound=Sized)
+TPassthrough = TypeVar('TPassthrough', bound=PayloadType)
 
 
 class NoopNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):

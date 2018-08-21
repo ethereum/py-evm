@@ -2,7 +2,6 @@ from typing import (
     Any,
     Dict,
     Tuple,
-    TypeVar,
 )
 
 from eth_typing import (
@@ -10,9 +9,6 @@ from eth_typing import (
     Hash32,
 )
 from eth.rlp.headers import BlockHeader
-from p2p.protocol import (
-    TRequestPayload,
-)
 
 from trinity.protocol.common.exchanges import (
     BaseExchange,
@@ -49,13 +45,11 @@ from .validators import (
     ReceiptsValidator,
 )
 
-# when the message equals the result
-TMsgResult = TypeVar('TMsgResult')
-
-# For when the result type is the same as the message type
-EthExchangePassthrough = BaseExchange[TRequestPayload, TMsgResult, TMsgResult]
-
-BaseGetBlockHeadersExchange = EthExchangePassthrough[Dict[str, Any], Tuple[BlockHeader, ...]]
+BaseGetBlockHeadersExchange = BaseExchange[
+    Dict[str, Any],
+    Tuple[BlockHeader, ...],
+    Tuple[BlockHeader, ...],
+]
 
 
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):

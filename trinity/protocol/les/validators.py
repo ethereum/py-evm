@@ -3,7 +3,7 @@ from typing import (
     Dict,
 )
 
-from p2p.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

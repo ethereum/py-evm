@@ -18,8 +18,6 @@ TPeer = TypeVar('TPeer', bound=BasePeer)
 # A payload delivered by a responding command
 TResponsePayload = TypeVar('TResponsePayload', bound=PayloadType)
 
-TMsg = TypeVar('TMsg')
-
 # The returned value at the end of an exchange
 TResult = TypeVar('TResult')
 

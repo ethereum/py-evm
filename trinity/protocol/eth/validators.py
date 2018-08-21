@@ -6,7 +6,7 @@ from eth.rlp.headers import BlockHeader
 from eth_typing import (
     Hash32,
 )
-from p2p.exceptions import (
+from eth_utils import (
     ValidationError,
 )
 

@@ -10,10 +10,6 @@ from eth_typing import (
 )
 from p2p.protocol import BaseRequest
 
-from eth_utils import (
-    ValidationError,
-)
-
 from trinity.protocol.eth.constants import MAX_HEADERS_FETCH
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,

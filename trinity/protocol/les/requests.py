@@ -5,10 +5,6 @@ from typing import (
 
 from eth_typing import BlockIdentifier
 
-from eth_utils import (
-    ValidationError,
-)
-
 from p2p.protocol import BaseRequest
 
 from trinity.protocol.common.requests import (

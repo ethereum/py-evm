@@ -14,13 +14,13 @@ from p2p.protocol import (
 from .managers import ExchangeManager
 from .normalizers import BaseNormalizer
 from .types import (
-    TMsg,
+    TResponsePayload,
     TResult,
 )
 from .validators import BaseValidator
 
 
-class BaseExchange(ABC, Generic[TRequestPayload, TMsg, TResult]):
+class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     """
     The exchange object handles a few things, in rough order:
 
@@ -34,19 +34,19 @@ class BaseExchange(ABC, Generic[TRequestPayload, TMsg, TResult]):
      - await the normalized & validated response, and return it
 
     TRequestPayload is the data as passed directly to the p2p command
-    TMsg is the data as received directly from the p2p command response
+    TResponsePayload is the data as received directly from the p2p command response
     TResult is the response data after normalization
     """
 
-    def __init__(self, manager: ExchangeManager[TRequestPayload, TMsg, TResult]) -> None:
-        self._manager = manager
+    def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
+        self._manager = mgr
 
     async def get_result(
             self,
             request: BaseRequest[TRequestPayload],
-            normalizer: BaseNormalizer[TMsg, TResult],
+            normalizer: BaseNormalizer[TResponsePayload, TResult],
             result_validator: BaseValidator[TResult],
-            payload_validator: Callable[[TRequestPayload, TMsg], None],
+            payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
             timeout: int = None) -> TResult:
         """
         This is a light convenience wrapper around the ExchangeManager's get_result() method.

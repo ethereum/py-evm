@@ -29,7 +29,7 @@ from trinity.exceptions import AlreadyWaiting
 
 from .normalizers import BaseNormalizer
 from .types import (
-    TMsg,
+    TResponsePayload,
     TResult,
 )
 
@@ -59,7 +59,10 @@ class ResponseTimeTracker:
         self.total_response_time += time
 
 
-class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]):
+class ResponseCandidateStream(
+        PeerSubscriber,
+        BaseService,
+        Generic[TRequestPayload, TResponsePayload]):
 
     #
     # PeerSubscriber
@@ -72,7 +75,7 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
 
     response_timout: int = 60
 
-    pending_request: Tuple[float, 'asyncio.Future[TMsg]'] = None
+    pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
 
     _peer: BasePeer
 
@@ -86,19 +89,19 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
         self.response_times = ResponseTimeTracker()
         self._response_msg_type = response_msg_type
 
-    async def message_candidates(
+    async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
-            timeout: int) -> 'AsyncGenerator[TMsg, None]':
+            timeout: int) -> 'AsyncGenerator[TResponsePayload, None]':
         """
         Make a request and iterate through candidates for a valid response.
 
-        To mark a response as valid, use `complete_request`. After that call, message
+        To mark a response as valid, use `complete_request`. After that call, payload
         candidates will stop arriving.
         """
         self._request(request)
         while self._is_pending():
-            yield await self._get_message(timeout)
+            yield await self._get_payload(timeout)
 
     @property
     def response_msg_name(self) -> str:
@@ -121,14 +124,14 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
                 elif isinstance(cmd, self._response_msg_type):
-                    await self._handle_msg(cast(TMsg, msg))
+                    await self._handle_msg(cast(TResponsePayload, msg))
                 else:
-                    self.logger.warning("Unexpected message type: %s", cmd.__class__.__name__)
+                    self.logger.warning("Unexpected payload type: %s", cmd.__class__.__name__)
 
-    async def _handle_msg(self, msg: TMsg) -> None:
+    async def _handle_msg(self, msg: TResponsePayload) -> None:
         if self.pending_request is None:
             self.logger.debug(
-                "Got unexpected %s message from %", self.response_msg_name, self._peer
+                "Got unexpected %s payload from %", self.response_msg_name, self._peer
             )
             return
 
@@ -136,20 +139,20 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
         self.last_response_time = time.perf_counter() - send_time
         future.set_result(msg)
 
-    async def _get_message(self, timeout: int) -> TMsg:
+    async def _get_payload(self, timeout: int) -> TResponsePayload:
         send_time, future = self.pending_request
         try:
-            message = await self.wait(future, timeout=timeout)
+            payload = await self.wait(future, timeout=timeout)
         except TimeoutError:
             self.response_times.total_timeouts += 1
             raise
         finally:
             self.pending_request = None
 
-        # message might be invalid, so prepare for another call to _get_message()
+        # payload might be invalid, so prepare for another call to _get_payload()
         self.pending_request = (send_time, asyncio.Future())
 
-        return message
+        return payload
 
     def _request(self, request: BaseRequest[TRequestPayload]) -> None:
         if self.pending_request is not None:
@@ -167,7 +170,7 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
 
         self._peer.sub_proto.send_request(request)
 
-        future: 'asyncio.Future[TMsg]' = asyncio.Future()
+        future: 'asyncio.Future[TResponsePayload]' = asyncio.Future()
         self.pending_request = (time.perf_counter(), future)
 
     def _is_pending(self) -> bool:
@@ -177,8 +180,8 @@ class MessageManager(PeerSubscriber, BaseService, Generic[TRequestPayload, TMsg]
         return '%s: %s' % (self.response_msg_name, self.response_times.get_stats())
 
 
-class ExchangeManager(Generic[TRequestPayload, TMsg, TResult]):
-    _message_manager: MessageManager[TRequestPayload, TMsg] = None
+class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
+    _response_stream: ResponseCandidateStream[TRequestPayload, TResponsePayload] = None
 
     def __init__(
             self,
@@ -188,13 +191,13 @@ class ExchangeManager(Generic[TRequestPayload, TMsg, TResult]):
         self._cancel_token = cancel_token
 
     async def launch_service(self, listening_for: Type[Command]) -> None:
-        self._message_manager = MessageManager(
+        self._response_stream = ResponseCandidateStream(
             self._peer,
             listening_for,
             self._cancel_token,
         )
-        self._peer.run_daemon(self._message_manager)
-        await self._message_manager.events.started.wait()
+        self._peer.run_daemon(self._response_stream)
+        await self._response_stream.events.started.wait()
 
     @property
     def is_running(self) -> bool:
@@ -203,38 +206,37 @@ class ExchangeManager(Generic[TRequestPayload, TMsg, TResult]):
     async def get_result(
             self,
             request: BaseRequest[TRequestPayload],
-            normalizer: BaseNormalizer[TMsg, TResult],
+            normalizer: BaseNormalizer[TResponsePayload, TResult],
             validate_result: Callable[[TResult], None],
-            message_validator: Callable[[TMsg], None] = None,
+            payload_validator: Callable[[TResponsePayload], None],
             timeout: int = None) -> TResult:
 
         if not self.is_running:
             raise ValidationError("You must call `launch_service` before initiating a peer request")
 
-        manager = self._message_manager
+        stream = self._response_stream
 
-        async for message in manager.message_candidates(request, timeout):
+        async for payload in stream.payload_candidates(request, timeout):
             try:
-                if message_validator is not None:
-                    message_validator(message)
+                payload_validator(payload)
 
                 if normalizer.is_normalization_slow:
-                    result = await manager._run_in_executor(normalizer.normalize_result, message)
+                    result = await stream._run_in_executor(normalizer.normalize_result, payload)
                 else:
-                    result = normalizer.normalize_result(message)
+                    result = normalizer.normalize_result(payload)
 
                 validate_result(result)
             except ValidationError as err:
                 self.service.logger.debug(
                     "Response validation failed for pending %s request from peer %s: %s",
-                    manager.response_msg_name,
+                    stream.response_msg_name,
                     self._peer,
                     err,
                 )
                 continue
             else:
                 num_items = normalizer.get_num_results(result)
-                manager.complete_request(num_items)
+                stream.complete_request(num_items)
                 return result
 
         raise ValidationError("Manager is not pending a response, but no valid response received")
@@ -244,7 +246,7 @@ class ExchangeManager(Generic[TRequestPayload, TMsg, TResult]):
         """
         This service that needs to be running for calls to execute properly
         """
-        return self._message_manager
+        return self._response_stream
 
     def get_stats(self) -> str:
-        return self._message_manager.get_stats()
+        return self._response_stream.get_stats()
