@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import (
     Any,
     Dict,
-    List,
     Set,
     Type,
 )
@@ -35,10 +34,11 @@ class BaseExchangeHandler:
                     "Unable to set manager on attribute `{0}` which is already "
                     "present on the class: {1}".format(attr, getattr(self, attr))
                 )
-            manager: ExchangeManager[Any, Any, Any] = ExchangeManager(self._peer, peer.cancel_token)
+            manager: ExchangeManager[Any, Any, Any]
+            manager = ExchangeManager(self._peer, exchange_cls.response_cmd_type, peer.cancel_token)
             self._exchange_managers.add(manager)
             exchange = exchange_cls(manager)
             setattr(self, attr, exchange)
 
-    def get_stats(self) -> List[str]:
-        return [exchange_manager.get_stats() for exchange_manager in self._exchange_managers]
+    def get_stats(self) -> Dict[str, str]:
+        return dict(exchange_manager.get_stats() for exchange_manager in self._exchange_managers)

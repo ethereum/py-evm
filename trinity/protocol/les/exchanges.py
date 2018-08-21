@@ -34,6 +34,7 @@ LESExchange = BaseExchange[Dict[str, Any], Dict[str, Any], TResult]
 
 class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
     _normalizer = BlockHeadersNormalizer()
+    request_class = GetBlockHeadersRequest
 
     async def __call__(  # type: ignore
             self,
@@ -47,7 +48,7 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
         validator = GetBlockHeadersValidator(*original_request_args)
 
         command_args = original_request_args + (gen_request_id(),)
-        request = GetBlockHeadersRequest(*command_args)
+        request = self.request_class(*command_args)
 
         return await self.get_result(
             request,
