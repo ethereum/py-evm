@@ -66,6 +66,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             normalizer,
             result_validator.validate_result,
             message_validator,
+            timeout=timeout
         )
 
     @abstractmethod

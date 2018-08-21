@@ -60,13 +60,20 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
             block_number_or_hash: BlockIdentifier,
             max_headers: int = None,
             skip: int = 0,
-            reverse: bool = True) -> Tuple[BlockHeader, ...]:
+            reverse: bool = True,
+            timeout: int = None) -> Tuple[BlockHeader, ...]:
 
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)
         request = GetBlockHeadersRequest(*original_request_args)
 
-        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
+        return await self.get_result(
+            request,
+            self._normalizer,
+            validator,
+            noop_payload_validator,
+            timeout,
+        )
 
 
 BaseNodeDataExchange = BaseExchange[Tuple[Hash32, ...], Tuple[bytes, ...], NodeDataBundles]
