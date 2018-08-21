@@ -90,10 +90,8 @@ deps['dev'] = (
     deps['lint']
 )
 
-# As long as eth, p2p and trinity are managed together in the py-evm
-# package, someone running a `pip install py-evm` should expect all
-# dependencies for eth, p2p and trinity to get installed.
-install_requires = deps['eth'] + deps['p2p'] + deps['trinity']
+
+install_requires = deps['eth']
 
 setup(
     name='py-evm',
