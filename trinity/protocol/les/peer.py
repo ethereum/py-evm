@@ -23,14 +23,14 @@ from .commands import (
     Status,
     StatusV2,
 )
-from .constants import (
+from trinity.protocol.les.constants import (
     MAX_HEADERS_FETCH,
 )
 from .proto import (
     LESProtocol,
     LESProtocolV2,
 )
-from .handlers import LESRequestResponseHandler
+from .handlers import LESExchangeHandler
 
 
 class LESPeer(BasePeer):
@@ -39,16 +39,15 @@ class LESPeer(BasePeer):
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
     head_info: HeadInfo = None
 
-    _requests: LESRequestResponseHandler = None
+    _requests: LESExchangeHandler = None
 
     def get_extra_stats(self) -> List[str]:
         return self.requests.get_stats()
 
     @property
-    def requests(self) -> LESRequestResponseHandler:
+    def requests(self) -> LESExchangeHandler:
         if self._requests is None:
-            self._requests = LESRequestResponseHandler(self)
-            self.run_daemon(self._requests)
+            self._requests = LESExchangeHandler(self)
         return self._requests
 
     @property

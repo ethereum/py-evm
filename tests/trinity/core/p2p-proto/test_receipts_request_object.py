@@ -12,7 +12,7 @@ from eth.db.trie import make_trie_root_and_nodes
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 
-from trinity.protocol.eth.requests import ReceiptsRequest
+from trinity.protocol.eth.validators import ReceiptsValidator
 
 
 @to_tuple
@@ -48,30 +48,29 @@ def mk_headers(*counts):
 def test_receipts_request_empty_response_is_valid():
     headers_bundle = mk_headers(1, 3, 2, 5, 4)
     headers, _, _ = zip(*headers_bundle)
-    request = ReceiptsRequest(headers)
-    request.validate_response(tuple(), tuple())
+    validator = ReceiptsValidator(headers)
+    validator.validate_result(tuple())
 
 
 def test_receipts_request_valid_with_full_response():
     headers_bundle = mk_headers(1, 3, 2, 5, 4)
     headers, receipts, trie_roots_and_data = zip(*headers_bundle)
     receipts_bundle = tuple(zip(receipts, trie_roots_and_data))
-    request = ReceiptsRequest(headers)
-    request.validate_response(receipts, receipts_bundle)
+    validator = ReceiptsValidator(headers)
+    validator.validate_result(receipts_bundle)
 
 
 def test_receipts_request_valid_with_partial_response():
     headers_bundle = mk_headers(1, 3, 2, 5, 4)
     headers, receipts, trie_roots_and_data = zip(*headers_bundle)
     receipts_bundle = tuple(zip(receipts, trie_roots_and_data))
-    request = ReceiptsRequest(headers)
+    validator = ReceiptsValidator(headers)
 
-    request.validate_response(receipts[:3], receipts_bundle[:3])
-    request.validate_response(receipts[2:], receipts_bundle[2:])
-    request.validate_response(
-        (receipts[1], receipts[3], receipts[4]),
-        (receipts_bundle[1], receipts_bundle[3], receipts_bundle[4]),
-    )
+    validator.validate_result(receipts_bundle[:3])
+
+    validator.validate_result(receipts_bundle[2:])
+
+    validator.validate_result((receipts_bundle[1], receipts_bundle[3], receipts_bundle[4]))
 
 
 def test_receipts_request_with_fully_invalid_response():
@@ -82,10 +81,10 @@ def test_receipts_request_with_fully_invalid_response():
     _, wrong_receipts, wrong_trie_roots_and_data = zip(*wrong_headers)
     receipts_bundle = tuple(zip(wrong_receipts, wrong_trie_roots_and_data))
 
-    request = ReceiptsRequest(headers)
+    validator = ReceiptsValidator(headers)
 
     with pytest.raises(ValidationError):
-        request.validate_response(wrong_receipts, receipts_bundle)
+        validator.validate_result(receipts_bundle)
 
 
 def test_receipts_request_with_extra_unrequested_receipts():
@@ -97,10 +96,7 @@ def test_receipts_request_with_extra_unrequested_receipts():
     _, wrong_receipts, wrong_trie_roots_and_data = zip(*wrong_headers)
     extra_receipts_bundle = tuple(zip(wrong_receipts, wrong_trie_roots_and_data))
 
-    request = ReceiptsRequest(headers)
+    validator = ReceiptsValidator(headers)
 
     with pytest.raises(ValidationError):
-        request.validate_response(
-            receipts + wrong_receipts,
-            receipts_bundle + extra_receipts_bundle,
-        )
+        validator.validate_result(receipts_bundle + extra_receipts_bundle)

@@ -1,11 +1,14 @@
+from abc import ABC, abstractmethod
 import logging
 import struct
 from typing import (
     Any,
     Dict,
+    Generic,
     List,
     Tuple,
     Type,
+    TypeVar,
     TYPE_CHECKING,
     Union,
 )
@@ -20,18 +23,22 @@ from p2p.exceptions import (
 )
 from p2p.utils import get_devp2p_cmd_id
 
-
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from p2p.peer import ChainInfo, BasePeer  # noqa: F401
 
-
-_DecodedMsgType = Union[
+PayloadType = Union[
     Dict[str, Any],
     List[rlp.Serializable],
     Tuple[rlp.Serializable, ...],
 ]
+
+# A payload to be delivered with a request
+TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
+
+# for backwards compatibility for internal references in p2p:
+_DecodedMsgType = PayloadType
 
 
 class Command:
@@ -60,7 +67,7 @@ class Command:
     def __str__(self) -> str:
         return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
 
-    def encode_payload(self, data: Union[_DecodedMsgType, sedes.CountableList]) -> bytes:
+    def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):  # convert dict to ordered list
             if not isinstance(self.structure, list):
                 raise ValueError("Command.structure must be a list when data is a dict")
@@ -76,7 +83,7 @@ class Command:
             encoder = sedes.List([type_ for _, type_ in self.structure])
         return rlp.encode(data, sedes=encoder)
 
-    def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
+    def decode_payload(self, rlp_data: bytes) -> PayloadType:
         if isinstance(self.structure, sedes.CountableList):
             decoder = self.structure
         else:
@@ -97,13 +104,13 @@ class Command:
             in zip(self.structure, data)
         }
 
-    def decode(self, data: bytes) -> _DecodedMsgType:
+    def decode(self, data: bytes) -> PayloadType:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise MalformedMessage("Wrong packet type: {}".format(packet_type))
         return self.decode_payload(data[1:])
 
-    def encode(self, data: _DecodedMsgType) -> Tuple[bytes, bytes]:
+    def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
         payload = self.encode_payload(data)
         enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
         frame_size = len(enc_cmd_id) + len(payload)
@@ -123,6 +130,24 @@ class Command:
         return header, body
 
 
+class BaseRequest(ABC, Generic[TRequestPayload]):
+    """
+    Must define command_payload during init. This is the data that will
+    be sent to the peer with the request command.
+    """
+    command_payload: TRequestPayload
+
+    @property
+    @abstractmethod
+    def cmd_type(self) -> Type[Command]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def response_type(self) -> Type[Command]:
+        raise NotImplementedError
+
+
 class Protocol:
     logger = logging.getLogger("p2p.protocol.Protocol")
     name: str = None
@@ -135,10 +160,19 @@ class Protocol:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
+        self.cmd_by_type = {cmd_class: cmd_class(cmd_id_offset) for cmd_class in self._commands}
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
 
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
+
+    def send_request(self, request: BaseRequest[PayloadType]) -> None:
+        command = self.cmd_by_type[request.cmd_type]
+        header, body = command.encode(request.command_payload)
+        self.send(header, body)
+
+    def supports_command(self, cmd_type: Type[Command]) -> bool:
+        return cmd_type in self.cmd_by_type
 
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)

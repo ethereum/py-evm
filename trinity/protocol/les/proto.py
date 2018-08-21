@@ -37,7 +37,6 @@ from .commands import (
     ContractCodes,
 )
 from . import constants
-from .requests import HeaderRequest
 
 if TYPE_CHECKING:
     from p2p.peer import (  # noqa: F401
@@ -81,27 +80,19 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_block_headers(self, request: HeaderRequest) -> None:
+    def send_get_block_headers(
+            self,
+            block_number_or_hash: Union[BlockNumber, Hash32],
+            max_headers: int,
+            skip: int,
+            reverse: bool,
+            request_id: int) -> None:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
-        self._send_get_block_headers(
-            request.block_number_or_hash,
-            request.max_headers,
-            request.skip,
-            request.reverse,
-            request.request_id,
-        )
-
-    def _send_get_block_headers(self,
-                                block_number_or_hash: Union[BlockNumber, Hash32],
-                                max_headers: int,
-                                skip: int,
-                                reverse: bool,
-                                request_id: int) -> None:
         cmd = GetBlockHeaders(self.cmd_id_offset)
         data = {
             'request_id': request_id,

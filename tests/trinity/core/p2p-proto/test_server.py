@@ -53,14 +53,21 @@ class MockPeerPool:
     is_full = False
     connected_nodes = {}
 
+    def __init__(self):
+        self._new_peers = asyncio.Queue()
+
     async def start_peer(self, peer):
         self.connected_nodes[peer.remote] = peer
+        self._new_peers.put_nowait(peer)
 
     def is_valid_connection_candidate(self, node):
         return True
 
     def __len__(self):
         return len(self.connected_nodes)
+
+    async def next_peer(self):
+        return await self._new_peers.get()
 
 
 def get_server(privkey, address, peer_class):
@@ -123,6 +130,9 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     # added to the server's pool.
     await initiator_peer.do_p2p_handshake()
     await initiator_peer.do_sub_proto_handshake()
+
+    # wait for peer to be processed
+    await asyncio.wait_for(server.peer_pool.next_peer(), timeout=1)
 
     assert len(server.peer_pool.connected_nodes) == 1
     receiver_peer = list(server.peer_pool.connected_nodes.values())[0]

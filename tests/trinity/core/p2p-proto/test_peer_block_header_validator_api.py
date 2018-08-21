@@ -1,17 +1,28 @@
 import asyncio
 
+from eth_utils import to_tuple
+from eth.rlp.headers import BlockHeader
+from p2p.peer import (
+    PeerSubscriber,
+)
 import pytest
 
-from eth_utils import to_tuple
-
-from eth.rlp.headers import BlockHeader
-
+from trinity.protocol.les.commands import GetBlockHeaders
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
 )
+
+
+class RequestIDMonitor(PeerSubscriber):
+    subscription_msg_types = {GetBlockHeaders}
+    msg_queue_maxsize = 100
+
+    async def next_request_id(self):
+        msg = await self.msg_queue.get()
+        return msg.payload['request_id']
 
 
 @to_tuple
@@ -94,16 +105,16 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
 @pytest.mark.asyncio
 async def test_les_peer_get_headers_round_trip(les_peer_and_remote,
                                                params,
+                                               monkeypatch,
                                                headers):
     peer, remote = les_peer_and_remote
 
-    async def send_headers():
-        request_id = peer.requests.get_block_headers.pending_request[0].request_id
-        remote.sub_proto.send_block_headers(headers, 0, request_id)
-        await asyncio.sleep(0)
+    request_id_monitor = RequestIDMonitor()
+    with request_id_monitor.subscribe_peer(remote):
+        get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
+        request_id = await request_id_monitor.next_request_id()
 
-    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
-    asyncio.ensure_future(send_headers())
+    remote.sub_proto.send_block_headers(headers, 0, request_id)
 
     response = await get_headers_task
 
