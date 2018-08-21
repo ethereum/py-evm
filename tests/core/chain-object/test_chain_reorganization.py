@@ -101,14 +101,14 @@ def test_import_block_with_reorg(chain, funded_address_private_key):
     # now we proceed to import the blocks from the fork chain into the main
     # chain.  Blocks 4, 5, and 6 should import resulting in no re-organization.
     for block in (f_block_4, f_block_5, f_block_6):
-        _, new_canonical_blocks, orphaned_canonical_blocks = chain.import_block(block)
+        _, new_canonical_blocks, old_canonical_blocks = chain.import_block(block)
         assert not new_canonical_blocks
-        assert not orphaned_canonical_blocks
+        assert not old_canonical_blocks
         assert chain.header == pre_fork_chain_head
 
     # now we import block 7 from the fork chain.  This should cause a re-org.
-    _, new_canonical_blocks, orphaned_canonical_blocks = chain.import_block(f_block_7)
+    _, new_canonical_blocks, old_canonical_blocks = chain.import_block(f_block_7)
     assert new_canonical_blocks == (f_block_4, f_block_5, f_block_6, f_block_7)
-    assert orphaned_canonical_blocks == (block_4, block_5, block_6)
+    assert old_canonical_blocks == (block_4, block_5, block_6)
 
     assert chain.get_canonical_head() == f_block_7.header

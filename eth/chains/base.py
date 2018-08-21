@@ -593,7 +593,11 @@ class Chain(BaseChain):
                      perform_validation: bool=True
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
-        Imports a complete block and returns new_blocks and orphaned_canonical_blocks.
+        Imports a complete block and returns a 3-tuple
+
+        - the imported block
+        - a tuple of blocks which are now part of the canonical chain.
+        - a tuple of blocks which are were canonical and now are no longer canonical.
         """
 
         try:
@@ -617,8 +621,8 @@ class Chain(BaseChain):
             self.validate_block(imported_block)
 
         (
-            new_canonical_header_hashes,
-            orphaned_header_hashes,
+            new_canonical_hashes,
+            old_canonical_hashes,
         ) = self.chaindb.persist_block(imported_block)
 
         self.logger.debug(
@@ -630,15 +634,15 @@ class Chain(BaseChain):
         new_canonical_blocks = tuple(
             self.get_block_by_hash(header_hash)
             for header_hash
-            in new_canonical_header_hashes
+            in new_canonical_hashes
         )
-        orphaned_canonical_blocks = tuple(
+        old_canonical_blocks = tuple(
             self.get_block_by_hash(header_hash)
             for header_hash
-            in orphaned_header_hashes
+            in old_canonical_hashes
         )
 
-        return imported_block, new_canonical_blocks, orphaned_canonical_blocks
+        return imported_block, new_canonical_blocks, old_canonical_blocks
 
     #
     # Validation API
@@ -808,11 +812,11 @@ class MiningChain(Chain):
                      block: BaseBlock,
                      perform_validation: bool=True
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        imported_block, new_canonical_blocks, orphaned_canonical_blocks = super().import_block(
+        imported_block, new_canonical_blocks, old_canonical_blocks = super().import_block(
             block, perform_validation)
 
         self.header = self.ensure_header()
-        return imported_block, new_canonical_blocks, orphaned_canonical_blocks
+        return imported_block, new_canonical_blocks, old_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         """

@@ -220,19 +220,19 @@ class ChainDB(HeaderDB, BaseChainDB):
         except CanonicalHeadNotFound:
             (
                 new_canonical_headers,
-                orphaned_canonical_headers
+                old_canonical_headers
             ) = self._set_as_canonical_chain_head(header)
         else:
             if score > head_score:
                 (
                     new_canonical_headers,
-                    orphaned_canonical_headers
+                    old_canonical_headers
                 ) = self._set_as_canonical_chain_head(header)
             else:
                 new_canonical_headers = tuple()
-                orphaned_canonical_headers = tuple()
+                old_canonical_headers = tuple()
 
-        return new_canonical_headers, orphaned_canonical_headers
+        return new_canonical_headers, old_canonical_headers
 
     # TODO: update this to take a `hash` rather than a full header object.
     def _set_as_canonical_chain_head(self,
@@ -248,7 +248,7 @@ class ChainDB(HeaderDB, BaseChainDB):
                 header.hash))
 
         new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
-        orphaned_canonical_headers = []
+        old_canonical_headers = []
         # remove transaction lookups for blocks that are no longer canonical
         for h in new_canonical_headers:
             try:
@@ -257,9 +257,9 @@ class ChainDB(HeaderDB, BaseChainDB):
                 # no old block, and no more possible
                 break
             else:
-                orphaned_header = self.get_block_header_by_hash(old_hash)
-                orphaned_canonical_headers.append(orphaned_header)
-                for transaction_hash in self.get_block_transaction_hashes(orphaned_header):
+                old_header = self.get_block_header_by_hash(old_hash)
+                old_canonical_headers.append(old_header)
+                for transaction_hash in self.get_block_transaction_hashes(old_header):
                     self._remove_transaction_from_canonical_chain(transaction_hash)
 
         for h in new_canonical_headers:
@@ -267,7 +267,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
         self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
-        return new_canonical_headers, tuple(orphaned_canonical_headers)
+        return new_canonical_headers, tuple(old_canonical_headers)
 
     #
     # Block API
@@ -280,7 +280,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
         Assumes all block transactions have been persisted already.
         '''
-        new_canonical_headers, orphaned_canonical_headers = self.persist_header(block.header)
+        new_canonical_headers, old_canonical_headers = self.persist_header(block.header)
 
         for header in new_canonical_headers:
             if header.hash == block.hash:
@@ -302,11 +302,11 @@ class ChainDB(HeaderDB, BaseChainDB):
             raise ValidationError(
                 "Block's uncles_hash (%s) does not match actual uncles' hash (%s)",
                 block.header.uncles_hash, uncles_hash)
-        new_canonical_header_hashes = tuple(header.hash for header in new_canonical_headers)
-        orphaned_canonical_header_hashes = tuple(
-            header.hash for header in orphaned_canonical_headers)
+        new_canonical_hashes = tuple(header.hash for header in new_canonical_headers)
+        old_canonical_hashes = tuple(
+            header.hash for header in old_canonical_headers)
 
-        return new_canonical_header_hashes, orphaned_canonical_header_hashes
+        return new_canonical_hashes, old_canonical_hashes
 
     def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
         """

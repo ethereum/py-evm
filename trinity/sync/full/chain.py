@@ -383,7 +383,7 @@ class RegularChainSyncer(FastChainSyncer):
 
             block = block_class(header, transactions, uncles)
             timer = Timer()
-            _, new_canonical_blocks, orphaned_canonical_blocks = await self.wait(
+            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
                 self.chain.coro_import_block(block, perform_validation=True)
             )
 
@@ -395,14 +395,14 @@ class RegularChainSyncer(FastChainSyncer):
                 # imported block from a fork.
                 self.logger.info("Imported non-canonical block %d (%d txs) in %f seconds",
                                  block.number, len(transactions), timer.elapsed)
-            elif orphaned_canonical_blocks:
+            elif old_canonical_blocks:
                 self.logger.info(
                     "Chain Reorganization: Imported block %d (%d txs) in %f "
-                    "seconds, orphaned %d blocks with %d new canonical blocks",
+                    "seconds, %d blocks discarded and %d new canonical blocks added",
                     block.number,
                     len(transactions),
                     timer.elapsed,
-                    len(orphaned_canonical_blocks),
+                    len(old_canonical_blocks),
                     len(new_canonical_blocks),
                 )
             else:
