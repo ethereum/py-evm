@@ -128,7 +128,7 @@ class LightDispatchChain(BaseChain):
     #
     # Block API
     #
-    def get_ancestors(self, limit: int, header: BlockHeader=None) -> Iterator[BaseBlock]:
+    def get_ancestors(self, limit: int, header: BlockHeader) -> Tuple[BaseBlock, ...]:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def get_block(self) -> BaseBlock:
