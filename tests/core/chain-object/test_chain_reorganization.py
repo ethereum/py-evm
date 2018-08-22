@@ -145,7 +145,8 @@ def test_import_block_with_reorg_with_current_head_as_uncle(
     f_block_b = fork_chain.mine_block(uncles=(block.header,))
 
     # ensure that we don't cause a re-org with our first import.
-    assert not chain.import_block(f_block_a)[1]
+    _, new_chain, _ = chain.import_block(f_block_a)
+    assert new_chain == tuple()
 
     # import the block with the uncle, ensure that the chain did indeed re-org
     chain.import_block(f_block_b)

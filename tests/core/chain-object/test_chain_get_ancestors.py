@@ -100,8 +100,10 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
     ) = [fork_chain.mine_block() for _ in range(3)]
 
     # import the fork blocks into the main chain (ensuring they don't cause a reorg)
-    assert not chain.import_block(f_block_4)[1]
-    assert not chain.import_block(f_block_5)[1]
+    _, new_chain, _ = chain.import_block(f_block_4)
+    assert new_chain == tuple()
+    _, new_chain, _ = chain.import_block(f_block_5)
+    assert new_chain == tuple()
 
     # check with a block that has been imported
     assert chain.get_ancestors(0, f_block_5.header) == tuple()
