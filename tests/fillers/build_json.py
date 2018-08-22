@@ -12,6 +12,7 @@ from eth.tools.fixtures.fillers import (
 from eth.tools.fixtures.fillers.formatters import (
     filler_formatter,
 )
+
 from eth.utils.hexadecimal import (
     encode_hex,
 )

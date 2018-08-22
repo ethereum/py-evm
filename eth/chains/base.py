@@ -849,7 +849,7 @@ class MiningChain(Chain):
         self.validate_block(mined_block)
 
         self.chaindb.persist_block(mined_block)
-        self.header = self.ensure_header()
+        self.header = self.create_header_from_parent(mined_block.header)
         return mined_block
 
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
