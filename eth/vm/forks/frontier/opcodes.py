@@ -18,6 +18,7 @@ from eth.vm.logic import (
     system,
 )
 from eth.vm.opcode import as_opcode
+from eth.vm.forks.frontier import constants as fork_constants
 
 
 FRONTIER_OPCODES = {
@@ -161,7 +162,7 @@ FRONTIER_OPCODES = {
     opcode_values.BALANCE: as_opcode(
         logic_fn=context.balance,
         mnemonic=mnemonics.BALANCE,
-        gas_cost=constants.GAS_BALANCE,
+        gas_cost=fork_constants.GAS_BALANCE,
     ),
     opcode_values.ORIGIN: as_opcode(
         logic_fn=context.origin,

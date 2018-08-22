@@ -4,6 +4,7 @@ from eth_typing import (
 
 CREATE_CONTRACT_ADDRESS = Address(b'')
 
+GAS_BALANCE = 20
 
 #
 # Difficulty
