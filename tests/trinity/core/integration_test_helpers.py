@@ -16,7 +16,7 @@ from trinity.db.header import AsyncHeaderDB
 
 async def connect_to_peers_loop(peer_pool, nodes):
     """Loop forever trying to connect to one of the given nodes if the pool is not yet full."""
-    while not peer_pool.cancel_token.triggered:
+    while peer_pool.is_operational:
         try:
             if not peer_pool.is_full:
                 await peer_pool.connect_to_nodes(nodes)

@@ -147,7 +147,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             raise NoIdlePeers()
 
     async def _handle_msg_loop(self) -> None:
-        while self.is_running:
+        while self.is_operational:
             peer, cmd, msg = await self.wait(self.msg_queue.get())
             # Run self._handle_msg() with self.run_task() instead of awaiting for it so that we
             # can keep consuming msgs while _handle_msg() performs cpu-intensive tasks in separate
@@ -281,7 +281,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             await self._process_nodes(node_data)
 
     async def _periodically_retry_timedout_and_missing(self) -> None:
-        while self.is_running:
+        while self.is_operational:
             timed_out = self.request_tracker.get_timed_out()
             if timed_out:
                 self.logger.debug("Re-requesting %d timed out trie nodes", len(timed_out))
@@ -330,7 +330,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
 
     async def _periodically_report_progress(self) -> None:
-        while self.is_running:
+        while self.is_operational:
             requested_nodes = sum(
                 len(node_keys) for _, node_keys in self.request_tracker.active_requests.values())
             msg = "processed=%d  " % self._total_processed_nodes

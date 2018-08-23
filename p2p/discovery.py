@@ -337,7 +337,7 @@ class DiscoveryService(BaseService):
         await self._start_udp_listener()
         connect_loop_sleep = 2
         self.run_task(self.proto.bootstrap())
-        while not self.cancel_token.triggered:
+        while self.is_operational:
             await self.maybe_connect_to_more_peers()
             await self.sleep(connect_loop_sleep)
 

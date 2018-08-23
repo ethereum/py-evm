@@ -89,7 +89,7 @@ class BaseService(ABC, CancellableMixin):
         """
         if self.is_running:
             raise RuntimeError("Cannot start the service while it's already running")
-        elif self.cancel_token.triggered:
+        elif self.is_cancelled:
             raise RuntimeError("Cannot restart a service that has already been cancelled")
 
         if finished_callback:
@@ -135,6 +135,7 @@ class BaseService(ABC, CancellableMixin):
                 pass
             except Exception as e:
                 self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
+                self.logger.warning("Task failure traceback", exc_info=True)
             else:
                 self.logger.debug("Task %s finished with no errors", awaitable)
         self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
@@ -158,7 +159,7 @@ class BaseService(ABC, CancellableMixin):
             try:
                 await service.run()
             finally:
-                if not self.cancel_token.triggered:
+                if not self.is_cancelled:
                     self.logger.debug(
                         "%s finished while we're still running, terminating as well", service)
                     self.cancel_token.trigger()
@@ -188,7 +189,7 @@ class BaseService(ABC, CancellableMixin):
 
     async def cancel(self) -> None:
         """Trigger the CancelToken and wait for the cleaned_up event to be set."""
-        if self.cancel_token.triggered:
+        if self.is_cancelled:
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
             return
         elif not self.is_running:
@@ -214,6 +215,14 @@ class BaseService(ABC, CancellableMixin):
     def _forcibly_cancel_all_tasks(self) -> None:
         for task in self._tasks:
             task.cancel()
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self.cancel_token.triggered
+
+    @property
+    def is_operational(self) -> bool:
+        return self.events.started.is_set() and not self.cancel_token.triggered
 
     @property
     def is_running(self) -> bool:

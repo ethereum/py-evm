@@ -60,7 +60,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         - the manager service is running
         - the payload validator is primed with the request payload
         """
-        if not self._manager.is_running:
+        if not self._manager.is_operational:
             await self._manager.launch_service()
 
         # bind the outbound request payload to the payload validator

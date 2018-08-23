@@ -342,7 +342,7 @@ class BasePeer(BaseService):
         self.close()
 
     async def _run(self) -> None:
-        while not self.cancel_token.triggered:
+        while self.is_operational:
             try:
                 cmd, msg = await self.read_msg()
             except (PeerConnectionLost, TimeoutError) as err:
@@ -530,7 +530,7 @@ class BasePeer(BaseService):
         self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
-        if self.is_running:
+        if self.is_operational:
             await self.cancel()
 
     def select_sub_protocol(self, remote_capabilities: List[Tuple[bytes, int]]
@@ -912,7 +912,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         return [peer for peer in peers if peer.head_td >= min_td]
 
     async def _periodically_report_stats(self) -> None:
-        while self.is_running:
+        while self.is_operational:
             inbound_peers = len(
                 [peer for peer in self.connected_nodes.values() if peer.inbound])
             self.logger.info("Connected peers: %d inbound, %d outbound",
