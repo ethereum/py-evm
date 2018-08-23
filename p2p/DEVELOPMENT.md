@@ -18,7 +18,7 @@ library.
 ## BaseService
 
 - If your service needs to run coroutines in the background, you should use the `BaseService.run_task()` method and
-  ensure they exit when `is_running` is False or when the cancel token is triggered.
+  ensure they exit when `is_operational` is False or when the cancel token is triggered.
 - If your service runs other services in the background, you should pass your CancelToken down to
   those services and run those using `BaseService.run_child_service()`, or
   `BaseService.run_daemon()` if you want the parent to be terminated when the child dies

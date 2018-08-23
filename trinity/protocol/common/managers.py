@@ -118,7 +118,7 @@ class ResponseCandidateStream(
         self.logger.debug("Launching %s for peer %s", self.__class__.__name__, self._peer)
 
         with self.subscribe_peer(self._peer):
-            while not self.cancel_token.triggered:
+            while self.is_operational:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
                 if peer != self._peer:
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
@@ -202,8 +202,8 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         await self._response_stream.events.started.wait()
 
     @property
-    def is_running(self) -> bool:
-        return self.service is not None and self.service.is_running
+    def is_operational(self) -> bool:
+        return self.service is not None and self.service.is_operational
 
     async def get_result(
             self,
@@ -213,7 +213,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
             payload_validator: Callable[[TResponsePayload], None],
             timeout: int = None) -> TResult:
 
-        if not self.is_running:
+        if not self.is_operational:
             raise ValidationError("You must call `launch_service` before initiating a peer request")
 
         stream = self._response_stream

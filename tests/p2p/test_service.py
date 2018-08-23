@@ -27,8 +27,10 @@ async def test_daemon_exit_causes_parent_cancellation():
     service = ParentService()
     asyncio.ensure_future(service.run())
     await asyncio.sleep(0.01)
+    assert service.daemon.is_operational
     assert service.daemon.is_running
     await service.daemon.cancel()
     await asyncio.sleep(0.01)
+    assert not service.is_operational
     assert not service.is_running
     await service.events.cleaned_up.wait()

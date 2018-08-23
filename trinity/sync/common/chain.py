@@ -77,7 +77,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))
 
     async def _handle_msg_loop(self) -> None:
-        while self.is_running:
+        while self.is_operational:
             peer, cmd, msg = await self.wait(self.msg_queue.get())
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
             # loop can keep processing msgs, and that's why we use self.run_task() instead of
@@ -98,7 +98,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.run_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
-            while not self.cancel_token.triggered:
+            while self.is_operational:
                 peer_or_finished: Any = await self.wait_first(
                     self._sync_requests.get(),
                     self._sync_complete.wait()
@@ -156,8 +156,8 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # will be discarded by _fetch_missing_headers() so we don't unnecessarily process them
         # again.
         start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - MAX_REORG_DEPTH)
-        while self.is_running:
-            if not peer.is_running:
+        while self.is_operational:
+            if not peer.is_operational:
                 self.logger.info("%s disconnected, aborting sync", peer)
                 break
 
