@@ -11,12 +11,19 @@ from typing import (
     Any
 )
 
+from lahja import (
+    Endpoint
+)
+
 from trinity.extensibility.events import (
     BaseEvent
 )
 
-# TODO: we spec this out later
-PluginContext = Any
+
+class PluginContext:
+
+    def __init__(self, endpoint: Endpoint):
+        self.eventbus = endpoint
 
 
 class BasePlugin(ABC):
