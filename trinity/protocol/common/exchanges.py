@@ -41,6 +41,8 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     TResult is the response data after normalization
     """
 
+    request_class: Type[BaseRequest[TRequestPayload]]
+
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
 
@@ -72,15 +74,9 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             timeout=timeout
         )
 
-    @property
-    @abstractmethod
-    def request_class(cls) -> Type[BaseRequest[TRequestPayload]]:
-        raise NotImplementedError('request_class must be defined on every Exchange')
-
     @classproperty
     def response_cmd_type(cls) -> Type[Command]:
-        # mypy is confused about the "abstract class property"
-        return cls.request_class.response_type  # type: ignore
+        return cls.request_class.response_type
 
     @abstractmethod
     async def __call__(self, *args: Any, **kwargs: Any) -> None:

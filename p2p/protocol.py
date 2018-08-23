@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import logging
 import struct
 from typing import (
@@ -135,17 +135,14 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
     Must define command_payload during init. This is the data that will
     be sent to the peer with the request command.
     """
+    # Defined at init time, with specific parameters:
     command_payload: TRequestPayload
 
-    @property
-    @abstractmethod
-    def cmd_type(self) -> Type[Command]:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def response_type(self) -> Type[Command]:
-        raise NotImplementedError
+    # Defined as class attributes in subclasses
+    # outbound command type
+    cmd_type: Type[Command]
+    # response command type
+    response_type: Type[Command]
 
 
 class Protocol:
