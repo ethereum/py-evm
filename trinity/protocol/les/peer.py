@@ -34,6 +34,8 @@ from .handlers import LESExchangeHandler
 
 
 class LESPeer(BasePeer):
+    max_headers_fetch = MAX_HEADERS_FETCH
+
     _supported_sub_protocols = [LESProtocol, LESProtocolV2]
     sub_proto: LESProtocol = None
     # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
@@ -50,10 +52,6 @@ class LESPeer(BasePeer):
         if self._requests is None:
             self._requests = LESExchangeHandler(self)
         return self._requests
-
-    @property
-    def max_headers_fetch(self) -> int:
-        return MAX_HEADERS_FETCH
 
     def handle_sub_proto_msg(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if isinstance(cmd, Announce):

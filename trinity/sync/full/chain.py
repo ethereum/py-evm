@@ -64,7 +64,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     head.
     """
     db: AsyncChainDB
-    _exit_on_sync_complete = True
 
     subscription_msg_types: Set[Type[Command]] = {
         commands.NewBlock,
@@ -77,6 +76,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         commands.Transactions,
         commands.NewBlockHashes,
     }
+
+    async def _run(self) -> None:
+        self.run_task(self._load_and_process_headers())
+        await super()._run()
+
+    async def _load_and_process_headers(self) -> None:
+        while self.is_operational:
+            headers = await self.pop_all_pending_headers()
+            await self._process_headers(headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -94,8 +102,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             td += header.difficulty
         return td
 
-    async def _process_headers(
-            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         timer = Timer()
         target_td = await self._calculate_td(headers)
         bodies_by_key = await self._download_block_bodies(target_td, headers)
@@ -123,7 +130,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         self.logger.info(
             "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
             len(headers), txs, timer.elapsed, head.block_number)
-        return head.block_number
+
+        # during fast sync, exit the service when reaching the target hash
+        target_hash = self.get_target_header_hash()
+
+        # Quite often the header batch we receive includes headers past the peer's reported
+        # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
+        # order to see if the sync is completed. Instead we just check that we have the peer's
+        # head_hash in our chain.
+        if await self.wait(self.db.coro_header_exists(target_hash)):
+            self.complete_token.trigger()
 
     async def _download_block_bodies(self,
                                      target_td: int,
@@ -357,11 +373,9 @@ class RegularChainSyncer(FastChainSyncer):
 
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
-    _exit_on_sync_complete = False
     _seal_check_random_sample_rate = 1
 
-    async def _process_headers(
-            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         target_td = await self._calculate_td(headers)
         bodies_by_key = await self._download_block_bodies(target_td, headers)
         self.logger.info("Got block bodies for chain segment")
@@ -410,7 +424,6 @@ class RegularChainSyncer(FastChainSyncer):
 
         head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
-        return head.block_number
 
 
 def _is_body_empty(header: BlockHeader) -> bool:
