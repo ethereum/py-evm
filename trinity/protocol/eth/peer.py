@@ -31,7 +31,8 @@ class ETHPeer(BasePeer):
     _requests: ETHExchangeHandler = None
 
     def get_extra_stats(self) -> List[str]:
-        return self.requests.get_stats()
+        stats_pairs = self.requests.get_stats().items()
+        return ['%s: %s' % (cmd_name, stats) for cmd_name, stats in stats_pairs]
 
     @property
     def requests(self) -> ETHExchangeHandler:

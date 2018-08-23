@@ -4,13 +4,16 @@ from typing import (
     Any,
     Callable,
     Generic,
+    Type,
 )
 
 from p2p.protocol import (
     BaseRequest,
+    Command,
     TRequestPayload,
 )
 
+from trinity.utils.decorators import classproperty
 from .managers import ExchangeManager
 from .normalizers import BaseNormalizer
 from .types import (
@@ -38,6 +41,8 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     TResult is the response data after normalization
     """
 
+    request_class: Type[BaseRequest[TRequestPayload]]
+
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
 
@@ -56,7 +61,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         - the payload validator is primed with the request payload
         """
         if not self._manager.is_running:
-            await self._manager.launch_service(request.response_type)
+            await self._manager.launch_service()
 
         # bind the outbound request payload to the payload validator
         message_validator = partial(payload_validator, request.command_payload)
@@ -69,9 +74,13 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             timeout=timeout
         )
 
+    @classproperty
+    def response_cmd_type(cls) -> Type[Command]:
+        return cls.request_class.response_type
+
     @abstractmethod
     async def __call__(self, *args: Any, **kwargs: Any) -> None:
         """
         Issue the request to the peer for the desired data
         """
-        raise NotImplementedError()
+        raise NotImplementedError('__call__ must be defined on every Exchange')

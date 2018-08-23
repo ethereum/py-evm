@@ -69,7 +69,7 @@ class ResponseCandidateStream(
     #
     @property
     def subscription_msg_types(self) -> Set[Type[Command]]:
-        return {self._response_msg_type}
+        return {self.response_msg_type}
 
     msg_queue_maxsize = 100
 
@@ -87,7 +87,7 @@ class ResponseCandidateStream(
         super().__init__(token)
         self._peer = peer
         self.response_times = ResponseTimeTracker()
-        self._response_msg_type = response_msg_type
+        self.response_msg_type = response_msg_type
 
     async def payload_candidates(
             self,
@@ -105,7 +105,7 @@ class ResponseCandidateStream(
 
     @property
     def response_msg_name(self) -> str:
-        return self._response_msg_type.__name__
+        return self.response_msg_type.__name__
 
     def complete_request(self, item_count: int) -> None:
         self.pending_request = None
@@ -123,7 +123,7 @@ class ResponseCandidateStream(
                 if peer != self._peer:
                     self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
                     continue
-                elif isinstance(cmd, self._response_msg_type):
+                elif isinstance(cmd, self.response_msg_type):
                     await self._handle_msg(cast(TResponsePayload, msg))
                 else:
                     self.logger.warning("Unexpected payload type: %s", cmd.__class__.__name__)
@@ -176,8 +176,8 @@ class ResponseCandidateStream(
     def _is_pending(self) -> bool:
         return self.pending_request is not None
 
-    def get_stats(self) -> str:
-        return '%s: %s' % (self.response_msg_name, self.response_times.get_stats())
+    def get_stats(self) -> Tuple[str, str]:
+        return (self.response_msg_name, self.response_times.get_stats())
 
 
 class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
@@ -186,14 +186,16 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
     def __init__(
             self,
             peer: BasePeer,
+            listening_for: Type[Command],
             cancel_token: CancelToken) -> None:
         self._peer = peer
         self._cancel_token = cancel_token
+        self._response_command_type = listening_for
 
-    async def launch_service(self, listening_for: Type[Command]) -> None:
+    async def launch_service(self) -> None:
         self._response_stream = ResponseCandidateStream(
             self._peer,
-            listening_for,
+            self._response_command_type,
             self._cancel_token,
         )
         self._peer.run_daemon(self._response_stream)
@@ -248,5 +250,8 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         """
         return self._response_stream
 
-    def get_stats(self) -> str:
-        return self._response_stream.get_stats()
+    def get_stats(self) -> Tuple[str, str]:
+        if self._response_stream is None:
+            return (self._response_command_type.__name__, 'Uninitialized')
+        else:
+            return self._response_stream.get_stats()
