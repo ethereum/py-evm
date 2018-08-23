@@ -47,6 +47,7 @@ class FullNode(Node):
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
                 token=self.cancel_token,
+                event_bus=self._plugin_manager._plugin_context.eventbus
             )
         return self._p2p_server
 
