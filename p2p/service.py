@@ -135,7 +135,7 @@ class BaseService(ABC, CancellableMixin):
                 pass
             except Exception as e:
                 self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
-                self.logger.warning("Task failure traceback", exc_info=True)
+                self.logger.debug("Task failure traceback", exc_info=True)
             else:
                 self.logger.debug("Task %s finished with no errors", awaitable)
         self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
