@@ -33,8 +33,10 @@ from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
 from trinity.protocol.eth import commands
-from trinity.protocol.eth import (
-    constants as eth_constants,
+from trinity.protocol.eth.constants import (
+    MAX_BODIES_FETCH,
+    MAX_RECEIPTS_FETCH,
+    MAX_STATE_FETCH,
 )
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.requests import HeaderRequest
@@ -83,8 +85,13 @@ class FastChainSyncer(BaseHeaderChainSyncer):
 
     async def _load_and_process_headers(self) -> None:
         while self.is_operational:
-            headers = await self.pop_all_pending_headers()
+            # TODO invert this, so each peer is getting headers and completing them,
+            # in independent loops
+            # TODO implement the maximum task size at each step instead of this magic number
+            max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
+            batch, headers = await self.header_queue.get(max_headers)
             await self._process_headers(headers)
+            self.header_queue.complete(batch, headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -334,15 +341,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, commands.GetBlockBodies):
             # Only serve up to MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
+            block_hashes = cast(List[Hash32], msg)[:MAX_BODIES_FETCH]
             await self._handler.handle_get_block_bodies(peer, block_hashes)
         elif isinstance(cmd, commands.GetReceipts):
             # Only serve up to MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_RECEIPTS_FETCH]
+            block_hashes = cast(List[Hash32], msg)[:MAX_RECEIPTS_FETCH]
             await self._handler.handle_get_receipts(peer, block_hashes)
         elif isinstance(cmd, commands.GetNodeData):
             # Only serve up to MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
+            node_hashes = cast(List[Hash32], msg)[:MAX_STATE_FETCH]
             await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)

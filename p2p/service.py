@@ -128,7 +128,7 @@ class BaseService(ABC, CancellableMixin):
         If it raises OperationCancelled, that is caught and ignored.
         """
         async def _run_task_wrapper() -> None:
-            self.logger.debug("Running task %s", awaitable)
+            self.logger.trace("Running task %s", awaitable)
             try:
                 await awaitable
             except OperationCancelled:
@@ -137,7 +137,7 @@ class BaseService(ABC, CancellableMixin):
                 self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
                 self.logger.debug("Task failure traceback", exc_info=True)
             else:
-                self.logger.debug("Task %s finished with no errors", awaitable)
+                self.logger.trace("Task %s finished with no errors", awaitable)
         self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
 
     def run_child_service(self, child_service: 'BaseService') -> None:

@@ -73,7 +73,7 @@ class ResponseCandidateStream(
 
     msg_queue_maxsize = 100
 
-    response_timout: int = 60
+    response_timout: int = 20
 
     pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
 
@@ -92,13 +92,16 @@ class ResponseCandidateStream(
     async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
-            timeout: int) -> 'AsyncGenerator[TResponsePayload, None]':
+            timeout: int = None) -> 'AsyncGenerator[TResponsePayload, None]':
         """
         Make a request and iterate through candidates for a valid response.
 
         To mark a response as valid, use `complete_request`. After that call, payload
         candidates will stop arriving.
         """
+        if timeout is None:
+            timeout = self.response_timout
+
         self._request(request)
         while self._is_pending():
             yield await self._get_payload(timeout)
@@ -175,6 +178,12 @@ class ResponseCandidateStream(
 
     def _is_pending(self) -> bool:
         return self.pending_request is not None
+
+    def deregister_peer(self, peer: BasePeer) -> None:
+        if self.pending_request is not None:
+            self.logger.debug("Peer disconnected, trigger a timeout on the pending request")
+            _, future = self.pending_request
+            future.set_exception(TimeoutError("Peer disconnected, simulating inevitable timeout"))
 
     def get_stats(self) -> Tuple[str, str]:
         return (self.response_msg_name, self.response_times.get_stats())

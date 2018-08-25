@@ -2,6 +2,7 @@ import asyncio
 from abc import abstractmethod
 from typing import (
     AsyncGenerator,
+    Set,
     Tuple,
     Union,
     cast,
@@ -18,6 +19,7 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    encode_hex,
     ValidationError,
 )
 from eth.rlp.headers import BlockHeader
@@ -32,6 +34,7 @@ from trinity.db.header import AsyncHeaderDB
 from trinity.p2p.handlers import PeerRequestHandler
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
+from trinity.utils.datastructures import TaskQueue
 
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
@@ -54,6 +57,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
     # the latest header hash of the peer on the current sync
     _target_header_hash = None
+    header_queue: TaskQueue[BlockHeader]
 
     def __init__(self,
                  chain: AsyncChain,
@@ -62,10 +66,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                  token: CancelToken = None) -> None:
         self.complete_token = CancelToken('trinity.sync.common.BaseHeaderChainSyncer.SyncCompleted')
         if token is None:
-            super_service_token = self.complete_token
+            master_service_token = self.complete_token
         else:
-            super_service_token = token.chain(self.complete_token)
-        super().__init__(super_service_token)
+            master_service_token = token.chain(self.complete_token)
+        super().__init__(master_service_token)
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
@@ -76,8 +80,8 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
         # pending queue size should be big enough to avoid starving the processing consumers, but
         # small enough to avoid wasteful over-requests before post-processing can happen
-        max_pending_headers = ETHPeer.max_headers_fetch * 5
-        self.pending_headers: asyncio.Queue[BlockHeader] = asyncio.Queue(max_pending_headers)
+        max_pending_headers = ETHPeer.max_headers_fetch * 8
+        self.header_queue = TaskQueue(max_pending_headers, lambda header: header.block_number)
 
     @property
     def msg_queue_maxsize(self) -> int:
@@ -88,7 +92,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
     def get_target_header_hash(self) -> Hash32:
         if self._target_header_hash is None:
-            raise ValueError("Cannot check the target hash when there is no active sync")
+            raise ValidationError("Cannot check the target hash when there is no active sync")
         else:
             return self._target_header_hash
 
@@ -164,6 +168,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             return
 
         self.logger.info("Starting sync with %s", peer)
+        last_received_header = None
         # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
         # headers before our current head's number, in case there were chain reorgs since the last
         # time _sync() was called. All of the extra headers that are already present in our DB
@@ -177,7 +182,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
             try:
                 fetch_headers_coro = self._fetch_missing_headers(peer, start_at)
-                headers = await self.complete_token.cancellable_wait(fetch_headers_coro)
+                headers = await self.wait(fetch_headers_coro)
             except OperationCancelled:
                 self.logger.info("Sync with %s completed", peer)
                 break
@@ -198,33 +203,44 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             first = headers[0]
-            try:
-                await self.wait(self.db.coro_get_block_header_by_hash(first.parent_hash))
-            except HeaderNotFound:
-                self.logger.warn("Unable to find common ancestor betwen our chain and %s", peer)
+            first_parent = None
+            if last_received_header is None:
+                # on the first request, make sure that the earliest ancestor has a parent in our db
+                try:
+                    first_parent = await self.wait(
+                        self.db.coro_get_block_header_by_hash(first.parent_hash)
+                    )
+                except HeaderNotFound:
+                    self.logger.warn("Unable to find common ancestor betwen our chain and %s", peer)
+                    break
+            elif last_received_header.hash != first.parent_hash:
+                # on follow-ups, require the first header in this batch to be next in succession
+                self.logger.warn(
+                    "Header batch starts with %r, with parent %s, but last header was %r",
+                    first,
+                    encode_hex(first.parent_hash[:4]),
+                    last_received_header,
+                )
                 break
 
             self.logger.debug("Got new header chain starting at #%d", first.block_number)
             try:
-                await self.chain.coro_validate_chain(headers, self._seal_check_random_sample_rate)
+                await self.chain.coro_validate_chain(
+                    last_received_header or first_parent,
+                    headers,
+                    self._seal_check_random_sample_rate,
+                )
             except ValidationError as e:
-                self.logger.warn("Received invalid headers from %s, aborting sync: %s", peer, e)
+                self.logger.warn("Received invalid headers from %s, disconnecting: %s", peer, e)
+                await peer.disconnect(DisconnectReason.subprotocol_error)
                 break
 
             # Setting the latest header hash for the peer, before queuing header processing tasks
             self._target_header_hash = peer.head_hash
 
-            await self._queue_headers_for_processing(headers)
-            start_at = headers[-1].block_number + 1
-
-    async def _queue_headers_for_processing(self, headers: Tuple[BlockHeader, ...]) -> None:
-        # this block is an optimization to avoid lots of await calls
-        if len(headers) + self.pending_headers.qsize() <= self.pending_headers.maxsize:
-            for header in headers:
-                self.pending_headers.put_nowait(header)
-        else:
-            for header in headers:
-                await self.pending_headers.put(header)
+            await self.header_queue.add(headers)
+            last_received_header = headers[-1]
+            start_at = last_received_header.block_number + 1
 
     async def _fetch_missing_headers(
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
@@ -261,17 +277,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         tail_headers = tuple([header async for header in get_missing_tail(self, headers)])
 
         return tail_headers
-
-    async def pop_all_pending_headers(self) -> Tuple[BlockHeader, ...]:
-        """Get all the currently pending headers. If no headers pending, wait until one is"""
-        queue = self.pending_headers
-        if queue.empty():
-            first_header = await queue.get()
-        else:
-            first_header = queue.get_nowait()
-
-        available = queue.qsize()
-        return (first_header, ) + tuple(queue.get_nowait() for _ in range(available))
 
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,

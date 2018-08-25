@@ -763,8 +763,11 @@ class Chain(BaseChain):
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
     def validate_chain(
-            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
-        parent = self.chaindb.get_block_header_by_hash(chain[0].parent_hash)
+            self,
+            parent: BlockHeader,
+            chain: Tuple[BlockHeader, ...],
+            seal_check_random_sample_rate: int = 1) -> None:
+
         all_indices = list(range(len(chain)))
         if seal_check_random_sample_rate == 1:
             headers_to_check_seal = set(all_indices)
