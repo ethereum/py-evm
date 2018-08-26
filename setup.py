@@ -45,6 +45,7 @@ deps = {
         "web3==4.4.1",
         "lahja==0.8.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin'",
+        "websockets==5.0.1",
     ],
     'test': [
         "hypothesis==3.69.5",
