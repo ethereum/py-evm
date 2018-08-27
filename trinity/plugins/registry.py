@@ -9,6 +9,9 @@ from trinity.plugins.builtin.fix_unclean_shutdown.plugin import (
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
 )
+from trinity.plugins.builtin.proc_test.plugin import (
+    ProcTest
+)
 
 
 def is_ipython_available() -> bool:
@@ -28,4 +31,5 @@ ENABLED_PLUGINS = [
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     FixUncleanShutdownPlugin(),
     TxPlugin(),
+    ProcTest()
 ]
