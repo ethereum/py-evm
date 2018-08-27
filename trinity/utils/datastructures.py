@@ -76,6 +76,12 @@ class TaskQueue(Generic[TTask]):
         if not isinstance(tasks, tuple):
             raise ValidationError(f"must pass a tuple of tasks to add(), but got {tasks!r}")
 
+        already_pending = self._tasks.intersection(tasks)
+        if already_pending:
+            raise ValidationError(
+                f"Can't readd a task to queue. {already_pending!r} are already present"
+            )
+
         # make sure to insert the highest-priority items first, in case queue fills up
         remaining = tuple(sorted((self._order_fn(task), task) for task in tasks))
 
@@ -102,24 +108,15 @@ class TaskQueue(Generic[TTask]):
                 # There will always be room in _open_queue until _maxsize is reached
                 try:
                     self._open_queue.put_nowait(task)
-                except QueueFull:
+                except QueueFull as exc:
                     task_idx = queueing.index(task)
-                    # TODO remove once this bug is tracked down
-                    import logging; logging.error(
-                        'TaskQueue unsuccessful in adding task %r because qsize=%d, '
-                        'num_tasks=%d, _maxsize=%d, open_slots=%d, num queueing=%d, '
-                        'len(_tasks)=%d, task_idx=%d, queuing=%r',
-                        task,
-                        self._open_queue.qsize(),
-                        num_tasks,
-                        self._maxsize,
-                        open_slots,
-                        len(queueing),
-                        len(self._tasks),
-                        task_idx,
-                        queueing,
+                    qsize = self._open_queue.qsize()
+                    raise QueueFull(
+                        f'TaskQueue unsuccessful in adding task {task[1]!r} because qsize={qsize}, '
+                        f'num_tasks={num_tasks}, maxsize={self._maxsize}, open_slots={open_slots}, '
+                        f'num queueing={len(queueing)}, len(_tasks)={len(self._tasks)}, task_idx='
+                        f'{task_idx}, queuing={queueing}, original msg: {exc}',
                     )
-                    raise
 
             unranked_queued = tuple(task for _rank, task in queueing)
             self._tasks.update(unranked_queued)
@@ -171,9 +168,16 @@ class TaskQueue(Generic[TTask]):
 
         attempted = self._in_progress.pop(batch_id)
 
-        remaining = set(attempted).difference(completed)
+        unrecognized_tasks = set(completed).difference(attempted)
+        if unrecognized_tasks:
+            self._in_progress[batch_id] = attempted
+            raise ValidationError(
+                f"cannot complete tasks {unrecognized_tasks!r} in this batch, only {attempted!r}"
+            )
 
-        for task in remaining:
+        incomplete = set(attempted).difference(completed)
+
+        for task in incomplete:
             # These tasks are already counted in the total task count, so there will be room
             self._open_queue.put_nowait((self._order_fn(task), task))
 
