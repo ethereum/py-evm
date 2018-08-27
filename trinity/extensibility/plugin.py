@@ -4,22 +4,79 @@ from abc import (
 )
 from argparse import (
     ArgumentParser,
+    Namespace,
     _SubParsersAction,
 )
+from enum import (
+    auto,
+    Enum,
+)
 import logging
+from multiprocessing import (
+    Process
+)
 from typing import (
-    Any
+    Any,
+    Dict,
 )
 
+from lahja import (
+    Endpoint
+)
+
+from trinity.config import (
+    ChainConfig
+)
+from trinity.constants import (
+    MAIN_EVENTBUS_ENDPOINT
+)
 from trinity.extensibility.events import (
     BaseEvent
 )
+from trinity.utils.ipc import (
+    kill_process_gracefully
+)
+from trinity.utils.mp import (
+    ctx,
+)
+from trinity.utils.logging import (
+    setup_queue_logging,
+)
 
-# TODO: we spec this out later
-PluginContext = Any
+
+class PluginProcessScope(Enum):
+    """
+    Define the process model in which a plugin operates:
+
+      - ISOLATED: The plugin runs in its own separate process
+      - MAIN: The plugin takes over the Trinity main process (e.g. attach)
+      - SHARED: The plugin runs in a process that is shared with other plugins
+    """
+
+    ISOLATED = auto()
+    MAIN = auto()
+    SHARED = auto()
+
+
+class PluginContext:
+    """
+    The ``PluginContext`` holds valuable contextual information such as the parsed
+    arguments that were used to launch ``Trinity``. It also provides access to APIs
+    such as the ``EventBus``.
+
+    Each plugin gets a ``PluginContext`` injected during startup.
+    """
+
+    def __init__(self, endpoint: Endpoint) -> None:
+        self.event_bus = endpoint
+        self.boot_kwargs: Dict[str, Any] = None
+        self.args: Namespace = None
+        self.chain_config: ChainConfig = None
 
 
 class BasePlugin(ABC):
+
+    context: PluginContext = None
 
     @property
     @abstractmethod
@@ -32,8 +89,22 @@ class BasePlugin(ABC):
         )
 
     @property
+    def process_scope(self) -> PluginProcessScope:
+        """
+        Return the :class:`~trinity.extensibility.plugin.PluginProcessScope` that the plugin uses
+        to operate. The default scope is ``PluginProcessScope.SHARED``.
+        """
+        return PluginProcessScope.SHARED
+
+    @property
     def logger(self) -> logging.Logger:
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
+
+    def set_context(self, context: PluginContext) -> None:
+        """
+        Set the :class:`~trinity.extensibility.plugin.PluginContext` for this plugin.
+        """
+        self.context = context
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
@@ -56,9 +127,13 @@ class BasePlugin(ABC):
 
         return False
 
-    def start(self, context: PluginContext) -> None:
+    def _start(self) -> None:
+        self.start()
+
+    def start(self) -> None:
         """
-        The ``start`` method is called only once when the plugin is started
+        The ``start`` method is called only once when the plugin is started. In the case
+        of an `BaseIsolatedPlugin` this method will be launched in a separate process.
         """
         pass
 
@@ -68,6 +143,33 @@ class BasePlugin(ABC):
         work in case the plugin set up external resources.
         """
         pass
+
+
+class BaseIsolatedPlugin(BasePlugin):
+
+    _process: Process = None
+
+    @property
+    def process_scope(self) -> PluginProcessScope:
+        return PluginProcessScope.ISOLATED
+
+    def _start(self) -> None:
+        self._process = ctx.Process(
+            target=self._prepare_start,
+        )
+
+        self._process.start()
+
+    def _prepare_start(self) -> None:
+        log_queue = self.context.boot_kwargs['log_queue']
+        level = self.context.boot_kwargs.get('log_level', logging.INFO)
+        setup_queue_logging(log_queue, level)
+
+        self.start()
+
+    def stop(self) -> None:
+        self.context.event_bus.stop()
+        kill_process_gracefully(self._process, self.logger)
 
 
 class DebugPlugin(BasePlugin):
@@ -89,5 +191,5 @@ class DebugPlugin(BasePlugin):
         self.logger.info("Debug plugin: should_start called")
         return True
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         self.logger.info("Debug plugin: start called")

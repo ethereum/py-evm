@@ -10,6 +10,11 @@ from typing import (
     Type,
 )
 
+from lahja import (
+    EventBus,
+    Endpoint,
+)
+
 from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
 )
@@ -37,8 +42,15 @@ from trinity.cli_parser import (
 from trinity.config import (
     ChainConfig,
 )
+from trinity.constants import (
+    MAIN_EVENTBUS_ENDPOINT,
+    NETWORKING_EVENTBUS_ENDPOINT,
+)
 from trinity.extensibility import (
     PluginManager,
+    MainAndIsolatedProcessScope,
+    ManagerProcessScope,
+    SharedProcessScope,
 )
 from trinity.extensibility.events import (
     TrinityStartupEvent
@@ -95,7 +107,13 @@ TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
 
 
 def main() -> None:
-    plugin_manager = setup_plugins()
+    event_bus = EventBus(ctx)
+    main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
+    main_endpoint.connect()
+
+    plugin_manager = setup_plugins(
+        MainAndIsolatedProcessScope(event_bus, main_endpoint)
+    )
     plugin_manager.amend_argparser_config(parser, subparser)
     args = parser.parse_args()
 
@@ -163,17 +181,32 @@ def main() -> None:
     if hasattr(args, 'func'):
         args.func(args, chain_config)
     else:
-        trinity_boot(args, chain_config, extra_kwargs, listener, logger)
+        trinity_boot(
+            args,
+            chain_config,
+            extra_kwargs,
+            plugin_manager,
+            listener,
+            event_bus,
+            main_endpoint,
+            logger
+        )
 
 
 def trinity_boot(args: Namespace,
                  chain_config: ChainConfig,
                  extra_kwargs: Dict[str, Any],
+                 plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
+                 event_bus: EventBus,
+                 main_endpoint: Endpoint,
                  logger: logging.Logger) -> None:
     # start the listener thread to handle logs produced by other processes in
     # the local logger.
     listener.start()
+
+    networking_endpoint = event_bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
+    event_bus.start()
 
     # First initialize the database process.
     database_server_process = ctx.Process(
@@ -187,7 +220,7 @@ def trinity_boot(args: Namespace,
 
     networking_process = ctx.Process(
         target=launch_node,
-        args=(args, chain_config, ),
+        args=(args, chain_config, networking_endpoint,),
         kwargs=extra_kwargs,
     )
 
@@ -206,8 +239,15 @@ def trinity_boot(args: Namespace,
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
+    plugin_manager.prepare(args, chain_config, extra_kwargs)
+    plugin_manager.broadcast(TrinityStartupEvent(
+        args,
+        chain_config
+    ))
     try:
-        networking_process.join()
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
+        loop.close()
     except KeyboardInterrupt:
         # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
         # foreground *process group*, so both our networking and database processes will terminate
@@ -220,6 +260,10 @@ def trinity_boot(args: Namespace,
         # simply uses 'kill' to send a signal to the main process, but also because they will
         # perform a non-gracefull shutdown if the process takes too long to terminate.
         logger.info('Keyboard Interrupt: Stopping')
+        plugin_manager.shutdown()
+        networking_endpoint.stop()
+        main_endpoint.stop()
+        event_bus.stop()
         kill_process_gracefully(database_server_process, logger)
         logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
         # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
@@ -272,8 +316,11 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
+def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) -> None:
     with chain_config.process_id_file('networking'):
+
+        endpoint.connect()
+
         NodeClass = chain_config.node_class
         # Temporary hack: We setup a second instance of the PluginManager.
         # The first instance was only to configure the ArgumentParser whereas
@@ -281,14 +328,15 @@ def launch_node(args: Namespace, chain_config: ChainConfig) -> None:
         # performs the bulk of the work. In the future, the PluginManager
         # should probably live in its own process and manage whether plugins
         # run in the shared plugin process or spawn their own.
-        plugin_manager = setup_plugins()
+
+        plugin_manager = setup_plugins(SharedProcessScope(endpoint))
+        plugin_manager.prepare(args, chain_config)
         plugin_manager.broadcast(TrinityStartupEvent(
             args,
             chain_config
         ))
 
         node = NodeClass(plugin_manager, chain_config)
-
         run_service_until_quit(node)
 
 
@@ -307,8 +355,8 @@ def run_service_until_quit(service: BaseService) -> None:
     loop.close()
 
 
-def setup_plugins() -> PluginManager:
-    plugin_manager = PluginManager()
+def setup_plugins(scope: ManagerProcessScope) -> PluginManager:
+    plugin_manager = PluginManager(scope)
     # TODO: Implement auto-discovery of plugins based on some convention/configuration scheme
     plugin_manager.register(ENABLED_PLUGINS)
 
