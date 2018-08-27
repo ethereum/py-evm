@@ -338,3 +338,30 @@ async def test_cannot_readd_same_task():
     await q.add((1, 2))
     with pytest.raises(ValidationError):
         await q.add((2,))
+
+
+@pytest.mark.parametrize('get_size', (1, None))
+def test_get_nowait_queuefull(get_size):
+    q = TaskQueue()
+    with pytest.raises(asyncio.QueueFull):
+        q.get_nowait(get_size)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'tasks, get_size, expected_tasks',
+    (
+        ((3, 2), 1, (2, )),
+    ),
+)
+async def test_get_nowait(tasks, get_size, expected_tasks):
+    q = TaskQueue()
+    await q.add(tasks)
+
+    batch, tasks = q.get_nowait(get_size)
+
+    assert tasks == expected_tasks
+
+    q.complete(batch, tasks)
+
+    assert all(task not in q for task in tasks)
