@@ -17,6 +17,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from p2p.exceptions import PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     BaseRequest,
@@ -134,7 +135,7 @@ class ResponseCandidateStream(
     async def _handle_msg(self, msg: TResponsePayload) -> None:
         if self.pending_request is None:
             self.logger.debug(
-                "Got unexpected %s payload from %", self.response_msg_name, self._peer
+                "Got unexpected %s payload from %s", self.response_msg_name, self._peer
             )
             return
 
@@ -179,14 +180,23 @@ class ResponseCandidateStream(
     def _is_pending(self) -> bool:
         return self.pending_request is not None
 
+    async def _cleanup(self) -> None:
+        if self.pending_request is not None:
+            self.logger.debug("Stream shutting down, raising an exception on the pending request")
+            _, future = self.pending_request
+            future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
+
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:
-            self.logger.debug("Peer disconnected, trigger a timeout on the pending request")
+            self.logger.debug("Peer disconnected, raising an exception on the pending request")
             _, future = self.pending_request
-            future.set_exception(TimeoutError("Peer disconnected, simulating inevitable timeout"))
+            future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
 
     def get_stats(self) -> Tuple[str, str]:
         return (self.response_msg_name, self.response_times.get_stats())
+
+    def __repr__(self) -> str:
+        return f'<ResponseCandidateStream({self._peer!s}, {self.response_msg_type!r})>'
 
 
 class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):

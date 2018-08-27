@@ -12,6 +12,7 @@ from typing import (
     cast,
 )
 
+from cancel_token import OperationCancelled
 from cytoolz import (
     concat,
     merge,
@@ -28,7 +29,7 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
 from p2p import protocol
-from p2p.exceptions import NoEligiblePeers
+from p2p.exceptions import NoEligiblePeers, PeerConnectionLost
 from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
@@ -204,7 +205,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         """
         Requests the batch of block bodies from the given peer, returning the
         returned block bodies data and the headers for which block bodies were not
-        returned for.
+        returned.
         """
         self.logger.debug("Requesting block bodies for %d headers from %s", len(batch), peer)
         try:
@@ -214,6 +215,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
+        except OperationCancelled:
+            self.logger.trace("Pending block bodies call to %r cancelled", peer)
+            return tuple(), batch
+        except PeerConnectionLost:
+            self.logger.debug("Peer went away, cancelling the block body request and moving on...")
+            return tuple(), batch
+        except Exception:
+            self.logger.exception("Unknown error when getting block bodies")
+            return tuple(), batch
+        else:
             self.logger.debug(
                 "Got block bodies for %d headers from %s", len(block_body_bundles), peer,
             )
@@ -305,6 +316,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self.logger.debug(
                 "Timed out requesting receipts for %d headers from %s", len(batch), peer,
             )
+            return tuple(), batch
+        except OperationCancelled:
+            self.logger.trace("Pending receipts call to %r cancelled", peer)
+            return tuple(), batch
+        except PeerConnectionLost:
+            self.logger.debug("Peer went away, cancelling the receipts request and moving on...")
+            return tuple(), batch
+        except Exception:
+            self.logger.exception("Unknown error when getting receipts")
             return tuple(), batch
         else:
             self.logger.debug(
