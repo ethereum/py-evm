@@ -6,17 +6,43 @@ from argparse import (
     ArgumentParser,
     _SubParsersAction,
 )
+from enum import (
+    auto,
+    Enum,
+)
 import logging
 from typing import (
-    Any
+    Any,
+    Dict,
+)
+
+from lahja import (
+    Endpoint
 )
 
 from trinity.extensibility.events import (
     BaseEvent
 )
+from trinity.utils.mp import (
+    ctx,
+)
+from trinity.utils.logging import (
+    setup_queue_logging,
+)
 
-# TODO: we spec this out later
-PluginContext = Any
+
+class PluginProcessScope(Enum):
+
+    SHARED = auto()
+    MAIN = auto()
+    OWN = auto()
+
+
+class PluginContext:
+
+    def __init__(self, endpoint: Endpoint, boot_kwargs: Dict[str, Any] = None) -> None:
+        self.event_bus = endpoint
+        self.boot_kwargs = boot_kwargs
 
 
 class BasePlugin(ABC):
@@ -30,6 +56,10 @@ class BasePlugin(ABC):
         raise NotImplementedError(
             "Must be implemented by subclasses"
         )
+
+    @property
+    def process_scope(self) -> PluginProcessScope:
+        return PluginProcessScope.SHARED
 
     @property
     def logger(self) -> logging.Logger:
@@ -67,6 +97,37 @@ class BasePlugin(ABC):
         Called when the plugin gets stopped. Should be overwritten to perform cleanup
         work in case the plugin set up external resources.
         """
+        pass
+
+
+class BaseOwnProcessPlugin(BasePlugin):
+
+    @property
+    def process_scope(self) -> PluginProcessScope:
+        return PluginProcessScope.OWN
+
+    def start(self, context: PluginContext) -> None:
+        proc = ctx.Process(
+            target=self._launch_process,
+            args=(
+                context.event_bus,
+            ),
+            kwargs=context.boot_kwargs
+        )
+
+        proc.start()
+
+    @classmethod
+    def _launch_process(cls, event_bus: Endpoint, **kwargs: Any) -> None:
+        log_queue = kwargs['log_queue']
+        level = kwargs.get('log_level', logging.INFO)
+        setup_queue_logging(log_queue, level)
+
+        cls.launch_process(event_bus)
+
+    @staticmethod
+    @abstractmethod
+    def launch_process(event_bus: Endpoint, **kwargs: Any) -> None:
         pass
 
 
