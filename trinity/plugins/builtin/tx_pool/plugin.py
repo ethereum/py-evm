@@ -25,7 +25,6 @@ from p2p.peer import (
 from trinity.extensibility import (
     BaseEvent,
     BasePlugin,
-    PluginContext,
 )
 from trinity.extensibility.events import (
     ResourceAvailableEvent,
@@ -70,7 +69,7 @@ class TxPlugin(BasePlugin):
     def should_start(self) -> bool:
         return all((self.peer_pool is not None, self.chain is not None, self.is_enabled))
 
-    def start(self, context: PluginContext) -> None:
+    def start(self) -> None:
         if isinstance(self.chain, BaseMainnetChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
         elif isinstance(self.chain, BaseRopstenChain):
