@@ -1,8 +1,8 @@
 import asyncio
 from abc import abstractmethod
+from operator import attrgetter
 from typing import (
     AsyncGenerator,
-    Set,
     Tuple,
     Union,
     cast,
@@ -81,7 +81,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # pending queue size should be big enough to avoid starving the processing consumers, but
         # small enough to avoid wasteful over-requests before post-processing can happen
         max_pending_headers = ETHPeer.max_headers_fetch * 8
-        self.header_queue = TaskQueue(max_pending_headers, lambda header: header.block_number)
+        self.header_queue = TaskQueue(max_pending_headers, attrgetter('block_number'))
 
     @property
     def msg_queue_maxsize(self) -> int:
@@ -168,7 +168,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             return
 
         self.logger.info("Starting sync with %s", peer)
-        last_received_header = None
+        last_received_header: BlockHeader = None
         # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
         # headers before our current head's number, in case there were chain reorgs since the last
         # time _sync() was called. All of the extra headers that are already present in our DB
@@ -238,9 +238,20 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             # Setting the latest header hash for the peer, before queuing header processing tasks
             self._target_header_hash = peer.head_hash
 
-            await self.header_queue.add(headers)
+            unrequested_headers = tuple(h for h in headers if h not in self.header_queue)
+            await self.header_queue.add(unrequested_headers)
             last_received_header = headers[-1]
             start_at = last_received_header.block_number + 1
+
+        # erase any pending tasks, to restart on next _sync() run
+        try:
+            batch_id, pending_tasks = self.header_queue.get_nowait()
+        except asyncio.QueueFull:
+            # nothing pending, continue
+            pass
+        else:
+            # fully remove pending tasks from queue
+            self.header_queue.complete(batch_id, pending_tasks)
 
     async def _fetch_missing_headers(
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:

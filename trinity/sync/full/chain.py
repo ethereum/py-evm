@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import CancelledError
 import math
 import operator
 from typing import (
@@ -90,9 +91,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             # in independent loops
             # TODO implement the maximum task size at each step instead of this magic number
             max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
-            batch, headers = await self.header_queue.get(max_headers)
+            batch_id, headers = await self.header_queue.get(max_headers)
             await self._process_headers(headers)
-            self.header_queue.complete(batch, headers)
+            self.header_queue.complete(batch_id, headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -215,8 +216,11 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
+        except CancelledError:
+            self.logger.debug("Pending block bodies call to %r future cancelled", peer)
+            return tuple(), batch
         except OperationCancelled:
-            self.logger.trace("Pending block bodies call to %r cancelled", peer)
+            self.logger.trace("Pending block bodies call to %r operation cancelled", peer)
             return tuple(), batch
         except PeerConnectionLost:
             self.logger.debug("Peer went away, cancelling the block body request and moving on...")
@@ -317,8 +321,11 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting receipts for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
+        except CancelledError:
+            self.logger.debug("Pending receipts call to %r future cancelled", peer)
+            return tuple(), batch
         except OperationCancelled:
-            self.logger.trace("Pending receipts call to %r cancelled", peer)
+            self.logger.trace("Pending receipts call to %r operation cancelled", peer)
             return tuple(), batch
         except PeerConnectionLost:
             self.logger.debug("Peer went away, cancelling the receipts request and moving on...")

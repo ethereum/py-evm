@@ -63,7 +63,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _persist_headers(self) -> None:
         while self.is_operational:
-            batch, headers = await self.wait(self.header_queue.get())
+            batch_id, headers = await self.wait(self.header_queue.get())
 
             timer = Timer()
             for header in headers:
@@ -74,4 +74,4 @@ class LightChainSyncer(BaseHeaderChainSyncer):
                 "Imported %d headers in %0.2f seconds, new head: #%d",
                 len(headers), timer.elapsed, head.block_number)
 
-            self.header_queue.complete(batch, headers)
+            self.header_queue.complete(batch_id, headers)

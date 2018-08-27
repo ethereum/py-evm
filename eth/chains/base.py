@@ -295,7 +295,10 @@ class BaseChain(Configurable, ABC):
 
     @abstractmethod
     def validate_chain(
-            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
+            self,
+            parent: BlockHeader,
+            chain: Tuple[BlockHeader, ...],
+            seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
 
@@ -868,5 +871,8 @@ class AsyncChain(Chain):
         raise NotImplementedError()
 
     async def coro_validate_chain(
-            self, chain: Tuple[BlockHeader, ...], seal_check_random_sample_rate: int = 1) -> None:
+            self,
+            parent: BlockHeader,
+            chain: Tuple[BlockHeader, ...],
+            seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError()

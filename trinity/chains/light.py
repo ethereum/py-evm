@@ -225,7 +225,11 @@ class LightDispatchChain(BaseChain):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def validate_chain(self, chain: Tuple[BlockHeader, ...], seal_check_frequency: int = 1) -> None:
+    def validate_chain(
+            self,
+            parent: BlockHeader,
+            chain: Tuple[BlockHeader, ...],
+            seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #
