@@ -2,17 +2,17 @@ from eth.chains.base import (
     BaseChain
 )
 
-from p2p.peer import (
-    PeerPool,
+from lahja import (
+    Endpoint
 )
 
 
 class RPCModule:
     _chain = None
 
-    def __init__(self, chain: BaseChain, peer_pool: PeerPool) -> None:
+    def __init__(self, chain: BaseChain, event_bus: Endpoint) -> None:
         self._chain = chain
-        self._peer_pool = peer_pool
+        self._event_bus = event_bus
 
     def set_chain(self, chain: BaseChain) -> None:
         self._chain = chain
