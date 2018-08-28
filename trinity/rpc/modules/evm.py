@@ -25,7 +25,7 @@ from trinity.rpc.modules import (
 
 class EVM(RPCModule):
     @format_params(normalize_blockchain_fixtures)
-    def resetToGenesisFixture(self, chain_info: Any) -> Chain:
+    async def resetToGenesisFixture(self, chain_info: Any) -> Chain:
         '''
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
@@ -34,7 +34,7 @@ class EVM(RPCModule):
         return new_chain_from_fixture(chain_info)
 
     @format_params(normalize_block)
-    def applyBlockFixture(self, block_info: Any) -> str:
+    async def applyBlockFixture(self, block_info: Any) -> str:
         '''
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`

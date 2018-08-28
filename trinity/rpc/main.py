@@ -101,9 +101,9 @@ class RPCServer:
         except AttributeError:
             raise ValueError("Method not implemented: %r" % rpc_method)
 
-    def _get_result(self,
-                    request: Dict[str, Any],
-                    debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
+    async def _get_result(self,
+                          request: Dict[str, Any],
+                          debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
         '''
         :returns: (result, error) - result is None if error is provided. Error must be
             convertable to string with ``str(error)``.
@@ -116,7 +116,7 @@ class RPCServer:
 
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
-            result = method(*params)
+            result = await method(*params)
 
             if request['method'] == 'evm_resetToGenesisFixture':
                 self.chain, result = result, True
@@ -135,11 +135,11 @@ class RPCServer:
         else:
             return result, None
 
-    def execute(self, request: Dict[str, Any]) -> str:
+    async def execute(self, request: Dict[str, Any]) -> str:
         '''
         The key entry point for all incoming requests
         '''
-        result, error = self._get_result(request)
+        result, error = await self._get_result(request)
         return generate_response(request, result, error)
 
     @property
