@@ -9,13 +9,13 @@ from trinity.rpc.modules import (
 
 
 class Web3(RPCModule):
-    def clientVersion(self) -> str:
+    async def clientVersion(self) -> str:
         """
         Returns the current client version.
         """
         return construct_trinity_client_identifier()
 
-    def sha3(self, data: str) -> str:
+    async def sha3(self, data: str) -> str:
         """
         Returns Keccak-256 of the given data.
         """
