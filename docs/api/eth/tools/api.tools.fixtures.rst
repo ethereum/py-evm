@@ -2,7 +2,7 @@ Builder Tools
 =============
 
 
-The JSON test fillers found in `eth.tools.fillers` is a set of tools which facilitate
+The JSON test fillers found in `eth.tools.fixtures` is a set of tools which facilitate
 creating standard JSON consensus tests as found in the
 `ethereum/tests repository <https://github.com/ethereum/tests>`_. 
 
@@ -20,7 +20,7 @@ Tests are generated in two steps.
 
 The test builder represents each stage as a nested dictionary. Helper functions are provided to
 assemble the filler file step by step in the correct format. The
-:func:`~eth.tools.fillers.state.fill_test` function handles compilation and
+:func:`~eth.tools.fixtures.fillers.fill_test` function handles compilation and
 takes additional parameters that can't be inferred from the filler.
 
 
@@ -54,14 +54,14 @@ sequence of functions.
 
 .. note:: 
 
-    Note that :func:`~eth.tools.fillers.state.setup_filler` returns a
+    Note that :func:`~eth.tools.fixtures.setup_filler` returns a
     dictionary, whereas all of the following functions such as
-    :func:`~eth.tools.fillers.state.pre_state`,
-    :func:`~eth.tools.fillers.state.expect`, expect to be passed a dictionary
+    :func:`~eth.tools.fixtures.pre_state`,
+    :func:`~eth.tools.fixtures.expect`, expect to be passed a dictionary
     as their single argument and return an updated version of the dictionary.
 
 
-.. autofunction:: eth.tools.fillers.state.setup_main_filler
+.. autofunction:: eth.tools.fixtures.fillers.common.setup_main_filler
 
     This function kicks off the filler generation process by creating the general filler scaffold with
     a test name and general information about the testing environment.
@@ -86,7 +86,7 @@ sequence of functions.
     +------------------------+---------------------------------+
 
 
-.. autofunction:: eth.tools.fillers.state.pre_state
+.. autofunction:: eth.tools.fixtures.fillers.pre_state
 
     This function specifies the state prior to the test execution. Multiple invocations don't override
     the state but extend it instead.
@@ -117,7 +117,7 @@ sequence of functions.
         (address, {"balance", <account balance>})
 
 
-.. autofunction:: eth.tools.fillers.state.execution
+.. autofunction:: eth.tools.fixtures.fillers.execution
 
     For VM tests, this function specifies the code that is being run as well as the current state of
     the EVM. State tests don't support this object. The parameter is a dictionary specifying some or
@@ -146,14 +146,14 @@ sequence of functions.
     +--------------------+------------------------------------------------------------+
 
 
-.. autofunction:: eth.tools.fillers.state.expect
+.. autofunction:: eth.tools.fixtures.fillers.expect
 
     This specifies the expected result of the test.
 
     For state tests, multiple expectations can be given, differing in the transaction data, gas
     limit, and value, in the applicable networks, and as a result also in the post state. VM tests
     support only a single expectation with no specified network and no transaction (here, its role is
-    played by :func:`~eth.tools.fillers.state.execution`).
+    played by :func:`~eth.tools.fixtures.fillers.execution`).
 
     * ``post_state`` is a list of state definition in the same form as expected by `pre_state`. State items
       that are not set explicitly default to their pre state.

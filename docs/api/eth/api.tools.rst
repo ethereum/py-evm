@@ -7,4 +7,4 @@ Tools
    :name: toc-eth-api-tools
    :caption: Tools
 
-   tools/api.tools.fillers
+   tools/api.tools.fixtures
