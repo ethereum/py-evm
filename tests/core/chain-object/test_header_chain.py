@@ -19,7 +19,7 @@ from eth.db.backends.memory import MemoryDB
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools._utils.rlp import (
+from eth.tools.rlp import (
     assert_headers_eq,
 )
 

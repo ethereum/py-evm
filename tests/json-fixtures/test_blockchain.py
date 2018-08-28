@@ -10,7 +10,7 @@ from eth.rlp.headers import (
     BlockHeader,
 )
 
-from eth.tools._utils.rlp import (
+from eth.tools.rlp import (
     assert_imported_genesis_header_unchanged,
     assert_mined_block_unchanged,
 )

@@ -24,8 +24,8 @@ from eth.exceptions import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools.fixture_tests import (
-    assert_rlp_equal,
+from eth.tools.rlp import (
+    assert_headers_eq,
 )
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -127,7 +127,7 @@ def test_chaindb_get_block_header_by_hash(chaindb, block, header):
     header = set_empty_root(chaindb, header)
     chaindb.persist_block(block)
     block_header = chaindb.get_block_header_by_hash(block.hash)
-    assert_rlp_equal(block_header, header)
+    assert_headers_eq(block_header, header)
 
 
 def test_chaindb_get_canonical_block_hash(chaindb, block):
