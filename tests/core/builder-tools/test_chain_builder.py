@@ -7,16 +7,17 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.tools.builder.chain import (
+    at_block_number,
     build,
+    chain_split,
+    copy,
+    disable_pow_check,
     frontier_at,
     genesis,
-    mine_block,
-    mine_blocks,
-    disable_pow_check,
-    at_block_number,
-    copy,
     import_block,
     import_blocks,
+    mine_block,
+    mine_blocks,
 )
 
 
@@ -206,3 +207,25 @@ def test_chain_import_blocks_many(mining_chain):
     )
     head = chain.get_canonical_head()
     assert head == block_3.header
+
+
+def test_chain_builder_chain_split(mining_chain):
+    chain_a, chain_b = build(
+        mining_chain,
+        chain_split(
+            (mine_block(extra_data=b'chain-a'), mine_block()),
+            (mine_block(extra_data=b'chain-b'), mine_block(), mine_block()),
+        ),
+    )
+
+    first_a = chain_a.get_canonical_block_by_number(1).header
+    first_b = chain_b.get_canonical_block_by_number(1).header
+
+    assert first_a.extra_data == b'chain-a'
+    assert first_b.extra_data == b'chain-b'
+
+    head_a = chain_a.get_canonical_head()
+    assert head_a.block_number == 2
+
+    head_b = chain_b.get_canonical_head()
+    assert head_b.block_number == 3

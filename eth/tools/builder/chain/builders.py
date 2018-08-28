@@ -301,6 +301,10 @@ def _fill_and_normalize_state(simple_state):
 
 @curry
 def genesis(chain_class, db=None, params=None, state=None):
+    """
+    Initialize the given chain class with the given genesis header parameters
+    and chain state.
+    """
     if state is None:
         genesis_state = {}  # type: Dict[str, Union[int, bytes, Dict[int, int]]]
     else:
@@ -327,7 +331,9 @@ def genesis(chain_class, db=None, params=None, state=None):
 @curry
 def mine_block(chain, **kwargs):
     """
-    Mines a single block
+    Mine a new block on the chain.  Header parameters for the new block can be
+    overridden using keyword arguments.
+
     """
     if not isinstance(chain, MiningChain):
         raise ValidationError('`mine_block` may only be used on MiningChain instances')
@@ -338,7 +344,7 @@ def mine_block(chain, **kwargs):
 @curry
 def mine_blocks(num_blocks, chain):
     """
-    Mines `num_blocks` empty blocks
+    Variadic argument version of :func:`~eth.tools.builder.chain.mine_block`
     """
     if not isinstance(chain, MiningChain):
         raise ValidationError('`mine_block` may only be used on MiningChain instances')
@@ -349,11 +355,17 @@ def mine_blocks(num_blocks, chain):
 
 @curry
 def import_block(block, chain):
+    """
+    Import the provided ``block`` into the chain.
+    """
     chain.import_block(block)
     return chain
 
 
 def import_blocks(*blocks):
+    """
+    Variadic argument version of :func:`~eth.tools.builder.chain.import_block`
+    """
     @functools.wraps(import_blocks)
     def _import_blocks(chain):
         for block in blocks:
@@ -364,6 +376,10 @@ def import_blocks(*blocks):
 
 @curry
 def copy(chain):
+    """
+    Make a copy of the chain at the given state.  Actions performed on the
+    resulting chain will not affect the original chain.
+    """
     if not isinstance(chain, MiningChain):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     base_db = chain.chaindb.db
@@ -377,9 +393,23 @@ def copy(chain):
 
 def chain_split(*splits):
     """
-    Each item in `splits` should be a sequence
-    Used for forking the chain.  Should be used in conjunction with
-    `at_block_number` to 'rewind' the chain back to a specific height.
+    Construct and execute multiple concurrent forks of the chain.
+
+    Any number of forks may be executed.  For each fork, provide an iterable of
+    commands.
+
+    Returns the resulting chian objects for each fork.
+
+
+    .. code-block:: python
+
+        chain_a, chain_b = build(
+            mining_chain,
+            chain_split(
+                (mine_block(extra_data=b'chain-a'), mine_block()),
+                (mine_block(extra_data=b'chain-b'), mine_block(), mine_block()),
+            ),
+        )
     """
     if not splits:
         raise ValidationError("Cannot use `chain_split` without providing at least one split")
@@ -399,6 +429,11 @@ def chain_split(*splits):
 
 @curry
 def at_block_number(block_number, chain):
+    """
+    Rewind the chain back to the given block number.  Calls to things like
+    ``get_canonical_head`` will still return the canonical head of the chain,
+    however, you can use ``mine_block`` to mine fork chains.
+    """
     if not isinstance(chain, MiningChain):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     at_block = chain.get_canonical_block_by_number(block_number)
