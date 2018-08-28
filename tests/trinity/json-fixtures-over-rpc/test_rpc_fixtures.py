@@ -25,6 +25,9 @@ from eth.tools.fixtures import (
     should_run_slow_tests,
 )
 
+from trinity.chains.mainnet import (
+    MainnetFullChain
+)
 from trinity.rpc import RPCServer
 from trinity.rpc.format import (
     empty_to_0x,
@@ -383,7 +386,7 @@ def chain(chain_without_block_validation):
 
 @pytest.mark.asyncio
 async def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
-    rpc = RPCServer(None)
+    rpc = RPCServer(MainnetFullChain(None))
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
     assert setup_error is None and setup_result is True, "cannot load chain for %r" % fixture_data

@@ -1,3 +1,6 @@
+from p2p.events import (
+    PeerCountRequest
+)
 from trinity.rpc.modules import (
     RPCModule,
 )
@@ -14,7 +17,8 @@ class Net(RPCModule):
         """
         Return the number of peers that are currently connected to the node
         """
-        return hex(len(self._peer_pool))  # type: ignore
+        response = await self._event_bus.request(PeerCountRequest())
+        return hex(response.peer_count)
 
     async def listening(self) -> bool:
         """

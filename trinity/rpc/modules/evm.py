@@ -31,7 +31,7 @@ class EVM(RPCModule):
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
         '''
-        return new_chain_from_fixture(chain_info)
+        return new_chain_from_fixture(chain_info, type(self._chain))
 
     @format_params(normalize_block)
     async def applyBlockFixture(self, block_info: Any) -> str:

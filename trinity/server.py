@@ -13,6 +13,10 @@ from eth_utils import big_endian_to_int
 
 from cancel_token import CancelToken, OperationCancelled
 
+from lahja import (
+    Endpoint
+)
+
 from eth.chains import AsyncChain
 
 from eth_typing import BlockNumber
@@ -86,9 +90,11 @@ class Server(BaseService):
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
                  use_discv5: bool = False,
+                 event_bus: Endpoint = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
+        self.event_bus = event_bus
         self.headerdb = headerdb
         self.chaindb = chaindb
         self.chain = chain
@@ -137,6 +143,7 @@ class Server(BaseService):
             self.chain.get_vm_configuration(),
             max_peers=self.max_peers,
             token=self.cancel_token,
+            event_bus=self.event_bus,
         )
 
     async def _run(self) -> None:
