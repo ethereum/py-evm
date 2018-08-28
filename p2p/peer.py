@@ -48,6 +48,10 @@ from eth_keys import datatypes
 
 from cancel_token import CancelToken, OperationCancelled
 
+from lahja import (
+    Endpoint,
+)
+
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM
@@ -95,6 +99,10 @@ from .constants import (
     MAC_LEN,
 )
 
+from .events import (
+    PeerCountRequest,
+    PeerCountResponse,
+)
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
@@ -173,7 +181,7 @@ class PeerBootManager(BaseService):
             # exit via exception rather than cleanly shutting down.  By using
             # `run_task`, this service finishes exiting prior to the
             # cancellation.
-            self.run_task(self.peer.disconnect(DisconnectReason.useless_peer))
+            self.run_daemon_task(self.peer.disconnect(DisconnectReason.useless_peer))
 
     async def ensure_same_side_on_dao_fork(self) -> None:
         """Ensure we're on the same side of the DAO fork as the given peer.
@@ -841,6 +849,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                  context: BasePeerContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
+                 event_bus: Endpoint = None
                  ) -> None:
         super().__init__(token)
 
@@ -850,6 +859,17 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
+        self.event_bus = event_bus
+        if self.event_bus is not None:
+            self.run_task(self.handle_peer_count_requests())
+
+    async def handle_peer_count_requests(self) -> None:
+        async for req in self.event_bus.stream(PeerCountRequest):
+            # We are listening for all `PeerCountRequest` events but we ensure to
+            # only send a `PeerCountResponse` to the callsite that made the request.
+            # We do that by retrieving a `BroadcastConfig` from the request via the
+            # `event.broadcast_config()` API.
+            self.event_bus.broadcast(PeerCountResponse(len(self)), req.broadcast_config())
 
     def __len__(self) -> int:
         return len(self.connected_nodes)

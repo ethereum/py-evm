@@ -904,3 +904,15 @@ class AsyncChain(Chain):
                                     receipt: Receipt,
                                     at_header: BlockHeader) -> None:
         raise NotImplementedError()
+
+    async def coro_get_block_by_hash(self,
+                                     block_hash: Hash32) -> BaseBlock:
+        raise NotImplementedError()
+
+    async def coro_get_block_by_header(self,
+                                       header: BlockHeader) -> BaseBlock:
+        raise NotImplementedError()
+
+    async def coro_get_canonical_block_by_number(self,
+                                                 block_number: BlockNumber) -> BaseBlock:
+        raise NotImplementedError()

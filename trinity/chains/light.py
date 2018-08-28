@@ -54,7 +54,7 @@ from eth.vm.computation import (
 )
 
 from trinity.sync.light.service import (
-    LightPeerChain,
+    BaseLightPeerChain,
 )
 
 if TYPE_CHECKING:
@@ -64,14 +64,14 @@ if TYPE_CHECKING:
 class LightDispatchChain(BaseChain):
     """
     Provide the :class:`BaseChain` API, even though only a
-    :class:`LightPeerChain` is syncing. Store results locally so that not
+    :class:`BaseLightPeerChain` is syncing. Store results locally so that not
     all requests hit the light peer network.
     """
 
     ASYNC_TIMEOUT_SECONDS = 10
     _loop = None
 
-    def __init__(self, headerdb: BaseHeaderDB, peer_chain: LightPeerChain) -> None:
+    def __init__(self, headerdb: BaseHeaderDB, peer_chain: BaseLightPeerChain) -> None:
         self._headerdb = headerdb
         self._peer_chain = peer_chain
         self._peer_chain_loop = asyncio.get_event_loop()
@@ -135,14 +135,19 @@ class LightDispatchChain(BaseChain):
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
+        raise NotImplementedError("Use coro_get_block_by_hash")
+
+    async def coro_get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         header = self._headerdb.get_block_header_by_hash(block_hash)
-        return self.get_block_by_header(header)
+        return await self.coro_get_block_by_header(header)
 
     def get_block_by_header(self, header: BlockHeader) -> BaseBlock:
+        raise NotImplementedError("Use coro_get_block_by_header")
+
+    async def coro_get_block_by_header(self, header: BlockHeader) -> BaseBlock:
         # TODO check local cache, before hitting peer
-        block_body = self._run_async(
-            self._peer_chain.coro_get_block_body_by_hash(header.hash)
-        )
+
+        block_body = await self._peer_chain.coro_get_block_body_by_hash(header.hash)
 
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
         transactions = [
@@ -156,12 +161,15 @@ class LightDispatchChain(BaseChain):
         )
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
+        raise NotImplementedError("Use coro_get_canonical_block_by_number")
+
+    async def coro_get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
         """
         Return the block with the given number from the canonical chain.
         Raises HeaderNotFound if it is not found.
         """
         header = self._headerdb.get_canonical_block_header_by_number(block_number)
-        return self.get_block_by_header(header)
+        return await self.get_block_by_header(header)
 
     def get_canonical_block_hash(self, block_number: int) -> Hash32:
         return self._headerdb.get_canonical_block_hash(block_number)
@@ -234,12 +242,3 @@ class LightDispatchChain(BaseChain):
             chain: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
-
-    #
-    # Async utils
-    #
-    T = TypeVar('T')
-
-    def _run_async(self, async_method: Coroutine[T, Any, Any]) -> T:
-        future = asyncio.run_coroutine_threadsafe(async_method, loop=self._peer_chain_loop)
-        return future.result(self.ASYNC_TIMEOUT_SECONDS)
