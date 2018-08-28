@@ -147,7 +147,9 @@ def exp(computation, gas_per_byte):
     bit_size = exponent.bit_length()
     byte_size = ceil8(bit_size) // 8
 
-    if base == 0:
+    if exponent == 0:
+        result = 1
+    elif base == 0:
         result = 0
     else:
         result = pow(base, exponent, constants.UINT_256_CEILING)
