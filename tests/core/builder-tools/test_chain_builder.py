@@ -1,7 +1,5 @@
 import pytest
 
-from cytoolz import pipe
-
 from eth_utils import ValidationError
 
 from eth.chains.base import (
@@ -9,6 +7,7 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.tools.builder.chain import (
+    build,
     frontier_at,
     genesis,
     mine_block,
@@ -31,7 +30,7 @@ MINING_CHAIN_PARAMS = (
 
 @pytest.fixture
 def mining_chain():
-    return pipe(*MINING_CHAIN_PARAMS)
+    return build(*MINING_CHAIN_PARAMS)
 
 
 REGULAR_CHAIN_PARAMS = (
@@ -43,16 +42,16 @@ REGULAR_CHAIN_PARAMS = (
 
 @pytest.fixture
 def regular_chain():
-    return pipe(*REGULAR_CHAIN_PARAMS)
+    return build(*REGULAR_CHAIN_PARAMS)
 
 
 @pytest.fixture(params=(MINING_CHAIN_PARAMS, REGULAR_CHAIN_PARAMS))
 def any_chain(request):
-    return pipe(*request.param)
+    return build(*request.param)
 
 
 def test_chain_builder_build_single_default_block(mining_chain):
-    chain = pipe(
+    chain = build(
         mining_chain,
         mine_block(),
     )
@@ -62,7 +61,7 @@ def test_chain_builder_build_single_default_block(mining_chain):
 
 
 def test_chain_builder_build_two_default_blocks(mining_chain):
-    chain = pipe(
+    chain = build(
         mining_chain,
         mine_block(),
         mine_block(),
@@ -73,7 +72,7 @@ def test_chain_builder_build_two_default_blocks(mining_chain):
 
 
 def test_chain_builder_build_mine_multiple_blocks(mining_chain):
-    chain = pipe(
+    chain = build(
         mining_chain,
         mine_blocks(5),
     )
@@ -83,7 +82,7 @@ def test_chain_builder_build_mine_multiple_blocks(mining_chain):
 
 
 def test_chain_builder_mine_block_with_parameters(mining_chain):
-    chain = pipe(
+    chain = build(
         mining_chain,
         mine_block(extra_data=b'test-setting-extra-data'),
     )
@@ -102,8 +101,8 @@ def test_chain_builder_mine_multiple_blocks_only_on_mining_chain(regular_chain):
         mine_blocks(5)(regular_chain)
 
 
-def test_chain_builder_fork_chain(mining_chain):
-    pre_fork_chain = pipe(
+def test_chain_builder_at_block_number(mining_chain):
+    pre_fork_chain = build(
         mining_chain,
         mine_block(),  # 1
         mine_block(),  # 2
@@ -113,9 +112,8 @@ def test_chain_builder_fork_chain(mining_chain):
     block_2 = pre_fork_chain.get_canonical_block_by_number(2)
     block_3 = pre_fork_chain.get_canonical_block_by_number(3)
 
-    chain = pipe(
+    chain = build(
         pre_fork_chain,
-        copy(),
         at_block_number(2),
         mine_block(extra_data=b'fork-it!'),  # fork 3
         mine_block(),  # fork 4
@@ -140,13 +138,13 @@ def test_chain_builder_fork_chain(mining_chain):
 
 
 def test_chain_builder_build_uncle_fork(mining_chain):
-    chain = pipe(
+    chain = build(
         mining_chain,
         mine_block(),  # 1
         mine_block(),  # 2
     )
 
-    fork_chain = pipe(
+    fork_chain = build(
         chain,
         at_block_number(1),
         mine_block(extra_data=b'fork-it!'),  # fork 2
@@ -157,7 +155,7 @@ def test_chain_builder_build_uncle_fork(mining_chain):
     assert uncle.block_number == 2
     assert uncle != chain.get_canonical_head()
 
-    pipe(
+    chain = build(
         chain,
         mine_block(uncles=[uncle]),  # 3
     )
@@ -169,7 +167,7 @@ def test_chain_builder_build_uncle_fork(mining_chain):
 
 
 def test_chain_import_block_single(mining_chain):
-    temp_chain = pipe(
+    temp_chain = build(
         mining_chain,
         copy(),
         mine_blocks(3),
@@ -180,7 +178,7 @@ def test_chain_import_block_single(mining_chain):
         temp_chain.get_canonical_block_by_number(3),
     )
 
-    chain = pipe(
+    chain = build(
         mining_chain,
         import_block(block_1),
         import_block(block_2),
@@ -191,7 +189,7 @@ def test_chain_import_block_single(mining_chain):
 
 
 def test_chain_import_blocks_many(mining_chain):
-    temp_chain = pipe(
+    temp_chain = build(
         mining_chain,
         copy(),
         mine_blocks(3),
@@ -202,7 +200,7 @@ def test_chain_import_blocks_many(mining_chain):
         temp_chain.get_canonical_block_by_number(3),
     )
 
-    chain = pipe(
+    chain = build(
         mining_chain,
         import_blocks(block_1, block_2, block_3),
     )
