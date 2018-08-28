@@ -16,8 +16,8 @@ from eth.chains.base import (
     BaseChain
 )
 
-from p2p.peer import (
-    PeerPool
+from lahja import (
+    Endpoint
 )
 
 from trinity.rpc.modules import (
@@ -75,11 +75,11 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: BaseChain=None, peer_pool: PeerPool=None) -> None:
+    def __init__(self, chain: BaseChain=None, event_bus: Endpoint=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
-            self.modules[M.__name__.lower()] = M(chain, peer_pool)
+            self.modules[M.__name__.lower()] = M(chain, event_bus)
         if len(self.modules) != len(self.module_classes):
             raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
 

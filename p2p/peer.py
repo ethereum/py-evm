@@ -52,6 +52,10 @@ from eth_keys import (
 
 from cancel_token import CancelToken, OperationCancelled
 
+from lahja import (
+    Endpoint,
+)
+
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.constants import GENESIS_BLOCK_NUMBER
@@ -99,6 +103,11 @@ from .constants import (
     DEFAULT_MAX_PEERS,
     HEADER_LEN,
     MAC_LEN,
+)
+
+from .events import (
+    PeerCountRequest,
+    PeerCountResponse,
 )
 
 if TYPE_CHECKING:
@@ -692,6 +701,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                  vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
+                 event_bus: Endpoint = None
                  ) -> None:
         super().__init__(token)
         self.peer_class = peer_class
@@ -702,6 +712,16 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         self.max_peers = max_peers
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
+        self.event_bus = event_bus
+        self.run_task(self.answer_peer_count_requests())
+
+    async def answer_peer_count_requests(self) -> None:
+        async for req in self.event_bus.stream(PeerCountRequest):
+            # We are listening for all `PeerCountRequest` events but we ensure to
+            # only send a `PeerCountResponse` to the callsite that made the request.
+            # We do that by retrieving a `BroadcastConfig` from the request via the
+            # `event.broadcast_config()` API.
+            self.event_bus.broadcast(PeerCountResponse(len(self)), req.broadcast_config())
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
