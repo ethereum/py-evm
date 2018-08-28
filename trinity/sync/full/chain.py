@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import CancelledError
 import math
 import operator
 from typing import (
@@ -12,6 +13,7 @@ from typing import (
     cast,
 )
 
+from cancel_token import OperationCancelled
 from cytoolz import (
     concat,
     merge,
@@ -28,13 +30,15 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
 from p2p import protocol
-from p2p.exceptions import NoEligiblePeers
+from p2p.exceptions import NoEligiblePeers, PeerConnectionLost
 from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
 from trinity.protocol.eth import commands
-from trinity.protocol.eth import (
-    constants as eth_constants,
+from trinity.protocol.eth.constants import (
+    MAX_BODIES_FETCH,
+    MAX_RECEIPTS_FETCH,
+    MAX_STATE_FETCH,
 )
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.requests import HeaderRequest
@@ -64,7 +68,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     head.
     """
     db: AsyncChainDB
-    _exit_on_sync_complete = True
 
     subscription_msg_types: Set[Type[Command]] = {
         commands.NewBlock,
@@ -77,6 +80,20 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         commands.Transactions,
         commands.NewBlockHashes,
     }
+
+    async def _run(self) -> None:
+        self.run_task(self._load_and_process_headers())
+        await super()._run()
+
+    async def _load_and_process_headers(self) -> None:
+        while self.is_operational:
+            # TODO invert this, so each peer is getting headers and completing them,
+            # in independent loops
+            # TODO implement the maximum task size at each step instead of this magic number
+            max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
+            batch_id, headers = await self.header_queue.get(max_headers)
+            await self._process_headers(headers)
+            self.header_queue.complete(batch_id, headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -94,8 +111,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             td += header.difficulty
         return td
 
-    async def _process_headers(
-            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         timer = Timer()
         target_td = await self._calculate_td(headers)
         bodies_by_key = await self._download_block_bodies(target_td, headers)
@@ -123,7 +139,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         self.logger.info(
             "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
             len(headers), txs, timer.elapsed, head.block_number)
-        return head.block_number
+
+        # during fast sync, exit the service when reaching the target hash
+        target_hash = self.get_target_header_hash()
+
+        # Quite often the header batch we receive includes headers past the peer's reported
+        # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
+        # order to see if the sync is completed. Instead we just check that we have the peer's
+        # head_hash in our chain.
+        if await self.wait(self.db.coro_header_exists(target_hash)):
+            self.complete_token.trigger()
 
     async def _download_block_bodies(self,
                                      target_td: int,
@@ -181,7 +206,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         """
         Requests the batch of block bodies from the given peer, returning the
         returned block bodies data and the headers for which block bodies were not
-        returned for.
+        returned.
         """
         self.logger.debug("Requesting block bodies for %d headers from %s", len(batch), peer)
         try:
@@ -191,6 +216,19 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
+        except CancelledError:
+            self.logger.debug("Pending block bodies call to %r future cancelled", peer)
+            return tuple(), batch
+        except OperationCancelled:
+            self.logger.trace("Pending block bodies call to %r operation cancelled", peer)
+            return tuple(), batch
+        except PeerConnectionLost:
+            self.logger.debug("Peer went away, cancelling the block body request and moving on...")
+            return tuple(), batch
+        except Exception:
+            self.logger.exception("Unknown error when getting block bodies")
+            return tuple(), batch
+        else:
             self.logger.debug(
                 "Got block bodies for %d headers from %s", len(block_body_bundles), peer,
             )
@@ -283,6 +321,18 @@ class FastChainSyncer(BaseHeaderChainSyncer):
                 "Timed out requesting receipts for %d headers from %s", len(batch), peer,
             )
             return tuple(), batch
+        except CancelledError:
+            self.logger.debug("Pending receipts call to %r future cancelled", peer)
+            return tuple(), batch
+        except OperationCancelled:
+            self.logger.trace("Pending receipts call to %r operation cancelled", peer)
+            return tuple(), batch
+        except PeerConnectionLost:
+            self.logger.debug("Peer went away, cancelling the receipts request and moving on...")
+            return tuple(), batch
+        except Exception:
+            self.logger.exception("Unknown error when getting receipts")
+            return tuple(), batch
         else:
             self.logger.debug(
                 "Got receipts for %d headers from %s", len(receipt_bundles), peer,
@@ -318,15 +368,15 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, commands.GetBlockBodies):
             # Only serve up to MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
+            block_hashes = cast(List[Hash32], msg)[:MAX_BODIES_FETCH]
             await self._handler.handle_get_block_bodies(peer, block_hashes)
         elif isinstance(cmd, commands.GetReceipts):
             # Only serve up to MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_RECEIPTS_FETCH]
+            block_hashes = cast(List[Hash32], msg)[:MAX_RECEIPTS_FETCH]
             await self._handler.handle_get_receipts(peer, block_hashes)
         elif isinstance(cmd, commands.GetNodeData):
             # Only serve up to MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
+            node_hashes = cast(List[Hash32], msg)[:MAX_STATE_FETCH]
             await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
@@ -357,11 +407,9 @@ class RegularChainSyncer(FastChainSyncer):
 
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
-    _exit_on_sync_complete = False
     _seal_check_random_sample_rate = 1
 
-    async def _process_headers(
-            self, peer: HeaderRequestingPeer, headers: Tuple[BlockHeader, ...]) -> int:
+    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
         target_td = await self._calculate_td(headers)
         bodies_by_key = await self._download_block_bodies(target_td, headers)
         self.logger.info("Got block bodies for chain segment")
@@ -410,7 +458,6 @@ class RegularChainSyncer(FastChainSyncer):
 
         head = await self.wait(self.db.coro_get_canonical_head())
         self.logger.info("Imported chain segment, new head: #%d", head.block_number)
-        return head.block_number
 
 
 def _is_body_empty(header: BlockHeader) -> bool:

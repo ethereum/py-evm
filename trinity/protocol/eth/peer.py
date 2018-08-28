@@ -25,6 +25,8 @@ from .handlers import ETHExchangeHandler
 
 
 class ETHPeer(BasePeer):
+    max_headers_fetch = constants.MAX_HEADERS_FETCH
+
     _supported_sub_protocols = [ETHProtocol]
     sub_proto: ETHProtocol = None
 
@@ -39,10 +41,6 @@ class ETHPeer(BasePeer):
         if self._requests is None:
             self._requests = ETHExchangeHandler(self)
         return self._requests
-
-    @property
-    def max_headers_fetch(self) -> int:
-        return constants.MAX_HEADERS_FETCH
 
     def handle_sub_proto_msg(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if isinstance(cmd, NewBlock):

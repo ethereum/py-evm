@@ -44,11 +44,11 @@ deps = {
         "web3==4.4.1",
     ],
     'test': [
-        "hypothesis==3.44.26",
+        "hypothesis==3.69.5",
         # pinned to <3.7 until async fixtures work again
         # https://github.com/pytest-dev/pytest-asyncio/issues/89
         "pytest>=3.6,<3.7",
-        "pytest-asyncio==0.8.0",
+        "pytest-asyncio==0.9.0",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",

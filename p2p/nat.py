@@ -160,6 +160,8 @@ class UPnPService(BaseService):
         except TimeoutError:
             self.logger.info("Timeout waiting for UPNP-enabled devices")
             return
+        else:
+            self.logger.debug("Found %d candidate NAT devices", len(devices))
 
         # If there are no UPNP devices we can exit early
         if not devices:
