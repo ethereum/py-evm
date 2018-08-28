@@ -199,21 +199,21 @@ def result_from_response(response_str):
     return (response.get('result', None), response.get('error', None))
 
 
-def call_rpc(rpc, method, params):
+async def call_rpc(rpc, method, params):
     request = build_request(method, params)
-    response = rpc.execute(request)
+    response = await rpc.execute(request)
     return result_from_response(response)
 
 
-def assert_rpc_result(rpc, method, params, expected):
-    result, error = call_rpc(rpc, method, params)
+async def assert_rpc_result(rpc, method, params, expected):
+    result, error = await call_rpc(rpc, method, params)
     assert error is None
     assert result == expected
     return result
 
 
-def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
-    state_result, state_error = call_rpc(rpc, rpc_method, [addr, at_block])
+async def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
+    state_result, state_error = await call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
 
 
@@ -224,19 +224,31 @@ RPC_STATE_LOOKUPS = (
 )
 
 
-def validate_account_state(rpc, state, addr, at_block):
+async def validate_account_state(rpc, state, addr, at_block):
     standardized_state = fixture_state_in_rpc_format(state)
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
-        validate_account_attribute(fixture_key, rpc_method, rpc, standardized_state, addr, at_block)
+        await validate_account_attribute(
+            fixture_key,
+            rpc_method,
+            rpc,
+            standardized_state,
+            addr,
+            at_block
+        )
     for key in state['storage']:
         position = '0x0' if key == '0x' else key
         expected_storage = state['storage'][key]
-        assert_rpc_result(rpc, 'eth_getStorageAt', [addr, position, at_block], expected_storage)
+        await assert_rpc_result(
+            rpc,
+            'eth_getStorageAt',
+            [addr, position, at_block],
+            expected_storage
+        )
 
 
-def validate_accounts(rpc, states, at_block='latest'):
+async def validate_accounts(rpc, states, at_block='latest'):
     for addr in states:
-        validate_account_state(rpc, states[addr], addr, at_block)
+        await validate_account_state(rpc, states[addr], addr, at_block)
 
 
 def validate_rpc_block_vs_fixture(block, block_fixture):
@@ -264,13 +276,13 @@ def is_by_hash(at_block):
         raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
 
 
-def validate_transaction_count(rpc, block_fixture, at_block):
+async def validate_transaction_count(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getBlockTransactionCountByHash'
     else:
         rpc_method = 'eth_getBlockTransactionCountByNumber'
     expected_transaction_count = hex(len(block_fixture['transactions']))
-    assert_rpc_result(rpc, rpc_method, [at_block], expected_transaction_count)
+    await assert_rpc_result(rpc, rpc_method, [at_block], expected_transaction_count)
 
 
 def validate_rpc_transaction_vs_fixture(transaction, fixture):
@@ -282,74 +294,74 @@ def validate_rpc_transaction_vs_fixture(transaction, fixture):
     assert actual_transaction == expected
 
 
-def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
+async def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
     if is_by_hash(at_block):
         rpc_method = 'eth_getTransactionByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getTransactionByBlockNumberAndIndex'
-    result, error = call_rpc(rpc, rpc_method, [at_block, hex(index)])
+    result, error = await call_rpc(rpc, rpc_method, [at_block, hex(index)])
     assert error is None
     validate_rpc_transaction_vs_fixture(result, transaction_fixture)
 
 
-def validate_block(rpc, block_fixture, at_block):
+async def validate_block(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getBlockByHash'
     else:
         rpc_method = 'eth_getBlockByNumber'
 
     # validate without transaction bodies
-    result, error = call_rpc(rpc, rpc_method, [at_block, False])
+    result, error = await call_rpc(rpc, rpc_method, [at_block, False])
     assert error is None
     validate_rpc_block_vs_fixture(result, block_fixture)
     assert len(result['transactions']) == len(block_fixture['transactions'])
 
     for index, transaction_fixture in enumerate(block_fixture['transactions']):
-        validate_transaction_by_index(rpc, transaction_fixture, at_block, index)
+        await validate_transaction_by_index(rpc, transaction_fixture, at_block, index)
 
-    validate_transaction_count(rpc, block_fixture, at_block)
+    await validate_transaction_count(rpc, block_fixture, at_block)
 
     # TODO validate transaction bodies
-    result, error = call_rpc(rpc, rpc_method, [at_block, True])
+    result, error = await call_rpc(rpc, rpc_method, [at_block, True])
     # assert error is None
     # assert result['transactions'] == block_fixture['transactions']
 
-    validate_uncles(rpc, block_fixture, at_block)
+    await validate_uncles(rpc, block_fixture, at_block)
 
 
-def validate_last_block(rpc, block_fixture):
+async def validate_last_block(rpc, block_fixture):
     header = block_fixture['blockHeader']
 
-    validate_block(rpc, block_fixture, 'latest')
-    validate_block(rpc, block_fixture, header['hash'])
-    validate_block(rpc, block_fixture, int(header['number'], 16))
+    await validate_block(rpc, block_fixture, 'latest')
+    await validate_block(rpc, block_fixture, header['hash'])
+    await validate_block(rpc, block_fixture, int(header['number'], 16))
 
 
-def validate_uncle_count(rpc, block_fixture, at_block):
+async def validate_uncle_count(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getUncleCountByBlockHash'
     else:
         rpc_method = 'eth_getUncleCountByBlockNumber'
 
     num_uncles = len(block_fixture['uncleHeaders'])
-    assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
+    await assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
 
 
-def validate_uncle_headers(rpc, block_fixture, at_block):
+async def validate_uncle_headers(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getUncleByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getUncleByBlockNumberAndIndex'
 
     for idx, uncle in enumerate(block_fixture['uncleHeaders']):
-        result, error = call_rpc(rpc, rpc_method, [at_block, hex(idx)])
+        result, error = await call_rpc(rpc, rpc_method, [at_block, hex(idx)])
         assert error is None
         validate_rpc_block_vs_fixture_header(result, uncle)
 
 
-def validate_uncles(rpc, block_fixture, at_block):
-    validate_uncle_count(rpc, block_fixture, at_block)
-    validate_uncle_headers(rpc, block_fixture, at_block)
+async def validate_uncles(rpc, block_fixture, at_block):
+    await validate_uncle_count(rpc, block_fixture, at_block)
+    await validate_uncle_headers(rpc, block_fixture, at_block)
 
 
 @pytest.fixture
@@ -369,13 +381,14 @@ def chain(chain_without_block_validation):
         return
 
 
-def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
+@pytest.mark.asyncio
+async def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
     rpc = RPCServer(None)
 
-    setup_result, setup_error = call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
+    setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
     assert setup_error is None and setup_result is True, "cannot load chain for %r" % fixture_data
 
-    validate_accounts(rpc, chain_fixture['pre'])
+    await validate_accounts(rpc, chain_fixture['pre'])
 
     for block_fixture in chain_fixture['blocks']:
         should_be_good_block = 'blockHeader' in block_fixture
@@ -384,21 +397,21 @@ def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
             assert not should_be_good_block
             continue
 
-        block_result, block_error = call_rpc(rpc, 'evm_applyBlockFixture', [block_fixture])
+        block_result, block_error = await call_rpc(rpc, 'evm_applyBlockFixture', [block_fixture])
 
         if should_be_good_block:
             assert block_error is None
             assert block_result == block_fixture['rlp']
 
-            validate_block(rpc, block_fixture, block_fixture['blockHeader']['hash'])
+            await validate_block(rpc, block_fixture, block_fixture['blockHeader']['hash'])
         else:
             assert block_error is not None
 
     if chain_fixture.get('lastblockhash', None):
         for block_fixture in chain_fixture['blocks']:
             if get_in(['blockHeader', 'hash'], block_fixture) == chain_fixture['lastblockhash']:
-                validate_last_block(rpc, block_fixture)
+                await validate_last_block(rpc, block_fixture)
 
-    validate_accounts(rpc, chain_fixture['postState'])
-    validate_accounts(rpc, chain_fixture['pre'], 'earliest')
-    validate_accounts(rpc, chain_fixture['pre'], 0)
+    await validate_accounts(rpc, chain_fixture['postState'])
+    await validate_accounts(rpc, chain_fixture['pre'], 'earliest')
+    await validate_accounts(rpc, chain_fixture['pre'], 0)
