@@ -7,7 +7,8 @@ from trinity.plugins.builtin.fix_unclean_shutdown.plugin import (
     FixUncleanShutdownPlugin
 )
 from trinity.plugins.builtin.json_rpc.plugin import (
-    JsonRpcServerPlugin
+    JsonRpcServerLightPlugin,
+    JsonRpcServerPlugin,
 )
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
@@ -31,5 +32,6 @@ ENABLED_PLUGINS = [
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     FixUncleanShutdownPlugin(),
     TxPlugin(),
+    JsonRpcServerLightPlugin(),
     JsonRpcServerPlugin()
 ]
