@@ -19,69 +19,20 @@ The following utilities are provided to assist with constructing a chain class.
 
 .. autofunction:: eth.tools.builder.chain.fork_at
 
-    Adds the ``vm_class`` to the chain's ``vm_configuration``.  The follow
-
-    .. code-block:: python
-
-        from cytoolz import pipe
-        from eth.chains.base import MiningChain
-        from eth.tools.builder.chain import fork_at
-
-        FrontierOnlyChain = pipe(MiningChain, fork_at(FrontierVM, 0))
-
-        # these two classes are functionally equivalent.
-        class FrontierOnlyChain(MiningChain):
-            vm_configuration = (
-                (0, FrontierVM),
-            )
-
-    .. note:: This function is curriable.
-
-    The following pre-curried versions of this function are available as well,
-    one for each mainnet fork.
-
-    * :func:`~eth.tools.builder.chain.frontier_at`
-    * :func:`~eth.tools.builder.chain.homestead_at`
-    * :func:`~eth.tools.builder.chain.tangerine_whistle_at`
-    * :func:`~eth.tools.builder.chain.spurious_dragon_at`
-    * :func:`~eth.tools.builder.chain.byzantium_at`
-    * :func:`~eth.tools.builder.chain.constantinople_at`
 
 .. autofunction:: eth.tools.builder.chain.dao_fork_at
 
-    Sets the block number on which the DAO fork will happen.  Requires that a
-    version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
-    the chain's ``vm_configuration``
-    
 
 .. autofunction:: eth.tools.builder.chain.disable_dao_fork
-
-    Sets the ``support_dao_fork`` flag to ``False`` on the
-    :class:`~eth.vm.forks.homestead.HomesteadVM`.  Requires that presence of
-    the :class:`~eth.vm.forks.homestead.HomesteadVM`  in the
-    ``vm_configuration``
 
 
 .. autofunction:: eth.tools.builder.chain.enable_pow_mining
 
-    Injects on demand generation of the proof of work mining seal on newly
-    mined blocks into each of the chain's vms.
-
 
 .. autofunction:: eth.tools.builder.chain.disable_pow_check
 
-    Disables the proof of work validation check for each of the chain's vms.
-    This allows for block mining without generation of the proof of work seal.
-
-    .. note:: 
-    
-        blocks mined this way will not be importable on any chain that does not
-        have proof of work disabled.
-
 
 .. autofunction:: eth.tools.builder.chain.name
-
-    Assigns the given name to the chain class.
 
 
 Initializing Chains

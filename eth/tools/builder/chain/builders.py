@@ -46,9 +46,7 @@ if TYPE_CHECKING:
 @curry
 def name(class_name, chain_class):
     """
-    Part of the builder pipeline for chain classes.
-
-    Sets the class name.
+    Assign the given name to the chain class.
     """
     return chain_class.configure(__name__=class_name)
 
@@ -56,9 +54,33 @@ def name(class_name, chain_class):
 @curry
 def fork_at(vm_class, at_block, chain_class):
     """
-    Part of the builder pipeline for chain classes.
+    Adds the ``vm_class`` to the chain's ``vm_configuration``.
 
-    Addes a vm to the `vm_configuration` for a chain.
+    .. code-block:: python
+
+        from cytoolz import pipe
+        from eth.chains.base import MiningChain
+        from eth.tools.builder.chain import fork_at
+
+        FrontierOnlyChain = pipe(MiningChain, fork_at(FrontierVM, 0))
+
+        # these two classes are functionally equivalent.
+        class FrontierOnlyChain(MiningChain):
+            vm_configuration = (
+                (0, FrontierVM),
+            )
+
+    .. note:: This function is curriable.
+
+    The following pre-curried versions of this function are available as well,
+    one for each mainnet fork.
+
+    * :func:`~eth.tools.builder.chain.frontier_at`
+    * :func:`~eth.tools.builder.chain.homestead_at`
+    * :func:`~eth.tools.builder.chain.tangerine_whistle_at`
+    * :func:`~eth.tools.builder.chain.spurious_dragon_at`
+    * :func:`~eth.tools.builder.chain.byzantium_at`
+    * :func:`~eth.tools.builder.chain.constantinople_at`
     """
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration
@@ -92,6 +114,12 @@ def _set_vm_dao_support_false(vm_configuration):
 
 @curry
 def disable_dao_fork(chain_class):
+    """
+    Set the ``support_dao_fork`` flag to ``False`` on the
+    :class:`~eth.vm.forks.homestead.HomesteadVM`.  Requires that presence of
+    the :class:`~eth.vm.forks.homestead.HomesteadVM`  in the
+    ``vm_configuration``
+    """
     homstead_vms_found = any(
         _is_homestead(vm_class) for _, vm_class in chain_class.vm_configuration
     )
@@ -116,6 +144,12 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number, vm_configuration):
 
 @curry
 def dao_fork_at(dao_fork_block_number, chain_class):
+    """
+    Set the block number on which the DAO fork will happen.  Requires that a
+    version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
+    the chain's ``vm_configuration``
+
+    """
     homstead_vms_found = any(
         _is_homestead(vm_class) for _, vm_class in chain_class.vm_configuration
     )
@@ -175,7 +209,8 @@ def _mix_in_pow_mining(vm_configuration):
 @curry
 def enable_pow_mining(chain_class):
     """
-    Enables proof of work mining for all VMs
+    Inject on demand generation of the proof of work mining seal on newly
+    mined blocks into each of the chain's vms.
     """
     if not chain_class.vm_configuration:
         raise ValidationError("Chain class has no vm_configuration")
@@ -209,6 +244,15 @@ def _mix_in_disable_seal_validation(vm_configuration):
 
 @curry
 def disable_pow_check(chain_class):
+    """
+    Disable the proof of work validation check for each of the chain's vms.
+    This allows for block mining without generation of the proof of work seal.
+
+    .. note::
+
+        blocks mined this way will not be importable on any chain that does not
+        have proof of work disabled.
+    """
     if not chain_class.vm_configuration:
         raise ValidationError("Chain class has no vm_configuration")
 
