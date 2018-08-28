@@ -1,18 +1,19 @@
 from .builders import (  # noqa: F401
+    at_block_number,
+    build,
+    chain_split,
+    copy,
     dao_fork_at,
     disable_dao_fork,
-    enable_pow_mining,
     disable_pow_check,
+    enable_pow_mining,
     fork_at,
-    name,
     genesis,
-    mine_block,
-    mine_blocks,
-    chain_split,
-    at_block_number,
-    copy,
     import_block,
     import_blocks,
+    mine_block,
+    mine_blocks,
+    name,
 )
 from .builders import (  # noqa: F401
     byzantium_at,
@@ -38,6 +39,9 @@ class API:
     #
     # Chain Class Construction
     #
+
+    # Primary wrapper function
+    build = staticmethod(build)
 
     # Configure chain vm_configuration
     fork_at = staticmethod(fork_at)

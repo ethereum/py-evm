@@ -3,9 +3,9 @@ import time
 from typing import TYPE_CHECKING
 
 from cytoolz import (
-    accumulate,
     curry,
     merge,
+    pipe,
 )
 
 from eth_utils import (
@@ -15,7 +15,10 @@ from eth_utils import (
 )
 
 from eth import constants
-from eth.chains.base import MiningChain
+from eth.chains.base import (
+    BaseChain,
+    MiningChain,
+)
 from eth.db.backends.memory import MemoryDB
 from eth.validation import (
     validate_vm_configuration,
@@ -40,6 +43,20 @@ if TYPE_CHECKING:
     from typing import Dict, Union  # noqa: F401
 
 
+def build(obj, *applicators):
+    """
+    Run the provided object through the series of applicator functions.
+
+    If ``obj`` is an instances of :class:`~eth.chains.base.BaseChain` the
+    applicators will be run on a copy of the chain and thus will not mutate the
+    provided chain instance.
+    """
+    if isinstance(obj, BaseChain):
+        return pipe(obj, copy(), *applicators)
+    else:
+        return pipe(obj, *applicators)
+
+
 #
 # Constructors (creation of chain classes)
 #
@@ -58,11 +75,10 @@ def fork_at(vm_class, at_block, chain_class):
 
     .. code-block:: python
 
-        from cytoolz import pipe
         from eth.chains.base import MiningChain
-        from eth.tools.builder.chain import fork_at
+        from eth.tools.builder.chain import build, fork_at
 
-        FrontierOnlyChain = pipe(MiningChain, fork_at(FrontierVM, 0))
+        FrontierOnlyChain = build(MiningChain, fork_at(FrontierVM, 0))
 
         # these two classes are functionally equivalent.
         class FrontierOnlyChain(MiningChain):
@@ -359,7 +375,7 @@ def copy(chain):
     return chain_copy
 
 
-def chain_split(*splits, exit_fn):
+def chain_split(*splits):
     """
     Each item in `splits` should be a sequence
     Used for forking the chain.  Should be used in conjunction with
@@ -369,20 +385,15 @@ def chain_split(*splits, exit_fn):
         raise ValidationError("Cannot use `chain_split` without providing at least one split")
 
     @functools.wraps(chain_split)
+    @to_tuple
     def _chain_split(chain):
-        results = []
-
         for split_fns in splits:
-            fork_chain = copy(chain)
+            result = build(
+                chain,
+                *split_fns,
+            )
+            yield result
 
-            split_results = tuple(accumulate(
-                lambda c, fn: fn(c),
-                split_fns,
-                fork_chain,
-            ))
-            results.append(split_results)
-
-        return exit_fn(results)
     return _chain_split
 
 

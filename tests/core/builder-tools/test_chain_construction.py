@@ -1,14 +1,11 @@
 import pytest
 
-from cytoolz import (
-    pipe,
-)
-
 from eth_utils import ValidationError
 
 from eth.chains.base import MiningChain
 from eth.consensus.pow import check_pow
 from eth.tools.builder.chain import (
+    build,
     enable_pow_mining,
     disable_pow_check,
     name,
@@ -32,7 +29,7 @@ from eth.vm.forks import (
 
 
 def test_chain_builder_construct_chain_name():
-    chain = pipe(
+    chain = build(
         MiningChain,
         name('ChainForTest'),
     )
@@ -42,7 +39,7 @@ def test_chain_builder_construct_chain_name():
 
 
 def test_chain_builder_construct_chain_vm_configuration_single_fork():
-    chain = pipe(
+    chain = build(
         MiningChain,
         fork_at(FrontierVM, 0),
     )
@@ -54,7 +51,7 @@ def test_chain_builder_construct_chain_vm_configuration_single_fork():
 
 
 def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
-    chain = pipe(
+    chain = build(
         MiningChain,
         fork_at(FrontierVM, 0),
         fork_at(HomesteadVM, 5),
@@ -80,19 +77,29 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):
-    chain = pipe(
-        MiningChain,
-        fork_fn(0),
+    class DummyVM(FrontierVM):
+        pass
+
+    class ChainForTest(MiningChain):
+        vm_configuration = (
+            (0, DummyVM),
+        )
+
+    chain = build(
+        ChainForTest,
+        fork_fn(12),
     )
 
     assert issubclass(chain, MiningChain)
-    assert len(chain.vm_configuration) == 1
+    assert len(chain.vm_configuration) == 2
     assert chain.vm_configuration[0][0] == 0
-    assert chain.vm_configuration[0][1] == vm_class
+    assert chain.vm_configuration[0][1] is DummyVM
+    assert chain.vm_configuration[1][0] == 12
+    assert chain.vm_configuration[1][1] is vm_class
 
 
 def test_chain_builder_enable_pow_mining():
-    chain = pipe(
+    chain = build(
         MiningChain,
         frontier_at(0),
         enable_pow_mining(),
@@ -109,7 +116,7 @@ def test_chain_builder_enable_pow_mining():
 
 
 def test_chain_builder_without_any_mining_config():
-    chain = pipe(
+    chain = build(
         MiningChain,
         frontier_at(0),
         genesis(),
@@ -119,7 +126,7 @@ def test_chain_builder_without_any_mining_config():
 
 
 def test_chain_builder_disable_pow_check():
-    chain = pipe(
+    chain = build(
         MiningChain,
         frontier_at(0),
         disable_pow_check(),
