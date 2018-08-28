@@ -11,7 +11,7 @@ from .exchanges import (
 
 
 class ETHExchangeHandler(BaseExchangeHandler):
-    _exchanges = {
+    _exchange_config = {
         'get_block_bodies': GetBlockBodiesExchange,
         'get_block_headers': GetBlockHeadersExchange,
         'get_node_data': GetNodeDataExchange,

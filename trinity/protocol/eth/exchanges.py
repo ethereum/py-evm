@@ -38,6 +38,12 @@ from .requests import (
     GetNodeDataRequest,
     GetReceiptsRequest,
 )
+from .trackers import (
+    GetBlockHeadersTracker,
+    GetBlockBodiesTracker,
+    GetNodeDataTracker,
+    GetReceiptsTracker
+)
 from .validators import (
     GetBlockBodiesValidator,
     GetBlockHeadersValidator,
@@ -55,6 +61,7 @@ BaseGetBlockHeadersExchange = BaseExchange[
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
     _normalizer = NoopNormalizer[Tuple[BlockHeader, ...]]()
     request_class = GetBlockHeadersRequest
+    tracker_class = GetBlockHeadersTracker
 
     async def __call__(  # type: ignore
             self,
@@ -83,6 +90,7 @@ BaseNodeDataExchange = BaseExchange[Tuple[Hash32, ...], Tuple[bytes, ...], NodeD
 class GetNodeDataExchange(BaseNodeDataExchange):
     _normalizer = GetNodeDataNormalizer()
     request_class = GetNodeDataRequest
+    tracker_class = GetNodeDataTracker
 
     async def __call__(self, node_hashes: Tuple[Hash32, ...]) -> NodeDataBundles:  # type: ignore
         validator = GetNodeDataValidator(node_hashes)
@@ -93,6 +101,7 @@ class GetNodeDataExchange(BaseNodeDataExchange):
 class GetReceiptsExchange(BaseExchange[Tuple[Hash32, ...], ReceiptsByBlock, ReceiptsBundles]):
     _normalizer = ReceiptsNormalizer()
     request_class = GetReceiptsRequest
+    tracker_class = GetReceiptsTracker
 
     async def __call__(self, headers: Tuple[BlockHeader, ...]) -> ReceiptsBundles:  # type: ignore
         validator = ReceiptsValidator(headers)
@@ -113,6 +122,7 @@ BaseGetBlockBodiesExchange = BaseExchange[
 class GetBlockBodiesExchange(BaseGetBlockBodiesExchange):
     _normalizer = GetBlockBodiesNormalizer()
     request_class = GetBlockBodiesRequest
+    tracker_class = GetBlockBodiesTracker
 
     async def __call__(self, headers: Tuple[BlockHeader, ...]) -> BlockBodyBundles:  # type: ignore
         validator = GetBlockBodiesValidator(headers)
