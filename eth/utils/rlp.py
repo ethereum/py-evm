@@ -46,9 +46,15 @@ def diff_rlp_object(left, right):
 
 
 @curry
-def ensure_rlp_objects_are_equal(obj_a, obj_b, obj_a_name, obj_b_name):
+def validate_rlp_equal(obj_a, obj_b, obj_a_name=None, obj_b_name=None):
     if obj_a == obj_b:
         return
+
+    if obj_a_name is None:
+        obj_a_name = obj_a.__class__.__name__ + '_a'
+    if obj_b_name is None:
+        obj_b_name = obj_b.__class__.__name__ + '_b'
+
     diff = diff_rlp_object(obj_a, obj_b)
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
     error_message = (
@@ -70,7 +76,7 @@ def ensure_rlp_objects_are_equal(obj_a, obj_b, obj_a_name, obj_b_name):
     raise ValidationError(error_message)
 
 
-ensure_imported_block_unchanged = ensure_rlp_objects_are_equal(
+validate_imported_block_unchanged = validate_rlp_equal(
     obj_a_name="block",
     obj_b_name="imported block",
 )

@@ -1,9 +1,9 @@
 from collections import (
-    defaultdict,
     namedtuple,
 )
 from functools import (
     partial,
+    wraps,
 )
 from typing import (  # noqa: F401
     Any,
@@ -19,41 +19,29 @@ from cytoolz import (
 from eth_utils import (
     apply_formatters_to_dict,
     decode_hex,
-    encode_hex,
     to_canonical_address,
 )
 
-from eth.db.account import (
-    AccountDB,
+from eth.tools.fixtures.helpers import (
+    get_test_name,
 )
-from eth.tools.fixture_tests import (
-    hash_log_entries,
-)
-
-from .normalization import (
-    normalize_bytes,
-    normalize_call_creates,
+from eth.tools.fixtures.normalization import (
     normalize_environment,
     normalize_execution,
-    normalize_int,
-    normalize_logs,
     normalize_state,
     normalize_transaction,
-    normalize_transaction_group,
     normalize_networks,
 )
-from .builder_utils import (
-    add_transaction_to_group,
-    calc_state_root,
-    compile_vyper_lll,
-    get_test_name,
-    get_version_from_git,
+from eth.tools._utils.mappings import (
     deep_merge,
-    wrap_in_list,
 )
-from .formatters import (
-    filled_state_test_formatter,
-    filled_vm_test_formatter,
+from eth.tools._utils.vyper import (
+    compile_vyper_lll,
+)
+
+from ._utils import (
+    add_transaction_to_group,
+    wrap_in_list,
 )
 
 
@@ -98,25 +86,6 @@ DEFAULT_EXECUTION = {
     "gas": 100000
 }
 
-ALL_NETWORKS = [
-    "Frontier",
-    "Homestead",
-    "EIP150",
-    "EIP158",
-    "Byzantium",
-]
-
-ACCOUNT_STATE_DB_CLASSES = {
-    "Frontier": AccountDB,
-    "Homestead": AccountDB,
-    "EIP150": AccountDB,
-    "EIP158": AccountDB,
-    "Byzantium": AccountDB,
-}
-assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
-
-FILLED_WITH_TEMPLATE = "py-evm-{version}"
-
 
 Test = namedtuple("Test", ["filler", "fill_kwargs"])
 # make `None` default for fill_kwargs
@@ -139,21 +108,22 @@ def setup_main_filler(name, environment=None):
     return setup_filler(name, merge(DEFAULT_MAIN_ENVIRONMENT, environment or {}))
 
 
-@curry
-def pre_state(pre_state, filler):
-    test_name = get_test_name(filler)
+def pre_state(*raw_state, filler):
+    @wraps(pre_state)
+    def _pre_state(filler):
+        test_name = get_test_name(filler)
 
-    old_pre_state = filler[test_name].get("pre_state", {})
-    pre_state = normalize_state(pre_state)
-    defaults = {address: {
-        "balance": 0,
-        "nonce": 0,
-        "code": b"",
-        "storage": {},
-    } for address in pre_state}
-    new_pre_state = deep_merge(defaults, old_pre_state, pre_state)
+        old_pre_state = filler[test_name].get("pre_state", {})
+        pre_state = normalize_state(raw_state)
+        defaults = {address: {
+            "balance": 0,
+            "nonce": 0,
+            "code": b"",
+            "storage": {},
+        } for address in pre_state}
+        new_pre_state = deep_merge(defaults, old_pre_state, pre_state)
 
-    return assoc_in(filler, [test_name, "pre"], new_pre_state)
+        return assoc_in(filler, [test_name, "pre"], new_pre_state)
 
 
 def _expect(post_state, networks, transaction, filler):
@@ -239,109 +209,3 @@ def execution(execution, filler):
             }
         }
     )
-
-
-#
-# Test Filling
-#
-
-def fill_test(filler, info=None, apply_formatter=True, **kwargs):
-    test_name = get_test_name(filler)
-    test = filler[test_name]
-
-    if "transaction" in test:
-        filled = fill_state_test(filler)
-        formatter = filled_state_test_formatter
-    elif "exec" in test:
-        filled = fill_vm_test(filler, **kwargs)
-        formatter = filled_vm_test_formatter
-    else:
-        raise ValueError("Given filler does not appear to be for VM or state test")
-
-    info = merge(
-        {"filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git())},
-        info if info else {}
-    )
-    filled = assoc_in(filled, [test_name, "_info"], info)
-
-    if apply_formatter:
-        return formatter(filled)
-    else:
-        return filled
-
-
-def fill_state_test(filler):
-    test_name = get_test_name(filler)
-    test = filler[test_name]
-
-    environment = normalize_environment(test["env"])
-    pre_state = normalize_state(test["pre"])
-    transaction_group = normalize_transaction_group(test["transaction"])
-
-    post = defaultdict(list)  # type: Dict[int, List[Dict[str, str]]]
-    for expect in test["expect"]:
-        indexes = expect["indexes"]
-        networks = normalize_networks(expect["networks"])
-        result = normalize_state(expect["result"])
-        post_state = deep_merge(pre_state, result)
-        for network in networks:
-            account_db_class = ACCOUNT_STATE_DB_CLASSES[network]
-            post_state_root = calc_state_root(post_state, account_db_class)
-            post[network].append({
-                "hash": encode_hex(post_state_root),
-                "indexes": indexes,
-            })
-
-    return {
-        test_name: {
-            "env": environment,
-            "pre": pre_state,
-            "transaction": transaction_group,
-            "post": post
-        }
-    }
-
-
-def fill_vm_test(
-    filler,
-    *,
-    call_creates=None,
-    gas_price=None,
-    gas_remaining=0,
-    logs=None,
-    output=b""
-):
-    test_name = get_test_name(filler)
-    test = filler[test_name]
-
-    environment = normalize_environment(test["env"])
-    pre_state = normalize_state(test["pre"])
-    execution = normalize_execution(test["exec"])
-
-    assert len(test["expect"]) == 1
-    expect = test["expect"][0]
-    assert "network" not in test
-    assert "indexes" not in test
-
-    result = normalize_state(expect["result"])
-    post_state = deep_merge(pre_state, result)
-
-    call_creates = normalize_call_creates(call_creates or [])
-    gas_remaining = normalize_int(gas_remaining)
-    output = normalize_bytes(output)
-
-    logs = normalize_logs(logs or [])
-    log_hash = hash_log_entries(logs)
-
-    return {
-        test_name: {
-            "env": environment,
-            "pre": pre_state,
-            "exec": execution,
-            "post": post_state,
-            "callcreates": call_creates,
-            "gas": gas_remaining,
-            "output": output,
-            "logs": log_hash,
-        }
-    }

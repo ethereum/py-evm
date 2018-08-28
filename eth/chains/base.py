@@ -95,7 +95,7 @@ from eth.utils.hexadecimal import (
     encode_hex,
 )
 from eth.utils.rlp import (
-    ensure_imported_block_unchanged,
+    validate_imported_block_unchanged,
 )
 
 if TYPE_CHECKING:
@@ -635,7 +635,7 @@ class Chain(BaseChain):
 
         # Validate the imported block.
         if perform_validation:
-            ensure_imported_block_unchanged(imported_block, block)
+            validate_imported_block_unchanged(imported_block, block)
             self.validate_block(imported_block)
 
         (
