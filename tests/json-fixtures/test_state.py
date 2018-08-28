@@ -11,12 +11,16 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth_hash.auto import keccak
+
+from eth_typing.enums import (
+    ForkName
+)
+
+
 from eth.db import (
     get_db_backend,
 )
-
-from eth_hash.auto import keccak
-
 from eth.db.chain import ChainDB
 from eth.vm.forks import (
     TangerineWhistleVM,
@@ -34,20 +38,18 @@ from eth.vm.forks.byzantium.state import ByzantiumState
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools.fixture_tests import (
+from eth.tools._utils.hashing import (
+    hash_log_entries,
+)
+from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
-    hash_log_entries,
     load_fixture,
     normalize_statetest_fixture,
     should_run_slow_tests,
 )
 from eth.utils.db import (
     apply_state_dict,
-)
-
-from eth_typing.enums import (
-    ForkName
 )
 
 

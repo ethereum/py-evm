@@ -9,7 +9,7 @@ from eth_utils import (
     to_tuple,
     ValidationError,
 )
-from eth.tools.fixture_tests import (
+from eth.tools.fixtures import (
     generate_fixture_tests,
     load_fixture,
     normalize_transactiontest_fixture

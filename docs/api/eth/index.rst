@@ -8,8 +8,10 @@ This section aims to provide a detailed description of all APIs. If you are look
    :name: toc-api-eth
    :caption: API
 
+   
    api.chain
    api.db
    api.exceptions
    api.rlp
+   api.tools
    api.vm

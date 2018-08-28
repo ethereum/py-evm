@@ -18,7 +18,7 @@ from eth_utils import (
 from eth.chains.base import (
     MiningChain,
 )
-from eth.tools.fixture_tests import (
+from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,

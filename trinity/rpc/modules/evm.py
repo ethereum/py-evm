@@ -8,7 +8,7 @@ from eth_utils import (
 from eth.chains.base import (
     Chain
 )
-from eth.tools.fixture_tests import (
+from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
     new_chain_from_fixture,
     normalize_block,

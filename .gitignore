@@ -46,7 +46,7 @@ docs/modules.rst
 .pytest_cache/
 
 # fixtures
-fixtures/**
+./fixtures/**
 
 # profiling
 prof/**

@@ -19,13 +19,15 @@ from eth.exceptions import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools.fixture_tests import (
-    normalize_vmtest_fixture,
+from eth.tools.fixtures import (
+    filter_fixtures,
     generate_fixture_tests,
     load_fixture,
-    filter_fixtures,
+    normalize_vmtest_fixture,
     setup_account_db,
     verify_account_db,
+)
+from eth.tools._utils.hashing import (
     hash_log_entries,
 )
 from eth.vm.forks import (

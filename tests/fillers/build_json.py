@@ -1,18 +1,17 @@
 import os
 import json
 
-from eth.tools.test_builder.test_builder import (
-    fill_test,
-)
-from eth.tools.test_builder.formatters import (
-    filler_formatter,
-)
-from eth.tools.test_builder.builder_utils import (
-    get_test_name,
-)
-
 from eth_hash.auto import keccak
 
+from eth.tools.fixtures.helpers import (
+    get_test_name,
+)
+from eth.tools.fixtures.fillers import (
+    fill_test,
+)
+from eth.tools.fixtures.fillers.formatters import (
+    filler_formatter,
+)
 from eth.utils.hexadecimal import (
     encode_hex,
 )

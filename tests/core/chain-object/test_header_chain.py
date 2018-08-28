@@ -19,12 +19,9 @@ from eth.db.backends.memory import MemoryDB
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.utils.rlp import (
-    ensure_rlp_objects_are_equal,
+from eth.tools.rlp import (
+    assert_headers_eq,
 )
-
-
-assert_headers_eq = ensure_rlp_objects_are_equal(obj_a_name='actual', obj_b_name='expected')
 
 
 @to_tuple

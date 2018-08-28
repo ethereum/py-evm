@@ -10,16 +10,19 @@ from eth.rlp.headers import (
     BlockHeader,
 )
 
-from eth.tools.fixture_tests import (
+from eth.tools.rlp import (
+    assert_imported_genesis_header_unchanged,
+    assert_mined_block_unchanged,
+)
+from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
-    new_chain_from_fixture,
+    filter_fixtures,
+    generate_fixture_tests,
     genesis_params_from_fixture,
     load_fixture,
-    generate_fixture_tests,
-    filter_fixtures,
+    new_chain_from_fixture,
     normalize_blockchain_fixtures,
     verify_account_db,
-    assert_rlp_equal,
 )
 
 
@@ -84,7 +87,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
     genesis_block = chain.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
 
-    assert_rlp_equal(genesis_header, expected_genesis_header)
+    assert_imported_genesis_header_unchanged(expected_genesis_header, genesis_header)
 
     # 1 - mine the genesis block
     # 2 - loop over blocks:
@@ -101,7 +104,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
 
         if should_be_good_block:
             (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
-            assert_rlp_equal(block, mined_block)
+            assert_mined_block_unchanged(block, mined_block)
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
