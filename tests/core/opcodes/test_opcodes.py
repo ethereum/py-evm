@@ -124,6 +124,32 @@ def test_mul(vm_class, val1, val2, expected):
 
 
 @pytest.mark.parametrize(
+    'vm_class, base, exponent, expected',
+    (
+        (ByzantiumVM, 0, 1, 0,),
+        (ByzantiumVM, 0, 0, 1,),
+        (SpuriousDragonVM, 0, 1, 0,),
+        (SpuriousDragonVM, 0, 0, 1,),
+        (TangerineWhistleVM, 0, 1, 0,),
+        (TangerineWhistleVM, 0, 0, 1,),
+        (HomesteadVM, 0, 1, 0,),
+        (HomesteadVM, 0, 0, 1,),
+        (FrontierVM, 0, 1, 0,),
+        (FrontierVM, 0, 0, 1,),
+    )
+)
+def test_exp(vm_class, base, exponent, expected):
+    computation = prepare_computation(vm_class)
+    computation.stack_push(exponent)
+    computation.stack_push(base)
+    computation.opcodes[opcode_values.EXP](computation)
+
+    result = computation.stack_pop(type_hint=constants.UINT256)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
     # Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shl-shift-left
     'vm_class, val1, val2, expected',
     (
