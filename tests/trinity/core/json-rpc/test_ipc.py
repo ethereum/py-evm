@@ -14,6 +14,11 @@ from eth_utils import (
     to_hex,
 )
 
+from p2p.events import (
+    PeerCountRequest,
+    PeerCountResponse,
+)
+
 from trinity.utils.version import construct_trinity_client_identifier
 
 
@@ -33,15 +38,6 @@ def build_request(method, params=[]):
         'params': params,
     }
     return json.dumps(request).encode()
-
-
-class MockPeerPool:
-
-    def __init__(self, peer_count=0):
-        self.peer_count = peer_count
-
-    def __len__(self):
-        return self.peer_count
 
 
 def id_from_rpc_request(param):
@@ -68,6 +64,7 @@ async def get_ipc_response(
         jsonrpc_ipc_pipe_path,
         request_msg,
         event_loop):
+
     assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
 
     reader, writer = await asyncio.open_unix_connection(str(jsonrpc_ipc_pipe_path), loop=event_loop)
@@ -399,18 +396,27 @@ async def test_eth_call_with_contract_on_ipc(
     assert result == expected
 
 
+def mock_peer_count(count):
+    async def mock_event_bus_interaction(bus):
+        async for req in bus.stream(PeerCountRequest):
+            bus.broadcast(PeerCountResponse(count), req.broadcast_config())
+            break
+
+    return mock_event_bus_interaction
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    'request_msg, mock_peer_pool, expected',
+    'request_msg, event_bus_setup_fn, expected',
     (
         (
             build_request('net_peerCount'),
-            MockPeerPool(peer_count=1),
+            mock_peer_count(1),
             {'result': '0x1', 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('net_peerCount'),
-            MockPeerPool(peer_count=0),
+            mock_peer_count(0),
             {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
         ),
     ),
@@ -422,10 +428,17 @@ async def test_peer_pool_over_ipc(
         monkeypatch,
         jsonrpc_ipc_pipe_path,
         request_msg,
-        mock_peer_pool,
+        event_bus_setup_fn,
+        event_bus,
         expected,
         event_loop,
         ipc_server):
-    monkeypatch.setattr(ipc_server.rpc.modules['net'], '_peer_pool', mock_peer_pool)
-    result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
+
+    asyncio.ensure_future(event_bus_setup_fn(event_bus))
+
+    result = await get_ipc_response(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_loop
+    )
     assert result == expected

@@ -146,12 +146,12 @@ def genesis_params_from_fixture(fixture):
     }
 
 
-def new_chain_from_fixture(fixture):
+def new_chain_from_fixture(fixture, chain_cls=MainnetChain):
     base_db = AtomicDB()
 
     vm_config = chain_vm_configuration(fixture)
 
-    ChainFromFixture = MainnetChain.configure(
+    ChainFromFixture = chain_cls.configure(
         'ChainFromFixture',
         vm_configuration=vm_config,
     )

@@ -23,7 +23,7 @@ from eth.constants import (
     ZERO_ADDRESS,
 )
 from eth.chains.base import (
-    BaseChain,
+    AsyncChain,
 )
 from eth.rlp.blocks import (
     BaseBlock
@@ -55,45 +55,47 @@ from trinity.utils.validation import (
 )
 
 
-def get_header(chain: BaseChain, at_block: Union[str, int]) -> BlockHeader:
+async def get_header(chain: AsyncChain, at_block: Union[str, int]) -> BlockHeader:
     if at_block == 'pending':
         raise NotImplementedError("RPC interface does not support the 'pending' block at this time")
     elif at_block == 'latest':
         at_header = chain.get_canonical_head()
     elif at_block == 'earliest':
         # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
-        at_header = chain.get_canonical_block_by_number(0).header
+        block = await chain.coro_get_canonical_block_by_number(0)
+        at_header = block.header
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     elif is_integer(at_block) and at_block >= 0:  # type: ignore
-        at_header = chain.get_canonical_block_by_number(at_block).header
+        block = await chain.coro_get_canonical_block_by_number(0)
+        at_header = block.header
     else:
         raise TypeError("Unrecognized block reference: %r" % at_block)
 
     return at_header
 
 
-def account_db_at_block(chain: BaseChain,
-                        at_block: Union[str, int],
-                        read_only: bool=True) ->BaseAccountDB:
-    at_header = get_header(chain, at_block)
+async def account_db_at_block(chain: AsyncChain,
+                              at_block: Union[str, int],
+                              read_only: bool=True) ->BaseAccountDB:
+    at_header = await get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     return vm.state.account_db
 
 
-def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBlock:
+async def get_block_at_number(chain: AsyncChain, at_block: Union[str, int]) -> BaseBlock:
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     if is_integer(at_block) and at_block >= 0:  # type: ignore
         # optimization to avoid requesting block, then header, then block again
-        return chain.get_canonical_block_by_number(at_block)
+        return await chain.coro_get_canonical_block_by_number(at_block)
     else:
-        at_header = get_header(chain, at_block)
-        return chain.get_block_by_header(at_header)
+        at_header = await get_header(chain, at_block)
+        return await chain.coro_get_block_by_header(at_header)
 
 
 def dict_to_spoof_transaction(
-        chain: BaseChain,
+        chain: AsyncChain,
         header: BlockHeader,
         transaction_dict: Dict[str, Any]) -> SpoofTransaction:
     """
@@ -139,7 +141,7 @@ class Eth(RPCModule):
 
     @format_params(identity, to_int_if_hex)
     async def call(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
-        header = get_header(self._chain, at_block)
+        header = await get_header(self._chain, at_block)
         validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
         transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
         result = self._chain.get_transaction_result(transaction, header)
@@ -150,7 +152,7 @@ class Eth(RPCModule):
 
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
-        header = get_header(self._chain, at_block)
+        header = await get_header(self._chain, at_block)
         validate_transaction_gas_estimation_dict(txn_dict, self._chain.get_vm(header))
         transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
         gas = self._chain.estimate_gas(transaction, header)
@@ -161,38 +163,38 @@ class Eth(RPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self._chain, at_block)
         balance = account_db.get_balance(address)
 
         return hex(balance)
 
     @format_params(decode_hex, identity)
     async def getBlockByHash(self,
-                       block_hash: Hash32,
-                       include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
-        block = self._chain.get_block_by_hash(block_hash)
+                             block_hash: Hash32,
+                             include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
+        block = await self._chain.coro_get_block_by_hash(block_hash)
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(to_int_if_hex, identity)
     async def getBlockByNumber(self,
-                         at_block: Union[str, int],
-                         include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
-        block = get_block_at_number(self._chain, at_block)
+                               at_block: Union[str, int],
+                               include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
+        block = await get_block_at_number(self._chain, at_block)
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(decode_hex)
     async def getBlockTransactionCountByHash(self, block_hash: Hash32) -> str:
-        block = self._chain.get_block_by_hash(block_hash)
+        block = await self._chain.coro_get_block_by_hash(block_hash)
         return hex(len(block.transactions))
 
     @format_params(to_int_if_hex)
     async def getBlockTransactionCountByNumber(self, at_block: Union[str, int]) -> str:
-        block = get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self._chain, at_block)
         return hex(len(block.transactions))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getCode(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self._chain, at_block)
         code = account_db.get_code(address)
         return encode_hex(code)
 
@@ -201,51 +203,53 @@ class Eth(RPCModule):
         if not is_integer(position) or position < 0:
             raise TypeError("Position of storage must be a whole number, but was: %r" % position)
 
-        account_db = account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self._chain, at_block)
         stored_val = account_db.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
 
     @format_params(decode_hex, to_int_if_hex)
-    async def getTransactionByBlockHashAndIndex(self, block_hash: Hash32, index: int) -> Dict[str, str]:
-        block = self._chain.get_block_by_hash(block_hash)
+    async def getTransactionByBlockHashAndIndex(self,
+                                                block_hash: Hash32,
+                                                index: int) -> Dict[str, str]:
+        block = await self._chain.coro_get_block_by_hash(block_hash)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
     @format_params(to_int_if_hex, to_int_if_hex)
     async def getTransactionByBlockNumberAndIndex(self,
-                                            at_block: Union[str, int],
-                                            index: int) -> Dict[str, str]:
-        block = get_block_at_number(self._chain, at_block)
+                                                  at_block: Union[str, int],
+                                                  index: int) -> Dict[str, str]:
+        block = await get_block_at_number(self._chain, at_block)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
     @format_params(decode_hex, to_int_if_hex)
     async def getTransactionCount(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self._chain, at_block)
         nonce = account_db.get_nonce(address)
         return hex(nonce)
 
     @format_params(decode_hex)
     async def getUncleCountByBlockHash(self, block_hash: Hash32) -> str:
-        block = self._chain.get_block_by_hash(block_hash)
+        block = await self._chain.coro_get_block_by_hash(block_hash)
         return hex(len(block.uncles))
 
     @format_params(to_int_if_hex)
     async def getUncleCountByBlockNumber(self, at_block: Union[str, int]) -> str:
-        block = get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self._chain, at_block)
         return hex(len(block.uncles))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getUncleByBlockHashAndIndex(self, block_hash: Hash32, index: int) -> Dict[str, str]:
-        block = self._chain.get_block_by_hash(block_hash)
+        block = await self._chain.coro_get_block_by_hash(block_hash)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
     @format_params(to_int_if_hex, to_int_if_hex)
     async def getUncleByBlockNumberAndIndex(self,
-                                      at_block: Union[str, int],
-                                      index: int) -> Dict[str, str]:
-        block = get_block_at_number(self._chain, at_block)
+                                            at_block: Union[str, int],
+                                            index: int) -> Dict[str, str]:
+        block = await get_block_at_number(self._chain, at_block)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 

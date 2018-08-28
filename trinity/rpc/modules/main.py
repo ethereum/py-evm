@@ -1,16 +1,18 @@
 from eth.chains.base import (
-    BaseChain
+    AsyncChain
 )
 
-from p2p.peer import BasePeerPool
+from lahja import (
+    Endpoint
+)
 
 
 class RPCModule:
     _chain = None
 
-    def __init__(self, chain: BaseChain, peer_pool: BasePeerPool) -> None:
+    def __init__(self, chain: AsyncChain, event_bus: Endpoint) -> None:
         self._chain = chain
-        self._peer_pool = peer_pool
+        self._event_bus = event_bus
 
-    def set_chain(self, chain: BaseChain) -> None:
+    def set_chain(self, chain: AsyncChain) -> None:
         self._chain = chain

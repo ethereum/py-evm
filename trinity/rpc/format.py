@@ -21,7 +21,7 @@ from eth_utils import (
 import rlp
 
 from eth.chains.base import (
-    BaseChain
+    AsyncChain
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -102,7 +102,7 @@ def header_to_dict(header: BlockHeader) -> Dict[str, str]:
 
 
 def block_to_dict(block: BaseBlock,
-                  chain: BaseChain,
+                  chain: AsyncChain,
                   include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
 
     header_dict = header_to_dict(block.header)
@@ -126,11 +126,11 @@ def block_to_dict(block: BaseBlock,
 def format_params(*formatters: Any) -> Callable[..., Any]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
+        async def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
             if len(formatters) != len(args):
                 raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
             formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
-            return func(self, *formatted)
+            return await func(self, *formatted)
         return formatted_func
     return decorator
 
