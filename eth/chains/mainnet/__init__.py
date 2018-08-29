@@ -62,14 +62,22 @@ class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):
     pass
 
 
-MAINNET_VM_CONFIGURATION = (
-    (0, FrontierVM),
-    (HOMESTEAD_MAINNET_BLOCK, MainnetHomesteadVM),
-    (TANGERINE_WHISTLE_MAINNET_BLOCK, TangerineWhistleVM),
-    (SPURIOUS_DRAGON_MAINNET_BLOCK, SpuriousDragonVM),
-    (BYZANTIUM_MAINNET_BLOCK, ByzantiumVM),
+MAINNET_FORK_BLOCKS = (
+    0,
+    HOMESTEAD_MAINNET_BLOCK,
+    TANGERINE_WHISTLE_MAINNET_BLOCK,
+    SPURIOUS_DRAGON_MAINNET_BLOCK,
+    BYZANTIUM_MAINNET_BLOCK,
+)
+MAINNET_VMS = (
+    FrontierVM,
+    MainnetHomesteadVM,
+    TangerineWhistleVM,
+    SpuriousDragonVM,
+    ByzantiumVM,
 )
 
+MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 MAINNET_NETWORK_ID = 1
 

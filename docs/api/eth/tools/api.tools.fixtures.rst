@@ -155,8 +155,9 @@ sequence of functions.
     support only a single expectation with no specified network and no transaction (here, its role is
     played by :func:`~eth.tools.fixtures.fillers.execution`).
 
-    * ``post_state`` is a list of state definition in the same form as expected by `pre_state`. State items
-      that are not set explicitly default to their pre state.
+    * ``post_state`` is a list of state definition in the same form as expected
+      by :func:`~eth.tools.fixtures.fillers.pre_state`. State items that are
+      not set explicitly default to their pre state.
 
     * ``networks`` defines the forks under which the expectation is applicable. It should be a sublist of
       the following identifiers (also available in `ALL_FORKS`):

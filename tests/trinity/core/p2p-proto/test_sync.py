@@ -6,7 +6,8 @@ from eth_keys import keys
 from eth_utils import decode_hex
 
 from eth import constants
-from eth.vm.forks.frontier import FrontierVM, _PoWMiningVM
+from eth.tools.mining import POWMiningMixin
+from eth.vm.forks.frontier import FrontierVM
 
 
 from trinity.protocol.eth.peer import ETHPeer
@@ -194,8 +195,12 @@ class FrontierTestChain(FakeAsyncChain):
     network_id = 999
 
 
+class POWFrontierVM(POWMiningMixin, FrontierVM):
+    pass
+
+
 class PoWMiningChain(FrontierTestChain):
-    vm_configuration = ((0, _PoWMiningVM),)
+    vm_configuration = ((0, POWFrontierVM),)
 
 
 async def wait_for_head(headerdb, header):
