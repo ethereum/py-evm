@@ -27,6 +27,8 @@ from urllib import parse as urlparse
 
 import cytoolz
 
+from eth_typing import Hash32
+
 from eth_utils import (
     big_endian_to_int,
     decode_hex,
@@ -401,7 +403,7 @@ class KademliaProtocol:
         self.pong_callbacks = CallbackManager()
         self.ping_callbacks = CallbackManager()
         self.neighbours_callbacks = CallbackManager()
-        self.parity_pong_tokens: Dict[bytes, bytes] = {}
+        self.parity_pong_tokens: Dict[Hash32, Hash32] = {}
 
     def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
         """Process a neighbours response.
@@ -411,7 +413,6 @@ class KademliaProtocol:
         neighbours_callbacks, which is added (and removed after it's done or timed out) in
         wait_neighbours().
         """
-        self.logger.debug('<<< neighbours from %s: %s', remote, neighbours)
         try:
             callback = self.neighbours_callbacks.get_callback(remote)
         except KeyError:
@@ -420,7 +421,7 @@ class KademliaProtocol:
         else:
             callback(neighbours)
 
-    def recv_pong(self, remote: Node, token: bytes) -> None:
+    def recv_pong(self, remote: Node, token: Hash32) -> None:
         """Process a pong packet.
 
         Pong packets should only be received as a response to a ping, so the actual processing is
@@ -439,7 +440,6 @@ class KademliaProtocol:
             self.parity_pong_tokens = cytoolz.valfilter(
                 lambda val: val != token, self.parity_pong_tokens)
 
-        self.logger.debug('<<< pong from %s (token == %s)', remote, encode_hex(token))
         pingid = self._mkpingid(token, remote)
 
         try:
@@ -449,20 +449,18 @@ class KademliaProtocol:
         else:
             callback()
 
-    def recv_ping(self, remote: Node, hash_: bytes) -> None:
+    def recv_ping(self, remote: Node, hash_: Hash32) -> None:
         """Process a received ping packet.
 
         A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
         new node. In the former case we'll just update the sender's entry in our routing table and
         reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
         """
-        self.logger.debug('<<< ping from %s', remote)
         if remote == self.this_node:
             self.logger.info('Invariant: received ping from this_node: %s', remote)
             return
         else:
             self.update_routing_table(remote)
-        self.wire.send_pong(remote, hash_)
         # Sometimes a ping will be sent to us as part of the bonding
         # performed the first time we see a node, and it is in those cases that
         # a callback will exist.
@@ -514,7 +512,7 @@ class KademliaProtocol:
 
         return got_ping
 
-    async def wait_pong(self, remote: Node, token: bytes, cancel_token: CancelToken) -> bool:
+    async def wait_pong(self, remote: Node, token: Hash32, cancel_token: CancelToken) -> bool:
         """Wait for a pong from the given remote containing the given token.
 
         This coroutine adds a callback to pong_callbacks and yields control until that callback is
@@ -552,7 +550,7 @@ class KademliaProtocol:
             # This callback is expected to be called multiple times because nodes usually
             # split the neighbours replies into multiple packets, so we only call event.set() once
             # we've received enough neighbours.
-            if len(neighbours) == k_bucket_size:
+            if len(neighbours) >= k_bucket_size:
                 event.set()
 
         with self.neighbours_callbacks.acquire(remote, process):
@@ -561,11 +559,12 @@ class KademliaProtocol:
                     event.wait(), timeout=k_request_timeout)
                 self.logger.debug('got expected neighbours response from %s', remote)
             except TimeoutError:
-                self.logger.debug('timed out waiting for neighbours response from %s', remote)
+                self.logger.debug(
+                    'timed out waiting for %d neighbours from %s', k_bucket_size, remote)
 
         return tuple(n for n in neighbours if n != self.this_node)
 
-    def ping(self, node: Node) -> bytes:
+    def ping(self, node: Node) -> Hash32:
         if node == self.this_node:
             raise ValueError("Cannot ping self")
         return self.wire.send_ping(node)
@@ -687,7 +686,7 @@ class KademliaProtocol:
             rid = random.randint(bucket.start, bucket.end)
             asyncio.ensure_future(self.lookup(rid, self.wire.cancel_token))
 
-    def _mkpingid(self, token: bytes, node: Node) -> bytes:
+    def _mkpingid(self, token: Hash32, node: Node) -> Hash32:
         return token + node.pubkey.to_bytes()
 
     async def populate_not_full_buckets(self) -> None:
