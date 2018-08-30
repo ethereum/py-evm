@@ -21,7 +21,8 @@ from typing import (
 )
 
 from lahja import (
-    Endpoint
+    BroadcastConfig,
+    Endpoint,
 )
 
 from trinity.config import (
@@ -29,6 +30,9 @@ from trinity.config import (
 )
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT
+)
+from trinity.events import (
+    ShutdownRequest
 )
 from trinity.extensibility.events import (
     BaseEvent
@@ -72,6 +76,12 @@ class PluginContext:
         self.boot_kwargs: Dict[str, Any] = None
         self.args: Namespace = None
         self.chain_config: ChainConfig = None
+
+    def shutdown_host(self) -> None:
+        self.event_bus.broadcast(
+            ShutdownRequest(),
+            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
+        )
 
 
 class BasePlugin(ABC):
