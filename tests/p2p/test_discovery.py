@@ -84,7 +84,7 @@ def test_get_max_neighbours_per_packet():
 def test_pack():
     sender, recipient = random_address(), random_address()
     version = rlp.sedes.big_endian_int.serialize(discovery.PROTO_VERSION)
-    payload = [version, sender.to_endpoint(), recipient.to_endpoint()]
+    payload = (version, sender.to_endpoint(), recipient.to_endpoint())
     privkey = keys.PrivateKey(keccak(b"seed"))
 
     message = discovery._pack_v4(discovery.CMD_PING.id, payload, privkey)

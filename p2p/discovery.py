@@ -141,8 +141,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(
-            self, cmd: DiscoveryCommand) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
+    def _get_handler(self, cmd: DiscoveryCommand
+                     ) -> Callable[[kademlia.Node, Tuple[Any, ...], Hash32], None]:
         if cmd == CMD_PING:
             return self.recv_ping
         elif cmd == CMD_PONG:
@@ -219,13 +219,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         handler = self._get_handler(cmd)
         handler(node, payload, message_hash)
 
-    def recv_pong(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_pong(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The pong payload should have 3 elements: to, token, expiration
         _, token, _ = payload
         self.logger.trace('<<< pong (v4) from %s (token == %s)', node, encode_hex(token))
         self.kademlia.recv_pong(node, token)
 
-    def recv_neighbours(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_neighbours(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
         nodes, _ = payload
         neighbours = _extract_nodes_from_payload(nodes)
@@ -237,7 +237,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.kademlia.recv_ping(node, message_hash)
         self.send_pong(node, message_hash)
 
-    def recv_find_node(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_find_node(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The find_node payload should have 2 elements: node_id, expiration
         self.logger.trace('<<< find_node from %s', node)
         node_id, _ = payload
@@ -245,7 +245,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def send_ping(self, node: kademlia.Node) -> Hash32:
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
-        payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
+        payload = (version, self.address.to_endpoint(), node.address.to_endpoint())
         message = _pack_v4(CMD_PING.id, payload, self.privkey)
         self.send(node, message)
         # Return the msg hash, which is used as a token to identify pongs.
@@ -262,12 +262,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         self.logger.trace('>>> find_node to %s', node)
-        message = _pack_v4(CMD_FIND_NODE.id, [node_id], self.privkey)
+        message = _pack_v4(CMD_FIND_NODE.id, tuple([node_id]), self.privkey)
         self.send(node, message)
 
     def send_pong(self, node: kademlia.Node, token: Hash32) -> None:
         self.logger.trace('>>> pong %s', node)
-        payload = [node.address.to_endpoint(), token]
+        payload = (node.address.to_endpoint(), token)
         message = _pack_v4(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
 
@@ -279,7 +279,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         max_neighbours = self._get_max_neighbours_per_packet()
         for i in range(0, len(nodes), max_neighbours):
-            message = _pack_v4(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
+            message = _pack_v4(
+                CMD_NEIGHBOURS.id, tuple([nodes[i:i + max_neighbours]]), self.privkey)
             self.logger.trace('>>> neighbours to %s: %s',
                               node, neighbours[i:i + max_neighbours])
             self.send(node, message)
@@ -293,8 +294,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.send(node, V5_ID_STRING + message)
         return msg_hash
 
-    def _get_handler_v5(
-            self, cmd: DiscoveryCommand) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
+    def _get_handler_v5(self, cmd: DiscoveryCommand
+                        ) -> Callable[[kademlia.Node, Tuple[Any, ...], Hash32], None]:
         if cmd == CMD_PING_V5:
             return self.recv_ping_v5
         elif cmd == CMD_PONG_V5:
@@ -329,7 +330,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         handler = self._get_handler_v5(cmd)
         handler(node, payload, message_hash)
 
-    def recv_ping_v5(self, node: kademlia.Node, payload: List[Any], message_hash: Hash32) -> None:
+    def recv_ping_v5(
+            self, node: kademlia.Node, payload: Tuple[Any, ...], message_hash: Hash32) -> None:
         # version, from, to, expiration, topics
         _, _, _, _, topics = payload
         self.logger.trace('<<< ping(v5) from %s, topics: %s', node, topics)
@@ -340,30 +342,30 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         wait_periods: List[int] = []
         self.send_pong_v5(node, message_hash, topic_hash, ticket_serial, wait_periods)
 
-    def recv_pong_v5(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_pong_v5(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # to, token, expiration, topic_hash, ticket_serial, wait_periods
         _, token, _, _, _, _ = payload
         self.logger.trace('<<< pong (v5) from %s (token == %s)', node, encode_hex(token))
         self.kademlia.recv_pong(node, token)
         # TODO: Create/store ticket(s)
 
-    def recv_find_nodehash(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_find_nodehash(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         target_hash, _ = payload
         self.logger.trace('<<< find_nodehash from %s, target: %s', node, target_hash)
         # TODO: Reply with a neighbours msg.
 
-    def recv_topic_register(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_topic_register(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         topics, idx, pong = payload
         self.logger.trace('<<< topic_register from %s, topics: %s', node, topics)
         # TODO: Store the ad if it matches the last ticket we issued for this node, and mark the
         # ticket as used.
 
-    def recv_topic_query(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_topic_query(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         topic, _ = payload
         self.logger.trace('<<< topic_query from %s, topic: %s', node, topic)
         # TODO: Lookup nodes matching the given topic and send a topic_nodes msg
 
-    def recv_topic_nodes(self, node: kademlia.Node, payload: List[Any], _: Hash32) -> None:
+    def recv_topic_nodes(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         echo, raw_nodes = payload
         nodes = _extract_nodes_from_payload(raw_nodes)
         self.logger.trace('<<< topic_nodes from %s: %s', node, nodes)
@@ -372,9 +374,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def send_ping_v5(self, node: kademlia.Node, topics: List[bytes]) -> Hash32:
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION_V5)
-        payload = [
+        payload = (
             version, self.address.to_endpoint(), node.address.to_endpoint(),
-            _get_msg_expiration(), topics]
+            _get_msg_expiration(), topics)
         message = _pack_v5(CMD_PING_V5.id, payload, self.privkey)
         token = self.send_v5(node, message)
         self.logger.trace('>>> ping (v5) %s (token == %s)', node, encode_hex(token))
@@ -385,9 +387,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self, node: kademlia.Node, token: Hash32, topic_hash: Hash32,
             ticket_serial: int, wait_periods: List[int]) -> None:
         self.logger.trace('>>> pong (v5) %s', node)
-        payload = [
+        payload = (
             node.address.to_endpoint(), token, _get_msg_expiration(), topic_hash, ticket_serial,
-            wait_periods]
+            wait_periods)
         message = _pack_v5(CMD_PONG_V5.id, payload, self.privkey)
         self.send_v5(node, message)
 
@@ -395,12 +397,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         self.logger.trace('>>> find_node to %s', node)
-        message = _pack_v5(CMD_FIND_NODE.id, [node_id, _get_msg_expiration()], self.privkey)
+        message = _pack_v5(CMD_FIND_NODE.id, (node_id, _get_msg_expiration()), self.privkey)
         self.send_v5(node, message)
 
     def send_topic_query(self, node: kademlia.Node, topic: Hash32) -> None:
         self.logger.trace('>>> topic_query to %s', node)
-        payload = [topic, _get_msg_expiration()]
+        payload = (topic, _get_msg_expiration())
         message = _pack_v5(CMD_TOPIC_QUERY.id, payload, self.privkey)
         # TODO: Get the msg hash and store it in the ticket store to match against received
         # topic_node msgs.
@@ -564,7 +566,7 @@ def _get_max_neighbours_per_packet() -> int:
     return len(neighbours) - 1
 
 
-def _pack_v4(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> bytes:
+def _pack_v4(cmd_id: int, payload: Tuple[Any, ...], privkey: datatypes.PrivateKey) -> bytes:
     """Create and sign a UDP message to be sent to a remote node.
 
     See https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery for information on
@@ -572,13 +574,13 @@ def _pack_v4(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> 
     """
     cmd_id = to_bytes(cmd_id)
     expiration = rlp.sedes.big_endian_int.serialize(_get_msg_expiration())
-    encoded_data = cmd_id + rlp.encode(payload + [expiration])
+    encoded_data = cmd_id + rlp.encode(payload + tuple([expiration]))
     signature = privkey.sign_msg(encoded_data)
     message_hash = keccak(signature.to_bytes() + encoded_data)
     return message_hash + signature.to_bytes() + encoded_data
 
 
-def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Hash32]:
+def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...], Hash32]:
     """Unpack a discovery v4 UDP message received from a remote node.
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
@@ -591,7 +593,7 @@ def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Has
     remote_pubkey = signature.recover_public_key_from_msg(signed_data)
     cmd_id = message[HEAD_SIZE]
     cmd = CMD_ID_MAP[cmd_id]
-    payload = rlp.decode(message[HEAD_SIZE + 1:], strict=False)
+    payload = tuple(rlp.decode(message[HEAD_SIZE + 1:], strict=False))
     # Ignore excessive list elements as required by EIP-8.
     payload = payload[:cmd.elem_count]
     return remote_pubkey, cmd_id, payload, message_hash
@@ -601,7 +603,7 @@ def _get_msg_expiration() -> int:
     return int(time.time() + EXPIRATION)
 
 
-def _pack_v5(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> bytes:
+def _pack_v5(cmd_id: int, payload: Tuple[Any, ...], privkey: datatypes.PrivateKey) -> bytes:
     """Create and sign a discovery v5 UDP message to be sent to a remote node."""
     cmd_id = to_bytes(cmd_id)
     encoded_data = cmd_id + rlp.encode(payload)
@@ -609,7 +611,7 @@ def _pack_v5(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> 
     return signature.to_bytes() + encoded_data
 
 
-def _unpack_v5(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Hash32]:
+def _unpack_v5(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...], Hash32]:
     """Unpack a discovery v5 UDP message received from a remote node.
 
     Returns the public key used to sign the message, the cmd ID, payload and msg hash.
@@ -622,7 +624,7 @@ def _unpack_v5(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Has
     remote_pubkey = signature.recover_public_key_from_msg(body)
     cmd_id = body[0]
     cmd = CMD_ID_MAP_V5[cmd_id]
-    payload = rlp.decode(body[1:], strict=False)
+    payload = tuple(rlp.decode(body[1:], strict=False))
     # Ignore excessive list elements as required by EIP-8.
     payload = payload[:cmd.elem_count]
     return remote_pubkey, cmd_id, payload, message_hash
