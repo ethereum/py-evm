@@ -71,7 +71,7 @@ class WrongMAC(DefectiveMessage):
     pass
 
 
-class Command():
+class DiscoveryCommand:
     def __init__(self, name: str, id: int, elem_count: int) -> None:
         self.name = name
         self.id = id
@@ -83,18 +83,18 @@ class Command():
         return 'Command(%s:%d)' % (self.name, self.id)
 
 
-CMD_PING = Command("ping", 1, 4)
-CMD_PONG = Command("pong", 2, 3)
-CMD_FIND_NODE = Command("find_node", 3, 2)
-CMD_NEIGHBOURS = Command("neighbours", 4, 2)
+CMD_PING = DiscoveryCommand("ping", 1, 4)
+CMD_PONG = DiscoveryCommand("pong", 2, 3)
+CMD_FIND_NODE = DiscoveryCommand("find_node", 3, 2)
+CMD_NEIGHBOURS = DiscoveryCommand("neighbours", 4, 2)
 CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, CMD_NEIGHBOURS])
 
-CMD_PING_V5 = Command("ping", 1, 5)
-CMD_PONG_V5 = Command("pong", 2, 6)
-CMD_FIND_NODEHASH = Command("find_nodehash", 5, 2)
-CMD_TOPIC_REGISTER = Command("topic_register", 6, 3)
-CMD_TOPIC_QUERY = Command("topic_query", 7, 2)
-CMD_TOPIC_NODES = Command("topic_nodes", 8, 2)
+CMD_PING_V5 = DiscoveryCommand("ping", 1, 5)
+CMD_PONG_V5 = DiscoveryCommand("pong", 2, 6)
+CMD_FIND_NODEHASH = DiscoveryCommand("find_nodehash", 5, 2)
+CMD_TOPIC_REGISTER = DiscoveryCommand("topic_register", 6, 3)
+CMD_TOPIC_QUERY = DiscoveryCommand("topic_query", 7, 2)
+CMD_TOPIC_NODES = DiscoveryCommand("topic_nodes", 8, 2)
 CMD_ID_MAP_V5 = dict(
     (cmd.id, cmd)
     for cmd in [
@@ -141,7 +141,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(self, cmd: Command) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
+    def _get_handler(
+            self, cmd: DiscoveryCommand) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
         if cmd == CMD_PING:
             return self.recv_ping
         elif cmd == CMD_PONG:
@@ -292,7 +293,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.send(node, V5_ID_STRING + message)
         return msg_hash
 
-    def _get_handler_v5(self, cmd: Command) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
+    def _get_handler_v5(
+            self, cmd: DiscoveryCommand) -> Callable[[kademlia.Node, List[Any], Hash32], None]:
         if cmd == CMD_PING_V5:
             return self.recv_ping_v5
         elif cmd == CMD_PONG_V5:
