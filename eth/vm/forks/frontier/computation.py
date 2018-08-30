@@ -1,4 +1,5 @@
 from eth_hash.auto import keccak
+from pprint import pprint
 
 from eth.constants import (
     GAS_CODEDEPOSIT,
@@ -95,12 +96,12 @@ class FrontierComputation(BaseComputation):
                     )
                 except OutOfGas:
                     computation.output = b''
-                else:
-                    self.logger.trace(
-                        "SETTING CODE: %s -> length: %s | hash: %s",
-                        encode_hex(self.msg.storage_address),
-                        len(contract_code),
-                        encode_hex(keccak(contract_code))
-                    )
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+            else:
+                self.logger.trace(
+                    "SETTING CODE: %s -> length: %s | hash: %s",
+                    encode_hex(self.msg.storage_address),
+                    len(contract_code),
+                    encode_hex(keccak(contract_code))
+                )
+                self.state.account_db.set_code(self.msg.storage_address, contract_code)
             return computation

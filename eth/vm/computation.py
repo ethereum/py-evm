@@ -558,7 +558,9 @@ class BaseComputation(Configurable, ABC):
 
                 try:
                     opcode_fn(computation=computation)
+                    print(opcode)
                 except Halt:
+                    print(123)
                     break
         return computation
 
