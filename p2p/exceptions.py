@@ -160,3 +160,10 @@ class NoInternalAddressMatchesDevice(BaseP2PError):
     def __init__(self, *args: Any, device_hostname: str=None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.device_hostname = device_hostname
+
+
+class AlreadyWaitingDiscoveryResponse(BaseP2PError):
+    """
+    Raised when we are already waiting for a discovery response from a given remote.
+    """
+    pass

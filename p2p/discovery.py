@@ -7,6 +7,7 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 """
 import asyncio
 import collections
+import contextlib
 import logging
 import random
 import socket
@@ -16,13 +17,19 @@ from typing import (
     Callable,
     cast,
     Dict,
+    Hashable,
+    Iterable,
     Iterator,
     List,
     Sequence,
+    Set,
     Tuple,
     Text,
+    TYPE_CHECKING,
     Union,
 )
+
+import cytoolz
 
 import rlp
 
@@ -47,10 +54,17 @@ from eth.tools.logging import TraceLogger, TRACE_LEVEL_NUM
 
 from cancel_token import CancelToken, OperationCancelled
 
-from p2p.exceptions import NoEligibleNodes
+from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes
 from p2p import kademlia
 from p2p.peer import PeerPool
 from p2p.service import BaseService
+
+if TYPE_CHECKING:
+    # Promoted workaround for inheriting from generic stdlib class
+    # https://github.com/python/mypy/issues/5264#issuecomment-399407428
+    UserDict = collections.UserDict[Hashable, 'CallbackLock']
+else:
+    UserDict = collections.UserDict
 
 # UDP packet constants.
 V5_ID_STRING = b"temporary discovery v5"
@@ -117,16 +131,199 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  address: kademlia.Address,
-                 bootstrap_nodes: Tuple[kademlia.Node, ...]) -> None:
+                 bootstrap_nodes: Tuple[kademlia.Node, ...],
+                 cancel_token: CancelToken) -> None:
         self.privkey = privkey
         self.address = address
         self.bootstrap_nodes = bootstrap_nodes
         self.this_node = kademlia.Node(self.pubkey, address)
-        self.kademlia = kademlia.KademliaProtocol(self.this_node, wire=self)
-        self.cancel_token = CancelToken('DiscoveryProtocol')
+        self.routing = kademlia.RoutingTable(self.this_node)
+        self.pong_callbacks = CallbackManager()
+        self.ping_callbacks = CallbackManager()
+        self.neighbours_callbacks = CallbackManager()
+        self.parity_pong_tokens: Dict[Hash32, Hash32] = {}
+        self.cancel_token = cancel_token
 
-    async def lookup_random(self, cancel_token: CancelToken) -> List[kademlia.Node]:
-        return await self.kademlia.lookup_random(self.cancel_token.chain(cancel_token))
+    def update_routing_table(self, node: kademlia.Node) -> None:
+        """Update the routing table entry for the given node."""
+        eviction_candidate = self.routing.add_node(node)
+        if eviction_candidate:
+            # This means we couldn't add the node because its bucket is full, so schedule a bond()
+            # with the least recently seen node on that bucket. If the bonding fails the node will
+            # be removed from the bucket and a new one will be picked from the bucket's
+            # replacement cache.
+            asyncio.ensure_future(self.bond(eviction_candidate))
+
+    async def bond(self, node: kademlia.Node) -> bool:
+        """Bond with the given node.
+
+        Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
+        It is necessary to do this at least once before we send find_node requests to a node.
+        """
+        if node in self.routing:
+            return True
+        elif node == self.this_node:
+            return False
+
+        token = self.send_ping(node)
+
+        try:
+            got_pong = await self.wait_pong(node, token)
+        except AlreadyWaitingDiscoveryResponse:
+            self.logger.debug("binding failed, already waiting for pong")
+            return False
+
+        if not got_pong:
+            self.logger.debug("bonding failed, didn't receive pong from %s", node)
+            self.routing.remove_node(node)
+            return False
+
+        try:
+            # Give the remote node a chance to ping us before we move on and
+            # start sending find_node requests. It is ok for wait_ping() to
+            # timeout and return false here as that just means the remote
+            # remembers us.
+            await self.wait_ping(node)
+        except AlreadyWaitingDiscoveryResponse:
+            self.logger.debug("binding failed, already waiting for ping")
+            return False
+
+        self.logger.debug("bonding completed successfully with %s", node)
+        self.update_routing_table(node)
+        return True
+
+    async def wait_ping(self, remote: kademlia.Node) -> bool:
+        """Wait for a ping from the given remote.
+
+        This coroutine adds a callback to ping_callbacks and yields control until that callback is
+        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
+        a ping was received from the given node.
+        """
+        event = asyncio.Event()
+
+        with self.ping_callbacks.acquire(remote, event.set):
+            got_ping = False
+            try:
+                got_ping = await self.cancel_token.cancellable_wait(
+                    event.wait(), timeout=kademlia.k_request_timeout)
+                self.logger.debug('got expected ping from %s', remote)
+            except TimeoutError:
+                self.logger.debug('timed out waiting for ping from %s', remote)
+
+        return got_ping
+
+    async def wait_pong(self, remote: kademlia.Node, token: Hash32) -> bool:
+        """Wait for a pong from the given remote containing the given token.
+
+        This coroutine adds a callback to pong_callbacks and yields control until that callback is
+        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
+        a pong was received with the given pingid.
+        """
+        pingid = self._mkpingid(token, remote)
+        event = asyncio.Event()
+
+        with self.pong_callbacks.acquire(pingid, event.set):
+            got_pong = False
+            try:
+                got_pong = await self.cancel_token.cancellable_wait(
+                    event.wait(), timeout=kademlia.k_request_timeout)
+                self.logger.debug('got expected pong with token %s', encode_hex(token))
+            except TimeoutError:
+                self.logger.debug(
+                    'timed out waiting for pong from %s (token == %s)',
+                    remote,
+                    encode_hex(token),
+                )
+
+        return got_pong
+
+    async def wait_neighbours(self, remote: kademlia.Node) -> Tuple[kademlia.Node, ...]:
+        """Wait for a neihgbours packet from the given node.
+
+        Returns the list of neighbours received.
+        """
+        event = asyncio.Event()
+        neighbours: List[kademlia.Node] = []
+
+        def process(response: List[kademlia.Node]) -> None:
+            neighbours.extend(response)
+            # This callback is expected to be called multiple times because nodes usually
+            # split the neighbours replies into multiple packets, so we only call event.set() once
+            # we've received enough neighbours.
+            if len(neighbours) >= kademlia.k_bucket_size:
+                event.set()
+
+        with self.neighbours_callbacks.acquire(remote, process):
+            try:
+                await self.cancel_token.cancellable_wait(
+                    event.wait(), timeout=kademlia.k_request_timeout)
+                self.logger.debug('got expected neighbours response from %s', remote)
+            except TimeoutError:
+                self.logger.debug(
+                    'timed out waiting for %d neighbours from %s', kademlia.k_bucket_size, remote)
+
+        return tuple(n for n in neighbours if n != self.this_node)
+
+    def _mkpingid(self, token: Hash32, node: kademlia.Node) -> Hash32:
+        return token + node.pubkey.to_bytes()
+
+    async def lookup(self, node_id: int) -> List[kademlia.Node]:
+        """Lookup performs a network search for nodes close to the given target.
+
+        It approaches the target by querying nodes that are closer to it on each iteration.  The
+        given target does not need to be an actual node identifier.
+        """
+        nodes_asked: Set[kademlia.Node] = set()
+        nodes_seen: Set[kademlia.Node] = set()
+
+        async def _find_node(node_id: int, remote: kademlia.Node) -> Tuple[kademlia.Node, ...]:
+            # Short-circuit in case our token has been triggered to avoid trying to send requests
+            # over a transport that is probably closed already.
+            self.cancel_token.raise_if_triggered()
+            self.send_find_node(remote, node_id)
+            candidates = await self.wait_neighbours(remote)
+            if not candidates:
+                self.logger.debug("got no candidates from %s, returning", remote)
+                return tuple()
+            all_candidates = tuple(c for c in candidates if c not in nodes_seen)
+            candidates = tuple(
+                c for c in all_candidates
+                if (not self.ping_callbacks.locked(c) and not self.pong_callbacks.locked(c))
+            )
+            self.logger.debug("got %s new candidates", len(candidates))
+            # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
+            # in the future.
+            nodes_seen.update(candidates)
+            bonded = await asyncio.gather(*(self.bond(c) for c in candidates))
+            self.logger.debug("bonded with %s candidates", bonded.count(True))
+            return tuple(c for c in candidates if bonded[candidates.index(c)])
+
+        def _exclude_if_asked(nodes: Iterable[kademlia.Node]) -> List[kademlia.Node]:
+            nodes_to_ask = list(set(nodes).difference(nodes_asked))
+            return kademlia.sort_by_distance(nodes_to_ask, node_id)[:kademlia.k_find_concurrency]
+
+        closest = self.routing.neighbours(node_id)
+        self.logger.debug("starting lookup; initial neighbours: %s", closest)
+        nodes_to_ask = _exclude_if_asked(closest)
+        while nodes_to_ask:
+            self.logger.debug("node lookup; querying %s", nodes_to_ask)
+            nodes_asked.update(nodes_to_ask)
+            results = await asyncio.gather(*(
+                _find_node(node_id, n)
+                for n
+                in nodes_to_ask
+                if not self.neighbours_callbacks.locked(n)
+            ))
+            for candidates in results:
+                closest.extend(candidates)
+            closest = kademlia.sort_by_distance(closest, node_id)[:kademlia.k_bucket_size]
+            nodes_to_ask = _exclude_if_asked(closest)
+
+        self.logger.debug("lookup finished for %s: %s", node_id, closest)
+        return closest
+
+    async def lookup_random(self) -> List[kademlia.Node]:
+        return await self.lookup(random.randint(0, kademlia.k_max_node_id))
 
     def get_random_bootnode(self) -> Iterator[kademlia.Node]:
         if self.bootstrap_nodes:
@@ -135,7 +332,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.logger.warning('No bootnodes available')
 
     def get_nodes_to_connect(self, count: int) -> Iterator[kademlia.Node]:
-        return self.kademlia.routing.get_random_nodes(count)
+        return self.routing.get_random_nodes(count)
 
     @property
     def pubkey(self) -> datatypes.PublicKey:
@@ -168,7 +365,16 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     async def bootstrap(self) -> None:
         self.logger.info("boostrapping with %s", self.bootstrap_nodes)
         try:
-            await self.kademlia.bootstrap(self.bootstrap_nodes, self.cancel_token)
+            bonded = await asyncio.gather(*(
+                self.bond(n)
+                for n
+                in self.bootstrap_nodes
+                if (not self.ping_callbacks.locked(n) and not self.pong_callbacks.locked(n))
+            ))
+            if not any(bonded):
+                self.logger.info("Failed to bond with bootstrap nodes %s", self.bootstrap_nodes)
+                return
+            await self.lookup_random()
         except OperationCancelled as e:
             self.logger.info("Bootstrapping cancelled: %s", e)
 
@@ -223,25 +429,33 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # The pong payload should have 3 elements: to, token, expiration
         _, token, _ = payload
         self.logger.trace('<<< pong (v4) from %s (token == %s)', node, encode_hex(token))
-        self.kademlia.recv_pong(node, token)
+        self.process_pong(node, token)
 
     def recv_neighbours(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
         nodes, _ = payload
         neighbours = _extract_nodes_from_payload(nodes)
         self.logger.trace('<<< neighbours from %s: %s', node, neighbours)
-        self.kademlia.recv_neighbours(node, neighbours)
+        self.process_neighbours(node, neighbours)
 
     def recv_ping(self, node: kademlia.Node, _: Any, message_hash: Hash32) -> None:
         self.logger.trace('<<< ping(v4) from %s', node)
-        self.kademlia.recv_ping(node, message_hash)
+        self.process_ping(node, message_hash)
         self.send_pong(node, message_hash)
 
     def recv_find_node(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The find_node payload should have 2 elements: node_id, expiration
         self.logger.trace('<<< find_node from %s', node)
         node_id, _ = payload
-        self.kademlia.recv_find_node(node, big_endian_to_int(node_id))
+        if node not in self.routing:
+            # FIXME: This is not correct; a node we've bonded before may have become unavailable
+            # and thus removed from self.routing, but once it's back online we should accept
+            # find_nodes from them.
+            self.logger.debug('Ignoring find_node request from unknown node %s', node)
+            return
+        self.update_routing_table(node)
+        found = self.routing.neighbours(big_endian_to_int(node_id))
+        self.send_neighbours(node, found)
 
     def send_ping(self, node: kademlia.Node) -> Hash32:
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
@@ -255,7 +469,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
         # should get rid of this once there are no longer too many parity 1.10 nodes out there.
         parity_token = keccak(message[HEAD_SIZE + 1:])
-        self.kademlia.parity_pong_tokens[parity_token] = token
+        self.parity_pong_tokens[parity_token] = token
         return token
 
     def send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
@@ -284,6 +498,72 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.logger.trace('>>> neighbours to %s: %s',
                               node, neighbours[i:i + max_neighbours])
             self.send(node, message)
+
+    def process_neighbours(self, remote: kademlia.Node, neighbours: List[kademlia.Node]) -> None:
+        """Process a neighbours response.
+
+        Neighbours responses should only be received as a reply to a find_node, and that is only
+        done as part of node lookup, so the actual processing is left to the callback from
+        neighbours_callbacks, which is added (and removed after it's done or timed out) in
+        wait_neighbours().
+        """
+        try:
+            callback = self.neighbours_callbacks.get_callback(remote)
+        except KeyError:
+            self.logger.debug(
+                'unexpected neighbours from %s, probably came too late', remote)
+        else:
+            callback(neighbours)
+
+    def process_pong(self, remote: kademlia.Node, token: Hash32) -> None:
+        """Process a pong packet.
+
+        Pong packets should only be received as a response to a ping, so the actual processing is
+        left to the callback from pong_callbacks, which is added (and removed after it's done
+        or timed out) in wait_pong().
+        """
+        # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
+        # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
+        # should get rid of this once there are no longer too many parity 1.10 nodes out there.
+        if token in self.parity_pong_tokens:
+            # This is a pong from a buggy parity node, so need to lookup the actual token we're
+            # expecting.
+            token = self.parity_pong_tokens.pop(token)
+        else:
+            # This is a pong from a non-buggy node, so just cleanup self.parity_pong_tokens.
+            self.parity_pong_tokens = cytoolz.valfilter(
+                lambda val: val != token, self.parity_pong_tokens)
+
+        pingid = self._mkpingid(token, remote)
+
+        try:
+            callback = self.pong_callbacks.get_callback(pingid)
+        except KeyError:
+            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+        else:
+            callback()
+
+    def process_ping(self, remote: kademlia.Node, hash_: Hash32) -> None:
+        """Process a received ping packet.
+
+        A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
+        new node. In the former case we'll just update the sender's entry in our routing table and
+        reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
+        """
+        if remote == self.this_node:
+            self.logger.info('Invariant: received ping from this_node: %s', remote)
+            return
+        else:
+            self.update_routing_table(remote)
+        # Sometimes a ping will be sent to us as part of the bonding
+        # performed the first time we see a node, and it is in those cases that
+        # a callback will exist.
+        try:
+            callback = self.ping_callbacks.get_callback(remote)
+        except KeyError:
+            pass
+        else:
+            callback()
 
     #
     # Discovery v5 specific methods
@@ -335,7 +615,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # version, from, to, expiration, topics
         _, _, _, _, topics = payload
         self.logger.trace('<<< ping(v5) from %s, topics: %s', node, topics)
-        self.kademlia.recv_ping(node, message_hash)
+        self.process_ping(node, message_hash)
         topic_hash = keccak(rlp.encode(topics))
         # TODO: Create a new ticket for the given node and use that in the pong
         ticket_serial = 0
@@ -346,7 +626,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # to, token, expiration, topic_hash, ticket_serial, wait_periods
         _, token, _, _, _, _ = payload
         self.logger.trace('<<< pong (v5) from %s (token == %s)', node, encode_hex(token))
-        self.kademlia.recv_pong(node, token)
+        self.process_pong(node, token)
         # TODO: Create/store ticket(s)
 
     def recv_find_nodehash(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
@@ -423,8 +703,9 @@ class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
                  privkey: datatypes.PrivateKey,
                  address: kademlia.Address,
                  bootstrap_nodes: Tuple[kademlia.Node, ...],
-                 preferred_nodes: Sequence[kademlia.Node]) -> None:
-        super().__init__(privkey, address, bootstrap_nodes)
+                 preferred_nodes: Sequence[kademlia.Node],
+                 cancel_token: CancelToken) -> None:
+        super().__init__(privkey, address, bootstrap_nodes, cancel_token)
 
         self.preferred_nodes = preferred_nodes
         self.logger.info('Preferred peers: %s', self.preferred_nodes)
@@ -529,7 +810,7 @@ class DiscoveryService(BaseService):
             # This method runs in the background, so we must catch OperationCancelled here
             # otherwise asyncio will warn that its exception was never retrieved.
             try:
-                await self.proto.lookup_random(self.cancel_token)
+                await self.proto.lookup_random()
             except OperationCancelled:
                 pass
             finally:
@@ -630,6 +911,54 @@ def _unpack_v5(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...
     return remote_pubkey, cmd_id, payload, message_hash
 
 
+class CallbackLock:
+    def __init__(self,
+                 callback: Callable[..., Any],
+                 timeout: float=2 * kademlia.k_request_timeout) -> None:
+        self.callback = callback
+        self.timeout = timeout
+        self.created_at = time.time()
+
+    @property
+    def is_expired(self) -> bool:
+        return time.time() - self.created_at > self.timeout
+
+
+class CallbackManager(UserDict):
+    @contextlib.contextmanager
+    def acquire(self,
+                key: Hashable,
+                callback: Callable[..., Any]) -> Iterator[CallbackLock]:
+        if key in self:
+            if not self.locked(key):
+                del self[key]
+            else:
+                raise AlreadyWaitingDiscoveryResponse(
+                    "Already waiting on callback for: {0}".format(key))
+
+        lock = CallbackLock(callback)
+        self[key] = lock
+
+        try:
+            yield lock
+        finally:
+            del self[key]
+
+    def get_callback(self, key: Hashable) -> Callable[..., Any]:
+        return self[key].callback
+
+    def locked(self, key: Hashable) -> bool:
+        try:
+            lock = self[key]
+        except KeyError:
+            return False
+        else:
+            if lock.is_expired:
+                return False
+            else:
+                return True
+
+
 def _test() -> None:
     import argparse
     import signal
@@ -664,7 +993,7 @@ def _test() -> None:
     else:
         bootstrap_nodes = tuple(
             kademlia.Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES)
-    discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes)
+    discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes, CancelToken("discovery"))
     loop.run_until_complete(
         loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port)))
 
@@ -674,9 +1003,9 @@ def _test() -> None:
                 remote = bootstrap_nodes[0]
                 topic = b'LES@41941023680923e0'  # LES/ropsten
                 token = discovery.send_ping_v5(remote, [topic])
-                await discovery.kademlia.wait_pong(remote, token, discovery.cancel_token)
+                await discovery.wait_pong(remote, token)
                 discovery.send_find_node_v5(remote, random.randint(0, kademlia.k_max_node_id))
-                await discovery.kademlia.wait_neighbours(remote, discovery.cancel_token)
+                await discovery.wait_neighbours(remote)
             else:
                 await discovery.bootstrap()
         except OperationCancelled:

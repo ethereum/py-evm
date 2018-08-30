@@ -1,7 +1,4 @@
-import asyncio
 import bisect
-import collections
-import contextlib
 from functools import total_ordering
 import ipaddress
 import logging
@@ -11,28 +8,18 @@ import struct
 import time
 from typing import (
     Any,
-    Callable,
     cast,
-    Dict,
-    Hashable,
     Iterable,
     Iterator,
     List,
-    Set,
     Sized,
     Tuple,
-    TYPE_CHECKING,
 )
 from urllib import parse as urlparse
-
-import cytoolz
-
-from eth_typing import Hash32
 
 from eth_utils import (
     big_endian_to_int,
     decode_hex,
-    encode_hex,
 )
 
 from eth_keys import (
@@ -41,19 +28,6 @@ from eth_keys import (
 )
 
 from eth_hash.auto import keccak
-
-from cancel_token import CancelToken
-
-# Workaround for import cycles caused by type annotations:
-# http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
-if TYPE_CHECKING:
-    from p2p.discovery import DiscoveryProtocol  # noqa: F401
-
-    # Promoted workaround for inheriting from generic stdlib class
-    # https://github.com/python/mypy/issues/5264#issuecomment-399407428
-    UserDict = collections.UserDict[Hashable, 'CallbackLock']
-else:
-    UserDict = collections.UserDict
 
 k_b = 8  # 8 bits per hop
 
@@ -73,10 +47,6 @@ def int_to_big_endian4(integer: int) -> bytes:
 
 def enc_port(p: int) -> bytes:
     return int_to_big_endian4(p)[-2:]
-
-
-class AlreadyWaiting(Exception):
-    pass
 
 
 class Address:
@@ -343,361 +313,6 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
         return bucket
     except (IndexError, AssertionError):
         raise ValueError("No bucket found for node with id {}".format(node.id))
-
-
-class CallbackLock:
-    def __init__(self,
-                 callback: Callable[..., Any],
-                 timeout: float=2 * k_request_timeout) -> None:
-        self.callback = callback
-        self.timeout = timeout
-        self.created_at = time.time()
-
-    @property
-    def is_expired(self) -> bool:
-        return time.time() - self.created_at > self.timeout
-
-
-class CallbackManager(UserDict):
-    @contextlib.contextmanager
-    def acquire(self,
-                key: Hashable,
-                callback: Callable[..., Any]) -> Iterator[CallbackLock]:
-        if key in self:
-            if not self.locked(key):
-                del self[key]
-            else:
-                raise AlreadyWaiting("Already waiting on callback for: {0}".format(key))
-
-        lock = CallbackLock(callback)
-        self[key] = lock
-
-        try:
-            yield lock
-        finally:
-            del self[key]
-
-    def get_callback(self, key: Hashable) -> Callable[..., Any]:
-        return self[key].callback
-
-    def locked(self, key: Hashable) -> bool:
-        try:
-            lock = self[key]
-        except KeyError:
-            return False
-        else:
-            if lock.is_expired:
-                return False
-            else:
-                return True
-
-
-class KademliaProtocol:
-    logger = logging.getLogger("p2p.kademlia.KademliaProtocol")
-
-    def __init__(self, node: Node, wire: 'DiscoveryProtocol') -> None:
-        self.this_node = node
-        self.wire = wire
-        self.routing = RoutingTable(node)
-
-        self.pong_callbacks = CallbackManager()
-        self.ping_callbacks = CallbackManager()
-        self.neighbours_callbacks = CallbackManager()
-        self.parity_pong_tokens: Dict[Hash32, Hash32] = {}
-
-    def recv_neighbours(self, remote: Node, neighbours: List[Node]) -> None:
-        """Process a neighbours response.
-
-        Neighbours responses should only be received as a reply to a find_node, and that is only
-        done as part of node lookup, so the actual processing is left to the callback from
-        neighbours_callbacks, which is added (and removed after it's done or timed out) in
-        wait_neighbours().
-        """
-        try:
-            callback = self.neighbours_callbacks.get_callback(remote)
-        except KeyError:
-            self.logger.debug(
-                'unexpected neighbours from %s, probably came too late', remote)
-        else:
-            callback(neighbours)
-
-    def recv_pong(self, remote: Node, token: Hash32) -> None:
-        """Process a pong packet.
-
-        Pong packets should only be received as a response to a ping, so the actual processing is
-        left to the callback from pong_callbacks, which is added (and removed after it's done
-        or timed out) in wait_pong().
-        """
-        # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
-        # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
-        # should get rid of this once there are no longer too many parity 1.10 nodes out there.
-        if token in self.parity_pong_tokens:
-            # This is a pong from a buggy parity node, so need to lookup the actual token we're
-            # expecting.
-            token = self.parity_pong_tokens.pop(token)
-        else:
-            # This is a pong from a non-buggy node, so just cleanup self.parity_pong_tokens.
-            self.parity_pong_tokens = cytoolz.valfilter(
-                lambda val: val != token, self.parity_pong_tokens)
-
-        pingid = self._mkpingid(token, remote)
-
-        try:
-            callback = self.pong_callbacks.get_callback(pingid)
-        except KeyError:
-            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
-        else:
-            callback()
-
-    def recv_ping(self, remote: Node, hash_: Hash32) -> None:
-        """Process a received ping packet.
-
-        A ping packet may come any time, unrequested, or may be prompted by us bond()ing with a
-        new node. In the former case we'll just update the sender's entry in our routing table and
-        reply with a pong, whereas in the latter we'll also fire a callback from ping_callbacks.
-        """
-        if remote == self.this_node:
-            self.logger.info('Invariant: received ping from this_node: %s', remote)
-            return
-        else:
-            self.update_routing_table(remote)
-        # Sometimes a ping will be sent to us as part of the bonding
-        # performed the first time we see a node, and it is in those cases that
-        # a callback will exist.
-        try:
-            callback = self.ping_callbacks.get_callback(remote)
-        except KeyError:
-            pass
-        else:
-            callback()
-
-    def recv_find_node(self, remote: Node, targetid: int) -> None:
-        if remote not in self.routing:
-            # FIXME: This is not correct; a node we've bonded before may have become unavailable
-            # and thus removed from self.routing, but once it's back online we should accept
-            # find_nodes from them.
-            self.logger.debug('Ignoring find_node request from unknown node %s', remote)
-            return
-        self.update_routing_table(remote)
-        found = self.routing.neighbours(targetid)
-        self.wire.send_neighbours(remote, found)
-
-    def update_routing_table(self, node: Node) -> None:
-        """Update the routing table entry for the given node."""
-        eviction_candidate = self.routing.add_node(node)
-        if eviction_candidate:
-            # This means we couldn't add the node because its bucket is full, so schedule a bond()
-            # with the least recently seen node on that bucket. If the bonding fails the node will
-            # be removed from the bucket and a new one will be picked from the bucket's
-            # replacement cache.
-            asyncio.ensure_future(self.bond(eviction_candidate, self.wire.cancel_token))
-
-    async def wait_ping(self, remote: Node, cancel_token: CancelToken) -> bool:
-        """Wait for a ping from the given remote.
-
-        This coroutine adds a callback to ping_callbacks and yields control until that callback is
-        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
-        a ping was received from the given node.
-        """
-        event = asyncio.Event()
-
-        with self.ping_callbacks.acquire(remote, event.set):
-            got_ping = False
-            try:
-                got_ping = await cancel_token.cancellable_wait(
-                    event.wait(), timeout=k_request_timeout)
-                self.logger.debug('got expected ping from %s', remote)
-            except TimeoutError:
-                self.logger.debug('timed out waiting for ping from %s', remote)
-
-        return got_ping
-
-    async def wait_pong(self, remote: Node, token: Hash32, cancel_token: CancelToken) -> bool:
-        """Wait for a pong from the given remote containing the given token.
-
-        This coroutine adds a callback to pong_callbacks and yields control until that callback is
-        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
-        a pong was received with the given pingid.
-        """
-        pingid = self._mkpingid(token, remote)
-        event = asyncio.Event()
-
-        with self.pong_callbacks.acquire(pingid, event.set):
-            got_pong = False
-            try:
-                got_pong = await cancel_token.cancellable_wait(
-                    event.wait(), timeout=k_request_timeout)
-                self.logger.debug('got expected pong with token %s', encode_hex(token))
-            except TimeoutError:
-                self.logger.debug(
-                    'timed out waiting for pong from %s (token == %s)',
-                    remote,
-                    encode_hex(token),
-                )
-
-        return got_pong
-
-    async def wait_neighbours(self, remote: Node, cancel_token: CancelToken) -> Tuple[Node, ...]:
-        """Wait for a neihgbours packet from the given node.
-
-        Returns the list of neighbours received.
-        """
-        event = asyncio.Event()
-        neighbours: List[Node] = []
-
-        def process(response: List[Node]) -> None:
-            neighbours.extend(response)
-            # This callback is expected to be called multiple times because nodes usually
-            # split the neighbours replies into multiple packets, so we only call event.set() once
-            # we've received enough neighbours.
-            if len(neighbours) >= k_bucket_size:
-                event.set()
-
-        with self.neighbours_callbacks.acquire(remote, process):
-            try:
-                await cancel_token.cancellable_wait(
-                    event.wait(), timeout=k_request_timeout)
-                self.logger.debug('got expected neighbours response from %s', remote)
-            except TimeoutError:
-                self.logger.debug(
-                    'timed out waiting for %d neighbours from %s', k_bucket_size, remote)
-
-        return tuple(n for n in neighbours if n != self.this_node)
-
-    def ping(self, node: Node) -> Hash32:
-        if node == self.this_node:
-            raise ValueError("Cannot ping self")
-        return self.wire.send_ping(node)
-
-    async def bond(self, node: Node, cancel_token: CancelToken) -> bool:
-        """Bond with the given node.
-
-        Bonding consists of pinging the node, waiting for a pong and maybe a ping as well.
-        It is necessary to do this at least once before we send find_node requests to a node.
-        """
-        if node in self.routing:
-            return True
-        elif node == self.this_node:
-            return False
-
-        token = self.ping(node)
-
-        try:
-            got_pong = await self.wait_pong(node, token, cancel_token)
-        except AlreadyWaiting:
-            self.logger.debug("binding failed, already waiting for pong")
-            return False
-
-        if not got_pong:
-            self.logger.debug("bonding failed, didn't receive pong from %s", node)
-            self.routing.remove_node(node)
-            return False
-
-        try:
-            # Give the remote node a chance to ping us before we move on and
-            # start sending find_node requests. It is ok for wait_ping() to
-            # timeout and return false here as that just means the remote
-            # remembers us.
-            await self.wait_ping(node, cancel_token)
-        except AlreadyWaiting:
-            self.logger.debug("binding failed, already waiting for ping")
-            return False
-
-        self.logger.debug("bonding completed successfully with %s", node)
-        self.update_routing_table(node)
-        return True
-
-    async def bootstrap(self, bootstrap_nodes: Iterable[Node], cancel_token: CancelToken) -> None:
-        bonded = await asyncio.gather(*(
-            self.bond(n, cancel_token)
-            for n
-            in bootstrap_nodes
-            if (not self.ping_callbacks.locked(n) and not self.pong_callbacks.locked(n))
-        ))
-        if not any(bonded):
-            self.logger.info("Failed to bond with bootstrap nodes %s", bootstrap_nodes)
-            return
-        await self.lookup_random(cancel_token)
-
-    async def lookup(self, node_id: int, cancel_token: CancelToken) -> List[Node]:
-        """Lookup performs a network search for nodes close to the given target.
-
-        It approaches the target by querying nodes that are closer to it on each iteration.  The
-        given target does not need to be an actual node identifier.
-        """
-        nodes_asked: Set[Node] = set()
-        nodes_seen: Set[Node] = set()
-
-        async def _find_node(node_id: int, remote: Node) -> Tuple[Node, ...]:
-            # Short-circuit in case our token has been triggered to avoid trying to send requests
-            # over a transport that is probably closed already.
-            cancel_token.raise_if_triggered()
-            self.wire.send_find_node(remote, node_id)
-            candidates = await self.wait_neighbours(remote, cancel_token)
-            if not candidates:
-                self.logger.debug("got no candidates from %s, returning", remote)
-                return tuple()
-            all_candidates = tuple(c for c in candidates if c not in nodes_seen)
-            candidates = tuple(
-                c for c in all_candidates
-                if (not self.ping_callbacks.locked(c) and not self.pong_callbacks.locked(c))
-            )
-            self.logger.debug("got %s new candidates", len(candidates))
-            # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
-            # in the future.
-            nodes_seen.update(candidates)
-            bonded = await asyncio.gather(*(self.bond(c, cancel_token) for c in candidates))
-            self.logger.debug("bonded with %s candidates", bonded.count(True))
-            return tuple(c for c in candidates if bonded[candidates.index(c)])
-
-        def _exclude_if_asked(nodes: Iterable[Node]) -> List[Node]:
-            nodes_to_ask = list(set(nodes).difference(nodes_asked))
-            return sort_by_distance(nodes_to_ask, node_id)[:k_find_concurrency]
-
-        closest = self.routing.neighbours(node_id)
-        self.logger.debug("starting lookup; initial neighbours: %s", closest)
-        nodes_to_ask = _exclude_if_asked(closest)
-        while nodes_to_ask:
-            self.logger.debug("node lookup; querying %s", nodes_to_ask)
-            nodes_asked.update(nodes_to_ask)
-            results = await asyncio.gather(*(
-                _find_node(node_id, n)
-                for n
-                in nodes_to_ask
-                if not self.neighbours_callbacks.locked(n)
-            ))
-            for candidates in results:
-                closest.extend(candidates)
-            closest = sort_by_distance(closest, node_id)[:k_bucket_size]
-            nodes_to_ask = _exclude_if_asked(closest)
-
-        self.logger.debug("lookup finished for %s: %s", node_id, closest)
-        return closest
-
-    async def lookup_random(self, cancel_token: CancelToken) -> List[Node]:
-        return await self.lookup(random.randint(0, k_max_node_id), cancel_token)
-
-    # TODO: Run this as a coroutine that loops forever and after each iteration sleeps until the
-    # time when the least recently touched bucket will be considered idle.
-    def refresh_idle_buckets(self) -> None:
-        # For buckets that haven't been touched in 3600 seconds, pick a random value in the bucket's
-        # range and perform discovery for that value.
-        for bucket in self.routing.idle_buckets:
-            rid = random.randint(bucket.start, bucket.end)
-            asyncio.ensure_future(self.lookup(rid, self.wire.cancel_token))
-
-    def _mkpingid(self, token: Hash32, node: Node) -> Hash32:
-        return token + node.pubkey.to_bytes()
-
-    async def populate_not_full_buckets(self) -> None:
-        """Go through all buckets that are not full and try to fill them.
-
-        For every node in the replacement cache of every non-full bucket, try to bond.
-        When the bonding succeeds the node is automatically added to the bucket.
-        """
-        for bucket in self.routing.not_full_buckets:
-            for node in bucket.replacement_cache:
-                asyncio.ensure_future(self.bond(node, self.wire.cancel_token))
 
 
 def _compute_shared_prefix_bits(nodes: List[Node]) -> int:

@@ -148,7 +148,7 @@ class Server(BaseService):
         self.logger.info('peers: max_peers=%s', self.max_peers)
         addr = Address(external_ip, self.port, self.port)
         discovery_proto = PreferredNodeDiscoveryProtocol(
-            self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes)
+            self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes, self.cancel_token)
         self.discovery = DiscoveryService(
             discovery_proto, self.peer_pool, self.port, self.cancel_token)
         self.run_daemon(self.peer_pool)
