@@ -82,18 +82,18 @@ geth_steps: &geth_steps
         key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
-  lint-py35:
+  py35-lint:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
           TOXENV: lint-py35
-  lint-py36:
+  py36-lint:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: lint-py36
+          TOXENV: py36-lint
 
   py36-docs:
     <<: *common
@@ -361,5 +361,5 @@ workflows:
       - py35-transactions
       - py35-database
 
-      - lint-py35
-      - lint-py36
+      - py35-lint
+      - py36-lint
