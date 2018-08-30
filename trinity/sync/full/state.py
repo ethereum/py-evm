@@ -87,12 +87,14 @@ class StateDownloader(BaseService, PeerSubscriber):
         super().__init__(token)
         self.chaindb = chaindb
         self.peer_pool = peer_pool
-        self.root_hash = root_hash
+        self.target_root_hash = root_hash
+
         # We use a LevelDB instance for the nodes cache because a full state download, if run
         # uninterrupted will visit more than 180M nodes, making an in-memory cache unfeasible.
         self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="pyevm-state-sync-cache")
-        self.scheduler = StateSync(
-            root_hash, account_db, LevelDB(cast(Path, self._nodes_cache_dir.name)), self.logger)
+
+        self.scheduler = StateSync(root_hash, account_db, LevelDB(cast(Path, self._nodes_cache_dir.name)), self.logger)
+
         self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
@@ -298,13 +300,24 @@ class StateDownloader(BaseService, PeerSubscriber):
             next_timeout = self.request_tracker.get_next_timeout()
             await self.sleep(next_timeout - time.time())
 
+    async def update_state_root(self, root_hash: Hash32) -> None:
+        """
+        Update the sync process for a new state root.
+        """
+        self.logger.info("Updating state root sync target")
+        self.target_root_hash = root_hash
+        start_at = time.perf_counter()
+        self.scheduler = await self.scheduler.migrate_state_root(root_hash)
+        end_at = time.perf_counter()
+        self.logger.info("Took %s to update state sync target", end_at - start_at)
+
     async def _run(self) -> None:
-        """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
+        """Fetch all trie nodes starting from self.target_root_hash, and store them in self.db.
 
         Raises OperationCancelled if we're interrupted before that is completed.
         """
         self._timer.start()
-        self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
+        self.logger.info("Starting state sync for root hash %s", encode_hex(self.target_root_hash))
         self.run_task(self._handle_msg_loop())
         self.run_task(self._periodically_report_progress())
         self.run_task(self._periodically_retry_timedout_and_missing())
@@ -327,7 +340,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
                 await self.request_nodes([request.node_key for request in requests])
 
-        self.logger.info("Finished state sync with root hash %s", encode_hex(self.root_hash))
+        self.logger.info("Finished state sync with root hash %s", encode_hex(self.target_root_hash))
 
     async def _periodically_report_progress(self) -> None:
         while self.is_operational:

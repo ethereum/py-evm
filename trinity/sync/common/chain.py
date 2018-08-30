@@ -8,19 +8,19 @@ from typing import (
     cast,
 )
 
+from eth_typing import Hash32
+
+from eth_utils import (
+    encode_hex,
+    ValidationError,
+)
+
 from cancel_token import CancelToken, OperationCancelled
 
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.chains import AsyncChain
 from eth.exceptions import (
     HeaderNotFound,
-)
-from eth_typing import (
-    Hash32,
-)
-from eth_utils import (
-    encode_hex,
-    ValidationError,
 )
 from eth.rlp.headers import BlockHeader
 
@@ -49,14 +49,12 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     """
     # We'll only sync if we are connected to at least min_peers_to_sync.
     min_peers_to_sync = 1
-    # Post-processing steps can exit out of sync (for example, fast sync) by triggering this token:
-    complete_token = None
     # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
     # the round-trip times from our download requests.
     _reply_timeout = 60
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
     # the latest header hash of the peer on the current sync
-    _target_header_hash = None
+    _sync_target_hash: Hash32 = None
     header_queue: TaskQueue[BlockHeader]
 
     def __init__(self,
@@ -64,12 +62,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                  db: AsyncHeaderDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        self.complete_token = CancelToken('trinity.sync.common.BaseHeaderChainSyncer.SyncCompleted')
-        if token is None:
-            master_service_token = self.complete_token
-        else:
-            master_service_token = token.chain(self.complete_token)
-        super().__init__(master_service_token)
+        super().__init__(token)
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
@@ -77,6 +70,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._syncing = False
         self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
+        self.new_sync_target = asyncio.Condition()
 
         # pending queue size should be big enough to avoid starving the processing consumers, but
         # small enough to avoid wasteful over-requests before post-processing can happen
@@ -89,12 +83,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # the msg queue grow past a few hundred items, so this should be a reasonable limit for
         # now.
         return 2000
-
-    def get_target_header_hash(self) -> Hash32:
-        if self._target_header_hash is None:
-            raise ValidationError("Cannot check the target hash when there is no active sync")
-        else:
-            return self._target_header_hash
 
     def register_peer(self, peer: BasePeer) -> None:
         self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))
@@ -130,6 +118,27 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                     return
                 else:
                     self.run_task(self.sync(peer))
+
+    async def notify_new_sync_target(self, head: BlockHeader) -> None:
+        """
+        Notify that the chain has a new HEAD
+        """
+        async with self.new_sync_target:
+            self.new_sync_target.notify_all()
+
+    async def wait_new_sync_target(self) -> BlockHeader:
+        """
+        Return the new HEAD when the chain head has been updated.
+        """
+        async with self.new_sync_target:
+            await self.new_sync_target.wait()
+            (target,) = await self.peer_pool.highest_td_peer.requests.get_block_headers(
+                self._sync_target_hash,
+                max_headers=1,
+                skip=0,
+                reverse=False
+            )
+            return target
 
     async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:
@@ -236,7 +245,9 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             # Setting the latest header hash for the peer, before queuing header processing tasks
-            self._target_header_hash = peer.head_hash
+            if peer.head_hash != self._sync_target_hash:
+                self._sync_target_hash = peer.head_hash
+                await self.notify_new_sync_target(headers[-1])
 
             unrequested_headers = tuple(h for h in headers if h not in self.header_queue)
             await self.header_queue.add(unrequested_headers)

@@ -66,6 +66,15 @@ class SyncRequest:
     def __repr__(self) -> str:
         return "SyncRequest(%s, depth=%d)" % (encode_hex(self.node_key), self.depth)
 
+    @property
+    def root_hash(self) -> Hash32:
+        if self.depth == 0:
+            return self.node_key
+        elif self.parents:
+            return self.parents[0].root_hash
+        else:
+            raise Exception("Invariant: unreachable code path")
+
 
 def _get_children(node: Hash32, depth: int
                   ) -> Tuple[List[Tuple[int, Hash32]], List[bytes]]:
@@ -136,6 +145,18 @@ class HexaryTrieSync:
         else:
             self._schedule(root_hash, parent=None, depth=0, leaf_callback=self.leaf_callback)
 
+    async def migrate_state_root(self, root_hash: Hash32) -> 'HexaryTrieSync':
+        new_sync = type(self)(root_hash, self.db, self.nodes_cache, self.logger)
+        # TODO: can we cleanup the already committed nodes from the previous
+        # state root we were syncing against?
+
+        new_sync.committed_nodes = self.committed_nodes
+        for request in self.queue:
+            if request.root_hash != root_hash:
+                continue
+            new_sync._raw_schedule(request)
+        return new_sync
+
     async def leaf_callback(self, data: bytes, parent: SyncRequest) -> None:
         """Called when we reach a leaf node.
 
@@ -182,10 +203,13 @@ class HexaryTrieSync:
             return
 
         request = SyncRequest(node_key, parent, depth, leaf_callback, is_raw)
+        self.logger.trace("Scheduling retrieval of %s", encode_hex(request.node_key))
+        self._raw_schedule(request)
+
+    def _raw_schedule(self, request: SyncRequest) -> None:
         # Requests get added to both self.queue and self.requests; the former is used to keep
         # track which requests should be sent next, and the latter is used to avoid scheduling a
         # request for a given node multiple times.
-        self.logger.trace("Scheduling retrieval of %s", encode_hex(request.node_key))
         self.requests[request.node_key] = request
         bisect.insort(self.queue, request)
 

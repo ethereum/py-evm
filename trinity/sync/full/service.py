@@ -13,7 +13,10 @@ from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 
 from .chain import FastChainSyncer, RegularChainSyncer
-from .constants import FAST_SYNC_CUTOFF
+from .constants import (
+    FAST_SYNC_CUTOFF,
+    STALE_STATE_ROOT_AGE,
+)
 from .state import StateDownloader
 
 
@@ -36,32 +39,55 @@ class FullNodeSyncer(BaseService):
         self.peer_pool = peer_pool
 
     async def _run(self) -> None:
+        if await self.should_fast_sync():
+            await self.do_fast_sync()
+
+        if self.is_operational:
+            await self.do_regular_sync()
+
+    async def should_fast_sync(self) -> bool:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.
         # See https://github.com/ethereum/py-evm/issues/654 for more details
         if head.timestamp < time.time() - FAST_SYNC_CUTOFF:
-            # Fast-sync chain data.
-            self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
-            chain_syncer = FastChainSyncer(
-                self.chain, self.chaindb, self.peer_pool, self.cancel_token)
-            await chain_syncer.run()
+            return True
+        elif head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
+            return True
+        else:
+            return False
 
-        if self.cancel_token.triggered:
-            return
+    async def _update_downloader_state_root(self,
+                                            chain_syncer: FastChainSyncer,
+                                            downloader: StateDownloader) -> None:
+        # TODO: remove this initial wait
+        target = await chain_syncer.wait_new_sync_target()
 
-        # Ensure we have the state for our current head.
+        while self.is_operational:
+            # TODO: exit when downloader has finished.
+            new_target = await chain_syncer.wait_new_sync_target()
+            self.logger('new target: #%d !!!!!!!!!!!!!!!!!!!', new_target.block_number)
+            # we only update the state root for the chain syncer when the new
+            # head is at least STALE_STATE_ROOT_AGE in the future of the
+            # previous state sync head
+            if new_target.block_number - target.block_number < STALE_STATE_ROOT_AGE:
+                self.logger('not updating to new target!!!!!!!!!!!!!!!!!')
+                continue
+            target = new_target
+            await downloader.update_state_root(target.state_root)
+
+    async def do_fast_sync(self) -> None:
+        chain_syncer = FastChainSyncer(
+            self.chain, self.chaindb, self.peer_pool, self.cancel_token)
+        self.run_daemon(chain_syncer)
+        target = await chain_syncer.wait_new_sync_target()
+        downloader = StateDownloader(
+            self.chaindb, self.base_db, target.state_root, self.peer_pool, self.cancel_token)
+        self.run_task(self._update_downloader_state_root(chain_syncer, downloader))
+        await downloader.run()
+
+    async def do_regular_sync(self) -> None:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
-        if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
-            self.logger.info(
-                "Missing state for current head (#%d), downloading it", head.block_number)
-            downloader = StateDownloader(
-                self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
-            await downloader.run()
-
-        if self.cancel_token.triggered:
-            return
-
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
         chain_syncer = RegularChainSyncer(

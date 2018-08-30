@@ -76,6 +76,100 @@ def test_trie_sync(random, event_loop):
     event_loop.run_until_complete(_test_trie_sync())
 
 
+@pytest.mark.asyncio
+async def test_trie_sync_migrate_new_state_root():
+    source_db_a = {}
+    trie_a = HexaryTrie(source_db_a)
+    contents = {}
+    with trie_a.squash_changes() as memory_trie:
+        for i in range(1000):
+            key = b'key-%r' % i
+            value = b'value-%r' % i
+            contents[key] = value
+            memory_trie[key] = value
+
+    dest_db = FakeAsyncMemoryDB()
+    nodes_cache = MemoryDB()
+    logger = TraceLogger("test")
+
+    scheduler_a = HexaryTrieSync(trie_a.root_hash, dest_db, nodes_cache, logger)
+
+    while True:
+        requests = scheduler_a.next_batch(10)
+        if not requests:
+            assert False, "Should not happen"
+        else:
+            print('num requests:', len(requests))
+
+        results = []
+        for request in requests:
+            results.append([request.node_key, source_db_a[request.node_key]])
+        await scheduler_a.process(results)
+
+        num_keys_migrated = sum(1 for key in source_db_a if key in dest_db.kv_store)
+
+        print('num migrated:', num_keys_migrated)
+        if num_keys_migrated > len(source_db_a) // 2:
+            print('passed halfway:', num_keys_migrated, '/', len(source_db_a))
+            break
+        else:
+            print(num_keys_migrated, '/', len(source_db_a))
+
+    # now we modify 1/8 of the trie keys and delete another 1/8
+    all_keys = sorted(contents.keys())
+    cutoff = len(all_keys) // 4
+
+    to_delete = all_keys[:cutoff]
+    to_modify = all_keys[-1 * cutoff:]
+
+    source_db_b = source_db_a.copy()
+    trie_b = HexaryTrie(source_db_b, trie_a.root_hash)
+
+    with trie_b.squash_changes() as memory_trie:
+        for key in to_delete:
+            del memory_trie[key]
+            del contents[key]
+        for key in to_modify:
+            _, _, suffix = key.partition(b'-')
+            new_value = b'modified-%s' % suffix
+            memory_trie[key] = new_value
+            contents[key] = new_value
+
+    print('migrating to new state root')
+    scheduler_b = await scheduler_a.migrate_state_root(trie_b.root_hash)
+
+    while True:
+        requests = scheduler_b.next_batch(10)
+        if not requests:
+            print('finished sync on scheduler_b')
+            break
+
+        results = []
+        for request in requests:
+            results.append([request.node_key, source_db_b[request.node_key]])
+        await scheduler_b.process(results)
+
+        num_keys_migrated = sum(1 for key in source_db_b if key in dest_db.kv_store)
+
+        print('num migrated:', num_keys_migrated)
+
+    dest_trie = HexaryTrie(dest_db, trie_b.root_hash)
+
+    print('len dest_db', len(dest_db.kv_store))
+    print('len source_db', len(source_db_b))
+    print('dest_db keys', tuple(dest_db.kv_store.keys()))
+    print('source_db keys', tuple(source_db_b.keys())[:10])
+
+    for key, value in contents.items():
+        assert dest_trie[key] == value
+    for key in to_delete:
+        assert key not in dest_trie
+    for key in to_modify:
+        _, _, suffix = key.partition(b'-')
+        new_value = b'modified-%s' % suffix
+        assert dest_trie[key] == new_value
+
+
 def make_random_state(n):
     raw_db = MemoryDB()
     account_db = AccountDB(raw_db)
