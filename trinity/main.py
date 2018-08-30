@@ -46,6 +46,9 @@ from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
+from trinity.events import (
+    ShutdownRequest
+)
 from trinity.extensibility import (
     PluginManager,
     MainAndIsolatedProcessScope,
@@ -239,6 +242,17 @@ def trinity_boot(args: Namespace,
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
+    main_endpoint.subscribe(
+        ShutdownRequest,
+        lambda ev: kill_trinity_gracefully(
+            logger,
+            database_server_process,
+            networking_process,
+            plugin_manager,
+            event_bus
+        )
+    )
+
     plugin_manager.prepare(args, chain_config, extra_kwargs)
     plugin_manager.broadcast(TrinityStartupEvent(
         args,
@@ -249,28 +263,41 @@ def trinity_boot(args: Namespace,
         loop.run_forever()
         loop.close()
     except KeyboardInterrupt:
-        # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
-        # foreground *process group*, so both our networking and database processes will terminate
-        # at the same time and not sequentially as we'd like. That shouldn't be a problem but if
-        # we keep getting unhandled BrokenPipeErrors/ConnectionResetErrors like reported in
-        # https://github.com/ethereum/py-evm/issues/827, we might want to change the networking
-        # process' signal handler to wait until the DB process has terminated before doing its
-        # thing.
-        # Notice that we still need the kill_process_gracefully() calls here, for when the user
-        # simply uses 'kill' to send a signal to the main process, but also because they will
-        # perform a non-gracefull shutdown if the process takes too long to terminate.
-        logger.info('Keyboard Interrupt: Stopping')
-        plugin_manager.shutdown()
-        networking_endpoint.stop()
-        main_endpoint.stop()
-        event_bus.stop()
-        kill_process_gracefully(database_server_process, logger)
-        logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
-        # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
-        # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-        time.sleep(0.2)
-        kill_process_gracefully(networking_process, logger)
-        logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+        kill_trinity_gracefully(
+            logger,
+            database_server_process,
+            networking_process,
+            plugin_manager,
+            event_bus
+        )
+
+
+def kill_trinity_gracefully(logger: logging.Logger,
+                            database_server_process: Any,
+                            networking_process: Any,
+                            plugin_manager: PluginManager,
+                            event_bus: EventBus) -> None:
+    # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
+    # foreground *process group*, so both our networking and database processes will terminate
+    # at the same time and not sequentially as we'd like. That shouldn't be a problem but if
+    # we keep getting unhandled BrokenPipeErrors/ConnectionResetErrors like reported in
+    # https://github.com/ethereum/py-evm/issues/827, we might want to change the networking
+    # process' signal handler to wait until the DB process has terminated before doing its
+    # thing.
+    # Notice that we still need the kill_process_gracefully() calls here, for when the user
+    # simply uses 'kill' to send a signal to the main process, but also because they will
+    # perform a non-gracefull shutdown if the process takes too long to terminate.
+    logger.info('Keyboard Interrupt: Stopping')
+    plugin_manager.shutdown()
+    event_bus.shutdown()
+    kill_process_gracefully(database_server_process, logger)
+    logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
+    # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
+    # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
+    time.sleep(0.2)
+    kill_process_gracefully(networking_process, logger)
+    logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+    sys.exit()
 
 
 @setup_cprofiler('run_database_process')
