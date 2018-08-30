@@ -198,7 +198,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
     def receive(self, address: kademlia.Address, message: bytes) -> None:
         try:
-            remote_pubkey, cmd_id, payload, message_hash = _unpack(message)
+            remote_pubkey, cmd_id, payload, message_hash = _unpack_v4(message)
         except DefectiveMessage as e:
             self.logger.error('error unpacking message (%s) from %s: %s', message, address, e)
             return
@@ -246,7 +246,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def send_ping(self, node: kademlia.Node) -> Hash32:
         version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION)
         payload = [version, self.address.to_endpoint(), node.address.to_endpoint()]
-        message = _pack(CMD_PING.id, payload, self.privkey)
+        message = _pack_v4(CMD_PING.id, payload, self.privkey)
         self.send(node, message)
         # Return the msg hash, which is used as a token to identify pongs.
         token = message[:MAC_SIZE]
@@ -262,13 +262,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         node_id = int_to_big_endian(
             target_node_id).rjust(kademlia.k_pubkey_size // 8, b'\0')
         self.logger.trace('>>> find_node to %s', node)
-        message = _pack(CMD_FIND_NODE.id, [node_id], self.privkey)
+        message = _pack_v4(CMD_FIND_NODE.id, [node_id], self.privkey)
         self.send(node, message)
 
     def send_pong(self, node: kademlia.Node, token: Hash32) -> None:
         self.logger.trace('>>> pong %s', node)
         payload = [node.address.to_endpoint(), token]
-        message = _pack(CMD_PONG.id, payload, self.privkey)
+        message = _pack_v4(CMD_PONG.id, payload, self.privkey)
         self.send(node, message)
 
     def send_neighbours(self, node: kademlia.Node, neighbours: List[kademlia.Node]) -> None:
@@ -279,7 +279,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         max_neighbours = self._get_max_neighbours_per_packet()
         for i in range(0, len(nodes), max_neighbours):
-            message = _pack(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
+            message = _pack_v4(CMD_NEIGHBOURS.id, [nodes[i:i + max_neighbours]], self.privkey)
             self.logger.trace('>>> neighbours to %s: %s',
                               node, neighbours[i:i + max_neighbours])
             self.send(node, message)
@@ -564,7 +564,7 @@ def _get_max_neighbours_per_packet() -> int:
     return len(neighbours) - 1
 
 
-def _pack(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> bytes:
+def _pack_v4(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> bytes:
     """Create and sign a UDP message to be sent to a remote node.
 
     See https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-discovery for information on
@@ -578,7 +578,7 @@ def _pack(cmd_id: int, payload: List[Any], privkey: datatypes.PrivateKey) -> byt
     return message_hash + signature.to_bytes() + encoded_data
 
 
-def _unpack(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Hash32]:
+def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, List[Any], Hash32]:
     """Unpack a discovery v4 UDP message received from a remote node.
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
