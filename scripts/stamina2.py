@@ -1,0 +1,381 @@
+import logging
+import pathlib
+import json
+from pprint import pprint
+from scripts.benchmark.utils.chain_plumbing import (
+    get_chain,
+    FUNDED_ADDRESS,
+    FUNDED_ADDRESS_PRIVATE_KEY,
+)
+
+from scripts.benchmark.utils.address import (
+    generate_random_address,
+)
+
+from scripts.benchmark.utils.compile import (
+    get_compiled_contract
+)
+
+from scripts.benchmark.utils.tx import (
+    new_transaction,
+)
+
+from eth.vm.forks.byzantium import (
+    ByzantiumVM,
+)
+
+from eth.chains.base import (
+    MiningChain,
+)
+
+from web3 import (
+    Web3
+)
+
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS
+)
+
+from eth_utils import (
+    encode_hex,
+    decode_hex,
+    to_int,
+)
+
+from solc import compile_source
+from web3.contract import ConciseContract
+
+contract_source_code = '''
+pragma solidity ^0.4.23;
+
+
+contract Stamina {
+  struct Withdrawal {
+    uint128 amount;
+    uint128 requestBlockNumber;
+    address delegatee;
+    bool processed;
+  }
+
+  /**
+   * Internal States
+   */
+  // delegatee of `delegator` account
+  // `delegator` => `delegatee`
+  mapping (address => address) _delegatee;
+
+  // stamina of delegatee
+  // `delegatee` => `stamina`
+  mapping (address => uint) _stamina;
+
+  // total deposit of delegatee
+  // `delegatee` => `total deposit`
+  mapping (address => uint) _total_deposit;
+
+  // deposit of delegatee
+  // `depositor` => `delegatee` => `deposit`
+  mapping (address => mapping (address => uint)) _deposit;
+
+  // last recovery block of delegatee
+  mapping (address => uint256) _last_recovery_block;
+
+  // depositor => [index] => Withdrawal
+  mapping (address => Withdrawal[]) _withdrawal;
+  mapping (address => uint256) _last_processed_withdrawal;
+  mapping (address => uint) _num_recovery;
+
+  /**
+   * Public States
+   */
+  bool public initialized;
+
+  uint public MIN_DEPOSIT;
+  uint public RECOVER_EPOCH_LENGTH; // stamina is recovered when block number % RECOVER_DELAY == 0
+  uint public WITHDRAWAL_DELAY;     // Refund will be made WITHDRAWAL_DELAY blocks after depositor request Withdrawal.
+                                    // WITHDRAWAL_DELAY prevents immediate withdrawal.
+                                    // RECOVER_EPOCH_LENGTH * 2 < WITHDRAWAL_DELAY
+
+
+  bool public development = true;
+
+  modifier onlyChain() {
+    require(development || msg.sender == address(0));
+    _;
+  }
+
+  modifier onlyInitialized() {
+    require(initialized);
+    _;
+  }
+
+  event Deposited(address indexed depositor, address indexed delegatee, uint amount);
+  event DelegateeChanged(address delegator, address oldDelegatee, address newDelegatee);
+  event WithdrawalRequested(address indexed depositor, address indexed delegatee, uint amount, uint requestBlockNumber, uint withdrawalIndex);
+  event Withdrawn(address indexed depositor, address indexed delegatee, uint amount, uint withdrawalIndex);
+
+  function init(uint minDeposit, uint recoveryEpochLength, uint withdrawalDelay) external returns (bool) {
+    require(!initialized);
+
+    require(minDeposit > 0);
+    require(recoveryEpochLength > 0);
+    require(withdrawalDelay > 0);
+
+    require(recoveryEpochLength * 2 < withdrawalDelay);
+
+    MIN_DEPOSIT = minDeposit;
+    RECOVER_EPOCH_LENGTH = recoveryEpochLength;
+    WITHDRAWAL_DELAY = withdrawalDelay;
+
+    initialized = true;
+    return true;
+  }
+
+  function getDelegatee(address delegator) public view returns (address) {
+    return _delegatee[delegator];
+  }
+
+  function getStamina(address addr) public view returns (uint) {
+    return _stamina[addr];
+  }
+
+  function getTotalDeposit(address delegatee) public view returns (uint) {
+    return _total_deposit[delegatee];
+  }
+
+  function getDeposit(address depositor, address delegatee) public view returns (uint) {
+    return _deposit[depositor][delegatee];
+  }
+
+  function getNumWithdrawals(address depositor) public view returns (uint) {
+    return _withdrawal[depositor].length;
+  }
+
+  function getLastRecoveryBlock(address delegatee) public view returns (uint) {
+    return _last_recovery_block[delegatee];
+  }
+
+  function getNumRecovery(address delegatee) public view returns (uint) {
+    return _num_recovery[delegatee];
+  }
+
+  function getWithdrawal(address depositor, uint withdrawalIndex)
+    public
+    view
+    returns (uint128 amount, uint128 requestBlockNumber, address delegatee, bool processed)
+  {
+    require(withdrawalIndex < getNumWithdrawals(depositor));
+
+    Withdrawal memory w = _withdrawal[depositor][withdrawalIndex];
+
+    amount = w.amount;
+    requestBlockNumber = w.requestBlockNumber;
+    delegatee = w.delegatee;
+    processed = w.processed;
+  }
+
+  function setDelegator(address delegator)
+    external
+    onlyInitialized
+    returns (bool)
+  {
+    address oldDelegatee = _delegatee[delegator];
+
+    _delegatee[delegator] = msg.sender;
+
+    emit DelegateeChanged(delegator, oldDelegatee, msg.sender);
+    return true;
+  }
+
+//   function deposit(address delegatee)
+//     external
+//     payable
+//     onlyInitialized
+//     returns (bool)
+//   {
+//     require(msg.value >= MIN_DEPOSIT);
+
+//     uint totalDeposit = _total_deposit[delegatee];
+//     uint deposit = _deposit[msg.sender][delegatee];
+//     uint stamina = _stamina[delegatee];
+
+//     require(totalDeposit + msg.value > totalDeposit);
+//     require(deposit + msg.value > deposit);
+//     require(stamina + msg.value > stamina);
+
+//     _total_deposit[delegatee] = totalDeposit + msg.value;
+//     _deposit[msg.sender][delegatee] = deposit + msg.value;
+//     _stamina[delegatee] = stamina + msg.value;
+
+//     if (_last_recovery_block[delegatee] == 0) {
+//       _last_recovery_block[delegatee] = block.number;
+//     }
+
+//     emit Deposited(msg.sender, delegatee, msg.value);
+//     return true;
+//   }
+
+//   function requestWithdrawal(address delegatee, uint amount)
+//     external
+//     onlyInitialized
+//     returns (bool)
+//   {
+//     require(amount > 0);
+
+//     uint totalDeposit = _total_deposit[delegatee];
+//     uint deposit = _deposit[msg.sender][delegatee];
+//     uint stamina = _stamina[delegatee];
+
+//     require(deposit > 0);
+
+//     require(totalDeposit - amount < totalDeposit);
+//     require(deposit - amount < deposit); // this guarentees deposit >= amount
+
+//     _total_deposit[delegatee] = totalDeposit - amount;
+//     _deposit[msg.sender][delegatee] = deposit - amount;
+
+//     if (stamina > amount) {
+//       _stamina[delegatee] = stamina - amount;
+//     } else {
+//       _stamina[delegatee] = 0;
+//     }
+
+//     Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
+
+//     uint withdrawalIndex = withdrawals.length;
+//     Withdrawal storage withdrawal = withdrawals[withdrawals.length++];
+
+//     withdrawal.amount = uint128(amount);
+//     withdrawal.requestBlockNumber = uint128(block.number);
+//     withdrawal.delegatee = delegatee;
+
+//     emit WithdrawalRequested(msg.sender, delegatee, amount, block.number, withdrawalIndex);
+//     return true;
+//   }
+
+//   function withdraw() external returns (bool) {
+//     Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
+//     require(withdrawals.length > 0);
+
+//     uint lastWithdrawalIndex = _last_processed_withdrawal[msg.sender];
+//     uint withdrawalIndex;
+
+//     if (lastWithdrawalIndex == 0 && !withdrawals[0].processed) {
+//       withdrawalIndex = 0;
+//     } else if (lastWithdrawalIndex == 0) { // lastWithdrawalIndex == 0 && withdrawals[0].processed
+//       require(withdrawals.length >= 2);
+
+//       withdrawalIndex = 1;
+//     } else {
+//       withdrawalIndex = lastWithdrawalIndex + 1;
+//     }
+
+//     require(withdrawalIndex < withdrawals.length);
+
+//     Withdrawal storage withdrawal = _withdrawal[msg.sender][withdrawalIndex];
+
+//     require(!withdrawal.processed);
+//     require(withdrawal.requestBlockNumber + WITHDRAWAL_DELAY <= block.number);
+
+//     uint amount = uint(withdrawal.amount);
+
+//     withdrawal.processed = true;
+//     _last_processed_withdrawal[msg.sender] = withdrawalIndex;
+
+//     msg.sender.transfer(amount);
+//     emit Withdrawn(msg.sender, withdrawal.delegatee, amount, withdrawalIndex);
+
+//     return true;
+//   }
+
+  function addStamina(address delegatee, uint amount) external onlyChain returns (bool) {
+    if (_last_recovery_block[delegatee] + RECOVER_EPOCH_LENGTH <= block.number) {
+      _stamina[delegatee] = _total_deposit[delegatee];
+      _last_recovery_block[delegatee] = block.number;
+      _num_recovery[delegatee] += 1;
+
+      return true;
+    }
+
+    uint totalDeposit = _total_deposit[delegatee];
+    uint stamina = _stamina[delegatee];
+
+    require(stamina + amount > stamina);
+    uint targetBalance = stamina + amount;
+
+    if (targetBalance > totalDeposit) _stamina[delegatee] = totalDeposit;
+    else _stamina[delegatee] = targetBalance;
+
+    return true;
+  }
+
+  function subtractStamina(address delegatee, uint amount) external onlyChain returns (bool) {
+    uint stamina = _stamina[delegatee];
+
+    require(stamina - amount < stamina);
+    _stamina[delegatee] = stamina - amount;
+    return true;
+  }
+}
+'''
+
+FIRST_TX_GAS_LIMIT = 1400000
+SECOND_TX_GAS_LIMIT = 60000
+TRANSFER_AMOUNT = 1000
+TRANSER_FROM_AMOUNT = 1
+
+W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
+
+CONTRACT_FILE = 'scripts/benchmark/contract_data/erc20.sol'
+CONTRACT_NAME = 'SimpleToken'
+
+contract_interface = get_compiled_contract(
+    pathlib.Path(CONTRACT_FILE),
+    CONTRACT_NAME
+)
+w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:30303"))
+
+stamina_address = Web3.toChecksumAddress('0x000000000000000000000000000000000000dead')
+
+def run() -> None:
+    # get Byzantium VM
+    chain = get_chain(ByzantiumVM)
+    _stamina_contract_function(decode_hex(stamina_address), chain)
+
+def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
+    compiled_sol = compile_source(contract_source_code) # Compiled source code
+    contract_interface = compiled_sol['<stdin>:Stamina']
+
+    # Instantiate and deploy contract
+    stamina = w3.eth.contract(
+        address=addr,
+        abi=contract_interface['abi']
+    )
+
+    # w3_tx = stamina.functions.init(
+    #     10,
+    #     10,
+    #     10
+    # ).buildTransaction(W3_TX_DEFAULTS)
+    w3_tx = stamina.functions.development().buildTransaction(W3_TX_DEFAULTS)
+
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=0,
+        gas=SECOND_TX_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    assert to_int(computation.output) == 0
+
+    print(block)
+    print(computation.is_success)
+    print(computation.output)
+
+if __name__ == '__main__':
+    run()
