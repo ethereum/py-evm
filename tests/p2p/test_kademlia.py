@@ -1,4 +1,3 @@
-import asyncio
 import random
 
 import pytest
@@ -9,148 +8,7 @@ from eth_utils import (
     int_to_big_endian,
 )
 
-from cancel_token import CancelToken
-
 from p2p import kademlia
-
-
-# Force our tests to fail quickly if they accidentally make network requests.
-@pytest.fixture(autouse=True)
-def short_timeout(monkeypatch):
-    monkeypatch.setattr(kademlia, 'k_request_timeout', 0.01)
-
-
-# Depend on the event_loop fixture here to make sure CancelToken uses the default loop installed
-# for the tests. More info in https://github.com/pytest-dev/pytest-asyncio/issues/38
-@pytest.fixture
-def cancel_token(event_loop):
-    return CancelToken("cancel_token_fixture")
-
-
-@pytest.mark.asyncio
-async def test_protocol_bootstrap(cancel_token):
-    proto = get_wired_protocol()
-    node1, node2 = [random_node(), random_node()]
-
-    async def bond(node, cancel_token):
-        assert proto.routing.add_node(node) is None
-        return True
-
-    # Pretend we bonded successfully with our bootstrap nodes.
-    proto.bond = bond
-
-    await proto.bootstrap([node1, node2], cancel_token)
-
-    assert len(proto.wire.messages) == 2
-    # We don't care in which order the bootstrap nodes are contacted, nor which node_id was used
-    # in the find_node request, so we just assert that we sent find_node msgs to both nodes.
-    assert sorted([(node, cmd) for (node, cmd, _) in proto.wire.messages]) == sorted([
-        (node1, 'find_node'),
-        (node2, 'find_node')])
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize('echo', ['echo', b'echo'])
-async def test_wait_ping(echo, cancel_token):
-    proto = get_wired_protocol()
-    node = random_node()
-
-    # Schedule a call to proto.recv_ping() simulating a ping from the node we expect.
-    recv_ping_coroutine = asyncio.coroutine(lambda: proto.recv_ping(node, echo))
-    asyncio.ensure_future(recv_ping_coroutine())
-
-    got_ping = await proto.wait_ping(node, cancel_token)
-
-    assert got_ping
-    # Ensure wait_ping() cleaned up after itself.
-    assert node not in proto.ping_callbacks
-
-    # If we waited for a ping from a different node, wait_ping() would timeout and thus return
-    # false.
-    recv_ping_coroutine = asyncio.coroutine(lambda: proto.recv_ping(node, echo))
-    asyncio.ensure_future(recv_ping_coroutine())
-
-    node2 = random_node()
-    got_ping = await proto.wait_ping(node2, cancel_token)
-
-    assert not got_ping
-    assert node2 not in proto.ping_callbacks
-
-
-@pytest.mark.asyncio
-async def test_wait_pong(cancel_token):
-    proto = get_wired_protocol()
-    node = random_node()
-
-    token = b'token'
-    # Schedule a call to proto.recv_pong() simulating a pong from the node we expect.
-    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, token))
-    asyncio.ensure_future(recv_pong_coroutine())
-
-    got_pong = await proto.wait_pong(node, token, cancel_token)
-
-    assert got_pong
-    # Ensure wait_pong() cleaned up after itself.
-    pingid = proto._mkpingid(token, node)
-    assert pingid not in proto.pong_callbacks
-
-    # If the remote node echoed something different than what we expected, wait_pong() would
-    # timeout.
-    wrong_token = b"foo"
-    recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong(node, wrong_token))
-    asyncio.ensure_future(recv_pong_coroutine())
-
-    got_pong = await proto.wait_pong(node, token, cancel_token)
-
-    assert not got_pong
-    assert pingid not in proto.pong_callbacks
-
-
-@pytest.mark.asyncio
-async def test_wait_neighbours(cancel_token):
-    proto = get_wired_protocol()
-    node = random_node()
-
-    # Schedule a call to proto.recv_neighbours() simulating a neighbours response from the node we
-    # expect.
-    neighbours = (random_node(), random_node(), random_node())
-    recv_neighbours_coroutine = asyncio.coroutine(lambda: proto.recv_neighbours(node, neighbours))
-    asyncio.ensure_future(recv_neighbours_coroutine())
-
-    received_neighbours = await proto.wait_neighbours(node, cancel_token)
-
-    assert neighbours == received_neighbours
-    # Ensure wait_neighbours() cleaned up after itself.
-    assert node not in proto.neighbours_callbacks
-
-    # If wait_neighbours() times out, we get an empty list of neighbours.
-    received_neighbours = await proto.wait_neighbours(node, cancel_token)
-
-    assert received_neighbours == tuple()
-    assert node not in proto.neighbours_callbacks
-
-
-@pytest.mark.asyncio
-async def test_bond(cancel_token):
-    proto = get_wired_protocol()
-    node = random_node()
-
-    token = b'token'
-    # Do not send pings, instead simply return the pingid we'd expect back together with the pong.
-    proto.ping = lambda remote: token
-
-    # Pretend we get a pong from the node we are bonding with.
-    proto.wait_pong = asyncio.coroutine(lambda n, t, cancel_token: t == token and n == node)
-
-    bonded = await proto.bond(node, cancel_token)
-
-    assert bonded
-
-    # If we try to bond with any other nodes we'll timeout and bond() will return False.
-    node2 = random_node()
-    bonded = await proto.bond(node2, cancel_token)
-
-    assert not bonded
 
 
 def test_node_from_uri():
@@ -162,41 +20,6 @@ def test_node_from_uri():
     assert node.address.ip == ip
     assert node.address.udp_port == node.address.tcp_port == port
     assert node.pubkey.to_hex() == '0x' + pubkey
-
-
-def test_update_routing_table():
-    proto = get_wired_protocol()
-    node = random_node()
-
-    assert proto.update_routing_table(node) is None
-
-    assert node in proto.routing
-
-
-@pytest.mark.asyncio
-async def test_update_routing_table_triggers_bond_if_eviction_candidate():
-    proto = get_wired_protocol()
-    old_node, new_node = random_node(), random_node()
-
-    bond_called = False
-
-    def bond(node, cancel_token):
-        nonlocal bond_called
-        bond_called = True
-        assert node == old_node
-
-    proto.bond = asyncio.coroutine(bond)
-    # Pretend our routing table failed to add the new node by returning the least recently seen
-    # node for an eviction check.
-    proto.routing.add_node = lambda n: old_node
-
-    proto.update_routing_table(new_node)
-
-    assert new_node not in proto.routing
-    # The update_routing_table() call above will have scheduled a future call to proto.bond() so
-    # we need to yield here to give it a chance to run.
-    await asyncio.sleep(0.001)
-    assert bond_called
 
 
 def test_routingtable_split_bucket():
@@ -384,11 +207,6 @@ def test_compute_shared_prefix_bits():
     assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
 
 
-def get_wired_protocol():
-    this_node = random_node()
-    return kademlia.KademliaProtocol(this_node, WireMock(this_node))
-
-
 def random_pubkey():
     pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
     return keys.PublicKey(b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk)
@@ -400,26 +218,3 @@ def random_node(nodeid=None):
     if nodeid is not None:
         node.id = nodeid
     return node
-
-
-class WireMock():
-
-    messages = []  # type: ignore
-    cancel_token = CancelToken("WireMock")
-
-    def __init__(self, sender):
-        self.sender = sender
-
-    def send_ping(self, node):
-        echo = hex(random.randint(0, 2**256))[-32:]
-        self.messages.append((node, 'ping', echo))
-        return echo
-
-    def send_pong(self, node, echo):
-        self.messages.append((node, 'pong', echo))
-
-    def send_find_node(self, node, nodeid):
-        self.messages.append((node, 'find_node', nodeid))
-
-    def send_neighbours(self, node, neighbours):
-        self.messages.append((node, 'neighbours', neighbours))
