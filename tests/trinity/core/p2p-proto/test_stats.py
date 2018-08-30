@@ -71,7 +71,7 @@ async def les_peer_and_remote(request, event_loop):
 async def test_eth_get_headers_empty_stats(eth_peer_and_remote):
     peer, remote = eth_peer_and_remote
     stats = peer.requests.get_stats()
-    assert all(status == 'Uninitialized' for status in stats.values())
+    assert all(status == 'None' for status in stats.values())
     assert 'BlockHeaders' in stats.keys()
 
 
@@ -90,8 +90,9 @@ async def test_eth_get_headers_stats(eth_peer_and_remote):
 
         stats = peer.requests.get_stats()
 
-        assert stats['BlockHeaders'].startswith('count={0}, items={0}, avg_rtt='.format(idx))
-        assert stats['BlockHeaders'].endswith(', timeouts=0')
+        assert stats['BlockHeaders'].startswith('count={0}  items={0}  avg_rtt='.format(idx))
+        assert 'timeouts=0' in stats['BlockHeaders']
+        assert 'missing=0' in stats['BlockHeaders']
 
 
 @pytest.mark.asyncio
@@ -113,5 +114,6 @@ async def test_les_get_headers_stats(les_peer_and_remote):
 
         stats = peer.requests.get_stats()
 
-        assert stats['BlockHeaders'].startswith('count={0}, items={0}, avg_rtt='.format(idx))
-        assert stats['BlockHeaders'].endswith(', timeouts=0')
+        assert stats['BlockHeaders'].startswith('count={0}  items={0}  avg_rtt='.format(idx))
+        assert 'timeouts=0' in stats['BlockHeaders']
+        assert 'missing=0' in stats['BlockHeaders']

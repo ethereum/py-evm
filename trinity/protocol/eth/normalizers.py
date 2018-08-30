@@ -30,10 +30,6 @@ class GetNodeDataNormalizer(BaseNormalizer[Tuple[bytes, ...], NodeDataBundles]):
         result = tuple(zip(node_keys, msg))
         return result
 
-    @staticmethod
-    def get_num_results(result: NodeDataBundles) -> int:
-        return len(result)
-
 
 class ReceiptsNormalizer(BaseNormalizer[ReceiptsByBlock, ReceiptsBundles]):
     is_normalization_slow = True
@@ -42,10 +38,6 @@ class ReceiptsNormalizer(BaseNormalizer[ReceiptsByBlock, ReceiptsBundles]):
     def normalize_result(message: ReceiptsByBlock) -> ReceiptsBundles:
         trie_roots_and_data = tuple(map(make_trie_root_and_nodes, message))
         return tuple(zip(message, trie_roots_and_data))
-
-    @staticmethod
-    def get_num_results(result: ReceiptsBundles) -> int:
-        return sum(len(item) for item in result)
 
 
 class GetBlockBodiesNormalizer(BaseNormalizer[Tuple[BlockBody, ...], BlockBodyBundles]):
@@ -64,7 +56,3 @@ class GetBlockBodiesNormalizer(BaseNormalizer[Tuple[BlockBody, ...], BlockBodyBu
 
         body_bundles = tuple(zip(msg, transaction_roots_and_trie_data, uncles_hashes))
         return body_bundles
-
-    @staticmethod
-    def get_num_results(result: BlockBodyBundles) -> int:
-        return len(result)

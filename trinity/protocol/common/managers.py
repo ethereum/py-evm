@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import (  # noqa: F401 -- AsyncGenerator needed by mypy
+from typing import (
     Any,
     AsyncGenerator,
     Callable,
@@ -29,35 +29,11 @@ from p2p.service import BaseService
 from trinity.exceptions import AlreadyWaiting
 
 from .normalizers import BaseNormalizer
+from .trackers import BasePerformanceTracker
 from .types import (
     TResponsePayload,
     TResult,
 )
-
-
-class ResponseTimeTracker:
-
-    def __init__(self) -> None:
-        self.total_msgs = 0
-        self.total_items = 0
-        self.total_timeouts = 0
-        self.total_response_time = 0.0
-
-    def get_stats(self) -> str:
-        if not self.total_msgs:
-            return 'None'
-        avg_rtt = self.total_response_time / self.total_msgs
-        if not self.total_items:
-            per_item_rtt = 0.0
-        else:
-            per_item_rtt = self.total_response_time / self.total_items
-        return 'count=%d, items=%d, avg_rtt=%.2f, avg_time_per_item=%.5f, timeouts=%d' % (
-            self.total_msgs, self.total_items, avg_rtt, per_item_rtt, self.total_timeouts)
-
-    def add(self, time: float, size: int) -> None:
-        self.total_msgs += 1
-        self.total_items += size
-        self.total_response_time += time
 
 
 class ResponseCandidateStream(
@@ -87,13 +63,14 @@ class ResponseCandidateStream(
             token: CancelToken) -> None:
         super().__init__(token)
         self._peer = peer
-        self.response_times = ResponseTimeTracker()
         self.response_msg_type = response_msg_type
 
     async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
-            timeout: int = None) -> 'AsyncGenerator[TResponsePayload, None]':
+            tracker: BasePerformanceTracker[Any, Any],
+            *,
+            timeout: int = None) -> AsyncGenerator[TResponsePayload, None]:
         """
         Make a request and iterate through candidates for a valid response.
 
@@ -105,15 +82,20 @@ class ResponseCandidateStream(
 
         self._request(request)
         while self._is_pending():
-            yield await self._get_payload(timeout)
+            try:
+                yield await self._get_payload(timeout)
+            except TimeoutError:
+                tracker.record_timeout()
+                raise
 
     @property
     def response_msg_name(self) -> str:
         return self.response_msg_type.__name__
 
-    def complete_request(self, item_count: int) -> None:
+    def complete_request(self) -> None:
+        if self.pending_request is None:
+            self.logger.warning("`complete_request` was called when there was no pending request")
         self.pending_request = None
-        self.response_times.add(self.last_response_time, item_count)
 
     #
     # Service API
@@ -147,9 +129,6 @@ class ResponseCandidateStream(
         send_time, future = self.pending_request
         try:
             payload = await self.wait(future, timeout=timeout)
-        except TimeoutError:
-            self.response_times.total_timeouts += 1
-            raise
         finally:
             self.pending_request = None
 
@@ -192,9 +171,6 @@ class ResponseCandidateStream(
             _, future = self.pending_request
             future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
 
-    def get_stats(self) -> Tuple[str, str]:
-        return (self.response_msg_name, self.response_times.get_stats())
-
     def __repr__(self) -> str:
         return f'<ResponseCandidateStream({self._peer!s}, {self.response_msg_type!r})>'
 
@@ -230,6 +206,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
             normalizer: BaseNormalizer[TResponsePayload, TResult],
             validate_result: Callable[[TResult], None],
             payload_validator: Callable[[TResponsePayload], None],
+            tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult],
             timeout: int = None) -> TResult:
 
         if not self.is_operational:
@@ -237,7 +214,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
 
         stream = self._response_stream
 
-        async for payload in stream.payload_candidates(request, timeout):
+        async for payload in stream.payload_candidates(request, tracker, timeout=timeout):
             try:
                 payload_validator(payload)
 
@@ -256,8 +233,12 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 )
                 continue
             else:
-                num_items = normalizer.get_num_results(result)
-                stream.complete_request(num_items)
+                tracker.record_response(
+                    time=stream.last_response_time,
+                    request=request,
+                    result=result,
+                )
+                stream.complete_request()
                 return result
 
         raise ValidationError("Manager is not pending a response, but no valid response received")
@@ -268,9 +249,3 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         This service that needs to be running for calls to execute properly
         """
         return self._response_stream
-
-    def get_stats(self) -> Tuple[str, str]:
-        if self._response_stream is None:
-            return (self._response_command_type.__name__, 'Uninitialized')
-        else:
-            return self._response_stream.get_stats()

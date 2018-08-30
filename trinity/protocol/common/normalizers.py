@@ -28,14 +28,6 @@ class BaseNormalizer(ABC, Generic[TResponsePayload, TResult]):
         """
         raise NotImplementedError()
 
-    @staticmethod
-    @abstractmethod
-    def get_num_results(result: TResult) -> int:
-        """
-        Count the number of items returned in the result.
-        """
-        raise NotImplementedError()
-
 
 TPassthrough = TypeVar('TPassthrough', bound=PayloadType)
 
@@ -44,7 +36,3 @@ class NoopNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):
     @staticmethod
     def normalize_result(message: TPassthrough) -> TPassthrough:
         return message
-
-    @staticmethod
-    def get_num_results(result: TPassthrough) -> int:
-        return len(result)

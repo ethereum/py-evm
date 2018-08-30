@@ -18,7 +18,3 @@ class BlockHeadersNormalizer(LESNormalizer[Tuple[BlockHeader, ...]]):
     def normalize_result(message: Dict[str, Any]) -> Tuple[BlockHeader, ...]:
         result = message['headers']
         return result
-
-    @staticmethod
-    def get_num_results(result: Tuple[BlockHeader, ...]) -> int:
-        return len(result)
