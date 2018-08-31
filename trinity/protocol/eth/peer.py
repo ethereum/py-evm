@@ -82,10 +82,6 @@ class ETHPeer(BasePeer):
         self.head_hash = msg['best_hash']
 
 
-class NewBlockMsg(NamedTuple):
-    header: BlockHeader
-
-
 
 class ChainHeadTracker(BaseService, PeerSubscriber):
     #
@@ -94,6 +90,9 @@ class ChainHeadTracker(BaseService, PeerSubscriber):
     subscription_msg_types: Set[Type[Command]] = {NewBlock}
 
     msg_queue_maxsize = 100
+
+    # Number of recent headers to keep track of.
+    max_recent_headers = 16
 
     def __init__(self, peer: ETHPeer) -> None:
         self.peer = peer
@@ -117,7 +116,54 @@ class ChainHeadTracker(BaseService, PeerSubscriber):
     # ordered list of 2-tuples of (header, td)
     recent_chain: List[Tuple[BlockHeader, int]]
 
-    async def _initialize_recent_chain(self) -> None:
-        for
+    async def _initialize_recent_chain(self, anchor_hash: Hash32) -> None:
+        self.logger.debug(
+            'Initializing %d most recent headers for peer %s',
+            self.max_recent_headers,
+            self.peer
+        )
+        # special case for peer only on genesis block
+        genesis = await peer.genesis
+        if peer.head_hash == genesis.hash:
+            self.recent_chain = [genesis]
+            return
+
+        # fetch the most recent headers from the peer.
+        headers = tuple(reversed(await self.peer.requests.get_headers(
+            block_number_or_hash=anchor_hash,
+            max_headers=self.max_recent_headers,
+            skip=0,
+            reverse=True,
+        )))
+
+        if not headers:
+            self.logger.debug(
+                "Disconnecting from peer %s: Failed to return most recent "
+                "header chain during initialization",
+                self.peer,
+            )
+            await self.peer.disconnect(DisconnectReason.useless_peer)
+
+        anchor = last(headers)
+        if anchor.hash != anchor_hash:
+            self.logger.debug(
+                "Disconnecting from peer %s: Recent header chain did not "
+                "contain the announced `head_hash`",
+                self.peer,
+            )
+            await self.peer.disconnect(DisconnectReason.useless_peer)
+
+        oldest = first(headers)
+        header_chain = headers[1:]
+
+        if oldest.block_number != 0 and len(headers) != self.max_recent_headers:
+            self.logger.debug(
+                "Disconnecting from peer %s: Insufficient headers returned when "
+                "requesting recent header chain. wanted: %d  got: %d",
+                self.peer,
+                self.max_recent_headers,
+                len(headers)
+            )
+            await self.peer.disconnect(DisconnectReason.useless_peer)
 
     async def _maybe_update_chain(self, header: BlockHeader, td: int) -> None:
