@@ -39,7 +39,7 @@ def test_chain_builder_initialize_chain_default(chain_class):
     assert header.gas_used == 0
     # account for runtime.  should run in less than few seconds and should be
     # effectively "now"
-    assert abs(header.timestamp - time.time()) < 10
+    assert abs(header.timestamp - time.time()) < 13
     assert header.extra_data == constants.GENESIS_EXTRA_DATA
     assert header.mix_hash == constants.GENESIS_MIX_HASH
     assert header.nonce == constants.GENESIS_NONCE
