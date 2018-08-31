@@ -21,6 +21,9 @@ from .normalizers import (
 from .requests import (
     GetBlockHeadersRequest,
 )
+from .trackers import (
+    GetBlockHeadersTracker,
+)
 from .validators import (
     GetBlockHeadersValidator,
     match_payload_request_id,
@@ -35,6 +38,7 @@ LESExchange = BaseExchange[Dict[str, Any], Dict[str, Any], TResult]
 class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
     _normalizer = BlockHeadersNormalizer()
     request_class = GetBlockHeadersRequest
+    tracker_class = GetBlockHeadersTracker
 
     async def __call__(  # type: ignore
             self,
@@ -42,7 +46,7 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
             max_headers: int = None,
             skip: int = 0,
             reverse: bool = True,
-            timeout: int = None) -> Tuple[BlockHeader, ...]:
+            timeout: float = None) -> Tuple[BlockHeader, ...]:
 
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)

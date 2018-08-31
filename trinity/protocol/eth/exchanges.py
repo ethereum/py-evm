@@ -38,6 +38,12 @@ from .requests import (
     GetNodeDataRequest,
     GetReceiptsRequest,
 )
+from .trackers import (
+    GetBlockHeadersTracker,
+    GetBlockBodiesTracker,
+    GetNodeDataTracker,
+    GetReceiptsTracker
+)
 from .validators import (
     GetBlockBodiesValidator,
     GetBlockHeadersValidator,
@@ -55,6 +61,7 @@ BaseGetBlockHeadersExchange = BaseExchange[
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
     _normalizer = NoopNormalizer[Tuple[BlockHeader, ...]]()
     request_class = GetBlockHeadersRequest
+    tracker_class = GetBlockHeadersTracker
 
     async def __call__(  # type: ignore
             self,
@@ -62,7 +69,7 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
             max_headers: int = None,
             skip: int = 0,
             reverse: bool = True,
-            timeout: int = None) -> Tuple[BlockHeader, ...]:
+            timeout: float = None) -> Tuple[BlockHeader, ...]:
 
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)
@@ -83,24 +90,42 @@ BaseNodeDataExchange = BaseExchange[Tuple[Hash32, ...], Tuple[bytes, ...], NodeD
 class GetNodeDataExchange(BaseNodeDataExchange):
     _normalizer = GetNodeDataNormalizer()
     request_class = GetNodeDataRequest
+    tracker_class = GetNodeDataTracker
 
-    async def __call__(self, node_hashes: Tuple[Hash32, ...]) -> NodeDataBundles:  # type: ignore
+    async def __call__(self,  # type: ignore
+                       node_hashes: Tuple[Hash32, ...],
+                       timeout: float = None) -> NodeDataBundles:
         validator = GetNodeDataValidator(node_hashes)
         request = self.request_class(node_hashes)
-        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
+        return await self.get_result(
+            request,
+            self._normalizer,
+            validator,
+            noop_payload_validator,
+            timeout,
+        )
 
 
 class GetReceiptsExchange(BaseExchange[Tuple[Hash32, ...], ReceiptsByBlock, ReceiptsBundles]):
     _normalizer = ReceiptsNormalizer()
     request_class = GetReceiptsRequest
+    tracker_class = GetReceiptsTracker
 
-    async def __call__(self, headers: Tuple[BlockHeader, ...]) -> ReceiptsBundles:  # type: ignore
+    async def __call__(self,  # type: ignore
+                       headers: Tuple[BlockHeader, ...],
+                       timeout: float = None) -> ReceiptsBundles:  # type: ignore
         validator = ReceiptsValidator(headers)
 
         block_hashes = tuple(header.hash for header in headers)
         request = self.request_class(block_hashes)
 
-        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
+        return await self.get_result(
+            request,
+            self._normalizer,
+            validator,
+            noop_payload_validator,
+            timeout,
+        )
 
 
 BaseGetBlockBodiesExchange = BaseExchange[
@@ -113,11 +138,20 @@ BaseGetBlockBodiesExchange = BaseExchange[
 class GetBlockBodiesExchange(BaseGetBlockBodiesExchange):
     _normalizer = GetBlockBodiesNormalizer()
     request_class = GetBlockBodiesRequest
+    tracker_class = GetBlockBodiesTracker
 
-    async def __call__(self, headers: Tuple[BlockHeader, ...]) -> BlockBodyBundles:  # type: ignore
+    async def __call__(self,  # type: ignore
+                       headers: Tuple[BlockHeader, ...],
+                       timeout: float = None) -> BlockBodyBundles:
         validator = GetBlockBodiesValidator(headers)
 
         block_hashes = tuple(header.hash for header in headers)
         request = self.request_class(block_hashes)
 
-        return await self.get_result(request, self._normalizer, validator, noop_payload_validator)
+        return await self.get_result(
+            request,
+            self._normalizer,
+            validator,
+            noop_payload_validator,
+            timeout,
+        )

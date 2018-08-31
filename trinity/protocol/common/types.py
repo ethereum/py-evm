@@ -21,6 +21,10 @@ TResponsePayload = TypeVar('TResponsePayload', bound=PayloadType)
 # The returned value at the end of an exchange
 TResult = TypeVar('TResult')
 
+# (
+#   (node_hash, node),
+#   ...
+# )
 NodeDataBundles = Tuple[Tuple[Hash32, bytes], ...]
 
 # (receipts_in_block_a, receipts_in_block_b, ...)

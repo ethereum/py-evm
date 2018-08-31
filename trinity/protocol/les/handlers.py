@@ -6,7 +6,7 @@ from .exchanges import GetBlockHeadersExchange
 
 
 class LESExchangeHandler(BaseExchangeHandler):
-    _exchanges = {
+    _exchange_config = {
         'get_block_headers': GetBlockHeadersExchange,
     }
 

@@ -40,6 +40,19 @@ LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
 
 
+class HasTraceLogger:
+    _logger: TraceLogger = None
+
+    @property
+    def logger(self) -> TraceLogger:
+        if self._logger is None:
+            self._logger = cast(
+                TraceLogger,
+                logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+            )
+        return self._logger
+
+
 def setup_log_levels(log_levels: Dict[Union[None, str], int]) -> None:
     for name, level in log_levels.items():
         logger = logging.getLogger(name)

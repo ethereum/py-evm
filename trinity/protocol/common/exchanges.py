@@ -14,7 +14,12 @@ from p2p.protocol import (
 )
 
 from trinity.utils.decorators import classproperty
-from .managers import ExchangeManager
+from .trackers import (
+    BasePerformanceTracker,
+)
+from .managers import (
+    ExchangeManager,
+)
 from .normalizers import BaseNormalizer
 from .types import (
     TResponsePayload,
@@ -42,9 +47,12 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     """
 
     request_class: Type[BaseRequest[TRequestPayload]]
+    tracker_class: Type[BasePerformanceTracker[Any, TResult]]
+    tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult]
 
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
+        self.tracker = self.tracker_class()
 
     async def get_result(
             self,
@@ -52,7 +60,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             normalizer: BaseNormalizer[TResponsePayload, TResult],
             result_validator: BaseValidator[TResult],
             payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
-            timeout: int = None) -> TResult:
+            timeout: float = None) -> TResult:
         """
         This is a light convenience wrapper around the ExchangeManager's get_result() method.
 
@@ -71,7 +79,8 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             normalizer,
             result_validator.validate_result,
             message_validator,
-            timeout=timeout
+            self.tracker,
+            timeout,
         )
 
     @classproperty
