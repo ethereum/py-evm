@@ -53,9 +53,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     # the round-trip times from our download requests.
     _reply_timeout = 60
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
-    # the latest header hash of the peer on the current sync
-    _sync_target_hash: Hash32 = None
     header_queue: TaskQueue[BlockHeader]
+
+    # the target header for sync.
+    _sync_target: BlockHeader = None
 
     def __init__(self,
                  chain: AsyncChain,
@@ -119,10 +120,29 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 else:
                     self.run_task(self.sync(peer))
 
-    async def notify_new_sync_target(self, head: BlockHeader) -> None:
+    async def maybe_update_sync_target(self, block_hash: BlockHeader) -> None:
         """
         Notify that the chain has a new HEAD
         """
+        if block_hash == self._sync_target.hash:
+            # same as our current sync target so do nothing.
+            continue
+
+        try:
+            peer = self.peer_pool.highest_td_peer
+            (header,) = await peer.requests.get_block_headers(
+                block_number_or_hash=block_hash,
+                max_headers=1,
+                skip=0,
+                reverse=False
+            )
+        except TimeoutError:
+            self.logger.debug("Timout requesting sync target headers from peer %s", peer)
+            return
+        except ValueError:
+            # indicates they returned an empty response, do nothing
+            return
+
         async with self.new_sync_target:
             self.new_sync_target.notify_all()
 

@@ -3,17 +3,20 @@ from typing import (
     cast,
     Dict,
     List,
+    NamedTuple,
+    Set,
 )
 
 from eth_utils import encode_hex
 
 from p2p.exceptions import HandshakeFailure
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer
+from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
 )
+from p2p.service import BaseService
 
 from .commands import (
     NewBlock,
@@ -77,3 +80,44 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
+
+
+class NewBlockMsg(NamedTuple):
+    header: BlockHeader
+
+
+
+class ChainHeadTracker(BaseService, PeerSubscriber):
+    #
+    # PeerSubscriber
+    #
+    subscription_msg_types: Set[Type[Command]] = {NewBlock}
+
+    msg_queue_maxsize = 100
+
+    def __init__(self, peer: ETHPeer) -> None:
+        self.peer = peer
+
+    async def _run(self) -> None:
+        self.logger.debug("Launching %s for peer %s", self.__class__.__name__, self._peer)
+
+        with self.subscribe_peer(self._peer):
+            while self.is_operational:
+                peer, cmd, msg = await self.wait(self.msg_queue.get())
+
+                if isinstance(cmd, NewBlock):
+                    msg = cast(Dict[str, Any], msg)
+                    header, _, _ = msg['block']
+                    td = msg['total_difficulty']
+
+                    await self._maybe_update_chain(header, td)
+                else:
+                    self.logger.warning("Unexpected payload type: %s", cmd.__class__.__name__)
+
+    # ordered list of 2-tuples of (header, td)
+    recent_chain: List[Tuple[BlockHeader, int]]
+
+    async def _initialize_recent_chain(self) -> None:
+        for
+
+    async def _maybe_update_chain(self, header: BlockHeader, td: int) -> None:
