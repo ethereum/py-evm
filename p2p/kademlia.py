@@ -205,7 +205,7 @@ class KBucket(Sized):
 
     def __lt__(self, other: 'KBucket') -> bool:
         if not isinstance(other, self.__class__):
-            raise TypeError("Cannot compare KBucket with type {}.".format(other.__class__))
+            raise TypeError(f"Cannot compare KBucket with type {other.__class__}")
         return self.end < other.start
 
 
@@ -312,7 +312,7 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
         assert bucket.start <= node.id <= bucket.end
         return bucket
     except (IndexError, AssertionError):
-        raise ValueError("No bucket found for node with id {}".format(node.id))
+        raise ValueError(f"No bucket found for node with id {node.id}")
 
 
 def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
