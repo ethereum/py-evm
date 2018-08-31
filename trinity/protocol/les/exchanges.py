@@ -46,7 +46,7 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
             max_headers: int = None,
             skip: int = 0,
             reverse: bool = True,
-            timeout: int = None) -> Tuple[BlockHeader, ...]:
+            timeout: float = None) -> Tuple[BlockHeader, ...]:
 
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)

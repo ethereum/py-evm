@@ -2,11 +2,8 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     Dict,
-    Iterable,
     Type,
 )
-
-from eth_utils import to_tuple
 
 from p2p.peer import BasePeer
 
@@ -24,13 +21,6 @@ class BaseExchangeHandler(ABC):
     def _exchange_config(self) -> Dict[str, Type[BaseExchange[Any, Any, Any]]]:
         pass
 
-    # https://github.com/python/mypy/issues/1362
-    @property  # type: ignore
-    @to_tuple
-    def exchanges(self) -> Iterable[Type[BaseExchange[Any, Any, Any]]]:
-        for key in self._exchange_config:
-            yield getattr(self, key)
-
     def __init__(self, peer: BasePeer) -> None:
         self._peer = peer
 
@@ -46,8 +36,9 @@ class BaseExchangeHandler(ABC):
             setattr(self, attr, exchange)
 
     def get_stats(self) -> Dict[str, str]:
+        exchanges = tuple(getattr(self, key) for key in self._exchange_config.keys())
         return {
             exchange.response_cmd_type.__name__: exchange.tracker.get_stats()
             for exchange
-            in self.exchanges
+            in exchanges
         }

@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-import logging
 from typing import (
     Any,
-    cast,
     Generic,
     Optional,
     TypeVar,
@@ -11,11 +9,12 @@ from typing import (
 
 from eth_utils import ValidationError
 
-from eth.tools.logging import TraceLogger
-
 from p2p.protocol import (
     BaseRequest,
 )
+
+from trinity.utils.logging import HasTraceLogger
+from .constants import ROUND_TRIP_TIMEOUT
 from .types import (
     TResult,
 )
@@ -57,42 +56,34 @@ class EMA:
         return self._value
 
 
-class BasePerformanceTracker(ABC, Generic[TRequest, TResult]):
+class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
     def __init__(self) -> None:
         self.total_msgs = 0
         self.total_items = 0
-        self.total_missing = 0
         self.total_timeouts = 0
         self.total_response_time = 0.0
 
         # a percentage between 0-100 for how much of the requested
         # data the peer typically returns with 100 meaning they consistently
-        # return all of the data we request and 0 meaning they do not return
-        # only empty responses.
-        self.response_quality_ema = EMA(initial_value=50, smoothing_factor=0.05)
+        # return all of the data we request and 0 meaning they only return
+        # empty responses.
+        self.response_quality_ema = EMA(initial_value=0, smoothing_factor=0.05)
 
         # an EMA of the round trip request/response time
-        self.round_trip_time_ema = EMA(initial_value=1, smoothing_factor=0.05)
+        self.round_trip_ema = EMA(initial_value=ROUND_TRIP_TIMEOUT, smoothing_factor=0.05)
 
         # an EMA of the items per second
-        self.items_per_second_ema = EMA(initial_value=1, smoothing_factor=0.05)
-
-    _logger: TraceLogger = None
-
-    @property
-    def logger(self) -> TraceLogger:
-        if self._logger is None:
-            self._logger = cast(
-                TraceLogger,
-                logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
-            )
-        return self._logger
+        self.items_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
 
     @abstractmethod
     def _get_request_size(self, request: TRequest) -> Optional[int]:
         """
         The request size represents the number of *things* that were requested,
         not taking into account the sizes of individual items.
+
+        Some requests cannot be used to determine the expected size.  In this
+        case `None` should be returned.  (Specifically the `GetBlockHeaders`
+        anchored to a block hash.
         """
         pass
 
@@ -134,26 +125,27 @@ class BasePerformanceTracker(ABC, Generic[TRequest, TResult]):
         # quality: 0-100 for how complete responses are
         return (
             'msgs=%d  items=%d  rtt=%.2f/%.2f  ips=%.5f/%.5f  '
-            'timeouts=%d  missing=%d  quality=%d'
+            'timeouts=%d  quality=%d'
         ) % (
             self.total_msgs,
             self.total_items,
             avg_rtt,
-            self.round_trip_time_ema.value,
+            self.round_trip_ema.value,
             items_per_second,
             self.items_per_second_ema.value,
             self.total_timeouts,
-            self.total_missing,
             int(self.response_quality_ema.value),
         )
 
-    def record_timeout(self) -> None:
+    def record_timeout(self, timeout: float) -> None:
         self.total_msgs += 1
         self.total_timeouts += 1
         self.response_quality_ema.update(0)
+        self.items_per_second_ema.update(0)
+        self.round_trip_ema.update(timeout)
 
     def record_response(self,
-                        time: float,
+                        elapsed: float,
                         request: TRequest,
                         result: TResult) -> None:
         self.total_msgs += 1
@@ -163,7 +155,10 @@ class BasePerformanceTracker(ABC, Generic[TRequest, TResult]):
         num_items = self._get_result_item_count(result)
 
         if request_size is None:
+            # In the event that request size cannot be determined we skip stats
+            # tracking based on request size.
             pass
+
         elif response_size > request_size:
             self.logger.warning(
                 "%s got oversized response.  requested: %d  received: %d",
@@ -172,13 +167,13 @@ class BasePerformanceTracker(ABC, Generic[TRequest, TResult]):
                 response_size,
             )
         else:
-            self.total_missing += (request_size - response_size)
             if request_size == 0:
                 self.logger.warning(
                     "%s encountered request for zero items. This should never happen",
                     type(self).__name__,
                 )
-                self.response_quality_ema.update(100)
+                # we intentionally don't update the ema here since this is an
+                # odd and unexpected case.
             elif response_size == 0:
                 self.response_quality_ema.update(0)
             else:
@@ -186,11 +181,11 @@ class BasePerformanceTracker(ABC, Generic[TRequest, TResult]):
                 self.response_quality_ema.update(percent_returned)
 
         self.total_items += num_items
-        self.total_response_time += time
-        self.round_trip_time_ema.update(time)
+        self.total_response_time += elapsed
+        self.round_trip_ema.update(elapsed)
 
-        if time > 0:
-            throughput = num_items / time
+        if elapsed > 0:
+            throughput = num_items / elapsed
             self.items_per_second_ema.update(throughput)
         else:
             self.logger.warning(

@@ -48,7 +48,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
 
     request_class: Type[BaseRequest[TRequestPayload]]
     tracker_class: Type[BasePerformanceTracker[Any, TResult]]
-    tracker: BasePerformanceTracker[BaseRequest[Any], TResult]
+    tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult]
 
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
@@ -60,7 +60,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             normalizer: BaseNormalizer[TResponsePayload, TResult],
             result_validator: BaseValidator[TResult],
             payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
-            timeout: int = None) -> TResult:
+            timeout: float = None) -> TResult:
         """
         This is a light convenience wrapper around the ExchangeManager's get_result() method.
 

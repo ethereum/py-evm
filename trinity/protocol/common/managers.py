@@ -28,6 +28,7 @@ from p2p.service import BaseService
 
 from trinity.exceptions import AlreadyWaiting
 
+from .constants import ROUND_TRIP_TIMEOUT
 from .normalizers import BaseNormalizer
 from .trackers import BasePerformanceTracker
 from .types import (
@@ -50,7 +51,7 @@ class ResponseCandidateStream(
 
     msg_queue_maxsize = 100
 
-    response_timout: int = 20
+    response_timout: float = ROUND_TRIP_TIMEOUT
 
     pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
 
@@ -68,9 +69,9 @@ class ResponseCandidateStream(
     async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
-            tracker: BasePerformanceTracker[Any, Any],
+            tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], Any],
             *,
-            timeout: int = None) -> AsyncGenerator[TResponsePayload, None]:
+            timeout: float = None) -> AsyncGenerator[TResponsePayload, None]:
         """
         Make a request and iterate through candidates for a valid response.
 
@@ -85,7 +86,7 @@ class ResponseCandidateStream(
             try:
                 yield await self._get_payload(timeout)
             except TimeoutError:
-                tracker.record_timeout()
+                tracker.record_timeout(timeout)
                 raise
 
     @property
@@ -125,7 +126,7 @@ class ResponseCandidateStream(
         self.last_response_time = time.perf_counter() - send_time
         future.set_result(msg)
 
-    async def _get_payload(self, timeout: int) -> TResponsePayload:
+    async def _get_payload(self, timeout: float) -> TResponsePayload:
         send_time, future = self.pending_request
         try:
             payload = await self.wait(future, timeout=timeout)
@@ -207,7 +208,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
             validate_result: Callable[[TResult], None],
             payload_validator: Callable[[TResponsePayload], None],
             tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult],
-            timeout: int = None) -> TResult:
+            timeout: float = None) -> TResult:
 
         if not self.is_operational:
             raise ValidationError("You must call `launch_service` before initiating a peer request")
@@ -234,9 +235,9 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 continue
             else:
                 tracker.record_response(
-                    time=stream.last_response_time,
-                    request=request,
-                    result=result,
+                    stream.last_response_time,
+                    request,
+                    result,
                 )
                 stream.complete_request()
                 return result

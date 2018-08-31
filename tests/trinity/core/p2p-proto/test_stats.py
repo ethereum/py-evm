@@ -92,7 +92,8 @@ async def test_eth_get_headers_stats(eth_peer_and_remote):
 
         assert stats['BlockHeaders'].startswith('msgs={0}  items={0}  rtt='.format(idx))
         assert 'timeouts=0' in stats['BlockHeaders']
-        assert 'missing=0' in stats['BlockHeaders']
+        assert 'quality=' in stats['BlockHeaders']
+        assert 'ips=' in stats['BlockHeaders']
 
 
 @pytest.mark.asyncio
@@ -116,4 +117,5 @@ async def test_les_get_headers_stats(les_peer_and_remote):
 
         assert stats['BlockHeaders'].startswith('msgs={0}  items={0}  rtt='.format(idx))
         assert 'timeouts=0' in stats['BlockHeaders']
-        assert 'missing=0' in stats['BlockHeaders']
+        assert 'quality=' in stats['BlockHeaders']
+        assert 'ips=' in stats['BlockHeaders']
