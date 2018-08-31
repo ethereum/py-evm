@@ -94,6 +94,34 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
         assert expected == actual
 
 
+@pytest.mark.asyncio
+async def test_eth_peer_get_headers_round_trip_concurrent_requests(eth_peer_and_remote):
+    peer, remote = eth_peer_and_remote
+    headers = mk_header_chain(1)
+
+    async def send_headers():
+        await asyncio.sleep(0.01)
+        remote.sub_proto.send_block_headers(headers)
+        await asyncio.sleep(0.01)
+        remote.sub_proto.send_block_headers(headers)
+        await asyncio.sleep(0.01)
+        remote.sub_proto.send_block_headers(headers)
+
+    params = (0, 1, 0, False)
+
+    tasks = [
+        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
+        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
+        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
+    ]
+    asyncio.ensure_future(send_headers())
+    results = await asyncio.gather(*tasks)
+
+    for response in results:
+        assert len(response) == 1
+        assert response[0] == headers[0]
+
+
 @pytest.mark.parametrize(
     'params,headers',
     (
