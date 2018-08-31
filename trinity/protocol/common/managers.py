@@ -65,6 +65,7 @@ class ResponseCandidateStream(
         super().__init__(token)
         self._peer = peer
         self.response_msg_type = response_msg_type
+        self._lock = asyncio.Lock()
 
     async def payload_candidates(
             self,
@@ -81,13 +82,31 @@ class ResponseCandidateStream(
         if timeout is None:
             timeout = self.response_timout
 
-        self._request(request)
-        while self._is_pending():
-            try:
-                yield await self._get_payload(timeout)
-            except TimeoutError:
-                tracker.record_timeout(timeout)
-                raise
+        start_at = time.perf_counter()
+
+        # The _lock ensures that we never have two concurrent requests to a
+        # single peer for a single command pair in flight.
+        try:
+            await self.wait(self._lock.acquire(), timeout=timeout)
+        except TimeoutError:
+            raise AlreadyWaiting(
+                "Timed out waiting for {0} request lock for peer: {1}".format(
+                    self.response_msg_name,
+                    self._peer
+                )
+            )
+
+        try:
+            self._request(request)
+            while self._is_pending():
+                timeout_remaining = max(0, timeout - (time.perf_counter() - start_at))
+                try:
+                    yield await self._get_payload(timeout_remaining)
+                except TimeoutError:
+                    tracker.record_timeout(timeout)
+                    raise
+        finally:
+            self._lock.release()
 
     @property
     def response_msg_name(self) -> str:
@@ -139,18 +158,11 @@ class ResponseCandidateStream(
         return payload
 
     def _request(self, request: BaseRequest[TRequestPayload]) -> None:
-        if self.pending_request is not None:
-            self.logger.error(
-                "Already waiting for response to %s for peer: %s",
-                self.response_msg_name,
-                self._peer,
-            )
-            raise AlreadyWaiting(
-                "Already waiting for response to {0} for peer: {1}".format(
-                    self.response_msg_name,
-                    self._peer
-                )
-            )
+        if not self._lock.locked():
+            # This is somewhat of an invariant check but since there the
+            # linkage between the lock and this method are loose this sanity
+            # check seems appropriate.
+            raise Exception("Invariant: cannot issue a request without an acquired lock")
 
         self._peer.sub_proto.send_request(request)
 
