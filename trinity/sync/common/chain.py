@@ -132,6 +132,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         """
         async with self.new_sync_target:
             await self.new_sync_target.wait()
+            # TODO: handle timeouts.
             (target,) = await self.peer_pool.highest_td_peer.requests.get_block_headers(
                 self._sync_target_hash,
                 max_headers=1,
@@ -247,7 +248,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             # Setting the latest header hash for the peer, before queuing header processing tasks
             if peer.head_hash != self._sync_target_hash:
                 self._sync_target_hash = peer.head_hash
-                await self.notify_new_sync_target(headers[-1])
+                await self.notify_new_sync_target(self._sync_target_hash)
 
             unrequested_headers = tuple(h for h in headers if h not in self.header_queue)
             await self.header_queue.add(unrequested_headers)

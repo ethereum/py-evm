@@ -66,12 +66,12 @@ class FullNodeSyncer(BaseService):
         while self.is_operational:
             # TODO: exit when downloader has finished.
             new_target = await chain_syncer.wait_new_sync_target()
-            self.logger('new target: #%d !!!!!!!!!!!!!!!!!!!', new_target.block_number)
+            self.logger.info('new target: #%d !!!!!!!!!!!!!!!!!!!', new_target.block_number)
             # we only update the state root for the chain syncer when the new
             # head is at least STALE_STATE_ROOT_AGE in the future of the
             # previous state sync head
             if new_target.block_number - target.block_number < STALE_STATE_ROOT_AGE:
-                self.logger('not updating to new target!!!!!!!!!!!!!!!!!')
+                self.logger.info('not updating to new target!!!!!!!!!!!!!!!!!')
                 continue
             target = new_target
             await downloader.update_state_root(target.state_root)
