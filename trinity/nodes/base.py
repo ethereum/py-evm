@@ -1,10 +1,8 @@
 from abc import abstractmethod
-import asyncio
 from pathlib import Path
 from multiprocessing.managers import (
     BaseManager,
 )
-from threading import Thread
 from typing import (
     Type,
 )
@@ -29,11 +27,8 @@ from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy
 )
-from trinity.rpc.main import (
-    RPCServer,
-)
 from trinity.rpc.ipc import (
-    IPCServer,
+    IPCServiceWrapper,
 )
 from trinity.config import (
     ChainConfig,
@@ -51,10 +46,12 @@ class Node(BaseService):
     Create usable nodes by adding subclasses that define the following
     unset attributes.
     """
+    chain_config: ChainConfig
     chain_class: Type[BaseChain] = None
 
     def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
         super().__init__()
+        self.chain_config = chain_config
         self._plugin_manager = plugin_manager
         self._db_manager = create_db_manager(chain_config.database_ipc_path)
         self._db_manager.connect()  # type: ignore
@@ -110,10 +107,15 @@ class Node(BaseService):
     def has_ipc_server(self) -> bool:
         return bool(self._jsonrpc_ipc_path)
 
-    def make_ipc_server(self, loop: asyncio.AbstractEventLoop) -> BaseService:
+    def make_ipc_server(self) -> BaseService:
         if self.has_ipc_server:
-            rpc = RPCServer(self.get_chain(), self.get_peer_pool())
-            return IPCServer(rpc, self._jsonrpc_ipc_path, loop=loop)
+            return IPCServiceWrapper(
+                chain_class=self.chain_class,
+                database_ipc_path=self.chain_config.database_ipc_path,
+                jsonrpc_ipc_path=self.chain_config.jsonrpc_ipc_path,
+                peer_pool=self.get_peer_pool(),
+                token=self.cancel_token,
+            )
         else:
             return None
 
@@ -122,36 +124,14 @@ class Node(BaseService):
             # The RPC server needs its own thread, because it provides a synchcronous
             # API which might call into p2p async methods. These sync->async calls
             # deadlock if they are run in the same Thread and loop.
-            ipc_loop = self._make_new_loop_thread()
+            self._ipc_server = self.make_ipc_server()
+            self.run_child_service(self._ipc_server)
 
-            self._ipc_server = self.make_ipc_server(ipc_loop)
-
-            # keep a copy on self, for later shutdown
-            self._ipc_loop = ipc_loop
-
-            asyncio.run_coroutine_threadsafe(self._ipc_server.run(), loop=ipc_loop)
-
-        await self.get_p2p_server().run()
+        self.run_child_service(self.get_p2p_server())
+        await self.cancel_token.wait()
 
     async def _cleanup(self) -> None:
-        # IPC Server requires special handling because it's running in its own loop & thread
-        if self.has_ipc_server:
-            await self._ipc_server.threadsafe_cancel()
-            # Stop the this IPCServer-specific event loop, so that the IPCServer thread will exit
-            self._ipc_loop.stop()
-
-    def _make_new_loop_thread(self) -> asyncio.AbstractEventLoop:
-        new_loop = asyncio.new_event_loop()
-
-        def start_loop(loop: asyncio.AbstractEventLoop) -> None:
-            asyncio.set_event_loop(loop)
-            loop.run_forever()
-            loop.close()
-
-        thread = Thread(target=start_loop, args=(new_loop, ))
-        thread.start()
-
-        return new_loop
+        pass
 
 
 def create_db_manager(ipc_path: Path) -> BaseManager:

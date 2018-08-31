@@ -73,6 +73,10 @@ class BaseService(ABC, CancellableMixin):
             )
         return self._logger
 
+    @property
+    def loop(self):
+        return self.get_event_loop()
+
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         if self._loop is None:
             return asyncio.get_event_loop()
@@ -167,8 +171,7 @@ class BaseService(ABC, CancellableMixin):
         self.run_task(_run_daemon_wrapper())
 
     async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
-        loop = self.get_event_loop()
-        return await self.wait(loop.run_in_executor(self._executor, callback, *args))
+        return await self.wait(self.loop.run_in_executor(self._executor, callback, *args))
 
     async def cleanup(self) -> None:
         """
@@ -234,7 +237,7 @@ class BaseService(ABC, CancellableMixin):
 
         :param poll_period: how many seconds to wait in between each check for service cleanup
         """
-        asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.get_event_loop())
+        asyncio.run_coroutine_threadsafe(self.cancel(), loop=self.loop)
         await asyncio.wait_for(
             self.events.cleaned_up.wait(),
             timeout=self._wait_until_finished_timeout,

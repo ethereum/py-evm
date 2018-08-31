@@ -100,7 +100,12 @@ def setup_trinity_file_and_queue_logging(
     return logger, log_queue, listener
 
 
+_log_queue = None
+
+
 def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
+    global _log_queue
+    _log_queue = log_queue
     queue_handler = QueueHandler(log_queue)
     queue_handler.setLevel(level)
 
