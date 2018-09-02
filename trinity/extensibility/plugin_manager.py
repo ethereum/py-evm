@@ -58,7 +58,7 @@ class PluginManager:
     """
 
     MAIN_AND_ISOLATED_SCOPES = {PluginProcessScope.MAIN, PluginProcessScope.ISOLATED}
-    MAIN_ANS_SHARED_SCOPES = {PluginProcessScope.MAIN, PluginProcessScope.SHARED}
+    MAIN_AND_SHARED_SCOPES = {PluginProcessScope.MAIN, PluginProcessScope.SHARED}
 
     def __init__(self, scope: ManagerProcessScope) -> None:
         self._scope = scope
@@ -156,7 +156,7 @@ class PluginManager:
                                    boot_kwargs: Dict[str, Any]) -> PluginContext:
 
         context: PluginContext = None
-        if plugin.process_scope in self.MAIN_ANS_SHARED_SCOPES:
+        if plugin.process_scope in self.MAIN_AND_SHARED_SCOPES:
             # A plugin that runs in a shared process as well as a plugin that overtakes the main
             # process uses the endpoint of the PluginManager which will either be the main
             # endpoint or the networking endpoint in the case of Trinity
