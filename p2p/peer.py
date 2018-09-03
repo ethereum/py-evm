@@ -812,6 +812,10 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             # This is kept separate from the `expected_exceptions` to be sure that we aren't
             # silencing an error in our authentication code.
             self.logger.info('Got bad auth ack from %r', remote)
+        except MalformedMessage:
+            # This is kept separate from the `expected_exceptions` to be sure that we aren't
+            # silencing an error in our authentication code.
+            self.logger.info('Got malformed response from %r', remote)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
         except Exception:
