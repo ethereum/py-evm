@@ -8,7 +8,6 @@ from typing import (
     Callable,
     List,
     Optional,
-    Set,
     cast,
 )
 from weakref import WeakSet
@@ -35,8 +34,8 @@ class ServiceEvents:
 
 class BaseService(ABC, CancellableMixin):
     logger: TraceLogger = None
-    _child_services: Set['BaseService']
     # Use a WeakSet so that we don't have to bother updating it when tasks finish.
+    _child_services: 'WeakSet[BaseService]'
     _tasks: 'WeakSet[asyncio.Future[Any]]'
     _finished_callbacks: List[Callable[['BaseService'], None]]
     # Number of seconds cancel() will wait for run() to finish.
@@ -52,7 +51,7 @@ class BaseService(ABC, CancellableMixin):
                  loop: asyncio.AbstractEventLoop = None) -> None:
         self.events = ServiceEvents()
         self._run_lock = asyncio.Lock()
-        self._child_services = set()
+        self._child_services = WeakSet()
         self._tasks = WeakSet()
         self._finished_callbacks = []
 
@@ -167,13 +166,12 @@ class BaseService(ABC, CancellableMixin):
         """
         if service.is_running:
             raise ValidationError(
-                f"Can't start daemon {child_service!r}, child of {self!r}: it's already running"
+                f"Can't start daemon {service!r}, child of {self!r}: it's already running"
             )
         elif service.is_cancelled:
             raise ValidationError(
                 f"Can't restart daemon {service!r}, child of {self!r}: it's already completed"
             )
-
 
         self._child_services.add(service)
 
