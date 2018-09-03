@@ -46,9 +46,6 @@ from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
-from trinity.events import (
-    ShutdownRequest
-)
 from trinity.extensibility import (
     PluginManager,
     MainAndIsolatedProcessScope,
@@ -56,7 +53,8 @@ from trinity.extensibility import (
     SharedProcessScope,
 )
 from trinity.extensibility.events import (
-    TrinityStartupEvent
+    ShutdownRequest,
+    TrinityStartupEvent,
 )
 from trinity.plugins.registry import (
     ENABLED_PLUGINS

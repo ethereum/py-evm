@@ -31,11 +31,9 @@ from trinity.config import (
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT
 )
-from trinity.events import (
-    ShutdownRequest
-)
 from trinity.extensibility.events import (
-    BaseEvent
+    BaseEvent,
+    ShutdownRequest
 )
 from trinity.utils.ipc import (
     kill_process_gracefully
