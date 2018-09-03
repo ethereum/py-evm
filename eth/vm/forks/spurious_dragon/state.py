@@ -37,5 +37,4 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
 class SpuriousDragonState(HomesteadState):
     computation_class = SpuriousDragonComputation
-    computation_class = SpuriousDragonComputation
     transaction_executor = SpuriousDragonTransactionExecutor  # Type[BaseTransactionExecutor]
