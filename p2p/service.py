@@ -13,9 +13,12 @@ from typing import (
 )
 from weakref import WeakSet
 
-from eth.tools.logging import TraceLogger
-
 from cancel_token import CancelToken, OperationCancelled
+from eth_utils import (
+    ValidationError,
+)
+
+from eth.tools.logging import TraceLogger
 
 from p2p.cancellable import CancellableMixin
 from p2p.utils import get_asyncio_executor
@@ -88,9 +91,9 @@ class BaseService(ABC, CancellableMixin):
         finished_callback (if one was passed).
         """
         if self.is_running:
-            raise RuntimeError("Cannot start the service while it's already running")
+            raise ValidationError("Cannot start the service while it's already running")
         elif self.is_cancelled:
-            raise RuntimeError("Cannot restart a service that has already been cancelled")
+            raise ValidationError("Cannot restart a service that has already been cancelled")
 
         if finished_callback:
             self._finished_callbacks.append(finished_callback)
@@ -144,6 +147,15 @@ class BaseService(ABC, CancellableMixin):
         """
         Run a child service and keep a reference to it to be considered during the cleanup.
         """
+        if child_service.is_running:
+            raise ValidationError(
+                f"Can't start service {child_service!r}, child of {self!r}: it's already running"
+            )
+        elif child_service.is_cancelled:
+            raise ValidationError(
+                f"Can't restart {child_service!r}, child of {self!r}: it's already completed"
+            )
+
         self._child_services.add(child_service)
         self.run_task(child_service.run())
 
@@ -153,6 +165,16 @@ class BaseService(ABC, CancellableMixin):
 
         If the service finishes while we're still running, we'll terminate as well.
         """
+        if service.is_running:
+            raise ValidationError(
+                f"Can't start daemon {child_service!r}, child of {self!r}: it's already running"
+            )
+        elif service.is_cancelled:
+            raise ValidationError(
+                f"Can't restart daemon {service!r}, child of {self!r}: it's already completed"
+            )
+
+
         self._child_services.add(service)
 
         async def _run_daemon_wrapper() -> None:
@@ -193,7 +215,7 @@ class BaseService(ABC, CancellableMixin):
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
             return
         elif not self.is_running:
-            raise RuntimeError("Cannot cancel a service that has not been started")
+            raise ValidationError("Cannot cancel a service that has not been started")
 
         self.logger.debug("Cancelling %s", self)
         self.events.cancelled.set()

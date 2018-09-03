@@ -732,7 +732,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
-        self.run_task(peer.run())
+        self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
         try:
             # Although connect() may seem like a more appropriate place to perform the DAO fork
