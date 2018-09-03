@@ -16,6 +16,7 @@ from eth.chains.mainnet import (
 from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
+from eth.rlp.headers import BlockHeader
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
     MAINNET_BOOTNODES,
@@ -23,12 +24,16 @@ from p2p.constants import (
 )
 from p2p.peer import DEFAULT_PREFERRED_NODES
 
+from trinity.chains import (
+    validate_genesis
+)
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
 from trinity.utils.chains import (
     construct_chain_config_params,
+    validate_genesis,
     get_data_dir_for_network_id,
     get_database_socket_path,
     get_jsonrpc_socket_path,
@@ -48,6 +53,9 @@ DATABASE_DIR_NAME = 'chain'
 
 
 class ChainConfig:
+    _genesis: Path = None
+    _genesis_header: BlockHeader = None
+    _chain_id: int = None
     _data_dir: Path = None
     _nodekey_path: Path = None
     _logfile_path: Path = None
@@ -62,6 +70,7 @@ class ChainConfig:
     def __init__(self,
                  network_id: int,
                  max_peers: int,
+                 genesis: str=None,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  logfile_path: str=None,
@@ -97,6 +106,9 @@ class ChainConfig:
             raise ValueError("It is invalid to provide both a `nodekey` and a `nodekey_path`")
 
         # set values
+        if genesis is not None:
+            self.genesis = genesis
+            self.genesis_header, self.chain_id = validate_genesis(self.genesis)
         if data_dir is not None:
             self.data_dir = data_dir
         else:
@@ -129,6 +141,20 @@ class ChainConfig:
         Return the path of the directory where all log files are stored.
         """
         return self.logfile_path.parent
+
+    @property
+    def genesis(self) -> Path:
+        """
+        Return the path of the genesis configuration file.
+        """
+        return self.genesis
+
+    @property
+    def genesis_header(self) -> BlockHeader:
+        """
+        Return the genesis block header parsed from the genesis configuration file.
+        """
+        return self.genesis_header
 
     @property
     def data_dir(self) -> Path:

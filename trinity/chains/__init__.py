@@ -5,6 +5,7 @@ from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
 import inspect
+import json
 import os
 import traceback
 from types import TracebackType
@@ -17,6 +18,7 @@ from typing import (
 
 from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
+    Chain,
     BaseChain
 )
 from eth.chains.mainnet import (
@@ -29,6 +31,13 @@ from eth.chains.ropsten import (
 )
 from eth.db.backends.base import BaseDB
 from eth.exceptions import CanonicalHeadNotFound
+
+from eth.rlp.headers import BlockHeader
+
+from eth_utils import (
+    decode_hex,
+    ValidationError,
+)
 
 from p2p import ecies
 
@@ -54,6 +63,50 @@ from .header import (
     AsyncHeaderChain,
     AsyncHeaderChainProxy,
 )
+
+
+def validate_genesis(chain_config: ChainConfig) -> (BlockHeader, int):
+    """
+    Checks the genesis configuration file provided and ensures that it is valid.
+    """
+    if not os.path.exists(chain_config.genesis):
+        raise MissingPath(
+            "The base chain genesis configuration file does not exist: `{0}`".format(
+                chain_config.genesis,
+            ),
+        )
+
+    with open(chain_config.genesis, 'r') as genesis_config:
+        raw_genesis = genesis_config.read()
+        genesis = json.load(raw_genesis)
+
+        if not 'chainId' in genesis.keys():
+            raise ValidationError("genesis config missing required 'chainId'")
+        if not 'difficulty' in genesis.keys():
+            raise ValidationError("genesis config missing required 'difficulty'")
+        if not 'gasLimit' in genesis.keys():
+            raise ValidationError("genesis config missing required 'gasLimit'")
+        if not 'nonce' in genesis.keys():
+            raise ValidationError("genesis config missing required 'nonce'")
+        if not 'extraData' in genesis.keys():
+            raise ValidationError("genesis config missing required 'extraData'")
+
+        return BlockHeader(
+            difficulty=genesis['difficulty'],
+            extra_data=genesis['extraData'],
+            gas_limit=genesis['gasLimit'],
+            gas_used=0,
+            bloom=0,
+            mix_hash=constants.ZERO_HASH32,
+            nonce=genesis['nonce'],
+            block_number=0,
+            parent_hash=constants.ZERO_HASH32,
+            receipt_root=constants.BLANK_ROOT_HASH,
+            uncles_hash=constants.EMPTY_UNCLE_HASH,
+            state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
+            timestamp=0,
+            transaction_root=constants.BLANK_ROOT_HASH,
+        ), decode_hex(genesis['chainId'])
 
 
 def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
@@ -143,11 +196,7 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
         elif chain_config.network_id == MAINNET_NETWORK_ID:
             chaindb.persist_header(MAINNET_GENESIS_HEADER)
         else:
-            # TODO: add genesis data to ChainConfig and if it's present, use it
-            # here to initialize the chain.
-            raise NotImplementedError(
-                "Only the mainnet and ropsten chains are currently supported"
-            )
+            chaindb.persist_header(chain_config.genesis_header())
 
 
 class TracebackRecorder:
@@ -184,6 +233,13 @@ def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
 
     return wrapper
 
+class BasePrivateChain:
+    vm_configuration = ()
+
+
+class PrivateChain(BasePrivateChain, Chain):
+    pass
+
 
 class RemoteTraceback(Exception):
 
@@ -219,9 +275,7 @@ def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManag
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
         chain_class = RopstenChain
     else:
-        raise NotImplementedError(
-            "Only the mainnet and ropsten chains are currently supported"
-        )
+        chain_class = PrivateChain
     chain = chain_class(base_db)
 
     headerdb = AsyncHeaderDB(base_db)

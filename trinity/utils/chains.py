@@ -135,6 +135,8 @@ def construct_chain_config_params(
     """
     yield 'network_id', args.network_id
 
+    if args.genesis is not None:
+        yield 'genesis', args.genesis
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
 
