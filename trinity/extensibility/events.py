@@ -7,6 +7,8 @@ from argparse import (
     Namespace,
 )
 
+import lahja
+
 from trinity.config import (
     ChainConfig,
 )
@@ -53,3 +55,14 @@ class ResourceAvailableEvent(BaseEvent):
     def __init__(self, resource: Any, resource_type: Type[Any]) -> None:
         self.resource = resource
         self.resource_type = resource_type
+
+
+# The following events are based on the event bus. The mix of two different
+# `BaseEvent` classes is temporary. In the future, the events based on
+# the Lahja EventBus will become the only ones used for plugins.
+
+class ShutdownRequest(lahja.BaseEvent):
+    """
+    Request the host system to perform a full shutdown
+    """
+    pass
