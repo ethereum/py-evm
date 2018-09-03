@@ -94,8 +94,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             # TODO implement the maximum task size at each step instead of this magic number
             max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
             batch_id, headers = await self.header_queue.get(max_headers)
-            await self._process_headers(headers)
-            self.header_queue.complete(batch_id, headers)
+            try:
+                await self._process_headers(headers)
+            except NoEligiblePeers:
+                self.logger.info(
+                    f"No available peers to sync with, retrying in {self.NO_PEER_RETRY_PAUSE}s"
+                )
+                self.header_queue.complete(batch_id, tuple())
+                await self.sleep(self.NO_PEER_RETRY_PAUSE)
+            else:
+                self.header_queue.complete(batch_id, headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -296,6 +304,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             all_receipt_bundles, all_missing_headers = zip(*responses)
             receipt_bundles = tuple(concat(all_receipt_bundles))
             headers = tuple(concat(all_missing_headers))
+
+            if len(receipt_bundles) == 0:
+                continue
 
             # process all of the returned receipts, storing their trie data
             # dicts in the database
