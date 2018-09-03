@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from typing import Type  # noqa: F401
+from pprint import pprint
 
 from eth_hash.auto import keccak
 
@@ -68,22 +69,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             contract_address = None
             data = transaction.data
             code = self.vm_state.account_db.get_code(transaction.to)
-
-        self.vm_state.logger.trace(
-            (
-                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
-            ),
-            encode_hex(transaction.sender),
-            encode_hex(transaction.to),
-            transaction.value,
-            transaction.gas,
-            transaction.gas_price,
-            transaction.s,
-            transaction.r,
-            transaction.v,
-            encode_hex(keccak(transaction.data)),
-        )
 
         message = Message(
             gas=message_gas,

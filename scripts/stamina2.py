@@ -46,7 +46,7 @@ from solc import compile_source
 from web3.contract import ConciseContract
 
 contract_source_code = '''
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 
 contract Stamina {
@@ -96,8 +96,12 @@ contract Stamina {
                                     // RECOVER_EPOCH_LENGTH * 2 < WITHDRAWAL_DELAY
 
 
-  bool public development = true;
+  bool public development = true;   // if the contract is inserted directly into
+                                    // genesis block, it will be false
 
+  /**
+   * Modifiers
+   */
   modifier onlyChain() {
     require(development || msg.sender == address(0));
     _;
@@ -108,12 +112,18 @@ contract Stamina {
     _;
   }
 
+  /**
+   * Events
+   */
   event Deposited(address indexed depositor, address indexed delegatee, uint amount);
   event DelegateeChanged(address delegator, address oldDelegatee, address newDelegatee);
   event WithdrawalRequested(address indexed depositor, address indexed delegatee, uint amount, uint requestBlockNumber, uint withdrawalIndex);
   event Withdrawn(address indexed depositor, address indexed delegatee, uint amount, uint withdrawalIndex);
 
-  function init(uint minDeposit, uint recoveryEpochLength, uint withdrawalDelay) external returns (bool) {
+  /**
+   * Init
+   */
+  function init(uint minDeposit, uint recoveryEpochLength, uint withdrawalDelay) external {
     require(!initialized);
 
     require(minDeposit > 0);
@@ -127,9 +137,11 @@ contract Stamina {
     WITHDRAWAL_DELAY = withdrawalDelay;
 
     initialized = true;
-    return true;
   }
 
+  /**
+   * Getters
+   */
   function getDelegatee(address delegator) public view returns (address) {
     return _delegatee[delegator];
   }
@@ -173,6 +185,10 @@ contract Stamina {
     processed = w.processed;
   }
 
+  /**
+   * Setters
+   */
+  /// @notice Set `msg.sender` as delegatee of `delegator`
   function setDelegator(address delegator)
     external
     onlyInitialized
@@ -186,108 +202,130 @@ contract Stamina {
     return true;
   }
 
-//   function deposit(address delegatee)
-//     external
-//     payable
-//     onlyInitialized
-//     returns (bool)
-//   {
-//     require(msg.value >= MIN_DEPOSIT);
+  /**
+   * Deposit / Withdraw
+   */
+  /// @notice Deposit Ether to delegatee
+  function deposit(address delegatee)
+    external
+    payable
+    onlyInitialized
+    returns (bool)
+  {
+    require(msg.value >= MIN_DEPOSIT);
 
-//     uint totalDeposit = _total_deposit[delegatee];
-//     uint deposit = _deposit[msg.sender][delegatee];
-//     uint stamina = _stamina[delegatee];
+    uint totalDeposit = _total_deposit[delegatee];
+    uint deposit = _deposit[msg.sender][delegatee];
+    uint stamina = _stamina[delegatee];
 
-//     require(totalDeposit + msg.value > totalDeposit);
-//     require(deposit + msg.value > deposit);
-//     require(stamina + msg.value > stamina);
+    // check overflow
+    require(totalDeposit + msg.value > totalDeposit);
+    require(deposit + msg.value > deposit);
+    require(stamina + msg.value > stamina);
 
-//     _total_deposit[delegatee] = totalDeposit + msg.value;
-//     _deposit[msg.sender][delegatee] = deposit + msg.value;
-//     _stamina[delegatee] = stamina + msg.value;
+    _total_deposit[delegatee] = totalDeposit + msg.value;
+    _deposit[msg.sender][delegatee] = deposit + msg.value;
+    _stamina[delegatee] = stamina + msg.value;
 
-//     if (_last_recovery_block[delegatee] == 0) {
-//       _last_recovery_block[delegatee] = block.number;
-//     }
+    if (_last_recovery_block[delegatee] == 0) {
+      _last_recovery_block[delegatee] = block.number;
+    }
 
-//     emit Deposited(msg.sender, delegatee, msg.value);
-//     return true;
-//   }
+    emit Deposited(msg.sender, delegatee, msg.value);
+    return true;
+  }
 
-//   function requestWithdrawal(address delegatee, uint amount)
-//     external
-//     onlyInitialized
-//     returns (bool)
-//   {
-//     require(amount > 0);
+  /// @notice Request to withdraw deposit of delegatee. Ether can be withdrawn
+  ///         after WITHDRAWAL_DELAY blocks
+  function requestWithdrawal(address delegatee, uint amount)
+    external
+    onlyInitialized
+    returns (bool)
+  {
+    require(amount > 0);
 
-//     uint totalDeposit = _total_deposit[delegatee];
-//     uint deposit = _deposit[msg.sender][delegatee];
-//     uint stamina = _stamina[delegatee];
+    uint totalDeposit = _total_deposit[delegatee];
+    uint deposit = _deposit[msg.sender][delegatee];
+    uint stamina = _stamina[delegatee];
 
-//     require(deposit > 0);
+    require(deposit > 0);
 
-//     require(totalDeposit - amount < totalDeposit);
-//     require(deposit - amount < deposit); // this guarentees deposit >= amount
+    // check underflow
+    require(totalDeposit - amount < totalDeposit);
+    require(deposit - amount < deposit); // this guarentees deposit >= amount
 
-//     _total_deposit[delegatee] = totalDeposit - amount;
-//     _deposit[msg.sender][delegatee] = deposit - amount;
+    _total_deposit[delegatee] = totalDeposit - amount;
+    _deposit[msg.sender][delegatee] = deposit - amount;
 
-//     if (stamina > amount) {
-//       _stamina[delegatee] = stamina - amount;
-//     } else {
-//       _stamina[delegatee] = 0;
-//     }
+    // NOTE: Is it right to accept the request when stamina < amount?
+    if (stamina > amount) {
+      _stamina[delegatee] = stamina - amount;
+    } else {
+      _stamina[delegatee] = 0;
+    }
 
-//     Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
+    Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
 
-//     uint withdrawalIndex = withdrawals.length;
-//     Withdrawal storage withdrawal = withdrawals[withdrawals.length++];
+    uint withdrawalIndex = withdrawals.length;
+    Withdrawal storage withdrawal = withdrawals[withdrawals.length++];
 
-//     withdrawal.amount = uint128(amount);
-//     withdrawal.requestBlockNumber = uint128(block.number);
-//     withdrawal.delegatee = delegatee;
+    withdrawal.amount = uint128(amount);
+    withdrawal.requestBlockNumber = uint128(block.number);
+    withdrawal.delegatee = delegatee;
 
-//     emit WithdrawalRequested(msg.sender, delegatee, amount, block.number, withdrawalIndex);
-//     return true;
-//   }
+    emit WithdrawalRequested(msg.sender, delegatee, amount, block.number, withdrawalIndex);
+    return true;
+  }
 
-//   function withdraw() external returns (bool) {
-//     Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
-//     require(withdrawals.length > 0);
+  /// @notice Process last unprocessed withdrawal request.
+  function withdraw() external returns (bool) {
+    Withdrawal[] storage withdrawals = _withdrawal[msg.sender];
+    require(withdrawals.length > 0);
 
-//     uint lastWithdrawalIndex = _last_processed_withdrawal[msg.sender];
-//     uint withdrawalIndex;
+    uint lastWithdrawalIndex = _last_processed_withdrawal[msg.sender];
+    uint withdrawalIndex;
 
-//     if (lastWithdrawalIndex == 0 && !withdrawals[0].processed) {
-//       withdrawalIndex = 0;
-//     } else if (lastWithdrawalIndex == 0) { // lastWithdrawalIndex == 0 && withdrawals[0].processed
-//       require(withdrawals.length >= 2);
+    if (lastWithdrawalIndex == 0 && !withdrawals[0].processed) {
+      withdrawalIndex = 0;
+    } else if (lastWithdrawalIndex == 0) { // lastWithdrawalIndex == 0 && withdrawals[0].processed
+      require(withdrawals.length >= 2);
 
-//       withdrawalIndex = 1;
-//     } else {
-//       withdrawalIndex = lastWithdrawalIndex + 1;
-//     }
+      withdrawalIndex = 1;
+    } else {
+      withdrawalIndex = lastWithdrawalIndex + 1;
+    }
 
-//     require(withdrawalIndex < withdrawals.length);
+    // check out of index
+    require(withdrawalIndex < withdrawals.length);
 
-//     Withdrawal storage withdrawal = _withdrawal[msg.sender][withdrawalIndex];
+    Withdrawal storage withdrawal = _withdrawal[msg.sender][withdrawalIndex];
 
-//     require(!withdrawal.processed);
-//     require(withdrawal.requestBlockNumber + WITHDRAWAL_DELAY <= block.number);
+    // check withdrawal condition
+    require(!withdrawal.processed);
+    require(withdrawal.requestBlockNumber + WITHDRAWAL_DELAY <= block.number);
 
-//     uint amount = uint(withdrawal.amount);
+    uint amount = uint(withdrawal.amount);
 
-//     withdrawal.processed = true;
-//     _last_processed_withdrawal[msg.sender] = withdrawalIndex;
+    // update state
+    withdrawal.processed = true;
+    _last_processed_withdrawal[msg.sender] = withdrawalIndex;
 
-//     msg.sender.transfer(amount);
-//     emit Withdrawn(msg.sender, withdrawal.delegatee, amount, withdrawalIndex);
+    // tranfser ether to depositor
+    msg.sender.transfer(amount);
+    emit Withdrawn(msg.sender, withdrawal.delegatee, amount, withdrawalIndex);
 
-//     return true;
-//   }
+    return true;
+  }
 
+  /**
+   * Stamina modification (only blockchain)
+   * No event emitted during these functions.
+   */
+  /// @notice Add stamina of delegatee. The upper bound of stamina is total deposit of delegatee.
+  ///         addStamina is called when remaining gas is refunded. So we can recover stamina
+  ///         if RECOVER_EPOCH_LENGTH blocks are passed.
   function addStamina(address delegatee, uint amount) external onlyChain returns (bool) {
+    // if enough blocks has passed since the last recovery, recover whole used stamina.
     if (_last_recovery_block[delegatee] + RECOVER_EPOCH_LENGTH <= block.number) {
       _stamina[delegatee] = _total_deposit[delegatee];
       _last_recovery_block[delegatee] = block.number;
@@ -308,6 +346,7 @@ contract Stamina {
     return true;
   }
 
+  /// @notice Subtract stamina of delegatee.
   function subtractStamina(address delegatee, uint amount) external onlyChain returns (bool) {
     uint stamina = _stamina[delegatee];
 
@@ -318,8 +357,8 @@ contract Stamina {
 }
 '''
 
-FIRST_TX_GAS_LIMIT = 1400000
-SECOND_TX_GAS_LIMIT = 60000
+FIRST_TX_GAS_LIMIT = 2800000
+SECOND_TX_GAS_LIMIT = 180000
 TRANSFER_AMOUNT = 1000
 TRANSER_FROM_AMOUNT = 1
 
@@ -351,12 +390,7 @@ def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
         abi=contract_interface['abi']
     )
 
-    # w3_tx = stamina.functions.init(
-    #     10,
-    #     10,
-    #     10
-    # ).buildTransaction(W3_TX_DEFAULTS)
-    w3_tx = stamina.functions.development().buildTransaction(W3_TX_DEFAULTS)
+    w3_tx = stamina.functions.init(10, 20, 50).buildTransaction(W3_TX_DEFAULTS)
 
     tx = new_transaction(
         vm=chain.get_vm(),
@@ -371,7 +405,6 @@ def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
     block, receipt, computation = chain.apply_transaction(tx)
 
     assert computation.is_success
-    assert to_int(computation.output) == 0
 
     print(block)
     print(computation.is_success)

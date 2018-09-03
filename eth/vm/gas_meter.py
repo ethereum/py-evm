@@ -40,6 +40,11 @@ class GasMeter(object):
             raise ValidationError("Gas consumption amount must be positive")
 
         if amount > self.gas_remaining:
+            print("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
+                amount,
+                self.gas_remaining,
+                reason,
+            ))
             raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
                 amount,
                 self.gas_remaining,

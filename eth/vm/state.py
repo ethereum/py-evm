@@ -1,3 +1,4 @@
+from pprint import pprint
 from abc import (
     ABC,
     abstractmethod
@@ -222,6 +223,7 @@ class BaseState(Configurable, ABC):
         return state_root, computation
 
     def get_transaction_executor(self):
+        # print(self.transaction_executor(self))
         return self.transaction_executor(self)
 
     def costless_execute_transaction(self, transaction):
@@ -264,6 +266,7 @@ class BaseTransactionExecutor(ABC):
         self.vm_state = vm_state
 
     def __call__(self, transaction):
+        # print(self.vm_state)
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
         computation = self.build_computation(message, valid_transaction)
