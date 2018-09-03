@@ -14,7 +14,7 @@ class TimedResult(NamedTuple):
 
 
 def time_call(fn: Callable[..., Any]=None) -> TimedResult:
-    start = time.time()
+    start = time.perf_counter()
     return_value = fn()
-    duration = time.time() - start
+    duration = time.perf_counter() - start
     return TimedResult(duration=duration, wrapped_value=return_value)

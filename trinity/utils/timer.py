@@ -9,8 +9,8 @@ class Timer:
             self.start()
 
     def start(self) -> None:
-        self._start = time.time()
+        self._start = time.perf_counter()
 
     @property
     def elapsed(self) -> float:
-        return time.time() - self._start
+        return time.perf_counter() - self._start

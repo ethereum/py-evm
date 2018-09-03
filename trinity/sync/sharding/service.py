@@ -77,7 +77,7 @@ class ShardSyncer(BaseService, PeerSubscriber):
 
         self.collation_hashes_at_peer: Dict[ShardingPeer, Set[Hash32]] = defaultdict(set)
 
-        self.start_time = time.time()
+        self.start_time = time.monotonic()
 
     subscription_msg_types: Set[Type[Command]] = {Collations, GetCollations, NewCollationHashes}
 
@@ -204,4 +204,4 @@ class ShardSyncer(BaseService, PeerSubscriber):
 
     def get_current_period(self) -> int:
         # TODO: get this from main chain
-        return int((time.time() - self.start_time) // COLLATION_PERIOD)
+        return int((time.monotonic() - self.start_time) // COLLATION_PERIOD)
