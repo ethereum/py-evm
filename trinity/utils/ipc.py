@@ -13,8 +13,8 @@ def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=10) -> None:
     Waits up to ``timeout`` seconds for the IPC socket file to appear at path
     ``ipc_path``, or raises a :exc:`TimeoutError` otherwise.
     """
-    start_at = time.time()
-    while time.time() - start_at < timeout:
+    start_at = time.monotonic()
+    while time.monotonic() - start_at < timeout:
         if ipc_path.exists():
             return
         else:

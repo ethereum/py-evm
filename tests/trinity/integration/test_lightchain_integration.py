@@ -117,8 +117,8 @@ def geth_process(geth_command_arguments):
 
 
 def wait_for_socket(ipc_path, timeout=10):
-    start = time.time()
-    while time.time() < start + timeout:
+    start = time.monotonic()
+    while time.monotonic() < start + timeout:
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(str(ipc_path))

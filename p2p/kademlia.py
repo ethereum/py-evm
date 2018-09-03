@@ -132,7 +132,7 @@ class KBucket(Sized):
         self.end = end
         self.nodes: List[Node] = []
         self.replacement_cache: List[Node] = []
-        self.last_updated = time.time()
+        self.last_updated = time.monotonic()
 
     @property
     def midpoint(self) -> int:
@@ -181,7 +181,7 @@ class KBucket(Sized):
         node at the head of the list (i.e. the least recently seen), which should be evicted if it
         fails to respond to a ping.
         """
-        self.last_updated = time.time()
+        self.last_updated = time.monotonic()
         if node in self.nodes:
             self.nodes.remove(node)
             self.nodes.append(node)
@@ -213,13 +213,13 @@ class RoutingTable:
     logger = logging.getLogger("p2p.kademlia.RoutingTable")
 
     def __init__(self, node: Node) -> None:
-        self._initialized_at = time.time()
+        self._initialized_at = time.monotonic()
         self.this_node = node
         self.buckets = [KBucket(0, k_max_node_id)]
 
     def get_random_nodes(self, count: int) -> Iterator[Node]:
         if count > len(self):
-            if time.time() - self._initialized_at > 30:
+            if time.monotonic() - self._initialized_at > 30:
                 self.logger.warn(
                     "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
             count = len(self)
@@ -245,7 +245,7 @@ class RoutingTable:
 
     @property
     def idle_buckets(self) -> List[KBucket]:
-        idle_cutoff_time = time.time() - k_idle_bucket_refresh_interval
+        idle_cutoff_time = time.monotonic() - k_idle_bucket_refresh_interval
         return [b for b in self.buckets if b.last_updated < idle_cutoff_time]
 
     @property
