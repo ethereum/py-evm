@@ -39,3 +39,60 @@ async def test_daemon_exit_causes_parent_cancellation():
     assert not service.is_running
 
     await asyncio.wait_for(service.events.cleaned_up.wait(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_service_tasks_do_not_leak_memory():
+    service = WaitService()
+    asyncio.ensure_future(service.run())
+
+    end = asyncio.Event()
+
+    async def run_until_end():
+        await end.wait()
+
+    service.run_task(run_until_end())
+
+    # inspect internals to determine if memory is leaking
+
+    # confirm that task is tracked:
+    assert len(service._tasks) == 1
+
+    end.set()
+    # allow the coro to exit
+    await asyncio.sleep(0)
+
+    # confirm that task is no longer tracked:
+    assert len(service._tasks) == 0
+
+    # test cleanup
+    await service.cancel()
+
+
+@pytest.mark.asyncio
+async def test_service_children_do_not_leak_memory():
+    parent = WaitService()
+    child = WaitService()
+    asyncio.ensure_future(parent.run())
+
+    parent.run_child_service(child)
+
+    # inspect internals to determine if memory is leaking
+
+    # confirm that child service is tracked:
+    assert len(parent._child_services) == 1
+
+    # give child a chance to start
+    await asyncio.sleep(0)
+
+    # ... and then end it
+    await child.cancel()
+
+    # remove the final reference to the child service
+    del child
+
+    # confirm that child service is no longer tracked:
+    assert len(parent._child_services) == 0
+
+    # test cleanup
+    await parent.cancel()
