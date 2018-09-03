@@ -9,6 +9,10 @@ import random
 
 from cancel_token import CancelToken, OperationCancelled
 from eth_utils import ValidationError
+from eth_utils.toolz import (
+    complement,
+    curry,
+)
 from hypothesis import (
     example,
     given,
@@ -152,22 +156,25 @@ async def test_queue_size_reset_after_complete():
 
 
 @pytest.mark.asyncio
-async def test_queue_contains_task_until_complete():
-    q = TaskQueue()
+@pytest.mark.parametrize('tasks', ((2, 3), (object(), object())))
+async def test_queue_contains_task_until_complete(tasks):
+    q = TaskQueue(order_fn=id)
 
-    assert 2 not in q
+    first_task = tasks[0]
 
-    await wait(q.add((2, )))
+    assert first_task not in q
 
-    assert 2 in q
+    await wait(q.add(tasks))
 
-    batch, tasks = await wait(q.get())
+    assert first_task in q
 
-    assert 2 in q
+    batch, pending_tasks = await wait(q.get())
 
-    q.complete(batch, tasks)
+    assert first_task in q
 
-    assert 2 not in q
+    q.complete(batch, pending_tasks)
+
+    assert first_task not in q
 
 
 @pytest.mark.asyncio
@@ -185,6 +192,53 @@ async def test_custom_priority_order():
     await wait(q.add((2, 1, 3)))
     (batch, tasks) = await wait(q.get())
     assert tasks == (3, 2, 1)
+
+
+@functools.total_ordering
+class SortableInt:
+    def __init__(self, original):
+        self.original = original
+
+    def __eq__(self, other):
+        return self.original == other.original
+
+    def __lt__(self, other):
+        return self.original < other.original
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'order_fn',
+    (
+        SortableInt,
+        type('still_valid', (SortableInt, ), {}),
+    ),
+)
+async def test_valid_priority_order(order_fn):
+    q = TaskQueue(order_fn=order_fn)
+
+    # this just needs to not crash, when testing sortability
+    await wait(q.add((1, )))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'order_fn',
+    (
+        # a basic object is not sortable
+        lambda x: object(),
+        # If comparison rules create an invalid result (like an element not equal to itself), crash.
+        # The following are subclasses of SortableInt that have an intentionally broken comparitor:
+        type('invalid_eq', (SortableInt, ), dict(__eq__=curry(complement(SortableInt.__eq__)))),
+        type('invalid_lt', (SortableInt, ), dict(__lt__=curry(complement(SortableInt.__lt__)))),
+        type('invalid_gt', (SortableInt, ), dict(__gt__=curry(complement(SortableInt.__gt__)))),
+    ),
+)
+async def test_invalid_priority_order(order_fn):
+    q = TaskQueue(order_fn=order_fn)
+
+    with pytest.raises(ValidationError):
+        await wait(q.add((1, )))
 
 
 @pytest.mark.asyncio
