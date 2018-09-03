@@ -23,7 +23,7 @@ from .commands import (
     Status,
     StatusV2,
 )
-from trinity.protocol.les.constants import (
+from .constants import (
     MAX_HEADERS_FETCH,
 )
 from .proto import (

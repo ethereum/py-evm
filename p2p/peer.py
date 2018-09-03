@@ -497,7 +497,7 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise DecryptionError('Invalid frame mac: expected %s, got %s'.format(
+            raise DecryptionError('Invalid frame mac: expected {}, got {}'.format(
                 expected_frame_mac, frame_mac))
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 

@@ -47,7 +47,6 @@ from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
 
-
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
 ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
@@ -67,6 +66,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     highest TD, at which point we must run the StateDownloader to fetch the state for our chain
     head.
     """
+    NO_PEER_RETRY_PAUSE = 5
+    """If no peers are available for downloading the chain data, retry after this many seconds"""
+
     db: AsyncChainDB
 
     subscription_msg_types: Set[Type[Command]] = {
@@ -148,7 +150,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # order to see if the sync is completed. Instead we just check that we have the peer's
         # head_hash in our chain.
         if await self.wait(self.db.coro_header_exists(target_hash)):
-            self.complete_token.trigger()
+            self.cancel_nowait()
 
     async def _download_block_bodies(self,
                                      target_td: int,
