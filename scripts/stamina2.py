@@ -16,6 +16,14 @@ from scripts.benchmark.utils.compile import (
     get_compiled_contract
 )
 
+from eth_keys import (
+    keys
+)
+
+from eth_typing import (
+    Address
+)
+
 from scripts.benchmark.utils.tx import (
     new_transaction,
 )
@@ -357,39 +365,37 @@ contract Stamina {
 }
 '''
 
-FIRST_TX_GAS_LIMIT = 2800000
-SECOND_TX_GAS_LIMIT = 180000
-TRANSFER_AMOUNT = 1000
-TRANSER_FROM_AMOUNT = 1
-
+DEFAULT_GAS_LIMIT = 180000
 W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
-CONTRACT_FILE = 'scripts/benchmark/contract_data/erc20.sol'
-CONTRACT_NAME = 'SimpleToken'
-
-contract_interface = get_compiled_contract(
-    pathlib.Path(CONTRACT_FILE),
-    CONTRACT_NAME
-)
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:30303"))
 
+compiled_sol = compile_source(contract_source_code) # Compiled source code
+contract_interface = compiled_sol['<stdin>:Stamina']
 stamina_address = Web3.toChecksumAddress('0x000000000000000000000000000000000000dead')
+stamina = w3.eth.contract(
+    address=decode_hex(stamina_address),
+    abi=contract_interface['abi']
+)
+
+# same as FUNDED_ADDRESS_PRIVATE_KEY
+delegatee_private_key = keys.PrivateKey(decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8'))
+delegator_private_key = keys.PrivateKey(decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d0'))
+
+delegatee = Address(delegatee_private_key.public_key.to_canonical_address())
+delegator = Address(delegator_private_key.public_key.to_canonical_address())
 
 def run() -> None:
     # get Byzantium VM
     chain = get_chain(ByzantiumVM)
-    _stamina_contract_function(decode_hex(stamina_address), chain)
+    init_function(decode_hex(stamina_address), chain)
+    initialized_function(decode_hex(stamina_address), chain)
+    set_delegator_function(decode_hex(stamina_address), chain)
+    get_delegatee_function(decode_hex(stamina_address), chain)
+    deposit_function(decode_hex(stamina_address), chain)
+    get_stamina_function(decode_hex(stamina_address), chain)
 
-def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
-    compiled_sol = compile_source(contract_source_code) # Compiled source code
-    contract_interface = compiled_sol['<stdin>:Stamina']
-
-    # Instantiate and deploy contract
-    stamina = w3.eth.contract(
-        address=addr,
-        abi=contract_interface['abi']
-    )
-
+def init_function(addr: str, chain: MiningChain) -> None:
     w3_tx = stamina.functions.init(10, 20, 50).buildTransaction(W3_TX_DEFAULTS)
 
     tx = new_transaction(
@@ -398,7 +404,7 @@ def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
         from_=FUNDED_ADDRESS,
         to=addr,
         amount=0,
-        gas=SECOND_TX_GAS_LIMIT,
+        gas=DEFAULT_GAS_LIMIT,
         data=decode_hex(w3_tx['data']),
     )
 
@@ -406,9 +412,98 @@ def _stamina_contract_function(addr: str, chain: MiningChain) -> None:
 
     assert computation.is_success
 
-    print(block)
-    print(computation.is_success)
-    print(computation.output)
+def initialized_function(addr: str, chain: MiningChain) -> None:
+    w3_tx = stamina.functions.initialized().buildTransaction(W3_TX_DEFAULTS)
+
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=0,
+        gas=DEFAULT_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    assert to_int(computation.output) == 1
+
+def set_delegator_function(addr: str, chain: MiningChain) -> None:
+    w3_tx = stamina.functions.setDelegator(delegator).buildTransaction(W3_TX_DEFAULTS)
+
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=0,
+        gas=DEFAULT_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    assert to_int(computation.output) == 1
+
+def get_delegatee_function(addr: str, chain: MiningChain) -> None:
+    w3_tx = stamina.functions.getDelegatee(delegator).buildTransaction(W3_TX_DEFAULTS)
+
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=0,
+        gas=DEFAULT_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    # print(encode_hex(computation.output))
+    # print(encode_hex(delegatee))
+
+def deposit_function(addr: str, chain: MiningChain) -> None:
+    w3_tx = stamina.functions.deposit(delegatee).buildTransaction(W3_TX_DEFAULTS)
+
+    # amount: 100
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=100,
+        gas=DEFAULT_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    assert to_int(computation.output) == 1
+
+def get_stamina_function(addr: str, chain: MiningChain) -> None:
+    w3_tx = stamina.functions.getStamina(delegatee).buildTransaction(W3_TX_DEFAULTS)
+
+    # gas_price is gasPrice field
+    tx = new_transaction(
+        vm=chain.get_vm(),
+        private_key=FUNDED_ADDRESS_PRIVATE_KEY,
+        from_=FUNDED_ADDRESS,
+        to=addr,
+        amount=0,
+        gas=DEFAULT_GAS_LIMIT,
+        data=decode_hex(w3_tx['data']),
+    )
+
+    block, receipt, computation = chain.apply_transaction(tx)
+
+    assert computation.is_success
+    assert to_int(computation.output) == 100
 
 if __name__ == '__main__':
     run()
