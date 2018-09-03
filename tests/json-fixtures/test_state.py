@@ -133,6 +133,19 @@ SLOWEST_TESTS = {
 }
 
 
+# These are tests that are thought to be incorrect or buggy upstream,
+# at the commit currently checked out in submodule `fixtures`.
+# Ideally, this list should be empty.
+# WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
+INCORRECT_UPSTREAM_TESTS = {
+    # Upstream seems to specify that the precompile call fails, but `py-evm`
+    # handles it just fine.
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-417351843
+    # * https://github.com/ethereum/tests/pull/405#issuecomment-417855812
+    ('stReturnDataTest/modexp_modsize0_returndatasize.json', 'modexp_modsize0_returndatasize', 'Byzantium', 4),  # noqa: E501
+}
+
+
 def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
     fixture_id = (fixture_path, fixture_key, fixture_fork, fixture_index)
     if fixture_path.startswith('stTransactionTest/zeroSigTransa'):
@@ -144,6 +157,8 @@ def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_ind
             return pytest.mark.skip("Skipping slow test")
     elif fixture_path.startswith('stQuadraticComplexityTest'):
         return pytest.mark.skip("Skipping slow test")
+    elif fixture_id in INCORRECT_UPSTREAM_TESTS:
+        return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
 def pytest_generate_tests(metafunc):
