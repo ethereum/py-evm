@@ -770,6 +770,11 @@ class Chain(BaseChain):
             parent: BlockHeader,
             chain: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
+        """
+        Validate the `chain` of headers against the given parent.  The
+        `seal_check_random_sample_rate` determines how many of the headers
+        should have their seal's validated.
+        """
 
         all_indices = list(range(len(chain)))
         if seal_check_random_sample_rate == 1:

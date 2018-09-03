@@ -140,16 +140,6 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
             len(headers), txs, timer.elapsed, head.block_number)
 
-        # during fast sync, exit the service when reaching the target hash
-        target_hash = self.get_target_header_hash()
-
-        # Quite often the header batch we receive includes headers past the peer's reported
-        # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
-        # order to see if the sync is completed. Instead we just check that we have the peer's
-        # head_hash in our chain.
-        if await self.wait(self.db.coro_header_exists(target_hash)):
-            self.complete_token.trigger()
-
     async def _download_block_bodies(self,
                                      target_td: int,
                                      all_headers: Tuple[BlockHeader, ...]
