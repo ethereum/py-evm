@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import (
     Any,
     Iterable,
@@ -7,6 +8,10 @@ from typing import (
 
 from eth_keys import (
     keys
+)
+
+from web3 import (
+    Web3
 )
 
 from eth_utils import (
@@ -42,20 +47,20 @@ AddressSetup = NamedTuple('AddressSetup', [
 ])
 
 ALL_VM = [vm for _, vm in BaseMainnetChain.vm_configuration]
-
+"""
 FUNDED_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
 )
 
 FUNDED_ADDRESS = Address(FUNDED_ADDRESS_PRIVATE_KEY.public_key.to_canonical_address())
 
-DEFAULT_INITIAL_BALANCE = to_wei(10000, 'ether')
-
 SECOND_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d0')
 )
 
 SECOND_ADDRESS = Address(SECOND_ADDRESS_PRIVATE_KEY.public_key.to_canonical_address())
+"""
+DEFAULT_INITIAL_BALANCE = to_wei(10000, 'ether')
 
 GENESIS_PARAMS = {
     'parent_hash': constants.GENESIS_PARENT_HASH,
@@ -70,6 +75,8 @@ GENESIS_PARAMS = {
     'nonce': constants.GENESIS_NONCE
 }
 
+#erc20test_address = Web3.toChecksumAddress('0x000000000000000000000000000000000000abcd')
+stamina_address = Web3.toChecksumAddress('0x000000000000000000000000000000000000dead')
 
 @to_dict
 def genesis_state(setup: Iterable[AddressSetup]) -> Any:
@@ -98,24 +105,39 @@ def chain_without_pow(
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
 
+def get_chain(vm: Type[BaseVM], **kwargs) -> MiningChain:
+    # Checking contract code types,
+    # simply judge 'string' type is not a contract code.
+    addresses, contracts = kwargs['EOA'], kwargs['CA']
 
-def get_chain(vm: Type[BaseVM]) -> MiningChain:
+    state_list = []
+
+    # adding EOA accounts state
+    for address in addresses:
+        _setup = AddressSetup(
+            address=address,
+            balance=DEFAULT_INITIAL_BALANCE,
+            code=b'')
+
+        state_list.append(_setup)
+
+    # adding CA accounts state
+    for contract in contracts:
+        # checking code type
+        assert contract['code'] != None
+
+        _setup = AddressSetup(
+            address=decode_hex(contract['address']),
+            balance=0,
+            code=decode_hex(contract['code']))
+
+        state_list.append(_setup)
+
     return chain_without_pow(
         MemoryDB(),
         vm,
         GENESIS_PARAMS,
-        genesis_state([
-            AddressSetup(
-                address=FUNDED_ADDRESS,
-                balance=DEFAULT_INITIAL_BALANCE,
-                code=b''
-            ),
-            AddressSetup(
-                address=SECOND_ADDRESS,
-                balance=DEFAULT_INITIAL_BALANCE,
-                code=b''
-            ),
-        ])
+        genesis_state(state_list)
     )
 
 

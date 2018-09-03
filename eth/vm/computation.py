@@ -1,3 +1,4 @@
+from pprint import pprint
 from abc import (
     ABC,
     abstractmethod
@@ -557,8 +558,11 @@ class BaseComputation(Configurable, ABC):
                 )
 
                 try:
+                    # print(computation.code.pc)
+                    # print(opcode_fn.mnemonic)
                     opcode_fn(computation=computation)
                 except Halt:
+                    # print(opcode_fn.mnemonic)
                     break
         return computation
 

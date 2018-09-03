@@ -1,3 +1,4 @@
+from pprint import pprint
 from eth_hash.auto import keccak
 
 from eth import constants
@@ -58,6 +59,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                     # writing contract code.
                     computation._error = err
                     self.state.revert(snapshot)
+                    print('out of gas!')
                 else:
                     if self.logger:
                         self.logger.trace(
