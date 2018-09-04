@@ -13,7 +13,8 @@ from typing import (
     Callable,
     List,
     Dict,
-    Type
+    Type,
+    Tuple,
 )
 
 from eth import MainnetChain, RopstenChain
