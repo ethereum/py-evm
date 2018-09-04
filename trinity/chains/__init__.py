@@ -5,7 +5,6 @@ from multiprocessing.managers import (  # type: ignore
     BaseProxy,
 )
 import inspect
-import json
 import os
 import traceback
 from types import TracebackType
@@ -17,7 +16,7 @@ from typing import (
 )
 
 from eth import MainnetChain, RopstenChain
-import eth.constants
+import eth.constants as constants
 from eth.chains.base import (
     Chain,
     BaseChain
@@ -42,6 +41,9 @@ from eth_utils import (
 
 from p2p import ecies
 
+from trinity.exceptions import (
+    MissingPath,
+)
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import AsyncChainDB, ChainDBProxy
