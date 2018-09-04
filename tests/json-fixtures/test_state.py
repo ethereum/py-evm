@@ -138,11 +138,6 @@ SLOWEST_TESTS = {
 # Ideally, this list should be empty.
 # WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
 INCORRECT_UPSTREAM_TESTS = {
-    # Upstream seems to specify that the precompile call fails, but `py-evm`
-    # handles it just fine.
-    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-417351843
-    # * https://github.com/ethereum/tests/pull/405#issuecomment-417855812
-    ('stReturnDataTest/modexp_modsize0_returndatasize.json', 'modexp_modsize0_returndatasize', 'Byzantium', 4),  # noqa: E501
 }
 
 

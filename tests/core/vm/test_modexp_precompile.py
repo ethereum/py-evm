@@ -41,11 +41,11 @@ EIP198_VECTOR_C = decode_hex(
         (EIP198_VECTOR_A, 13056),
         (
             EIP198_VECTOR_C,
-            708647586132375115992254428253169996062012306153720251921480414128428353393856280,
+            10684346944173007063723051170445283632835119638284563472873463025465780712173320789629146724657549280936306536701227228889744512638312451529980055895215896,  # noqa: E501
         ),
     ),
 )
-def test_modexp_gas_fee_calcultation(data, expected):
+def test_modexp_gas_fee_calculation(data, expected):
     actual = _compute_modexp_gas_fee(data)
     assert actual == expected
 
