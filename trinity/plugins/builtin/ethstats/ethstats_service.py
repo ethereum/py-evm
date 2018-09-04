@@ -13,7 +13,7 @@ from trinity.plugins.builtin.ethstats.ethstats_client import (
 )
 
 
-class StatsClient(BaseService):
+class EthstatsService(BaseService):
     def __init__(self, stats_server_url: str, stats_server_secret: str, *args, **kwargs) -> None:
         super(StatsClient, self).__init__(*args, **kwargs)
 
