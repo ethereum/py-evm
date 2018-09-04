@@ -97,7 +97,7 @@ install_requires = deps['eth']
 setup(
     name='py-evm',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.31',
+    version='0.2.0-alpha.32',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
     author='Ethereum Foundation',
