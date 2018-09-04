@@ -137,6 +137,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self._syncing = True
         try:
             await self._sync(peer)
+            self.logger.debug('Sync with peer %s finished normally', peer)
         except OperationCancelled as e:
             self.logger.info("Sync with %s was shut down: %s", peer, e)
         finally:
@@ -158,6 +159,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
                 peer.head_td, peer, head_td)
             return
+        else:
+            self.logger.debug(
+                "%s announced Head TD %d, which is higher than ours (%d), starting sync",
+                peer, peer.head_td, head_td)
 
         self.logger.info("Starting sync with %s", peer)
         last_received_header: BlockHeader = None
@@ -175,6 +180,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             try:
                 fetch_headers_coro = self._fetch_missing_headers(peer, start_at)
                 headers = await self.wait(fetch_headers_coro)
+                self.logger.trace('sync received new headers', headers)
             except OperationCancelled:
                 self.logger.info("Sync with %s completed", peer)
                 break
@@ -231,7 +237,11 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 )
                 break
 
-            self.logger.debug("Got new header chain starting at #%d", first.block_number)
+            self.logger.debug(
+                "Got new header chain from %s starting at #%d",
+                peer,
+                first.block_number,
+            )
             try:
                 await self.chain.coro_validate_chain(
                     last_received_header or first_parent,
@@ -250,14 +260,14 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self._target_header_hash = peer.head_hash
 
             new_headers = tuple(h for h in headers if h not in self.header_queue)
-            await self.header_queue.add(new_headers)
+            await self.wait(self.header_queue.add(new_headers))
             last_received_header = headers[-1]
             start_at = last_received_header.block_number + 1
 
     async def _fetch_missing_headers(
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
-        self.logger.debug("Fetching chain segment starting at #%d", start_at)
+        self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 
         headers = await peer.requests.get_block_headers(
             start_at,
@@ -277,6 +287,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 if header in self.header_queue:
                     self.logger.debug("Discarding header that is already queued: %s", header)
                     continue
+
                 is_present = await self.wait(self.db.coro_header_exists(header.hash))
                 if is_present:
                     self.logger.debug("Discarding header that we already have: %s", header)

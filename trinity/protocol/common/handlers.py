@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     Dict,
+    Iterator,
     Type,
 )
 
@@ -35,10 +36,13 @@ class BaseExchangeHandler(ABC):
             exchange = exchange_cls(manager)
             setattr(self, attr, exchange)
 
+    def __iter__(self) -> Iterator[BaseExchange[Any, Any, Any]]:
+        for key in self._exchange_config.keys():
+            yield getattr(self, key)
+
     def get_stats(self) -> Dict[str, str]:
-        exchanges = tuple(getattr(self, key) for key in self._exchange_config.keys())
         return {
             exchange.response_cmd_type.__name__: exchange.tracker.get_stats()
             for exchange
-            in exchanges
+            in self
         }

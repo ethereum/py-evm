@@ -1,9 +1,13 @@
 import asyncio
+from asyncio import (
+    PriorityQueue,
+)
 from concurrent.futures import CancelledError
-import math
-import operator
+import enum
+from operator import attrgetter
 from typing import (
     Any,
+    Callable,
     Dict,
     List,
     Set,
@@ -13,30 +17,36 @@ from typing import (
     cast,
 )
 
-from cancel_token import OperationCancelled
-from cytoolz import (
+from cancel_token import CancelToken, OperationCancelled
+from eth_typing import Hash32
+from eth_utils import (
+    ValidationError,
+)
+from eth_utils.toolz import (
     concat,
+    first,
+    groupby,
     merge,
-    partition_all,
-    unique,
+    valfilter,
 )
 
-from eth_typing import Hash32
-
-from eth_utils import ValidationError
-
+from eth.chains import AsyncChain
 from eth.constants import (
-    BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_PARENT_HASH)
+    BLANK_ROOT_HASH,
+    EMPTY_UNCLE_HASH,
+)
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
 from p2p import protocol
 from p2p.p2p_proto import DisconnectReason
-from p2p.exceptions import NoEligiblePeers, PeerConnectionLost
+from p2p.exceptions import BaseP2PError, PeerConnectionLost
+from p2p.peer import BasePeer, PeerPool
 from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
+from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (
     MAX_BODIES_FETCH,
@@ -48,6 +58,11 @@ from trinity.protocol.eth.requests import HeaderRequest
 from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
+from trinity.utils.datastructures import (
+    SortableTask,
+    OrderedTaskPreparation,
+    TaskQueue,
+)
 from trinity.utils.timer import Timer
 
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
@@ -61,16 +76,59 @@ BlockBodyBundle = Tuple[
 ]
 
 
-class FastChainSyncer(BaseHeaderChainSyncer):
+class WaitingPeers:
     """
-    Sync with the Ethereum network by fetching block headers/bodies and storing them in our DB.
+    Peers waiting to perform some action. When getting a peer from this queue,
+    prefer the peer with the best throughput for the given command.
+    """
+    _waiting_peers: 'PriorityQueue[SortableTask[ETHPeer]]'
 
-    Here, the run() method returns as soon as we complete a sync with the peer that announced the
-    highest TD, at which point we must run the StateDownloader to fetch the state for our chain
-    head.
-    """
-    NO_PEER_RETRY_PAUSE = 5
-    """If no peers are available for downloading the chain data, retry after this many seconds"""
+    def __init__(self, response_command_type: Type[Command]) -> None:
+        self._waiting_peers = PriorityQueue()
+        self._response_command_type = response_command_type
+        self._peer_wrapper = SortableTask.orderable_by_func(self._ranked_peer)
+
+    def _ranked_peer(self, peer: ETHPeer) -> float:
+        relevant_throughputs = [
+            exchange.tracker.items_per_second_ema.value
+            for exchange in peer.requests
+            if exchange.response_cmd_type == self._response_command_type
+        ]
+
+        if len(relevant_throughputs) == 0:
+            raise ValidationError(
+                f"Could not find any exchanges on {peer} "
+                f"with response {self._response_command_type!r}"
+            )
+
+        avg_throughput = sum(relevant_throughputs) / len(relevant_throughputs)
+
+        # high throughput peers should pop out of the queue first, so ranked as negative
+        return -1 * avg_throughput
+
+    def put_nowait(self, peer: ETHPeer) -> None:
+        self._waiting_peers.put_nowait(self._peer_wrapper(peer))
+
+    async def get_fastest(self) -> ETHPeer:
+        wrapped_peer = await self._waiting_peers.get()
+        peer = wrapped_peer.original
+
+        # make sure the peer has not gone offline while waiting in the queue
+        while not peer.is_operational:
+            # if so, look for the next best peer
+            wrapped_peer = await self._waiting_peers.get()
+            peer = wrapped_peer.original
+
+        return peer
+
+
+class BaseBodyChainSyncer(BaseHeaderChainSyncer):
+
+    NO_PEER_RETRY_PAUSE = 5.0
+    "If no peers are available for downloading the chain data, retry after this many seconds"
+
+    EMPTY_PEER_RESPONSE_PENALTY = 3.0
+    "After a peer returns zero results, it will wait this many seconds before retrying"
 
     db: AsyncChainDB
 
@@ -85,141 +143,171 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         commands.Transactions,
         commands.NewBlockHashes,
     }
+    _pending_bodies: Dict[BlockHeader, BlockBody]
 
-    async def _run(self) -> None:
-        self.run_task(self._load_and_process_headers())
-        await super()._run()
+    def __init__(self,
+                 chain: AsyncChain,
+                 db: AsyncHeaderDB,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
+        super().__init__(chain, db, peer_pool, token)
+        self._pending_bodies = {}
 
-    async def _load_and_process_headers(self) -> None:
+        # queue up any idle peers, in order of how fast they return block bodies
+        self._body_peers = WaitingPeers(commands.BlockBodies)
+
+        # Track incomplete block body download tasks
+        # - arbitrarily allow up to 4 requests-worth of headers queued up
+        # - try to get bodies from lower block numbers first
+        self._block_body_tasks = TaskQueue(MAX_BODIES_FETCH * 4, attrgetter('block_number'))
+
+    # TODO move this to BaseService if it gets broader usage and/or stays stable for long enough
+    def delayed_run_func(self, func: Callable[[], None], delay: float) -> None:
+        """
+        Run function `func` after `delay` seconds
+        """
+        async def delayed_run() -> None:
+            await self.sleep(delay)
+            func()
+        self.run_task(delayed_run())
+
+    async def _assign_body_download_to_peers(self) -> None:
+        """
+        Loop indefinitely, assigning idle peers to download any block bodies needed for syncing.
+        """
         while self.is_operational:
-            # TODO invert this, so each peer is getting headers and completing them,
-            # in independent loops
-            # TODO implement the maximum task size at each step instead of this magic number
-            max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
-            batch_id, headers = await self.header_queue.get(max_headers)
-            try:
-                await self._process_headers(headers)
-            except NoEligiblePeers:
-                self.logger.info(
-                    f"No available peers to sync with, retrying in {self.NO_PEER_RETRY_PAUSE}s"
-                )
-                self.header_queue.complete(batch_id, tuple())
-                await self.sleep(self.NO_PEER_RETRY_PAUSE)
-            else:
-                self.header_queue.complete(batch_id, headers)
+            # from all the peers that are not currently downloading block bodies, get the fastest
+            peer = await self.wait(self._body_peers.get_fastest())
 
-    async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
-        """Return the score (total difficulty) of the last header in the given list.
+            # get headers for bodies that we need to download, preferring lowest block number
+            batch_id, headers = await self.wait(self._block_body_tasks.get(MAX_BODIES_FETCH))
 
-        Assumes the first header's parent is already present in our DB.
+            # schedule the body download and move on
+            peer.run_task(self._run_body_download_batch(peer, batch_id, headers))
 
-        Used when we have a batch of headers that has not been persisted to the DB yet, and we
-        need to know the score for the last one of them.
+    async def _block_body_bundle_processing(self, bundles: Tuple[BlockBodyBundle, ...]) -> None:
         """
-        if headers[0].parent_hash == GENESIS_PARENT_HASH:
-            td = 0
+        By default, no body bundle processing is needed.
+
+        Subclasses may choose to do some post-processing. Notably, fast sync immediately saves
+        block body bundles to the database.
+        """
+        pass
+
+    async def _run_body_download_batch(
+            self,
+            peer: ETHPeer,
+            batch_id: int,
+            all_headers: Tuple[BlockHeader, ...]) -> None:
+        """
+        Given a single batch retrieved from self._block_body_tasks, get as many of the block bodies
+        as possible, and mark them as complete.
+        """
+
+        non_trivial_headers = tuple(header for header in all_headers if not _is_body_empty(header))
+        trivial_headers = tuple(header for header in all_headers if _is_body_empty(header))
+
+        try:
+            if len(non_trivial_headers) == 0:
+                self.logger.debug(
+                    "Block bodies for all %d headers were trivial, from %r..%r",
+                    len(all_headers),
+                    all_headers[0],
+                    all_headers[-1],
+                )
+                completed_headers = non_trivial_headers
+            else:
+                bundles, completed_headers = await self._get_block_bodies(peer, non_trivial_headers)
+                await self._block_body_bundle_processing(bundles)
+
+            self._mark_body_download_complete(batch_id, completed_headers + trivial_headers)
+        except BaseP2PError:
+            self._block_body_tasks.complete(batch_id, trivial_headers)
+            self.logger.debug("Problem downloading body from peer, dropping...", exc_info=True)
+        except Exception:
+            self._block_body_tasks.complete(batch_id, trivial_headers)
+            raise
         else:
-            td = await self.wait(self.db.coro_get_score(headers[0].parent_hash))
-        for header in headers:
-            td += header.difficulty
-        return td
-
-    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
-        timer = Timer()
-        target_td = await self._calculate_td(headers)
-        bodies_by_key = await self._download_block_bodies(target_td, headers)
-        self.logger.debug("Got block bodies for chain segment")
-
-        await self._download_receipts(target_td, headers)
-        self.logger.debug("Got block receipts for chain segment")
-
-        for header in headers:
-            if header.uncles_hash != EMPTY_UNCLE_HASH:
-                key = (header.transaction_root, header.uncles_hash)
-                body = cast(BlockBody, bodies_by_key[key])
-                uncles = body.uncles
+            if len(non_trivial_headers) == 0:
+                # peer had nothing to do, so have it get back in line for processing
+                self._body_peers.put_nowait(peer)
+            elif len(completed_headers) > 0:
+                # peer completed with at least 1 result, so have it get back in line for processing
+                self._body_peers.put_nowait(peer)
             else:
-                uncles = tuple()
-            vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
-            block_class = vm_class.get_block_class()
-            # We don't need to use our block transactions here because persist_block() doesn't do
-            # anything with them as it expects them to have been persisted already.
-            block = block_class(header, uncles=uncles)
-            await self.wait(self.db.coro_persist_block(block))
+                # peer returned no results, wait a while before trying again
+                delay = self.EMPTY_PEER_RESPONSE_PENALTY
+                self.logger.debug("Pausing %s for %.1fs, for sending 0 block bodies", peer, delay)
+                self.delayed_run_func(lambda: self._body_peers.put_nowait(peer), delay)
 
-        head = await self.wait(self.db.coro_get_canonical_head())
-        txs = sum(len(cast(BlockBody, body).transactions) for body in bodies_by_key.values())
-        self.logger.info(
-            "Imported %d blocks (%d txs) in %0.2f seconds, new head: #%d",
-            len(headers), txs, timer.elapsed, head.block_number)
+    def _mark_body_download_complete(
+            self,
+            batch_id: int,
+            completed_headers: Tuple[BlockHeader, ...]) -> None:
+        self._block_body_tasks.complete(batch_id, completed_headers)
 
-        # during fast sync, exit the service when reaching the target hash
-        target_hash = self.get_target_header_hash()
-
-        # Quite often the header batch we receive includes headers past the peer's reported
-        # head (via the NewBlock msg), so we can't compare our head's hash to the peer's in
-        # order to see if the sync is completed. Instead we just check that we have the peer's
-        # head_hash in our chain.
-        if await self.wait(self.db.coro_header_exists(target_hash)):
-            self.cancel_nowait()
-
-    async def _download_block_bodies(self,
-                                     target_td: int,
-                                     all_headers: Tuple[BlockHeader, ...]
-                                     ) -> Dict[Tuple[Hash32, Hash32], BlockBody]:
+    async def _get_block_bodies(
+            self,
+            peer: ETHPeer,
+            headers: Tuple[BlockHeader, ...],
+    ) -> Tuple[Tuple[BlockBodyBundle, ...], Tuple[BlockHeader, ...]]:
         """
-        Downloads and persists the block bodies for the given set of block headers.
-        Block bodies are requested from all peers in equal sized batches.
+        Request and return block bodies, pairing them with the associated headers.
+        Store the bodies for later use, during block import (or persist).
+
+        Note the difference from _request_block_bodies, which only issues the request,
+        and doesn't pair the results with the associated block headers that were successfully
+        delivered.
         """
-        headers = tuple(header for header in all_headers if not _is_body_empty(header))
-        block_bodies_by_key: Dict[Tuple[Hash32, Hash32], BlockBody] = {}
+        block_body_bundles = await self.wait(self._request_block_bodies(peer, headers))
 
-        while headers:
-            # split the remaining headers into equal sized batches for each peer.
-            peers = cast(Tuple[ETHPeer, ...], self.peer_pool.get_peers(target_td))
-            if not peers:
-                raise NoEligiblePeers(
-                    "No connected peers have the block bodies we need for td={0}".format(target_td)
-                )
-            batch_size = math.ceil(len(headers) / len(peers))
-            batches = tuple(partition_all(batch_size, headers))
-
-            # issue requests to all of the peers and wait for all of them to respond.
-            requests = tuple(
-                self._get_block_bodies(peer, batch)
-                for peer, batch
-                in zip(peers, batches)
+        if len(block_body_bundles) == 0:
+            self.logger.debug(
+                "Got block bodies for 0/%d headers from %s, from %r..%r",
+                len(headers),
+                peer,
+                headers[0],
+                headers[-1],
             )
-            responses = await self.wait(asyncio.gather(
-                *requests,
-                loop=self.get_event_loop(),
-            ))
+            return tuple(), tuple()
 
-            # extract the returned block body data and the headers for which we
-            # are still missing block bodies.
-            all_block_body_bundles, all_missing_headers = zip(*responses)
+        bodies_by_root = {
+            (transaction_root, uncles_hash): block_body
+            for block_body, (transaction_root, _), uncles_hash
+            in block_body_bundles
+        }
 
-            for (body, (tx_root, trie_data_dict), uncles_hash) in concat(all_block_body_bundles):
-                await self.wait(self.db.coro_persist_trie_data_dict(trie_data_dict))
+        header_roots = {header: (header.transaction_root, header.uncles_hash) for header in headers}
 
-            block_bodies_by_key = merge(block_bodies_by_key, {
-                (transaction_root, uncles_hash): block_body
-                for block_body, (transaction_root, trie_dict_data), uncles_hash
-                in concat(all_block_body_bundles)
-            })
-            headers = tuple(concat(all_missing_headers))
+        completed_header_roots = valfilter(lambda root: root in bodies_by_root, header_roots)
 
-        self.logger.debug("Got block bodies batch for %d headers", len(all_headers))
-        return block_bodies_by_key
+        completed_headers = tuple(completed_header_roots.keys())
 
-    async def _get_block_bodies(self,
-                                peer: ETHPeer,
-                                batch: Tuple[BlockHeader, ...],
-                                ) -> Tuple[Tuple[BlockBodyBundle, ...], Tuple[BlockHeader, ...]]:
+        # store bodies for later usage, during block import
+        pending_bodies = {
+            header: bodies_by_root[root]
+            for header, root in completed_header_roots.items()
+        }
+        self._pending_bodies = merge(self._pending_bodies, pending_bodies)
+
+        self.logger.debug(
+            "Got block bodies for %d/%d headers from %s, from %r..%r",
+            len(completed_header_roots),
+            len(headers),
+            peer,
+            headers[0],
+            headers[-1],
+        )
+
+        return block_body_bundles, completed_headers
+
+    async def _request_block_bodies(
+            self,
+            peer: ETHPeer,
+            batch: Tuple[BlockHeader, ...]) -> Tuple[BlockBodyBundle, ...]:
         """
         Requests the batch of block bodies from the given peer, returning the
-        returned block bodies data and the headers for which block bodies were not
-        returned.
+        returned block bodies data, or an empty tuple on an error.
         """
         self.logger.debug("Requesting block bodies for %d headers from %s", len(batch), peer)
         try:
@@ -228,171 +316,21 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             self.logger.debug(
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
             )
-            return tuple(), batch
+            return tuple()
         except CancelledError:
             self.logger.debug("Pending block bodies call to %r future cancelled", peer)
-            return tuple(), batch
+            return tuple()
         except OperationCancelled:
             self.logger.trace("Pending block bodies call to %r operation cancelled", peer)
-            return tuple(), batch
+            return tuple()
         except PeerConnectionLost:
             self.logger.debug("Peer went away, cancelling the block body request and moving on...")
-            return tuple(), batch
+            return tuple()
         except Exception:
             self.logger.exception("Unknown error when getting block bodies")
-            return tuple(), batch
-        else:
-            self.logger.debug(
-                "Got block bodies for %d headers from %s", len(block_body_bundles), peer,
-            )
+            return tuple()
 
-        if not block_body_bundles:
-            return tuple(), batch
-
-        _, trie_roots_and_data_dicts, uncles_hashes = zip(*block_body_bundles)
-
-        received_keys = {
-            (root_hash, uncles_hash)
-            for (root_hash, _), uncles_hash
-            in zip(trie_roots_and_data_dicts, uncles_hashes)
-        }
-
-        missing = tuple(
-            header
-            for header
-            in batch
-            if (header.transaction_root, header.uncles_hash) not in received_keys
-        )
-
-        return block_body_bundles, missing
-
-    async def _download_receipts(self,
-                                 target_td: int,
-                                 all_headers: Tuple[BlockHeader, ...]) -> None:
-        """
-        Downloads and persists the receipts for the given set of block headers.
-        Receipts are requested from all peers in equal sized batches.
-        """
-        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
-        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
-        # so we do this to avoid requesting the same receipts multiple times.
-        headers = tuple(unique(
-            (header for header in all_headers if not _is_receipts_empty(header)),
-            key=operator.attrgetter('receipt_root'),
-        ))
-
-        while headers:
-            # split the remaining headers into equal sized batches for each peer.
-            peers = cast(Tuple[ETHPeer, ...], self.peer_pool.get_peers(target_td))
-            if not peers:
-                raise NoEligiblePeers(
-                    "No connected peers have the receipts we need for td={0}".format(target_td)
-                )
-            batch_size = math.ceil(len(headers) / len(peers))
-            batches = tuple(partition_all(batch_size, headers))
-
-            # issue requests to all of the peers and wait for all of them to respond.
-            requests = tuple(
-                self._get_receipts(peer, batch)
-                for peer, batch
-                in zip(peers, batches)
-            )
-            responses = await self.wait(asyncio.gather(
-                *requests,
-                loop=self.get_event_loop(),
-            ))
-
-            # extract the returned receipt data and the headers for which we
-            # are still missing receipts.
-            all_receipt_bundles, all_missing_headers = zip(*responses)
-            receipt_bundles = tuple(concat(all_receipt_bundles))
-            headers = tuple(concat(all_missing_headers))
-
-            if len(receipt_bundles) == 0:
-                continue
-
-            # process all of the returned receipts, storing their trie data
-            # dicts in the database
-            receipts, trie_roots_and_data_dicts = zip(*receipt_bundles)
-            trie_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
-            for trie_data in trie_data_dicts:
-                await self.wait(self.db.coro_persist_trie_data_dict(trie_data))
-
-        self.logger.debug("Got receipts batch for %d headers", len(all_headers))
-
-    async def _get_receipts(self,
-                            peer: ETHPeer,
-                            batch: Tuple[BlockHeader, ...],
-                            ) -> Tuple[Tuple[ReceiptBundle, ...], Tuple[BlockHeader, ...]]:
-        """
-        Requests the batch of receipts from the given peer, returning the
-        returned receipt data and the headers for which receipts were not
-        returned for.
-        """
-        self.logger.debug("Requesting receipts for %d headers from %s", len(batch), peer)
-        try:
-            receipt_bundles = await peer.requests.get_receipts(batch)
-        except TimeoutError as err:
-            self.logger.debug(
-                "Timed out requesting receipts for %d headers from %s", len(batch), peer,
-            )
-            return tuple(), batch
-        except CancelledError:
-            self.logger.debug("Pending receipts call to %r future cancelled", peer)
-            return tuple(), batch
-        except OperationCancelled:
-            self.logger.trace("Pending receipts call to %r operation cancelled", peer)
-            return tuple(), batch
-        except PeerConnectionLost:
-            self.logger.debug("Peer went away, cancelling the receipts request and moving on...")
-            return tuple(), batch
-        except Exception:
-            self.logger.exception("Unknown error when getting receipts")
-            return tuple(), batch
-        else:
-            self.logger.debug(
-                "Got receipts for %d headers from %s", len(receipt_bundles), peer,
-            )
-
-        if not receipt_bundles:
-            return tuple(), batch
-
-        # First validate the receipts.
-        header_by_root = {
-            header.receipt_root: header
-            for header in batch
-            if not _is_receipts_empty(header)
-        }
-        receipts_by_root = {
-            receipt_root: receipts
-            for (receipts, (receipt_root, _))
-            in receipt_bundles
-            if receipt_root != BLANK_ROOT_HASH
-        }
-        for receipt_root, header in header_by_root.items():
-            for receipt in receipts_by_root[receipt_root]:
-                try:
-                    await self.chain.coro_validate_receipt(receipt, header)
-                except ValidationError as err:
-                    self.logger.info(
-                        "Disconnecting from %s: sent invalid receipt: %s",
-                        peer,
-                        err,
-                    )
-                    await peer.disconnect(DisconnectReason.bad_protocol)
-                    return tuple(), batch
-
-        _, trie_roots_and_data_dicts = zip(*receipt_bundles)
-        receipt_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
-        receipt_roots_set = set(receipt_roots)
-        missing = tuple(
-            header
-            for header
-            in batch
-            if header.receipt_root not in receipt_roots_set
-        )
-
-        return receipt_bundles, missing
+        return block_body_bundles
 
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -442,29 +380,444 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         peer.sub_proto.send_block_headers(headers)
 
 
-class RegularChainSyncer(FastChainSyncer):
+class BlockPersistPrereqs(enum.Enum):
+    StoreBlockBodies = enum.auto()
+    StoreReceipts = enum.auto()
+
+
+class FastChainSyncer(BaseBodyChainSyncer):
+    """
+    Sync with the Ethereum network by fetching block headers/bodies and storing them in our DB.
+
+    Here, the run() method returns as soon as we complete a sync with the peer that announced the
+    highest TD, at which point we must run the StateDownloader to fetch the state for our chain
+    head.
+    """
+    db: AsyncChainDB
+
+    def __init__(self,
+                 chain: AsyncChain,
+                 db: AsyncHeaderDB,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
+        super().__init__(chain, db, peer_pool, token)
+
+        # queue up any idle peers, in order of how fast they return receipts
+        self._receipt_peers = WaitingPeers(commands.Receipts)
+
+        # Track receipt download tasks
+        # - arbitrarily allow up to 4 requests-worth of headers queued up
+        # - try to get receipts from lower block numbers first
+        self._receipt_tasks = TaskQueue(MAX_RECEIPTS_FETCH * 4, attrgetter('block_number'))
+
+        # track when both bodies and receipts are collected, so that blocks can be persisted
+        self._block_persist_tracker = OrderedTaskPreparation(
+            BlockPersistPrereqs,
+            id_extractor=attrgetter('hash'),
+            # make sure that a block is not persisted until the parent block is persisted
+            dependency_extractor=attrgetter('parent_hash'),
+        )
+
+    async def _run(self) -> None:
+        head = await self.wait(self.db.coro_get_canonical_head())
+        self._block_persist_tracker.set_finished_dependency(head)
+        self.run_task(self._launch_prerequisite_tasks())
+        self.run_task(self._assign_receipt_download_to_peers())
+        self.run_task(self._assign_body_download_to_peers())
+        self.run_task(self._persist_ready_blocks())
+        self.run_task(self._display_stats())
+        await super()._run()
+
+    def register_peer(self, peer: BasePeer) -> None:
+        # when a new peer is added to the pool, add it to the idle peer lists
+        super().register_peer(peer)
+        peer = cast(ETHPeer, peer)
+        self._body_peers.put_nowait(peer)
+        self._receipt_peers.put_nowait(peer)
+
+    async def _launch_prerequisite_tasks(self) -> None:
+        """
+        Watch for new headers to be added to the queue, and add the prerequisite
+        tasks as they become available.
+        """
+        while self.is_operational:
+            batch_id, headers = await self.wait(self.header_queue.get())
+
+            self._block_persist_tracker.register_tasks(headers)
+
+            # Sometimes duplicates are added to the queue, when switching from one sync to another.
+            # We can simply ignore them.
+            new_body_tasks = tuple(h for h in headers if h not in self._block_body_tasks)
+            new_receipt_tasks = tuple(h for h in headers if h not in self._receipt_tasks)
+
+            # if any one of the output queues gets full, hang until there is room
+            await self.wait(asyncio.gather(
+                self._block_body_tasks.add(new_body_tasks),
+                self._receipt_tasks.add(new_receipt_tasks),
+            ))
+            self.header_queue.complete(batch_id, headers)
+
+    async def _display_stats(self) -> None:
+        last_head = await self.wait(self.db.coro_get_canonical_head())
+        timer = Timer()
+
+        while self.is_operational:
+            await self.sleep(5)
+            self.logger.debug(
+                "(in progress, queued, max size) of headers, bodies, receipts: %r",
+                [(q.num_in_progress(), len(q), q._maxsize) for q in (
+                    self.header_queue,
+                    self._block_body_tasks,
+                    self._receipt_tasks,
+                )],
+            )
+
+            head = await self.wait(self.db.coro_get_canonical_head())
+            if head == last_head:
+                continue
+            else:
+                block_num_change = head.block_number - last_head.block_number
+                last_head = head
+
+                self.logger.info(
+                    "Advanced by %d blocks in %0.1f seconds, new head: #%d",
+                    block_num_change, timer.pop_elapsed(), head.block_number)
+
+    async def _persist_ready_blocks(self) -> None:
+        """
+        Persist blocks as soon as all their prerequisites are done: body and receipt downloads.
+        Persisting must happen in order, so that the block's parent has already been persisted.
+
+        Also, determine if fast sync with this peer should end, having reached (or surpassed)
+        its target hash. If so, shut down this service.
+        """
+        while self.is_operational:
+            # jhis tracker waits for all prerequisites to be complete, and returns headers in
+            # order, so that each header's parent is already persisted.
+            completed_headers = await self.wait(self._block_persist_tracker.ready_tasks())
+
+            await self._persist_blocks(completed_headers)
+
+            target_hash = self.get_target_header_hash()
+
+            if target_hash in [header.hash for header in completed_headers]:
+                # simply exit the service when reaching the target hash
+                self.cancel_nowait()
+                break
+
+    async def _persist_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
+        """
+        Persist blocks for the given headers, directly to the database
+
+        :param headers: headers for which block bodies and receipts have been downloaded
+        """
+        for header in headers:
+            if header.uncles_hash != EMPTY_UNCLE_HASH:
+                body = self._pending_bodies.pop(header)
+                uncles = body.uncles
+            else:
+                uncles = tuple()
+
+            vm_class = self.chain.get_vm_class(header)
+            block_class = vm_class.get_block_class()
+            # We don't need to use our block transactions here because persist_block() doesn't do
+            # anything with them as it expects them to have been persisted already.
+            block = block_class(header, uncles=uncles)
+            await self.wait(self.db.coro_persist_block(block))
+
+    async def _assign_receipt_download_to_peers(self) -> None:
+        """
+        Loop indefinitely, assigning idle peers to download receipts needed for syncing.
+        """
+        while self.is_operational:
+            # from all the peers that are not currently downloading receipts, get the fastest
+            peer = await self.wait(self._receipt_peers.get_fastest())
+
+            # get headers for receipts that we need to download, preferring lowest block number
+            batch_id, headers = await self.wait(self._receipt_tasks.get(MAX_RECEIPTS_FETCH))
+
+            # schedule the receipt download and move on
+            peer.run_task(self._run_receipt_download_batch(peer, batch_id, headers))
+
+    def _mark_body_download_complete(
+            self,
+            batch_id: int,
+            completed_headers: Tuple[BlockHeader, ...]) -> None:
+        super()._mark_body_download_complete(batch_id, completed_headers)
+        self._block_persist_tracker.finish_prereq(
+            BlockPersistPrereqs.StoreBlockBodies,
+            completed_headers,
+        )
+
+    async def _run_receipt_download_batch(
+            self,
+            peer: ETHPeer,
+            batch_id: int,
+            headers: Tuple[BlockHeader, ...]) -> None:
+        """
+        Given a single batch retrieved from self._receipt_tasks, get as many of the receipt bundles
+        as possible, and mark them as complete.
+        """
+        try:
+            completed_headers = await self._process_receipts(peer, headers)
+
+            self._receipt_tasks.complete(batch_id, completed_headers)
+            self._block_persist_tracker.finish_prereq(
+                BlockPersistPrereqs.StoreReceipts,
+                completed_headers,
+            )
+        except BaseP2PError:
+            self._receipt_tasks.complete(batch_id, tuple())
+            self.logger.debug("Problem downloading receipt from peer, dropping...", exc_info=True)
+        except Exception:
+            self._receipt_tasks.complete(batch_id, tuple())
+            raise
+        else:
+            # peer completed successfully, so have it get back in line for processing
+            if len(completed_headers) > 0:
+                # peer completed successfully, so have it get back in line for processing
+                self._receipt_peers.put_nowait(peer)
+            else:
+                # peer returned no results, wait a while before trying again
+                delay = self.EMPTY_PEER_RESPONSE_PENALTY
+                self.logger.debug("Pausing %s for %.1fs, for sending 0 receipts", peer, delay)
+                self.delayed_run_func(lambda: self._receipt_peers.put_nowait(peer), delay)
+
+    async def _block_body_bundle_processing(self, bundles: Tuple[BlockBodyBundle, ...]) -> None:
+        """
+        Fast sync writes all the block body bundle data directly to the database,
+        in order to make it... fast.
+        """
+        for (_, (_, trie_data_dict), _) in bundles:
+            await self.wait(self.db.coro_persist_trie_data_dict(trie_data_dict))
+
+    async def _process_receipts(
+            self,
+            peer: ETHPeer,
+            all_headers: Tuple[BlockHeader, ...]) -> Tuple[BlockHeader, ...]:
+        """
+        Downloads and persists the receipts for the given set of block headers.
+        Some receipts may be trivial, having a blank root hash, and will not be requested.
+
+        :param peer: to issue the receipt request to
+        :param all_headers: attempt to get receipts for as many of these headers as possible
+        :return: the headers for receipts that were successfully downloaded (or were trivial)
+        """
+        # Post-Byzantium blocks may have identical receipt roots (e.g. when they have the same
+        # number of transactions and all succeed/failed: ropsten blocks 2503212 and 2503284),
+        # so we do this to avoid requesting the same receipts multiple times.
+
+        # combine headers with the same receipt root, so we can mark them as completed, later
+        receipt_root_to_headers = groupby(attrgetter('receipt_root'), all_headers)
+
+        # Ignore headers that have an empty receipt root
+        trivial_headers = tuple(receipt_root_to_headers.pop(BLANK_ROOT_HASH, tuple()))
+
+        # pick one of the headers for each missing receipt root
+        unique_headers_needed = tuple(
+            first(headers)
+            for root, headers in receipt_root_to_headers.items()
+        )
+
+        if not unique_headers_needed:
+            return trivial_headers
+
+        receipt_bundles = await self._request_receipts(peer, unique_headers_needed)
+
+        if not receipt_bundles:
+            return trivial_headers
+
+        try:
+            await self._validate_receipts(unique_headers_needed, receipt_bundles)
+        except ValidationError as err:
+            self.logger.info(
+                "Disconnecting from %s: sent invalid receipt: %s",
+                peer,
+                err,
+            )
+            await peer.disconnect(DisconnectReason.bad_protocol)
+            return trivial_headers
+
+        # process all of the returned receipts, storing their trie data
+        # dicts in the database
+        receipts, trie_roots_and_data_dicts = zip(*receipt_bundles)
+        receipt_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
+        for trie_data in trie_data_dicts:
+            await self.wait(self.db.coro_persist_trie_data_dict(trie_data))
+
+        # Identify which headers have the receipt roots that are now complete.
+        completed_header_groups = tuple(
+            headers
+            for root, headers in receipt_root_to_headers.items()
+            if root in receipt_roots
+        )
+        newly_completed_headers = tuple(concat(completed_header_groups))
+
+        self.logger.debug(
+            "Got receipts for %d/%d headers from %s, with %d trivial headers",
+            len(newly_completed_headers),
+            len(all_headers) - len(trivial_headers),
+            peer,
+            len(trivial_headers),
+        )
+        return newly_completed_headers + trivial_headers
+
+    async def _validate_receipts(
+            self,
+            headers: Tuple[BlockHeader, ...],
+            receipt_bundles: Tuple[ReceiptBundle, ...]) -> None:
+
+        header_by_root = {
+            header.receipt_root: header
+            for header in headers
+            if not _is_receipts_empty(header)
+        }
+        receipts_by_root = {
+            receipt_root: receipts
+            for (receipts, (receipt_root, _))
+            in receipt_bundles
+            if receipt_root != BLANK_ROOT_HASH
+        }
+        for receipt_root, header in header_by_root.items():
+            for receipt in receipts_by_root[receipt_root]:
+                await self.chain.coro_validate_receipt(receipt, header)
+
+    async def _request_receipts(
+            self,
+            peer: ETHPeer,
+            batch: Tuple[BlockHeader, ...]) -> Tuple[ReceiptBundle, ...]:
+        """
+        Requests the batch of receipts from the given peer, returning the
+        received receipt data.
+        """
+        self.logger.debug("Requesting receipts for %d headers from %s", len(batch), peer)
+        try:
+            receipt_bundles = await peer.requests.get_receipts(batch)
+        except TimeoutError as err:
+            self.logger.debug(
+                "Timed out requesting receipts for %d headers from %s", len(batch), peer,
+            )
+            return tuple()
+        except CancelledError:
+            self.logger.debug("Pending receipts call to %r future cancelled", peer)
+            return tuple()
+        except OperationCancelled:
+            self.logger.trace("Pending receipts call to %r operation cancelled", peer)
+            return tuple()
+        except PeerConnectionLost:
+            self.logger.debug("Peer went away, cancelling the receipts request and moving on...")
+            return tuple()
+        except Exception:
+            self.logger.exception("Unknown error when getting receipts")
+            return tuple()
+
+        if not receipt_bundles:
+            return tuple()
+
+        return receipt_bundles
+
+
+class BlockImportPrereqs(enum.Enum):
+    StoreBlockBodies = enum.auto()
+
+
+class RegularChainSyncer(BaseBodyChainSyncer):
     """
     Sync with the Ethereum network by fetching block headers/bodies and importing them.
 
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
-    _seal_check_random_sample_rate = 1
+    def __init__(self,
+                 chain: AsyncChain,
+                 db: AsyncHeaderDB,
+                 peer_pool: PeerPool,
+                 token: CancelToken = None) -> None:
+        super().__init__(chain, db, peer_pool, token)
 
-    async def _process_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
-        target_td = await self._calculate_td(headers)
-        bodies_by_key = await self._download_block_bodies(target_td, headers)
-        self.logger.info("Got block bodies for chain segment")
+        self._body_peers = WaitingPeers(commands.BlockBodies)
 
+        # track when block bodies are downloaded, so that blocks can be imported
+        self._block_import_tracker = OrderedTaskPreparation(
+            BlockImportPrereqs,
+            id_extractor=attrgetter('hash'),
+            # make sure that a block is not imported until the parent block is imported
+            dependency_extractor=attrgetter('parent_hash'),
+        )
+
+    async def _run(self) -> None:
+        head = await self.wait(self.db.coro_get_canonical_head())
+        self._block_import_tracker.set_finished_dependency(head)
+        self.run_task(self._launch_prerequisite_tasks())
+        self.run_task(self._assign_body_download_to_peers())
+        self.run_task(self._import_ready_blocks())
+        await super()._run()
+
+    def register_peer(self, peer: BasePeer) -> None:
+        # when a new peer is added to the pool, add it to the idle peer list
+        super().register_peer(peer)
+        self._body_peers.put_nowait(cast(ETHPeer, peer))
+
+    async def _launch_prerequisite_tasks(self) -> None:
+        """
+        Watch for new headers to be added to the queue, and add the prerequisite
+        tasks (downloading block bodies) as they become available.
+        """
+        while self.is_operational:
+            batch_id, headers = await self.wait(self.header_queue.get())
+
+            self._block_import_tracker.register_tasks(headers)
+
+            new_headers = tuple(h for h in headers if h not in self._block_body_tasks)
+
+            # if the output queue gets full, hang until there is room
+            await self.wait(self._block_body_tasks.add(new_headers))
+            self.header_queue.complete(batch_id, headers)
+
+    def _mark_body_download_complete(
+            self,
+            batch_id: int,
+            completed_headers: Tuple[BlockHeader, ...]) -> None:
+        super()._mark_body_download_complete(batch_id, completed_headers)
+        self._block_import_tracker.finish_prereq(
+            BlockImportPrereqs.StoreBlockBodies,
+            completed_headers,
+        )
+
+    async def _import_ready_blocks(self) -> None:
+        """
+        Wait for block bodies to be downloaded, then import the blocks.
+        """
+        while self.is_operational:
+            timer = Timer()
+
+            # wait for block bodies to become ready for execution
+            completed_headers = await self.wait(self._block_import_tracker.ready_tasks())
+
+            await self._import_blocks(completed_headers)
+
+            head = await self.wait(self.db.coro_get_canonical_head())
+            self.logger.info(
+                "Synced chain segment with %d blocks in %.2f seconds, new head: #%d",
+                len(completed_headers),
+                timer.elapsed,
+                head.block_number,
+            )
+
+    async def _import_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
+        """
+        Import the blocks for the corresponding headers
+
+        :param headers: headers that have the block bodies downloaded
+        """
         for header in headers:
-            vm_class = self.chain.get_vm_class_for_block_number(header.block_number)
+            vm_class = self.chain.get_vm_class(header)
             block_class = vm_class.get_block_class()
 
             if _is_body_empty(header):
                 transactions: List[BaseTransaction] = []
                 uncles: List[BlockHeader] = []
             else:
-                key = (header.transaction_root, header.uncles_hash)
-                body = cast(BlockBody, bodies_by_key[key])
+                body = self._pending_bodies.pop(header)
                 tx_class = block_class.get_transaction_class()
                 transactions = [tx_class.from_base_transaction(tx)
                                 for tx in body.transactions]
@@ -478,15 +831,15 @@ class RegularChainSyncer(FastChainSyncer):
 
             if new_canonical_blocks == (block,):
                 # simple import of a single new block.
-                self.logger.info("Imported block %d (%d txs) in %f seconds",
+                self.logger.info("Imported block %d (%d txs) in %.2f seconds",
                                  block.number, len(transactions), timer.elapsed)
             elif not new_canonical_blocks:
                 # imported block from a fork.
-                self.logger.info("Imported non-canonical block %d (%d txs) in %f seconds",
+                self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
                                  block.number, len(transactions), timer.elapsed)
             elif old_canonical_blocks:
                 self.logger.info(
-                    "Chain Reorganization: Imported block %d (%d txs) in %f "
+                    "Chain Reorganization: Imported block %d (%d txs) in %.2f "
                     "seconds, %d blocks discarded and %d new canonical blocks added",
                     block.number,
                     len(transactions),
@@ -496,9 +849,6 @@ class RegularChainSyncer(FastChainSyncer):
                 )
             else:
                 raise Exception("Invariant: unreachable code path")
-
-        head = await self.wait(self.db.coro_get_canonical_head())
-        self.logger.info("Imported chain segment, new head: #%d", head.block_number)
 
 
 def _is_body_empty(header: BlockHeader) -> bool:

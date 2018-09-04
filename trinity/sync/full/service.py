@@ -43,12 +43,15 @@ class FullNodeSyncer(BaseService):
         if head.timestamp < time.time() - FAST_SYNC_CUTOFF:
             # Fast-sync chain data.
             self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
-            chain_syncer = FastChainSyncer(
+            fast_syncer = FastChainSyncer(
                 self.chain, self.chaindb, self.peer_pool, self.cancel_token)
-            await chain_syncer.run()
+            await fast_syncer.run()
 
         if self.cancel_token.triggered:
             return
+        else:
+            # remove the reference so the memory can be reclaimed
+            del fast_syncer
 
         # Ensure we have the state for our current head.
         head = await self.wait(self.chaindb.coro_get_canonical_head())
@@ -61,12 +64,15 @@ class FullNodeSyncer(BaseService):
 
         if self.cancel_token.triggered:
             return
+        else:
+            # remove the reference so the memory can be reclaimed
+            del downloader
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
-        chain_syncer = RegularChainSyncer(
+        regular_syncer = RegularChainSyncer(
             self.chain, self.chaindb, self.peer_pool, self.cancel_token)
-        await chain_syncer.run()
+        await regular_syncer.run()
 
 
 def _test() -> None:
