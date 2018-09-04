@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 from pathlib import Path
 from typing import (
     Iterable,
@@ -31,6 +32,8 @@ from trinity.chains import (
     get_genesis_header,
 )
 
+from eth.rlp.headers import BlockHeader
+
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -40,6 +43,7 @@ DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
     MAINNET_NETWORK_ID: 'mainnet',
 }
+
 
 def get_EIP1085_header(genesis_path: Path) -> (BlockHeader, int):
     """
@@ -60,6 +64,8 @@ def get_EIP1085_header(genesis_path: Path) -> (BlockHeader, int):
     is_valid_genesis_header(genesis)
 
     return get_genesis_header(genesis)
+
+
 #
 # Filesystem path utils
 #

@@ -17,6 +17,7 @@ from typing import (
 )
 
 from eth import MainnetChain, RopstenChain
+import eth.constants
 from eth.chains.base import (
     Chain,
     BaseChain
@@ -68,15 +69,15 @@ def is_valid_genesis_header(genesis: dict) -> bool:
     genesis JSON config specified. If any of the required parameters are missing
     the function will raise a ValidationError.
     """
-    if not 'chainId' in genesis.keys():
+    if 'chainId' not in genesis.keys():
         raise ValidationError("genesis config missing required 'chainId'")
-    if not 'difficulty' in genesis.keys():
+    if 'difficulty' not in genesis.keys():
         raise ValidationError("genesis config missing required 'difficulty'")
-    if not 'gasLimit' in genesis.keys():
+    if 'gasLimit' not in genesis.keys():
         raise ValidationError("genesis config missing required 'gasLimit'")
-    if not 'nonce' in genesis.keys():
+    if 'nonce' not in genesis.keys():
         raise ValidationError("genesis config missing required 'nonce'")
-    if not 'extraData' in genesis.keys():
+    if 'extraData' not in genesis.keys():
         raise ValidationError("genesis config missing required 'extraData'")
 
     return True
@@ -228,6 +229,7 @@ def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
             raise ChainedExceptionWithTraceback(e, e.__traceback__)
 
     return wrapper
+
 
 class BasePrivateChain:
     vm_configuration = ()
