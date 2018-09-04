@@ -11,7 +11,14 @@ from trinity.extensibility import (
     PluginContext,
 )
 from trinity.extensibility.events import (
+    ResourceAvailableEvent,
     TrinityStartupEvent,
+)
+from eth.chains.base import (
+    BaseChain
+)
+from p2p.peer import (
+    PeerPool
 )
 
 from trinity.plugins.builtin.ethstats.ethstats_service import (
@@ -23,8 +30,9 @@ class EthstatsPlugin(BasePlugin):
 
     def __init__(self) -> None:
         self.is_enabled: bool = False
-        # TODO: make server/secret configurable
-        self.service: EthstatsService = EthstatsService('ws://localhost:3000/api', 'SECRET')
+
+        self.chain: BaseChain = None
+        self.peer_pool: PeerPool = None
 
     @property
     def name(self) -> str:
@@ -40,9 +48,16 @@ class EthstatsPlugin(BasePlugin):
     def handle_event(self, activation_event: BaseEvent) -> None:
         if isinstance(activation_event, TrinityStartupEvent):
             self.is_enabled = activation_event.args.ethstats
+        if isinstance(activation_event, ResourceAvailableEvent):
+            if activation_event.resource_type is PeerPool:
+                self.peer_pool = activation_event.resource
+            elif activation_event.resource_type is BaseChain:
+                self.chain = activation_event.resource
 
     def should_start(self) -> bool:
-        return self.is_enabled
+        return all((self.is_enabled, self.chain is not None, self.peer_pool is not None))
 
-    def start(self, context: PluginContext) -> None:
-        asyncio.ensure_future(self.service.run())
+    def start(self) -> None:
+        service = EthstatsService('ws://localhost:3000/api', 'SECRET', self.chain, self.peer_pool)
+
+        asyncio.ensure_future(service.run())

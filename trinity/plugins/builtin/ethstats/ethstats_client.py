@@ -1,4 +1,10 @@
+import datetime
+import json
+import platform
+
 import websockets
+
+from trinity.utils.version import construct_trinity_client_identifier
 
 class EthstatsClient:
     def __init__(self, websocket: websockets.client.WebSocketClientProtocol, node_id: str, server_url: str, server_secret: str) -> None:
@@ -7,6 +13,10 @@ class EthstatsClient:
         self.node_id = node_id
         self.server_url = server_url
         self.server_secret = server_secret
+
+        self.client = construct_trinity_client_identifier()
+        self.os = platform.system()
+        self.os_v = platform.release()
 
     async def stat_send(self, command: str, data: dict) -> None:
         message = {'emit': [
@@ -45,12 +55,12 @@ class EthstatsClient:
             'info': {
                 'name': '#some_name',
                 'contact': '#some_contact',
-                'os': '#some_os',
-                'os_v': '#some_os_version',
-                'client': '#some_client',
+                'os': self.os,
+                'os_v': self.os_v,
+                'client': self.client,
                 'canUpdateHistory': True,
             },
-            'secret': self.stats_server_secret,
+            'secret': self.server_secret,
         })
 
     async def send_latency(self) -> None:
@@ -71,7 +81,7 @@ class EthstatsClient:
     async def send_pending(self) -> None:
         await self.stat_send('pending', {
             'stats': {
-                'pending': {},
+                'pending': 0,
             },
         })
 
