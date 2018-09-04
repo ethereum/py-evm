@@ -25,7 +25,7 @@ from p2p.constants import (
 from p2p.peer import DEFAULT_PREFERRED_NODES
 
 from trinity.chains import (
-    validate_genesis
+    get_EIP1085_header,
 )
 from trinity.constants import (
     SYNC_FULL,
@@ -33,7 +33,6 @@ from trinity.constants import (
 )
 from trinity.utils.chains import (
     construct_chain_config_params,
-    validate_genesis,
     get_data_dir_for_network_id,
     get_database_socket_path,
     get_jsonrpc_socket_path,
@@ -108,7 +107,7 @@ class ChainConfig:
         # set values
         if genesis is not None:
             self.genesis = genesis
-            self.genesis_header, self.chain_id = validate_genesis(self.genesis)
+            self.genesis_header, self.chain_id = get_EIP1085_header(self.genesis)
         if data_dir is not None:
             self.data_dir = data_dir
         else:

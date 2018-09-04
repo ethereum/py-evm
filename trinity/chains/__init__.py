@@ -41,9 +41,6 @@ from eth_utils import (
 
 from p2p import ecies
 
-from trinity.exceptions import (
-    MissingPath,
-)
 from trinity.config import ChainConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import AsyncChainDB, ChainDBProxy
@@ -65,48 +62,68 @@ from .header import (
 )
 
 
-def validate_genesis(chain_config: ChainConfig) -> (BlockHeader, int):
+def get_EIP1085_header(chain_config: ChainConfig) -> (BlockHeader, int):
     """
-    Checks the genesis configuration file provided and ensures that it is valid.
+    Will attempt to decode, validate and return a BlockHeader based on the filepath
+    given for the genesis config. The genesis config should conform to genesis
+    portion of https://github.com/ethereum/EIPs/issues/1085.
     """
     if not os.path.exists(chain_config.genesis):
-        raise MissingPath(
+        raise FileNotFoundError(
             "The base chain genesis configuration file does not exist: `{0}`".format(
                 chain_config.genesis,
             ),
         )
 
     with open(chain_config.genesis, 'r') as genesis_config:
-        raw_genesis = genesis_config.read()
-        genesis = json.load(raw_genesis)
+        genesis = json.load(genesis_config)
 
-        if not 'chainId' in genesis.keys():
-            raise ValidationError("genesis config missing required 'chainId'")
-        if not 'difficulty' in genesis.keys():
-            raise ValidationError("genesis config missing required 'difficulty'")
-        if not 'gasLimit' in genesis.keys():
-            raise ValidationError("genesis config missing required 'gasLimit'")
-        if not 'nonce' in genesis.keys():
-            raise ValidationError("genesis config missing required 'nonce'")
-        if not 'extraData' in genesis.keys():
-            raise ValidationError("genesis config missing required 'extraData'")
+    is_valid_genesis_header(genesis)
 
-        return BlockHeader(
-            difficulty=genesis['difficulty'],
-            extra_data=genesis['extraData'],
-            gas_limit=genesis['gasLimit'],
-            gas_used=0,
-            bloom=0,
-            mix_hash=constants.ZERO_HASH32,
-            nonce=genesis['nonce'],
-            block_number=0,
-            parent_hash=constants.ZERO_HASH32,
-            receipt_root=constants.BLANK_ROOT_HASH,
-            uncles_hash=constants.EMPTY_UNCLE_HASH,
-            state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
-            timestamp=0,
-            transaction_root=constants.BLANK_ROOT_HASH,
-        ), decode_hex(genesis['chainId'])
+    return get_genesis_header(genesis)
+
+
+def is_valid_genesis_header(genesis: dict) -> bool:
+    """
+    Checks that all valid genesis config parameters are present from the decoded
+    genesis JSON config specified. If any of the required parameters are missing
+    the function will raise a ValidationError.
+    """
+    if not 'chainId' in genesis.keys():
+        raise ValidationError("genesis config missing required 'chainId'")
+    if not 'difficulty' in genesis.keys():
+        raise ValidationError("genesis config missing required 'difficulty'")
+    if not 'gasLimit' in genesis.keys():
+        raise ValidationError("genesis config missing required 'gasLimit'")
+    if not 'nonce' in genesis.keys():
+        raise ValidationError("genesis config missing required 'nonce'")
+    if not 'extraData' in genesis.keys():
+        raise ValidationError("genesis config missing required 'extraData'")
+
+    return True
+
+
+def get_genesis_header(genesis: dict) -> (BlockHeader, int):
+    """
+    Returns the genesis config wrapped as a BlockHeader along with the network_id
+    of the chain.
+    """
+    return BlockHeader(
+        difficulty=genesis['difficulty'],
+        extra_data=genesis['extraData'],
+        gas_limit=genesis['gasLimit'],
+        gas_used=0,
+        bloom=0,
+        mix_hash=constants.ZERO_HASH32,
+        nonce=genesis['nonce'],
+        block_number=0,
+        parent_hash=constants.ZERO_HASH32,
+        receipt_root=constants.BLANK_ROOT_HASH,
+        uncles_hash=constants.EMPTY_UNCLE_HASH,
+        state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
+        timestamp=0,
+        transaction_root=constants.BLANK_ROOT_HASH,
+    ), decode_hex(genesis['chainId'])
 
 
 def is_data_dir_initialized(chain_config: ChainConfig) -> bool:

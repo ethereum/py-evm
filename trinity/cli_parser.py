@@ -263,7 +263,7 @@ mode_parser.add_argument(
 chain_parser.add_argument(
     '--genesis',
     help=(
-        "File containing the genesis block header"
+        "File containing a custom genesis block header"
     ),
 )
 chain_parser.add_argument(
