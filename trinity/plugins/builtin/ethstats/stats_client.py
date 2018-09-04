@@ -22,7 +22,7 @@ class StatsClient(BaseService):
         await self.connection_loop()
 
     async def connection_loop(self) -> None:
-        while True:
+        while self.is_operational:
             try:
                 self.logger.info('Connecting...')
                 async with websockets.connect(self.stats_server_url) as websocket:
@@ -43,7 +43,7 @@ class StatsClient(BaseService):
         await self.send_pending()
         await self.send_node_ping()
 
-        while True:
+        while self.is_operational:
             await self.send_stats()
             await asyncio.sleep(3)
 
