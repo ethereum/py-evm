@@ -76,6 +76,9 @@ from trinity.utils.mp import (
 from trinity.utils.profiling import (
     setup_cprofiler,
 )
+from trinity.utils.shutdown import (
+    exit_on_signal
+)
 from trinity.utils.version import (
     construct_trinity_client_identifier,
 )
@@ -260,6 +263,7 @@ def trinity_boot(args: Namespace,
             database_server_process,
             networking_process,
             plugin_manager,
+            main_endpoint,
             event_bus
         )
     )
@@ -279,6 +283,7 @@ def trinity_boot(args: Namespace,
             database_server_process,
             networking_process,
             plugin_manager,
+            main_endpoint,
             event_bus
         )
 
@@ -287,6 +292,7 @@ def kill_trinity_gracefully(logger: logging.Logger,
                             database_server_process: Any,
                             networking_process: Any,
                             plugin_manager: PluginManager,
+                            main_endpoint: Endpoint,
                             event_bus: EventBus,
                             message: str="Trinity shudown complete\n") -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
@@ -301,7 +307,8 @@ def kill_trinity_gracefully(logger: logging.Logger,
     # perform a non-gracefull shutdown if the process takes too long to terminate.
     logger.info('Keyboard Interrupt: Stopping')
     plugin_manager.shutdown()
-    event_bus.shutdown()
+    main_endpoint.stop()
+    event_bus.stop()
     kill_process_gracefully(database_server_process, logger)
     logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
     # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
@@ -334,21 +341,6 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
         except SystemExit:
             server.stop_event.set()
             raise
-
-
-async def exit_on_signal(service_to_exit: BaseService) -> None:
-    loop = service_to_exit.get_event_loop()
-    sigint_received = asyncio.Event()
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        # TODO also support Windows
-        loop.add_signal_handler(sig, sigint_received.set)
-
-    await sigint_received.wait()
-    try:
-        await service_to_exit.cancel()
-        service_to_exit._executor.shutdown(wait=True)
-    finally:
-        loop.stop()
 
 
 @setup_cprofiler('launch_node')
