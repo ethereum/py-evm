@@ -1,7 +1,6 @@
 import asyncio
+import datetime
 import json
-
-from datetime import datetime
 
 import websockets
 
@@ -125,7 +124,7 @@ class StatsClient(BaseService):
         })
 
     async def send_node_ping(self) -> None:
-        timestamp = round(datetime.now().timestamp() * 1000)
+        timestamp = round(datetime.datetime.now().timestamp() * 1000)
 
         await self.stat_send('node-ping', {
             'clientTime': timestamp,
