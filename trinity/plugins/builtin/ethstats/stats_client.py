@@ -32,7 +32,7 @@ class StatsClient(BaseService):
                 self.logger.warning(f'Connection is closed - code: {e.code}, reason: {e.reason}.')
 
             self.logger.info('Reconnecting in 5s...')
-            await asyncio.sleep(5)
+            await self.sleep(5)
 
     async def connection_handler(self) -> None:
         await self.send_hello()
@@ -45,7 +45,7 @@ class StatsClient(BaseService):
 
         while self.is_operational:
             await self.send_stats()
-            await asyncio.sleep(3)
+            await self.sleep(3)
 
     async def stat_send(self, command: str, data: dict) -> None:
         message = {'emit': [
