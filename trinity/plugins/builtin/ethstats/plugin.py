@@ -24,7 +24,7 @@ class EthstatsPlugin(BasePlugin):
     def __init__(self) -> None:
         self.is_enabled: bool = False
         # TODO: make server/secret configurable
-        self.stats_client: StatsClient = StatsClient('ws://localhost:3000/api', 'SECRET')
+        self.service: EthstatsService = EthstatsService('ws://localhost:3000/api', 'SECRET')
 
     @property
     def name(self) -> str:
@@ -45,4 +45,4 @@ class EthstatsPlugin(BasePlugin):
         return self.is_enabled
 
     def start(self, context: PluginContext) -> None:
-        asyncio.ensure_future(self.stats_client.run())
+        asyncio.ensure_future(self.service.run())
