@@ -138,6 +138,12 @@ SLOWEST_TESTS = {
 # Ideally, this list should be empty.
 # WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
 INCORRECT_UPSTREAM_TESTS = {
+    # The test considers a "synthetic" scenario (the state described there can't
+    # be arrived at using regular consensus rules).
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418775512
+    # The result is in conflict with the yellow-paper:
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
+    ('stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit', 'Byzantium', 0),
 }
 
 
