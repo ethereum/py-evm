@@ -51,7 +51,7 @@ class ResponseCandidateStream(
 
     msg_queue_maxsize = 100
 
-    response_timout: float = ROUND_TRIP_TIMEOUT
+    response_timeout: float = ROUND_TRIP_TIMEOUT
 
     pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
 
@@ -80,7 +80,7 @@ class ResponseCandidateStream(
         candidates will stop arriving.
         """
         if timeout is None:
-            timeout = self.response_timout
+            timeout = self.response_timeout
 
         start_at = time.perf_counter()
 
@@ -174,13 +174,13 @@ class ResponseCandidateStream(
 
     async def _cleanup(self) -> None:
         if self.pending_request is not None:
-            self.logger.debug("Stream shutting down, raising an exception on the pending request")
+            self.logger.debug("Stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
             future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
 
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:
-            self.logger.debug("Peer disconnected, raising an exception on the pending request")
+            self.logger.debug("Peer stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
             future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
 
@@ -201,6 +201,9 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         self._response_command_type = listening_for
 
     async def launch_service(self) -> None:
+        if self._cancel_token.triggered:
+            raise PeerConnectionLost("Peer %s is gone. Ignoring new requests to it" % self._peer)
+
         self._response_stream = ResponseCandidateStream(
             self._peer,
             self._response_command_type,

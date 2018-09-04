@@ -36,7 +36,6 @@ from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 from trinity.utils.datastructures import TaskQueue
 
-
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
 
 
@@ -49,8 +48,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     """
     # We'll only sync if we are connected to at least min_peers_to_sync.
     min_peers_to_sync = 1
-    # Post-processing steps can exit out of sync (for example, fast sync) by triggering this token:
-    complete_token = None
     # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
     # the round-trip times from our download requests.
     _reply_timeout = 60
@@ -64,12 +61,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                  db: AsyncHeaderDB,
                  peer_pool: PeerPool,
                  token: CancelToken = None) -> None:
-        self.complete_token = CancelToken('trinity.sync.common.BaseHeaderChainSyncer.SyncCompleted')
-        if token is None:
-            master_service_token = self.complete_token
-        else:
-            master_service_token = token.chain(self.complete_token)
-        super().__init__(master_service_token)
+        super().__init__(token)
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
@@ -146,7 +138,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         try:
             await self._sync(peer)
         except OperationCancelled as e:
-            self.logger.info("Sync with %s aborted: %s", peer, e)
+            self.logger.info("Sync with %s was shut down: %s", peer, e)
         finally:
             self._syncing = False
 
@@ -199,7 +191,23 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             if not headers:
-                self.logger.info("Got no new headers from %s, aborting sync", peer)
+                if last_received_header is None:
+                    request_parent = head
+                else:
+                    request_parent = last_received_header
+                if head_td < peer.head_td:
+                    # peer claims to have a better header, but didn't return it. Boot peer
+                    # TODO ... also blacklist, because it keeps trying to reconnect
+                    self.logger.warning(
+                        "%s announced difficulty %s, but didn't return any headers after %r@%s",
+                        peer,
+                        peer.head_td,
+                        request_parent,
+                        head_td,
+                    )
+                    await peer.disconnect(DisconnectReason.subprotocol_error)
+                else:
+                    self.logger.info("Got no new headers from %s, aborting sync", peer)
                 break
 
             first = headers[0]
@@ -235,23 +243,16 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 break
 
+            for header in headers:
+                head_td += header.difficulty
+
             # Setting the latest header hash for the peer, before queuing header processing tasks
             self._target_header_hash = peer.head_hash
 
-            unrequested_headers = tuple(h for h in headers if h not in self.header_queue)
-            await self.header_queue.add(unrequested_headers)
+            new_headers = tuple(h for h in headers if h not in self.header_queue)
+            await self.header_queue.add(new_headers)
             last_received_header = headers[-1]
             start_at = last_received_header.block_number + 1
-
-        # erase any pending tasks, to restart on next _sync() run
-        try:
-            batch_id, pending_tasks = self.header_queue.get_nowait()
-        except asyncio.QueueFull:
-            # nothing pending, continue
-            pass
-        else:
-            # fully remove pending tasks from queue
-            self.header_queue.complete(batch_id, pending_tasks)
 
     async def _fetch_missing_headers(
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
@@ -273,12 +274,15 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                                    ) -> AsyncGenerator[BlockHeader, None]:
             iter_headers = iter(headers)
             for header in iter_headers:
-                is_missing = not await self.wait(self.db.coro_header_exists(header.hash))
-                if is_missing:
+                if header in self.header_queue:
+                    self.logger.debug("Discarding header that is already queued: %s", header)
+                    continue
+                is_present = await self.wait(self.db.coro_header_exists(header.hash))
+                if is_present:
+                    self.logger.debug("Discarding header that we already have: %s", header)
+                else:
                     yield header
                     break
-                else:
-                    self.logger.debug("Discarding header that we already have: %s", header)
 
             for header in iter_headers:
                 yield header

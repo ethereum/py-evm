@@ -47,7 +47,6 @@ from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
 
-
 HeaderRequestingPeer = Union[LESPeer, ETHPeer]
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
 ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
@@ -67,6 +66,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
     highest TD, at which point we must run the StateDownloader to fetch the state for our chain
     head.
     """
+    NO_PEER_RETRY_PAUSE = 5
+    """If no peers are available for downloading the chain data, retry after this many seconds"""
+
     db: AsyncChainDB
 
     subscription_msg_types: Set[Type[Command]] = {
@@ -92,8 +94,16 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             # TODO implement the maximum task size at each step instead of this magic number
             max_headers = min((MAX_BODIES_FETCH, MAX_RECEIPTS_FETCH)) * 4
             batch_id, headers = await self.header_queue.get(max_headers)
-            await self._process_headers(headers)
-            self.header_queue.complete(batch_id, headers)
+            try:
+                await self._process_headers(headers)
+            except NoEligiblePeers:
+                self.logger.info(
+                    f"No available peers to sync with, retrying in {self.NO_PEER_RETRY_PAUSE}s"
+                )
+                self.header_queue.complete(batch_id, tuple())
+                await self.sleep(self.NO_PEER_RETRY_PAUSE)
+            else:
+                self.header_queue.complete(batch_id, headers)
 
     async def _calculate_td(self, headers: Tuple[BlockHeader, ...]) -> int:
         """Return the score (total difficulty) of the last header in the given list.
@@ -148,7 +158,7 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         # order to see if the sync is completed. Instead we just check that we have the peer's
         # head_hash in our chain.
         if await self.wait(self.db.coro_header_exists(target_hash)):
-            self.complete_token.trigger()
+            self.cancel_nowait()
 
     async def _download_block_bodies(self,
                                      target_td: int,
@@ -294,6 +304,9 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             all_receipt_bundles, all_missing_headers = zip(*responses)
             receipt_bundles = tuple(concat(all_receipt_bundles))
             headers = tuple(concat(all_missing_headers))
+
+            if len(receipt_bundles) == 0:
+                continue
 
             # process all of the returned receipts, storing their trie data
             # dicts in the database

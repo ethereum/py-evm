@@ -93,7 +93,7 @@ class Command:
             data = rlp.decode(rlp_data, sedes=decoder, recursive_cache=True)
         except rlp.DecodingError as err:
             raise MalformedMessage(
-                "Malformed %s message: %r".format(type(self).__name__, err)
+                "Malformed {} message: {!r}".format(type(self).__name__, err)
             ) from err
 
         if isinstance(self.structure, sedes.CountableList):

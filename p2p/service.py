@@ -207,8 +207,7 @@ class BaseService(ABC, CancellableMixin):
 
         self.events.cleaned_up.set()
 
-    async def cancel(self) -> None:
-        """Trigger the CancelToken and wait for the cleaned_up event to be set."""
+    def cancel_nowait(self) -> None:
         if self.is_cancelled:
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
             return
@@ -218,6 +217,11 @@ class BaseService(ABC, CancellableMixin):
         self.logger.debug("Cancelling %s", self)
         self.events.cancelled.set()
         self.cancel_token.trigger()
+
+    async def cancel(self) -> None:
+        """Trigger the CancelToken and wait for the cleaned_up event to be set."""
+        self.cancel_nowait()
+
         try:
             await asyncio.wait_for(
                 self.events.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
