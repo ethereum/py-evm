@@ -26,6 +26,11 @@ from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import SYNC_LIGHT
 
+from trinity.chains import (
+    is_valid_genesis_header,
+    get_genesis_header,
+)
+
 from .xdg import (
     get_xdg_trinity_root,
 )
@@ -36,7 +41,25 @@ DEFAULT_DATA_DIRS = {
     MAINNET_NETWORK_ID: 'mainnet',
 }
 
+def get_EIP1085_header(genesis_path: Path) -> (BlockHeader, int):
+    """
+    Will attempt to decode, validate and return a BlockHeader based on the filepath
+    given for the genesis config. The genesis config should conform to genesis
+    portion of https://github.com/ethereum/EIPs/issues/1085.
+    """
+    if not os.path.exists(genesis_path):
+        raise FileNotFoundError(
+            "The base chain genesis configuration file does not exist: `{0}`".format(
+                genesis_path,
+            ),
+        )
 
+    with open(genesis_path, 'r') as genesis_config:
+        genesis = json.load(genesis_config)
+
+    is_valid_genesis_header(genesis)
+
+    return get_genesis_header(genesis)
 #
 # Filesystem path utils
 #

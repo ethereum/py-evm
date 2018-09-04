@@ -24,9 +24,6 @@ from p2p.constants import (
 )
 from p2p.peer import DEFAULT_PREFERRED_NODES
 
-from trinity.chains import (
-    get_EIP1085_header,
-)
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
@@ -34,6 +31,7 @@ from trinity.constants import (
 from trinity.utils.chains import (
     construct_chain_config_params,
     get_data_dir_for_network_id,
+    get_EIP1085_header,
     get_database_socket_path,
     get_jsonrpc_socket_path,
     get_logfile_path,

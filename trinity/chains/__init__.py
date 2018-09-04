@@ -62,27 +62,6 @@ from .header import (
 )
 
 
-def get_EIP1085_header(chain_config: ChainConfig) -> (BlockHeader, int):
-    """
-    Will attempt to decode, validate and return a BlockHeader based on the filepath
-    given for the genesis config. The genesis config should conform to genesis
-    portion of https://github.com/ethereum/EIPs/issues/1085.
-    """
-    if not os.path.exists(chain_config.genesis):
-        raise FileNotFoundError(
-            "The base chain genesis configuration file does not exist: `{0}`".format(
-                chain_config.genesis,
-            ),
-        )
-
-    with open(chain_config.genesis, 'r') as genesis_config:
-        genesis = json.load(genesis_config)
-
-    is_valid_genesis_header(genesis)
-
-    return get_genesis_header(genesis)
-
-
 def is_valid_genesis_header(genesis: dict) -> bool:
     """
     Checks that all valid genesis config parameters are present from the decoded
