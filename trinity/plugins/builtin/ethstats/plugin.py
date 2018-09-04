@@ -14,8 +14,8 @@ from trinity.extensibility.events import (
     TrinityStartupEvent,
 )
 
-from trinity.plugins.builtin.ethstats.stats_client import (
-    StatsClient,
+from trinity.plugins.builtin.ethstats.ethstats_service import (
+    EthstatsService,
 )
 
 

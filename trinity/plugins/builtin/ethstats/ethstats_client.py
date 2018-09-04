@@ -1,51 +1,12 @@
-import asyncio
-import datetime
-import json
-
 import websockets
 
-from p2p.service import (
-    BaseService
-)
+class EthstatsClient:
+    def __init__(self, websocket: websockets.client.WebSocketClientProtocol, node_id: str, server_url: str, server_secret: str) -> None:
+        self.websocket = websocket
 
-
-class StatsClient(BaseService):
-    def __init__(self, stats_server_url: str, stats_server_secret: str, *args, **kwargs) -> None:
-        super(StatsClient, self).__init__(*args, **kwargs)
-
-        self.stats_server_url = stats_server_url
-        self.stats_server_secret = stats_server_secret
-
-        self.node_id = '#some_id'
-
-    async def _run(self) -> None:
-        await self.connection_loop()
-
-    async def connection_loop(self) -> None:
-        while self.is_operational:
-            try:
-                self.logger.info('Connecting...')
-                async with websockets.connect(self.stats_server_url) as websocket:
-                    self.websocket = websocket
-                    await self.connection_handler()
-            except websockets.ConnectionClosed as e:
-                self.logger.warning(f'Connection is closed - code: {e.code}, reason: {e.reason}.')
-
-            self.logger.info('Reconnecting in 5s...')
-            await self.sleep(5)
-
-    async def connection_handler(self) -> None:
-        await self.send_hello()
-
-        await self.send_latency()
-        # await self.send_history()
-        await self.send_block()
-        await self.send_pending()
-        await self.send_node_ping()
-
-        while self.is_operational:
-            await self.send_stats()
-            await self.sleep(3)
+        self.node_id = node_id
+        self.server_url = server_url
+        self.server_secret = server_secret
 
     async def stat_send(self, command: str, data: dict) -> None:
         message = {'emit': [
