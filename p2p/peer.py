@@ -256,8 +256,8 @@ class BasePeer(BaseService):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
-                "{} disconnected before completing sub-proto handshake: {}".format(
-                    self, msg['reason_name']))
+                f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
+            )
         await self.process_sub_proto_handshake(cmd, msg)
         self.logger.debug("Finished %s handshake with %s", self.sub_proto, self.remote)
 
@@ -278,8 +278,9 @@ class BasePeer(BaseService):
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
-            raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
-                self, msg['reason_name']))
+            raise HandshakeFailure(
+                f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
+            )
         await self.process_p2p_handshake(cmd, msg)
 
     @property
@@ -313,7 +314,7 @@ class BasePeer(BaseService):
         elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
             return self.sub_proto.cmd_by_id[cmd_id]
         else:
-            raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
+            raise UnknownProtocolCommand(f"No protocol found for cmd_id {cmd_id}")
 
     async def read(self, n: int) -> bytes:
         self.logger.trace("Waiting for %s bytes from %s", n, self.remote)
@@ -405,7 +406,7 @@ class BasePeer(BaseService):
             # update the last time we heard from a peer in our DB (which doesn't exist yet).
             pass
         else:
-            raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
+            raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         cmd_type = type(cmd)
@@ -436,22 +437,23 @@ class BasePeer(BaseService):
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
-            raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
+            raise HandshakeFailure(f"Expected a Hello msg, got {cmd}, disconnecting")
         remote_capabilities = msg['capabilities']
         try:
             self.sub_proto = self.select_sub_protocol(remote_capabilities)
         except NoMatchingPeerCapabilities:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "No matching capabilities between us ({}) and {} ({}), disconnecting".format(
-                    self.capabilities, self.remote, remote_capabilities))
+                f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
+                f"({remote_capabilities}), disconnecting"
+            )
         self.logger.debug(
             "Finished P2P handshake with %s, using sub-protocol %s",
             self.remote, self.sub_proto)
 
     def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
-            raise ValueError("Unexpected header length: {}".format(len(header)))
+            raise ValueError(f"Unexpected header length: {len(header)}")
 
         header_ciphertext = self.aes_enc.update(header)
         mac_secret = self.egress_mac.digest()[:HEADER_LEN]
@@ -470,7 +472,9 @@ class BasePeer(BaseService):
 
     def decrypt_header(self, data: bytes) -> bytes:
         if len(data) != HEADER_LEN + MAC_LEN:
-            raise ValueError("Unexpected header length: {}".format(len(data)))
+            raise ValueError(
+                f"Unexpected header length: {len(data)}, expected {HEADER_LEN} + {MAC_LEN}"
+            )
 
         header_ciphertext = data[:HEADER_LEN]
         header_mac = data[HEADER_LEN:]
@@ -479,15 +483,17 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise DecryptionError('Invalid header mac: expected {}, got {}'.format(
-                expected_header_mac, header_mac))
+            raise DecryptionError(
+                f'Invalid header mac: expected {expected_header_mac}, got {header_mac}'
+            )
         return self.aes_dec.update(header_ciphertext)
 
     def decrypt_body(self, data: bytes, body_size: int) -> bytes:
         read_size = roundup_16(body_size)
         if len(data) < read_size + MAC_LEN:
-            raise ValueError('Insufficient body length; Got {}, wanted {}'.format(
-                len(data), (read_size + MAC_LEN)))
+            raise ValueError(
+                f'Insufficient body length; Got {len(data)}, wanted {read_size} + {MAC_LEN}'
+            )
 
         frame_ciphertext = data[:read_size]
         frame_mac = data[read_size:read_size + MAC_LEN]
@@ -497,8 +503,9 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise DecryptionError('Invalid frame mac: expected {}, got {}'.format(
-                expected_frame_mac, frame_mac))
+            raise DecryptionError(
+                f'Invalid frame mac: expected {expected_frame_mac}, got {frame_mac}'
+            )
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
     def get_frame_size(self, header: bytes) -> int:
@@ -526,7 +533,8 @@ class BasePeer(BaseService):
         """
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
-                "Reason must be an item of DisconnectReason, got {}".format(reason))
+                f"Reason must be an item of DisconnectReason, got {reason}"
+            )
         self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
@@ -555,10 +563,10 @@ class BasePeer(BaseService):
         raise NoMatchingPeerCapabilities()
 
     def __str__(self) -> str:
-        return "{} {}".format(self.__class__.__name__, self.remote)
+        return f"{self.__class__.__name__} {self.remote}"
 
     def __repr__(self) -> str:
-        return "{} {}".format(self.__class__.__name__, repr(self.remote))
+        return f"{self.__class__.__name__} {self.remote!r}"
 
     def __hash__(self) -> int:
         return hash(self.remote)
@@ -867,16 +875,16 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
-                    "Timed out waiting for DAO fork header from {}: {}".format(peer, err)
+                    f"Timed out waiting for DAO fork header from {peer}: {err}"
                 ) from err
             except ValidationError as err:
                 raise DAOForkCheckFailure(
-                    "Invalid header response during DAO fork check: {}".format(err)
+                    f"Invalid header response during DAO fork check: {err}"
                 ) from err
 
             if len(headers) != 2:
                 raise DAOForkCheckFailure(
-                    "Peer %s failed to return DAO fork check headers".format(peer)
+                    f"Peer {peer} failed to return DAO fork check headers"
                 )
             else:
                 parent, header = headers
@@ -884,7 +892,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             try:
                 vm_class.validate_header(header, parent, check_seal=True)
             except ValidationError as err:
-                raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(err))
+                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
 
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.

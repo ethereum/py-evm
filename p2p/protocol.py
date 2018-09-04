@@ -55,9 +55,7 @@ class Command:
     @property
     def logger(self) -> logging.Logger:
         if self._logger is None:
-            self._logger = logging.getLogger(
-                "p2p.protocol.{0}".format(self.__class__.__name__)
-            )
+            self._logger = logging.getLogger(f"p2p.protocol.{type(self).__name__}")
         return self._logger
 
     @property
@@ -65,7 +63,7 @@ class Command:
         return self.cmd_id_offset == 0
 
     def __str__(self) -> str:
-        return "{} (cmd_id={})".format(self.__class__.__name__, self.cmd_id)
+        return f"{type(self).__name__} (cmd_id={self.cmd_id})"
 
     def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):  # convert dict to ordered list
@@ -74,8 +72,9 @@ class Command:
             expected_keys = sorted(name for name, _ in self.structure)
             data_keys = sorted(data.keys())
             if data_keys != expected_keys:
-                raise ValueError("Keys in data dict ({}) do not match expected keys ({})".format(
-                    data_keys, expected_keys))
+                raise ValueError(
+                    f"Keys in data dict ({data_keys}) do not match expected keys ({expected_keys})"
+                )
             data = [data[name] for name, _ in self.structure]
         if isinstance(self.structure, sedes.CountableList):
             encoder = self.structure
@@ -92,9 +91,7 @@ class Command:
         try:
             data = rlp.decode(rlp_data, sedes=decoder, recursive_cache=True)
         except rlp.DecodingError as err:
-            raise MalformedMessage(
-                "Malformed {} message: {!r}".format(type(self).__name__, err)
-            ) from err
+            raise MalformedMessage(f"Malformed {type(self).__name__} message: {err!r}") from err
 
         if isinstance(self.structure, sedes.CountableList):
             return data
@@ -107,7 +104,7 @@ class Command:
     def decode(self, data: bytes) -> PayloadType:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
-            raise MalformedMessage("Wrong packet type: {}".format(packet_type))
+            raise MalformedMessage(f"Wrong packet type: {packet_type}, expected {self.cmd_id}")
         return self.decode_payload(data[1:])
 
     def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:

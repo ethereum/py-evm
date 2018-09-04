@@ -69,7 +69,7 @@ class Disconnect(Command):
             raw_decoded = cast(Dict[str, int], super().decode(data))
         except rlp.exceptions.ListDeserializationError:
             self.logger.warn("Malformed Disconnect message: %s", data)
-            raise MalformedMessage("Malformed Disconnect message: {0}".format(data))
+            raise MalformedMessage(f"Malformed Disconnect message: {data}")
         return assoc(raw_decoded, 'reason_name', self.get_reason_name(raw_decoded['reason']))
 
 

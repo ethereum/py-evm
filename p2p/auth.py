@@ -193,7 +193,7 @@ class HandshakeInitiator(HandshakeBase):
 
     def decode_auth_ack_message(self, ciphertext: bytes) -> Tuple[datatypes.PublicKey, bytes]:
         if len(ciphertext) < ENCRYPTED_AUTH_ACK_LEN:
-            raise BadAckMessage("Auth ack msg too short: {}".format(len(ciphertext)))
+            raise BadAckMessage(f"Auth ack msg too short: {len(ciphertext)}")
         elif len(ciphertext) == ENCRYPTED_AUTH_ACK_LEN:
             eph_pubkey, nonce, _ = decode_ack_plain(ciphertext, self.privkey)
         else:
@@ -260,7 +260,7 @@ def decode_ack_plain(
     """
     message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_ACK_LEN:
-        raise BadAckMessage("Unexpected size for ack message: {}".format(len(message)))
+        raise BadAckMessage(f"Unexpected size for ack message: {len(message)}")
     eph_pubkey = keys.PublicKey(message[:PUBKEY_LEN])
     nonce = message[PUBKEY_LEN: PUBKEY_LEN + HASH_LEN]
     return eph_pubkey, nonce, SUPPORTED_RLPX_VERSION
@@ -286,7 +286,7 @@ def decode_auth_plain(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple
     """Decode legacy pre-EIP-8 auth message format"""
     message = ecies.decrypt(ciphertext, privkey)
     if len(message) != AUTH_MSG_LEN:
-        raise BadAckMessage("Unexpected size for auth message: {}".format(len(message)))
+        raise BadAckMessage(f"Unexpected size for auth message: {len(message)}")
     signature = keys.Signature(signature_bytes=message[:SIGNATURE_LEN])
     pubkey_start = SIGNATURE_LEN + HASH_LEN
     pubkey = keys.PublicKey(message[pubkey_start: pubkey_start + PUBKEY_LEN])
@@ -320,7 +320,7 @@ def decode_authentication(ciphertext: bytes,
     Returns the initiator's ephemeral pubkey, nonce, and pubkey.
     """
     if len(ciphertext) < ENCRYPTED_AUTH_MSG_LEN:
-        raise DecryptionError("Auth msg too short: {}".format(len(ciphertext)))
+        raise DecryptionError(f"Auth msg too short: {len(ciphertext)}")
     elif len(ciphertext) == ENCRYPTED_AUTH_MSG_LEN:
         sig, initiator_pubkey, initiator_nonce, _ = decode_auth_plain(
             ciphertext, privkey)

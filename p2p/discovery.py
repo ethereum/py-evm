@@ -349,7 +349,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         elif cmd == CMD_NEIGHBOURS:
             return self.recv_neighbours
         else:
-            raise ValueError("Unknwon command: {}".format(cmd))
+            raise ValueError(f"Unknown command: {cmd}")
 
     def _get_max_neighbours_per_packet(self) -> int:
         if self._max_neighbours_per_packet_cache is not None:
@@ -593,7 +593,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         elif cmd == CMD_TOPIC_NODES:
             return self.recv_topic_nodes
         else:
-            raise ValueError("Unknwon command: {}".format(cmd))
+            raise ValueError(f"Unknown command: {cmd}")
 
     def receive_v5(self, address: kademlia.Address, message: bytes) -> None:
         try:
@@ -933,8 +933,7 @@ class CallbackManager(UserDict):
             if not self.locked(key):
                 del self[key]
             else:
-                raise AlreadyWaitingDiscoveryResponse(
-                    "Already waiting on callback for: {0}".format(key))
+                raise AlreadyWaitingDiscoveryResponse(f"Already waiting on callback for: {key}")
 
         lock = CallbackLock(callback)
         self[key] = lock
