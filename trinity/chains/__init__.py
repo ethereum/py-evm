@@ -23,6 +23,9 @@ from eth.chains.base import (
     Chain,
     BaseChain
 )
+from eth.vm.base import (
+    BaseVM
+)
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
     MAINNET_NETWORK_ID,
