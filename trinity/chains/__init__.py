@@ -12,6 +12,7 @@ from typing import (
     Any,
     Callable,
     List,
+    Dict,
     Type
 )
 
@@ -65,7 +66,7 @@ from .header import (
 )
 
 
-def is_valid_genesis_header(genesis: dict) -> bool:
+def is_valid_genesis_header(genesis: Dict) -> bool:
     """
     Checks that all valid genesis config parameters are present from the decoded
     genesis JSON config specified. If any of the required parameters are missing
@@ -85,7 +86,7 @@ def is_valid_genesis_header(genesis: dict) -> bool:
     return True
 
 
-def get_genesis_header(genesis: dict) -> (BlockHeader, int):
+def get_genesis_header(genesis: Dict) -> Tuple[BlockHeader, int]:
     """
     Returns the genesis config wrapped as a BlockHeader along with the network_id
     of the chain.
@@ -234,7 +235,7 @@ def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
 
 
 class BasePrivateChain:
-    vm_configuration = ()
+    vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
 
 class PrivateChain(BasePrivateChain, Chain):

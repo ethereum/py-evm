@@ -45,7 +45,7 @@ DEFAULT_DATA_DIRS = {
 }
 
 
-def get_EIP1085_header(genesis_path: Path) -> (BlockHeader, int):
+def get_EIP1085_header(genesis_path: Path) -> Tuple[BlockHeader, int]:
     """
     Will attempt to decode, validate and return a BlockHeader based on the filepath
     given for the genesis config. The genesis config should conform to genesis
