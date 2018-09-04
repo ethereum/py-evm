@@ -2,15 +2,20 @@ from asyncio import (
     AbstractEventLoop,
     Lock,
     PriorityQueue,
+    Queue,
     QueueFull,
 )
+from collections import defaultdict
+from enum import Enum
 from functools import total_ordering
 from itertools import count
 from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Generic,
+    Iterable,
     Set,
     Tuple,
     Type,
@@ -19,11 +24,17 @@ from typing import (
 
 from eth_utils import (
     ValidationError,
+    to_tuple,
 )
-from eth_utils.toolz import identity
+from eth_utils.toolz import (
+    concat,
+    identity,
+)
 
-TTask = TypeVar('TTask')
 TFunc = TypeVar('TFunc')
+TSubtask = TypeVar('TSubtask', bound=Enum)
+TTask = TypeVar('TTask')
+TTaskID = TypeVar('TTaskID')
 
 
 class FunctionProperty(Generic[TFunc]):
@@ -286,3 +297,267 @@ class TaskQueue(Generic[TTask]):
     def __contains__(self, task: TTask) -> bool:
         """Determine if a task has been added and not yet completed"""
         return task in self._tasks
+
+
+class BaseTaskCompletion(Generic[TTask, TTaskID, TSubtask]):
+    """
+    Wrap a task with some extra information:
+
+    - subtasks: each of the subtasks in this enum must be completed before this task is complete
+    - id: a reference id that can be used by other tasks to declare a dependency
+    - dependency: an id to another task that must be completed before post-processing can happen on
+        this task
+    """
+    _id_extractor: FunctionProperty[Callable[[TTask], TTaskID]]
+    _dependency_extractor: FunctionProperty[Callable[[TTask], TTaskID]]
+    _id: TTaskID = None
+    _dependency: TTaskID = None
+    _subtasks: Iterable[TSubtask]
+    _completed_subtasks: Set[TSubtask]
+    _task: TTask
+
+    @classmethod
+    def factory(
+            cls,
+            subtasks: Type[TSubtask],
+            id_extractor: Callable[[TTask], TTaskID],
+            dependency_extractor: Callable[[TTask], TTaskID],
+    ) -> 'Type[BaseTaskCompletion[Any, Any, Any]]':
+
+        if len(subtasks) < 1:
+            raise ValidationError("There must be at least one subtask to track completions")
+
+        return type(
+            'CompletionFor' + subtasks.__name__,
+            (cls, ),
+            dict(
+                _id_extractor=staticmethod(id_extractor),
+                _dependency_extractor=staticmethod(dependency_extractor),
+                _subtasks=subtasks,
+            )
+        )
+
+    def __init__(self, task: TTask) -> None:
+        self._task = task
+        self._completed_subtasks = set()
+
+    @property
+    def task(self) -> TTask:
+        return self._task
+
+    @property
+    def id(self) -> TTaskID:
+        return self._id_extractor(self._task)
+
+    @property
+    def dependency(self) -> TTaskID:
+        return self._dependency_extractor(self._task)
+
+    @property
+    def is_complete(self) -> bool:
+        return len(self.remaining_subtasks) == 0
+
+    def set_complete(self) -> None:
+        for subtask in self.remaining_subtasks:
+            self.finish(subtask)
+
+    @property
+    def remaining_subtasks(self) -> Set[TSubtask]:
+        return set(self._subtasks).difference(self._completed_subtasks)
+
+    def finish(self, subtask: TSubtask) -> None:
+        if subtask not in self._subtasks:
+            raise ValidationError(
+                "Subtask %r is not recognized by task %r" % (subtask, self._task)
+            )
+        elif subtask in self._completed_subtasks:
+            raise ValidationError(
+                "Subtask %r is already complete in task %r" % (subtask, self._task)
+            )
+        else:
+            self._completed_subtasks.add(subtask)
+
+    def __repr__(self) -> str:
+        return (
+            f'<{type(self).__name__}({self._task!r}, id={self.id}, '
+            f'dependency={self.dependency}, done={self._completed_subtasks!r}, '
+            f'remaining={self.remaining_subtasks!r})>'
+        )
+
+
+class TaskIntegrator(Generic[TTask, TTaskID, TSubtask]):
+    """
+    This class is useful when sequential follow-up processing is necessary after a non-sequential
+    task runs. For example, you might be able to download block bodies at random, but need to
+    import them sequentially. So you mark the block download task as complete and
+    await next_completion() before importing the block.
+
+    By combining with BaseTaskCompletion, you might have multiple steps required before sequential
+    completion, like downloading the block *and* receipt.
+
+    Tasks may only depend on one task, but there may be many tasks dependent on one task.
+
+    If not artificially constrained, the memory needs are unbounded, because any task might depend
+    on any other task in history. So old tasks are pruned after a configurable depth.
+
+    Vocab:
+
+    - task: an object to uniquely reference the completion of some task
+    - subtasks: all subtasks must be completed for a task to be considered complete
+    - released: a task can be released after it is completed and the task it depends on is released
+    """
+
+    # by default, how long should the integrator wait before pruning?
+    _default_max_depth = 10000  # not sure how to pick a good default here
+
+    def __init__(
+            self,
+            task_completion_class: Type[BaseTaskCompletion[TTask, TTaskID, TSubtask]],
+            max_depth: int = None) -> None:
+
+        self._task_wrapper = task_completion_class
+        self._oldest_depth = 0
+
+        # how long to wait before pruning
+        if max_depth is None:
+            self._max_depth = self._default_max_depth
+        else:
+            self._max_depth = min([self._default_max_depth, max_depth])
+
+        # in _dependencies, when task_id is released, all of the tasks in the set can be released
+        self._dependencies: Dict[TTaskID, Set[BaseTaskCompletion[TTask, TTaskID, TSubtask]]]
+        self._dependencies = defaultdict(set)
+
+        # all of the tasks that have been completed, and not pruned
+        self._tasks: Dict[TTaskID, BaseTaskCompletion[TTask, TTaskID, TSubtask]] = {}
+
+        # has this task been released? (ie~ is it completed, and has its parent been released?)
+        self._unreleased: Set[TTaskID] = set()
+
+        # the depth from the original task at 0 to n dependencies away
+        self._depths: Dict[TTaskID, int] = {}
+
+        # Tasks that have been completed, and their dependency has been completed.
+        # They wait in this Queue until being returned by next_completed().
+        self._released_tasks: 'Queue[TTask]' = Queue()
+
+    def set_last_completion(self, task: TTask) -> None:
+        if len(self._tasks) > 0 or self._oldest_depth != 0:
+            raise ValidationError(f"Tasks already added, cannot use {task!r} as recent completion")
+
+        completed: BaseTaskCompletion[TTask, TTaskID, TSubtask] = self._task_wrapper(task)
+        completed.set_complete()
+        self._tasks[completed.id] = completed
+        self._depths[completed.id] = 0
+
+    def prepare(self, tasks: Tuple[TTask]) -> None:
+        """
+        Initiate a task into tracking. Each task must be prepared *after* its dependency has
+        been prepared.
+
+        :param tasks: the tasks to prepare, in iteration order
+        """
+        for wrapped_task in map(self._task_wrapper, tasks):
+            dependency = wrapped_task.dependency
+            if dependency not in self._tasks:
+                raise ValidationError(
+                    f"Cannot prepare task {wrapped_task!r} before preparing its dependency"
+                )
+            else:
+                depth = self._depths[dependency] + 1
+                self._tasks[wrapped_task.id] = wrapped_task
+                self._unreleased.add(wrapped_task.id)
+                self._dependencies[dependency].add(wrapped_task)
+                self._depths[wrapped_task.id] = depth
+
+    def finish(self, subtask: TSubtask, tasks: Tuple[TTask]) -> None:
+        """For every task in tasks, complete the given subtask"""
+        if len(self._tasks) == 0:
+            raise ValidationError("Cannot finish a task until set_last_completion() is called")
+
+        for task in tasks:
+            task_id: TTaskID = self._task_wrapper(task).id
+            if task_id not in self._tasks:
+                raise ValidationError(f"Cannot finish task {task_id!r} before preparing it")
+
+            task_completion = self._tasks[task_id]
+            task_completion.finish(subtask)
+            if task_completion.is_complete and task_completion.dependency not in self._unreleased:
+                self._mark_complete(task_id)
+
+    async def next_completed(self) -> Tuple[TTask, ...]:
+        """
+        Return the next batch of completed tasks, or wait until the next (sequential)
+        task is completed.
+        """
+        queue = self._released_tasks
+        if queue.empty():
+            first_task = await queue.get()
+        else:
+            first_task = queue.get_nowait()
+
+        # In order to return from get() as soon as possible, never await again.
+        # Instead, take only the tasks that are already available.
+        available = queue.qsize()
+
+        available_tasks = tuple(queue.get_nowait() for _ in range(available))
+
+        completed = (first_task, ) + available_tasks
+
+        return completed
+
+    def _mark_complete(self, task_id: TTaskID) -> None:
+        qualified_tasks = tuple([task_id])
+        while qualified_tasks:
+            qualified_tasks = tuple(concat(
+                self._mark_one_task_complete(task_id)
+                for task_id in qualified_tasks
+            ))
+
+    @to_tuple
+    def _mark_one_task_complete(self, task_id: TTaskID) -> Generator[TTaskID, None, None]:
+        """
+        Called when this task is completed and its dependency is complete, for the first time
+
+        :return: any task IDs that can now also be marked as complete
+        """
+        task_completion = self._tasks[task_id]
+
+        # put this task in the completed queue
+        self._released_tasks.put_nowait(task_completion.task)
+
+        # note that this task has been released
+        self._unreleased.remove(task_id)
+
+        # prune any completed tasks that are too old
+        self._prune(task_id)
+
+        # resolve tasks that depend on this task
+        for depending_task in self._dependencies[task_completion.id]:
+            # we already know that this task has been released, so we only need to check completion
+            if depending_task.is_complete:
+                yield depending_task.id
+
+    def _prune(self, task_id: TTaskID) -> None:
+        """
+        This prunes any data starting at the task completed at task_completion, and older.
+        It is called when the task has been released.
+        """
+        # determine how far back to prune
+        finished_depth = self._depths[task_id]
+
+        prune_depth = finished_depth - self._max_depth
+        if prune_depth > self._oldest_depth:
+
+            for depth in range(self._oldest_depth, prune_depth):
+                prune_tasks = tuple(
+                    task_id for task_id in self._tasks.keys()
+                    if self._depths[task_id] == depth
+                )
+
+                for prune_task_id in prune_tasks:
+                    del self._tasks[prune_task_id]
+                    del self._dependencies[prune_task_id]
+                    del self._depths[prune_task_id]
+
+            self._oldest_depth = prune_depth
