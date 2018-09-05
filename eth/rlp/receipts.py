@@ -6,15 +6,11 @@ from rlp.sedes import (
     CountableList,
     binary,
 )
-from eth_utils import (
-    ValidationError,
-)
 
 from eth_bloom import BloomFilter
 
 from .sedes import (
     int256,
-    int32,
 )
 
 from .logs import Log
@@ -47,20 +43,6 @@ class Receipt(rlp.Serializable):
             bloom=bloom,
             logs=logs,
         )
-
-        for log_idx, log in enumerate(self.logs):
-            if log.address not in self.bloom_filter:
-                raise ValidationError(
-                    "The address from the log entry at position {0} is not "
-                    "present in the provided bloom filter.".format(log_idx)
-                )
-            for topic_idx, topic in enumerate(log.topics):
-                if int32.serialize(topic) not in self.bloom_filter:
-                    raise ValidationError(
-                        "The topic at position {0} from the log entry at "
-                        "position {1} is not present in the provided bloom "
-                        "filter.".format(topic_idx, log_idx)
-                    )
 
     @property
     def bloom_filter(self) -> BloomFilter:

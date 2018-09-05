@@ -76,14 +76,17 @@ class FakeAsyncRopstenChain(RopstenChain):
     chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
+    coro_validate_receipt = async_passthrough('validate_receipt')
 
 
 class FakeAsyncMainnetChain(MainnetChain):
     chaindb_class = FakeAsyncChainDB
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
+    coro_validate_receipt = async_passthrough('validate_receipt')
 
 
 class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
+    coro_validate_receipt = async_passthrough('validate_receipt')
