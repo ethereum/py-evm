@@ -4,6 +4,7 @@ from asyncio import (
     PriorityQueue,
     QueueFull,
 )
+from functools import total_ordering
 from itertools import count
 from typing import (
     Any,
@@ -12,6 +13,7 @@ from typing import (
     Generic,
     Set,
     Tuple,
+    Type,
     TypeVar,
 )
 
@@ -36,6 +38,56 @@ class FunctionProperty(Generic[TFunc]):
         self._func = value
 
 
+@total_ordering
+class SortableTask(Generic[TTask]):
+    _order_fn: FunctionProperty[Callable[[TTask], Any]] = None
+
+    @classmethod
+    def orderable_by_func(cls, order_fn: Callable[[TTask], Any]) -> 'Type[SortableTask[TTask]]':
+        return type('PredefinedSortableTask', (cls, ), dict(_order_fn=staticmethod(order_fn)))
+
+    def __init__(self, task: TTask) -> None:
+        if self._order_fn is None:
+            raise ValidationError("Must create this class with orderable_by_func before init")
+        self._task = task
+        _comparable_val = self._order_fn(task)
+
+        # validate that _order_fn produces a valid comparable
+        try:
+            self_equal = _comparable_val == _comparable_val
+            self_lt = _comparable_val < _comparable_val
+            self_gt = _comparable_val > _comparable_val
+            if not self_equal or self_lt or self_gt:
+                raise ValidationError(
+                    "The orderable function provided a comparable value that does not compare"
+                    f"validly to itself: equal to self? {self_equal}, less than self? {self_lt}, "
+                    f"greater than self? {self_gt}"
+                )
+        except TypeError as exc:
+            raise ValidationError(
+                f"The provided order_fn {self._order_fn!r} did not return a sortable "
+                f"value from {task!r}"
+            ) from exc
+
+        self._comparable_val = _comparable_val
+
+    @property
+    def original(self) -> TTask:
+        return self._task
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SortableTask):
+            return False
+        else:
+            return self._comparable_val == other._comparable_val
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, SortableTask):
+            return False
+        else:
+            return self._comparable_val < other._comparable_val
+
+
 class TaskQueue(Generic[TTask]):
     """
     TaskQueue keeps priority-order track of pending tasks, with a limit on number pending.
@@ -53,14 +105,14 @@ class TaskQueue(Generic[TTask]):
     considered abandoned. Another consumer can pick it up at the next get() call.
     """
 
-    # a function that determines the priority order (lower int is higher priority)
-    _order_fn: FunctionProperty[Callable[[TTask], Any]]
+    # a class to wrap the task and make it sortable
+    _task_wrapper: Type[SortableTask[TTask]]
 
     # batches of tasks that have been started but not completed
     _in_progress: Dict[int, Tuple[TTask, ...]]
 
     # all tasks that have been placed in the queue and have not been started
-    _open_queue: 'PriorityQueue[Tuple[Any, TTask]]'
+    _open_queue: 'PriorityQueue[SortableTask[TTask]]'
 
     # all tasks that have been placed in the queue and have not been completed
     _tasks: Set[TTask]
@@ -74,7 +126,7 @@ class TaskQueue(Generic[TTask]):
         self._maxsize = maxsize
         self._full_lock = Lock(loop=loop)
         self._open_queue = PriorityQueue(maxsize, loop=loop)
-        self._order_fn = order_fn
+        self._task_wrapper = SortableTask.orderable_by_func(order_fn)
         self._id_generator = count()
         self._tasks = set()
         self._in_progress = {}
@@ -95,7 +147,7 @@ class TaskQueue(Generic[TTask]):
             )
 
         # make sure to insert the highest-priority items first, in case queue fills up
-        remaining = tuple(sorted((self._order_fn(task), task) for task in tasks))
+        remaining = tuple(sorted(map(self._task_wrapper, tasks)))
 
         while remaining:
             num_tasks = len(self._tasks)
@@ -124,14 +176,15 @@ class TaskQueue(Generic[TTask]):
                     task_idx = queueing.index(task)
                     qsize = self._open_queue.qsize()
                     raise QueueFull(
-                        f'TaskQueue unsuccessful in adding task {task[1]!r} because qsize={qsize}, '
+                        f'TaskQueue unsuccessful in adding task {task.original!r} ',
+                        f'because qsize={qsize}, '
                         f'num_tasks={num_tasks}, maxsize={self._maxsize}, open_slots={open_slots}, '
                         f'num queueing={len(queueing)}, len(_tasks)={len(self._tasks)}, task_idx='
                         f'{task_idx}, queuing={queueing}, original msg: {exc}',
                     )
 
-            unranked_queued = tuple(task for _rank, task in queueing)
-            self._tasks.update(unranked_queued)
+            original_queued = tuple(task.original for task in queueing)
+            self._tasks.update(original_queued)
 
             if self._full_lock.locked() and len(self._tasks) < self._maxsize:
                 self._full_lock.release()
@@ -168,9 +221,10 @@ class TaskQueue(Generic[TTask]):
         # if the queue is empty, wait until at least one item is available
         queue = self._open_queue
         if queue.empty():
-            _rank, first_task = await queue.get()
+            wrapped_first_task = await queue.get()
         else:
-            _rank, first_task = queue.get_nowait()
+            wrapped_first_task = queue.get_nowait()
+        first_task = wrapped_first_task.original
 
         # In order to return from get() as soon as possible, never await again.
         # Instead, take only the tasks that are already available.
@@ -202,8 +256,8 @@ class TaskQueue(Generic[TTask]):
         # Combine the remaining tasks with the first task we already pulled.
         ranked_tasks = tuple(queue.get_nowait() for _ in range(num_tasks))
 
-        # strip out the rank value used internally for sorting in the priority queue
-        return tuple(task for _rank, task in ranked_tasks)
+        # strip out the wrapper used internally for sorting
+        return tuple(task.original for task in ranked_tasks)
 
     def complete(self, batch_id: int, completed: Tuple[TTask, ...]) -> None:
         if batch_id not in self._in_progress:
@@ -222,7 +276,7 @@ class TaskQueue(Generic[TTask]):
 
         for task in incomplete:
             # These tasks are already counted in the total task count, so there will be room
-            self._open_queue.put_nowait((self._order_fn(task), task))
+            self._open_queue.put_nowait(self._task_wrapper(task))
 
         self._tasks.difference_update(completed)
 
