@@ -7,6 +7,9 @@ from typing import (
     Type,
 )
 
+from cancel_token import OperationCancelled
+
+from p2p.exceptions import PeerConnectionLost
 from p2p.protocol import (
     BaseRequest,
     Command,
@@ -74,14 +77,19 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         # bind the outbound request payload to the payload validator
         message_validator = partial(payload_validator, request.command_payload)
 
-        return await self._manager.get_result(
-            request,
-            normalizer,
-            result_validator.validate_result,
-            message_validator,
-            self.tracker,
-            timeout,
-        )
+        try:
+            return await self._manager.get_result(
+                request,
+                normalizer,
+                result_validator.validate_result,
+                message_validator,
+                self.tracker,
+                timeout,
+            )
+        except OperationCancelled as err:
+            raise PeerConnectionLost(
+                f"Cancellation while waiting for {self.response_msg_name}: {err}"
+            ) from err
 
     @classproperty
     def response_cmd_type(cls) -> Type[Command]:
