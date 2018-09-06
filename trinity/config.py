@@ -86,7 +86,13 @@ class ChainConfig:
         self.sync_mode = sync_mode
         self.port = port
 
-        if not preferred_nodes and network_id in DEFAULT_PREFERRED_NODES:
+        if genesis is not None:
+            self._genesis = genesis
+            genesis_config = get_eip1085_genesis_config(self.genesis)
+            self._genesis_header, self.network_id = get_genesis_header(genesis_config)
+            self._chain_vm_config = get_genesis_vm_configuration(genesis_config)
+
+        if not preferred_nodes and self.network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
         else:
             self.preferred_nodes = preferred_nodes
@@ -108,11 +114,6 @@ class ChainConfig:
             raise ValueError("It is invalid to provide both a `nodekey` and a `nodekey_path`")
 
         # set values
-        if genesis is not None:
-            self._genesis = genesis
-            genesis_config = get_eip1085_genesis_config(self.genesis)
-            self._genesis_header, self.network_id = get_genesis_header(genesis_config)
-            self._chain_vm_config = get_genesis_vm_configuration(genesis_config)
         if data_dir is not None:
             self.data_dir = data_dir
         else:
