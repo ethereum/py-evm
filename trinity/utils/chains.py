@@ -57,6 +57,10 @@ DEFAULT_DATA_DIRS = {
 }
 
 def get_genesis_vm_configuration(genesis: Dict) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+    """
+    Returns a vm configuration which is a tuple of block numbers associated to a fork
+    based on the genesis config provided.
+    """
     custom_chain_config = genesis['config']
     vm_configuration = []
     if 'homesteadBlock' in custom_chain_config.keys():
@@ -94,6 +98,7 @@ def get_genesis_header(genesis: Dict) -> Tuple[BlockHeader, int]:
         timestamp=0,
         transaction_root=constants.BLANK_ROOT_HASH,
     ), genesis['config']['chainId']
+
 
 def validate_eip1085_genesis_config(genesis: Dict) -> None:
     """
@@ -134,6 +139,7 @@ def get_eip1085_genesis_config(genesis_path: Path) -> Dict:
     validate_eip1085_genesis_config(genesis)
 
     return genesis
+
 
 #
 # Filesystem path utils

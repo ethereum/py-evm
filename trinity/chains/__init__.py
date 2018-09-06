@@ -12,18 +12,13 @@ from typing import (
     Any,
     Callable,
     List,
-    Dict,
     Type,
-    Tuple,
 )
 
 from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
     Chain,
     BaseChain
-)
-from eth.vm.base import (
-    BaseVM
 )
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
@@ -35,8 +30,6 @@ from eth.chains.ropsten import (
 )
 from eth.db.backends.base import BaseDB
 from eth.exceptions import CanonicalHeadNotFound
-
-from eth.rlp.headers import BlockHeader
 
 from p2p import ecies
 
@@ -245,7 +238,6 @@ def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManag
         vm_configuration = chain_config.chain_vm_config
         chain = chain_class(base_db)
         chain.vm_configuration = vm_configuration
-
 
     headerdb = AsyncHeaderDB(base_db)
     header_chain = AsyncHeaderChain(base_db)

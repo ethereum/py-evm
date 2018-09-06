@@ -2,7 +2,6 @@ import argparse
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
-    Dict,
     TYPE_CHECKING,
     Tuple,
     Type,
