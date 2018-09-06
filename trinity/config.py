@@ -2,6 +2,7 @@ import argparse
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
+    Dict,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -15,6 +16,9 @@ from eth.chains.mainnet import (
 )
 from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
+)
+from eth.vm.base import (
+    BaseVM
 )
 from eth.rlp.headers import BlockHeader
 from p2p.kademlia import Node as KademliaNode
@@ -31,7 +35,9 @@ from trinity.constants import (
 from trinity.utils.chains import (
     construct_chain_config_params,
     get_data_dir_for_network_id,
-    get_EIP1085_header,
+    get_eip1085_genesis_config,
+    get_genesis_header,
+    get_genesis_vm_configuration,
     get_database_socket_path,
     get_jsonrpc_socket_path,
     get_logfile_path,
@@ -52,7 +58,7 @@ DATABASE_DIR_NAME = 'chain'
 class ChainConfig:
     _genesis: Path = None
     _genesis_header: BlockHeader = None
-    _chain_id: int = None
+    _chain_vm_config: Tuple[Tuple[int, Type[BaseVM]], ...] = None
     _data_dir: Path = None
     _nodekey_path: Path = None
     _logfile_path: Path = None
@@ -104,8 +110,10 @@ class ChainConfig:
 
         # set values
         if genesis is not None:
-            self.genesis = genesis
-            self.genesis_header, self.chain_id = get_EIP1085_header(self.genesis)
+            self._genesis = genesis
+            genesis_config = get_eip1085_genesis_config(self.genesis)
+            self._genesis_header, self.network_id = get_genesis_header(genesis_config)
+            self._chain_vm_config = get_genesis_vm_configuration(genesis_config)
         if data_dir is not None:
             self.data_dir = data_dir
         else:
@@ -144,14 +152,21 @@ class ChainConfig:
         """
         Return the path of the genesis configuration file.
         """
-        return self.genesis
+        return self._genesis
 
     @property
     def genesis_header(self) -> BlockHeader:
         """
-        Return the genesis block header parsed from the genesis configuration file.
+        Return the genesis configuation parsed from the genesis configuration file.
         """
-        return self.genesis_header
+        return self._genesis_header
+
+    @property
+    def chain_vm_config(self) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+        """
+        Return the vm configuration specifed from the genesis configuration file.
+        """
+        return self._chain_vm_config
 
     @property
     def data_dir(self) -> Path:

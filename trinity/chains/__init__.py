@@ -18,7 +18,6 @@ from typing import (
 )
 
 from eth import MainnetChain, RopstenChain
-import eth.constants as constants
 from eth.chains.base import (
     Chain,
     BaseChain
@@ -38,11 +37,6 @@ from eth.db.backends.base import BaseDB
 from eth.exceptions import CanonicalHeadNotFound
 
 from eth.rlp.headers import BlockHeader
-
-from eth_utils import (
-    decode_hex,
-    ValidationError,
-)
 
 from p2p import ecies
 
@@ -68,49 +62,6 @@ from .header import (
     AsyncHeaderChain,
     AsyncHeaderChainProxy,
 )
-
-
-def is_valid_genesis_header(genesis: Dict) -> bool:
-    """
-    Checks that all valid genesis config parameters are present from the decoded
-    genesis JSON config specified. If any of the required parameters are missing
-    the function will raise a ValidationError.
-    """
-    if 'chainId' not in genesis.keys():
-        raise ValidationError("genesis config missing required 'chainId'")
-    if 'difficulty' not in genesis.keys():
-        raise ValidationError("genesis config missing required 'difficulty'")
-    if 'gasLimit' not in genesis.keys():
-        raise ValidationError("genesis config missing required 'gasLimit'")
-    if 'nonce' not in genesis.keys():
-        raise ValidationError("genesis config missing required 'nonce'")
-    if 'extraData' not in genesis.keys():
-        raise ValidationError("genesis config missing required 'extraData'")
-
-    return True
-
-
-def get_genesis_header(genesis: Dict) -> Tuple[BlockHeader, int]:
-    """
-    Returns the genesis config wrapped as a BlockHeader along with the network_id
-    of the chain.
-    """
-    return BlockHeader(
-        difficulty=genesis['difficulty'],
-        extra_data=genesis['extraData'],
-        gas_limit=genesis['gasLimit'],
-        gas_used=0,
-        bloom=0,
-        mix_hash=constants.ZERO_HASH32,
-        nonce=genesis['nonce'],
-        block_number=0,
-        parent_hash=constants.ZERO_HASH32,
-        receipt_root=constants.BLANK_ROOT_HASH,
-        uncles_hash=constants.EMPTY_UNCLE_HASH,
-        state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
-        timestamp=0,
-        transaction_root=constants.BLANK_ROOT_HASH,
-    ), decode_hex(genesis['chainId'])
 
 
 def is_data_dir_initialized(chain_config: ChainConfig) -> bool:
@@ -200,7 +151,7 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
         elif chain_config.network_id == MAINNET_NETWORK_ID:
             chaindb.persist_header(MAINNET_GENESIS_HEADER)
         else:
-            chaindb.persist_header(chain_config.genesis_header())
+            chaindb.persist_header(chain_config.genesis_header)
 
 
 class TracebackRecorder:
@@ -238,11 +189,11 @@ def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
     return wrapper
 
 
-class BasePrivateChain:
+class BaseCustomChain:
     vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
 
-class PrivateChain(BasePrivateChain, Chain):
+class CustomChain(BaseCustomChain, Chain):
     pass
 
 
@@ -280,7 +231,7 @@ def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManag
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
         chain_class = RopstenChain
     else:
-        chain_class = PrivateChain
+        chain_class = CustomChain
     chain = chain_class(base_db)
 
     headerdb = AsyncHeaderDB(base_db)
