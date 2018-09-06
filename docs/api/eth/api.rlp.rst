@@ -9,7 +9,6 @@ RLP
 
    rlp/api.rlp.accounts
    rlp/api.rlp.blocks
-   rlp/api.rlp.collation
    rlp/api.rlp.headers
    rlp/api.rlp.logs
    rlp/api.rlp.receipts
