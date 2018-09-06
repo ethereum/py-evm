@@ -2,15 +2,20 @@ from asyncio import (
     AbstractEventLoop,
     Lock,
     PriorityQueue,
+    Queue,
     QueueFull,
 )
+from collections import defaultdict
+from enum import Enum
 from functools import total_ordering
 from itertools import count
 from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Generic,
+    Iterable,
     Set,
     Tuple,
     Type,
@@ -19,14 +24,25 @@ from typing import (
 
 from eth_utils import (
     ValidationError,
+    to_tuple,
 )
-from eth_utils.toolz import identity
+from eth_utils.toolz import (
+    concat,
+    identity,
+)
 
-TTask = TypeVar('TTask')
+from trinity.utils.queues import (
+    queue_get_batch,
+    queue_get_nowait,
+)
+
 TFunc = TypeVar('TFunc')
+TPrerequisite = TypeVar('TPrerequisite', bound=Enum)
+TTask = TypeVar('TTask')
+TTaskID = TypeVar('TTaskID')
 
 
-class FunctionProperty(Generic[TFunc]):
+class StaticMethod(Generic[TFunc]):
     """
     A property class purely to convince mypy to let us assign a function to an
     instance variable. See more at: https://github.com/python/mypy/issues/708#issuecomment-405812141
@@ -40,7 +56,7 @@ class FunctionProperty(Generic[TFunc]):
 
 @total_ordering
 class SortableTask(Generic[TTask]):
-    _order_fn: FunctionProperty[Callable[[TTask], Any]] = None
+    _order_fn: StaticMethod[Callable[[TTask], Any]] = None
 
     @classmethod
     def orderable_by_func(cls, order_fn: Callable[[TTask], Any]) -> 'Type[SortableTask[TTask]]':
@@ -200,7 +216,10 @@ class TaskQueue(Generic[TTask]):
         if self._open_queue.empty():
             raise QueueFull("No tasks are available to get")
         else:
-            pending_tasks = self._get_nowait(max_results)
+            ranked_tasks = queue_get_nowait(self._open_queue, max_results)
+
+            # strip out the wrapper used internally for sorting
+            pending_tasks = tuple(task.original for task in ranked_tasks)
 
             # Generate a pending batch of tasks, so uncompleted tasks can be inferred
             next_id = next(self._id_generator)
@@ -215,49 +234,14 @@ class TaskQueue(Generic[TTask]):
         :param max_results: return up to this many pending tasks. If None, return all pending tasks.
         :return: (batch_id, tasks to attempt)
         """
-        if max_results is not None and max_results < 1:
-            raise ValidationError("Must request at least one task to process, not {max_results!r}")
-
-        # if the queue is empty, wait until at least one item is available
-        queue = self._open_queue
-        if queue.empty():
-            wrapped_first_task = await queue.get()
-        else:
-            wrapped_first_task = queue.get_nowait()
-        first_task = wrapped_first_task.original
-
-        # In order to return from get() as soon as possible, never await again.
-        # Instead, take only the tasks that are already available.
-        if max_results is None:
-            remaining_count = None
-        else:
-            remaining_count = max_results - 1
-        remaining_tasks = self._get_nowait(remaining_count)
-
-        # Combine the first and remaining tasks
-        all_tasks = (first_task, ) + remaining_tasks
+        ranked_tasks = await queue_get_batch(self._open_queue, max_results)
+        pending_tasks = tuple(task.original for task in ranked_tasks)
 
         # Generate a pending batch of tasks, so uncompleted tasks can be inferred
         next_id = next(self._id_generator)
-        self._in_progress[next_id] = all_tasks
+        self._in_progress[next_id] = pending_tasks
 
-        return (next_id, all_tasks)
-
-    def _get_nowait(self, max_results: int = None) -> Tuple[TTask, ...]:
-        queue = self._open_queue
-
-        # How many results do we want?
-        available = queue.qsize()
-        if max_results is None:
-            num_tasks = available
-        else:
-            num_tasks = min((available, max_results))
-
-        # Combine the remaining tasks with the first task we already pulled.
-        ranked_tasks = tuple(queue.get_nowait() for _ in range(num_tasks))
-
-        # strip out the wrapper used internally for sorting
-        return tuple(task.original for task in ranked_tasks)
+        return (next_id, pending_tasks)
 
     def complete(self, batch_id: int, completed: Tuple[TTask, ...]) -> None:
         if batch_id not in self._in_progress:
@@ -286,3 +270,301 @@ class TaskQueue(Generic[TTask]):
     def __contains__(self, task: TTask) -> bool:
         """Determine if a task has been added and not yet completed"""
         return task in self._tasks
+
+
+class BaseTaskPrerequisites(Generic[TTask, TPrerequisite]):
+    """
+    Keep track of which prerequisites on a task are complete. It is used internally by
+    :class:`OrderedTaskPreparation`
+    """
+    _prereqs: Iterable[TPrerequisite]
+    _completed_prereqs: Set[TPrerequisite]
+    _task: TTask
+
+    @classmethod
+    def from_enum(cls, prereqs: Type[TPrerequisite]) -> 'Type[BaseTaskPrerequisites[Any, Any]]':
+
+        if len(prereqs) < 1:
+            raise ValidationError("There must be at least one prerequisite to track completions")
+
+        return type('CompletionFor' + prereqs.__name__, (cls, ), dict(_prereqs=prereqs))
+
+    def __init__(self, task: TTask) -> None:
+        self._task = task
+        self._completed_prereqs = set()
+
+    @property
+    def task(self) -> TTask:
+        return self._task
+
+    @property
+    def is_complete(self) -> bool:
+        return len(self.remaining_prereqs) == 0
+
+    def set_complete(self) -> None:
+        for prereq in self.remaining_prereqs:
+            self.finish(prereq)
+
+    @property
+    def remaining_prereqs(self) -> Set[TPrerequisite]:
+        return set(self._prereqs).difference(self._completed_prereqs)
+
+    def finish(self, prereq: TPrerequisite) -> None:
+        if prereq not in self._prereqs:
+            raise ValidationError(
+                "Prerequisite %r is not recognized by task %r" % (prereq, self._task)
+            )
+        elif prereq in self._completed_prereqs:
+            raise ValidationError(
+                "Prerequisite %r is already complete in task %r" % (prereq, self._task)
+            )
+        else:
+            self._completed_prereqs.add(prereq)
+
+    def __repr__(self) -> str:
+        return (
+            f'<{type(self).__name__}({self._task!r}, done={self._completed_prereqs!r}, '
+            f'remaining={self.remaining_prereqs!r})>'
+        )
+
+
+class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
+    """
+    This class is useful when a series of tasks with prerequisites must be run
+    sequentially. The prerequisites may be finished in any order, but the
+    tasks may only be run when all prerequisites are complete, and the
+    dependent task is also complete. Tasks may only depend on one other task.
+
+    For example, you might want to download block bodies and receipts at
+    random, but need to import them sequentially. Importing blocks is the ``task``,
+    downloading the parts is the ``prerequisite``, and a block's parent is its
+    ``dependency``.
+
+    Below is a sketch of how to do that:
+
+        # The complete list of prerequisites to complete
+        class BlockDownloads(Enum):
+            receipts = auto()
+            bodies = auto()
+
+        block_import_tasks = OrderedTaskPreparation(
+            BlockDownloads,
+
+            # we use this method to extract an ID from the header:
+            lambda header: header.hash,
+
+            # we use this method to extract the ID of the dependency,
+            # so that we can guarantee that the parent block gets imported first
+            lambda header: header.parent_hash,
+        )
+
+        # We mark the genesis block as already imported, so header1 is ready
+        # as soon as its prerequisites are complete.
+        block_import_tasks.set_finished_dependency(header0)
+
+        # We register the tasks before completing any prerequisites
+        block_import_tasks.register_tasks((header1, header2, header3))
+
+        # Start download of bodies & receipts...
+
+        # They complete in random order
+
+        # we notify this class which prerequisites are complete:
+        block_import_tasks.finish_prereq(BlockDownloads.receipts, (header2, header3))
+        block_import_tasks.finish_prereq(BlockDownloads.bodies, (header1, header2))
+
+        # this await would hang, waiting on the receipt from header1:
+        # await block_import_tasks.ready_tasks()
+
+        block_import_tasks.finish_prereq(BlockDownloads.receipts, (header1, ))
+
+        # now we have all the necessary info to import blocks 1 and 2
+        headers_ready_to_import = await block_import_tasks.ready_tasks()
+
+        # these will always return in sequential order:
+        assert headers_ready_to_import == (header1, header2)
+
+    In a real implementation, you would have a loop waiting on
+    :meth:`ready_tasks` and import them, rather than interleaving them like
+    the above example.
+
+    Note that this class does *not* track when the main tasks are
+    complete. It is assumed that the caller will complete the tasks in the
+    order they are returned by ready_tasks().
+
+    The memory needs of this class would naively be unbounded. Any newly
+    registered task might depend on any other task in history. To prevent
+    unbounded memory usage, old tasks are pruned after a configurable depth.
+
+    Vocab:
+
+    - prerequisites: all these must be completed for a task to be ready
+        (a necessary but not sufficient condition)
+    - ready: a task is ready after all its prereqs are completed, and the task it depends on is
+        also ready
+    """
+    # methods to extract the id and dependency IDs out of a task
+    _id_of: StaticMethod[Callable[[TTask], TTaskID]]
+    _dependency_of: StaticMethod[Callable[[TTask], TTaskID]]
+
+    # by default, how long should the integrator wait before pruning?
+    _default_max_depth = 10000  # not sure how to pick a good default here
+
+    _prereq_tracker: Type[BaseTaskPrerequisites[TTask, TPrerequisite]]
+
+    def __init__(
+            self,
+            prerequisites: Type[TPrerequisite],
+            id_extractor: Callable[[TTask], TTaskID],
+            dependency_extractor: Callable[[TTask], TTaskID],
+            max_depth: int = None) -> None:
+
+        self._prereq_tracker = BaseTaskPrerequisites.from_enum(prerequisites)
+        self._id_of = id_extractor
+        self._dependency_of = dependency_extractor
+        self._oldest_depth = 0
+
+        # how long to wait before pruning
+        if max_depth is None:
+            self._max_depth = self._default_max_depth
+        else:
+            self._max_depth = min([self._default_max_depth, max_depth])
+
+        # all of the tasks that have been completed, and not pruned
+        self._tasks: Dict[TTaskID, BaseTaskPrerequisites[TTask, TPrerequisite]] = {}
+
+        # In self._dependencies, when the key becomes ready, the task ids in the
+        # value set *might* also become ready
+        # (they only become ready if their prerequisites are complete)
+        self._dependencies: Dict[TTaskID, Set[TTaskID]] = defaultdict(set)
+
+        # task ids are in this set if either:
+        # - one of their prerequisites is incomplete OR
+        # - their dependent task is not ready
+        self._unready: Set[TTaskID] = set()
+
+        # This is a queue of tasks that have become ready, in order.
+        # They wait in this Queue until being returned by ready_tasks().
+        self._ready_tasks: 'Queue[TTask]' = Queue()
+
+        # Track the depth from the original task at 0 to n dependencies away
+        # This is used exclusively for pruning
+        self._depths: Dict[TTaskID, int] = {}
+
+    def set_finished_dependency(self, finished_task: TTask) -> None:
+        """
+        Mark this task as already finished. Crucially, the first task that is registered in
+        :meth:`register_tasks` must have finished_task as its dependency.
+        """
+        if len(self._tasks) > 0 or self._oldest_depth != 0:
+            raise ValidationError(f"Tasks already added, cannot set {finished_task!r} as finished")
+
+        completed = self._prereq_tracker(finished_task)
+        completed.set_complete()
+        task_id = self._id_of(finished_task)
+        self._tasks[task_id] = completed
+        self._depths[task_id] = 0
+        # note that this task is intentionally *not* added to self._unready
+
+    def register_tasks(self, tasks: Tuple[TTask]) -> None:
+        """
+        Initiate a task into tracking. Each task must be registered *after* its dependency has
+        been registered.
+
+        :param tasks: the tasks to register, in iteration order
+        """
+        task_meta_info = (
+            (self._prereq_tracker(task), self._id_of(task), self._dependency_of(task))
+            for task in tasks
+        )
+
+        for prereq_tracker, task_id, dependency_id in task_meta_info:
+            if dependency_id not in self._tasks:
+                raise ValidationError(
+                    f"Cannot prepare task {prereq_tracker!r} with id {task_id} and "
+                    f"dependency {dependency_id} before preparing its dependency"
+                )
+            else:
+                self._tasks[task_id] = prereq_tracker
+                self._unready.add(task_id)
+                self._dependencies[dependency_id].add(task_id)
+                depth = self._depths[dependency_id] + 1
+                self._depths[task_id] = depth
+
+    def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask]) -> None:
+        """For every task in tasks, mark the given prerequisite as completed"""
+        if len(self._tasks) == 0:
+            raise ValidationError("Cannot finish a task until set_last_completion() is called")
+
+        for task in tasks:
+            task_id = self._id_of(task)
+            if task_id not in self._tasks:
+                raise ValidationError(f"Cannot finish task {task_id!r} before preparing it")
+
+            task_completion = self._tasks[task_id]
+            task_completion.finish(prereq)
+            if task_completion.is_complete and self._dependency_of(task) not in self._unready:
+                self._mark_complete(task_id)
+
+    async def ready_tasks(self) -> Tuple[TTask, ...]:
+        """
+        Return the next batch of tasks that are ready to process. If none are ready,
+        hang until at least one task becomes ready.
+        """
+        return await queue_get_batch(self._ready_tasks)
+
+    def _mark_complete(self, task_id: TTaskID) -> None:
+        qualified_tasks = tuple([task_id])
+        while qualified_tasks:
+            qualified_tasks = tuple(concat(
+                self._mark_one_task_complete(task_id)
+                for task_id in qualified_tasks
+            ))
+
+    @to_tuple
+    def _mark_one_task_complete(self, task_id: TTaskID) -> Generator[TTaskID, None, None]:
+        """
+        Called when this task is completed and its dependency is complete, for the first time
+
+        :return: any task IDs that can now also be marked as complete
+        """
+        task_completion = self._tasks[task_id]
+
+        # put this task in the completed queue
+        self._ready_tasks.put_nowait(task_completion.task)
+
+        # note that this task has been made ready
+        self._unready.remove(task_id)
+
+        # prune any completed tasks that are too old
+        self._prune(task_id)
+
+        # resolve tasks that depend on this task
+        for depending_task_id in self._dependencies[task_id]:
+            # we already know that this task is ready, so we only need to check completion
+            if self._tasks[depending_task_id].is_complete:
+                yield depending_task_id
+
+    def _prune(self, task_id: TTaskID) -> None:
+        """
+        This prunes any data starting at the task completed at task_completion, and older.
+        It is called when the task becomes ready.
+        """
+        # determine how far back to prune
+        finished_depth = self._depths[task_id]
+
+        prune_depth = finished_depth - self._max_depth
+        if prune_depth > self._oldest_depth:
+
+            for depth in range(self._oldest_depth, prune_depth):
+                prune_tasks = tuple(
+                    task_id for task_id in self._tasks.keys()
+                    if self._depths[task_id] == depth
+                )
+
+                for prune_task_id in prune_tasks:
+                    del self._tasks[prune_task_id]
+                    del self._dependencies[prune_task_id]
+                    del self._depths[prune_task_id]
+
+            self._oldest_depth = prune_depth
