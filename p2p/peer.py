@@ -50,7 +50,7 @@ from eth_keys import (
     keys,
 )
 
-from cancel_token import CancelToken
+from cancel_token import CancelToken, OperationCancelled
 
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
@@ -741,18 +741,30 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
     async def start_peer(self, peer: BasePeer) -> None:
         self.run_child_service(peer)
-        await self.wait(peer.events.started.wait(), timeout=1)
         try:
+            await self.wait(peer.events.started.wait(), timeout=1)
+        except TimeoutError:
+            self.logger.debug("Timed out waiting for %s to start", peer)
+            return
+
+        with peer.collect_sub_proto_messages() as buffer:
             # Although connect() may seem like a more appropriate place to perform the DAO fork
             # check, we do it here because we want to perform it for incoming peer connections as
             # well.
-            with peer.collect_sub_proto_messages() as buffer:
+            try:
                 await self.ensure_same_side_on_dao_fork(peer)
-        except DAOForkCheckFailure as err:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
-            await peer.disconnect(DisconnectReason.useless_peer)
-            return
-        else:
+            except OperationCancelled as e:
+                # NOTE: We should not have to catch OperationCancelled anywhere, but
+                # the ensure_same_side_on_dao_fork() method awaits on peer methods so if they
+                # raise an OperationCancelled we need to handle them here or else BaseService will
+                # think we (PeerPool) are being cancelled and that's not the case.
+                self.logger.debug("%s cancelled during DAO fork check: %s", peer, e)
+                return
+            except DAOForkCheckFailure as err:
+                self.logger.debug("DAO fork check with %s failed: %s", peer, err)
+                await peer.disconnect(DisconnectReason.useless_peer)
+                return
+
             msgs = tuple((cmd, msg) for _, cmd, msg in buffer.get_messages())
             self._add_peer(peer, msgs)
 
@@ -843,8 +855,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             if peer is not None:
                 await self.start_peer(peer)
 
-    async def ensure_same_side_on_dao_fork(
-            self, peer: BasePeer) -> None:
+    async def ensure_same_side_on_dao_fork(self, peer: BasePeer) -> None:
         """Ensure we're on the same side of the DAO fork as the given peer.
 
         In order to do that we have to request the DAO fork block and its parent, but while we
@@ -869,7 +880,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     reverse=False,
                     timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
                 )
-
             except (TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
                     f"Timed out waiting for DAO fork header from {peer}: {err}"
@@ -881,7 +891,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
 
             if len(headers) != 2:
                 raise DAOForkCheckFailure(
-                    f"Peer {peer} failed to return DAO fork check headers"
+                    f"{peer} failed to return DAO fork check headers"
                 )
             else:
                 parent, header = headers
@@ -889,7 +899,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             try:
                 vm_class.validate_header(header, parent, check_seal=True)
             except ValidationError as err:
-                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
+                raise DAOForkCheckFailure(f"{peer} failed DAO fork check validation: {err}")
 
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
