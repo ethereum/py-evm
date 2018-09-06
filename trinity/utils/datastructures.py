@@ -37,7 +37,7 @@ from trinity.utils.queues import (
 )
 
 TFunc = TypeVar('TFunc')
-TSubtask = TypeVar('TSubtask', bound=Enum)
+TPrerequisite = TypeVar('TPrerequisite', bound=Enum)
 TTask = TypeVar('TTask')
 TTaskID = TypeVar('TTaskID')
 
@@ -272,26 +272,26 @@ class TaskQueue(Generic[TTask]):
         return task in self._tasks
 
 
-class BaseTaskPrerequisites(Generic[TTask, TSubtask]):
+class BaseTaskPrerequisites(Generic[TTask, TPrerequisite]):
     """
     Keep track of which prerequisites on a task are complete. It is used internally by
     :class:`OrderedTaskPreparation`
     """
-    _subtasks: Iterable[TSubtask]
-    _completed_subtasks: Set[TSubtask]
+    _prereqs: Iterable[TPrerequisite]
+    _completed_prereqs: Set[TPrerequisite]
     _task: TTask
 
     @classmethod
-    def from_enum(cls, subtasks: Type[TSubtask]) -> 'Type[BaseTaskPrerequisites[Any, Any]]':
+    def from_enum(cls, prereqs: Type[TPrerequisite]) -> 'Type[BaseTaskPrerequisites[Any, Any]]':
 
-        if len(subtasks) < 1:
-            raise ValidationError("There must be at least one subtask to track completions")
+        if len(prereqs) < 1:
+            raise ValidationError("There must be at least one prerequisite to track completions")
 
-        return type('CompletionFor' + subtasks.__name__, (cls, ), dict(_subtasks=subtasks))
+        return type('CompletionFor' + prereqs.__name__, (cls, ), dict(_prereqs=prereqs))
 
     def __init__(self, task: TTask) -> None:
         self._task = task
-        self._completed_subtasks = set()
+        self._completed_prereqs = set()
 
     @property
     def task(self) -> TTask:
@@ -299,36 +299,36 @@ class BaseTaskPrerequisites(Generic[TTask, TSubtask]):
 
     @property
     def is_complete(self) -> bool:
-        return len(self.remaining_subtasks) == 0
+        return len(self.remaining_prereqs) == 0
 
     def set_complete(self) -> None:
-        for subtask in self.remaining_subtasks:
-            self.finish(subtask)
+        for prereq in self.remaining_prereqs:
+            self.finish(prereq)
 
     @property
-    def remaining_subtasks(self) -> Set[TSubtask]:
-        return set(self._subtasks).difference(self._completed_subtasks)
+    def remaining_prereqs(self) -> Set[TPrerequisite]:
+        return set(self._prereqs).difference(self._completed_prereqs)
 
-    def finish(self, subtask: TSubtask) -> None:
-        if subtask not in self._subtasks:
+    def finish(self, prereq: TPrerequisite) -> None:
+        if prereq not in self._prereqs:
             raise ValidationError(
-                "Subtask %r is not recognized by task %r" % (subtask, self._task)
+                "Prerequisite %r is not recognized by task %r" % (prereq, self._task)
             )
-        elif subtask in self._completed_subtasks:
+        elif prereq in self._completed_prereqs:
             raise ValidationError(
-                "Subtask %r is already complete in task %r" % (subtask, self._task)
+                "Prerequisite %r is already complete in task %r" % (prereq, self._task)
             )
         else:
-            self._completed_subtasks.add(subtask)
+            self._completed_prereqs.add(prereq)
 
     def __repr__(self) -> str:
         return (
-            f'<{type(self).__name__}({self._task!r}, done={self._completed_subtasks!r}, '
-            f'remaining={self.remaining_subtasks!r})>'
+            f'<{type(self).__name__}({self._task!r}, done={self._completed_prereqs!r}, '
+            f'remaining={self.remaining_prereqs!r})>'
         )
 
 
-class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
+class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     """
     This class is useful when a series of tasks with prerequisites must be run
     sequentially. The prerequisites may be finished in any order, but the
@@ -410,11 +410,11 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
     # by default, how long should the integrator wait before pruning?
     _default_max_depth = 10000  # not sure how to pick a good default here
 
-    _prereq_tracker: Type[BaseTaskPrerequisites[TTask, TSubtask]]
+    _prereq_tracker: Type[BaseTaskPrerequisites[TTask, TPrerequisite]]
 
     def __init__(
             self,
-            prerequisites: Type[TSubtask],
+            prerequisites: Type[TPrerequisite],
             id_extractor: Callable[[TTask], TTaskID],
             dependency_extractor: Callable[[TTask], TTaskID],
             max_depth: int = None) -> None:
@@ -431,15 +431,15 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
             self._max_depth = min([self._default_max_depth, max_depth])
 
         # all of the tasks that have been completed, and not pruned
-        self._tasks: Dict[TTaskID, BaseTaskPrerequisites[TTask, TSubtask]] = {}
+        self._tasks: Dict[TTaskID, BaseTaskPrerequisites[TTask, TPrerequisite]] = {}
 
         # In self._dependencies, when the key becomes ready, the task ids in the
         # value set *might* also become ready
         # (they only become ready if their prerequisites are complete)
         self._dependencies: Dict[TTaskID, Set[TTaskID]] = defaultdict(set)
 
-        # task ids are in this set if they either:
-        # - are missing a prerequisite OR
+        # task ids are in this set if either:
+        # - one of their prerequisites is incomplete OR
         # - their dependent task is not ready
         self._unready: Set[TTaskID] = set()
 
@@ -491,7 +491,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
                 depth = self._depths[dependency_id] + 1
                 self._depths[task_id] = depth
 
-    def finish_prereq(self, subtask: TSubtask, tasks: Tuple[TTask]) -> None:
+    def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask]) -> None:
         """For every task in tasks, mark the given prerequisite as completed"""
         if len(self._tasks) == 0:
             raise ValidationError("Cannot finish a task until set_last_completion() is called")
@@ -502,7 +502,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
                 raise ValidationError(f"Cannot finish task {task_id!r} before preparing it")
 
             task_completion = self._tasks[task_id]
-            task_completion.finish(subtask)
+            task_completion.finish(prereq)
             if task_completion.is_complete and self._dependency_of(task) not in self._unready:
                 self._mark_complete(task_id)
 
