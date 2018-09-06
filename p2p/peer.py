@@ -25,6 +25,7 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     Type,
+    TypeVar,
 )
 
 import sha3
@@ -40,7 +41,6 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 from eth_utils import (
     decode_hex,
     to_tuple,
-    ValidationError,
 )
 
 from eth_typing import BlockNumber, Hash32
@@ -56,8 +56,6 @@ from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM
-from eth.vm.forks import HomesteadVM
 
 from p2p import auth
 from p2p import ecies
@@ -65,7 +63,6 @@ from p2p import protocol
 from p2p.kademlia import Address, Node
 from p2p.exceptions import (
     BadAckMessage,
-    DAOForkCheckFailure,
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
@@ -94,7 +91,6 @@ from p2p.p2p_proto import (
 )
 
 from .constants import (
-    CHAIN_SPLIT_CHECK_TIMEOUT,
     CONN_IDLE_TIMEOUT,
     DEFAULT_MAX_PEERS,
     HEADER_LEN,
@@ -107,13 +103,16 @@ if TYPE_CHECKING:
     from trinity.protocol.base_request import BaseRequest  # noqa: F401
 
 
+TPeer = TypeVar('TPeer', bound='BasePeer')
+
+
 async def handshake(remote: Node,
                     privkey: datatypes.PrivateKey,
-                    peer_class: 'Type[BasePeer]',
+                    peer_class: 'Type[TPeer]',
                     headerdb: 'BaseAsyncHeaderDB',
                     network_id: int,
                     token: CancelToken,
-                    ) -> 'BasePeer':
+                    ) -> 'TPeer':
     """Perform the auth and P2P handshakes with the given remote.
 
     Return an instance of the given peer_class (must be a subclass of BasePeer) connected to that
@@ -161,8 +160,6 @@ class BasePeer(BaseService):
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
     sub_proto: protocol.Protocol = None
-    head_td: int = None
-    head_hash: Hash32 = None
 
     def __init__(self,
                  remote: Node,
@@ -173,23 +170,21 @@ class BasePeer(BaseService):
                  mac_secret: bytes,
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256,
-                 headerdb: 'BaseAsyncHeaderDB',
-                 network_id: int,
                  inbound: bool = False,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
+        # The `Node` that this peer is connected to
         self.remote = remote
         self.privkey = privkey
         self.reader = reader
         self.writer = writer
         self.base_protocol = P2PProtocol(self)
-        self.headerdb = headerdb
-        self.network_id = network_id
         self.inbound = inbound
         self._subscribers: List[PeerSubscriber] = []
         self.start_time = datetime.datetime.now()
         self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
+        self.booted = asyncio.Event()
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -284,24 +279,6 @@ class BasePeer(BaseService):
         await self.process_p2p_handshake(cmd, msg)
 
     @property
-    async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.wait(
-            self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER)))
-        return await self.wait(self.headerdb.coro_get_block_header_by_hash(genesis_hash))
-
-    @property
-    async def _local_chain_info(self) -> 'ChainInfo':
-        genesis = await self.genesis
-        head = await self.wait(self.headerdb.coro_get_canonical_head())
-        total_difficulty = await self.headerdb.coro_get_score(head.hash)
-        return ChainInfo(
-            block_number=head.block_number,
-            block_hash=head.hash,
-            total_difficulty=total_difficulty,
-            genesis_hash=genesis.hash,
-        )
-
-    @property
     def capabilities(self) -> List[Tuple[str, int]]:
         return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
 
@@ -323,6 +300,25 @@ class BasePeer(BaseService):
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
             raise PeerConnectionLost(repr(e))
 
+    async def boot(self) -> None:
+        try:
+            await self._boot()
+        except OperationCancelled:
+            # If a cancellation happens during boot we silence it and exit
+            # without setting the `booted` event.
+            # TODO: ensure that the OperationCancelled is coming from this
+            # token's ancestry
+            return
+        else:
+            self.booted.set()
+
+    async def _boot(self) -> None:
+        """
+        Hook for doing any operations that need to happen *after* the service
+        has started but before the peer should be considered *ready*.
+        """
+        pass
+
     def close(self) -> None:
         """Close this peer's reader/writer streams.
 
@@ -343,6 +339,9 @@ class BasePeer(BaseService):
         self.close()
 
     async def _run(self) -> None:
+        # The `boot` task runs in the background to allow access to the full peer API
+        self.run_task(self.boot())
+
         while self.is_operational:
             try:
                 cmd, msg = await self.read_msg()
@@ -686,29 +685,30 @@ class MsgBuffer(PeerSubscriber):
             yield self.msg_queue.get_nowait()
 
 
-class PeerPool(BaseService, AsyncIterable[BasePeer]):
+class PeerPool(BaseService, AsyncIterable[TPeer]):
     """
     PeerPool maintains connections to up-to max_peers on a given network.
     """
     _report_interval = 60
 
+    @property
+    @abstractmethod
+    def peer_class(self) -> Type[TPeer]:
+        pass
+
     def __init__(self,
-                 peer_class: Type[BasePeer],
                  headerdb: 'BaseAsyncHeaderDB',
                  network_id: int,
                  privkey: datatypes.PrivateKey,
-                 vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...],
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
-        self.peer_class = peer_class
         self.headerdb = headerdb
         self.network_id = network_id
         self.privkey = privkey
-        self.vm_configuration = vm_configuration
         self.max_peers = max_peers
-        self.connected_nodes: Dict[Node, BasePeer] = {}
+        self.connected_nodes: Dict[Node, TPeer] = {}
         self._subscribers: List[PeerSubscriber] = []
 
     def __len__(self) -> int:
@@ -739,26 +739,17 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for peer in self.connected_nodes.values():
             peer.remove_subscriber(subscriber)
 
-    async def start_peer(self, peer: BasePeer) -> None:
+    async def start_peer(self, peer: TPeer) -> None:
         self.run_child_service(peer)
-        await self.wait(peer.events.started.wait(), timeout=1)
-        try:
-            # Although connect() may seem like a more appropriate place to perform the DAO fork
-            # check, we do it here because we want to perform it for incoming peer connections as
-            # well.
-            with peer.collect_sub_proto_messages() as buffer:
-                await self.ensure_same_side_on_dao_fork(peer)
-        except DAOForkCheckFailure as err:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
-            await peer.disconnect(DisconnectReason.useless_peer)
-            return
-        else:
-            msgs = tuple((cmd, msg) for _, cmd, msg in buffer.get_messages())
-            self._add_peer(peer, msgs)
+        # We collect any messages the peer may receive during boot so that once
+        # boot has completed we can pass them onto subscribers.
+        with peer.collect_sub_proto_messages() as buffer:
+            await self.wait(peer.events.started.wait(), timeout=1)
+        self._add_peer(peer, buffer.get_messages())
 
     def _add_peer(self,
-                  peer: BasePeer,
-                  msgs: Tuple[Tuple[protocol.Command, protocol.PayloadType], ...]) -> None:
+                  peer: TPeer,
+                  msgs: Tuple[PeerMessage, ...]) -> None:
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
@@ -770,8 +761,8 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber)
-            for cmd, msg in msgs:
-                subscriber.add_msg(PeerMessage(peer, cmd, msg))
+            for msg in msgs:
+                subscriber.add_msg(msg)
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -789,7 +780,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _cleanup(self) -> None:
         await self.stop_all_peers()
 
-    async def connect(self, remote: Node) -> BasePeer:
+    async def connect(self, remote: Node) -> TPeer:
         """
         Connect to the given remote and return a Peer instance when successful.
         Returns None if the remote is unreachable, times out or is useless.
@@ -846,59 +837,11 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             if peer is not None:
                 await self.start_peer(peer)
 
-    async def ensure_same_side_on_dao_fork(
-            self, peer: BasePeer) -> None:
-        """Ensure we're on the same side of the DAO fork as the given peer.
-
-        In order to do that we have to request the DAO fork block and its parent, but while we
-        wait for that we may receive other messages from the peer, which are returned so that they
-        can be re-added to our subscribers' queues when the peer is finally added to the pool.
-        """
-        for start_block, vm_class in self.vm_configuration:
-            if not issubclass(vm_class, HomesteadVM):
-                continue
-            elif not vm_class.support_dao_fork:
-                break
-            elif start_block > vm_class.dao_fork_block_number:
-                # VM comes after the fork, so stop checking
-                break
-
-            start_block = vm_class.dao_fork_block_number - 1
-
-            try:
-                headers = await peer.requests.get_block_headers(  # type: ignore
-                    start_block,
-                    max_headers=2,
-                    reverse=False,
-                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
-                )
-
-            except (TimeoutError, PeerConnectionLost) as err:
-                raise DAOForkCheckFailure(
-                    f"Timed out waiting for DAO fork header from {peer}: {err}"
-                ) from err
-            except ValidationError as err:
-                raise DAOForkCheckFailure(
-                    f"Invalid header response during DAO fork check: {err}"
-                ) from err
-
-            if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    f"Peer {peer} failed to return DAO fork check headers"
-                )
-            else:
-                parent, header = headers
-
-            try:
-                vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as err:
-                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
-
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
         This is passed as a callback to be called when a peer finishes.
         """
-        peer = cast(BasePeer, peer)
+        peer = cast(TPeer, peer)
         if peer.remote in self.connected_nodes:
             self.logger.info("%s finished, removing from pool", peer)
             self.connected_nodes.pop(peer.remote)
@@ -908,11 +851,11 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for subscriber in self._subscribers:
             subscriber.deregister_peer(peer)
 
-    def __aiter__(self) -> AsyncIterator[BasePeer]:
+    def __aiter__(self) -> AsyncIterator[TPeer]:
         return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
 
     @property
-    def highest_td_peer(self) -> BasePeer:
+    def highest_td_peer(self) -> TPeer:
         peers = tuple(self.connected_nodes.values())
         if not peers:
             raise NoConnectedPeers()
@@ -920,7 +863,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         max_td = max(peers_by_td.keys())
         return random.choice(peers_by_td[max_td])
 
-    def get_peers(self, min_td: int) -> List[BasePeer]:
+    def get_peers(self, min_td: int) -> List[TPeer]:
         # TODO: Consider turning this into a method that returns an AsyncIterator, to make it
         # harder for callsites to get a list of peers while making blocking calls, as those peers
         # might disconnect in the meantime.
@@ -962,12 +905,12 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 break
 
 
-class ConnectedPeersIterator(AsyncIterator[BasePeer]):
+class ConnectedPeersIterator(AsyncIterator[TPeer]):
 
-    def __init__(self, peers: Tuple[BasePeer, ...]) -> None:
+    def __init__(self, peers: Tuple[TPeer, ...]) -> None:
         self.iter = iter(peers)
 
-    async def __anext__(self) -> BasePeer:
+    async def __anext__(self) -> TPeer:
         while True:
             # Yield control to ensure we process any disconnection requests from peers. Otherwise
             # we could return peers that should have been disconnected already.

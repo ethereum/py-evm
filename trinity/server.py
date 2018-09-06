@@ -125,7 +125,6 @@ class Server(BaseService):
             self.headerdb,
             self.network_id,
             self.privkey,
-            self.chain.get_vm_configuration(),
             max_peers=self.max_peers,
             token=self.cancel_token,
         )

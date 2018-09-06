@@ -31,13 +31,6 @@ class HandshakeFailure(BaseP2PError):
     pass
 
 
-class DAOForkCheckFailure(BaseP2PError):
-    """
-    Raised when the DAO fork check with a certain peer is unsuccessful.
-    """
-    pass
-
-
 class MalformedMessage(BaseP2PError):
     """
     Raised when a p2p command is received with a malformed message
