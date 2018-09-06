@@ -1,6 +1,3 @@
-import logging
-import sys
-
 # from eth.utils.logging import TRACE_LEVEL_NUM
 
 import pytest
@@ -21,29 +18,6 @@ from eth.db.backends.memory import MemoryDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
-
-
-LOGGING_NAMESPACES = ('eth', 'p2p', 'trinity')
-
-
-@pytest.fixture(autouse=True, scope="session")
-def _stdout_logging(namespaces=LOGGING_NAMESPACES):
-    for namespace in namespaces:
-        logger = logging.getLogger(namespace)
-
-        handler = logging.StreamHandler(sys.stdout)
-
-        # level = 5  # TRACE
-        # level = logging.DEBUG
-        # level = logging.INFO
-        level = logging.ERROR
-
-        logger.setLevel(level)
-        handler.setLevel(level)
-
-        logger.addHandler(handler)
-
-        logger.info('Set level for logger: %s', namespace)
 
 
 # Uncomment this to have logs from tests written to a file.  This is useful for
