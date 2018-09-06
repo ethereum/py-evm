@@ -1,14 +1,14 @@
 import asyncio
 import os
-from typing import (
-    List,
-)
 
 from eth_hash.auto import keccak
 
 from cancel_token import CancelToken
 
-from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+from eth.chains.mainnet import (
+    MAINNET_GENESIS_HEADER,
+    MAINNET_VM_CONFIGURATION,
+)
 from eth.db.backends.memory import MemoryDB
 from eth.tools.logging import TraceLogger
 
@@ -17,12 +17,14 @@ from p2p import constants
 from p2p import ecies
 from p2p import kademlia
 from p2p.auth import decode_authentication
-from p2p.peer import BasePeer, PeerPool, PeerSubscriber
+from p2p.peer import PeerSubscriber
 from p2p.protocol import Command
 
 
-from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.common.peer import TrinityPeerPool
+from trinity.protocol.eth.peer import ETHPeer
 
+from tests.p2p.helpers import MockStreamWriter
 from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
@@ -32,47 +34,30 @@ def get_fresh_mainnet_headerdb():
     return headerdb
 
 
-class MockTransport:
-    def __init__(self):
-        self._is_closing = False
-
-    def close(self):
-        self._is_closing = True
-
-    def is_closing(self):
-        return self._is_closing
-
-
-class MockStreamWriter:
-    def __init__(self, write_target):
-        self._target = write_target
-        self.transport = MockTransport()
-
-    def write(self, *args, **kwargs):
-        self._target(*args, **kwargs)
-
-    def close(self):
-        self.transport.close()
-
-
 async def get_directly_linked_peers_without_handshake(
-        peer1_class=LESPeer, peer1_headerdb=None,
-        peer2_class=LESPeer, peer2_headerdb=None):
+        peer1_class=ETHPeer, peer1_headerdb=None,
+        peer2_class=None, peer2_headerdb=None):
     """See get_directly_linked_peers().
 
     Neither the P2P handshake nor the sub-protocol handshake will be performed here.
     """
-    cancel_token = CancelToken("get_directly_linked_peers_without_handshake")
+    if peer2_class is None:
+        peer2_class = peer1_class
     if peer1_headerdb is None:
         peer1_headerdb = get_fresh_mainnet_headerdb()
     if peer2_headerdb is None:
         peer2_headerdb = get_fresh_mainnet_headerdb()
+
+    cancel_token = CancelToken("get_directly_linked_peers_without_handshake")
+
     peer1_private_key = ecies.generate_privkey()
     peer2_private_key = ecies.generate_privkey()
+
     peer1_remote = kademlia.Node(
         peer2_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
     peer2_remote = kademlia.Node(
         peer1_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
+
     use_eip8 = False
     initiator = auth.HandshakeInitiator(peer1_remote, peer1_private_key, use_eip8, cancel_token)
     peer2_reader = asyncio.StreamReader()
@@ -91,10 +76,12 @@ async def get_directly_linked_peers_without_handshake(
             initiator, peer1_reader, peer1_writer, cancel_token)
 
         peer1 = peer1_class(
+            # TrinityPeer fields
+            headerdb=peer1_headerdb, network_id=1, vm_configuration=MAINNET_VM_CONFIGURATION[-1:],
+            # BasePeer fields
             remote=peer1_remote, privkey=peer1_private_key, reader=peer1_reader,
             writer=peer1_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-            egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer1_headerdb,
-            network_id=1)
+            egress_mac=egress_mac, ingress_mac=ingress_mac)
 
         handshake_finished.set()
 
@@ -119,18 +106,20 @@ async def get_directly_linked_peers_without_handshake(
     assert egress_mac.digest() == peer1.ingress_mac.digest()
     assert ingress_mac.digest() == peer1.egress_mac.digest()
     peer2 = peer2_class(
+        # TrinityPeer fields
+        headerdb=peer2_headerdb, network_id=1, vm_configuration=MAINNET_VM_CONFIGURATION[-1:],
+        # BasePeer fields
         remote=peer2_remote, privkey=peer2_private_key, reader=peer2_reader,
         writer=peer2_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=peer2_headerdb,
-        network_id=1)
+        egress_mac=egress_mac, ingress_mac=ingress_mac)
 
     return peer1, peer2
 
 
 async def get_directly_linked_peers(
         request, event_loop,
-        peer1_class=LESPeer, peer1_headerdb=None,
-        peer2_class=LESPeer, peer2_headerdb=None):
+        peer1_class=ETHPeer, peer1_headerdb=None,
+        peer2_class=None, peer2_headerdb=None):
     """Create two peers with their readers/writers connected directly.
 
     The first peer's reader will write directly to the second's writer, and vice-versa.
@@ -138,6 +127,7 @@ async def get_directly_linked_peers(
     peer1, peer2 = await get_directly_linked_peers_without_handshake(
         peer1_class, peer1_headerdb,
         peer2_class, peer2_headerdb)
+
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())
 
@@ -162,11 +152,12 @@ async def get_directly_linked_peers(
     return peer1, peer2
 
 
-class MockPeerPoolWithConnectedPeers(PeerPool):
+class MockPeerPoolWithConnectedPeers(TrinityPeerPool):
+    peer_class = None
 
-    def __init__(self, peers: List[BasePeer]) -> None:
-        super().__init__(peer_class=None, headerdb=None, network_id=None, privkey=None,
-                         vm_configuration=tuple())
+    def __init__(self, peers) -> None:
+        super().__init__(headerdb=None, network_id=None, vm_configuration=tuple(),
+                         privkey=None)
         for peer in peers:
             self.connected_nodes[peer.remote] = peer
 

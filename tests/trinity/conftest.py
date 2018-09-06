@@ -5,8 +5,7 @@ import pytest
 import tempfile
 import uuid
 
-from p2p.peer import PeerPool
-
+from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -60,7 +59,7 @@ def jsonrpc_ipc_pipe_path():
 @pytest.fixture
 def p2p_server(monkeypatch, jsonrpc_ipc_pipe_path):
     monkeypatch.setattr(
-        Server, '_make_peer_pool', lambda s: PeerPool(None, None, None, None, None, None))
+        Server, '_make_peer_pool', lambda s: ETHPeerPool(None, None, None, None, None, None))
     return Server(None, None, None, None, None, None, None)
 
 

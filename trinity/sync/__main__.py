@@ -20,13 +20,13 @@ def _test() -> None:
     import signal
     from p2p import ecies
     from p2p.kademlia import Node
-    from p2p.peer import DEFAULT_PREFERRED_NODES
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
         connect_to_peers_loop)
+    from trinity.protocol.common.peer import DEFAULT_PREFERRED_NODES
     from trinity.protocol.eth.peer import ETHPeer
     from trinity.protocol.les.peer import LESPeer
     from trinity.utils.chains import load_nodekey

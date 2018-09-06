@@ -11,15 +11,18 @@ from p2p.exceptions import (
     HandshakeFailure,
 )
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
 )
 
+from trinity.protocol.common.peer import (
+    TrinityPeer,
+    TrinityPeerPool,
+)
+
 from .commands import (
     Announce,
-    HeadInfo,
     Status,
     StatusV2,
 )
@@ -33,13 +36,11 @@ from .proto import (
 from .handlers import LESExchangeHandler
 
 
-class LESPeer(BasePeer):
+class LESPeer(TrinityPeer):
     max_headers_fetch = MAX_HEADERS_FETCH
 
     _supported_sub_protocols = [LESProtocol, LESProtocolV2]
     sub_proto: LESProtocol = None
-    # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
-    head_info: HeadInfo = None
 
     _requests: LESExchangeHandler = None
 
@@ -55,9 +56,8 @@ class LESPeer(BasePeer):
 
     def handle_sub_proto_msg(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if isinstance(cmd, Announce):
-            self.head_info = cmd.as_head_info(msg)
-            self.head_td = self.head_info.total_difficulty
-            self.head_hash = self.head_info.block_hash
+            self.head_td = msg['head_td']
+            self.head_hash = msg['head_hash']
 
         super().handle_sub_proto_msg(cmd, msg)
 
@@ -83,6 +83,10 @@ class LESPeer(BasePeer):
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
-        self.head_info = cmd.as_head_info(msg)
-        self.head_td = self.head_info.total_difficulty
-        self.head_hash = self.head_info.block_hash
+
+        self.head_td = msg['headTd']
+        self.head_hash = msg['headHash']
+
+
+class LESPeerPool(TrinityPeerPool[LESPeer]):
+    peer_class = LESPeer
