@@ -57,6 +57,7 @@ from trinity.utils.mp import (
 from trinity.utils.xdg import (
     is_under_xdg_trinity_root,
 )
+from trinity.chains.light import LightDispatchChain
 
 from .header import (
     AsyncHeaderChain,
@@ -192,8 +193,15 @@ def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
 class BaseCustomChain:
     vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
+    def __init__(self, vm_configuration):
+        self.vm_configuration = vm_configuration
+
 
 class CustomChain(BaseCustomChain, Chain):
+    pass
+
+
+class CustomLightDispatchChain(BaseCustomChain, LightDispatchChain):
     pass
 
 
@@ -228,11 +236,16 @@ def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManag
         initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
         chain_class = MainnetChain
+        chain = chain_class(base_db)
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
         chain_class = RopstenChain
+        chain = chain_class(base_db)
     else:
         chain_class = CustomChain
-    chain = chain_class(base_db)
+        vm_configuration = chain_config.chain_vm_config
+        chain = chain_class(base_db)
+        chain.vm_configuration = vm_configuration
+
 
     headerdb = AsyncHeaderDB(base_db)
     header_chain = AsyncHeaderChain(base_db)

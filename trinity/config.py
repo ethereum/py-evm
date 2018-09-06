@@ -254,24 +254,24 @@ class ChainConfig:
             RopstenFullNode,
             RopstenLightNode,
         )
+        from trinity.nodes.custom import (
+            CustomFullNode,
+            CustomLightNode,
+        )
         if self.sync_mode == SYNC_LIGHT:
             if self.network_id == MAINNET_NETWORK_ID:
                 return MainnetLightNode
             elif self.network_id == ROPSTEN_NETWORK_ID:
                 return RopstenLightNode
             else:
-                raise NotImplementedError(
-                    "Only the mainnet and ropsten chains are currently supported"
-                )
+                return CustomLightNode
         elif self.sync_mode == SYNC_FULL:
             if self.network_id == MAINNET_NETWORK_ID:
                 return MainnetFullNode
             elif self.network_id == ROPSTEN_NETWORK_ID:
                 return RopstenFullNode
             else:
-                raise NotImplementedError(
-                    "Only the mainnet and ropsten chains are currently supported"
-                )
+                return CustomFullNode
         else:
             raise NotImplementedError(
                 "Only full and light sync modes are supported"
