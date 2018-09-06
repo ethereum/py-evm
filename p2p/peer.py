@@ -50,7 +50,7 @@ from eth_keys import (
     keys,
 )
 
-from cancel_token import CancelToken, OperationCancelled
+from cancel_token import CancelToken
 
 from eth.chains.mainnet import MAINNET_NETWORK_ID
 from eth.chains.ropsten import ROPSTEN_NETWORK_ID
@@ -813,9 +813,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                     self.cancel_token))
 
             return peer
-        except OperationCancelled:
-            # Pass it on to instruct our main loop to stop.
-            raise
         except BadAckMessage:
             # This is kept separate from the `expected_exceptions` to be sure that we aren't
             # silencing an error in our authentication code.
@@ -956,10 +953,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
-            try:
-                await self.sleep(self._report_interval)
-            except OperationCancelled:
-                break
+            await self.sleep(self._report_interval)
 
 
 class ConnectedPeersIterator(AsyncIterator[BasePeer]):
