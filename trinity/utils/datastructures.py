@@ -31,6 +31,11 @@ from eth_utils.toolz import (
     identity,
 )
 
+from trinity.utils.queues import (
+    queue_get_batch,
+    queue_get_nowait,
+)
+
 TFunc = TypeVar('TFunc')
 TSubtask = TypeVar('TSubtask', bound=Enum)
 TTask = TypeVar('TTask')
@@ -211,7 +216,10 @@ class TaskQueue(Generic[TTask]):
         if self._open_queue.empty():
             raise QueueFull("No tasks are available to get")
         else:
-            pending_tasks = self._get_nowait(max_results)
+            ranked_tasks = queue_get_nowait(self._open_queue, max_results)
+
+            # strip out the wrapper used internally for sorting
+            pending_tasks = tuple(task.original for task in ranked_tasks)
 
             # Generate a pending batch of tasks, so uncompleted tasks can be inferred
             next_id = next(self._id_generator)
@@ -226,49 +234,14 @@ class TaskQueue(Generic[TTask]):
         :param max_results: return up to this many pending tasks. If None, return all pending tasks.
         :return: (batch_id, tasks to attempt)
         """
-        if max_results is not None and max_results < 1:
-            raise ValidationError("Must request at least one task to process, not {max_results!r}")
-
-        # if the queue is empty, wait until at least one item is available
-        queue = self._open_queue
-        if queue.empty():
-            wrapped_first_task = await queue.get()
-        else:
-            wrapped_first_task = queue.get_nowait()
-        first_task = wrapped_first_task.original
-
-        # In order to return from get() as soon as possible, never await again.
-        # Instead, take only the tasks that are already available.
-        if max_results is None:
-            remaining_count = None
-        else:
-            remaining_count = max_results - 1
-        remaining_tasks = self._get_nowait(remaining_count)
-
-        # Combine the first and remaining tasks
-        all_tasks = (first_task, ) + remaining_tasks
+        ranked_tasks = await queue_get_batch(self._open_queue, max_results)
+        pending_tasks = tuple(task.original for task in ranked_tasks)
 
         # Generate a pending batch of tasks, so uncompleted tasks can be inferred
         next_id = next(self._id_generator)
-        self._in_progress[next_id] = all_tasks
+        self._in_progress[next_id] = pending_tasks
 
-        return (next_id, all_tasks)
-
-    def _get_nowait(self, max_results: int = None) -> Tuple[TTask, ...]:
-        queue = self._open_queue
-
-        # How many results do we want?
-        available = queue.qsize()
-        if max_results is None:
-            num_tasks = available
-        else:
-            num_tasks = min((available, max_results))
-
-        # Combine the remaining tasks with the first task we already pulled.
-        ranked_tasks = tuple(queue.get_nowait() for _ in range(num_tasks))
-
-        # strip out the wrapper used internally for sorting
-        return tuple(task.original for task in ranked_tasks)
+        return (next_id, pending_tasks)
 
     def complete(self, batch_id: int, completed: Tuple[TTask, ...]) -> None:
         if batch_id not in self._in_progress:
@@ -538,21 +511,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TSubtask]):
         Return the next batch of tasks that are ready to process. If none are ready,
         hang until at least one task becomes ready.
         """
-        queue = self._ready_tasks
-        if queue.empty():
-            first_task = await queue.get()
-        else:
-            first_task = queue.get_nowait()
-
-        # In order to return from get() as soon as possible, never await again.
-        # Instead, take only the tasks that are already available.
-        available = queue.qsize()
-
-        available_tasks = tuple(queue.get_nowait() for _ in range(available))
-
-        completed = (first_task, ) + available_tasks
-
-        return completed
+        return await queue_get_batch(self._ready_tasks)
 
     def _mark_complete(self, task_id: TTaskID) -> None:
         qualified_tasks = tuple([task_id])
