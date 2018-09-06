@@ -33,7 +33,6 @@ from eth.vm.base import (
 
 from eth.vm.forks import (
     TangerineWhistleVM,
-    FrontierVM,
     HomesteadVM,
     SpuriousDragonVM,
     ByzantiumVM,
@@ -55,6 +54,7 @@ DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
     MAINNET_NETWORK_ID: 'mainnet',
 }
+
 
 def get_genesis_vm_configuration(genesis: Dict) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
     """
