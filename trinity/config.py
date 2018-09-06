@@ -12,9 +12,13 @@ from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
+    MAINNET_GENESIS_HEADER,
+    MAINNET_VM_CONFIGURATION
 )
 from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
+    ROPSTEN_GENESIS_HEADER,
+    ROPSTEN_VM_CONFIGURATION
 )
 from eth.vm.base import (
     BaseVM
@@ -91,6 +95,13 @@ class ChainConfig:
             genesis_config = get_eip1085_genesis_config(self.genesis)
             self._genesis_header, self.network_id = get_genesis_header(genesis_config)
             self._chain_vm_config = get_genesis_vm_configuration(genesis_config)
+
+        if self.network_id == MAINNET_NETWORK_ID:
+            self._genesis_header = MAINNET_GENESIS_HEADER
+            self._chain_vm_config = MAINNET_VM_CONFIGURATION
+        elif self.network_id == ROPSTEN_NETWORK_ID:
+            self._genesis_header = ROPSTEN_GENESIS_HEADER
+            self._chain_vm_config = ROPSTEN_VM_CONFIGURATION
 
         if not preferred_nodes and self.network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
