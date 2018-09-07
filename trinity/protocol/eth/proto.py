@@ -2,7 +2,6 @@ import logging
 from typing import (
     List,
     Tuple,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -19,6 +18,7 @@ from p2p.protocol import (
     Protocol,
 )
 
+from trinity.protocol.common.proto import ChainInfo
 from trinity.rlp.block_body import BlockBody
 
 from .commands import (
@@ -36,11 +36,6 @@ from .commands import (
     Transactions,
 )
 
-if TYPE_CHECKING:
-    from p2p.peer import (  # noqa: F401
-        ChainInfo
-    )
-
 
 class ETHProtocol(Protocol):
     name = 'eth'
@@ -52,13 +47,13 @@ class ETHProtocol(Protocol):
     cmd_length = 17
     logger = logging.getLogger("p2p.eth.ETHProtocol")
 
-    def send_handshake(self, head_info: 'ChainInfo') -> None:
+    def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'protocol_version': self.version,
             'network_id': self.peer.network_id,
-            'td': head_info.total_difficulty,
-            'best_hash': head_info.block_hash,
-            'genesis_hash': head_info.genesis_hash,
+            'td': chain_info.total_difficulty,
+            'best_hash': chain_info.block_hash,
+            'genesis_hash': chain_info.genesis_hash,
         }
         cmd = Status(self.cmd_id_offset)
         self.logger.debug("Sending ETH/Status msg: %s", resp)

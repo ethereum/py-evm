@@ -278,7 +278,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
             # our best peer doesn't have the header we want, there are no eligible peers.
             raise NoEligiblePeers("Our best peer does not have the header %s" % block_hash)
 
-        head_number = peer.head_info.block_number
+        head_number = peer.head_number
         if head_number - header.block_number > MAX_REORG_DEPTH:
             # The peer claims to be far ahead of the header we requested
             if self.headerdb.get_canonical_block_hash(header.block_number) == block_hash:

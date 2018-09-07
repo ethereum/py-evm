@@ -3,6 +3,12 @@ from typing import (
     cast,
     Dict,
     List,
+    Union,
+)
+
+from eth_typing import (
+    BlockNumber,
+    Hash32,
 )
 
 from eth_utils import encode_hex
@@ -19,7 +25,6 @@ from p2p.protocol import (
 
 from .commands import (
     Announce,
-    HeadInfo,
     Status,
     StatusV2,
 )
@@ -38,10 +43,9 @@ class LESPeer(BasePeer):
 
     _supported_sub_protocols = [LESProtocol, LESProtocolV2]
     sub_proto: LESProtocol = None
-    # TODO: This will no longer be needed once we've fixed #891, and then it should be removed.
-    head_info: HeadInfo = None
 
     _requests: LESExchangeHandler = None
+    head_number: BlockNumber = None
 
     def get_extra_stats(self) -> List[str]:
         stats_pairs = self.requests.get_stats().items()
@@ -54,10 +58,11 @@ class LESPeer(BasePeer):
         return self._requests
 
     def handle_sub_proto_msg(self, cmd: Command, msg: _DecodedMsgType) -> None:
+        head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
         if isinstance(cmd, Announce):
-            self.head_info = cmd.as_head_info(msg)
-            self.head_td = self.head_info.total_difficulty
-            self.head_hash = self.head_info.block_hash
+            self.head_td = head_info['head_td']
+            self.head_hash = head_info['head_hash']
+            self.head_number = head_info['head_number']
 
         super().handle_sub_proto_msg(cmd, msg)
 
@@ -83,6 +88,6 @@ class LESPeer(BasePeer):
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
         # TODO: Disconnect if the remote doesn't serve headers.
-        self.head_info = cmd.as_head_info(msg)
-        self.head_td = self.head_info.total_difficulty
-        self.head_hash = self.head_info.block_hash
+        self.head_td = msg['headTd']
+        self.head_hash = msg['headHash']
+        self.head_number = msg['headNum']
