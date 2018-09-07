@@ -9,7 +9,11 @@ from eth_utils import encode_hex
 
 from p2p.exceptions import HandshakeFailure
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer
+from p2p.peer import (
+    BasePeer,
+    BasePeerPool,
+    BasePeerFactory,
+)
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
@@ -77,3 +81,11 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
+
+
+class ETHPeerFactory(BasePeerFactory):
+    peer_class = ETHPeer
+
+
+class ETHPeerPool(BasePeerPool):
+    peer_factory_class = ETHPeerFactory

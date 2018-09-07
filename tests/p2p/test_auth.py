@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from eth_utils import (
@@ -18,13 +16,18 @@ from p2p.auth import (
     HandshakeResponder,
 )
 from p2p.auth import decode_authentication
+from p2p.peer import PeerConnection
+from p2p.tools.paragon import (
+    ParagonPeer,
+    ParagonContext,
+    get_directly_connected_streams,
+)
 
-from auth_constants import (
+
+from tests.p2p.auth_constants import (
     eip8_values,
     test_values,
 )
-from tests.trinity.core.dumb_peer import DumbPeer
-from tests.trinity.core.peer_helpers import MockStreamWriter
 
 
 @pytest.mark.asyncio
@@ -102,22 +105,40 @@ async def test_handshake():
 
     # Finally, check that two Peers configured with the secrets generated above understand each
     # other.
-    responder_reader = asyncio.StreamReader()
-    initiator_reader = asyncio.StreamReader()
-    # Link the initiator's writer to the responder's reader, and the responder's writer to the
-    # initiator's reader.
-    responder_writer = MockStreamWriter(initiator_reader.feed_data)
-    initiator_writer = MockStreamWriter(responder_reader.feed_data)
-    initiator_peer = DumbPeer(
-        remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
-        writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
-        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
-        network_id=1)
+    (
+        (responder_reader, responder_writer),
+        (initiator_reader, initiator_writer),
+    ) = get_directly_connected_streams()
+
+    initiator_connection = PeerConnection(
+        reader=initiator_reader,
+        writer=initiator_writer,
+        aes_secret=initiator_aes_secret,
+        mac_secret=initiator_mac_secret,
+        egress_mac=initiator_egress_mac,
+        ingress_mac=initiator_ingress_mac
+    )
+    initiator_peer = ParagonPeer(
+        remote=initiator.remote,
+        privkey=initiator.privkey,
+        connection=initiator_connection,
+        context=ParagonContext(),
+    )
     initiator_peer.base_protocol.send_handshake()
-    responder_peer = DumbPeer(
-        remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
-        writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
+    responder_connection = PeerConnection(
+        reader=responder_reader,
+        writer=responder_writer,
+        aes_secret=aes_secret,
+        mac_secret=mac_secret,
+        egress_mac=egress_mac,
+        ingress_mac=ingress_mac,
+    )
+    responder_peer = ParagonPeer(
+        remote=responder.remote,
+        privkey=responder.privkey,
+        connection=responder_connection,
+        context=ParagonContext(),
+    )
     responder_peer.base_protocol.send_handshake()
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
@@ -194,22 +215,40 @@ async def test_handshake_eip8():
 
     # Finally, check that two Peers configured with the secrets generated above understand each
     # other.
-    responder_reader = asyncio.StreamReader()
-    initiator_reader = asyncio.StreamReader()
-    # Link the initiator's writer to the responder's reader, and the responder's writer to the
-    # initiator's reader.
-    responder_writer = MockStreamWriter(initiator_reader.feed_data)
-    initiator_writer = MockStreamWriter(responder_reader.feed_data)
-    initiator_peer = DumbPeer(
-        remote=initiator.remote, privkey=initiator.privkey, reader=initiator_reader,
-        writer=initiator_writer, aes_secret=initiator_aes_secret, mac_secret=initiator_mac_secret,
-        egress_mac=initiator_egress_mac, ingress_mac=initiator_ingress_mac, headerdb=None,
-        network_id=1)
+    (
+        (responder_reader, responder_writer),
+        (initiator_reader, initiator_writer),
+    ) = get_directly_connected_streams()
+
+    initiator_connection = PeerConnection(
+        reader=initiator_reader,
+        writer=initiator_writer,
+        aes_secret=initiator_aes_secret,
+        mac_secret=initiator_mac_secret,
+        egress_mac=initiator_egress_mac,
+        ingress_mac=initiator_ingress_mac
+    )
+    initiator_peer = ParagonPeer(
+        remote=initiator.remote,
+        privkey=initiator.privkey,
+        connection=initiator_connection,
+        context=ParagonContext(),
+    )
     initiator_peer.base_protocol.send_handshake()
-    responder_peer = DumbPeer(
-        remote=responder.remote, privkey=responder.privkey, reader=responder_reader,
-        writer=responder_writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=None, network_id=1)
+    responder_connection = PeerConnection(
+        reader=responder_reader,
+        writer=responder_writer,
+        aes_secret=aes_secret,
+        mac_secret=mac_secret,
+        egress_mac=egress_mac,
+        ingress_mac=ingress_mac,
+    )
+    responder_peer = ParagonPeer(
+        remote=responder.remote,
+        privkey=responder.privkey,
+        connection=responder_connection,
+        context=ParagonContext(),
+    )
     responder_peer.base_protocol.send_handshake()
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's

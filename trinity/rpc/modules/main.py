@@ -2,15 +2,13 @@ from eth.chains.base import (
     BaseChain
 )
 
-from p2p.peer import (
-    PeerPool,
-)
+from p2p.peer import BasePeerPool
 
 
 class RPCModule:
     _chain = None
 
-    def __init__(self, chain: BaseChain, peer_pool: PeerPool) -> None:
+    def __init__(self, chain: BaseChain, peer_pool: BasePeerPool) -> None:
         self._chain = chain
         self._peer_pool = peer_pool
 

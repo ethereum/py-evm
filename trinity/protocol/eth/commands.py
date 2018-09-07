@@ -1,7 +1,6 @@
 from typing import (
     cast,
     Tuple,
-    TYPE_CHECKING
 )
 
 from rlp import sedes
@@ -18,11 +17,6 @@ from p2p.protocol import (
 from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
-
-if TYPE_CHECKING:
-    from p2p.peer import (  # noqa: F401
-        ChainInfo
-    )
 
 
 class Status(Command):

@@ -2,6 +2,7 @@ import logging
 from typing import (
     List,
     Tuple,
+    TYPE_CHECKING,
     Union,
 )
 
@@ -14,11 +15,11 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
 
+from p2p.peer import ChainInfo
 from p2p.protocol import (
     Protocol,
 )
 
-from trinity.protocol.common.proto import ChainInfo
 from trinity.rlp.block_body import BlockBody
 
 from .commands import (
@@ -36,6 +37,9 @@ from .commands import (
     Transactions,
 )
 
+if TYPE_CHECKING:
+    from .peer import ETHPeer  # noqa: F401
+
 
 class ETHProtocol(Protocol):
     name = 'eth'
@@ -46,6 +50,8 @@ class ETHProtocol(Protocol):
         GetReceipts, Receipts]
     cmd_length = 17
     logger = logging.getLogger("p2p.eth.ETHProtocol")
+
+    peer: 'ETHPeer'
 
     def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {

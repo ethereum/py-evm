@@ -29,16 +29,19 @@ def test_cli_log_level_module_value(level, expected):
     assert ns.log_levels == {'module': expected}
 
 
-def test_cli_log_level_error_for_multiple_globals():
+def test_cli_log_level_error_for_multiple_globals(capsys):
     with pytest.raises(SystemExit):
         parser.parse_args([
             '--log-level', 'DEBUG',
             '--log-level', 'modue=DEBUG',
             '--log-level', 'ERROR',
         ])
+    # this prevents the messaging that this error prints to stdout from
+    # escaping the test run.
+    capsys.readouterr()
 
 
-def test_cli_log_level_error_for_repeated_name():
+def test_cli_log_level_error_for_repeated_name(capsys):
     with pytest.raises(SystemExit):
         parser.parse_args([
             '--log-level', 'DEBUG',
@@ -46,3 +49,6 @@ def test_cli_log_level_error_for_repeated_name():
             '--log-level', 'modue_b=DEBUG',
             '--log-level', 'modue_a=DEBUG',
         ])
+    # this prevents the messaging that this error prints to stdout from
+    # escaping the test run.
+    capsys.readouterr()

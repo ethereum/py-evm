@@ -55,10 +55,7 @@ from p2p.constants import (
 from p2p.p2p_proto import (
     DisconnectReason,
 )
-from p2p.peer import (
-    PeerPool,
-    PeerSubscriber,
-)
+from p2p.peer import PeerSubscriber
 from p2p.protocol import Command
 from p2p.service import (
     BaseService,
@@ -66,7 +63,7 @@ from p2p.service import (
 )
 
 from trinity.db.header import BaseAsyncHeaderDB
-from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from trinity.rlp.block_body import BlockBody
 from trinity.utils.les import gen_request_id
 
@@ -78,7 +75,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
     def __init__(
             self,
             headerdb: BaseAsyncHeaderDB,
-            peer_pool: PeerPool,
+            peer_pool: LESPeerPool,
             token: CancelToken = None) -> None:
         PeerSubscriber.__init__(self)
         BaseService.__init__(self, token)

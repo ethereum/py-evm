@@ -59,7 +59,7 @@ from cancel_token import CancelToken, OperationCancelled
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
 from p2p import kademlia
 from p2p import protocol
-from p2p.peer import PeerPool
+from p2p.peer import BasePeerPool
 from p2p.service import BaseService
 
 if TYPE_CHECKING:
@@ -948,7 +948,7 @@ class DiscoveryService(BaseService):
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
-    def __init__(self, proto: DiscoveryProtocol, peer_pool: PeerPool,
+    def __init__(self, proto: DiscoveryProtocol, peer_pool: BasePeerPool,
                  port: int, token: CancelToken = None) -> None:
         super().__init__(token)
         self.proto = proto

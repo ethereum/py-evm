@@ -27,16 +27,17 @@ from eth.rlp.headers import BlockHeader
 from p2p import protocol
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
 from trinity.db.header import AsyncHeaderDB
 from trinity.p2p.handlers import PeerRequestHandler
-from trinity.protocol.eth.peer import ETHPeer
-from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
+from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from trinity.utils.datastructures import TaskQueue
 
-HeaderRequestingPeer = Union[LESPeer, ETHPeer]
+HeaderRequestingPeer = Union[ETHPeer, LESPeer]
+AnyPeerPool = Union[ETHPeerPool, LESPeerPool]
 
 
 class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
@@ -59,7 +60,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer_pool: PeerPool,
+                 peer_pool: AnyPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain

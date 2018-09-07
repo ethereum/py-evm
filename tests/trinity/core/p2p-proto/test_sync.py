@@ -10,7 +10,6 @@ from eth.tools.mining import POWMiningMixin
 from eth.vm.forks.frontier import FrontierVM
 
 
-from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
 from trinity.sync.full.state import StateDownloader
@@ -42,8 +41,8 @@ def small_header_batches(monkeypatch):
 async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        ETHPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
-        ETHPeer, FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(FrontierTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server = RegularChainSyncer(
@@ -76,8 +75,8 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        ETHPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
-        ETHPeer, FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client = RegularChainSyncer(
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,
@@ -109,8 +108,9 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        LESPeer, FakeAsyncHeaderDB(chaindb_fresh.db),
-        LESPeer, FakeAsyncHeaderDB(chaindb_20.db))
+        alice_peer_class=LESPeer,
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client = LightChainSyncer(
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,

@@ -2,19 +2,18 @@ from eth.chains.base import (
     BaseChain
 )
 
-from p2p.peer import (
-    PeerPool,
-)
+from p2p.peer import BasePeerPool
 
-from trinity.nodes.base import Node
 from trinity.config import ChainConfig
 from trinity.extensibility import PluginManager
-from trinity.server import Server
+from trinity.server import FullServer
+
+from .base import Node
 
 
 class FullNode(Node):
     _chain: BaseChain = None
-    _p2p_server: Server = None
+    _p2p_server: FullServer = None
 
     def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
         super().__init__(plugin_manager, chain_config)
@@ -32,10 +31,10 @@ class FullNode(Node):
 
         return self._chain
 
-    def get_p2p_server(self) -> Server:
+    def get_p2p_server(self) -> FullServer:
         if self._p2p_server is None:
             manager = self.db_manager
-            self._p2p_server = Server(
+            self._p2p_server = FullServer(
                 self._node_key,
                 self._node_port,
                 manager.get_chain(),  # type: ignore
@@ -50,5 +49,5 @@ class FullNode(Node):
             )
         return self._p2p_server
 
-    def get_peer_pool(self) -> PeerPool:
+    def get_peer_pool(self) -> BasePeerPool:
         return self.get_p2p_server().peer_pool
