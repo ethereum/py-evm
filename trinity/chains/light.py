@@ -213,7 +213,7 @@ class LightDispatchChain(BaseChain):
     #
     # Validation API
     #
-    def validate_receipt(self, block_number: BlockNumber, receipt: Receipt) -> None:
+    def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def validate_block(self, block: BaseBlock) -> None:

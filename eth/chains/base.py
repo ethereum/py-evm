@@ -281,7 +281,7 @@ class BaseChain(Configurable, ABC):
     # Validation API
     #
     @abstractmethod
-    def validate_receipt(self, block_number: BlockNumber, receipt: Receipt) -> None:
+    def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -672,8 +672,8 @@ class Chain(BaseChain):
     #
     # Validation API
     #
-    def validate_receipt(self, block_number: BlockNumber, receipt: Receipt) -> None:
-        VM = self.get_vm_class_for_block_number(block_number)
+    def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
+        VM = self.get_vm_class(at_header)
         VM.validate_receipt(receipt)
 
     def validate_block(self, block: BaseBlock) -> None:
@@ -889,6 +889,6 @@ class AsyncChain(Chain):
         raise NotImplementedError()
 
     async def coro_validate_receipt(self,
-                                    block_number: BlockNumber,
-                                    receipt: Receipt) -> None:
+                                    receipt: Receipt,
+                                    at_header: BlockHeader) -> None:
         raise NotImplementedError()

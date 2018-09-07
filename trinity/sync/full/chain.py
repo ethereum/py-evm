@@ -358,27 +358,21 @@ class FastChainSyncer(BaseHeaderChainSyncer):
             return tuple(), batch
 
         # First validate the receipts.
-        headers_by_root = {
+        header_by_root = {
             header.receipt_root: header
             for header in batch
             if not _is_receipts_empty(header)
         }
         receipts_by_root = {
-            receipt_root: receipt
-            for (receipt, (receipt_root, _))
+            receipt_root: receipts
+            for (receipts, (receipt_root, _))
             in receipt_bundles
             if receipt_root != BLANK_ROOT_HASH
         }
-        receipts_by_header = {
-            headers_by_root[receipt_root]: receipts
-            for receipt_root, receipts
-            in receipts_by_root.items()
-            if receipt_root != BLANK_ROOT_HASH
-        }
-        for header, receipts in receipts_by_header.items():
-            for receipt in receipts:
+        for receipt_root, header in header_by_root.items():
+            for receipt in receipts_by_root[receipt_root]:
                 try:
-                    await self.chain.coro_validate_receipt(header.block_number, receipt)
+                    await self.chain.coro_validate_receipt(receipt, header)
                 except ValidationError as err:
                     self.logger.info(
                         "Disconnecting from %s: sent invalid receipt: %s",
