@@ -103,6 +103,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
+    from trinity.protocol.common.proto import ChainInfo  # noqa: F401
     from trinity.protocol.eth.requests import HeaderRequest  # noqa: F401
     from trinity.protocol.base_request import BaseRequest  # noqa: F401
 
@@ -291,6 +292,7 @@ class BasePeer(BaseService):
 
     @property
     async def _local_chain_info(self) -> 'ChainInfo':
+        from trinity.protocol.common.proto import ChainInfo  # noqa: F811
         genesis = await self.genesis
         head = await self.wait(self.headerdb.coro_get_canonical_head())
         total_difficulty = await self.headerdb.coro_get_score(head.hash)
@@ -1015,18 +1017,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("34.198.237.7", 30303, 30303)),
     ),
 }
-
-
-class ChainInfo:
-    def __init__(self,
-                 block_number: int,
-                 block_hash: Hash32,
-                 total_difficulty: int,
-                 genesis_hash: Hash32) -> None:
-        self.block_number = block_number
-        self.block_hash = block_hash
-        self.total_difficulty = total_difficulty
-        self.genesis_hash = genesis_hash
 
 
 def _test() -> None:

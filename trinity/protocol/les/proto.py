@@ -1,7 +1,6 @@
 from typing import (
     List,
     Tuple,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -15,6 +14,8 @@ from eth.rlp.headers import BlockHeader
 from p2p.protocol import (
     Protocol,
 )
+
+from trinity.protocol.common.proto import ChainInfo
 
 from .commands import (
     Status,
@@ -38,11 +39,6 @@ from .commands import (
 )
 from . import constants
 
-if TYPE_CHECKING:
-    from p2p.peer import (  # noqa: F401
-        ChainInfo
-    )
-
 
 class LESProtocol(Protocol):
     name = 'les'
@@ -51,7 +47,7 @@ class LESProtocol(Protocol):
                  ContractCodes]
     cmd_length = 15
 
-    def send_handshake(self, chain_info: 'ChainInfo') -> None:
+    def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'protocolVersion': self.version,
             'networkId': self.peer.network_id,
@@ -148,7 +144,7 @@ class LESProtocolV2(LESProtocol):
                  ProofsV2, ContractCodes]
     cmd_length = 21
 
-    def send_handshake(self, chain_info: 'ChainInfo') -> None:
+    def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'announceType': constants.LES_ANNOUNCE_SIMPLE,
             'protocolVersion': self.version,
