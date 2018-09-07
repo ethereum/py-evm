@@ -200,26 +200,26 @@ async def test_lightchain_integration(
 
     # https://ropsten.etherscan.io/block/11
     header = headerdb.get_canonical_block_header_by_number(n)
-    body = await peer_chain.get_block_body_by_hash(header.hash)
+    body = await peer_chain.coro_get_block_body_by_hash(header.hash)
     assert len(body['transactions']) == 15
 
-    receipts = await peer_chain.get_receipts(header.hash)
+    receipts = await peer_chain.coro_get_receipts(header.hash)
     assert len(receipts) == 15
     assert encode_hex(keccak(rlp.encode(receipts[0]))) == (
         '0xf709ed2c57efc18a1675e8c740f3294c9e2cb36ba7bb3b89d3ab4c8fef9d8860')
 
     assert len(peer_pool) == 1
     peer = peer_pool.highest_td_peer
-    head = await peer_chain.get_block_header_by_hash(peer.head_hash)
+    head = await peer_chain.coro_get_block_header_by_hash(peer.head_hash)
 
     # In order to answer queries for contract code, geth needs the state trie entry for the block
     # we specify in the query, but because of fast sync we can only assume it has that for recent
     # blocks, so we use the current head to lookup the code for the contract below.
     # https://ropsten.etherscan.io/address/0x95a48dca999c89e4e284930d9b9af973a7481287
     contract_addr = decode_hex('0x8B09D9ac6A4F7778fCb22852e879C7F3B2bEeF81')
-    contract_code = await peer_chain.get_contract_code(head.hash, contract_addr)
+    contract_code = await peer_chain.coro_get_contract_code(head.hash, contract_addr)
     assert encode_hex(contract_code) == '0x600060006000600060006000356000f1'
 
-    account = await peer_chain.get_account(head.hash, contract_addr)
+    account = await peer_chain.coro_get_account(head.hash, contract_addr)
     assert account.code_hash == keccak(contract_code)
     assert account.balance == 0

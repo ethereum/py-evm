@@ -141,7 +141,7 @@ class LightDispatchChain(BaseChain):
     def get_block_by_header(self, header: BlockHeader) -> BaseBlock:
         # TODO check local cache, before hitting peer
         block_body = self._run_async(
-            self._peer_chain.get_block_body_by_hash(header.hash)
+            self._peer_chain.coro_get_block_body_by_hash(header.hash)
         )
 
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()

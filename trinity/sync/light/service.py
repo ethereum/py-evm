@@ -1,3 +1,7 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import asyncio
 from functools import (
     partial,
@@ -68,7 +72,30 @@ from trinity.rlp.block_body import BlockBody
 from trinity.utils.les import gen_request_id
 
 
-class LightPeerChain(PeerSubscriber, BaseService):
+class BaseLightPeerChain(ABC):
+
+    @abstractmethod
+    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        pass
+
+    @abstractmethod
+    async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
+        pass
+
+    @abstractmethod
+    async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+        pass
+
+    @abstractmethod
+    async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
+        pass
+
+    @abstractmethod
+    async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+        pass
+
+
+class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     reply_timeout = REPLY_TIMEOUT
     headerdb: BaseAsyncHeaderDB = None
 
@@ -122,7 +149,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         """
         :param block_hash: hash of the header to retrieve
 
@@ -137,7 +164,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
+    async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
@@ -151,7 +178,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+    async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         request_id = gen_request_id()
@@ -166,7 +193,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def get_account(self, block_hash: Hash32, address: Address) -> Account:
+    async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
         return await self._retry_on_bad_response(
             partial(self._get_account_from_peer, block_hash, address)
         )
@@ -191,7 +218,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+    async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
         """
         :param block_hash: find code as of the block with block_hash
         :param address: which contract to look up
@@ -204,7 +231,7 @@ class LightPeerChain(PeerSubscriber, BaseService):
         # get account for later verification, and
         # to confirm that our highest total difficulty peer has the info
         try:
-            account = await self.get_account(block_hash, address)
+            account = await self.coro_get_account(block_hash, address)
         except HeaderNotFound as exc:
             raise NoEligiblePeers("Our best peer does not have header %s" % block_hash) from exc
 
