@@ -39,7 +39,7 @@ class BaseService(ABC, CancellableMixin):
     _tasks: 'WeakSet[asyncio.Future[Any]]'
     _finished_callbacks: List[Callable[['BaseService'], None]]
     # Number of seconds cancel() will wait for run() to finish.
-    _wait_until_finished_timeout = 5
+    _wait_until_finished_timeout = 10
 
     # the custom event loop to run in, or None if the default loop should be used
     _loop: asyncio.AbstractEventLoop = None
