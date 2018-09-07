@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from eth_utils import (
@@ -16,7 +18,6 @@ from trinity.config import (
     DATABASE_DIR_NAME,
 )
 from trinity.utils.filesystem import (
-    is_same_path,
     is_under_path,
 )
 
@@ -51,8 +52,8 @@ def test_chain_config_explicit_properties():
         nodekey_path='./nodekey'
     )
 
-    assert is_same_path(chain_config.data_dir, './data-dir')
-    assert is_same_path(chain_config.nodekey_path, './nodekey')
+    assert chain_config.data_dir == Path('./data-dir').resolve()
+    assert chain_config.nodekey_path == Path('./nodekey').resolve()
 
 
 NODEKEY = '0xd18445cc77139cd8e09110e99c9384f0601bd2dfa5b230cda917df7e56b69949'
