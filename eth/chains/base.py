@@ -78,6 +78,9 @@ from eth.rlp.headers import (
     BlockHeader,
     HeaderParams,
 )
+from eth.rlp.receipts import (
+    Receipt,
+)
 from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
@@ -277,6 +280,10 @@ class BaseChain(Configurable, ABC):
     #
     # Validation API
     #
+    @abstractmethod
+    def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
+        raise NotImplementedError("Chain classes must implement this method")
+
     @abstractmethod
     def validate_block(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement this method")
@@ -665,6 +672,10 @@ class Chain(BaseChain):
     #
     # Validation API
     #
+    def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
+        VM = self.get_vm_class(at_header)
+        VM.validate_receipt(receipt)
+
     def validate_block(self, block: BaseBlock) -> None:
         """
         Performs validation on a block that is either being mined or imported.
@@ -875,4 +886,9 @@ class AsyncChain(Chain):
             parent: BlockHeader,
             chain: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
+        raise NotImplementedError()
+
+    async def coro_validate_receipt(self,
+                                    receipt: Receipt,
+                                    at_header: BlockHeader) -> None:
         raise NotImplementedError()

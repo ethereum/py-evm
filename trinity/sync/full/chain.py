@@ -23,6 +23,8 @@ from cytoolz import (
 
 from eth_typing import Hash32
 
+from eth_utils import ValidationError
+
 from eth.constants import (
     BLANK_ROOT_HASH, EMPTY_UNCLE_HASH, GENESIS_PARENT_HASH)
 from eth.rlp.headers import BlockHeader
@@ -30,6 +32,7 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
 from p2p import protocol
+from p2p.p2p_proto import DisconnectReason
 from p2p.exceptions import NoEligiblePeers, PeerConnectionLost
 from p2p.protocol import Command
 
@@ -354,7 +357,32 @@ class FastChainSyncer(BaseHeaderChainSyncer):
         if not receipt_bundles:
             return tuple(), batch
 
-        receipts, trie_roots_and_data_dicts = zip(*receipt_bundles)
+        # First validate the receipts.
+        header_by_root = {
+            header.receipt_root: header
+            for header in batch
+            if not _is_receipts_empty(header)
+        }
+        receipts_by_root = {
+            receipt_root: receipts
+            for (receipts, (receipt_root, _))
+            in receipt_bundles
+            if receipt_root != BLANK_ROOT_HASH
+        }
+        for receipt_root, header in header_by_root.items():
+            for receipt in receipts_by_root[receipt_root]:
+                try:
+                    await self.chain.coro_validate_receipt(receipt, header)
+                except ValidationError as err:
+                    self.logger.info(
+                        "Disconnecting from %s: sent invalid receipt: %s",
+                        peer,
+                        err,
+                    )
+                    await peer.disconnect(DisconnectReason.bad_protocol)
+                    return tuple(), batch
+
+        _, trie_roots_and_data_dicts = zip(*receipt_bundles)
         receipt_roots, trie_data_dicts = zip(*trie_roots_and_data_dicts)
         receipt_roots_set = set(receipt_roots)
         missing = tuple(

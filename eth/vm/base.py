@@ -6,8 +6,7 @@ from abc import (
 import contextlib
 import functools
 import logging
-from typing import (  # noqa: F401
-    List,
+from typing import (
     Type,
 )
 
@@ -36,13 +35,16 @@ from eth.db.chain import BaseChainDB  # noqa: F401
 from eth.exceptions import (
     HeaderNotFound,
 )
-from eth.rlp.blocks import (  # noqa: F401
+from eth.rlp.blocks import (
     BaseBlock,
 )
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.rlp.receipts import Receipt  # noqa: F401
+from eth.rlp.receipts import Receipt
+from eth.rlp.sedes import (
+    int32,
+)
 from eth.utils.datatypes import (
     Configurable,
 )
@@ -189,7 +191,7 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
+    def get_block_class(cls) -> Type[BaseBlock]:
         raise NotImplementedError("VM classes must implement this method")
 
     @staticmethod
@@ -251,6 +253,11 @@ class BaseVM(Configurable, ABC):
     #
     # Validate
     #
+    @classmethod
+    @abstractmethod
+    def validate_receipt(self, receipt: Receipt) -> None:
+        raise NotImplementedError("VM classes must implement this method")
+
     @abstractmethod
     def validate_block(self, block):
         raise NotImplementedError("VM classes must implement this method")
@@ -348,6 +355,7 @@ class VM(BaseVM):
         self.validate_transaction_against_header(header, transaction)
         state_root, computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
+        self.validate_receipt(receipt)
 
         new_header = header.copy(
             bloom=int(BloomFilter(header.bloom) | receipt.bloom),
@@ -606,7 +614,7 @@ class VM(BaseVM):
         return block
 
     @classmethod
-    def get_block_class(cls) -> Type['BaseBlock']:
+    def get_block_class(cls) -> Type[BaseBlock]:
         """
         Return the :class:`~eth.rlp.blocks.Block` class that this VM uses for blocks.
         """
@@ -664,6 +672,22 @@ class VM(BaseVM):
     #
     # Validate
     #
+    @classmethod
+    def validate_receipt(cls, receipt: Receipt) -> None:
+        for log_idx, log in enumerate(receipt.logs):
+            if log.address not in receipt.bloom_filter:
+                raise ValidationError(
+                    "The address from the log entry at position {0} is not "
+                    "present in the provided bloom filter.".format(log_idx)
+                )
+            for topic_idx, topic in enumerate(log.topics):
+                if int32.serialize(topic) not in receipt.bloom_filter:
+                    raise ValidationError(
+                        "The topic at position {0} from the log entry at "
+                        "position {1} is not present in the provided bloom "
+                        "filter.".format(topic_idx, log_idx)
+                    )
+
     def validate_block(self, block):
         """
         Validate the the given block.
