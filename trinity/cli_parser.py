@@ -119,10 +119,6 @@ class ValidateAndStoreLogLevel(argparse.Action):
         log_levels[path] = log_level
 
 
-DEFAULT_STDERR_LOG_LEVEL = logging.INFO
-DEFAULT_DEBUG_LOG_LEVEL = logging.DEBUG
-
-
 parser = argparse.ArgumentParser(description='Trinity')
 
 #
@@ -185,7 +181,6 @@ logging_parser.add_argument(
 logging_parser.add_argument(
     '--stderr-log-level',
     dest="stderr_log_level",
-    default=DEFAULT_STDERR_LOG_LEVEL,
     help=(
         "Configure the logging level for the stderr logging."
     ),
@@ -193,7 +188,6 @@ logging_parser.add_argument(
 logging_parser.add_argument(
     '--file-log-level',
     dest="file_log_level",
-    default=DEFAULT_DEBUG_LOG_LEVEL,
     help=(
         "Configure the logging level for file-based logging."
     ),

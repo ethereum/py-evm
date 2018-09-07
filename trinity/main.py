@@ -126,16 +126,32 @@ def main() -> None:
             "networks are supported.".format(args.network_id)
         )
 
-    logger, formatter, handler_stream = setup_trinity_stderr_logging(
-        args.stderr_log_level
+    has_ambigous_logging_config = (
+        args.log_levels is not None and
+        None in args.log_levels and
+        args.stderr_log_level is not None
     )
+    if has_ambigous_logging_config:
+        # setup the logger so we can output the error
+        logger, _, _ = setup_trinity_stderr_logging(logging.ERROR)
+        logger.error(
+            "Ambiguous logging configuration: The logging level for stderr was "
+            "configured with both `--stderr-log-level` and `--log-level`. "
+            "Please remove one of these flags",
+        )
+        sys.exit(1)
+
+    stderr_logger, formatter, handler_stream = setup_trinity_stderr_logging(
+        args.stderr_log_level or args.log_levels.get(None)
+    )
+
     if args.log_levels:
         setup_log_levels(args.log_levels)
 
     try:
         chain_config = ChainConfig.from_parser_args(args)
     except AmbigiousFileSystem:
-        exit_because_ambigious_filesystem(logger)
+        exit_because_ambigious_filesystem(stderr_logger)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -144,7 +160,7 @@ def main() -> None:
         try:
             initialize_data_dir(chain_config)
         except AmbigiousFileSystem:
-            exit_because_ambigious_filesystem(logger)
+            exit_because_ambigious_filesystem(stderr_logger)
         except MissingPath as e:
             msg = (
                 "\n"
@@ -153,11 +169,11 @@ def main() -> None:
                 "Either manually create the path or ensure you are using a data directory\n"
                 "inside the XDG_TRINITY_ROOT path"
             ).format(e.path)
-            logger.error(msg)
+            stderr_logger.error(msg)
             sys.exit(1)
 
-    logger, log_queue, listener = setup_trinity_file_and_queue_logging(
-        logger,
+    file_logger, log_queue, listener = setup_trinity_file_and_queue_logging(
+        stderr_logger,
         formatter,
         handler_stream,
         chain_config,
@@ -168,8 +184,8 @@ def main() -> None:
 
     # compute the minimum configured log level across all configured loggers.
     min_configured_log_level = min(
-        args.stderr_log_level,
-        args.file_log_level,
+        stderr_logger.level,
+        file_logger.level,
         *(args.log_levels or {}).values()
     )
 
@@ -192,7 +208,7 @@ def main() -> None:
             listener,
             event_bus,
             main_endpoint,
-            logger
+            stderr_logger,
         )
 
 

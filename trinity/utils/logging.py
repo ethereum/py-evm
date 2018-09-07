@@ -59,8 +59,10 @@ def setup_log_levels(log_levels: Dict[Union[None, str], int]) -> None:
         logger.setLevel(level)
 
 
-def setup_trinity_stderr_logging(level: int=logging.INFO,
+def setup_trinity_stderr_logging(level: int=None,
                                  ) -> Tuple[Logger, Formatter, StreamHandler]:
+    if level is None:
+        level = logging.INFO
     logger = logging.getLogger('trinity')
     logger.setLevel(logging.DEBUG)
 
@@ -87,8 +89,11 @@ def setup_trinity_file_and_queue_logging(
         formatter: Formatter,
         handler_stream: StreamHandler,
         chain_config: ChainConfig,
-        level: int=logging.DEBUG) -> Tuple[Logger, 'Queue[str]', QueueListener]:
+        level: int=None) -> Tuple[Logger, 'Queue[str]', QueueListener]:
     from .mp import ctx
+
+    if level is None:
+        level = logging.DEBUG
 
     log_queue = ctx.Queue()
 
