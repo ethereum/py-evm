@@ -111,10 +111,10 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
         if not self.total_msgs:
             return 'None'
         avg_rtt = self.total_response_time / self.total_msgs
-        if not self.total_items:
+        if not self.total_response_time:
             items_per_second = 0.0
         else:
-            items_per_second = self.total_response_time / self.total_items
+            items_per_second = self.total_items / self.total_response_time
 
         # msgs: total number of messages
         # items: total number of items
