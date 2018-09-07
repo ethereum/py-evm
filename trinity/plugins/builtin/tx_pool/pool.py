@@ -19,8 +19,6 @@ from eth.rlp.transactions import (
 )
 
 from p2p.peer import (
-    BasePeer,
-    PeerPool,
     PeerSubscriber,
 )
 from p2p.protocol import Command
@@ -28,7 +26,7 @@ from p2p.service import (
     BaseService
 )
 
-from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth.commands import (
     Transactions,
 )
@@ -47,7 +45,7 @@ class TxPool(BaseService, PeerSubscriber):
     """
 
     def __init__(self,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  tx_validation_fn: Callable[[BaseTransactionFields], bool],
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -107,7 +105,7 @@ class TxPool(BaseService, PeerSubscriber):
 
     def _filter_tx_for_peer(
             self,
-            peer: BasePeer,
+            peer: ETHPeer,
             txs: List[BaseTransactionFields]) -> List[BaseTransactionFields]:
 
         return [
@@ -117,10 +115,10 @@ class TxPool(BaseService, PeerSubscriber):
             if self.tx_validation_fn(val)
         ]
 
-    def _construct_bloom_entry(self, peer: BasePeer, tx: BaseTransactionFields) -> bytes:
+    def _construct_bloom_entry(self, peer: ETHPeer, tx: BaseTransactionFields) -> bytes:
         return "{!r}-{}-{}".format(peer.remote, tx.hash, self._bloom_salt).encode()
 
-    def _add_txs_to_bloom(self, peer: BasePeer, txs: Iterable[BaseTransactionFields]) -> None:
+    def _add_txs_to_bloom(self, peer: ETHPeer, txs: Iterable[BaseTransactionFields]) -> None:
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(peer, val))
 

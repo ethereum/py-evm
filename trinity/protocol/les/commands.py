@@ -8,10 +8,7 @@ from typing import (
     Union,
 )
 
-from eth_typing import Hash32
-
 from eth_utils import (
-    encode_hex,
     to_dict,
 )
 
@@ -29,24 +26,6 @@ from p2p.protocol import (
 from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
-
-
-class HeadInfo:
-    def __init__(self,
-                 block_number: int,
-                 block_hash: Hash32,
-                 total_difficulty: int,
-                 reorg_depth: int) -> None:
-
-        self.block_number = block_number
-        self.block_hash = block_hash
-        self.total_difficulty = total_difficulty
-        self.reorg_depth = reorg_depth
-
-    def __str__(self) -> str:
-        return "HeadInfo{{block:{}, hash:{}, td:{}, reorg_depth:{}}}".format(
-            self.block_number, encode_hex(self.block_hash), self.total_difficulty,
-            self.reorg_depth)
 
 
 class Status(Command):
@@ -111,15 +90,6 @@ class Status(Command):
             # See comment in the definition of item_sedes as to why we do this.
             return b''
 
-    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
-        decoded = cast(Dict[str, Any], decoded)
-        return HeadInfo(
-            block_number=decoded['headNum'],
-            block_hash=decoded['headHash'],
-            total_difficulty=decoded['headTd'],
-            reorg_depth=0,
-        )
-
 
 class Announce(Command):
     _cmd_id = 1
@@ -132,15 +102,6 @@ class Announce(Command):
     ]
     # TODO: The params CountableList above may contain any of the values from the Status msg.
     # Need to extend this command to process that too.
-
-    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
-        decoded = cast(Dict[str, Any], decoded)
-        return HeadInfo(
-            block_number=decoded['head_number'],
-            block_hash=decoded['head_hash'],
-            total_difficulty=decoded['head_td'],
-            reorg_depth=decoded['reorg_depth'],
-        )
 
 
 class GetBlockHeadersQuery(rlp.Serializable):

@@ -9,10 +9,14 @@ from eth_utils import encode_hex
 
 from p2p.exceptions import HandshakeFailure
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
+)
+
+from trinity.protocol.common.peer import (
+    TrinityPeer,
+    TrinityPeerPool,
 )
 
 from .commands import (
@@ -24,7 +28,7 @@ from .proto import ETHProtocol
 from .handlers import ETHExchangeHandler
 
 
-class ETHPeer(BasePeer):
+class ETHPeer(TrinityPeer):
     max_headers_fetch = MAX_HEADERS_FETCH
 
     _supported_sub_protocols = [ETHProtocol]
@@ -77,3 +81,7 @@ class ETHPeer(BasePeer):
                     self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
+
+
+class ETHPeerPool(TrinityPeerPool[ETHPeer]):
+    peer_class = ETHPeer

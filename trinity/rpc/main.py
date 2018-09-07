@@ -15,10 +15,7 @@ from eth.chains.base import (
     BaseChain
 )
 
-from p2p.peer import (
-    PeerPool
-)
-
+from trinity.protocol.common.peer import TrinityPeerPool
 from trinity.rpc.modules import (
     Eth,
     EVM,
@@ -74,7 +71,7 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: BaseChain=None, peer_pool: PeerPool=None) -> None:
+    def __init__(self, chain: BaseChain=None, peer_pool: TrinityPeerPool=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
