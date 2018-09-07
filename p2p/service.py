@@ -133,8 +133,8 @@ class BaseService(ABC, CancellableMixin):
             self.logger.trace("Running task %s", awaitable)
             try:
                 await awaitable
-            except OperationCancelled:
-                pass
+            except OperationCancelled as e:
+                self.logger.debug("Task %s cancelled: %s", awaitable, e)
             except Exception as e:
                 self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
                 self.logger.debug("Task failure traceback", exc_info=True)
