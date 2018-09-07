@@ -1,3 +1,7 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import asyncio
 from functools import (
     partial,
@@ -71,7 +75,38 @@ from trinity.rlp.block_body import BlockBody
 from trinity.utils.les import gen_request_id
 
 
-class LightPeerChain(PeerSubscriber, BaseService):
+class BaseLightPeerChain(ABC):
+
+    @abstractmethod
+    async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        pass
+
+    @abstractmethod
+    async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
+        pass
+
+    @abstractmethod
+    async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+        pass
+
+    @abstractmethod
+    async def get_account(self, block_hash: Hash32, address: Address) -> Account:
+        pass
+
+    @abstractmethod
+    async def get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+        pass
+
+    @abstractmethod
+    async def get_foo(self) -> int:
+        pass
+
+    @abstractmethod
+    async def get_foobar(self, foo: int, bar: int) -> int:
+        pass
+
+
+class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     reply_timeout = REPLY_TIMEOUT
     headerdb: BaseAsyncHeaderDB = None
 
@@ -137,6 +172,12 @@ class LightPeerChain(PeerSubscriber, BaseService):
         return await self._retry_on_bad_response(
             partial(self._get_block_header_by_hash, block_hash)
         )
+
+    async def get_foobar(self, foo: int, bar: int) -> int:
+        return foo + bar
+
+    async def get_foo(self) -> int:
+        return 5
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
