@@ -138,11 +138,11 @@ class LightDispatchChain(BaseChain):
         header = self._headerdb.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(header)
 
-    def get_block_by_header(self, header: BlockHeader) -> BaseBlock:
+
+    async def get_block_by_header(self, header: BlockHeader) -> BaseBlock:
         # TODO check local cache, before hitting peer
-        block_body = self._run_async(
-            self._peer_chain.get_block_body_by_hash(header.hash)
-        )
+
+        block_body = await self._peer_chain.get_block_body_by_hash(header.hash)
 
         block_class = self.get_vm_class_for_block_number(header.block_number).get_block_class()
         transactions = [

@@ -1,3 +1,4 @@
+import asyncio
 import functools
 from typing import (
     Any,
@@ -125,13 +126,22 @@ def block_to_dict(block: BaseBlock,
 
 def format_params(*formatters: Any) -> Callable[..., Any]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
-        def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
-            if len(formatters) != len(args):
-                raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
-            formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
-            return func(self, *formatted)
-        return formatted_func
+        if asyncio.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
+                if len(formatters) != len(args):
+                    raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
+                formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
+                return await func(self, *formatted)
+            return formatted_func
+        else:
+            @functools.wraps(func)
+            def formatted_func(self: Any, *args: Any) -> Callable[..., Any]:
+                if len(formatters) != len(args):
+                    raise TypeError("could not apply %d formatters to %r" % (len(formatters), args))
+                formatted = (formatter(arg) for formatter, arg in zip(formatters, args))
+                return func(self, *formatted)
+            return formatted_func
     return decorator
 
 

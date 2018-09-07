@@ -81,7 +81,7 @@ def account_db_at_block(chain: BaseChain,
     return vm.state.account_db
 
 
-def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBlock:
+async def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBlock:
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     if is_integer(at_block) and at_block >= 0:  # type: ignore
@@ -89,7 +89,7 @@ def get_block_at_number(chain: BaseChain, at_block: Union[str, int]) -> BaseBloc
         return chain.get_canonical_block_by_number(at_block)
     else:
         at_header = get_header(chain, at_block)
-        return chain.get_block_by_header(at_header)
+        return await chain.get_block_by_header(at_header)
 
 
 def dict_to_spoof_transaction(
@@ -174,10 +174,10 @@ class Eth(RPCModule):
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(to_int_if_hex, identity)
-    def getBlockByNumber(self,
+    async def getBlockByNumber(self,
                          at_block: Union[str, int],
                          include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
-        block = get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self._chain, at_block)
         return block_to_dict(block, self._chain, include_transactions)
 
     @format_params(decode_hex)
@@ -249,8 +249,8 @@ class Eth(RPCModule):
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
-    def hashrate(self) -> str:
-        raise NotImplementedError()
+    async def hashrate(self) -> str:
+        return await self._chain.get_foo()
 
     def mining(self) -> bool:
         return False

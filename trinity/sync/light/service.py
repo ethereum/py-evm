@@ -138,6 +138,9 @@ class LightPeerChain(PeerSubscriber, BaseService):
             partial(self._get_block_header_by_hash, block_hash)
         )
 
+    async def get_foobar(self, foo: int, bar: int) -> int:
+        return foo + bar
+
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
     async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:

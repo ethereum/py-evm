@@ -13,6 +13,9 @@ from trinity.plugins.builtin.json_rpc.plugin import (
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
 )
+from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
+    LightPeerChainBridgePlugin
+)
 
 
 def is_ipython_available() -> bool:
@@ -32,6 +35,7 @@ ENABLED_PLUGINS = [
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     FixUncleanShutdownPlugin(),
     TxPlugin(),
-    JsonRpcServerLightPlugin(),
-    JsonRpcServerPlugin()
+    #JsonRpcServerLightPlugin(),
+    JsonRpcServerPlugin(),
+    LightPeerChainBridgePlugin(),
 ]
