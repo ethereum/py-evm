@@ -143,7 +143,10 @@ def main() -> None:
     )
 
     if args.log_levels:
-        setup_log_levels(args.log_levels)
+        log_levels = args.log_levels.copy()  # use a copy so we don't mutate the input values.
+        log_levels.setdefault('p2p.kademlia', logging.INFO)
+        log_levels.setdefault('p2p.discovery', logging.INFO)
+        setup_log_levels(log_levels)
 
     try:
         chain_config = ChainConfig.from_parser_args(args)
