@@ -9,8 +9,15 @@ from lahja import (
     EventBus,
 )
 
+from eth.chains import (
+    Chain,
+)
+
 from p2p.peer import PeerPool
 
+from trinity.chains.coro import (
+    AsyncChainMixin,
+)
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -26,6 +33,13 @@ from trinity.utils.xdg import (
 from trinity.utils.filesystem import (
     is_under_path,
 )
+from tests.conftest import (
+    _chain_with_block_validation,
+)
+
+
+class TestAsyncChain(Chain, AsyncChainMixin):
+    pass
 
 
 def pytest_addoption(parser):
@@ -79,6 +93,11 @@ def p2p_server(monkeypatch, jsonrpc_ipc_pipe_path):
     monkeypatch.setattr(
         Server, '_make_peer_pool', lambda s: PeerPool(None, None, None, None, None, None))
     return Server(None, None, None, None, None, None, None)
+
+
+@pytest.fixture
+def chain_with_block_validation(base_db, genesis_state):
+    return _chain_with_block_validation(base_db, genesis_state, TestAsyncChain)
 
 
 @pytest.mark.asyncio

@@ -12,7 +12,7 @@ from eth_utils import (
 )
 
 from eth.chains.base import (
-    BaseChain
+    AsyncChain,
 )
 
 from lahja import (
@@ -74,7 +74,7 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: BaseChain=None, event_bus: Endpoint=None) -> None:
+    def __init__(self, chain: AsyncChain=None, event_bus: Endpoint=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
@@ -143,11 +143,11 @@ class RPCServer:
         return generate_response(request, result, error)
 
     @property
-    def chain(self) -> BaseChain:
+    def chain(self) -> AsyncChain:
         return self.__chain
 
     @chain.setter
-    def chain(self, new_chain: BaseChain) -> None:
+    def chain(self, new_chain: AsyncChain) -> None:
         self.__chain = new_chain
         for module in self.modules.values():
             module.set_chain(new_chain)

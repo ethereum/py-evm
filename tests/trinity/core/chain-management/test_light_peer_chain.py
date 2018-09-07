@@ -14,6 +14,7 @@ def test_can_instantiate_eventbus_light_peer_chain():
     chain = EventBusLightPeerChain(None)
     assert chain is not None
 
+
 def test_can_instantiate_light_peer_chain():
     chain = LightPeerChain(None, None)
     assert chain is not None

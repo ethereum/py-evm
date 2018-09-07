@@ -78,8 +78,7 @@ def funded_address_initial_balance():
     return to_wei(1000, 'ether')
 
 
-@pytest.fixture
-def chain_with_block_validation(base_db, genesis_state):
+def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
     """
     Return a Chain object containing just the genesis block.
 
@@ -107,7 +106,8 @@ def chain_with_block_validation(base_db, genesis_state):
         "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
         "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
     }
-    klass = Chain.configure(
+
+    klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
@@ -116,6 +116,11 @@ def chain_with_block_validation(base_db, genesis_state):
     )
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
+
+
+@pytest.fixture
+def chain_with_block_validation(base_db, genesis_state):
+    return _chain_with_block_validation(base_db, genesis_state)
 
 
 def import_block_without_validation(chain, block):
