@@ -1,9 +1,31 @@
+import os
 import pytest
+import shutil
 
 from trinity.tools.async_process_runner import AsyncProcessRunner
 from trinity.utils.async_iter import (
-    contains_all
+    contains_all,
 )
+from trinity.utils.xdg import (
+    get_xdg_runtime_home,
+)
+
+
+XDG_RUNTIME_DIR = os.path.join(get_xdg_runtime_home(), '.test')
+
+
+@pytest.fixture(scope="function")
+def xdg_runtime_dir(monkeypatch):
+    assert not os.path.exists(XDG_RUNTIME_DIR)
+    os.makedirs(XDG_RUNTIME_DIR)
+    assert os.path.exists(XDG_RUNTIME_DIR)
+    monkeypatch.setenv('XDG_RUNTIME_DIR', XDG_RUNTIME_DIR)
+    try:
+        yield XDG_RUNTIME_DIR
+    finally:
+        assert os.path.exists(XDG_RUNTIME_DIR)
+        shutil.rmtree(XDG_RUNTIME_DIR)
+        assert not os.path.exists(XDG_RUNTIME_DIR)
 
 
 # IMPORTANT: Test names are intentionally short here because they end up
@@ -37,18 +59,32 @@ def async_process_runner():
     (
         ('trinity',),
         ('trinity', '--ropsten',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR,),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--ropsten',),
     )
 )
 @pytest.mark.asyncio
-async def test_full_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=40)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Started networking process",
-        "Running server",
-        "IPC started at",
-    })
+async def test_full_boot(async_process_runner, command, xdg_runtime_dir):
+    check_command = list(command)
+    try:
+        # If the --trinity-root-dir is defined, then trinity is expected to start
+        check_command.index('--trinity-root-dir')
+
+        # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Started DB server process",
+            "Started networking process",
+            "Running server",
+            "IPC started at",
+        })
+    except ValueError:
+        # If the --trinity-root-dir is NOT defined, then trinity is expected to throw error
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Please run trinity using --trinity-root-dir param: "
+            "trinity --trinity-root-dir <directory>",
+        })
 
 
 @pytest.mark.parametrize(
@@ -56,19 +92,33 @@ async def test_full_boot(async_process_runner, command):
     (
         ('trinity', '--tx-pool',),
         ('trinity', '--tx-pool', '--ropsten',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--tx-pool',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--tx-pool', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
-async def test_txpool_full_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=40)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Started networking process",
-        "Running Tx Pool",
-        "Running server",
-        "IPC started at",
-    })
+async def test_txpool_full_boot(async_process_runner, command, xdg_runtime_dir):
+    check_command = list(command)
+    try:
+        # If the --trinity-root-dir is defined, then trinity is expected to start
+        check_command.index('--trinity-root-dir')
+
+        # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Started DB server process",
+            "Started networking process",
+            "Running Tx Pool",
+            "Running server",
+            "IPC started at",
+        })
+    except ValueError:
+        # If the --trinity-root-dir is NOT defined, then trinity is expected to throw error
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Please run trinity using --trinity-root-dir param: "
+            "trinity --trinity-root-dir <directory>",
+        })
 
 
 @pytest.mark.parametrize(
@@ -93,17 +143,31 @@ async def test_txpool_deactivated(async_process_runner, command):
     (
         ('trinity', '--light',),
         ('trinity', '--light', '--ropsten',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--light',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
-async def test_light_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=40)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Started networking process",
-        "IPC started at",
-    })
+async def test_light_boot(async_process_runner, command, xdg_runtime_dir):
+    check_command = list(command)
+    try:
+        # If the --trinity-root-dir is defined, then trinity is expected to start
+        check_command.index('--trinity-root-dir')
+
+        # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Started DB server process",
+            "Started networking process",
+            "IPC started at",
+        })
+    except ValueError:
+        # If the --trinity-root-dir is NOT defined, then trinity is expected to throw error
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Please run trinity using --trinity-root-dir param: "
+            "trinity --trinity-root-dir <directory>",
+        })
 
 
 @pytest.mark.parametrize(
@@ -113,30 +177,48 @@ async def test_light_boot(async_process_runner, command):
         ('trinity',),
         ('trinity', '--tx-pool',),
         ('trinity', '--light',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR,),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--tx-pool',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--light',),
         # ropsten
         ('trinity', '--ropsten',),
         ('trinity', '--ropsten', '--tx-pool',),
         ('trinity', '--light', '--ropsten',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--ropsten',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--ropsten', '--tx-pool',),
+        ('trinity', '--trinity-root-dir', XDG_RUNTIME_DIR, '--light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
-async def test_does_not_throw(async_process_runner, command):
-    # This is our last line of defence. This test basically observes the first
-    # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
-    lines_since_error = 0
-    await async_process_runner.run(command, timeout_sec=20)
-    async for line in async_process_runner.stderr:
+async def test_does_not_throw(async_process_runner, command, xdg_runtime_dir):
+    check_command = list(command)
+    try:
+        # If the --trinity-root-dir is defined, then trinity is expected to start
+        check_command.index('--trinity-root-dir')
 
-        # We detect errors by some string at the beginning of the Traceback and keep
-        # counting lines from there to be able to read and report more valuable info
-        if "Traceback (most recent call last)" in line and lines_since_error == 0:
-            lines_since_error = 1
-        elif lines_since_error > 0:
-            lines_since_error += 1
+        # This is our last line of defence. This test basically observes the first
+        # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
+        lines_since_error = 0
+        await async_process_runner.run(command, timeout_sec=20)
+        async for line in async_process_runner.stderr:
 
-        # Keep on listening for output for a maxmimum of 100 lines after the error
-        if lines_since_error >= 100:
-            break
+            # We detect errors by some string at the beginning of the Traceback and keep
+            # counting lines from there to be able to read and report more valuable info
+            if "Traceback (most recent call last)" in line and lines_since_error == 0:
+                lines_since_error = 1
+            elif lines_since_error > 0:
+                lines_since_error += 1
 
-    if lines_since_error > 0:
-        raise Exception("Exception during Trinity boot detected")
+            # Keep on listening for output for a maxmimum of 100 lines after the error
+            if lines_since_error >= 100:
+                break
+
+        if lines_since_error > 0:
+            raise Exception("Exception during Trinity boot detected")
+    except ValueError:
+        # If the --trinity-root-dir is NOT defined, then trinity is expected to throw error
+        await async_process_runner.run(command, timeout_sec=40)
+        assert await contains_all(async_process_runner.stderr, {
+            "Please run trinity using --trinity-root-dir param: "
+            "trinity --trinity-root-dir <directory>",
+        })

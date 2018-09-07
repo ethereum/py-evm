@@ -9,11 +9,14 @@ from trinity.chains import (
 from trinity.config import (
     ChainConfig,
 )
+from trinity.utils.xdg import (
+    get_xdg_trinity_root,
+)
 
 
 @pytest.fixture
 def chain_config():
-    return ChainConfig(network_id=1, max_peers=1)
+    return ChainConfig(network_id=1, max_peers=1, trinity_root_dir=get_xdg_trinity_root())
 
 
 @pytest.fixture

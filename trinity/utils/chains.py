@@ -21,14 +21,9 @@ from eth.chains.mainnet import (
 from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
-
 from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import SYNC_LIGHT
-
-from .xdg import (
-    get_xdg_trinity_root,
-)
 
 
 DEFAULT_DATA_DIRS = {
@@ -40,23 +35,28 @@ DEFAULT_DATA_DIRS = {
 #
 # Filesystem path utils
 #
-def get_local_data_dir(chain_name: str) -> Path:
+def get_local_data_dir(chain_name: str, trinity_root_dir: Path) -> Path:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
     try:
         return Path(os.environ['TRINITY_DATA_DIR'])
     except KeyError:
-        return Path(os.path.join(get_xdg_trinity_root(), chain_name))
+        if trinity_root_dir is not None:
+            return trinity_root_dir / chain_name
+        else:
+            raise ValueError("Trinity root directory is not defined.\n"
+                             "Please run trinity using --trinity-root-dir param: "
+                             "trinity --trinity-root-dir <directory>")
 
 
-def get_data_dir_for_network_id(network_id: int) -> Path:
+def get_data_dir_for_network_id(network_id: int, trinity_root_dir: Path) -> Path:
     """
     Returns the data directory for the chain associated with the given network
     id.  If the network id is unknown, raises a KeyError.
     """
     try:
-        return get_local_data_dir(DEFAULT_DATA_DIRS[network_id])
+        return get_local_data_dir(DEFAULT_DATA_DIRS[network_id], trinity_root_dir)
     except KeyError:
         raise KeyError("Unknown network id: `{0}`".format(network_id))
 
@@ -137,6 +137,9 @@ def construct_chain_config_params(
 
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
+
+    if args.trinity_root_dir is not None:
+        yield 'trinity_root_dir', args.trinity_root_dir
 
     if args.nodekey_path and args.nodekey:
         raise ValueError("Cannot provide both nodekey_path and nodekey")

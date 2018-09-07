@@ -1,6 +1,7 @@
 import asyncio
 import os
 import signal
+import logging
 from typing import (
     AsyncIterable,
     Awaitable,
@@ -63,4 +64,8 @@ class AsyncProcessRunner():
         raise TimeoutError('Killed process after {} seconds'.format(timeout_sec))
 
     def kill(self) -> None:
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        logger = logging.getLogger("trinity.tools.AsyncProcessRunner")
+        try:
+            os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            logger.warning("Cannot kill the process PID %d because it is not found.", self.proc.pid)

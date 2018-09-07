@@ -49,6 +49,7 @@ DATABASE_DIR_NAME = 'chain'
 
 class ChainConfig:
     _data_dir: Path = None
+    _trinity_root_dir: Path = None
     _nodekey_path: Path = None
     _logfile_path: Path = None
     _nodekey = None
@@ -63,6 +64,7 @@ class ChainConfig:
                  network_id: int,
                  max_peers: int,
                  data_dir: str=None,
+                 trinity_root_dir: str=None,
                  nodekey_path: str=None,
                  logfile_path: str=None,
                  nodekey: PrivateKey=None,
@@ -97,10 +99,13 @@ class ChainConfig:
             raise ValueError("It is invalid to provide both a `nodekey` and a `nodekey_path`")
 
         # set values
+        if trinity_root_dir is not None:
+            self._trinity_root_dir = Path(trinity_root_dir).resolve()
+
         if data_dir is not None:
             self.data_dir = data_dir
         else:
-            self.data_dir = get_data_dir_for_network_id(self.network_id)
+            self.data_dir = get_data_dir_for_network_id(self.network_id, self.trinity_root_dir)
 
         if nodekey_path is not None:
             self.nodekey_path = nodekey_path
@@ -142,6 +147,10 @@ class ChainConfig:
     @data_dir.setter
     def data_dir(self, value: str) -> None:
         self._data_dir = Path(value).resolve()
+
+    @property
+    def trinity_root_dir(self) -> Path:
+        return self._trinity_root_dir
 
     @property
     def database_dir(self) -> Path:

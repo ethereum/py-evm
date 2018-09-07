@@ -5,6 +5,7 @@ from eth_utils import (
 )
 
 from eth_keys import keys
+from pathlib import Path
 
 from trinity.utils.chains import (
     get_local_data_dir,
@@ -17,11 +18,19 @@ from trinity.config import (
 from trinity.utils.filesystem import (
     is_same_path,
 )
+from trinity.utils.xdg import (
+    get_xdg_trinity_root,
+)
 
 
 def test_chain_config_computed_properties():
-    data_dir = get_local_data_dir('muffin')
-    chain_config = ChainConfig(network_id=1234, max_peers=1, data_dir=data_dir)
+    data_dir = get_local_data_dir('muffin', Path(get_xdg_trinity_root()))
+    chain_config = ChainConfig(
+        network_id=1234,
+        max_peers=1,
+        data_dir=data_dir,
+        trinity_root_dir=get_xdg_trinity_root()
+    )
 
     assert chain_config.network_id == 1234
     assert chain_config.data_dir == data_dir
@@ -34,7 +43,8 @@ def test_chain_config_explicit_properties():
         network_id=1,
         max_peers=1,
         data_dir='./data-dir',
-        nodekey_path='./nodekey'
+        nodekey_path='./nodekey',
+        trinity_root_dir=get_xdg_trinity_root()
     )
 
     assert is_same_path(chain_config.data_dir, './data-dir')
@@ -63,6 +73,7 @@ def test_chain_config_nodekey_loading(nodekey_bytes, nodekey_path):
         network_id=1,
         max_peers=1,
         nodekey_path=nodekey_path,
+        trinity_root_dir=get_xdg_trinity_root()
     )
 
     assert chain_config.nodekey.to_bytes() == nodekey_bytes
@@ -74,6 +85,7 @@ def test_chain_config_explictely_provided_nodekey(nodekey_bytes, as_bytes):
         network_id=1,
         max_peers=1,
         nodekey=nodekey_bytes if as_bytes else keys.PrivateKey(nodekey_bytes),
+        trinity_root_dir=get_xdg_trinity_root()
     )
 
     assert chain_config.nodekey.to_bytes() == nodekey_bytes
