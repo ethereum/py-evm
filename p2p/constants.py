@@ -37,10 +37,6 @@ CONN_IDLE_TIMEOUT = 30
 REPLY_TIMEOUT = 3
 MAX_REQUEST_ATTEMPTS = 3
 
-# Timeout used when performing the check to ensure peers are on the same side of chain splits as
-# us.
-CHAIN_SPLIT_CHECK_TIMEOUT = 5 * REPLY_TIMEOUT
-
 # Default timeout before giving up on a caller-initiated interaction
 COMPLETION_TIMEOUT = 5
 
@@ -75,3 +71,8 @@ MAX_REORG_DEPTH = 24
 # (https://github.com/ethereum/go-ethereum/pull/1889#issue-47241762), but in order to err on the
 # side of caution, we use a higher value.
 SEAL_CHECK_RANDOM_SAMPLE_RATE = 48
+
+
+# The amount of time that the BasePeerPool will wait for a peer to boot before
+# aborting the connection attempt.
+DEFAULT_PEER_BOOT_TIMEOUT = 20

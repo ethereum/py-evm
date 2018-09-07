@@ -7,10 +7,10 @@ from eth.chains import AsyncChain
 from eth.constants import BLANK_ROOT_HASH
 
 from p2p.service import BaseService
-from p2p.peer import PeerPool
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
+from trinity.protocol.eth.peer import ETHPeerPool
 
 from .chain import FastChainSyncer, RegularChainSyncer
 from .constants import FAST_SYNC_CUTOFF
@@ -21,13 +21,13 @@ class FullNodeSyncer(BaseService):
     chain: AsyncChain = None
     chaindb: AsyncChainDB = None
     base_db: AsyncBaseDB = None
-    peer_pool: PeerPool = None
+    peer_pool: ETHPeerPool = None
 
     def __init__(self,
                  chain: AsyncChain,
                  chaindb: AsyncChainDB,
                  base_db: AsyncBaseDB,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -44,7 +44,11 @@ class FullNodeSyncer(BaseService):
             # Fast-sync chain data.
             self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
             fast_syncer = FastChainSyncer(
-                self.chain, self.chaindb, self.peer_pool, self.cancel_token)
+                self.chain,
+                self.chaindb,
+                self.peer_pool,
+                self.cancel_token,
+            )
             await fast_syncer.run()
 
         if self.cancel_token.triggered:
@@ -83,8 +87,8 @@ def _test() -> None:
     from eth.db.backends.level import LevelDB
     from p2p import ecies
     from p2p.kademlia import Node
-    from p2p.peer import DEFAULT_PREFERRED_NODES
-    from trinity.protocol.eth.peer import ETHPeer
+    from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.common.context import ChainContext
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -98,7 +102,13 @@ def _test() -> None:
     chain = FakeAsyncRopstenChain(chaindb)
     network_id = RopstenChain.network_id
     privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(ETHPeer, chaindb, network_id, privkey, ROPSTEN_VM_CONFIGURATION)
+
+    context = ChainContext(
+        headerdb=chaindb,
+        network_id=network_id,
+        vm_configuration=ROPSTEN_VM_CONFIGURATION
+    )
+    peer_pool = ETHPeerPool(privkey=privkey, context=context)
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:

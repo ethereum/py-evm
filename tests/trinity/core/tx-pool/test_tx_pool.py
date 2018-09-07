@@ -2,9 +2,13 @@ import asyncio
 import pytest
 import uuid
 
+from eth.tools.logging import TraceLogger
 from eth.utils.address import (
     force_bytes_to_address
 )
+
+from p2p.peer import PeerSubscriber
+from p2p.protocol import Command
 
 from trinity.plugins.builtin.tx_pool.pool import (
     TxPool,
@@ -15,7 +19,6 @@ from trinity.plugins.builtin.tx_pool.validators import (
 from trinity.protocol.eth.commands import (
     Transactions
 )
-from trinity.protocol.eth.peer import ETHPeer
 
 from tests.conftest import (
     funded_address_private_key
@@ -23,10 +26,17 @@ from tests.conftest import (
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
-    SamplePeerSubscriber,
 )
 
-# TODO: Move this file into the trinity tests (Requires refactor of peer_helpers)
+
+class SamplePeerSubscriber(PeerSubscriber):
+    logger = TraceLogger("")
+
+    subscription_msg_types = {Command}
+
+    @property
+    def msg_queue_maxsize(self) -> int:
+        return 100
 
 
 class TxsRecorder():
@@ -43,8 +53,6 @@ async def bootstrap_test_setup(monkeypatch, request, event_loop, chain, tx_valid
     peer1, peer2 = await get_directly_linked_peers(
         request,
         event_loop,
-        peer1_class=ETHPeer,
-        peer2_class=ETHPeer,
     )
 
     # We intercept sub_proto.send_transactions to record detailed information
@@ -160,8 +168,6 @@ async def test_tx_sending(request, event_loop, chain_with_block_validation, tx_v
     peer1, peer2 = await get_directly_linked_peers(
         request,
         event_loop,
-        peer1_class=ETHPeer,
-        peer2_class=ETHPeer,
     )
 
     peer2_subscriber = SamplePeerSubscriber()

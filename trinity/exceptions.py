@@ -44,3 +44,10 @@ class OversizeObject(BaseTrinityError):
     Raised when an object is bigger than comfortably fits in memory.
     """
     pass
+
+
+class DAOForkCheckFailure(BaseTrinityError):
+    """
+    Raised when the DAO fork check with a certain peer is unsuccessful.
+    """
+    pass

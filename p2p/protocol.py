@@ -26,7 +26,7 @@ from p2p.utils import get_devp2p_cmd_id
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from p2p.peer import ChainInfo, BasePeer  # noqa: F401
+    from p2p.peer import BasePeer  # noqa: F401
 
 PayloadType = Union[
     Dict[str, Any],
@@ -143,6 +143,7 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
 
 
 class Protocol:
+    peer: 'BasePeer'
     logger = logging.getLogger("p2p.protocol.Protocol")
     name: str = None
     version: int = None

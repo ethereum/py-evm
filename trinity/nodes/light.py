@@ -1,10 +1,11 @@
-from typing import Type
+from typing import (
+    cast,
+    Type,
+)
 
 from eth_keys.datatypes import PrivateKey
 
-from p2p.peer import (
-    PeerPool,
-)
+from p2p.peer import BasePeerPool
 
 from trinity.chains.light import (
     LightDispatchChain,
@@ -16,7 +17,7 @@ from trinity.extensibility import (
     PluginManager
 )
 from trinity.nodes.base import Node
-from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.peer import LESPeerPool
 from trinity.server import LightServer
 from trinity.sync.light.service import LightPeerChain
 
@@ -41,7 +42,11 @@ class LightNode(Node):
         self._bootstrap_nodes = chain_config.bootstrap_nodes
         self._preferred_nodes = chain_config.preferred_nodes
 
-        self._peer_chain = LightPeerChain(self.headerdb, self.get_peer_pool(), self.cancel_token)
+        self._peer_chain = LightPeerChain(
+            self.headerdb,
+            cast(LESPeerPool, self.get_peer_pool()),
+            token=self.cancel_token,
+        )
         self.notify_resource_available()
 
     async def _run(self) -> None:
@@ -68,12 +73,11 @@ class LightNode(Node):
                 manager.get_db(),  # type: ignore
                 self._network_id,
                 max_peers=self._max_peers,
-                peer_class=LESPeer,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
                 token=self.cancel_token,
             )
         return self._p2p_server
 
-    def get_peer_pool(self) -> PeerPool:
+    def get_peer_pool(self) -> BasePeerPool:
         return self.get_p2p_server().peer_pool

@@ -8,10 +8,7 @@ from typing import (
     Union,
 )
 
-from eth_typing import Hash32
-
 from eth_utils import (
-    encode_hex,
     to_dict,
 )
 
@@ -29,24 +26,6 @@ from p2p.protocol import (
 from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
-
-
-class HeadInfo:
-    def __init__(self,
-                 block_number: int,
-                 block_hash: Hash32,
-                 total_difficulty: int,
-                 reorg_depth: int) -> None:
-
-        self.block_number = block_number
-        self.block_hash = block_hash
-        self.total_difficulty = total_difficulty
-        self.reorg_depth = reorg_depth
-
-    def __str__(self) -> str:
-        return "HeadInfo{{block:{}, hash:{}, td:{}, reorg_depth:{}}}".format(
-            self.block_number, encode_hex(self.block_hash), self.total_difficulty,
-            self.reorg_depth)
 
 
 class Status(Command):
