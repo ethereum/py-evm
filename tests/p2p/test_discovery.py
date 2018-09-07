@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 import socket
 import string
@@ -148,7 +149,7 @@ async def test_wait_pong():
     recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong_v4(node, pong_msg_payload, b''))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = await proto.wait_pong(node, token)
+    got_pong = await proto.wait_pong_v4(node, token)
 
     assert got_pong
     # Ensure wait_pong() cleaned up after itself.
@@ -162,7 +163,7 @@ async def test_wait_pong():
     recv_pong_coroutine = asyncio.coroutine(lambda: proto.recv_pong_v4(node, pong_msg_payload, b''))
     asyncio.ensure_future(recv_pong_coroutine())
 
-    got_pong = await proto.wait_pong(node, token)
+    got_pong = await proto.wait_pong_v4(node, token)
 
     assert not got_pong
     assert pingid not in proto.pong_callbacks
@@ -206,7 +207,7 @@ async def test_bond():
     proto.send_ping_v4 = lambda remote: token
 
     # Pretend we get a pong from the node we are bonding with.
-    proto.wait_pong = asyncio.coroutine(lambda n, t: t == token and n == node)
+    proto.wait_pong_v4 = asyncio.coroutine(lambda n, t: t == token and n == node)
 
     bonded = await proto.bond(node)
 
@@ -319,7 +320,7 @@ def test_ping_pong_v5():
 
     # Collect all pongs received by alice in a list for later inspection.
     received_pongs = []
-    alice.recv_pong_v5 = lambda node, payload, hash_: received_pongs.append((node, payload))
+    alice.recv_pong_v5 = lambda node, payload, hash_, _: received_pongs.append((node, payload))
 
     topics = [b'foo', b'bar']
     token = alice.send_ping_v5(bob.this_node, topics)
@@ -338,24 +339,42 @@ def test_find_node_neighbours_v5():
 
 @pytest.mark.asyncio
 async def test_topic_query(event_loop):
-    bob_addr = kademlia.Address("127.0.0.1", 12345)
-    bob = get_discovery_protocol(b"bob", bob_addr)
-    await event_loop.create_datagram_endpoint(
-        lambda: bob, local_addr=(bob_addr.ip, bob_addr.udp_port), family=socket.AF_INET)
+    bob = await get_listening_discovery_protocol(event_loop)
     les_nodes = [random_node() for _ in range(10)]
     topic = b'les'
     for n in les_nodes:
         bob.topic_table.add_node(n, topic)
-    alice_addr = kademlia.Address("127.0.0.1", 12346)
-    alice = get_discovery_protocol(b"alice", alice_addr)
-    await event_loop.create_datagram_endpoint(
-        lambda: alice, local_addr=(alice_addr.ip, alice_addr.udp_port), family=socket.AF_INET)
+    alice = await get_listening_discovery_protocol(event_loop)
 
     echo = alice.send_topic_query(bob.this_node, topic)
     received_nodes = await alice.wait_topic_nodes(bob.this_node, echo)
 
     assert len(received_nodes) == 10
     assert sorted(received_nodes) == sorted(les_nodes)
+
+
+@pytest.mark.asyncio
+async def test_topic_register(event_loop):
+    bob = await get_listening_discovery_protocol(event_loop)
+    alice = await get_listening_discovery_protocol(event_loop)
+    topics = [b'les', b'les2']
+
+    # In order to register ourselves under a given topic we need to first get a ticket.
+    ticket = await bob.get_ticket(alice.this_node, topics)
+
+    assert ticket is not None
+    assert ticket.topics == topics
+    assert ticket.node == alice.this_node
+    assert len(ticket.registration_times) == 2
+
+    # Now we register ourselves under one of the topics for which we have a ticket.
+    topic_idx = 0
+    bob.send_topic_register(alice.this_node, ticket.topics, topic_idx, ticket.pong)
+    await asyncio.sleep(0.2)
+
+    topic_nodes = alice.topic_table.get_nodes(topics[topic_idx])
+    assert len(topic_nodes) == 1
+    assert topic_nodes[0] == bob.this_node
 
 
 def remove_whitespace(s):
@@ -431,6 +450,14 @@ def get_discovery_protocol(seed=b"seed", address=None):
     return discovery.DiscoveryProtocol(privkey, address, [], CancelToken("discovery-test"))
 
 
+async def get_listening_discovery_protocol(event_loop):
+    addr = kademlia.Address('127.0.0.1', random.randint(1024, 9999))
+    proto = get_discovery_protocol(os.urandom(4), addr)
+    await event_loop.create_datagram_endpoint(
+        lambda: proto, local_addr=(addr.ip, addr.udp_port), family=socket.AF_INET)
+    return proto
+
+
 def link_transports(proto1, proto2):
     # Link both protocol's transports directly by having one's sendto() call the other's
     # datagram_received().
@@ -460,7 +487,7 @@ def random_node():
 class MockHandler:
     called = False
 
-    def __call__(self, node, payload, msg_hash):
+    def __call__(self, node, payload, msg_hash, raw_msg):
         self.called = True
 
 
