@@ -159,13 +159,13 @@ def main() -> None:
         except AmbigiousFileSystem:
             parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
         except MissingPath as e:
-            parser.error((
+            parser.error(
                 "\n"
-                "It appears that {} does not exist.\n"
-                "Trinity does not attempt to create directories outside of its root path\n"
-                "Either manually create the path or ensure you are using a data directory\n"
+                f"It appears that {e.path} does not exist. "
+                "Trinity does not attempt to create directories outside of its root path. "
+                "Either manually create the path or ensure you are using a data directory "
                 "inside the XDG_TRINITY_ROOT path"
-            ).format(e.path))
+            )
 
     file_logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         stderr_logger,
@@ -205,7 +205,6 @@ def main() -> None:
             main_endpoint,
             stderr_logger,
         )
-    parser.exit(message="Trinity shutdown complete\n")
 
 
 def trinity_boot(args: Namespace,
@@ -288,7 +287,8 @@ def kill_trinity_gracefully(logger: logging.Logger,
                             database_server_process: Any,
                             networking_process: Any,
                             plugin_manager: PluginManager,
-                            event_bus: EventBus) -> None:
+                            event_bus: EventBus,
+                            message: str="Trinity shudown complete\n") -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
     # at the same time and not sequentially as we'd like. That shouldn't be a problem but if
@@ -309,6 +309,10 @@ def kill_trinity_gracefully(logger: logging.Logger,
     time.sleep(0.2)
     kill_process_gracefully(networking_process, logger)
     logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+
+    # This is required to be within the `kill_trinity_gracefully` so that
+    # plugins can trigger a shutdown of the trinity process.
+    ArgumentParser().exit(message=message)
 
 
 @setup_cprofiler('run_database_process')
