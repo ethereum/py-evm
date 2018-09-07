@@ -1,8 +1,7 @@
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 import asyncio
 import logging
 import signal
-import sys
 import time
 from typing import (
     Any,
@@ -132,17 +131,15 @@ def main() -> None:
         args.stderr_log_level is not None
     )
     if has_ambigous_logging_config:
-        # setup the logger so we can output the error
-        logger, _, _ = setup_trinity_stderr_logging(logging.ERROR)
-        logger.error(
+        parser.error(
+            "\n"
             "Ambiguous logging configuration: The logging level for stderr was "
             "configured with both `--stderr-log-level` and `--log-level`. "
             "Please remove one of these flags",
         )
-        sys.exit(1)
 
     stderr_logger, formatter, handler_stream = setup_trinity_stderr_logging(
-        args.stderr_log_level or args.log_levels.get(None)
+        args.stderr_log_level or (args.log_levels and args.log_levels.get(None))
     )
 
     if args.log_levels:
@@ -151,7 +148,7 @@ def main() -> None:
     try:
         chain_config = ChainConfig.from_parser_args(args)
     except AmbigiousFileSystem:
-        exit_because_ambigious_filesystem(stderr_logger)
+        parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
 
     if not is_data_dir_initialized(chain_config):
         # TODO: this will only work as is for chains with known genesis
@@ -160,17 +157,15 @@ def main() -> None:
         try:
             initialize_data_dir(chain_config)
         except AmbigiousFileSystem:
-            exit_because_ambigious_filesystem(stderr_logger)
+            parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
         except MissingPath as e:
-            msg = (
+            parser.error((
                 "\n"
                 "It appears that {} does not exist.\n"
                 "Trinity does not attempt to create directories outside of its root path\n"
                 "Either manually create the path or ensure you are using a data directory\n"
                 "inside the XDG_TRINITY_ROOT path"
-            ).format(e.path)
-            stderr_logger.error(msg)
-            sys.exit(1)
+            ).format(e.path))
 
     file_logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         stderr_logger,
@@ -210,6 +205,7 @@ def main() -> None:
             main_endpoint,
             stderr_logger,
         )
+    parser.exit(message="Trinity shutdown complete\n")
 
 
 def trinity_boot(args: Namespace,
@@ -253,7 +249,7 @@ def trinity_boot(args: Namespace,
     except TimeoutError as e:
         logger.error("Timeout waiting for database to start.  Exiting...")
         kill_process_gracefully(database_server_process, logger)
-        sys.exit(1)
+        ArgumentParser().error(message="Timed out waiting for database start")
 
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
@@ -313,7 +309,6 @@ def kill_trinity_gracefully(logger: logging.Logger,
     time.sleep(0.2)
     kill_process_gracefully(networking_process, logger)
     logger.info('Networking process (pid=%d) terminated', networking_process.pid)
-    sys.exit()
 
 
 @setup_cprofiler('run_database_process')
@@ -335,11 +330,6 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
         except SystemExit:
             server.stop_event.set()
             raise
-
-
-def exit_because_ambigious_filesystem(logger: logging.Logger) -> None:
-    logger.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
-    sys.exit(1)
 
 
 async def exit_on_signal(service_to_exit: BaseService) -> None:
