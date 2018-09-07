@@ -171,8 +171,7 @@ class TracebackRecorder:
             return record_traceback_on_error(attr)
 
 
-# Need to "type: ignore" here because we run mypy with --disallow-any-generics
-def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
+def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return attr(*args, **kwargs)

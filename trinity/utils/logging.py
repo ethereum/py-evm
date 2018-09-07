@@ -20,7 +20,6 @@ from typing import (
     Tuple,
     TYPE_CHECKING,
     Callable,
-    Union,
 )
 
 from cytoolz import dissoc
@@ -53,7 +52,7 @@ class HasTraceLogger:
         return self._logger
 
 
-def setup_log_levels(log_levels: Dict[Union[None, str], int]) -> None:
+def setup_log_levels(log_levels: Dict[str, int]) -> None:
     for name, level in log_levels.items():
         logger = logging.getLogger(name)
         logger.setLevel(level)
