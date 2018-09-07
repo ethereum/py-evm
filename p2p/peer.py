@@ -956,10 +956,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
-            try:
-                await self.sleep(self._report_interval)
-            except OperationCancelled:
-                break
+            await self.sleep(self._report_interval)
 
 
 class ConnectedPeersIterator(AsyncIterator[BasePeer]):
