@@ -141,7 +141,7 @@ class ChainConfig:
         The trinity_root_dir is the base directory that all trinity data is
         stored under.
 
-        The default `data_dir` path will be resolved relative to this
+        The default ``data_dir`` path will be resolved relative to this
         directory.
         """
         if self._trinity_root_dir is not None:
@@ -173,6 +173,11 @@ class ChainConfig:
 
     @property
     def database_dir(self) -> Path:
+        """
+        Path where the chain database will be stored.
+
+        This is resolved relative to the ``data_dir``
+        """
         if self.sync_mode == SYNC_FULL:
             return self.data_dir / DATABASE_DIR_NAME / "full"
         elif self.sync_mode == SYNC_LIGHT:
@@ -182,14 +187,23 @@ class ChainConfig:
 
     @property
     def database_ipc_path(self) -> Path:
+        """
+        Path for the database IPC socket connection.
+        """
         return get_database_socket_path(self.data_dir)
 
     @property
     def jsonrpc_ipc_path(self) -> Path:
+        """
+        Path for the JSON-RPC server IPC socket.
+        """
         return get_jsonrpc_socket_path(self.data_dir)
 
     @property
     def nodekey_path(self) -> Path:
+        """
+        Path where the nodekey is stored
+        """
         if self._nodekey_path is None:
             if self._nodekey is not None:
                 return None
@@ -231,11 +245,18 @@ class ChainConfig:
 
     @classmethod
     def from_parser_args(cls, parser_args: argparse.Namespace) -> 'ChainConfig':
+        """
+        Helper function for initializing from the namespace object produced by
+        an ``argparse.ArgumentParser``
+        """
         constructor_kwargs = construct_chain_config_params(parser_args)
         return cls(**constructor_kwargs)
 
     @property
     def node_class(self) -> Type['Node']:
+        """
+        The ``Node`` class that trinity will use.
+        """
         from trinity.nodes.mainnet import (
             MainnetFullNode,
             MainnetLightNode,
