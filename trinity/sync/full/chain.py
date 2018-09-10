@@ -4,10 +4,12 @@ from asyncio import (
 )
 from concurrent.futures import CancelledError
 import enum
+from functools import (
+    partial,
+)
 from operator import attrgetter
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Set,
@@ -74,6 +76,9 @@ BlockBodyBundle = Tuple[
     Tuple[Hash32, Dict[Hash32, bytes]],
     Hash32,
 ]
+
+# How big should the pending request queue get, as a multiple of the largest request size
+REQUEST_BUFFER_MULTIPLIER = 8
 
 
 class WaitingPeers:
@@ -157,19 +162,10 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         self._body_peers = WaitingPeers(commands.BlockBodies)
 
         # Track incomplete block body download tasks
-        # - arbitrarily allow up to 4 requests-worth of headers queued up
+        # - arbitrarily allow several requests-worth of headers queued up
         # - try to get bodies from lower block numbers first
-        self._block_body_tasks = TaskQueue(MAX_BODIES_FETCH * 4, attrgetter('block_number'))
-
-    # TODO move this to BaseService if it gets broader usage and/or stays stable for long enough
-    def delayed_run_func(self, func: Callable[[], None], delay: float) -> None:
-        """
-        Run function `func` after `delay` seconds
-        """
-        async def delayed_run() -> None:
-            await self.sleep(delay)
-            func()
-        self.run_task(delayed_run())
+        buffer_size = MAX_BODIES_FETCH * REQUEST_BUFFER_MULTIPLIER
+        self._block_body_tasks = TaskQueue(buffer_size, attrgetter('block_number'))
 
     async def _assign_body_download_to_peers(self) -> None:
         """
@@ -207,26 +203,27 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         non_trivial_headers = tuple(header for header in all_headers if not _is_body_empty(header))
         trivial_headers = tuple(header for header in all_headers if _is_body_empty(header))
 
-        try:
-            if len(non_trivial_headers) == 0:
-                self.logger.debug(
-                    "Block bodies for all %d headers were trivial, from %r..%r",
-                    len(all_headers),
-                    all_headers[0],
-                    all_headers[-1],
-                )
-                completed_headers = non_trivial_headers
-            else:
-                bundles, completed_headers = await self._get_block_bodies(peer, non_trivial_headers)
-                await self._block_body_bundle_processing(bundles)
+        if trivial_headers:
+            self.logger.debug(
+                "Found %d/%d trivial block bodies, skipping those requests",
+                len(trivial_headers),
+                len(all_headers),
+            )
 
-            self._mark_body_download_complete(batch_id, completed_headers + trivial_headers)
-        except BaseP2PError:
-            self._block_body_tasks.complete(batch_id, trivial_headers)
+        # even if trivial_headers is (), assign it so the finally block can run, in case of error
+        completed_headers = trivial_headers
+
+        try:
+            if non_trivial_headers:
+                bundles, received_headers = await peer.wait(
+                    self._get_block_bodies(peer, non_trivial_headers)
+                )
+                await self._block_body_bundle_processing(bundles)
+                completed_headers = trivial_headers + received_headers
+
+        except BaseP2PError as exc:
+            self.logger.info("Unexpected p2p perror while downloading body from peer: %s", exc)
             self.logger.debug("Problem downloading body from peer, dropping...", exc_info=True)
-        except Exception:
-            self._block_body_tasks.complete(batch_id, trivial_headers)
-            raise
         else:
             if len(non_trivial_headers) == 0:
                 # peer had nothing to do, so have it get back in line for processing
@@ -238,7 +235,10 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
                 # peer returned no results, wait a while before trying again
                 delay = self.EMPTY_PEER_RESPONSE_PENALTY
                 self.logger.debug("Pausing %s for %.1fs, for sending 0 block bodies", peer, delay)
-                self.delayed_run_func(lambda: self._body_peers.put_nowait(peer), delay)
+                loop = self.get_event_loop()
+                loop.call_later(delay, partial(self._body_peers.put_nowait, peer))
+        finally:
+            self._mark_body_download_complete(batch_id, completed_headers)
 
     def _mark_body_download_complete(
             self,
@@ -328,7 +328,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
             return tuple()
         except Exception:
             self.logger.exception("Unknown error when getting block bodies")
-            return tuple()
+            raise
 
         return block_body_bundles
 
@@ -406,9 +406,10 @@ class FastChainSyncer(BaseBodyChainSyncer):
         self._receipt_peers = WaitingPeers(commands.Receipts)
 
         # Track receipt download tasks
-        # - arbitrarily allow up to 4 requests-worth of headers queued up
+        # - arbitrarily allow several requests-worth of headers queued up
         # - try to get receipts from lower block numbers first
-        self._receipt_tasks = TaskQueue(MAX_RECEIPTS_FETCH * 4, attrgetter('block_number'))
+        buffer_size = MAX_RECEIPTS_FETCH * REQUEST_BUFFER_MULTIPLIER
+        self._receipt_tasks = TaskQueue(buffer_size, attrgetter('block_number'))
 
         # track when both bodies and receipts are collected, so that blocks can be persisted
         self._block_persist_tracker = OrderedTaskPreparation(
@@ -421,11 +422,11 @@ class FastChainSyncer(BaseBodyChainSyncer):
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_persist_tracker.set_finished_dependency(head)
-        self.run_task(self._launch_prerequisite_tasks())
-        self.run_task(self._assign_receipt_download_to_peers())
-        self.run_task(self._assign_body_download_to_peers())
-        self.run_task(self._persist_ready_blocks())
-        self.run_task(self._display_stats())
+        self.run_daemon_task(self._launch_prerequisite_tasks())
+        self.run_daemon_task(self._assign_receipt_download_to_peers())
+        self.run_daemon_task(self._assign_body_download_to_peers())
+        self.run_daemon_task(self._persist_ready_blocks())
+        self.run_daemon_task(self._display_stats())
         await super()._run()
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -512,17 +513,22 @@ class FastChainSyncer(BaseBodyChainSyncer):
         :param headers: headers for which block bodies and receipts have been downloaded
         """
         for header in headers:
-            if header.uncles_hash != EMPTY_UNCLE_HASH:
-                body = self._pending_bodies.pop(header)
-                uncles = body.uncles
-            else:
-                uncles = tuple()
-
             vm_class = self.chain.get_vm_class(header)
             block_class = vm_class.get_block_class()
-            # We don't need to use our block transactions here because persist_block() doesn't do
-            # anything with them as it expects them to have been persisted already.
-            block = block_class(header, uncles=uncles)
+
+            if _is_body_empty(header):
+                transactions: List[BaseTransaction] = []
+                uncles: List[BlockHeader] = []
+            else:
+                body = self._pending_bodies.pop(header)
+                uncles = body.uncles
+
+                # transaction data was already persisted in _block_body_bundle_processing, but
+                # we need to include the transactions for them to be added to the hash->txn lookup
+                tx_class = block_class.get_transaction_class()
+                transactions = [tx_class.from_base_transaction(tx) for tx in body.transactions]
+
+            block = block_class(header, transactions, uncles)
             await self.wait(self.db.coro_persist_block(block))
 
     async def _assign_receipt_download_to_peers(self) -> None:
@@ -558,20 +564,19 @@ class FastChainSyncer(BaseBodyChainSyncer):
         Given a single batch retrieved from self._receipt_tasks, get as many of the receipt bundles
         as possible, and mark them as complete.
         """
+        # If there is an exception during _process_receipts, prepare to mark the task as finished
+        # with no headers collected:
+        completed_headers: Tuple[BlockHeader, ...] = tuple()
         try:
-            completed_headers = await self._process_receipts(peer, headers)
+            completed_headers = await peer.wait(self._process_receipts(peer, headers))
 
-            self._receipt_tasks.complete(batch_id, completed_headers)
             self._block_persist_tracker.finish_prereq(
                 BlockPersistPrereqs.StoreReceipts,
                 completed_headers,
             )
-        except BaseP2PError:
-            self._receipt_tasks.complete(batch_id, tuple())
+        except BaseP2PError as exc:
+            self.logger.info("Unexpected p2p perror while downloading receipt from peer: %s", exc)
             self.logger.debug("Problem downloading receipt from peer, dropping...", exc_info=True)
-        except Exception:
-            self._receipt_tasks.complete(batch_id, tuple())
-            raise
         else:
             # peer completed successfully, so have it get back in line for processing
             if len(completed_headers) > 0:
@@ -581,7 +586,10 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 # peer returned no results, wait a while before trying again
                 delay = self.EMPTY_PEER_RESPONSE_PENALTY
                 self.logger.debug("Pausing %s for %.1fs, for sending 0 receipts", peer, delay)
-                self.delayed_run_func(lambda: self._receipt_peers.put_nowait(peer), delay)
+                loop = self.get_event_loop()
+                loop.call_later(delay, partial(self._receipt_peers.put_nowait, peer))
+        finally:
+            self._receipt_tasks.complete(batch_id, completed_headers)
 
     async def _block_body_bundle_processing(self, bundles: Tuple[BlockBodyBundle, ...]) -> None:
         """
@@ -679,6 +687,9 @@ class FastChainSyncer(BaseBodyChainSyncer):
             if receipt_root != BLANK_ROOT_HASH
         }
         for receipt_root, header in header_by_root.items():
+            if receipt_root not in receipts_by_root:
+                # this receipt group was not returned by the peer, skip validation
+                continue
             for receipt in receipts_by_root[receipt_root]:
                 await self.chain.coro_validate_receipt(receipt, header)
 
@@ -709,7 +720,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
             return tuple()
         except Exception:
             self.logger.exception("Unknown error when getting receipts")
-            return tuple()
+            raise
 
         if not receipt_bundles:
             return tuple()
@@ -747,9 +758,9 @@ class RegularChainSyncer(BaseBodyChainSyncer):
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_import_tracker.set_finished_dependency(head)
-        self.run_task(self._launch_prerequisite_tasks())
-        self.run_task(self._assign_body_download_to_peers())
-        self.run_task(self._import_ready_blocks())
+        self.run_daemon_task(self._launch_prerequisite_tasks())
+        self.run_daemon_task(self._assign_body_download_to_peers())
+        self.run_daemon_task(self._import_ready_blocks())
         await super()._run()
 
     def register_peer(self, peer: BasePeer) -> None:
