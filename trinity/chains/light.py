@@ -54,7 +54,7 @@ from eth.vm.computation import (
 )
 
 from trinity.sync.light.service import (
-    LightPeerChain,
+    BaseLightPeerChain,
 )
 
 if TYPE_CHECKING:
@@ -64,14 +64,14 @@ if TYPE_CHECKING:
 class LightDispatchChain(BaseChain):
     """
     Provide the :class:`BaseChain` API, even though only a
-    :class:`LightPeerChain` is syncing. Store results locally so that not
+    :class:`BaseLightPeerChain` is syncing. Store results locally so that not
     all requests hit the light peer network.
     """
 
     ASYNC_TIMEOUT_SECONDS = 10
     _loop = None
 
-    def __init__(self, headerdb: BaseHeaderDB, peer_chain: LightPeerChain) -> None:
+    def __init__(self, headerdb: BaseHeaderDB, peer_chain: BaseLightPeerChain) -> None:
         self._headerdb = headerdb
         self._peer_chain = peer_chain
         self._peer_chain_loop = asyncio.get_event_loop()
@@ -134,9 +134,9 @@ class LightDispatchChain(BaseChain):
     def get_block(self) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
+    async def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         header = self._headerdb.get_block_header_by_hash(block_hash)
-        return self.get_block_by_header(header)
+        return await self.get_block_by_header(header)
 
 
     async def get_block_by_header(self, header: BlockHeader) -> BaseBlock:
@@ -155,13 +155,13 @@ class LightDispatchChain(BaseChain):
             uncles=block_body.uncles,
         )
 
-    def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
+    async def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
         """
         Return the block with the given number from the canonical chain.
         Raises HeaderNotFound if it is not found.
         """
         header = self._headerdb.get_canonical_block_header_by_number(block_number)
-        return self.get_block_by_header(header)
+        return await self.get_block_by_header(header)
 
     def get_canonical_block_hash(self, block_number: int) -> Hash32:
         return self._headerdb.get_canonical_block_hash(block_number)

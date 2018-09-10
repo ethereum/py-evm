@@ -186,8 +186,8 @@ class Eth(RPCModule):
         return hex(len(block.transactions))
 
     @format_params(to_int_if_hex)
-    def getBlockTransactionCountByNumber(self, at_block: Union[str, int]) -> str:
-        block = get_block_at_number(self._chain, at_block)
+    async def getBlockTransactionCountByNumber(self, at_block: Union[str, int]) -> str:
+        block = await get_block_at_number(self._chain, at_block)
         return hex(len(block.transactions))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -212,10 +212,10 @@ class Eth(RPCModule):
         return transaction_to_dict(transaction)
 
     @format_params(to_int_if_hex, to_int_if_hex)
-    def getTransactionByBlockNumberAndIndex(self,
+    async def getTransactionByBlockNumberAndIndex(self,
                                             at_block: Union[str, int],
                                             index: int) -> Dict[str, str]:
-        block = get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self._chain, at_block)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
@@ -231,8 +231,8 @@ class Eth(RPCModule):
         return hex(len(block.uncles))
 
     @format_params(to_int_if_hex)
-    def getUncleCountByBlockNumber(self, at_block: Union[str, int]) -> str:
-        block = get_block_at_number(self._chain, at_block)
+    async def getUncleCountByBlockNumber(self, at_block: Union[str, int]) -> str:
+        block = await get_block_at_number(self._chain, at_block)
         return hex(len(block.uncles))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -242,15 +242,19 @@ class Eth(RPCModule):
         return header_to_dict(uncle)
 
     @format_params(to_int_if_hex, to_int_if_hex)
-    def getUncleByBlockNumberAndIndex(self,
+    async def getUncleByBlockNumberAndIndex(self,
                                       at_block: Union[str, int],
                                       index: int) -> Dict[str, str]:
-        block = get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self._chain, at_block)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
     async def hashrate(self) -> str:
-        return await self._chain.get_foo()
+        return await self.evchain.get_foobar(10, 20)
+        # recorder = LightPeerChainBridge(None, None)
+        # recorder.get_foo()
+        # result = await self._event_bus.request(recorder.get_recorded_event())
+        # return result.payload
 
     def mining(self) -> bool:
         return False

@@ -18,14 +18,14 @@ from trinity.extensibility import (
 from trinity.nodes.base import Node
 from trinity.protocol.les.peer import LESPeer
 from trinity.server import LightServer
-from trinity.sync.light.service import LightPeerChain
+from trinity.sync.light.service import BaseLightPeerChain, LightPeerChain
 
 
 class LightNode(Node):
     chain_class: Type[LightDispatchChain] = None
 
     _chain: LightDispatchChain = None
-    _peer_chain: LightPeerChain = None
+    _peer_chain: BaseLightPeerChain = None
     _p2p_server: LightServer = None
 
     network_id: int = None

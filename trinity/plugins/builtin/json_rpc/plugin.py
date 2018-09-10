@@ -70,7 +70,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         chain_class = self.context.chain_config.node_class.chain_class
 
         if self.context.chain_config.sync_mode == SYNC_LIGHT:
-            header_db = db_manager.get_headerdb()
+            header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
             chain = chain_class(header_db, peer_chain=event_bus_light_peer_chain)
         else:

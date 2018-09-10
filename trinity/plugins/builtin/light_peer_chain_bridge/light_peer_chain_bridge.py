@@ -3,51 +3,54 @@ from enum import (
     auto,
     Enum,
 )
+import inspect
 from typing import (
     Any,
+    Callable,
+    Generic,
+    List,
 )
 from eth_typing import (
+    Address,
     Hash32,
 )
 
+from eth.rlp.accounts import (
+    Account,
+)
 from eth.rlp.headers import (
     BlockHeader,
 )
+from eth.rlp.receipts import (
+    Receipt,
+)
+
 from lahja import (
     BaseEvent,
     Endpoint,
 )
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.light.service import (
-    LightPeerChain,
+    BaseLightPeerChain,
 )
 
 
-# This is an ad-hoc PoC attempt. I'm sure we can use some meta programming magic
-# to make this whole thing effectively become zero maintanance (e.g. new / changed
-# APIs in LightPeerChain are automatically accessible through event-bus calls)
-class LightPeerChainAPI:
-
-    GET_BLOCK_HEADER_BY_HASH = 'get_block_header_by_hash'
-    GET_BLOCK_BODY_BY_HASH = 'get_block_body_by_hash'
-    GET_FOOBAR = 'get_foobar'
-
 class LightPeerChainRequest(BaseEvent):
 
-    def __init__(self, api: LightPeerChainAPI, payload: Any = None):
-        self.api = api
+    def __init__(self, method_name: str, payload: Any = None) -> None:
+        self.method_name = method_name
         self.payload = payload
+
 
 class LightPeerChainResponse(BaseEvent):
 
-    def __init__(self, payload: Any = None):
+    def __init__(self, payload: Any = None) -> None:
         self.payload = payload
 
 
+class LightPeerChainEventBusResponder:
 
-class LightPeerChainEventBusBridge:
-
-    def __init__(self, chain: LightPeerChain, event_bus: Endpoint):
+    def __init__(self, chain: BaseLightPeerChain, event_bus: Endpoint) -> None:
         self.chain = chain
         self.event_bus = event_bus
         asyncio.ensure_future(self.answer_requests())
@@ -55,16 +58,19 @@ class LightPeerChainEventBusBridge:
     async def answer_requests(self) -> None:
         async for event in self.event_bus.stream(LightPeerChainRequest):
 
-            method = getattr(self.chain, event.api)
+            method = getattr(self.chain, event.method_name)
 
             if not callable(method):
                 self.event_bus.broadcast(
-                    LightPeerChainResponse(Exception(f"Not a method: {event.api}")), event.broadcast_config()
+                    LightPeerChainResponse(Exception(f"Not a method: {event.method_name}")), event.broadcast_config()
                 )
                 continue
 
             try:
-                response = await method(*event.payload)
+                if event.payload is not None:
+                    response = await method(*event.payload)
+                else:
+                    response = await method()
             except Exception as e:
                 # we send the exception over to raise it on the other end
                 self.event_bus.broadcast(LightPeerChainResponse(e), event.broadcast_config())
@@ -74,41 +80,53 @@ class LightPeerChainEventBusBridge:
 
 class EventBusLightPeerChain:
 
-    def __init__(self, event_bus: Endpoint):
+    def __init__(self, event_bus: Endpoint) -> None:
         self.event_bus = event_bus
 
-    # TODO: We can generate all the functions that exist on the remote `LightPeerChain`
-    # effectively making this approach zero maintanance in the sense that if methods change
-    # or are added on `LightPeerChain`, they will automaticaly be usable on the `EventBusLightPeerChain`
-    # as well
-
-    async def get_block_header_by_hash(self) -> BlockHeader:
-        response = await self.event_bus.request(
-            LightPeerChainRequest(LightPeerChainAPI.GET_BLOCK_HEADER_BY_HASH, (b'test',))
-        )
-        self.raise_on_error(response)
-
-        return response.payload.is_genesis
+    async def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
     async def get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
-        response = await self.event_bus.request(
-            LightPeerChainRequest(LightPeerChainAPI.GET_BLOCK_BODY_BY_HASH, (block_hash,))
-        )
+    async def get_receipts(self, block_hash: Hash32) -> List[Receipt]:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
-        self.raise_on_error(response)
+    async def get_account(self, block_hash: Hash32, address: Address) -> Account:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
-        return response.payload
+    async def get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
     async def get_foo(self) -> BlockHeader:
-        response = await self.event_bus.request(
-            LightPeerChainRequest(LightPeerChainAPI.GET_FOOBAR, (1, 2,))
-        )
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
 
-        self.raise_on_error(response)
+
+    async def get_foobar(self, foo: int, bar: int) -> BlockHeader:
+        event = self.prepare_event(inspect.currentframe())
+        return self.return_or_raise(await self.event_bus.request(event))
+
+    def return_or_raise(self, response: LightPeerChainResponse):
+        if issubclass(type(response.payload), Exception):
+            raise Exception("Something bad happened in the other process", response.payload) from response.payload
 
         return response.payload
 
-    def raise_on_error(self, response: LightPeerChainResponse) -> None:
-        if issubclass(type(response.payload), Exception):
-            raise Exception("Something bad happened in the other process", response.payload) from response.payload
+    def prepare_event(self, frame):
+        args = tuple(self.args_without_self(frame.f_locals.values()))
+        fn_name = frame.f_code.co_name
+
+        payload = None if len(args) == 0 else args
+
+        return LightPeerChainRequest(fn_name, args)
+
+    def args_without_self(self, loco):
+        for val in loco:
+            if val is not self:
+                yield val

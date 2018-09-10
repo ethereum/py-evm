@@ -7,7 +7,6 @@ from trinity.plugins.builtin.fix_unclean_shutdown.plugin import (
     FixUncleanShutdownPlugin
 )
 from trinity.plugins.builtin.json_rpc.plugin import (
-    JsonRpcServerLightPlugin,
     JsonRpcServerPlugin,
 )
 from trinity.plugins.builtin.tx_pool.plugin import (
