@@ -191,6 +191,7 @@ class BasePeer(BaseService):
         self._subscribers: List[PeerSubscriber] = []
         self.start_time = datetime.datetime.now()
         self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
+        self.booted = asyncio.Event()
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -344,7 +345,84 @@ class BasePeer(BaseService):
     async def _cleanup(self) -> None:
         self.close()
 
+    async def boot(self) -> None:
+        if not self.events.started.is_set():
+            raise RuntimeError("Cannot boot a Peer which has not been started.")
+
+        try:
+            await self._boot()
+        except OperationCancelled:
+            # If a cancellation happens during boot we suppress it here and
+            # simply exit without setting the `booted` event.
+            return
+        else:
+            self.booted.set()
+
+    async def _boot(self) -> None:
+        try:
+            await self.ensure_same_side_on_dao_fork()
+        except DAOForkCheckFailure as err:
+            self.logger.debug("DAO fork check with %s failed: %s", self, err)
+            await self.disconnect(DisconnectReason.useless_peer)
+            raise
+        except Exception as err:
+            self.logger.exception('ERROR BOOTING')
+            raise
+
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = None
+
+    async def ensure_same_side_on_dao_fork(self) -> None:
+        """Ensure we're on the same side of the DAO fork
+
+        In order to do that we have to request the DAO fork block and its parent, but while we
+        wait for that we may receive other messages from the peer, which are returned so that they
+        can be re-added to our subscribers' queues when the peer is finally added to the pool.
+        """
+        for start_block, vm_class in self.vm_configuration:
+            if not issubclass(vm_class, HomesteadVM):
+                continue
+            elif not vm_class.support_dao_fork:
+                break
+            elif start_block > vm_class.dao_fork_block_number:
+                # VM comes after the fork, so stop checking
+                break
+
+            start_block = vm_class.dao_fork_block_number - 1
+
+            try:
+                headers = await self.requests.get_block_headers(  # type: ignore
+                    start_block,
+                    max_headers=2,
+                    reverse=False,
+                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
+                )
+
+            except (TimeoutError, PeerConnectionLost) as err:
+                raise DAOForkCheckFailure(
+                    f"Timed out waiting for DAO fork header from {self}: {err}"
+                ) from err
+            except ValidationError as err:
+                raise DAOForkCheckFailure(
+                    f"Invalid header response during DAO fork check: {err}"
+                ) from err
+
+            if len(headers) != 2:
+                raise DAOForkCheckFailure(
+                    f"Peer {self} failed to return DAO fork check headers"
+                )
+            else:
+                parent, header = headers
+
+            try:
+                vm_class.validate_header(header, parent, check_seal=True)
+            except ValidationError as err:
+                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
+
     async def _run(self) -> None:
+        # The `boot` process is run in the background to allow the `run` loop
+        # to continue so that all of the Peer APIs can be used within the
+        # `boot` task.
+        self.run_task(self.boot())
         while self.is_operational:
             try:
                 cmd, msg = await self.read_msg()
@@ -742,25 +820,26 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
+        # TODO: temporary hack until all of this EVM stuff can be fully
+        # removed from the BasePeer and PeerPool classes.
+        peer.vm_configuration = self.vm_configuration
+
         self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
         try:
-            # Although connect() may seem like a more appropriate place to perform the DAO fork
-            # check, we do it here because we want to perform it for incoming peer connections as
-            # well.
             with peer.collect_sub_proto_messages() as buffer:
-                await self.ensure_same_side_on_dao_fork(peer)
-        except DAOForkCheckFailure as err:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
-            await peer.disconnect(DisconnectReason.useless_peer)
+                # TODO: update to use a more generic timeout
+                await self.wait(peer.booted.wait(), timeout=CHAIN_SPLIT_CHECK_TIMEOUT)
+        except TimeoutError as err:
+            self.logger.debug('Timout waiting for peer to boot: %s', err)
+            await peer.disconnect(DisconnectReason.timeout)
             return
         else:
-            msgs = tuple((cmd, msg) for _, cmd, msg in buffer.get_messages())
-            self._add_peer(peer, msgs)
+            self._add_peer(peer, buffer.get_messages())
 
     def _add_peer(self,
                   peer: BasePeer,
-                  msgs: Tuple[Tuple[protocol.Command, protocol.PayloadType], ...]) -> None:
+                  msgs: Tuple[PeerMessage, ...]) -> None:
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
@@ -772,8 +851,8 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber)
-            for cmd, msg in msgs:
-                subscriber.add_msg(PeerMessage(peer, cmd, msg))
+            for msg in msgs:
+                subscriber.add_msg(msg)
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -847,54 +926,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer = await self.connect(node)
             if peer is not None:
                 await self.start_peer(peer)
-
-    async def ensure_same_side_on_dao_fork(
-            self, peer: BasePeer) -> None:
-        """Ensure we're on the same side of the DAO fork as the given peer.
-
-        In order to do that we have to request the DAO fork block and its parent, but while we
-        wait for that we may receive other messages from the peer, which are returned so that they
-        can be re-added to our subscribers' queues when the peer is finally added to the pool.
-        """
-        for start_block, vm_class in self.vm_configuration:
-            if not issubclass(vm_class, HomesteadVM):
-                continue
-            elif not vm_class.support_dao_fork:
-                break
-            elif start_block > vm_class.dao_fork_block_number:
-                # VM comes after the fork, so stop checking
-                break
-
-            start_block = vm_class.dao_fork_block_number - 1
-
-            try:
-                headers = await peer.requests.get_block_headers(  # type: ignore
-                    start_block,
-                    max_headers=2,
-                    reverse=False,
-                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
-                )
-
-            except (TimeoutError, PeerConnectionLost) as err:
-                raise DAOForkCheckFailure(
-                    f"Timed out waiting for DAO fork header from {peer}: {err}"
-                ) from err
-            except ValidationError as err:
-                raise DAOForkCheckFailure(
-                    f"Invalid header response during DAO fork check: {err}"
-                ) from err
-
-            if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    f"Peer {peer} failed to return DAO fork check headers"
-                )
-            else:
-                parent, header = headers
-
-            try:
-                vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as err:
-                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
 
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
