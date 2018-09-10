@@ -32,17 +32,33 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
+# These are tests that are thought to be incorrect or buggy upstream,
+# at the commit currently checked out in submodule `fixtures`.
+# Ideally, this list should be empty.
+# WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
+INCORRECT_UPSTREAM_TESTS = {
+    # The test considers a "synthetic" scenario (the state described there can't
+    # be arrived at using regular consensus rules).
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418775512
+    # The result is in conflict with the yellow-paper:
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Byzantium'),  # noqa: E501
+}
+
+
 def blockchain_fixture_mark_fn(fixture_path, fixture_name):
     if fixture_path.startswith('bcExploitTest'):
         return pytest.mark.skip("Exploit tests are slow")
     elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
         return pytest.mark.skip("Wallet owner reorganization tests are slow")
+    elif (fixture_path, fixture_name) in INCORRECT_UPSTREAM_TESTS:
+        return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
 def blockchain_fixture_ignore_fn(fixture_path, fixture_name):
     if fixture_path.startswith('GeneralStateTests'):
         # General state tests are also exported as blockchain tests.  We
-        # skip them here so we don't run them twice"
+        # skip them here so we don't run them twice
         return True
 
 
