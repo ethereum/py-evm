@@ -65,6 +65,7 @@ from trinity.utils.ipc import (
     kill_process_gracefully,
 )
 from trinity.utils.logging import (
+    enable_warnings_by_default,
     setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
@@ -81,6 +82,7 @@ from trinity.utils.shutdown import (
 )
 from trinity.utils.version import (
     construct_trinity_client_identifier,
+    is_prerelease,
 )
 
 
@@ -140,6 +142,10 @@ def main() -> None:
             "configured with both `--stderr-log-level` and `--log-level`. "
             "Please remove one of these flags",
         )
+
+    if is_prerelease():
+        # this modifies the asyncio logger, but will be overridden by any custom settings below
+        enable_warnings_by_default()
 
     stderr_logger, formatter, handler_stream = setup_trinity_stderr_logging(
         args.stderr_log_level or (args.log_levels and args.log_levels.get(None))

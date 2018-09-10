@@ -149,3 +149,21 @@ def with_queued_logging(fn: Callable[..., Any]) -> Callable[..., Any]:
 
             return fn(*args, **inner_kwargs)
     return inner
+
+
+def _set_environ_if_missing(name: str, val: str) -> None:
+    """
+    Set the environment variable so that other processes get the changed value.
+    """
+    if os.environ.get(name, '') == '':
+        os.environ[name] = val
+
+
+def enable_warnings_by_default() -> None:
+    """
+    This turns on some python and asyncio warnings, unless
+    the related environment variables are already set.
+    """
+    _set_environ_if_missing('PYTHONWARNINGS', 'default')
+    # PYTHONASYNCIODEBUG is not turned on by default because it slows down sync a *lot*
+    logging.getLogger('asyncio').setLevel(logging.DEBUG)
