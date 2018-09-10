@@ -344,6 +344,9 @@ class BasePeer(BaseService):
         self.close()
 
     async def boot(self) -> None:
+        if not self.events.started.is_set():
+            raise RuntimeError("Cannot boot a Peer which has not been started.")
+
         try:
             await self._boot()
         except OperationCancelled:
