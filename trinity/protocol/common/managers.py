@@ -121,7 +121,7 @@ class ResponseCandidateStream(
     # Service API
     #
     async def _run(self) -> None:
-        self.logger.debug("Launching %s for peer %s", self.__class__.__name__, self._peer)
+        self.logger.debug("Launching %r", self)
 
         with self.subscribe_peer(self._peer):
             while self.is_operational:

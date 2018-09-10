@@ -267,6 +267,14 @@ class TaskQueue(Generic[TTask]):
         if self._full_lock.locked() and len(self._tasks) < self._maxsize:
             self._full_lock.release()
 
+    def num_in_progress(self) -> int:
+        """How many tasks are retrieved, but not completed"""
+        return len(self._tasks) - self._open_queue.qsize()
+
+    def __len__(self) -> int:
+        """How many tasks are queued for completion"""
+        return len(self._tasks)
+
     def __contains__(self, task: TTask) -> bool:
         """Determine if a task has been added and not yet completed"""
         return task in self._tasks
@@ -466,7 +474,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         self._depths[task_id] = 0
         # note that this task is intentionally *not* added to self._unready
 
-    def register_tasks(self, tasks: Tuple[TTask]) -> None:
+    def register_tasks(self, tasks: Tuple[TTask, ...]) -> None:
         """
         Initiate a task into tracking. Each task must be registered *after* its dependency has
         been registered.
@@ -491,7 +499,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
                 depth = self._depths[dependency_id] + 1
                 self._depths[task_id] = depth
 
-    def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask]) -> None:
+    def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask, ...]) -> None:
         """For every task in tasks, mark the given prerequisite as completed"""
         if len(self._tasks) == 0:
             raise ValidationError("Cannot finish a task until set_last_completion() is called")
