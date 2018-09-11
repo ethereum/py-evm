@@ -99,7 +99,7 @@ async def connection_loop(execute_rpc: Callable[[Any], Any],
             continue
 
         try:
-            result = execute_rpc(request)
+            result = await execute_rpc(request)
         except Exception as e:
             logger.exception("Unrecognized exception while executing RPC")
             await cancel_token.cancellable_wait(
