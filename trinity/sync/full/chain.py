@@ -586,8 +586,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 # peer returned no results, wait a while before trying again
                 delay = self.EMPTY_PEER_RESPONSE_PENALTY
                 self.logger.debug("Pausing %s for %.1fs, for sending 0 receipts", peer, delay)
-                loop = self.get_event_loop()
-                loop.call_later(delay, partial(self._receipt_peers.put_nowait, peer))
+                self.call_later(delay, self._receipt_peers.put_nowait, peer)
         finally:
             self._receipt_tasks.complete(batch_id, completed_headers)
 

@@ -129,7 +129,7 @@ class BaseService(ABC, CancellableMixin):
 
         If it raises OperationCancelled, that is caught and ignored.
         """
-        @functools.wraps(awaitable)
+        @functools.wraps(awaitable)  # type: ignore
         async def _run_task_wrapper() -> None:
             self.logger.trace("Running task %s", awaitable)
             try:
@@ -149,7 +149,7 @@ class BaseService(ABC, CancellableMixin):
         Like :meth:`run_task` but if the task ends without cancelling, then this
         this service will terminate as well.
         """
-        @functools.wraps(awaitable)
+        @functools.wraps(awaitable)  # type: ignore
         async def _run_daemon_task_wrapper() -> None:
             try:
                 await awaitable
@@ -215,6 +215,15 @@ class BaseService(ABC, CancellableMixin):
                     self.cancel_token.trigger()
 
         self.run_task(_run_daemon_wrapper())
+
+    def call_later(self, delay: float, callback: 'Callable[..., None]', *args: Any) -> None:
+
+        @functools.wraps(callback)
+        async def _call_later_wrapped() -> None:
+            self.sleep(delay)
+            callback(*args)
+
+        self.run_task(_call_later_wrapped())
 
     async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
         loop = self.get_event_loop()
