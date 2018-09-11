@@ -1,5 +1,5 @@
-from eth_utils import (
-    combine_argument_formatters,
+from eth_utils.curried import (
+    apply_formatters_to_sequence,
     encode_hex,
     to_checksum_address,
     to_hex,
@@ -18,7 +18,7 @@ environment_formatter = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-storage_item_formatter = combine_argument_formatters(to_hex, to_hex)
+storage_item_formatter = apply_formatters_to_sequence([to_hex, to_hex])
 storage_formatter = cytoolz.curried.itemmap(storage_item_formatter)
 
 
@@ -30,7 +30,7 @@ account_state_formatter = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-state_item_formatter = combine_argument_formatters(to_checksum_address, account_state_formatter)
+state_item_formatter = apply_formatters_to_sequence([to_checksum_address, account_state_formatter])
 state_formatter = cytoolz.curried.itemmap(state_item_formatter)
 
 
