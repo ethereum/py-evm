@@ -55,7 +55,7 @@ def event_loop():
         loop.close()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def event_bus(event_loop):
     bus = EventBus()
     endpoint = bus.create_endpoint('test')
