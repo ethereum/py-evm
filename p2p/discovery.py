@@ -23,8 +23,9 @@ from typing import (
     List,
     Sequence,
     Set,
-    Tuple,
     Text,
+    Tuple,
+    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -37,6 +38,7 @@ from eth_typing import Hash32
 
 from eth_utils import (
     encode_hex,
+    remove_0x_prefix,
     text_if_str,
     to_bytes,
     to_list,
@@ -56,6 +58,7 @@ from cancel_token import CancelToken, OperationCancelled
 
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
 from p2p import kademlia
+from p2p import protocol
 from p2p.peer import PeerPool
 from p2p.service import BaseService
 
@@ -151,7 +154,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.neighbours_callbacks = CallbackManager()
         self.topic_nodes_callbacks = CallbackManager()
         self.parity_pong_tokens: Dict[Hash32, Hash32] = {}
-        self.cancel_token = cancel_token
+        self.cancel_token = CancelToken('DiscoveryProtocol').chain(cancel_token)
 
     def update_routing_table(self, node: kademlia.Node) -> None:
         """Update the routing table entry for the given node."""
@@ -927,6 +930,8 @@ class DiscoveryByTopicProtocol(DiscoveryProtocol):
         replies = await asyncio.gather(
             *[self.wait_topic_nodes(n, echo) for n, echo in expected_echoes])
         seen_nodes = set(cytoolz.concat(replies))
+        self.logger.debug(
+            "Got %d nodes for the %s topic: %s", len(seen_nodes), self.topic, seen_nodes)
         for node in seen_nodes:
             self.topic_table.add_node(node, self.topic)
 
@@ -1214,6 +1219,14 @@ class CallbackManager(UserDict):
                 return True
 
 
+def get_v5_topic(proto: Type[protocol.Protocol], genesis_hash: Hash32) -> bytes:
+    proto_id = proto.name.upper()
+    if proto.version != 1:
+        proto_id += str(proto.version)
+    topic = proto_id + '@' + remove_0x_prefix(encode_hex(genesis_hash[:8]))
+    return topic.encode('ascii')
+
+
 def _test() -> None:
     import argparse
     import signal
@@ -1249,31 +1262,26 @@ def _test() -> None:
         bootstrap_nodes = tuple(
             kademlia.Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES)
 
+    cancel_token = CancelToken("discovery")
     if args.v5:
         # topic = b'LES2@41941023680923e0'  # LES2/ropsten
         topic = b'LES2@d4e56740f876aef8'  # LES2/mainnet
         discovery: DiscoveryProtocol = DiscoveryByTopicProtocol(
-            topic, privkey, addr, bootstrap_nodes, CancelToken("discovery"))
+            topic, privkey, addr, bootstrap_nodes, cancel_token)
     else:
-        discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes, CancelToken("discovery"))
+        discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes, cancel_token)
 
     async def run() -> None:
         await loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port))
         try:
             await discovery.bootstrap()
             if args.v5:
-                remote = bootstrap_nodes[0]
-                topic_idx = 0
-                print("******* Found topic nodes *******************")
-                print([e.node for e in discovery.topic_table.topics[topic]])
-                t = await discovery.get_ticket(remote, [topic])
-                print("******* Got ticket *******************")
-                print(t)
-                while t.registration_times[topic_idx] > time.time():
-                    print("Ticket cannot be used yet, sleeping a bit")
-                    await asyncio.sleep(5)
-                discovery.send_topic_register(remote, t.topics, topic_idx, t.pong)
-                await asyncio.sleep(1)
+                while True:
+                    nodes = discovery.topic_table.get_nodes(topic)
+                    print("******* %d topic nodes found ***************" % len(nodes))
+                    print(nodes)
+                    await discovery.lookup_random()
+                    await cancel_token.cancellable_wait(asyncio.sleep(5))
         except OperationCancelled:
             pass
         finally:

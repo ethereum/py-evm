@@ -130,6 +130,7 @@ def construct_chain_config_params(
     Helper function for constructing the kwargs to initialize a ChainConfig object.
     """
     yield 'network_id', args.network_id
+    yield 'use_discv5', args.discv5
 
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir

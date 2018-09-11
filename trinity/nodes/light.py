@@ -40,6 +40,7 @@ class LightNode(Node):
         self._max_peers = chain_config.max_peers
         self._bootstrap_nodes = chain_config.bootstrap_nodes
         self._preferred_nodes = chain_config.preferred_nodes
+        self._use_discv5 = chain_config.use_discv5
 
         self._peer_chain = LightPeerChain(self.headerdb, self.get_peer_pool(), self.cancel_token)
         self.notify_resource_available()
@@ -71,6 +72,7 @@ class LightNode(Node):
                 peer_class=LESPeer,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
+                use_discv5=self._use_discv5,
                 token=self.cancel_token,
             )
         return self._p2p_server
