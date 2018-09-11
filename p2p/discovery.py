@@ -54,7 +54,7 @@ from eth.tools.logging import TraceLogger, TRACE_LEVEL_NUM
 
 from cancel_token import CancelToken, OperationCancelled
 
-from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes
+from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
 from p2p import kademlia
 from p2p.peer import PeerPool
 from p2p.service import BaseService
@@ -65,6 +65,11 @@ if TYPE_CHECKING:
     UserDict = collections.UserDict[Hashable, 'CallbackLock']
 else:
     UserDict = collections.UserDict
+
+# V4 handler methods take a Node, payload and msg_hash as arguments.
+V4_HANDLER_TYPE = Callable[[kademlia.Node, Tuple[Any, ...], Hash32], None]
+# V5 handler methods take a Node, payload, msg_hash and msg as arguments.
+V5_HANDLER_TYPE = Callable[[kademlia.Node, Tuple[Any, ...], Hash32, bytes], None]
 
 MAX_ENTRIES_PER_TOPIC = 50
 # UDP packet constants.
@@ -175,9 +180,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             token = self.send_ping_v4(node)
 
         try:
-            got_pong = await self.wait_pong(node, token)
+            if self.use_v5:
+                got_pong, _, _ = await self.wait_pong_v5(node, token)
+            else:
+                got_pong = await self.wait_pong_v4(node, token)
         except AlreadyWaitingDiscoveryResponse:
-            self.logger.debug("binding failed, already waiting for pong")
+            self.logger.debug("bonding failed, already waiting for pong")
             return False
 
         if not got_pong:
@@ -219,17 +227,23 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         return got_ping
 
-    async def wait_pong(self, remote: kademlia.Node, token: Hash32) -> bool:
+    async def wait_pong_v4(self, remote: kademlia.Node, token: Hash32) -> bool:
+        event = asyncio.Event()
+        callback = event.set
+        return await self._wait_pong(remote, token, event, callback)
+
+    async def _wait_pong(
+            self, remote: kademlia.Node, token: Hash32, event: asyncio.Event,
+            callback: Callable[..., Any]) -> bool:
         """Wait for a pong from the given remote containing the given token.
 
-        This coroutine adds a callback to pong_callbacks and yields control until that callback is
-        called or a timeout (k_request_timeout) occurs. At that point it returns whether or not
+        This coroutine adds a callback to pong_callbacks and yields control until the given event
+        is set or a timeout (k_request_timeout) occurs. At that point it returns whether or not
         a pong was received with the given pingid.
         """
         pingid = self._mkpingid(token, remote)
-        event = asyncio.Event()
 
-        with self.pong_callbacks.acquire(pingid, event.set):
+        with self.pong_callbacks.acquire(pingid, callback):
             got_pong = False
             try:
                 got_pong = await self.cancel_token.cancellable_wait(
@@ -351,8 +365,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def pubkey(self) -> datatypes.PublicKey:
         return self.privkey.public_key
 
-    def _get_handler(self, cmd: DiscoveryCommand
-                     ) -> Callable[[kademlia.Node, Tuple[Any, ...], Hash32], None]:
+    def _get_handler(self, cmd: DiscoveryCommand) -> V4_HANDLER_TYPE:
         if cmd == CMD_PING:
             return self.recv_ping_v4
         elif cmd == CMD_PONG:
@@ -442,7 +455,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         # The pong payload should have 3 elements: to, token, expiration
         _, token, _ = payload
         self.logger.trace('<<< pong (v4) from %s (token == %s)', node, encode_hex(token))
-        self.process_pong(node, token)
+        self.process_pong_v4(node, token)
 
     def recv_neighbours_v4(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
@@ -528,7 +541,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         else:
             callback(neighbours)
 
-    def process_pong(self, remote: kademlia.Node, token: Hash32) -> None:
+    def process_pong_v4(self, remote: kademlia.Node, token: Hash32) -> None:
         """Process a pong packet.
 
         Pong packets should only be received as a response to a ping, so the actual processing is
@@ -587,8 +600,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.send(node, V5_ID_STRING + message)
         return msg_hash
 
-    def _get_handler_v5(self, cmd: DiscoveryCommand
-                        ) -> Callable[[kademlia.Node, Tuple[Any, ...], Hash32], None]:
+    def _get_handler_v5(self, cmd: DiscoveryCommand) -> V5_HANDLER_TYPE:
         if cmd == CMD_PING_V5:
             return self.recv_ping_v5
         elif cmd == CMD_PONG_V5:
@@ -621,10 +633,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             return
         node = kademlia.Node(remote_pubkey, address)
         handler = self._get_handler_v5(cmd)
-        handler(node, payload, message_hash)
+        handler(node, payload, message_hash, message)
 
-    def recv_ping_v5(
-            self, node: kademlia.Node, payload: Tuple[Any, ...], message_hash: Hash32) -> None:
+    def recv_ping_v5(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                     message_hash: Hash32, _: bytes) -> None:
         # version, from, to, expiration, topics
         _, _, _, _, topics = payload
         self.logger.trace('<<< ping(v5) from %s, topics: %s', node, topics)
@@ -635,43 +647,49 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         wait_periods: List[int] = [60] * len(topics)
         self.send_pong_v5(node, message_hash, topic_hash, ticket_serial, wait_periods)
 
-    def recv_pong_v5(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
+    def recv_pong_v5(
+            self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32, raw_msg: bytes) -> None:
         # to, token, expiration, topic_hash, ticket_serial, wait_periods
-        _, token, _, _, _, _ = payload
+        _, token, _, _, _, wait_periods = payload
+        wait_periods = [big_endian_to_int(wait_period) for wait_period in wait_periods]
         self.logger.trace('<<< pong (v5) from %s (token == %s)', node, encode_hex(token))
-        self.process_pong(node, token)
-        # TODO: Create/store ticket in ticket store.
+        self.process_pong_v5(node, token, raw_msg, wait_periods)
 
-    def recv_find_node_v5(
-            self, node: kademlia.Node, payload: Tuple[Any, ...], msg_hash: Hash32) -> None:
+    def recv_find_node_v5(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                          msg_hash: Hash32, _: bytes) -> None:
         # FIND_NODE in v5 is identical to v4, so just call the v4 handler.
         self.recv_find_node_v4(node, payload, msg_hash)
 
-    def recv_neighbours_v5(
-            self, node: kademlia.Node, payload: Tuple[Any, ...], msg_hash: Hash32) -> None:
+    def recv_neighbours_v5(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                           msg_hash: Hash32, _: bytes) -> None:
         # NEIGHBOURS in v5 is identical to v4, so just call the v4 handler.
         self.recv_neighbours_v4(node, payload, msg_hash)
 
-    def recv_find_nodehash(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
+    def recv_find_nodehash(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                           _: Hash32, _b: bytes) -> None:
         target_hash, _ = payload
         self.logger.trace('<<< find_nodehash from %s, target: %s', node, target_hash)
         # TODO: Reply with a neighbours msg.
 
-    def recv_topic_register(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
+    def recv_topic_register(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                            _: Hash32, _m: bytes) -> None:
         topics, idx, raw_pong = payload
-        self.logger.trace('<<< topic_register from %s, topics: %s', node, topics)
+        topic_idx = big_endian_to_int(idx)
+        self.logger.trace(
+            '<<< topic_register from %s, topics: %s, idx: %d', node, topics, topic_idx)
         _, _, pong_payload, _ = _unpack_v5(raw_pong)
         _, _, _, _, ticket_serial, _ = pong_payload
-        self.topic_table.use_ticket(node, ticket_serial, topics[idx])
+        self.topic_table.use_ticket(node, big_endian_to_int(ticket_serial), topics[topic_idx])
 
-    def recv_topic_query(
-            self, node: kademlia.Node, payload: Tuple[Any, ...], message_hash: Hash32) -> None:
+    def recv_topic_query(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                         message_hash: Hash32, _: bytes) -> None:
         topic, _ = payload
         self.logger.trace('<<< topic_query (%s) from %s', topic, node)
         nodes = self.topic_table.get_nodes(topic)
         self.send_topic_nodes(node, message_hash, nodes)
 
-    def recv_topic_nodes(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
+    def recv_topic_nodes(self, node: kademlia.Node, payload: Tuple[Any, ...],
+                         _: Hash32, _m: bytes) -> None:
         echo, raw_nodes = payload
         nodes = _extract_nodes_from_payload(raw_nodes)
         self.logger.trace('<<< topic_nodes from %s: %s', node, nodes)
@@ -716,6 +734,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         payload = (topic, _get_msg_expiration())
         message = _pack_v5(CMD_TOPIC_QUERY.id, payload, self.privkey)
         return self.send_v5(node, message)
+
+    def send_topic_register(
+            self, node: kademlia.Node, topics: List[bytes], idx: int, pong: bytes) -> None:
+        if idx >= len(topics):
+            raise ValueError(f"Invalid topic idx: {idx}")
+        message = _pack_v5(CMD_TOPIC_REGISTER.id, (topics, idx, pong), self.privkey)
+        self.logger.trace('>>> topic_register to %s: %s', node, topics[idx])
+        self.send_v5(node, message)
 
     def send_topic_nodes(
             self, node: kademlia.Node, echo: Hash32, nodes: Tuple[kademlia.Node, ...]) -> None:
@@ -764,6 +790,44 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 self.logger.debug('got %d topic nodes from %s', len(nodes), remote)
 
         return tuple(n for n in nodes if n != self.this_node)
+
+    async def get_ticket(self, node: kademlia.Node, topics: List[bytes]) -> 'Ticket':
+        token = self.send_ping_v5(node, topics)
+        try:
+            got_pong, raw_pong, wait_periods = await self.wait_pong_v5(node, token)
+        except AlreadyWaitingDiscoveryResponse:
+            raise UnableToGetDiscV5Ticket(
+                f"Failed to get ticket from {node}, already waiting for pong")
+
+        if not got_pong:
+            raise UnableToGetDiscV5Ticket(f"failed to get ticket from {node}")
+
+        return Ticket(node, raw_pong, topics, wait_periods)
+
+    async def wait_pong_v5(
+            self, remote: kademlia.Node, token: Hash32) -> Tuple[bool, bytes, List[float]]:
+        event = asyncio.Event()
+        wait_periods: List[float] = []
+        pong: bytes = None
+
+        def callback(raw_msg: bytes, wps: List[float]) -> None:
+            nonlocal pong, wait_periods
+            event.set()
+            pong = raw_msg
+            wait_periods = wps
+
+        got_pong = await self._wait_pong(remote, token, event, callback)
+        return got_pong, pong, wait_periods
+
+    def process_pong_v5(self, remote: kademlia.Node, token: Hash32, raw_msg: bytes,
+                        wait_periods: List[float]) -> None:
+        pingid = self._mkpingid(token, remote)
+        try:
+            callback = self.pong_callbacks.get_callback(pingid)
+        except KeyError:
+            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+        else:
+            callback(raw_msg, wait_periods)
 
 
 class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
@@ -1003,6 +1067,21 @@ class TopicTable:
         return node_info.last_issued
 
 
+class Ticket:
+
+    def __init__(self, node: kademlia.Node, pong: bytes, topics: List[bytes],
+                 wait_periods: List[float]) -> None:
+        now = time.time()
+        self.issue_time = now
+        self.node = node
+        self.pong = pong
+        self.topics = topics
+        self.registration_times = [now + wait_period for wait_period in wait_periods]
+
+    def __repr__(self) -> str:
+        return 'Ticket(%s:%s)' % (self.node, self.topics)
+
+
 @to_list
 def _extract_nodes_from_payload(
         payload: List[Tuple[str, str, str, str]]) -> Iterator[kademlia.Node]:
@@ -1188,8 +1267,19 @@ def _test() -> None:
         await loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port))
         try:
             await discovery.bootstrap()
-            print("******* Found topic nodes *******************")
-            print([e.node for e in discovery.topic_table.topics[topic]])
+            if args.v5:
+                remote = bootstrap_nodes[0]
+                topic_idx = 0
+                print("******* Found topic nodes *******************")
+                print([e.node for e in discovery.topic_table.topics[topic]])
+                t = await discovery.get_ticket(remote, [topic])
+                print("******* Got ticket *******************")
+                print(t)
+                while t.registration_times[topic_idx] > time.time():
+                    print("Ticket cannot be used yet, sleeping a bit")
+                    await asyncio.sleep(5)
+                discovery.send_topic_register(remote, t.topics, topic_idx, t.pong)
+                await asyncio.sleep(1)
         except OperationCancelled:
             pass
         finally:
