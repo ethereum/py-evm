@@ -17,8 +17,9 @@ from trinity.utils.async_iter import (
 # This fixture provides a tear down to run after each test that uses it.
 # This ensures the AsyncProcessRunner will never leave a process behind
 @pytest.fixture(scope="function")
-def async_process_runner():
+def async_process_runner(event_loop):
     runner = AsyncProcessRunner(
+        loop=event_loop,
         # This allows running pytest with -s and observing the output
         debug_fn=lambda line: print(line)
     )
