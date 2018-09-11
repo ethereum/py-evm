@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import random
 import socket
@@ -375,6 +376,33 @@ async def test_topic_register(event_loop):
     topic_nodes = alice.topic_table.get_nodes(topics[topic_idx])
     assert len(topic_nodes) == 1
     assert topic_nodes[0] == bob.this_node
+
+
+def test_topic_table():
+    table = discovery.TopicTable(logging.getLogger("test"))
+    topic = b'topic'
+    node = random_node()
+
+    table.add_node(node, topic)
+    assert len(table.get_nodes(topic)) == 1
+    assert table.get_nodes(topic)[0] == node
+
+    node2 = random_node()
+    table.add_node(node2, topic)
+    assert len(table.get_nodes(topic)) == 2
+    assert table.get_nodes(topic)[1] == node2
+
+    # Adding the same node again won't cause a duplicate entry to be added.
+    table.add_node(node, topic)
+    assert len(table.get_nodes(topic)) == 2
+
+    # When we reach the max number of entries for a given topic, the first added items are evicted
+    # to make room for the new ones.
+    for _ in range(discovery.MAX_ENTRIES_PER_TOPIC + 2):
+        table.add_node(random_node(), topic)
+
+    assert node not in table.get_nodes(topic)
+    assert node2 not in table.get_nodes(topic)
 
 
 def remove_whitespace(s):
