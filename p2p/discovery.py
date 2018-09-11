@@ -1012,40 +1012,34 @@ class NodeTicketInfo:
     last_used: int = 0
 
 
-class TopicEntry:
-
-    def __init__(self, node: kademlia.Node, expiry: float) -> None:
-        self.node = node
-        self.expiry = expiry
-
-
 class TopicTable:
     registration_lifetime = 60 * 60
 
     def __init__(self, logger: TraceLogger) -> None:
         self.logger = logger
-        # A per-topic FIFO list of nodes.
-        self.topics: Dict[bytes, List[TopicEntry]] = collections.defaultdict(list)
+        # A per-topic FIFO set of nodes.
+        self.topics: Dict[bytes, 'collections.OrderedDict[kademlia.Node, float]'] = (
+            collections.defaultdict(collections.OrderedDict))
         # The IDs of the last issued/used tickets for any given node.
         self.node_tickets: Dict[kademlia.Node, NodeTicketInfo] = {}
 
     def add_node(self, node: kademlia.Node, topic: bytes) -> None:
         entries = self.topics[topic]
-        if len(entries) >= MAX_ENTRIES_PER_TOPIC:
-            # We add 1 to :to_drop: here because we want to have room for the new item we're
-            # adding.
-            to_drop = (len(entries) - MAX_ENTRIES_PER_TOPIC) + 1
-            entries = cytoolz.drop(entries, to_drop)
-        entries.append(TopicEntry(node, time.time() + self.registration_lifetime))
+        if node in entries:
+            entries.pop(node)
+        while len(entries) >= MAX_ENTRIES_PER_TOPIC:
+            entries.popitem(last=False)
+        entries[node] = time.time() + self.registration_lifetime
 
     def get_nodes(self, topic: bytes) -> Tuple[kademlia.Node, ...]:
         if topic not in self.topics:
             return tuple()
         else:
             now = time.time()
-            entries = [entry for entry in self.topics[topic] if entry.expiry > now]
-            self.topics[topic] = entries
-            return tuple(entry.node for entry in entries)
+            entries = [(node, expiry) for node, expiry in self.topics[topic].items()
+                       if expiry > now]
+            self.topics[topic] = collections.OrderedDict(entries)
+            return tuple(node for node, _ in entries)
 
     def use_ticket(self, node: kademlia.Node, ticket_serial: int, topic: bytes) -> None:
         ticket_info = self.node_tickets.get(node)
