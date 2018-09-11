@@ -21,6 +21,10 @@ from eth_keys import keys
 
 from cancel_token import CancelToken
 
+from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
+
+from trinity.protocol.les.proto import LESProtocol, LESProtocolV2
+
 from p2p import discovery
 from p2p import kademlia
 
@@ -403,6 +407,13 @@ def test_topic_table():
 
     assert node not in table.get_nodes(topic)
     assert node2 not in table.get_nodes(topic)
+
+
+def test_get_v5_topic():
+    les_topic = discovery.get_v5_topic(LESProtocol, ROPSTEN_GENESIS_HEADER.hash)
+    assert les_topic == b'LES@41941023680923e0'
+    les2_topic = discovery.get_v5_topic(LESProtocolV2, ROPSTEN_GENESIS_HEADER.hash)
+    assert les2_topic == b'LES2@41941023680923e0'
 
 
 def remove_whitespace(s):

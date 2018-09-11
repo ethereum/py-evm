@@ -15,6 +15,10 @@ from cancel_token import CancelToken, OperationCancelled
 
 from eth.chains import AsyncChain
 
+from eth_typing import BlockNumber
+
+from eth.constants import GENESIS_BLOCK_NUMBER
+
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -26,6 +30,9 @@ from p2p.constants import (
     REPLY_TIMEOUT,
 )
 from p2p.discovery import (
+    get_v5_topic,
+    DiscoveryByTopicProtocol,
+    DiscoveryProtocol,
     DiscoveryService,
     PreferredNodeDiscoveryProtocol,
 )
@@ -78,6 +85,7 @@ class Server(BaseService):
                  peer_class: Type[BasePeer] = ETHPeer,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
+                 use_discv5: bool = False,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
@@ -94,6 +102,7 @@ class Server(BaseService):
         self.preferred_nodes = preferred_nodes
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
+        self.use_discv5 = use_discv5
         self.upnp_service = UPnPService(port, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
 
@@ -147,8 +156,15 @@ class Server(BaseService):
         self.logger.info('network: %s', self.network_id)
         self.logger.info('peers: max_peers=%s', self.max_peers)
         addr = Address(external_ip, self.port, self.port)
-        discovery_proto = PreferredNodeDiscoveryProtocol(
-            self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes, self.cancel_token)
+        if self.use_discv5:
+            topic = self._get_discv5_topic()
+            self.logger.info(
+                "Using experimental v5 (topic) discovery mechanism; topic: %s", topic)
+            discovery_proto: DiscoveryProtocol = DiscoveryByTopicProtocol(
+                topic, self.privkey, addr, self.bootstrap_nodes, self.cancel_token)
+        else:
+            discovery_proto = PreferredNodeDiscoveryProtocol(
+                self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes, self.cancel_token)
         self.discovery = DiscoveryService(
             discovery_proto, self.peer_pool, self.port, self.cancel_token)
         self.run_daemon(self.peer_pool)
@@ -162,6 +178,13 @@ class Server(BaseService):
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
         await self._close_tcp_listener()
+
+    def _get_discv5_topic(self) -> bytes:
+        genesis_hash = self.headerdb.get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
+        # For now DiscoveryByTopicProtocol supports a single topic, so we use the latest version
+        # of our supported protocols.
+        proto = self.peer_class._supported_sub_protocols[-1]
+        return get_v5_topic(proto, genesis_hash)
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

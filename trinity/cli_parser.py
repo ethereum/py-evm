@@ -225,6 +225,12 @@ network_parser.add_argument(
 )
 
 network_parser.add_argument(
+    '--discv5',
+    action='store_true',
+    help=("Enable experimental v5 (topic) discovery mechanism"),
+)
+
+network_parser.add_argument(
     '--max-peers',
     help=(
         "Maximum number of network peers"

@@ -74,12 +74,14 @@ class ChainConfig:
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
                  port: int=30303,
+                 use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
                  bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
         self.network_id = network_id
         self.max_peers = max_peers
         self.sync_mode = sync_mode
         self.port = port
+        self.use_discv5 = use_discv5
 
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
