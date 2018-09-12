@@ -60,4 +60,7 @@ class AsyncProcessRunner():
         raise TimeoutError('Killed process after {} seconds'.format(timeout_sec))
 
     def kill(self) -> None:
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        try:
+            os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
