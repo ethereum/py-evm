@@ -444,7 +444,33 @@ class FastChainSyncer(BaseBodyChainSyncer):
         while self.is_operational:
             batch_id, headers = await self.wait(self.header_queue.get())
 
-            self._block_persist_tracker.register_tasks(headers)
+            try:
+                self._block_persist_tracker.register_tasks(headers)
+            except ValidationError:
+                # The parent of this header is not registered as a dependency yet.
+                # Some reasons this might happen, in rough descending order of likelihood:
+                #   - a normal fork: the canonical head isn't the parent of the first header synced
+                #   - a bug: the DB has inconsistent state, say saved headers but not block bodies
+                #   - a bug: headers were queued out of order in header_queue
+
+                # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
+                # let the HeaderNotFound exception bubble up
+                parent_header = await self.wait(
+                    self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
+                )
+
+                # This appears to be a fork, since the parent header is persisted,
+                self.logger.info(
+                    "Fork found while starting fast sync. Canonical head was %s, but the next "
+                    "header %s, has parent %s. Importing fork in case it's the longest chain.",
+                    await self.db.coro_get_canonical_head(),
+                    headers[0],
+                    parent_header,
+                )
+                # Set first header's parent as finished
+                self._block_persist_tracker.set_finished_dependency(parent_header)
+                # Re-register the header tasks, which will now succeed
+                self._block_persist_tracker.register_tasks(headers)
 
             # Sometimes duplicates are added to the queue, when switching from one sync to another.
             # We can simply ignore them.
