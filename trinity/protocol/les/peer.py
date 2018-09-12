@@ -87,7 +87,12 @@ class LESPeer(BasePeer):
             raise HandshakeFailure(
                 "{} genesis ({}) does not match ours ({}), disconnecting".format(
                     self, encode_hex(msg['genesisHash']), genesis.hex_hash))
-        # TODO: Disconnect if the remote doesn't serve headers.
+        # Eventually we might want to keep connections to peers where we are the only side serving
+        # data, but right now both our chain syncer and the Peer.boot() method expect the remote
+        # to reply to header requests, so if they don't we simply disconnect here.
+        if 'serveHeaders' not in msg:
+            await self.disconnect(DisconnectReason.useless_peer)
+            raise HandshakeFailure(f"{self} doesn't serve headers, disconnecting")
         self.head_td = msg['headTd']
         self.head_hash = msg['headHash']
         self.head_number = msg['headNum']
