@@ -184,3 +184,28 @@ def test_empty_enum():
 
     with pytest.raises(ValidationError):
         OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1)
+
+
+@pytest.mark.asyncio
+async def test_finished_dependency_midstream():
+    """
+    We need to be able to mark dependencies as finished, after task completion
+    """
+    ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
+    ti.set_finished_dependency(3)
+    ti.register_tasks((4, ))
+    ti.finish_prereq(TwoPrereqs.Prereq1, (4, ))
+    ti.finish_prereq(TwoPrereqs.Prereq2, (4, ))
+    ready = await wait(ti.ready_tasks())
+    assert ready == (4, )
+
+    # now start in a discontinuous series of tasks
+    with pytest.raises(ValidationError):
+        ti.register_tasks((6, ))
+
+    ti.set_finished_dependency(5)
+    ti.register_tasks((6, ))
+    ti.finish_prereq(TwoPrereqs.Prereq1, (6, ))
+    ti.finish_prereq(TwoPrereqs.Prereq2, (6, ))
+    ready = await wait(ti.ready_tasks())
+    assert ready == (6, )
