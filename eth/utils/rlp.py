@@ -56,6 +56,15 @@ def validate_rlp_equal(obj_a, obj_b, obj_a_name=None, obj_b_name=None):
         obj_b_name = obj_b.__class__.__name__ + '_b'
 
     diff = diff_rlp_object(obj_a, obj_b)
+    if len(diff) == 0:
+        raise TypeError(
+            "{} ({!r}) != {} ({!r}) but got an empty diff".format(
+                obj_a_name,
+                obj_a,
+                obj_b_name,
+                obj_b,
+            )
+        )
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
     error_message = (
         "Mismatch between {obj_a_name} and {obj_b_name} on {0} fields:\n - {1}".format(
