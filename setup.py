@@ -67,7 +67,8 @@ deps = {
     'doc': [
         "py-evm>=0.2.0-alpha.14",
         "pytest~=3.2",
-        "Sphinx>=1.5.5,<2.0.0",
+        # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
+        "Sphinx>=1.5.5,<1.8.0",
         "sphinx_rtd_theme>=0.1.9",
         "sphinxcontrib-asyncio>=0.2.0",
     ],
