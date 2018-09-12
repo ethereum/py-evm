@@ -133,6 +133,20 @@ SLOWEST_TESTS = {
 }
 
 
+# These are tests that are thought to be incorrect or buggy upstream,
+# at the commit currently checked out in submodule `fixtures`.
+# Ideally, this list should be empty.
+# WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
+INCORRECT_UPSTREAM_TESTS = {
+    # The test considers a "synthetic" scenario (the state described there can't
+    # be arrived at using regular consensus rules).
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418775512
+    # The result is in conflict with the yellow-paper:
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
+    ('stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit', 'Byzantium', 0),
+}
+
+
 def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_index):
     fixture_id = (fixture_path, fixture_key, fixture_fork, fixture_index)
     if fixture_path.startswith('stTransactionTest/zeroSigTransa'):
@@ -144,6 +158,8 @@ def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_ind
             return pytest.mark.skip("Skipping slow test")
     elif fixture_path.startswith('stQuadraticComplexityTest'):
         return pytest.mark.skip("Skipping slow test")
+    elif fixture_id in INCORRECT_UPSTREAM_TESTS:
+        return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
 def pytest_generate_tests(metafunc):

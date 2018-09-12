@@ -1,6 +1,36 @@
 Trinity 
 =======
 
+0.1.0-alpha.15
+--------------
+
+- `#1249 <https://github.com/ethereum/py-evm/pull/1249>`_: Misc bugfixes for fast sync reliability.
+- `#1245 <https://github.com/ethereum/py-evm/pull/1245>`_: Improved exception messaging for ``BaseService``
+- `#1244 <https://github.com/ethereum/py-evm/pull/1244>`_: Use ``time.perf_counter`` or ``time.monotonic`` over ``time.time``
+- `#1242 <https://github.com/ethereum/py-evm/pull/1242>`_: Bugfix: Unhandled ``MalformedMessage``.
+- `#1235 <https://github.com/ethereum/py-evm/pull/1235>`_: Typo cleanup.
+- `#1236 <https://github.com/ethereum/py-evm/pull/1236>`_: Documentation cleanup
+- `#1237 <https://github.com/ethereum/py-evm/pull/1237>`_: Code cleanup
+- `#1232 <https://github.com/ethereum/py-evm/pull/1232>`_: Bugfix: Correctly enforce timeouts on peer requests and add lock mechanism to support concurrency.
+- `#1229 <https://github.com/ethereum/py-evm/pull/1229>`_: CI cleanup
+- `#1228 <https://github.com/ethereum/py-evm/pull/1228>`_: Merge ``KademliaProtocol`` and ``DiscoveryProtocol``
+- `#1225 <https://github.com/ethereum/py-evm/pull/1225>`_: Expand peer stats tracking
+- `#1221 <https://github.com/ethereum/py-evm/pull/1221>`_: Implement Discovery V5 Protocol
+- `#1219 <https://github.com/ethereum/py-evm/pull/1219>`_: Re-organize and document fixture filler tools
+- `#1214 <https://github.com/ethereum/py-evm/pull/1214>`_: Implement ``BaseService.is_operational``.
+- `#1210 <https://github.com/ethereum/py-evm/pull/1210>`_: Convert sync to use streaming queue instead of batches.
+- `#1209 <https://github.com/ethereum/py-evm/pull/1209>`_: Chain Builder tool
+- `#1205 <https://github.com/ethereum/py-evm/pull/1205>`_: Bugfix: ExchangeHandler stats crash
+- `#1204 <https://github.com/ethereum/py-evm/pull/1204>`_: Consensus bugfix for uncle validation
+- `#1151 <https://github.com/ethereum/py-evm/pull/1151>`_: Change to ``import_block`` to return chain re-organization data.
+- `#1197 <https://github.com/ethereum/py-evm/pull/1197>`_: Increase wait time for database IPC socket.
+- `#1194 <https://github.com/ethereum/py-evm/pull/1194>`_: Unify ``ValidationError`` to use ``eth-utils`` exception class.
+- `#1190 <https://github.com/ethereum/py-evm/pull/1190>`_: Improved testing for peer authentication
+- `#1189 <https://github.com/ethereum/py-evm/pull/1189>`_: Detect crashed sub-services and exit
+- `#1179 <https://github.com/ethereum/py-evm/pull/1179>`_: ``LightNode`` now uses ``Server`` for incoming peer connections.
+- `#1182 <https://github.com/ethereum/py-evm/pull/1182>`_: Convert ``fix-unclean-shutdown`` CLI command to be a plugin
+
+
 0.1.0-alpha.14
 --------------
 

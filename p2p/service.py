@@ -142,6 +142,25 @@ class BaseService(ABC, CancellableMixin):
                 self.logger.trace("Task %s finished with no errors", awaitable)
         self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
 
+    def run_daemon_task(self, awaitable: Awaitable[Any]) -> None:
+        """Run the given awaitable in the background.
+
+        Like :meth:`run_task` but if the task ends without cancelling, then this
+        this service will terminate as well.
+        """
+        async def _run_daemon_task_wrapper() -> None:
+            try:
+                await awaitable
+            finally:
+                if not self.is_cancelled:
+                    self.logger.debug(
+                        "%s finished while %s is still running, terminating as well",
+                        awaitable,
+                        self,
+                    )
+                    self.cancel_token.trigger()
+        self.run_task(_run_daemon_task_wrapper())
+
     def run_child_service(self, child_service: 'BaseService') -> None:
         """
         Run a child service and keep a reference to it to be considered during the cleanup.
@@ -178,10 +197,18 @@ class BaseService(ABC, CancellableMixin):
         async def _run_daemon_wrapper() -> None:
             try:
                 await service.run()
+            except OperationCancelled:
+                pass
+            except Exception as e:
+                self.logger.warning("Daemon Service %s finished unexpectedly: %s", service, e)
+                self.logger.debug("Daemon Service failure traceback", exc_info=True)
             finally:
                 if not self.is_cancelled:
                     self.logger.debug(
-                        "%s finished while we're still running, terminating as well", service)
+                        "%s finished while %s is still running, terminating as well",
+                        service,
+                        self,
+                    )
                     self.cancel_token.trigger()
 
         self.run_task(_run_daemon_wrapper())
@@ -207,8 +234,7 @@ class BaseService(ABC, CancellableMixin):
 
         self.events.cleaned_up.set()
 
-    async def cancel(self) -> None:
-        """Trigger the CancelToken and wait for the cleaned_up event to be set."""
+    def cancel_nowait(self) -> None:
         if self.is_cancelled:
             self.logger.warning("Tried to cancel %s, but it was already cancelled", self)
             return
@@ -218,6 +244,11 @@ class BaseService(ABC, CancellableMixin):
         self.logger.debug("Cancelling %s", self)
         self.events.cancelled.set()
         self.cancel_token.trigger()
+
+    async def cancel(self) -> None:
+        """Trigger the CancelToken and wait for the cleaned_up event to be set."""
+        self.cancel_nowait()
+
         try:
             await asyncio.wait_for(
                 self.events.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)

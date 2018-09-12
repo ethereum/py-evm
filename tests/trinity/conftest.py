@@ -39,7 +39,7 @@ def xdg_trinity_root(monkeypatch, tmpdir):
 
     assert not is_under_path(os.path.expandvars('$HOME'), get_xdg_trinity_root())
 
-    return str(dir_path)
+    return Path(str(dir_path))
 
 
 @pytest.fixture(scope='session')

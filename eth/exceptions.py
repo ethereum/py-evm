@@ -53,27 +53,6 @@ class CanonicalHeadNotFound(PyEVMError):
     pass
 
 
-class CollationHeaderNotFound(PyEVMError):
-    """
-    Raised when the collation header for the given shard and period does not exist in the database.
-    """
-    pass
-
-
-class CollationBodyNotFound(PyEVMError):
-    """
-    Raised when the collation body for the given shard and period does not exist in the database.
-    """
-    pass
-
-
-class CanonicalCollationNotFound(PyEVMError):
-    """
-    Raised when no collation for the given shard and period has been marked as canonical.
-    """
-    pass
-
-
 class Halt(PyEVMError):
     """
     Raised when an opcode function halts vm execution.

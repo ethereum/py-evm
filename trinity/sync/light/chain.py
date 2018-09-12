@@ -66,8 +66,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
             batch_id, headers = await self.wait(self.header_queue.get())
 
             timer = Timer()
-            for header in headers:
-                await self.wait(self.db.coro_persist_header(header))
+            await self.wait(self.db.coro_persist_header_chain(headers))
 
             head = await self.wait(self.db.coro_get_canonical_head())
             self.logger.info(

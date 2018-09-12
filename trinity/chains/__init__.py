@@ -43,12 +43,12 @@ from trinity.db.header import (
     AsyncHeaderDB,
     AsyncHeaderDBProxy,
 )
+from trinity.utils.filesystem import (
+    is_under_path,
+)
 from trinity.utils.mp import (
     async_method,
     sync_method,
-)
-from trinity.utils.xdg import (
-    is_under_xdg_trinity_root,
 )
 from trinity.chains.light import LightDispatchChain
 
@@ -99,7 +99,11 @@ def is_database_initialized(chaindb: AsyncChainDB) -> bool:
 
 
 def initialize_data_dir(chain_config: ChainConfig) -> None:
-    if not chain_config.data_dir.exists() and is_under_xdg_trinity_root(chain_config.data_dir):
+    should_create_data_dir = (
+        not chain_config.data_dir.exists() and
+        is_under_path(chain_config.trinity_root_dir, chain_config.data_dir)
+    )
+    if should_create_data_dir:
         chain_config.data_dir.mkdir(parents=True, exist_ok=True)
     elif not chain_config.data_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
@@ -111,9 +115,11 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
         )
 
     # Logfile
-    if (not chain_config.logdir_path.exists() and
-            is_under_xdg_trinity_root(chain_config.logdir_path)):
-
+    should_create_logdir = (
+        not chain_config.logdir_path.exists() and
+        is_under_path(chain_config.trinity_root_dir, chain_config.logdir_path)
+    )
+    if should_create_logdir:
         chain_config.logdir_path.mkdir(parents=True, exist_ok=True)
         chain_config.logfile_path.touch()
     elif not chain_config.logdir_path.exists():
@@ -169,8 +175,7 @@ class TracebackRecorder:
             return record_traceback_on_error(attr)
 
 
-# Need to "type: ignore" here because we run mypy with --disallow-any-generics
-def record_traceback_on_error(attr: Callable) -> Callable:  # type: ignore
+def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return attr(*args, **kwargs)
@@ -276,6 +281,7 @@ def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManag
 class ChainProxy(BaseProxy):
     coro_import_block = async_method('import_block')
     coro_validate_chain = async_method('validate_chain')
+    coro_validate_receipt = async_method('validate_receipt')
     get_vm_configuration = sync_method('get_vm_configuration')
     get_vm_class = sync_method('get_vm_class')
     get_vm_class_for_block_number = sync_method('get_vm_class_for_block_number')

@@ -1,7 +1,5 @@
 import time
 from typing import (
-    Any,
-    Iterator,
     Optional,
     Tuple,
     Union,
@@ -15,17 +13,9 @@ from rlp.sedes import (
     binary,
 )
 
-from cytoolz import (
-    accumulate,
-    sliding_window,
-)
 from eth_typing import (
     Address,
     Hash32,
-)
-from eth_utils import (
-    to_dict,
-    ValidationError,
 )
 
 from eth_hash.auto import keccak
@@ -42,17 +32,10 @@ from eth.constants import (
 from eth.utils.hexadecimal import (
     encode_hex,
 )
-from eth.utils.numeric import (
-    int_to_bytes32,
-)
-from eth.utils.padding import (
-    pad32,
-)
 
 from .sedes import (
     address,
     hash32,
-    int32,
     int256,
     trie_root,
 )
@@ -237,75 +220,3 @@ class BlockHeader(rlp.Serializable):
         # validate_header stops trying to check the current header against a parent header.
         # Can someone trick us into following a high difficulty header with genesis parent hash?
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
-
-
-class CollationHeader(rlp.Serializable):
-    """The header of a collation signed by the proposer."""
-
-    fields_with_sizes = [
-        ("shard_id", int32, 32),
-        ("chunk_root", hash32, 32),
-        ("period", int32, 32),
-        ("proposer_address", address, 32),
-    ]
-    fields = [(name, sedes) for name, sedes, _ in fields_with_sizes]
-    smc_encoded_size = sum(size for _, _, size in fields_with_sizes)
-
-    def __repr__(self) -> str:
-        return "<CollationHeader shard={} period={} hash={}>".format(
-            self.shard_id,
-            self.period,
-            encode_hex(self.hash)[2:10],
-        )
-
-    @property
-    def hash(self) -> Hash32:
-        return keccak(self.encode_for_smc())
-
-    def encode_for_smc(self) -> bytes:
-        encoded = b"".join([
-            int_to_bytes32(self.shard_id),
-            self.chunk_root,
-            int_to_bytes32(self.period),
-            pad32(self.proposer_address),
-        ])
-        if len(encoded) != self.smc_encoded_size:
-            raise ValueError("Encoded header size is {} instead of {} bytes".format(
-                len(encoded),
-                self.smc_encoded_size,
-            ))
-        return encoded
-
-    @classmethod
-    @to_dict
-    def _decode_header_to_dict(cls, encoded_header: bytes) -> Iterator[Tuple[str, Any]]:
-        if len(encoded_header) != cls.smc_encoded_size:
-            raise ValidationError(
-                "Expected encoded header to be of size: {0}. Got size {1} instead.\n- {2}".format(
-                    cls.smc_encoded_size,
-                    len(encoded_header),
-                    encode_hex(encoded_header),
-                )
-            )
-
-        start_indices = accumulate(lambda i, field: i + field[2], cls.fields_with_sizes, 0)
-        field_bounds = sliding_window(2, start_indices)
-        for byte_range, field in zip(field_bounds, cls._meta.fields):
-            start_index, end_index = byte_range
-            field_name, field_type = field
-
-            field_bytes = encoded_header[start_index:end_index]
-            if field_type == rlp.sedes.big_endian_int:
-                # remove the leading zeros, to avoid `not minimal length` error in deserialization
-                formatted_field_bytes = field_bytes.lstrip(b'\x00')
-            elif field_type == address:
-                formatted_field_bytes = field_bytes[-20:]
-            else:
-                formatted_field_bytes = field_bytes
-            yield field_name, field_type.deserialize(formatted_field_bytes)
-
-    @classmethod
-    def decode_from_smc(cls, encoded_header: bytes) -> "CollationHeader":
-        header_kwargs = cls._decode_header_to_dict(encoded_header)
-        header = cls(**header_kwargs)
-        return header

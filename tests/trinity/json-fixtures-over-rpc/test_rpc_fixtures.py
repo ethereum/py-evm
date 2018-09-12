@@ -92,6 +92,19 @@ SLOW_TESTS = (
     'DelegateCallSpam_EIP150',
 )
 
+# These are tests that are thought to be incorrect or buggy upstream,
+# at the commit currently checked out in submodule `fixtures`.
+# Ideally, this list should be empty.
+# WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
+INCORRECT_UPSTREAM_TESTS = {
+    # The test considers a "synthetic" scenario (the state described there can't
+    # be arrived at using regular consensus rules).
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418775512
+    # The result is in conflict with the yellow-paper:
+    # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Byzantium'),  # noqa: E501
+}
+
 RPC_STATE_NORMALIZERS = {
     'balance': remove_leading_zeros,
     'code': empty_to_0x,
@@ -162,6 +175,8 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name):
             if not should_run_slow_tests():
                 return pytest.mark.skip("skipping slow test on a quick run")
             break
+    if (fixture_path, fixture_name) in INCORRECT_UPSTREAM_TESTS:
+        return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
 def pytest_generate_tests(metafunc):

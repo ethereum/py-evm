@@ -19,13 +19,13 @@ from .commands import (
     NewBlock,
     Status,
 )
-from trinity.protocol.eth import constants
+from .constants import MAX_HEADERS_FETCH
 from .proto import ETHProtocol
 from .handlers import ETHExchangeHandler
 
 
 class ETHPeer(BasePeer):
-    max_headers_fetch = constants.MAX_HEADERS_FETCH
+    max_headers_fetch = MAX_HEADERS_FETCH
 
     _supported_sub_protocols = [ETHProtocol]
     sub_proto: ETHProtocol = None

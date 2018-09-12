@@ -43,12 +43,15 @@ from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import SYNC_LIGHT
 
+<<<<<<< HEAD
 from eth.rlp.headers import BlockHeader
 
 from .xdg import (
     get_xdg_trinity_root,
 )
 
+=======
+>>>>>>> 53250679168db80b02d611b3b2b324cf2d6a6c3c
 
 DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
@@ -144,23 +147,23 @@ def get_eip1085_genesis_config(genesis_path: Path) -> Dict:
 #
 # Filesystem path utils
 #
-def get_local_data_dir(chain_name: str) -> Path:
+def get_local_data_dir(chain_name: str, trinity_root_dir: Path) -> Path:
     """
     Returns the base directory path where data for a given chain will be stored.
     """
     try:
         return Path(os.environ['TRINITY_DATA_DIR'])
     except KeyError:
-        return Path(os.path.join(get_xdg_trinity_root(), chain_name))
+        return trinity_root_dir / chain_name
 
 
-def get_data_dir_for_network_id(network_id: int) -> Path:
+def get_data_dir_for_network_id(network_id: int, trinity_root_dir: Path) -> Path:
     """
     Returns the data directory for the chain associated with the given network
     id.  If the network id is unknown, raises a KeyError.
     """
     try:
-        return get_local_data_dir(DEFAULT_DATA_DIRS[network_id])
+        return get_local_data_dir(DEFAULT_DATA_DIRS[network_id], trinity_root_dir)
     except KeyError:
         raise KeyError("Unknown network id: `{0}`".format(network_id))
 
@@ -238,6 +241,10 @@ def construct_chain_config_params(
     Helper function for constructing the kwargs to initialize a ChainConfig object.
     """
     yield 'network_id', args.network_id
+    yield 'use_discv5', args.discv5
+
+    if args.trinity_root_dir is not None:
+        yield 'trinity_root_dir', args.trinity_root_dir
 
     if args.genesis is not None:
         if args.data_dir is None:

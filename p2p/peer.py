@@ -103,6 +103,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
+    from trinity.protocol.common.proto import ChainInfo  # noqa: F401
     from trinity.protocol.eth.requests import HeaderRequest  # noqa: F401
     from trinity.protocol.base_request import BaseRequest  # noqa: F401
 
@@ -190,6 +191,7 @@ class BasePeer(BaseService):
         self._subscribers: List[PeerSubscriber] = []
         self.start_time = datetime.datetime.now()
         self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
+        self.booted = asyncio.Event()
 
         self.egress_mac = egress_mac
         self.ingress_mac = ingress_mac
@@ -256,8 +258,8 @@ class BasePeer(BaseService):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
             raise HandshakeFailure(
-                "{} disconnected before completing sub-proto handshake: {}".format(
-                    self, msg['reason_name']))
+                f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
+            )
         await self.process_sub_proto_handshake(cmd, msg)
         self.logger.debug("Finished %s handshake with %s", self.sub_proto, self.remote)
 
@@ -278,8 +280,9 @@ class BasePeer(BaseService):
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
-            raise HandshakeFailure("{} disconnected before completing handshake: {}".format(
-                self, msg['reason_name']))
+            raise HandshakeFailure(
+                f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
+            )
         await self.process_p2p_handshake(cmd, msg)
 
     @property
@@ -290,6 +293,7 @@ class BasePeer(BaseService):
 
     @property
     async def _local_chain_info(self) -> 'ChainInfo':
+        from trinity.protocol.common.proto import ChainInfo  # noqa: F811
         genesis = await self.genesis
         head = await self.wait(self.headerdb.coro_get_canonical_head())
         total_difficulty = await self.headerdb.coro_get_score(head.hash)
@@ -313,7 +317,7 @@ class BasePeer(BaseService):
         elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
             return self.sub_proto.cmd_by_id[cmd_id]
         else:
-            raise UnknownProtocolCommand("No protocol found for cmd_id {}".format(cmd_id))
+            raise UnknownProtocolCommand(f"No protocol found for cmd_id {cmd_id}")
 
     async def read(self, n: int) -> bytes:
         self.logger.trace("Waiting for %s bytes from %s", n, self.remote)
@@ -341,7 +345,84 @@ class BasePeer(BaseService):
     async def _cleanup(self) -> None:
         self.close()
 
+    async def boot(self) -> None:
+        if not self.events.started.is_set():
+            raise RuntimeError("Cannot boot a Peer which has not been started.")
+
+        try:
+            await self._boot()
+        except OperationCancelled:
+            # If a cancellation happens during boot we suppress it here and
+            # simply exit without setting the `booted` event.
+            return
+        else:
+            self.booted.set()
+
+    async def _boot(self) -> None:
+        try:
+            await self.ensure_same_side_on_dao_fork()
+        except DAOForkCheckFailure as err:
+            self.logger.debug("DAO fork check with %s failed: %s", self, err)
+            await self.disconnect(DisconnectReason.useless_peer)
+            raise
+        except Exception as err:
+            self.logger.exception('ERROR BOOTING')
+            raise
+
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = None
+
+    async def ensure_same_side_on_dao_fork(self) -> None:
+        """Ensure we're on the same side of the DAO fork
+
+        In order to do that we have to request the DAO fork block and its parent, but while we
+        wait for that we may receive other messages from the peer, which are returned so that they
+        can be re-added to our subscribers' queues when the peer is finally added to the pool.
+        """
+        for start_block, vm_class in self.vm_configuration:
+            if not issubclass(vm_class, HomesteadVM):
+                continue
+            elif not vm_class.support_dao_fork:
+                break
+            elif start_block > vm_class.dao_fork_block_number:
+                # VM comes after the fork, so stop checking
+                break
+
+            start_block = vm_class.dao_fork_block_number - 1
+
+            try:
+                headers = await self.requests.get_block_headers(  # type: ignore
+                    start_block,
+                    max_headers=2,
+                    reverse=False,
+                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
+                )
+
+            except (TimeoutError, PeerConnectionLost) as err:
+                raise DAOForkCheckFailure(
+                    f"Timed out waiting for DAO fork header from {self}: {err}"
+                ) from err
+            except ValidationError as err:
+                raise DAOForkCheckFailure(
+                    f"Invalid header response during DAO fork check: {err}"
+                ) from err
+
+            if len(headers) != 2:
+                raise DAOForkCheckFailure(
+                    f"Peer {self} failed to return DAO fork check headers"
+                )
+            else:
+                parent, header = headers
+
+            try:
+                vm_class.validate_header(header, parent, check_seal=True)
+            except ValidationError as err:
+                raise DAOForkCheckFailure(f"Peer failed DAO fork check validation: {err}")
+
     async def _run(self) -> None:
+        # The `boot` process is run in the background to allow the `run` loop
+        # to continue so that all of the Peer APIs can be used within the
+        # `boot` task.
+        self.run_task(self.boot())
         while self.is_operational:
             try:
                 cmd, msg = await self.read_msg()
@@ -405,7 +486,7 @@ class BasePeer(BaseService):
             # update the last time we heard from a peer in our DB (which doesn't exist yet).
             pass
         else:
-            raise UnexpectedMessage("Unexpected msg: {} ({})".format(cmd, msg))
+            raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
 
     def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         cmd_type = type(cmd)
@@ -436,22 +517,23 @@ class BasePeer(BaseService):
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
-            raise HandshakeFailure("Expected a Hello msg, got {}, disconnecting".format(cmd))
+            raise HandshakeFailure(f"Expected a Hello msg, got {cmd}, disconnecting")
         remote_capabilities = msg['capabilities']
         try:
             self.sub_proto = self.select_sub_protocol(remote_capabilities)
         except NoMatchingPeerCapabilities:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "No matching capabilities between us ({}) and {} ({}), disconnecting".format(
-                    self.capabilities, self.remote, remote_capabilities))
+                f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
+                f"({remote_capabilities}), disconnecting"
+            )
         self.logger.debug(
             "Finished P2P handshake with %s, using sub-protocol %s",
             self.remote, self.sub_proto)
 
     def encrypt(self, header: bytes, frame: bytes) -> bytes:
         if len(header) != HEADER_LEN:
-            raise ValueError("Unexpected header length: {}".format(len(header)))
+            raise ValueError(f"Unexpected header length: {len(header)}")
 
         header_ciphertext = self.aes_enc.update(header)
         mac_secret = self.egress_mac.digest()[:HEADER_LEN]
@@ -470,7 +552,9 @@ class BasePeer(BaseService):
 
     def decrypt_header(self, data: bytes) -> bytes:
         if len(data) != HEADER_LEN + MAC_LEN:
-            raise ValueError("Unexpected header length: {}".format(len(data)))
+            raise ValueError(
+                f"Unexpected header length: {len(data)}, expected {HEADER_LEN} + {MAC_LEN}"
+            )
 
         header_ciphertext = data[:HEADER_LEN]
         header_mac = data[HEADER_LEN:]
@@ -479,15 +563,17 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(aes, header_ciphertext))
         expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
         if not bytes_eq(expected_header_mac, header_mac):
-            raise DecryptionError('Invalid header mac: expected {}, got {}'.format(
-                expected_header_mac, header_mac))
+            raise DecryptionError(
+                f'Invalid header mac: expected {expected_header_mac}, got {header_mac}'
+            )
         return self.aes_dec.update(header_ciphertext)
 
     def decrypt_body(self, data: bytes, body_size: int) -> bytes:
         read_size = roundup_16(body_size)
         if len(data) < read_size + MAC_LEN:
-            raise ValueError('Insufficient body length; Got {}, wanted {}'.format(
-                len(data), (read_size + MAC_LEN)))
+            raise ValueError(
+                f'Insufficient body length; Got {len(data)}, wanted {read_size} + {MAC_LEN}'
+            )
 
         frame_ciphertext = data[:read_size]
         frame_mac = data[read_size:read_size + MAC_LEN]
@@ -497,8 +583,9 @@ class BasePeer(BaseService):
         self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
         expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
         if not bytes_eq(expected_frame_mac, frame_mac):
-            raise DecryptionError('Invalid frame mac: expected %s, got %s'.format(
-                expected_frame_mac, frame_mac))
+            raise DecryptionError(
+                f'Invalid frame mac: expected {expected_frame_mac}, got {frame_mac}'
+            )
         return self.aes_dec.update(frame_ciphertext)[:body_size]
 
     def get_frame_size(self, header: bytes) -> int:
@@ -526,7 +613,8 @@ class BasePeer(BaseService):
         """
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
-                "Reason must be an item of DisconnectReason, got {}".format(reason))
+                f"Reason must be an item of DisconnectReason, got {reason}"
+            )
         self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
@@ -555,10 +643,10 @@ class BasePeer(BaseService):
         raise NoMatchingPeerCapabilities()
 
     def __str__(self) -> str:
-        return "{} {}".format(self.__class__.__name__, self.remote)
+        return f"{self.__class__.__name__} {self.remote}"
 
     def __repr__(self) -> str:
-        return "{} {}".format(self.__class__.__name__, repr(self.remote))
+        return f"{self.__class__.__name__} {self.remote!r}"
 
     def __hash__(self) -> int:
         return hash(self.remote)
@@ -732,25 +820,26 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
+        # TODO: temporary hack until all of this EVM stuff can be fully
+        # removed from the BasePeer and PeerPool classes.
+        peer.vm_configuration = self.vm_configuration
+
         self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
         try:
-            # Although connect() may seem like a more appropriate place to perform the DAO fork
-            # check, we do it here because we want to perform it for incoming peer connections as
-            # well.
             with peer.collect_sub_proto_messages() as buffer:
-                await self.ensure_same_side_on_dao_fork(peer)
-        except DAOForkCheckFailure as err:
-            self.logger.debug("DAO fork check with %s failed: %s", peer, err)
-            await peer.disconnect(DisconnectReason.useless_peer)
+                # TODO: update to use a more generic timeout
+                await self.wait(peer.booted.wait(), timeout=CHAIN_SPLIT_CHECK_TIMEOUT)
+        except TimeoutError as err:
+            self.logger.debug('Timout waiting for peer to boot: %s', err)
+            await peer.disconnect(DisconnectReason.timeout)
             return
         else:
-            msgs = tuple((cmd, msg) for _, cmd, msg in buffer.get_messages())
-            self._add_peer(peer, msgs)
+            self._add_peer(peer, buffer.get_messages())
 
     def _add_peer(self,
                   peer: BasePeer,
-                  msgs: Tuple[Tuple[protocol.Command, protocol.PayloadType], ...]) -> None:
+                  msgs: Tuple[PeerMessage, ...]) -> None:
         """Add the given peer to the pool.
 
         Appart from adding it to our list of connected nodes and adding each of our subscriber's
@@ -762,8 +851,8 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
             peer.add_subscriber(subscriber)
-            for cmd, msg in msgs:
-                subscriber.add_msg(PeerMessage(peer, cmd, msg))
+            for msg in msgs:
+                subscriber.add_msg(msg)
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
@@ -838,54 +927,6 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
             if peer is not None:
                 await self.start_peer(peer)
 
-    async def ensure_same_side_on_dao_fork(
-            self, peer: BasePeer) -> None:
-        """Ensure we're on the same side of the DAO fork as the given peer.
-
-        In order to do that we have to request the DAO fork block and its parent, but while we
-        wait for that we may receive other messages from the peer, which are returned so that they
-        can be re-added to our subscribers' queues when the peer is finally added to the pool.
-        """
-        for start_block, vm_class in self.vm_configuration:
-            if not issubclass(vm_class, HomesteadVM):
-                continue
-            elif not vm_class.support_dao_fork:
-                break
-            elif start_block > vm_class.dao_fork_block_number:
-                # VM comes after the fork, so stop checking
-                break
-
-            start_block = vm_class.dao_fork_block_number - 1
-
-            try:
-                headers = await peer.requests.get_block_headers(  # type: ignore
-                    start_block,
-                    max_headers=2,
-                    reverse=False,
-                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
-                )
-
-            except (TimeoutError, PeerConnectionLost) as err:
-                raise DAOForkCheckFailure(
-                    "Timed out waiting for DAO fork header from {}: {}".format(peer, err)
-                ) from err
-            except ValidationError as err:
-                raise DAOForkCheckFailure(
-                    "Invalid header response during DAO fork check: {}".format(err)
-                ) from err
-
-            if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    "Peer %s failed to return DAO fork check headers".format(peer)
-                )
-            else:
-                parent, header = headers
-
-            try:
-                vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as err:
-                raise DAOForkCheckFailure("Peer failed DAO fork check validation: {}".format(err))
-
     def _peer_finished(self, peer: BaseService) -> None:
         """Remove the given peer from our list of connected nodes.
         This is passed as a callback to be called when a peer finishes.
@@ -948,10 +989,7 @@ class PeerPool(BaseService, AsyncIterable[BasePeer]):
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
-            try:
-                await self.sleep(self._report_interval)
-            except OperationCancelled:
-                break
+            await self.sleep(self._report_interval)
 
 
 class ConnectedPeersIterator(AsyncIterator[BasePeer]):
@@ -1010,18 +1048,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("34.198.237.7", 30303, 30303)),
     ),
 }
-
-
-class ChainInfo:
-    def __init__(self,
-                 block_number: int,
-                 block_hash: Hash32,
-                 total_difficulty: int,
-                 genesis_hash: Hash32) -> None:
-        self.block_number = block_number
-        self.block_hash = block_hash
-        self.total_difficulty = total_difficulty
-        self.genesis_hash = genesis_hash
 
 
 def _test() -> None:

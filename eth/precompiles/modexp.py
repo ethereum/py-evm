@@ -35,7 +35,7 @@ def _compute_complexity(length):
             length ** 2 // 4 + 96 * length - 3072
         )
     else:
-        return 2 ** 2 // 16 + 480 * length - 199680
+        return length ** 2 // 16 + 480 * length - 199680
 
 
 def _extract_lengths(data):

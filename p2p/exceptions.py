@@ -167,3 +167,10 @@ class AlreadyWaitingDiscoveryResponse(BaseP2PError):
     Raised when we are already waiting for a discovery response from a given remote.
     """
     pass
+
+
+class UnableToGetDiscV5Ticket(BaseP2PError):
+    """
+    Raised when we're unable to get a discv5 ticket from a remote peer.
+    """
+    pass

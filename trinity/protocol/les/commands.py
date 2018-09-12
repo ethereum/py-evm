@@ -111,15 +111,6 @@ class Status(Command):
             # See comment in the definition of item_sedes as to why we do this.
             return b''
 
-    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
-        decoded = cast(Dict[str, Any], decoded)
-        return HeadInfo(
-            block_number=decoded['headNum'],
-            block_hash=decoded['headHash'],
-            total_difficulty=decoded['headTd'],
-            reorg_depth=0,
-        )
-
 
 class Announce(Command):
     _cmd_id = 1
@@ -128,19 +119,10 @@ class Announce(Command):
         ('head_number', sedes.big_endian_int),
         ('head_td', sedes.big_endian_int),
         ('reorg_depth', sedes.big_endian_int),
+        # TODO: The params CountableList may contain any of the values from the
+        # Status msg.  Need to extend this command to process that too.
         ('params', sedes.CountableList(sedes.List([sedes.text, sedes.raw]))),
     ]
-    # TODO: The params CountableList above may contain any of the values from the Status msg.
-    # Need to extend this command to process that too.
-
-    def as_head_info(self, decoded: _DecodedMsgType) -> HeadInfo:
-        decoded = cast(Dict[str, Any], decoded)
-        return HeadInfo(
-            block_number=decoded['head_number'],
-            block_hash=decoded['head_hash'],
-            total_difficulty=decoded['head_td'],
-            reorg_depth=decoded['reorg_depth'],
-        )
 
 
 class GetBlockHeadersQuery(rlp.Serializable):
