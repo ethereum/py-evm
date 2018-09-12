@@ -186,7 +186,7 @@ class ChainConfig:
         """
         return self._chain_vm_config
 
-
+    @property
     def trinity_root_dir(self) -> Path:
         """
         The trinity_root_dir is the base directory that all trinity data is
