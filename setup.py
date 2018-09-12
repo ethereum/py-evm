@@ -43,6 +43,7 @@ deps = {
         "plyvel==1.0.5",
         "web3==4.4.1",
         "lahja==0.6.1",
+        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin'",
     ],
     'test': [
         "hypothesis==3.69.5",
