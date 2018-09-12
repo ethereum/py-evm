@@ -43,15 +43,8 @@ from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import SYNC_LIGHT
 
-<<<<<<< HEAD
 from eth.rlp.headers import BlockHeader
 
-from .xdg import (
-    get_xdg_trinity_root,
-)
-
-=======
->>>>>>> 53250679168db80b02d611b3b2b324cf2d6a6c3c
 
 DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
