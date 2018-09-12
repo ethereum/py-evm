@@ -220,7 +220,7 @@ class BaseService(ABC, CancellableMixin):
 
         @functools.wraps(callback)
         async def _call_later_wrapped() -> None:
-            self.sleep(delay)
+            await self.sleep(delay)
             callback(*args)
 
         self.run_task(_call_later_wrapped())
