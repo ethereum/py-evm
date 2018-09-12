@@ -67,7 +67,7 @@ def block(request, header):
 def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
-    chaindb._add_block_number_to_hash_lookup(block.header)
+    chaindb.persist_block(block)
     assert chaindb.exists(block_number_to_hash_key)
 
 
@@ -126,6 +126,6 @@ def test_chaindb_get_block_header_by_hash(chaindb, block, header):
 
 def test_chaindb_get_canonical_block_hash(chaindb, block):
     block = block.copy(header=set_empty_root(chaindb, block.header))
-    chaindb._add_block_number_to_hash_lookup(block.header)
+    chaindb.persist_block(block)
     block_hash = chaindb.get_canonical_block_hash(block.number)
     assert block_hash == block.hash

@@ -41,7 +41,8 @@ from eth.exceptions import (
 )
 from eth.db.header import BaseHeaderDB, HeaderDB
 from eth.db.backends.base import (
-    BaseAtomicDB
+    BaseAtomicDB,
+    BaseDB,
 )
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import (
@@ -183,37 +184,37 @@ class ChainDB(HeaderDB, BaseChainDB):
         else:
             return rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader))
 
-    def _set_as_canonical_chain_head(self,
-                                     block_hash: Hash32
+    @classmethod
+    def _set_as_canonical_chain_head(cls,
+                                     db: BaseDB,
+                                     block_hash: Hash32,
                                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
-        """
-        Returns iterable of headers newly on the canonical head
-        """
         try:
-            header = self.get_block_header_by_hash(block_hash)
+            header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
             raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
                 header.hash))
 
-        new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
+        new_canonical_headers = tuple(reversed(cls._find_new_ancestors(db, header)))
         old_canonical_headers = []
+
         # remove transaction lookups for blocks that are no longer canonical
         for h in new_canonical_headers:
             try:
-                old_hash = self.get_canonical_block_hash(h.block_number)
+                old_hash = cls._get_canonical_block_hash(db, h.block_number)
             except HeaderNotFound:
                 # no old block, and no more possible
                 break
             else:
-                old_header = self.get_block_header_by_hash(old_hash)
+                old_header = cls._get_block_header_by_hash(db, old_hash)
                 old_canonical_headers.append(old_header)
-                for transaction_hash in self.get_block_transaction_hashes(old_header):
-                    self._remove_transaction_from_canonical_chain(transaction_hash)
+                for transaction_hash in cls._get_block_transaction_hashes(db, old_header):
+                    cls._remove_transaction_from_canonical_chain(db, transaction_hash)
 
         for h in new_canonical_headers:
-            self._add_block_number_to_hash_lookup(h)
+            cls._add_block_number_to_hash_lookup(db, h)
 
-        self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
+        db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
         return new_canonical_headers, tuple(old_canonical_headers)
 
@@ -228,7 +229,16 @@ class ChainDB(HeaderDB, BaseChainDB):
 
         Assumes all block transactions have been persisted already.
         '''
-        new_canonical_headers, old_canonical_headers = self.persist_header(block.header)
+        with self.db.atomic_batch() as db:
+            return self._persist_block(db, block)
+
+    @classmethod
+    def _persist_block(
+            cls,
+            db: 'BaseDB',
+            block: 'BaseBlock') -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+        header_chain = (block.header, )
+        new_canonical_headers, old_canonical_headers = cls._persist_header_chain(db, header_chain)
 
         for header in new_canonical_headers:
             if header.hash == block.hash:
@@ -237,13 +247,13 @@ class ChainDB(HeaderDB, BaseChainDB):
                 # is specially important during a fast sync.
                 tx_hashes = [tx.hash for tx in block.transactions]
             else:
-                tx_hashes = self.get_block_transaction_hashes(header)
+                tx_hashes = cls._get_block_transaction_hashes(db, header)
 
             for index, transaction_hash in enumerate(tx_hashes):
-                self._add_transaction_to_canonical_chain(transaction_hash, header, index)
+                cls._add_transaction_to_canonical_chain(db, transaction_hash, header, index)
 
         if block.uncles:
-            uncles_hash = self.persist_uncles(block.uncles)
+            uncles_hash = cls._persist_uncles(db, block.uncles)
         else:
             uncles_hash = EMPTY_UNCLE_HASH
         if uncles_hash != block.header.uncles_hash:
@@ -262,8 +272,12 @@ class ChainDB(HeaderDB, BaseChainDB):
 
         Returns the uncles hash.
         """
+        return self._persist_uncles(self.db, uncles)
+
+    @staticmethod
+    def _persist_uncles(db: BaseDB, uncles: Tuple[BlockHeader]) -> Hash32:
         uncles_hash = keccak(rlp.encode(uncles))
-        self.db.set(
+        db.set(
             uncles_hash,
             rlp.encode(uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
         return uncles_hash
@@ -304,13 +318,21 @@ class ChainDB(HeaderDB, BaseChainDB):
         """
         return self._get_block_transactions(header.transaction_root, transaction_class)
 
-    @to_list
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
         """
         Returns an iterable of the transaction hashes from th block specified
         by the given block header.
         """
-        all_encoded_transactions = self._get_block_transaction_data(
+        return self._get_block_transaction_hashes(self.db, block_header)
+
+    @classmethod
+    @to_list
+    def _get_block_transaction_hashes(
+            cls,
+            db: BaseDB,
+            block_header: BlockHeader) -> Iterable[Hash32]:
+        all_encoded_transactions = cls._get_block_transaction_data(
+            db,
             block_header.transaction_root,
         )
         for encoded_transaction in all_encoded_transactions:
@@ -376,11 +398,12 @@ class ChainDB(HeaderDB, BaseChainDB):
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
 
-    def _get_block_transaction_data(self, transaction_root: Hash32) -> Iterable[Hash32]:
+    @staticmethod
+    def _get_block_transaction_data(db: BaseDB, transaction_root: Hash32) -> Iterable[Hash32]:
         '''
         Returns iterable of the encoded transactions for the given block header
         '''
-        transaction_db = HexaryTrie(self.db, root_hash=transaction_root)
+        transaction_db = HexaryTrie(db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
             if transaction_key in transaction_db:
@@ -397,17 +420,19 @@ class ChainDB(HeaderDB, BaseChainDB):
         """
         Memoizable version of `get_block_transactions`
         """
-        for encoded_transaction in self._get_block_transaction_data(transaction_root):
+        for encoded_transaction in self._get_block_transaction_data(self.db, transaction_root):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
-    def _remove_transaction_from_canonical_chain(self, transaction_hash: Hash32) -> None:
+    @staticmethod
+    def _remove_transaction_from_canonical_chain(db: BaseDB, transaction_hash: Hash32) -> None:
         """
         Removes the transaction specified by the given hash from the canonical
         chain.
         """
-        self.db.delete(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
+        db.delete(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
 
-    def _add_transaction_to_canonical_chain(self,
+    @staticmethod
+    def _add_transaction_to_canonical_chain(db: BaseDB,
                                             transaction_hash: Hash32,
                                             block_header: BlockHeader,
                                             index: int) -> None:
@@ -419,7 +444,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         - remove transaction hash to body lookup in the pending pool
         """
         transaction_key = TransactionKey(block_header.block_number, index)
-        self.db.set(
+        db.set(
             SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
@@ -443,5 +468,6 @@ class ChainDB(HeaderDB, BaseChainDB):
         """
         Store raw trie data to db from a dict
         """
-        for key, value in trie_data_dict.items():
-            self.db[key] = value
+        with self.db.atomic_batch() as db:
+            for key, value in trie_data_dict.items():
+                db[key] = value
