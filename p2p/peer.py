@@ -361,6 +361,10 @@ class BasePeer(BaseService):
     async def _boot(self) -> None:
         try:
             await self.ensure_same_side_on_dao_fork()
+        except OperationCancelled:
+            # Need to catch and re-raise OperationCancelled here or else it's logged as an error
+            # booting a few lines below.
+            raise
         except DAOForkCheckFailure as err:
             self.logger.debug("DAO fork check with %s failed: %s", self, err)
             await self.disconnect(DisconnectReason.useless_peer)
@@ -444,7 +448,7 @@ class BasePeer(BaseService):
             try:
                 self.process_msg(cmd, msg)
             except RemoteDisconnected as e:
-                self.logger.debug("%s disconnected: %s", self, e)
+                self.logger.debug("%r disconnected: %s", self, e)
                 return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
@@ -1062,6 +1066,7 @@ def _test() -> None:
     """
     import argparse
     import signal
+    from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.db.backends.memory import MemoryDB
     from eth.tools.logging import TRACE_LEVEL_NUM
@@ -1071,16 +1076,25 @@ def _test() -> None:
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-mainnet', action='store_true')
     parser.add_argument('-enode', type=str, help="The enode we should connect to")
     parser.add_argument('-light', action='store_true', help="Connect as a light node")
     args = parser.parse_args()
+
+    if args.mainnet:
+        network_id = MainnetChain.network_id
+        vm_config = MAINNET_VM_CONFIGURATION
+        genesis = MAINNET_GENESIS_HEADER
+    else:
+        network_id = RopstenChain.network_id
+        vm_config = ROPSTEN_VM_CONFIGURATION
+        genesis = ROPSTEN_GENESIS_HEADER
 
     peer_class: Type[BasePeer] = ETHPeer
     if args.light:
         peer_class = LESPeer
     headerdb = FakeAsyncHeaderDB(MemoryDB())
-    headerdb.persist_header(ROPSTEN_GENESIS_HEADER)
-    network_id = RopstenChain.network_id
+    headerdb.persist_header(genesis)
     loop = asyncio.get_event_loop()
     nodes = [Node.from_uri(args.enode)]
 
@@ -1089,7 +1103,7 @@ def _test() -> None:
         headerdb,
         network_id,
         ecies.generate_privkey(),
-        ROPSTEN_VM_CONFIGURATION,
+        vm_config,
     )
 
     asyncio.ensure_future(peer_pool.run())
