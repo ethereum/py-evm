@@ -5,6 +5,8 @@ import pytest
 from p2p.exceptions import NoMatchingPeerCapabilities
 from p2p.p2p_proto import DisconnectReason, P2PProtocol
 
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.proto import ETHProtocol
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.proto import (
     LESProtocol,
@@ -18,15 +20,22 @@ from tests.trinity.core.peer_helpers import (
 )
 
 
+@pytest.mark.parametrize(
+    'peer_class,proto',
+    (
+        (LESPeer, LESProtocolV2),
+        (ETHPeer, ETHProtocol),
+    )
+)
 @pytest.mark.asyncio
-async def test_directly_linked_peers(request, event_loop):
-    peer1, _ = await get_directly_linked_peers(request, event_loop)
-    assert isinstance(peer1.sub_proto, LESProtocolV2)
+async def test_directly_linked_peers(request, event_loop, peer_class, proto):
+    peer1, _ = await get_directly_linked_peers(request, event_loop, alice_peer_class=peer_class)
+    assert isinstance(peer1.sub_proto, proto)
 
 
 @pytest.mark.asyncio
 async def test_les_handshake():
-    peer1, peer2 = await get_directly_linked_peers_without_handshake()
+    peer1, peer2 = await get_directly_linked_peers_without_handshake(alice_peer_class=LESPeer)
 
     # Perform the base protocol (P2P) handshake.
     await asyncio.gather(peer1.do_p2p_handshake(), peer2.do_p2p_handshake())

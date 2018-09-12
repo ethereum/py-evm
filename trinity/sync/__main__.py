@@ -1,13 +1,15 @@
 import asyncio
 import logging
 from typing import (
+    cast,
     Type,
     Union,
 )
 
 from eth.exceptions import HeaderNotFound
 
-from p2p.peer import PeerPool
+from trinity.protocol.eth.peer import ETHPeerPool
+from trinity.protocol.les.peer import LESPeerPool
 
 from .common.chain import BaseHeaderChainSyncer
 from .full.chain import FastChainSyncer, RegularChainSyncer
@@ -20,15 +22,14 @@ def _test() -> None:
     import signal
     from p2p import ecies
     from p2p.kademlia import Node
-    from p2p.peer import DEFAULT_PREFERRED_NODES
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
         connect_to_peers_loop)
-    from trinity.protocol.eth.peer import ETHPeer
-    from trinity.protocol.les.peer import LESPeer
+    from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.common.context import ChainContext
     from trinity.utils.chains import load_nodekey
 
     parser = argparse.ArgumentParser()
@@ -57,9 +58,9 @@ def _test() -> None:
         genesis = ROPSTEN_GENESIS_HEADER
         chaindb.persist_header(genesis)
 
-    peer_class: Type[Union[ETHPeer, LESPeer]] = ETHPeer
+    peer_pool_class: Type[Union[ETHPeerPool, LESPeerPool]] = ETHPeerPool
     if args.light:
-        peer_class = LESPeer
+        peer_pool_class = LESPeerPool
 
     if genesis.hash == ROPSTEN_GENESIS_HEADER.hash:
         network_id = RopstenChain.network_id
@@ -71,11 +72,20 @@ def _test() -> None:
         chain_class = FakeAsyncMainnetChain
     else:
         raise RuntimeError("Unknown genesis: %s", genesis)
+
     if args.nodekey:
         privkey = load_nodekey(Path(args.nodekey))
     else:
         privkey = ecies.generate_privkey()
-    peer_pool = PeerPool(peer_class, headerdb, network_id, privkey, vm_config)
+
+    context = ChainContext(
+        headerdb=headerdb,
+        network_id=network_id,
+        vm_configuration=vm_config,
+    )
+
+    peer_pool = peer_pool_class(privkey=privkey, context=context)
+
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
@@ -86,11 +96,11 @@ def _test() -> None:
     chain = chain_class(base_db)
     syncer: BaseHeaderChainSyncer = None
     if args.fast:
-        syncer = FastChainSyncer(chain, chaindb, peer_pool)
+        syncer = FastChainSyncer(chain, chaindb, cast(ETHPeerPool, peer_pool))
     elif args.light:
-        syncer = LightChainSyncer(chain, headerdb, peer_pool)
+        syncer = LightChainSyncer(chain, headerdb, cast(LESPeerPool, peer_pool))
     else:
-        syncer = RegularChainSyncer(chain, chaindb, peer_pool)
+        syncer = RegularChainSyncer(chain, chaindb, cast(ETHPeerPool, peer_pool))
     syncer.logger.setLevel(log_level)
     syncer.min_peers_to_sync = 1
 

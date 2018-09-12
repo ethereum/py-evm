@@ -11,16 +11,13 @@ from typing import (
 
 class AsyncProcessRunner():
 
-    def __init__(self, debug_fn: Callable[[bytes], None] = None) -> None:
+    def __init__(self,
+                 loop: asyncio.AbstractEventLoop,
+                 debug_fn: Callable[[bytes], None] = None) -> None:
+        # This ensures that calls to `asyncio.create_subprocess_*` will not
+        # error out due to there being no attached event loop
+        asyncio.get_child_watcher().attach_loop(loop)
         self.debug_fn = debug_fn
-
-    @classmethod
-    async def create_and_run(cls,
-                             cmds: Tuple[str, ...],
-                             timeout_sec: int=10) -> 'AsyncProcessRunner':
-        runner = cls()
-        await runner.run(cmds, timeout_sec)
-        return runner
 
     async def run(self, cmds: Tuple[str, ...], timeout_sec: int=10) -> None:
         proc = await asyncio.create_subprocess_exec(
@@ -63,4 +60,7 @@ class AsyncProcessRunner():
         raise TimeoutError('Killed process after {} seconds'.format(timeout_sec))
 
     def kill(self) -> None:
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        try:
+            os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass

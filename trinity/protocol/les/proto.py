@@ -1,6 +1,7 @@
 from typing import (
     List,
     Tuple,
+    TYPE_CHECKING,
     Union,
 )
 
@@ -39,6 +40,9 @@ from .commands import (
 )
 from . import constants
 
+if TYPE_CHECKING:
+    from .peer import LESPeer  # noqa: F401
+
 
 class LESProtocol(Protocol):
     name = 'les'
@@ -46,6 +50,7 @@ class LESProtocol(Protocol):
     _commands = [Status, Announce, BlockHeaders, GetBlockHeaders, BlockBodies, Receipts, Proofs,
                  ContractCodes]
     cmd_length = 15
+    peer: 'LESPeer'
 
     def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {

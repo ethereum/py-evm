@@ -1,10 +1,12 @@
+from abc import abstractmethod
 import asyncio
 import logging
 import secrets
 from typing import (
+    cast,
     Sequence,
     Tuple,
-    Type,
+    Union,
 )
 
 from eth_keys import datatypes
@@ -42,17 +44,16 @@ from p2p.nat import UPnPService
 from p2p.p2p_proto import (
     DisconnectReason,
 )
-from p2p.peer import (
-    BasePeer,
-    DEFAULT_PREFERRED_NODES,
-    PeerPool,
-)
+from p2p.peer import BasePeer, PeerConnection
 from p2p.service import BaseService
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+from trinity.protocol.common.context import ChainContext
+from trinity.protocol.eth.peer import ETHPeerPool
+from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.full.service import FullNodeSyncer
 from trinity.sync.light.chain import LightChainSyncer
 
@@ -60,11 +61,13 @@ from trinity.sync.light.chain import LightChainSyncer
 DIAL_IN_OUT_RATIO = 0.75
 
 
-class Server(BaseService):
+ANY_PEER_POOL = Union[ETHPeerPool, LESPeerPool]
+
+
+class BaseServer(BaseService):
     """Server listening for incoming connections"""
     _tcp_listener = None
-
-    peer_pool: PeerPool = None
+    peer_pool: ANY_PEER_POOL
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -75,7 +78,6 @@ class Server(BaseService):
                  base_db: AsyncBaseDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 peer_class: Type[BasePeer] = ETHPeer,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
                  token: CancelToken = None,
@@ -88,17 +90,24 @@ class Server(BaseService):
         self.privkey = privkey
         self.port = port
         self.network_id = network_id
-        self.peer_class = peer_class
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
         self.preferred_nodes = preferred_nodes
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
         self.upnp_service = UPnPService(port, token=self.cancel_token)
-        self.peer_pool = self._make_peer_pool()
 
         if not bootstrap_nodes:
             self.logger.warn("Running with no bootstrap nodes")
+        self.peer_pool = self._make_peer_pool()
+
+    @abstractmethod
+    def _make_peer_pool(self) -> ANY_PEER_POOL:
+        pass
+
+    @abstractmethod
+    def _make_syncer(self) -> BaseService:
+        pass
 
     async def _start_tcp_listener(self) -> None:
         # TODO: Support IPv6 addresses as well.
@@ -112,23 +121,6 @@ class Server(BaseService):
         if self._tcp_listener:
             self._tcp_listener.close()
             await self._tcp_listener.wait_closed()
-
-    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
-        # This method exists only so that ShardSyncer can provide a different implementation.
-        return FullNodeSyncer(
-            self.chain, self.chaindb, self.base_db, peer_pool, self.cancel_token)
-
-    def _make_peer_pool(self) -> PeerPool:
-        # This method exists only so that ShardSyncer can provide a different implementation.
-        return PeerPool(
-            self.peer_class,
-            self.headerdb,
-            self.network_id,
-            self.privkey,
-            self.chain.get_vm_configuration(),
-            max_peers=self.max_peers,
-            token=self.cancel_token,
-        )
 
     async def _run(self) -> None:
         self.logger.info("Running server...")
@@ -150,13 +142,17 @@ class Server(BaseService):
         discovery_proto = PreferredNodeDiscoveryProtocol(
             self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes, self.cancel_token)
         self.discovery = DiscoveryService(
-            discovery_proto, self.peer_pool, self.port, self.cancel_token)
+            discovery_proto,
+            self.peer_pool,
+            self.port,
+            token=self.cancel_token,
+        )
         self.run_daemon(self.peer_pool)
         self.run_daemon(self.discovery)
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
         # it as that means if it crashes we'd be terminated as well.
         self.run_child_service(self.upnp_service)
-        self.syncer = self._make_syncer(self.peer_pool)
+        self.syncer = self._make_syncer()
         await self.syncer.run()
 
     async def _cleanup(self) -> None:
@@ -227,19 +223,19 @@ class Server(BaseService):
             auth_init_ciphertext=msg,
             auth_ack_ciphertext=auth_ack_ciphertext
         )
-
-        # Create and register peer in peer_pool
-        peer = self.peer_class(
-            remote=initiator_remote,
-            privkey=self.privkey,
+        connection = PeerConnection(
             reader=reader,
             writer=writer,
             aes_secret=aes_secret,
             mac_secret=mac_secret,
             egress_mac=egress_mac,
             ingress_mac=ingress_mac,
-            headerdb=self.headerdb,
-            network_id=self.network_id,
+        )
+
+        # Create and register peer in peer_pool
+        peer = self.peer_pool.get_peer_factory().create_peer(
+            remote=initiator_remote,
+            connection=connection,
             inbound=True,
         )
 
@@ -268,17 +264,54 @@ class Server(BaseService):
     async def do_handshake(self, peer: BasePeer) -> None:
         await peer.do_p2p_handshake()
         await peer.do_sub_proto_handshake()
-        await self._start_peer(peer)
-
-    async def _start_peer(self, peer: BasePeer) -> None:
-        # This method exists only so that we can monkey-patch it in tests.
         await self.peer_pool.start_peer(peer)
 
 
-class LightServer(Server):
+class FullServer(BaseServer):
+    def _make_peer_pool(self) -> ETHPeerPool:
+        context = ChainContext(
+            headerdb=self.headerdb,
+            network_id=self.network_id,
+            vm_configuration=self.chain.get_vm_configuration(),
+        )
+        return ETHPeerPool(
+            privkey=self.privkey,
+            max_peers=self.max_peers,
+            context=context,
+            token=self.cancel_token,
+        )
 
-    def _make_syncer(self, peer_pool: PeerPool) -> BaseService:
-        return LightChainSyncer(self.chain, self.headerdb, peer_pool, self.cancel_token)
+    def _make_syncer(self) -> FullNodeSyncer:
+        return FullNodeSyncer(
+            self.chain,
+            self.chaindb,
+            self.base_db,
+            cast(ETHPeerPool, self.peer_pool),
+            token=self.cancel_token,
+        )
+
+
+class LightServer(BaseServer):
+    def _make_peer_pool(self) -> LESPeerPool:
+        context = ChainContext(
+            headerdb=self.headerdb,
+            network_id=self.network_id,
+            vm_configuration=self.chain.get_vm_configuration(),
+        )
+        return LESPeerPool(
+            privkey=self.privkey,
+            max_peers=self.max_peers,
+            context=context,
+            token=self.cancel_token,
+        )
+
+    def _make_syncer(self) -> LightChainSyncer:
+        return LightChainSyncer(
+            self.chain,
+            self.headerdb,
+            cast(LESPeerPool, self.peer_pool),
+            self.cancel_token,
+        )
 
 
 def _test() -> None:
@@ -332,7 +365,7 @@ def _test() -> None:
         bootstrap_nodes = ROPSTEN_BOOTNODES
     bootstrap_nodes = [Node.from_uri(enode) for enode in bootstrap_nodes]
 
-    server = Server(
+    server = FullServer(
         privkey,
         port,
         chain,
@@ -340,7 +373,6 @@ def _test() -> None:
         headerdb,
         db,
         RopstenChain.network_id,
-        peer_class=ETHPeer,
         bootstrap_nodes=bootstrap_nodes,
     )
     server.logger.setLevel(log_level)

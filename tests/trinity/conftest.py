@@ -5,16 +5,16 @@ import pytest
 import tempfile
 import uuid
 
-from p2p.peer import PeerPool
+from p2p.tools.paragon import (
+    ParagonContext,
+    ParagonPeerPool,
+)
 
 from trinity.rpc.main import (
     RPCServer,
 )
 from trinity.rpc.ipc import (
     IPCServer,
-)
-from trinity.server import (
-    Server
 )
 from trinity.utils.xdg import (
     get_xdg_trinity_root,
@@ -57,18 +57,10 @@ def jsonrpc_ipc_pipe_path():
         yield Path(temp_dir) / '{0}.ipc'.format(uuid.uuid4())
 
 
-@pytest.fixture
-def p2p_server(monkeypatch, jsonrpc_ipc_pipe_path):
-    monkeypatch.setattr(
-        Server, '_make_peer_pool', lambda s: PeerPool(None, None, None, None, None, None))
-    return Server(None, None, None, None, None, None, None)
-
-
 @pytest.mark.asyncio
 @pytest.fixture
 async def ipc_server(
         monkeypatch,
-        p2p_server,
         jsonrpc_ipc_pipe_path,
         event_loop,
         chain_with_block_validation):
@@ -76,8 +68,9 @@ async def ipc_server(
     This fixture runs a single RPC server over IPC over
     the course of all tests. It yields the IPC server only for monkeypatching purposes
     '''
+    peer_pool = ParagonPeerPool(b'unicornsrainbows' * 2, ParagonContext())
 
-    rpc = RPCServer(chain_with_block_validation, p2p_server.peer_pool)
+    rpc = RPCServer(chain_with_block_validation, peer_pool)
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
 
     asyncio.ensure_future(ipc_server.run(), loop=event_loop)
