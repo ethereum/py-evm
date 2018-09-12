@@ -945,7 +945,6 @@ class DiscoveryByTopicProtocol(DiscoveryProtocol):
 
 
 class DiscoveryService(BaseService):
-    _lookup_running = asyncio.Lock()
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
@@ -955,6 +954,7 @@ class DiscoveryService(BaseService):
         self.proto = proto
         self.peer_pool = peer_pool
         self.port = port
+        self._lookup_running = asyncio.Lock()
 
     async def _run(self) -> None:
         await self._start_udp_listener()
