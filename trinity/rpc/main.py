@@ -12,11 +12,11 @@ from eth_utils import (
 )
 
 from eth.chains.base import (
-    BaseChain
+    AsyncChain,
 )
 
-from p2p.peer import (
-    PeerPool
+from lahja import (
+    Endpoint
 )
 
 from trinity.rpc.modules import (
@@ -74,11 +74,11 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: BaseChain=None, peer_pool: PeerPool=None) -> None:
+    def __init__(self, chain: AsyncChain=None, event_bus: Endpoint=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
-            self.modules[M.__name__.lower()] = M(chain, peer_pool)
+            self.modules[M.__name__.lower()] = M(chain, event_bus)
         if len(self.modules) != len(self.module_classes):
             raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
 
@@ -101,9 +101,9 @@ class RPCServer:
         except AttributeError:
             raise ValueError("Method not implemented: %r" % rpc_method)
 
-    def _get_result(self,
-                    request: Dict[str, Any],
-                    debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
+    async def _get_result(self,
+                          request: Dict[str, Any],
+                          debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
         '''
         :returns: (result, error) - result is None if error is provided. Error must be
             convertable to string with ``str(error)``.
@@ -116,7 +116,7 @@ class RPCServer:
 
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
-            result = method(*params)
+            result = await method(*params)
 
             if request['method'] == 'evm_resetToGenesisFixture':
                 self.chain, result = result, True
@@ -135,19 +135,19 @@ class RPCServer:
         else:
             return result, None
 
-    def execute(self, request: Dict[str, Any]) -> str:
+    async def execute(self, request: Dict[str, Any]) -> str:
         '''
         The key entry point for all incoming requests
         '''
-        result, error = self._get_result(request)
+        result, error = await self._get_result(request)
         return generate_response(request, result, error)
 
     @property
-    def chain(self) -> BaseChain:
+    def chain(self) -> AsyncChain:
         return self.__chain
 
     @chain.setter
-    def chain(self, new_chain: BaseChain) -> None:
+    def chain(self, new_chain: AsyncChain) -> None:
         self.__chain = new_chain
         for module in self.modules.values():
             module.set_chain(new_chain)

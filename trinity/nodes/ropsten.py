@@ -1,8 +1,5 @@
-from eth.chains.ropsten import (
-    RopstenChain,
-)
-
 from trinity.chains.ropsten import (
+    RopstenFullChain,
     RopstenLightDispatchChain,
 )
 from trinity.nodes.light import LightNode
@@ -10,7 +7,7 @@ from trinity.nodes.full import FullNode
 
 
 class RopstenFullNode(FullNode):
-    chain_class = RopstenChain
+    chain_class = RopstenFullChain
 
 
 class RopstenLightNode(LightNode):
