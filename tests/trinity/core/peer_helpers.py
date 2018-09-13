@@ -6,12 +6,13 @@ from eth.chains.mainnet import (
 from eth.db.atomic import AtomicDB
 
 from p2p import ecies
-from p2p.peer import BasePeerContext
 from p2p.tools.paragon.helpers import (
     get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
     get_directly_linked_peers as _get_directly_linked_peers,
 )
 
+
+from trinity.protocol.common.context import ChainContext
 
 from trinity.protocol.eth.peer import (
     ETHPeer,
@@ -46,7 +47,7 @@ async def _setup_alice_and_bob_factories(
     if alice_headerdb is None:
         alice_headerdb = get_fresh_mainnet_headerdb()
 
-    alice_context = BasePeerContext(
+    alice_context = ChainContext(
         headerdb=alice_headerdb,
         network_id=1,
         vm_configuration=tuple(),
@@ -71,7 +72,7 @@ async def _setup_alice_and_bob_factories(
     if bob_headerdb is None:
         bob_headerdb = get_fresh_mainnet_headerdb()
 
-    bob_context = BasePeerContext(
+    bob_context = ChainContext(
         headerdb=bob_headerdb,
         network_id=1,
         vm_configuration=tuple(),

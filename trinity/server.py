@@ -55,13 +55,14 @@ from p2p.nat import UPnPService
 from p2p.p2p_proto import (
     DisconnectReason,
 )
-from p2p.peer import BasePeer, BasePeerContext, PeerConnection
+from p2p.peer import BasePeer, PeerConnection
 from p2p.service import BaseService
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+from trinity.protocol.common.context import ChainContext
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.full.service import FullNodeSyncer
@@ -297,7 +298,7 @@ class BaseServer(BaseService):
 
 class FullServer(BaseServer):
     def _make_peer_pool(self) -> ETHPeerPool:
-        context = BasePeerContext(
+        context = ChainContext(
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.get_vm_configuration(),
@@ -322,7 +323,7 @@ class FullServer(BaseServer):
 
 class LightServer(BaseServer):
     def _make_peer_pool(self) -> LESPeerPool:
-        context = BasePeerContext(
+        context = ChainContext(
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.get_vm_configuration(),

@@ -15,11 +15,11 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
 
-from p2p.peer import ChainInfo
 from p2p.protocol import (
     Protocol,
 )
 
+from trinity.protocol.common.peer import ChainInfo
 from trinity.rlp.block_body import BlockBody
 
 from .commands import (
