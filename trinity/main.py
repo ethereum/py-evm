@@ -2,7 +2,6 @@ from argparse import ArgumentParser, Namespace
 import asyncio
 import logging
 import signal
-import time
 from typing import (
     Any,
     Dict,
@@ -43,10 +42,6 @@ from trinity.config import (
 )
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
-    NETWORKING_EVENTBUS_ENDPOINT,
-)
-from trinity.events import (
-    ShutdownRequest
 )
 from trinity.extensibility import (
     PluginManager,
@@ -219,7 +214,6 @@ def trinity_boot(args: Namespace,
     # the local logger.
     listener.start()
 
-    networking_endpoint = event_bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
     event_bus.start()
 
     # First initialize the database process.
@@ -232,17 +226,11 @@ def trinity_boot(args: Namespace,
         kwargs=extra_kwargs,
     )
 
-    networking_process = ctx.Process(
-        target=launch_node,
-        args=(args, chain_config, networking_endpoint,),
-        kwargs=extra_kwargs,
-    )
-
     # start the processes
     database_server_process.start()
     logger.info("Started DB server process (pid=%d)", database_server_process.pid)
 
-    # networking process needs the IPC socket file provided by the database process
+    # main process needs the IPC socket file provided by the database process
     try:
         wait_for_ipc(chain_config.database_ipc_path)
     except TimeoutError as e:
@@ -250,42 +238,24 @@ def trinity_boot(args: Namespace,
         kill_process_gracefully(database_server_process, logger)
         ArgumentParser().error(message="Timed out waiting for database start")
 
-    networking_process.start()
-    logger.info("Started networking process (pid=%d)", networking_process.pid)
-
-    main_endpoint.subscribe(
-        ShutdownRequest,
-        lambda ev: kill_trinity_gracefully(
-            logger,
-            database_server_process,
-            networking_process,
-            plugin_manager,
-            event_bus
-        )
-    )
-
     plugin_manager.prepare(args, chain_config, extra_kwargs)
     plugin_manager.broadcast(TrinityStartupEvent(
         args,
         chain_config
     ))
-    try:
-        loop = asyncio.get_event_loop()
-        loop.run_forever()
-        loop.close()
-    except KeyboardInterrupt:
-        kill_trinity_gracefully(
-            logger,
-            database_server_process,
-            networking_process,
-            plugin_manager,
-            event_bus
-        )
+
+    node = launch_node(args, chain_config, main_endpoint)
+    loop = node.get_event_loop()
+    asyncio.ensure_future(exit_on_signal(node), loop=loop)
+    # This will block until a SIGINT/SIGTERM, at which point we'll call loop.stop().
+    loop.run_forever()
+    kill_trinity_gracefully(logger, database_server_process, plugin_manager, event_bus)
+    loop.close()
+    logger.info("Reached the end of trinity.main()")
 
 
 def kill_trinity_gracefully(logger: logging.Logger,
                             database_server_process: Any,
-                            networking_process: Any,
                             plugin_manager: PluginManager,
                             event_bus: EventBus,
                             message: str="Trinity shudown complete\n") -> None:
@@ -304,15 +274,6 @@ def kill_trinity_gracefully(logger: logging.Logger,
     event_bus.shutdown()
     kill_process_gracefully(database_server_process, logger)
     logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
-    # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
-    # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-    time.sleep(0.2)
-    kill_process_gracefully(networking_process, logger)
-    logger.info('Networking process (pid=%d) terminated', networking_process.pid)
-
-    # This is required to be within the `kill_trinity_gracefully` so that
-    # plugins can trigger a shutdown of the trinity process.
-    ArgumentParser().exit(message=message)
 
 
 @setup_cprofiler('run_database_process')
@@ -352,29 +313,26 @@ async def exit_on_signal(service_to_exit: BaseService) -> None:
 
 
 @setup_cprofiler('launch_node')
-@with_queued_logging
-def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) -> None:
-    with chain_config.process_id_file('networking'):
+def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) -> BaseService:
+    NodeClass = chain_config.node_class
+    # Temporary hack: We setup a second instance of the PluginManager.
+    # The first instance was only to configure the ArgumentParser whereas
+    # for now, the second instance that lives inside the networking process
+    # performs the bulk of the work. In the future, the PluginManager
+    # should probably live in its own process and manage whether plugins
+    # run in the shared plugin process or spawn their own.
 
-        endpoint.connect()
+    plugin_manager = setup_plugins(SharedProcessScope(endpoint))
+    plugin_manager.prepare(args, chain_config)
+    plugin_manager.broadcast(TrinityStartupEvent(
+        args,
+        chain_config
+    ))
 
-        NodeClass = chain_config.node_class
-        # Temporary hack: We setup a second instance of the PluginManager.
-        # The first instance was only to configure the ArgumentParser whereas
-        # for now, the second instance that lives inside the networking process
-        # performs the bulk of the work. In the future, the PluginManager
-        # should probably live in its own process and manage whether plugins
-        # run in the shared plugin process or spawn their own.
-
-        plugin_manager = setup_plugins(SharedProcessScope(endpoint))
-        plugin_manager.prepare(args, chain_config)
-        plugin_manager.broadcast(TrinityStartupEvent(
-            args,
-            chain_config
-        ))
-
-        node = NodeClass(plugin_manager, chain_config)
-        run_service_until_quit(node)
+    node = NodeClass(plugin_manager, chain_config)
+    loop = node.get_event_loop()
+    asyncio.ensure_future(node.run(), loop=loop)
+    return node
 
 
 def display_launch_logs(chain_config: ChainConfig) -> None:
@@ -382,14 +340,6 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
     logger.info(TRINITY_HEADER)
     logger.info(construct_trinity_client_identifier())
     logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
-
-
-def run_service_until_quit(service: BaseService) -> None:
-    loop = service.get_event_loop()
-    asyncio.ensure_future(exit_on_signal(service), loop=loop)
-    asyncio.ensure_future(service.run(), loop=loop)
-    loop.run_forever()
-    loop.close()
 
 
 def setup_plugins(scope: ManagerProcessScope) -> PluginManager:
