@@ -1,3 +1,5 @@
+import asyncio
+
 import websockets
 
 from p2p.service import (
@@ -42,14 +44,25 @@ class EthstatsService(BaseService):
                 self.logger.info(f'Connecting to {self.server_url}...')
                 async with websockets.connect(self.server_url) as websocket:
                     client = EthstatsClient(websocket, '#node_id', self.server_url, self.server_secret)
-                    await self.connection_handler(client)
+                    
+                    done, pending = await asyncio.wait(
+                        [
+                            asyncio.ensure_future(client.connection_handler()),
+                            asyncio.ensure_future(self.statistics_handler(client)),
+                        ],
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+
+                    for task in pending:
+                        task.cancel()
+
             except websockets.ConnectionClosed as e:
                 self.logger.warning(f'Connection to {self.server_url} is closed - code: {e.code}, reason: {e.reason}.')
 
             self.logger.info('Reconnecting in 5s...')
             await self.sleep(5)
 
-    async def connection_handler(self, client: EthstatsClient) -> None:
+    async def statistics_handler(self, client) -> None:
         await client.send_hello()
         await client.send_latency()
         # await client.send_history()
@@ -58,13 +71,6 @@ class EthstatsService(BaseService):
         await client.send_node_ping()
 
         while self.is_operational:
-            block = self.chain.get_canonical_head()
-            print(f'block {block.block_number}')
-            print(f'hash {block.hex_hash}')
-
-            print(len(self.peer_pool))
-
-            print(self.chain.network_id)
+            await client.send_node_ping()
             await client.send_stats()
-            await self.sleep(3)
-
+            await self.sleep(5)

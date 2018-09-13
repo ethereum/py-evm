@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import platform
@@ -9,6 +10,7 @@ from trinity.utils.version import construct_trinity_client_identifier
 class EthstatsClient:
     def __init__(self, websocket: websockets.client.WebSocketClientProtocol, node_id: str, server_url: str, server_secret: str) -> None:
         self.websocket = websocket
+        self.send_queue = asyncio.Queue()
 
         self.node_id = node_id
         self.server_url = server_url
@@ -18,6 +20,29 @@ class EthstatsClient:
         self.os = platform.system()
         self.os_v = platform.release()
 
+    async def response_handler(self) -> None:
+        async for message in self.websocket:
+            details = self.stat_recv(message)
+            print(f'!!!!! {details}')
+    
+    async def request_handler(self) -> None:
+        message = await self.send_queue.get()
+        [command, data] = message
+        await self.stat_send(command, data)
+
+    async def connection_handler(self) -> None:
+        consumer_task = asyncio.ensure_future(self.response_handler())
+        producer_task = asyncio.ensure_future(self.request_handler())
+
+        done, pending = await asyncio.wait(
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            task.cancel()
+        print('done')
+
     async def stat_send(self, command: str, data: dict) -> None:
         message = {'emit': [
             command,
@@ -26,15 +51,15 @@ class EthstatsClient:
 
         await self.websocket.send(json.dumps(message))
 
-    async def stat_recv(self) -> (str, dict):
+    def stat_recv(self, message) -> (str, dict):
         try:
-            message = json.loads(await self.websocket.recv())
+            response = json.loads(message)
         except json.decoder.JSONDecodeError as e:
             self.logger.error(f'Failed to parse stats server message: {e.msg}.')
             return
 
         try:
-            payload = message['emit']
+            payload = response['emit']
         except KeyError:
             self.logger.error(f'Invalid stats server message format.')
             return
@@ -51,7 +76,7 @@ class EthstatsClient:
         return command, data
 
     async def send_hello(self) -> None:
-        await self.stat_send('hello', {
+        await self.send_queue.put(['hello', {
             'info': {
                 'name': '#some_name',
                 'contact': '#some_contact',
@@ -61,42 +86,42 @@ class EthstatsClient:
                 'canUpdateHistory': True,
             },
             'secret': self.server_secret,
-        })
+        }])
 
     async def send_latency(self) -> None:
-        await self.stat_send('latency', {
+        await self.send_queue.put(['latency', {
             'latency': 404,
-        })
+        }])
 
     async def send_history(self) -> None:
-        await self.stat_send('history', {
+        await self.send_queue.put(['history', {
             'history': {},
-        })
+        }])
 
     async def send_block(self) -> None:
-        await self.stat_send('block', {
+        await self.send_queue.put(['block', {
             'block': {},
-        })
+        }])
 
     async def send_pending(self) -> None:
-        await self.stat_send('pending', {
+        await self.send_queue.put(['pending', {
             'stats': {
                 'pending': 0,
             },
-        })
+        }])
 
     async def send_stats(self) -> None:
-        await self.stat_send('stats', {
+        await self.send_queue.put(['stats', {
             'stats': {
                 'active': True,
                 'peers': 42,
                 'mining': 24,
             },
-        })
+        }])
 
     async def send_node_ping(self) -> None:
         timestamp = round(datetime.datetime.now().timestamp() * 1000)
 
-        await self.stat_send('node-ping', {
+        await self.send_queue.put(['node-ping', {
             'clientTime': timestamp,
-        })
+        }])
