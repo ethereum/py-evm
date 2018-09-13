@@ -1,11 +1,15 @@
+from contextlib import contextmanager
+import logging
 from pathlib import Path
+from typing import Generator
 
 from .base import (
-    BaseDB,
+    BaseAtomicDB,
 )
 
 
-class LevelDB(BaseDB):
+class LevelDB(BaseAtomicDB):
+    logger = logging.getLogger("eth.db.backends.LevelDB")
 
     # Creates db as a class variable to avoid level db lock error
     def __init__(self, db_path: Path = None) -> None:
@@ -33,3 +37,12 @@ class LevelDB(BaseDB):
 
     def __delitem__(self, key: bytes) -> None:
         self.db.delete(key)
+
+    @contextmanager
+    def atomic_batch(self) -> Generator[None, None, None]:
+        with self.db.write_batch(transaction=True):
+            try:
+                yield
+            except Exception:
+                self.logger.exception("Unexpected error occurred during atomic database write")
+                raise
