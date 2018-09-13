@@ -289,7 +289,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         return tuple(n for n in neighbours if n != self.this_node)
 
     def _mkpingid(self, token: Hash32, node: kademlia.Node) -> Hash32:
-        return token + node.pubkey.to_bytes()
+        return Hash32(token + node.pubkey.to_bytes())
 
     def _send_find_node(self, node: kademlia.Node, target_node_id: int) -> None:
         if self.use_v5:
@@ -492,7 +492,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         message = _pack_v4(CMD_PING.id, payload, self.privkey)
         self.send(node, message)
         # Return the msg hash, which is used as a token to identify pongs.
-        token = message[:MAC_SIZE]
+        token = Hash32(message[:MAC_SIZE])
         self.logger.trace('>>> ping (v4) %s (token == %s)', node, encode_hex(token))
         # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
         # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
@@ -680,7 +680,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         topic_idx = big_endian_to_int(idx)
         self.logger.trace(
             '<<< topic_register from %s, topics: %s, idx: %d', node, topics, topic_idx)
-        _, _, pong_payload, _ = _unpack_v5(raw_pong)
+        key, cmd_id, pong_payload, _ = _unpack_v5(raw_pong)
         _, _, _, _, ticket_serial, _ = pong_payload
         self.topic_table.use_ticket(node, big_endian_to_int(ticket_serial), topics[topic_idx])
 
@@ -1132,7 +1132,7 @@ def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...
 
     Returns the public key used to sign the message, the cmd ID, payload and hash.
     """
-    message_hash = message[:MAC_SIZE]
+    message_hash = Hash32(message[:MAC_SIZE])
     if message_hash != keccak(message[MAC_SIZE:]):
         raise WrongMAC("Wrong msg mac")
     signature = keys.Signature(message[MAC_SIZE:HEAD_SIZE])

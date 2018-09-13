@@ -3,6 +3,11 @@ import cachetools.func
 from typing import (
     Type
 )
+
+from eth_typing import (
+    BlockNumber,
+)
+
 from eth_utils import (
     ValidationError,
 )
@@ -25,7 +30,7 @@ class DefaultTransactionValidator():
     transaction class than the one that corresponds to the ``initial_tx_validation_block_number``.
     """
 
-    def __init__(self, chain: BaseChain, initial_tx_validation_block_number: int) -> None:
+    def __init__(self, chain: BaseChain, initial_tx_validation_block_number: BlockNumber) -> None:
         self.chain = chain
         self._initial_tx_class = self._get_tx_class_for_block_number(
             initial_tx_validation_block_number
@@ -61,6 +66,6 @@ class DefaultTransactionValidator():
     def _is_outdated_tx_class(self, tx_class: Type[BaseTransaction]) -> bool:
         return self._ordered_tx_classes.index(tx_class) < self._initial_tx_class_index
 
-    def _get_tx_class_for_block_number(self, block_number: int) -> Type[BaseTransaction]:
+    def _get_tx_class_for_block_number(self, block_number: BlockNumber) -> Type[BaseTransaction]:
         vm_class = self.chain.get_vm_class_for_block_number(block_number)
         return vm_class.get_transaction_class()

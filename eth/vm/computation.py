@@ -115,7 +115,7 @@ class BaseComputation(Configurable, ABC):
 
     # VM configuration
     opcodes = None  # type: Dict[int, Opcode]
-    _precompiles = None  # type: Dict[bytes, Callable[['BaseComputation'], Any]]
+    _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], Any]]
 
     logger = cast(TraceLogger, logging.getLogger('eth.vm.computation.Computation'))
 
@@ -566,7 +566,7 @@ class BaseComputation(Configurable, ABC):
     # Opcode API
     #
     @property
-    def precompiles(self) -> Dict[bytes, Callable[['BaseComputation'], Any]]:
+    def precompiles(self) -> Dict[Address, Callable[['BaseComputation'], Any]]:
         if self._precompiles is None:
             return dict()
         else:

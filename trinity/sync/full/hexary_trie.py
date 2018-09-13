@@ -84,7 +84,7 @@ def _get_children(node: Hash32, depth: int
         leaves.append(node[1])
     elif node_type == NODE_TYPE_EXTENSION:
         if isinstance(node[1], bytes) and len(node[1]) == 32:
-            references.append((depth + 1, node[1]))
+            references.append((depth + 1, Hash32(node[1])))
         elif isinstance(node[1], list):
             # the rlp encoding of the node is < 32 so rather than a 32-byte
             # reference, the actual rlp encoding of the node is inlined.
@@ -99,15 +99,16 @@ def _get_children(node: Hash32, depth: int
                 # this is a reference to another node.
                 references.append((depth + 1, sub_node))
             else:
-                sub_references, sub_leaves = _get_children(sub_node, depth)
+                # TODO: Follow up on mypy confusion around `int`, `bytes` and `Hash32` here
+                sub_references, sub_leaves = _get_children(sub_node, depth)  # type: ignore
                 references.extend(sub_references)
-                leaves.extend(sub_leaves)
+                leaves.extend(sub_leaves)  # type: ignore
 
         # The last item in a branch may contain a value.
         if not is_blank_node(node[16]):
             leaves.append(node[16])
 
-    return references, leaves
+    return references, leaves  # type: ignore
 
 
 class HexaryTrieSync:

@@ -94,7 +94,7 @@ class BaseChainDB(BaseHeaderDB):
     @abstractmethod
     def persist_block(self,
                       block: 'BaseBlock'
-                      ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+                      ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -223,7 +223,7 @@ class ChainDB(HeaderDB, BaseChainDB):
     #
     def persist_block(self,
                       block: 'BaseBlock'
-                      ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+                      ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         '''
         Persist the given block's header and uncles.
 
@@ -236,7 +236,7 @@ class ChainDB(HeaderDB, BaseChainDB):
     def _persist_block(
             cls,
             db: 'BaseDB',
-            block: 'BaseBlock') -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+            block: 'BaseBlock') -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         header_chain = (block.header, )
         new_canonical_headers, old_canonical_headers = cls._persist_header_chain(db, header_chain)
 

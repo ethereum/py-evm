@@ -3,6 +3,7 @@ from cytoolz import (
 )
 from typing import (
     Any,
+    cast,
     Dict,
     List,
     Union,
@@ -10,6 +11,7 @@ from typing import (
 
 from eth_typing import (
     Address,
+    BlockNumber,
     Hash32,
 )
 from eth_utils import (
@@ -62,12 +64,12 @@ async def get_header(chain: AsyncChain, at_block: Union[str, int]) -> BlockHeade
         at_header = chain.get_canonical_head()
     elif at_block == 'earliest':
         # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
-        block = await chain.coro_get_canonical_block_by_number(0)
+        block = await chain.coro_get_canonical_block_by_number(BlockNumber(0))
         at_header = block.header
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     elif is_integer(at_block) and at_block >= 0:  # type: ignore
-        block = await chain.coro_get_canonical_block_by_number(0)
+        block = await chain.coro_get_canonical_block_by_number(BlockNumber(0))
         at_header = block.header
     else:
         raise TypeError("Unrecognized block reference: %r" % at_block)
@@ -88,7 +90,7 @@ async def get_block_at_number(chain: AsyncChain, at_block: Union[str, int]) -> B
     # https://github.com/python/mypy/issues/5206
     if is_integer(at_block) and at_block >= 0:  # type: ignore
         # optimization to avoid requesting block, then header, then block again
-        return await chain.coro_get_canonical_block_by_number(at_block)
+        return await chain.coro_get_canonical_block_by_number(cast(BlockNumber, at_block))
     else:
         at_header = await get_header(chain, at_block)
         return await chain.coro_get_block_by_header(at_header)

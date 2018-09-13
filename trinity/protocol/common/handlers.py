@@ -10,6 +10,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_typing import BlockIdentifier
+
 from eth.rlp.headers import BlockHeader
 from p2p.peer import BasePeer
 
@@ -56,7 +58,13 @@ class BaseExchangeHandler(ABC):
 if TYPE_CHECKING:
     from mypy_extensions import DefaultArg
     BlockHeadersCallable = Callable[
-        [BaseExchangeHandler, int, int, DefaultArg(int, 'skip'), DefaultArg(int, 'reverse')],
+        [
+            BaseExchangeHandler,
+            BlockIdentifier,
+            int,
+            DefaultArg(int, 'skip'),
+            DefaultArg(int, 'reverse')
+        ],
         Awaitable[Tuple[BlockHeader, ...]]
     ]
 

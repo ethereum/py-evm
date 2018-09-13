@@ -36,7 +36,7 @@ class AsyncChainDB(ChainDB, AsyncHeaderDB):
     async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
         raise NotImplementedError()
 
-    async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
+    async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
         raise NotImplementedError()
 
     async def coro_get_block_transactions(

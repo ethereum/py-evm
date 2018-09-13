@@ -134,7 +134,7 @@ class BaseMainnetTesterChain(Chain):
     vm_configuration = _generate_vm_configuration()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
 
-class MainnetTesterChain(BaseMainnetTesterChain):   # type: ignore
+class MainnetTesterChain(BaseMainnetTesterChain):
     """
     This class is intended to be used for in-memory test chains.  It
     explicitely bypasses the proof of work validation to allow for instant

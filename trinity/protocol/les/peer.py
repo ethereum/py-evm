@@ -66,9 +66,9 @@ class LESPeer(BaseChainPeer):
     def handle_sub_proto_msg(self, cmd: Command, msg: _DecodedMsgType) -> None:
         head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
         if isinstance(cmd, Announce):
-            self.head_td = head_info['head_td']
-            self.head_hash = head_info['head_hash']
-            self.head_number = head_info['head_number']
+            self.head_td = cast(int, head_info['head_td'])
+            self.head_hash = cast(Hash32, head_info['head_hash'])
+            self.head_number = cast(BlockNumber, head_info['head_number'])
 
         super().handle_sub_proto_msg(cmd, msg)
 

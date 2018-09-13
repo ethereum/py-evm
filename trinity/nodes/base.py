@@ -47,7 +47,7 @@ class Node(BaseService):
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self._db_manager = create_db_manager(trinity_config.database_ipc_path)
-        self._db_manager.connect()  # type: ignore
+        self._db_manager.connect()
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path

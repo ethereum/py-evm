@@ -171,7 +171,7 @@ class LightDispatchChain(BaseChain):
         header = self._headerdb.get_canonical_block_header_by_number(block_number)
         return await self.get_block_by_header(header)
 
-    def get_canonical_block_hash(self, block_number: int) -> Hash32:
+    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         return self._headerdb.get_canonical_block_hash(block_number)
 
     def build_block_with_transactions(
