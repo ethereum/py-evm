@@ -52,6 +52,7 @@ from eth.db.header import (
 )
 from eth.constants import (
     BLANK_ROOT_HASH,
+    EMPTY_UNCLE_HASH,
     MAX_UNCLE_DEPTH,
 )
 from eth.estimators import (
@@ -720,6 +721,10 @@ class Chain(BaseChain):
         """
         Validate the uncles for the given block.
         """
+        if block.header.uncles_hash == EMPTY_UNCLE_HASH and len(block.uncles) == 0:
+            # optimization to avoid checking ancestors if the block has no uncles
+            return
+
         # Check for duplicates
         uncle_groups = groupby(operator.attrgetter('hash'), block.uncles)
         duplicate_uncles = tuple(sorted(

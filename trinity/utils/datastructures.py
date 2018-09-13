@@ -461,17 +461,17 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
     def set_finished_dependency(self, finished_task: TTask) -> None:
         """
-        Mark this task as already finished. Crucially, the first task that is registered in
-        :meth:`register_tasks` must have finished_task as its dependency.
+        Mark this task as already finished. Any task being registered in
+        :meth:`register_tasks` must have dependencies that are finished.
         """
-        if len(self._tasks) > 0 or self._oldest_depth != 0:
-            raise ValidationError(f"Tasks already added, cannot set {finished_task!r} as finished")
-
         completed = self._prereq_tracker(finished_task)
         completed.set_complete()
         task_id = self._id_of(finished_task)
         self._tasks[task_id] = completed
-        self._depths[task_id] = 0
+        if len(self._depths):
+            self._depths[task_id] = max(self._depths.values())
+        else:
+            self._depths[task_id] = 0
         # note that this task is intentionally *not* added to self._unready
 
     def register_tasks(self, tasks: Tuple[TTask, ...]) -> None:
@@ -572,7 +572,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
                 for prune_task_id in prune_tasks:
                     del self._tasks[prune_task_id]
-                    del self._dependencies[prune_task_id]
                     del self._depths[prune_task_id]
+                    self._dependencies.pop(prune_task_id, None)
 
             self._oldest_depth = prune_depth
