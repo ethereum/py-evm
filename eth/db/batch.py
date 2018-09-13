@@ -1,5 +1,4 @@
 import logging
-from typing import Type, Dict  # noqa: F401
 
 from eth.db.diff import (
     DBDiff,
@@ -15,7 +14,7 @@ class BatchDB(BaseDB):
     which represents as a dictionary of database keys and values.
     This class should be usable as a context manager, the changes either all fail or all succeed.
     Upon exiting the context, it writes all of the key value pairs from the cache into
-    the underlying database. If anyerror occurred before committing phase,
+    the underlying database. If any error occurred before committing phase,
     we would not apply commits at all.
     """
     logger = logging.getLogger("eth.db.BatchDB")
