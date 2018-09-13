@@ -1,6 +1,4 @@
-# Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
-# https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-from multiprocessing.managers import (  # type: ignore
+from multiprocessing.managers import (
     BaseManager,
 )
 import pathlib
@@ -56,25 +54,23 @@ def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) ->
     class DBManager(BaseManager):
         pass
 
-    # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
-    # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-    DBManager.register(  # type: ignore
+    DBManager.register(
         'get_db', callable=lambda: TracebackRecorder(base_db), proxytype=DBProxy)
 
-    DBManager.register(  # type: ignore
+    DBManager.register(
         'get_chaindb',
         callable=lambda: TracebackRecorder(chaindb),
         proxytype=ChainDBProxy,
     )
-    DBManager.register(  # type: ignore
+    DBManager.register(
         'get_chain', callable=lambda: TracebackRecorder(chain), proxytype=ChainProxy)
 
-    DBManager.register(  # type: ignore
+    DBManager.register(
         'get_headerdb',
         callable=lambda: TracebackRecorder(headerdb),
         proxytype=AsyncHeaderDBProxy,
     )
-    DBManager.register(  # type: ignore
+    DBManager.register(
         'get_header_chain',
         callable=lambda: TracebackRecorder(header_chain),
         proxytype=AsyncHeaderChainProxy,
@@ -92,13 +88,11 @@ def create_db_manager(ipc_path: pathlib.Path) -> BaseManager:
     class DBManager(BaseManager):
         pass
 
-    # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
-    # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-    DBManager.register('get_db', proxytype=DBProxy)  # type: ignore
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)  # type: ignore
-    DBManager.register('get_chain', proxytype=ChainProxy)  # type: ignore
-    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)  # type: ignore
-    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)  # type: ignore
+    DBManager.register('get_db', proxytype=DBProxy)
+    DBManager.register('get_chaindb', proxytype=ChainDBProxy)
+    DBManager.register('get_chain', proxytype=ChainProxy)
+    DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)
+    DBManager.register('get_header_chain', proxytype=AsyncHeaderChainProxy)
 
     manager = DBManager(address=str(ipc_path))  # type: ignore
     return manager

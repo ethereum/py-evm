@@ -1,5 +1,6 @@
 from typing import (
     Iterable,
+    Tuple,
 )
 
 from eth_typing import (
@@ -49,7 +50,7 @@ class AttestationRecord(rlp.Serializable):
                  attester_bitfield: bytes,
                  justified_slot: int,
                  justified_block_hash: Hash32,
-                 oblique_parent_hashes: Hash32=None,
+                 oblique_parent_hashes: Tuple[Hash32, ...]=None,
                  aggregate_sig: Iterable[int]=None) -> None:
         if oblique_parent_hashes is None:
             oblique_parent_hashes = ()

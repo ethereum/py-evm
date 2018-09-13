@@ -418,7 +418,7 @@ class AccountDB(BaseAccountDB):
         accounts_displayed = set()  # type: Set[bytes]
         queued_changes = self._journaltrie.journal.journal_data.items()
         # mypy bug for ordered dict reversibility: https://github.com/python/typeshed/issues/2078
-        for checkpoint, accounts in reversed(queued_changes):  # type: ignore
+        for checkpoint, accounts in reversed(queued_changes):
             for address in accounts:
                 if address in accounts_displayed:
                     continue

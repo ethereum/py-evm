@@ -127,7 +127,7 @@ class Journal(BaseDB):
         order, returning from the first one in which the key is present.
         """
         # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
-        for changeset_data in reversed(self.journal_data.values()):  # type: ignore
+        for changeset_data in reversed(self.journal_data.values()):
             if key in changeset_data:
                 return changeset_data[key]
             else:

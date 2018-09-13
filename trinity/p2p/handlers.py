@@ -97,7 +97,7 @@ class PeerRequestHandler(CancellableMixin):
             self.logger.debug(
                 "Peer requested starting header %r that is unavailable, returning nothing",
                 request.block_number_or_hash)
-            block_numbers = tuple()  # type: ignore
+            block_numbers = tuple()
 
         headers: Tuple[BlockHeader, ...] = tuple([
             header

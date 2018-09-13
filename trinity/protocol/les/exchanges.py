@@ -52,7 +52,7 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
         validator = GetBlockHeadersValidator(*original_request_args)
 
         command_args = original_request_args + (gen_request_id(),)
-        request = self.request_class(*command_args)
+        request = self.request_class(*command_args)  # type: ignore
 
         return await self.get_result(
             request,

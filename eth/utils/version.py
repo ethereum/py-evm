@@ -14,5 +14,5 @@ def construct_evm_runtime_identifier():
         platform=sys.platform,
         v=sys.version_info,
         # mypy Doesn't recognize the `sys` module as having an `implementation` attribute.
-        imp=sys.implementation,  # type: ignore
+        imp=sys.implementation,
     )

@@ -17,6 +17,7 @@ from eth.exceptions import (
     HeaderNotFound,
 )
 from eth_typing import (
+    BlockNumber,
     Hash32,
 )
 from eth_utils import (
@@ -67,7 +68,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self.peer_pool = peer_pool
         self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
         self._peer_header_syncer: 'PeerHeaderSyncer' = None
-        self._last_target_header_hash = None
+        self._last_target_header_hash: Hash32 = None
         self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
 
         # pending queue size should be big enough to avoid starving the processing consumers, but
@@ -344,7 +345,7 @@ class PeerHeaderSyncer(BaseService):
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(
-            self, peer: BaseChainPeer, start_at: int) -> Tuple[BlockHeader, ...]:
+            self, peer: BaseChainPeer, start_at: BlockNumber) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 

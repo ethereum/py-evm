@@ -113,7 +113,7 @@ class GetReceiptsExchange(BaseExchange[Tuple[Hash32, ...], ReceiptsByBlock, Rece
 
     async def __call__(self,  # type: ignore
                        headers: Tuple[BlockHeader, ...],
-                       timeout: float = None) -> ReceiptsBundles:  # type: ignore
+                       timeout: float = None) -> ReceiptsBundles:
         validator = ReceiptsValidator(headers)
 
         block_hashes = tuple(header.hash for header in headers)

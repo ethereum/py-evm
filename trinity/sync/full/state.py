@@ -26,6 +26,7 @@ from eth_utils import (
 )
 
 from eth_typing import (
+    BlockIdentifier,
     Hash32
 )
 
@@ -81,7 +82,7 @@ class StateDownloader(BaseService, PeerSubscriber):
     def __init__(self,
                  chaindb: AsyncChainDB,
                  account_db: AsyncBaseDB,
-                 root_hash: bytes,
+                 root_hash: Hash32,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -175,7 +176,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         elif isinstance(cmd, commands.GetBlockHeaders):
             query = cast(Dict[Any, Union[bool, int]], msg)
             request = HeaderRequest(
-                query['block_number_or_hash'],
+                cast(BlockIdentifier, query['block_number_or_hash']),
                 query['max_headers'],
                 query['skip'],
                 cast(bool, query['reverse']),

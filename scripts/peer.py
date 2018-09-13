@@ -14,6 +14,7 @@ from typing import (
     Union,
 )
 
+from eth_typing import BlockNumber
 from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
 from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
 from eth.db.backends.memory import MemoryDB
@@ -83,7 +84,10 @@ def _main() -> None:
             peer_pool.logger.info("Waiting for peer connection...")
             await asyncio.sleep(0.2)
         peer = peer_pool.highest_td_peer
-        headers = await cast(ETHPeer, peer).requests.get_block_headers(2440319, max_headers=100)
+        headers = await cast(ETHPeer, peer).requests.get_block_headers(
+            BlockNumber(2440319),
+            max_headers=100
+        )
         hashes = tuple(header.hash for header in headers)
         if peer_class == ETHPeer:
             peer = cast(ETHPeer, peer)

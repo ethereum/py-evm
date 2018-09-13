@@ -346,6 +346,9 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         """
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
         max_headers = 1
+
+        # TODO: Figure out why mypy thinks the first parameter to `get_block_headers`
+        # should be of type `int`
         headers = await peer.requests.get_block_headers(
             block_hash,
             max_headers,
