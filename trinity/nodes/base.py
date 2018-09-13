@@ -93,7 +93,7 @@ class Node(BaseService):
         # We currently need this to give plugins the chance to start as soon
         # as the `PeerPool` is available. In the long term, the peer pool may become
         # a plugin itself and we can get rid of this.
-        peer_pool = type(self.get_peer_pool())
+        peer_pool = self.get_peer_pool()
         self._plugin_manager.broadcast(ResourceAvailableEvent(
             resource=(peer_pool, self.cancel_token),
             resource_type=type(peer_pool)
