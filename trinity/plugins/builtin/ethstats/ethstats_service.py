@@ -64,13 +64,23 @@ class EthstatsService(BaseService):
 
     async def statistics_handler(self, client) -> None:
         await client.send_hello()
-        await client.send_latency()
         # await client.send_history()
-        await client.send_block()
         await client.send_pending()
-        await client.send_node_ping()
 
         while self.is_operational:
+            block = self.chain.get_canonical_head()
+            peers = len(self.peer_pool)
+
             await client.send_node_ping()
-            await client.send_stats()
+            await client.send_stats({
+                'active': True,
+                'peers': peers,
+            })
+            await client.send_block({
+                'number': block.block_number,
+                'hash': block.hex_hash,
+                'uncles': 0,
+                'transactions': 0,
+                'difficulty': 0,
+            })
             await self.sleep(5)

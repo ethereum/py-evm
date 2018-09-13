@@ -22,13 +22,17 @@ class EthstatsClient:
 
     async def response_handler(self) -> None:
         async for message in self.websocket:
-            details = self.stat_recv(message)
-            print(f'!!!!! {details}')
+            command, data = self.stat_recv(message)
+            if command == 'node-pong':
+                timestamp = round(datetime.datetime.now().timestamp() * 1000)
+                latency = (timestamp - data['clientTime']) // 2
+                await self.send_latency(latency)
     
     async def request_handler(self) -> None:
-        message = await self.send_queue.get()
-        [command, data] = message
-        await self.stat_send(command, data)
+        while True:
+            message = await self.send_queue.get()
+            [command, data] = message
+            await self.stat_send(command, data)
 
     async def connection_handler(self) -> None:
         consumer_task = asyncio.ensure_future(self.response_handler())
@@ -41,7 +45,6 @@ class EthstatsClient:
 
         for task in pending:
             task.cancel()
-        print('done')
 
     async def stat_send(self, command: str, data: dict) -> None:
         message = {'emit': [
@@ -88,9 +91,9 @@ class EthstatsClient:
             'secret': self.server_secret,
         }])
 
-    async def send_latency(self) -> None:
+    async def send_latency(self, latency) -> None:
         await self.send_queue.put(['latency', {
-            'latency': 404,
+            'latency': latency,
         }])
 
     async def send_history(self) -> None:
@@ -98,9 +101,9 @@ class EthstatsClient:
             'history': {},
         }])
 
-    async def send_block(self) -> None:
+    async def send_block(self, block) -> None:
         await self.send_queue.put(['block', {
-            'block': {},
+            'block': block,
         }])
 
     async def send_pending(self) -> None:
@@ -110,13 +113,9 @@ class EthstatsClient:
             },
         }])
 
-    async def send_stats(self) -> None:
+    async def send_stats(self, stats) -> None:
         await self.send_queue.put(['stats', {
-            'stats': {
-                'active': True,
-                'peers': 42,
-                'mining': 24,
-            },
+            'stats': stats,
         }])
 
     async def send_node_ping(self) -> None:
