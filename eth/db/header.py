@@ -28,7 +28,7 @@ from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
 )
-from eth.db import BaseDB
+from eth.db.backends.base import BaseDB
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import BlockHeader
 from eth.validation import (

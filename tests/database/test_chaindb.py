@@ -12,7 +12,6 @@ from eth_hash.auto import keccak
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
-from eth.db.backends.memory import MemoryDB
 from eth.db.chain import (
     ChainDB,
 )
@@ -45,11 +44,6 @@ def set_empty_root(chaindb, header):
         receipt_root=BLANK_ROOT_HASH,
         state_root=BLANK_ROOT_HASH,
     )
-
-
-@pytest.fixture
-def base_db():
-    return MemoryDB()
 
 
 @pytest.fixture

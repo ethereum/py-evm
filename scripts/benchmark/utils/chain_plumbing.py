@@ -31,8 +31,8 @@ from eth.vm.base import (
 from eth.chains.mainnet import (
     BaseMainnetChain,
 )
-from eth.db.backends.memory import (
-    MemoryDB
+from eth.db.atomic import (
+    AtomicDB,
 )
 
 AddressSetup = NamedTuple('AddressSetup', [
@@ -83,7 +83,7 @@ def genesis_state(setup: Iterable[AddressSetup]) -> Any:
 
 
 def chain_without_pow(
-        base_db: MemoryDB,
+        base_db: AtomicDB,
         vm: Type[BaseVM],
         genesis_params: Any,
         genesis_state: Any) -> MiningChain:
@@ -101,7 +101,7 @@ def chain_without_pow(
 
 def get_chain(vm: Type[BaseVM]) -> MiningChain:
     return chain_without_pow(
-        MemoryDB(),
+        AtomicDB(),
         vm,
         GENESIS_PARAMS,
         genesis_state([

@@ -70,9 +70,9 @@ Next, we'll create a new directory ``app`` and create a file ``main.py`` inside.
 
 .. code-block:: python
 
-  from evm import constants
-  from evm.chains.mainnet import MainnetChain
-  from evm.db.backends.memory import MemoryDB
+  from eth import constants
+  from eth.chains.mainnet import MainnetChain
+  from eth.db.backends.memory import MemoryDB
 
   from eth_utils import to_wei, encode_hex
 

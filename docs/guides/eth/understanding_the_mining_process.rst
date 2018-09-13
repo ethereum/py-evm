@@ -44,11 +44,11 @@ cookbook.
 
 ::
 
-  from eth.db.backends.memory import MemoryDB
+  from eth.db.atomic import AtomicDB
   from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
   # initialize a fresh chain
-  chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
+  chain = chain_class.from_genesis_header(AtomicDB(), MAINNET_GENESIS_HEADER)
 
 Since we decided to not add any transactions to our block let's just call
 :func:`~~eth.chains.base.MiningChain.mine_block` and see what happens.
@@ -56,7 +56,7 @@ Since we decided to not add any transactions to our block let's just call
 ::
 
   # initialize a fresh chain
-  chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
+  chain = chain_class.from_genesis_header(AtomicDB(), MAINNET_GENESIS_HEADER)
 
   chain.mine_block()
 
@@ -163,7 +163,7 @@ Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the
 
   from eth import MiningChain
   from eth.vm.forks.byzantium import ByzantiumVM
-  from eth.db.backends.memory import MemoryDB
+  from eth.db.backends.memory import AtomicDB
 
 
   klass = MiningChain.configure(
@@ -171,7 +171,7 @@ Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the
       vm_configuration=(
           (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
       ))
-  chain = klass.from_genesis(MemoryDB(), GENESIS_PARAMS)
+  chain = klass.from_genesis(AtomicDB(), GENESIS_PARAMS)
 
 
 Now that we have the building blocks available, let's put it all together and mine a proper block!
@@ -319,7 +319,7 @@ zero value transfer transaction.
   >>> from eth.chains.base import MiningChain
   >>> from eth.consensus.pow import mine_pow_nonce
   >>> from eth.vm.forks.byzantium import ByzantiumVM
-  >>> from eth.db.backends.memory import MemoryDB
+  >>> from eth.db.atomic import AtomicDB
 
 
   >>> GENESIS_PARAMS = {
@@ -350,7 +350,7 @@ zero value transfer transaction.
   ...         (constants.GENESIS_BLOCK_NUMBER, ByzantiumVM),
   ...     ))
 
-  >>> chain = klass.from_genesis(MemoryDB(), GENESIS_PARAMS)
+  >>> chain = klass.from_genesis(AtomicDB(), GENESIS_PARAMS)
   >>> vm = chain.get_vm()
 
   >>> nonce = vm.state.account_db.get_nonce(SENDER)

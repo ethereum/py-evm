@@ -14,7 +14,7 @@ from eth.chains.base import (
     Chain,
     MiningChain,
 )
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
@@ -58,7 +58,7 @@ def _file_logging(request):
 
 @pytest.fixture
 def base_db():
-    return MemoryDB()
+    return AtomicDB()
 
 
 @pytest.fixture

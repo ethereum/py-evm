@@ -9,7 +9,7 @@ from eth_utils import (
 )
 
 from eth import MainnetChain
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 from eth.utils.state import (
     diff_account_db,
 )
@@ -147,7 +147,7 @@ def genesis_params_from_fixture(fixture):
 
 
 def new_chain_from_fixture(fixture):
-    base_db = MemoryDB()
+    base_db = AtomicDB()
 
     vm_config = chain_vm_configuration(fixture)
 

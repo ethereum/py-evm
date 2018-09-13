@@ -10,7 +10,6 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from eth.db.backends.memory import MemoryDB
 from eth.db.chain import ChainDB
 from eth.exceptions import (
     VMNotFound,
@@ -49,11 +48,6 @@ class ChainForTesting(Chain):
         (0, VM_A),
         (10, VM_B),
     )
-
-
-@pytest.fixture()
-def base_db():
-    return MemoryDB()
 
 
 @pytest.fixture()

@@ -9,8 +9,8 @@ from eth_utils import (
 from eth import (
     constants
 )
-from eth.db.backends.memory import (
-    MemoryDB
+from eth.db.atomic import (
+    AtomicDB
 )
 from eth.db.chain import (
     ChainDB
@@ -67,7 +67,7 @@ def prepare_computation(vm_class):
         origin=CANONICAL_ADDRESS_B,
     )
 
-    vm = vm_class(GENESIS_HEADER, ChainDB(MemoryDB()))
+    vm = vm_class(GENESIS_HEADER, ChainDB(AtomicDB()))
 
     computation = vm_class._state_class.computation_class(
         state=vm.state,
