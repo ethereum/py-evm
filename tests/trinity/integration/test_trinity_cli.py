@@ -1,4 +1,3 @@
-import asyncio
 import pytest
 
 from trinity.tools.async_process_runner import AsyncProcessRunner
@@ -19,7 +18,6 @@ from trinity.utils.async_iter import (
 # This ensures the AsyncProcessRunner will never leave a process behind
 @pytest.fixture(scope="function")
 def async_process_runner(event_loop):
-    asyncio.get_child_watcher().attach_loop(event_loop)
     runner = AsyncProcessRunner(
         # This allows running pytest with -s and observing the output
         debug_fn=lambda line: print(line)
