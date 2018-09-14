@@ -207,6 +207,25 @@ def test_compute_shared_prefix_bits():
     assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 3
 
 
+def test_check_relayed_addr():
+    public_host = kademlia.Address('8.8.8.8', 80)
+    local_host = kademlia.Address('127.0.0.1', 80)
+    assert kademlia.check_relayed_addr(local_host, local_host)
+    assert not kademlia.check_relayed_addr(public_host, local_host)
+
+    private = kademlia.Address('192.168.1.1', 80)
+    assert kademlia.check_relayed_addr(private, private)
+    assert not kademlia.check_relayed_addr(public_host, private)
+
+    reserved = kademlia.Address('240.0.0.1', 80)
+    assert not kademlia.check_relayed_addr(local_host, reserved)
+    assert not kademlia.check_relayed_addr(public_host, reserved)
+
+    unspecified = kademlia.Address('0.0.0.0', 80)
+    assert not kademlia.check_relayed_addr(local_host, unspecified)
+    assert not kademlia.check_relayed_addr(public_host, unspecified)
+
+
 def random_pubkey():
     pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
     return keys.PublicKey(b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk)
