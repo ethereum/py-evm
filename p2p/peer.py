@@ -167,10 +167,12 @@ class PeerBootManager(BaseService):
             await self.ensure_same_side_on_dao_fork()
         except DAOForkCheckFailure as err:
             self.logger.debug("DAO fork check with %s failed: %s", self.peer, err)
-            # Use `run_task` here so that the cascading cancellation doesn't
-            # cause the task this service is running in to error out due to the
-            # cancellation which the linked peer class will issue upon
-            # disconnecting.
+            # If we `await` the `peer.disconnect` call, we end up with an
+            # OperationCancelled exception bubbling.  This doesn't actually
+            # cause anything *bad* to happen, but it does cause the service to
+            # exit via exception rather than cleanly shutting down.  By using
+            # `run_task`, this service finishes exiting prior to the
+            # cancellation.
             self.run_task(self.peer.disconnect(DisconnectReason.useless_peer))
 
     async def ensure_same_side_on_dao_fork(self) -> None:

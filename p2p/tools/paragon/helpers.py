@@ -61,8 +61,8 @@ TConnectedStreams = Tuple[
 def get_directly_connected_streams() -> TConnectedStreams:
     bob_reader = asyncio.StreamReader()
     alice_reader = asyncio.StreamReader()
-    # Link the peer1's writer to the bob's reader, and the bob's writer to the
-    # peer1's reader.
+    # Link the alice's writer to the bob's reader, and the bob's writer to the
+    # alice's reader.
     bob_writer = MockStreamWriter(alice_reader.feed_data)
     alice_writer = MockStreamWriter(bob_reader.feed_data)
     return (
