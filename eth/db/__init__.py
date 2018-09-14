@@ -8,13 +8,13 @@ from eth.utils.module_loading import (
     import_string,
 )
 from eth.db.backends.base import (
-    BaseDB
+    BaseAtomicDB,
 )
 
-DEFAULT_DB_BACKEND = 'eth.db.backends.memory.MemoryDB'
+DEFAULT_DB_BACKEND = 'eth.db.atomic.AtomicDB'
 
 
-def get_db_backend_class(import_path: str = None) -> Type[BaseDB]:
+def get_db_backend_class(import_path: str = None) -> Type[BaseAtomicDB]:
     if import_path is None:
         import_path = os.environ.get(
             'CHAIN_DB_BACKEND_CLASS',
@@ -23,6 +23,6 @@ def get_db_backend_class(import_path: str = None) -> Type[BaseDB]:
     return import_string(import_path)
 
 
-def get_db_backend(import_path: str = None, **init_kwargs: Any) -> BaseDB:
+def get_db_backend(import_path: str = None, **init_kwargs: Any) -> BaseAtomicDB:
     backend_class = get_db_backend_class(import_path)
     return backend_class(**init_kwargs)

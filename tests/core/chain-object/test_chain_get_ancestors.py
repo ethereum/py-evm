@@ -2,6 +2,7 @@ import pytest
 
 from eth.chains.base import MiningChain
 from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 
 
 @pytest.fixture
@@ -14,7 +15,7 @@ def chain(chain_without_block_validation):
 @pytest.fixture
 def fork_chain(chain):
     # make a duplicate chain with no shared state
-    fork_db = MemoryDB(chain.chaindb.db.kv_store.copy())
+    fork_db = AtomicDB(MemoryDB(chain.chaindb.db.wrapped_db.kv_store.copy()))
     fork_chain = type(chain)(fork_db, chain.header)
 
     return fork_chain

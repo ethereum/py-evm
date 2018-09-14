@@ -8,6 +8,9 @@ import tempfile
 import pytest
 
 from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
+from eth.db.atomic import (
+    AtomicDB,
+)
 from eth.db.chain import (
     ChainDB,
 )
@@ -20,9 +23,6 @@ from trinity.config import (
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
-from trinity.utils.db import (
-    MemoryDB,
-)
 from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
@@ -36,7 +36,7 @@ def serve_chaindb(manager):
 
 @pytest.fixture
 def database_server_ipc_path():
-    core_db = MemoryDB()
+    core_db = AtomicDB()
     core_db[b'key-a'] = b'value-a'
 
     chaindb = ChainDB(core_db)

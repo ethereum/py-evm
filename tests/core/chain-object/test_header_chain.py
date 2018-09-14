@@ -15,7 +15,6 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from eth.db.backends.memory import MemoryDB
 from eth.rlp.headers import (
     BlockHeader,
 )
@@ -37,11 +36,6 @@ def mk_header_chain(base_header, length):
         )
         yield next_header
         previous_header = next_header
-
-
-@pytest.fixture
-def base_db():
-    return MemoryDB()
 
 
 @pytest.fixture

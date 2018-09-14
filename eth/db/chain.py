@@ -41,7 +41,7 @@ from eth.exceptions import (
 )
 from eth.db.header import BaseHeaderDB, HeaderDB
 from eth.db.backends.base import (
-    BaseDB
+    BaseAtomicDB
 )
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import (
@@ -74,10 +74,10 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(BaseHeaderDB):
-    db = None  # type: BaseDB
+    db = None  # type: BaseAtomicDB
 
     @abstractmethod
-    def __init__(self, db: BaseDB) -> None:
+    def __init__(self, db: BaseAtomicDB) -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     #
@@ -161,7 +161,7 @@ class BaseChainDB(BaseHeaderDB):
 
 
 class ChainDB(HeaderDB, BaseChainDB):
-    def __init__(self, db: BaseDB) -> None:
+    def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
 
     #

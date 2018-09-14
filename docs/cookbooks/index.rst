@@ -44,13 +44,13 @@ Then to initialize, you can start it up with an in-memory database:
 
 .. doctest::
 
-  >>> from eth.db.backends.memory import MemoryDB
+  >>> from eth.db.atomic import AtomicDB
   >>> from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
   >>> # start a fresh in-memory db
 
   >>> # initialize a fresh chain
-  >>> chain = chain_class.from_genesis_header(MemoryDB(), MAINNET_GENESIS_HEADER)
+  >>> chain = chain_class.from_genesis_header(AtomicDB(), MAINNET_GENESIS_HEADER)
 
 .. _evm_cookbook_recipe_creating_a_chain_with_custom_state:
 
@@ -66,7 +66,7 @@ state.
   >>> from eth_keys import keys
   >>> from eth import constants
   >>> from eth.chains.mainnet import MainnetChain
-  >>> from eth.db.backends.memory import MemoryDB
+  >>> from eth.db.atomic import AtomicDB
   >>> from eth_utils import to_wei, encode_hex
 
 
@@ -95,7 +95,7 @@ state.
   ...     'nonce': constants.GENESIS_NONCE
   ... }
 
->>> chain = MainnetChain.from_genesis(MemoryDB(), GENESIS_PARAMS, GENESIS_STATE)
+  >>> chain = MainnetChain.from_genesis(AtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
 
 .. _evm_cookbook_recipe_getting_the_balance_from_an_account:
 

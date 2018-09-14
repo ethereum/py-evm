@@ -19,7 +19,7 @@ from tests.trinity.core.integration_test_helpers import (
     FakeAsyncChain,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
-    FakeAsyncMemoryDB,
+    FakeAsyncAtomicDB,
 )
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
@@ -138,7 +138,7 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 @pytest.fixture
 def chaindb_20():
-    chain = PoWMiningChain.from_genesis(FakeAsyncMemoryDB(), GENESIS_PARAMS, GENESIS_STATE)
+    chain = PoWMiningChain.from_genesis(FakeAsyncAtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
     for i in range(20):
         tx = chain.create_unsigned_transaction(
             nonce=i,
@@ -155,7 +155,7 @@ def chaindb_20():
 
 @pytest.fixture
 def chaindb_fresh():
-    chain = PoWMiningChain.from_genesis(FakeAsyncMemoryDB(), GENESIS_PARAMS, GENESIS_STATE)
+    chain = PoWMiningChain.from_genesis(FakeAsyncAtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
     assert chain.chaindb.get_canonical_head().block_number == 0
     return chain.chaindb
 

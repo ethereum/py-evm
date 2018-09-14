@@ -20,6 +20,7 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 from eth.validation import (
     validate_vm_configuration,
 )
@@ -318,7 +319,7 @@ def genesis(chain_class, db=None, params=None, state=None):
         genesis_params = merge(genesis_params_defaults, params)
 
     if db is None:
-        base_db = MemoryDB()
+        base_db = AtomicDB()
     else:
         base_db = db
 
@@ -383,10 +384,14 @@ def copy(chain):
     if not isinstance(chain, MiningChain):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     base_db = chain.chaindb.db
-    if not isinstance(base_db, MemoryDB):
+    if not isinstance(base_db, AtomicDB):
         raise ValidationError("Unsupported database type: {0}".format(type(base_db)))
 
-    db = MemoryDB(base_db.kv_store.copy())
+    if isinstance(base_db.wrapped_db, MemoryDB):
+        db = AtomicDB(MemoryDB(base_db.wrapped_db.kv_store.copy()))
+    else:
+        raise ValidationError("Unsupported wrapped database: {0}".format(type(base_db.wrapped_db)))
+
     chain_copy = type(chain)(db, chain.header)
     return chain_copy
 

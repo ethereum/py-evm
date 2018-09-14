@@ -20,7 +20,6 @@ from eth.exceptions import (
     CanonicalHeadNotFound,
     ParentNotFound,
 )
-from eth.db.backends.memory import MemoryDB
 from eth.db.header import HeaderDB
 from eth.rlp.headers import (
     BlockHeader,
@@ -28,11 +27,6 @@ from eth.rlp.headers import (
 from eth.tools.rlp import (
     assert_headers_eq,
 )
-
-
-@pytest.fixture
-def base_db():
-    return MemoryDB()
 
 
 @pytest.fixture

@@ -42,7 +42,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.db.backends.base import BaseDB
+from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import (
     BaseChainDB,
     ChainDB,
@@ -144,7 +144,7 @@ class BaseChain(Configurable, ABC):
     @classmethod
     @abstractmethod
     def from_genesis(cls,
-                     base_db: BaseDB,
+                     base_db: BaseAtomicDB,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
         raise NotImplementedError("Chain classes must implement this method")
@@ -152,7 +152,7 @@ class BaseChain(Configurable, ABC):
     @classmethod
     @abstractmethod
     def from_genesis_header(cls,
-                            base_db: BaseDB,
+                            base_db: BaseAtomicDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -322,7 +322,7 @@ class Chain(BaseChain):
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
-    def __init__(self, base_db: BaseDB) -> None:
+    def __init__(self, base_db: BaseAtomicDB) -> None:
         if not self.vm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `vm_configuration`"
@@ -349,7 +349,7 @@ class Chain(BaseChain):
     #
     @classmethod
     def from_genesis(cls,
-                     base_db: BaseDB,
+                     base_db: BaseAtomicDB,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
         """
@@ -389,7 +389,7 @@ class Chain(BaseChain):
 
     @classmethod
     def from_genesis_header(cls,
-                            base_db: BaseDB,
+                            base_db: BaseAtomicDB,
                             genesis_header: BlockHeader) -> 'BaseChain':
         """
         Initializes the chain from the genesis header.
@@ -824,7 +824,7 @@ def _extract_uncle_hashes(blocks):
 class MiningChain(Chain):
     header = None  # type: BlockHeader
 
-    def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
+    def __init__(self, base_db: BaseAtomicDB, header: BlockHeader=None) -> None:
         super().__init__(base_db)
         self.header = self.ensure_header(header)
 

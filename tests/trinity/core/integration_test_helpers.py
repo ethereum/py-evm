@@ -8,6 +8,7 @@ from eth.chains.base import (
 )
 from eth.db.backends.level import LevelDB
 from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -32,6 +33,11 @@ def async_passthrough(base_name):
         return getattr(self, base_name)(*args, **kwargs)
     passthrough_method.__name__ = coro_name
     return passthrough_method
+
+
+class FakeAsyncAtomicDB(AtomicDB, AsyncBaseDB):
+    coro_set = async_passthrough('set')
+    coro_exists = async_passthrough('exists')
 
 
 class FakeAsyncMemoryDB(MemoryDB, AsyncBaseDB):

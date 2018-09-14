@@ -20,7 +20,7 @@ from eth.chains.ropsten import (
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_VM_CONFIGURATION,
 )
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 
 from p2p import ecies
 from p2p.kademlia import Node
@@ -159,7 +159,7 @@ async def test_lightchain_integration(
     wait_for_socket(geth_ipc_path)
 
     remote = Node.from_uri(enode)
-    base_db = MemoryDB()
+    base_db = AtomicDB()
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)

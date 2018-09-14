@@ -27,7 +27,7 @@ from eth.chains.ropsten import (
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_NETWORK_ID,
 )
-from eth.db.backends.base import BaseDB
+from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
@@ -215,7 +215,7 @@ def rebuild_exc(exc, tb):  # type: ignore
     return exc
 
 
-def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManager:
+def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseAtomicDB) -> BaseManager:
     chaindb = AsyncChainDB(base_db)
     chain_class: Type[BaseChain]
     if not is_database_initialized(chaindb):

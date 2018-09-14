@@ -3,7 +3,7 @@ from cancel_token import CancelToken
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
 )
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 
 from p2p import ecies
 from p2p.peer import BasePeerContext
@@ -27,7 +27,7 @@ from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_fresh_mainnet_headerdb():
-    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb = FakeAsyncHeaderDB(AtomicDB())
     headerdb.persist_header(MAINNET_GENESIS_HEADER)
     return headerdb
 

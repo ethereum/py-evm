@@ -7,8 +7,8 @@ from eth_keys import keys
 from cancel_token import CancelToken
 
 from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
-from eth.db.backends.memory import MemoryDB
 
 from p2p.auth import HandshakeInitiator, _handshake
 from p2p.kademlia import (
@@ -63,7 +63,7 @@ class ParagonServer(BaseServer):
 
 
 def get_server(privkey, address):
-    base_db = MemoryDB()
+    base_db = AtomicDB()
     headerdb = FakeAsyncHeaderDB(base_db)
     chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
