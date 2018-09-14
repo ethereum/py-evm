@@ -58,6 +58,22 @@ class Address:
         self._ip = ipaddress.ip_address(ip)
 
     @property
+    def is_loopback(self) -> bool:
+        return self._ip.is_loopback
+
+    @property
+    def is_unspecified(self) -> bool:
+        return self._ip.is_unspecified
+
+    @property
+    def is_reserved(self) -> bool:
+        return self._ip.is_reserved
+
+    @property
+    def is_private(self) -> bool:
+        return self._ip.is_private
+
+    @property
     def ip(self) -> str:
         return str(self._ip)
 
@@ -300,6 +316,23 @@ class RoutingTable:
                     if len(nodes) == k * 2:
                         break
         return sort_by_distance(nodes, node_id)[:k]
+
+
+def check_relayed_addr(sender: Address, addr: Address) -> bool:
+    """Check if an address relayed by the given sender is valid.
+
+    Reserved and unspecified addresses are always invalid.
+    Private addresses are valid if the sender is a private host.
+    Loopback addresses are valid if the sender is a loopback host.
+    All other addresses are valid.
+    """
+    if addr.is_unspecified or addr.is_reserved:
+        return False
+    if addr.is_private and not sender.is_private:
+        return False
+    if addr.is_loopback and not sender.is_loopback:
+        return False
+    return True
 
 
 def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:

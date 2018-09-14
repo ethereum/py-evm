@@ -84,7 +84,8 @@ def _test_find_node_neighbours(use_v5):
     for packet in [packet1, packet2]:
         node, payload = packet
         assert node == bob.this_node
-        neighbours.extend(discovery._extract_nodes_from_payload(payload[0]))
+        neighbours.extend(discovery._extract_nodes_from_payload(
+            node.address, payload[0], bob.logger))
     assert len(neighbours) == kademlia.k_bucket_size
 
 

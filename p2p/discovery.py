@@ -463,7 +463,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def recv_neighbours_v4(self, node: kademlia.Node, payload: Tuple[Any, ...], _: Hash32) -> None:
         # The neighbours payload should have 2 elements: nodes, expiration
         nodes, _ = payload
-        neighbours = _extract_nodes_from_payload(nodes)
+        neighbours = _extract_nodes_from_payload(node.address, nodes, self.logger)
         self.logger.trace('<<< neighbours from %s: %s', node, neighbours)
         self.process_neighbours(node, neighbours)
 
@@ -493,7 +493,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.send(node, message)
         # Return the msg hash, which is used as a token to identify pongs.
         token = message[:MAC_SIZE]
-        self.logger.trace('>>> ping (v4) %s (token == %s)', node, encode_hex(token))
+        self.logger.debug('>>> ping (v4) %s (token == %s)', node, encode_hex(token))
         # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
         # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
         # should get rid of this once there are no longer too many parity 1.10 nodes out there.
@@ -694,7 +694,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def recv_topic_nodes(self, node: kademlia.Node, payload: Tuple[Any, ...],
                          _: Hash32, _m: bytes) -> None:
         echo, raw_nodes = payload
-        nodes = _extract_nodes_from_payload(raw_nodes)
+        nodes = _extract_nodes_from_payload(node.address, raw_nodes, self.logger)
         self.logger.trace('<<< topic_nodes from %s: %s', node, nodes)
         try:
             callback = self.topic_nodes_callbacks.get_callback(node)
@@ -1083,11 +1083,16 @@ class Ticket:
 
 @to_list
 def _extract_nodes_from_payload(
-        payload: List[Tuple[str, str, str, str]]) -> Iterator[kademlia.Node]:
+        sender: kademlia.Address,
+        payload: List[Tuple[str, str, str, str]],
+        logger: TraceLogger) -> Iterator[kademlia.Node]:
     for item in payload:
         ip, udp_port, tcp_port, node_id = item
         address = kademlia.Address.from_endpoint(ip, udp_port, tcp_port)
-        yield kademlia.Node(keys.PublicKey(node_id), address)
+        if kademlia.check_relayed_addr(sender, address):
+            yield kademlia.Node(keys.PublicKey(node_id), address)
+        else:
+            logger.debug("Skipping invalid address %s relayed by %s", address, sender)
 
 
 def _get_max_neighbours_per_packet() -> int:
