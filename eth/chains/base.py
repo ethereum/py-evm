@@ -721,9 +721,16 @@ class Chain(BaseChain):
         """
         Validate the uncles for the given block.
         """
-        if block.header.uncles_hash == EMPTY_UNCLE_HASH and len(block.uncles) == 0:
-            # optimization to avoid checking ancestors if the block has no uncles
+        has_uncles = len(block.uncles) > 0
+        should_have_uncles = block.header.uncles_hash != EMPTY_UNCLE_HASH
+
+        if not has_uncles and not should_have_uncles:
+            # optimization to avoid loading ancestors from DB, since the block has no uncles
             return
+        elif has_uncles and not should_have_uncles:
+            raise ValidationError("Block has uncles but header suggests uncles should be empty")
+        elif should_have_uncles and not has_uncles:
+            raise ValidationError("Header suggests block should have uncles but block has none")
 
         # Check for duplicates
         uncle_groups = groupby(operator.attrgetter('hash'), block.uncles)
