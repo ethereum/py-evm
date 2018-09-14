@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 import logging
-import threading
 from typing import Generator
 
 from eth_utils import (
@@ -19,7 +18,7 @@ from eth.db.backends.memory import MemoryDB
 class AtomicDB(BaseAtomicDB):
     """
     This is nearly the same as BatchDB, but it immediately writes out changes if they are
-    not in a batch_write() context.
+    not in an atomic_batch() context.
     """
     logger = logging.getLogger("eth.db.AtomicDB")
 
@@ -31,30 +30,42 @@ class AtomicDB(BaseAtomicDB):
             self.wrapped_db = MemoryDB()
         else:
             self.wrapped_db = wrapped_db
-        self._track_diff = DBDiffTracker()
-        self._batch_lock = threading.Lock()
-
-    @contextmanager
-    def atomic_batch(self) -> Generator[None, None, None]:
-        if self._batch_lock.locked():
-            raise ValidationError("AtomicDB does not support recursive batching of writes")
-
-        try:
-            with self._batch_lock:
-                yield
-        except Exception:
-            self.logger.exception(
-                "Unexpected error in atomic db write, dropped partial writes: %r",
-                self._diff(),
-            )
-            self._clear()
-            raise
-        else:
-            self._commit()
 
     def __getitem__(self, key: bytes) -> bytes:
-        if not self._batch_lock.locked():
-            return self.wrapped_db[key]
+        return self.wrapped_db[key]
+
+    def __setitem__(self, key: bytes, value: bytes) -> None:
+        self.wrapped_db[key] = value
+
+    def __delitem__(self, key: bytes) -> None:
+        del self.wrapped_db[key]
+
+    def _exists(self, key: bytes) -> bool:
+        return key in self.wrapped_db
+
+    @contextmanager
+    def atomic_batch(self) -> Generator['AtomicDBWriteBatch', None, None]:
+        with AtomicDBWriteBatch.commit_unexceptional(self) as readable_batch:
+            yield readable_batch
+
+
+class AtomicDBWriteBatch(BaseDB):
+    """
+    This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary view
+    of the database, before commit.
+    """
+    logger = logging.getLogger("eth.db.AtomicDBWriteBatch")
+
+    _write_target_db = None  # type: BaseDB
+    _track_diff = None  # type: DBDiffTracker
+
+    def __init__(self, _write_target_db: BaseDB) -> None:
+        self._write_target_db = _write_target_db
+        self._track_diff = DBDiffTracker()
+
+    def __getitem__(self, key: bytes) -> bytes:
+        if self._track_diff is None:
+            raise ValidationError("Cannot get data from a write batch, out of context")
 
         try:
             value = self._track_diff[key]
@@ -62,38 +73,55 @@ class AtomicDB(BaseAtomicDB):
             if missing.is_deleted:
                 raise KeyError(key)
             else:
-                return self.wrapped_db[key]
+                return self._write_target_db[key]
         else:
             return value
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
-        if self._batch_lock.locked():
-            self._track_diff[key] = value
-        else:
-            self.wrapped_db[key] = value
+        if self._track_diff is None:
+            raise ValidationError("Cannot set data from a write batch, out of context")
+
+        self._track_diff[key] = value
 
     def __delitem__(self, key: bytes) -> None:
+        if self._track_diff is None:
+            raise ValidationError("Cannot delete data from a write batch, out of context")
+
         if key not in self:
             raise KeyError(key)
-        if self._batch_lock.locked():
-            del self._track_diff[key]
-        else:
-            del self.wrapped_db[key]
+        del self._track_diff[key]
 
     def _diff(self) -> DBDiff:
         return self._track_diff.diff()
 
-    def _clear(self):
-        self._track_diff = DBDiffTracker()
-
     def _commit(self) -> None:
-        self._diff().apply_to(self.wrapped_db, apply_deletes=True)
-        self._clear()
+        self._diff().apply_to(self._write_target_db, apply_deletes=True)
 
     def _exists(self, key: bytes) -> bool:
+        if self._track_diff is None:
+            raise ValidationError("Cannot test data existance from a write batch, out of context")
+
         try:
             self[key]
         except KeyError:
             return False
         else:
             return True
+
+    @classmethod
+    @contextmanager
+    def commit_unexceptional(cls, write_target_db):
+        readable_write_batch = cls(write_target_db)
+        try:
+            yield readable_write_batch
+        except Exception:
+            cls.logger.exception(
+                "Unexpected error in atomic db write, dropped partial writes: %r",
+                readable_write_batch._diff(),
+            )
+            raise
+        else:
+            readable_write_batch._commit()
+        finally:
+            # force a shutdown of this batch, to prevent out-of-context usage
+            readable_write_batch._track_diff = None

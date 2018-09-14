@@ -64,8 +64,8 @@ class BaseAtomicDB(BaseDB):
 
     ::
 
-        db = AtomicDB()
-        with db.atomic_batch():
+        atomic_db = AtomicDB()
+        with atomic_db.atomic_batch() as db:
             # changes are not immediately saved to the db, inside this context
             db[key] = val
 
