@@ -8,7 +8,6 @@ from p2p.peer import (
 import pytest
 
 from trinity.protocol.les.commands import GetBlockHeaders
-from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.les.peer import LESPeer
 
 from tests.trinity.core.peer_helpers import (
@@ -50,8 +49,6 @@ async def eth_peer_and_remote(request, event_loop):
     peer, remote = await get_directly_linked_peers(
         request,
         event_loop,
-        peer1_class=ETHPeer,
-        peer2_class=ETHPeer,
     )
     return peer, remote
 
@@ -61,8 +58,7 @@ async def les_peer_and_remote(request, event_loop):
     peer, remote = await get_directly_linked_peers(
         request,
         event_loop,
-        peer1_class=LESPeer,
-        peer2_class=LESPeer,
+        alice_peer_class=LESPeer,
     )
     return peer, remote
 

@@ -44,7 +44,7 @@ from eth.rlp.transactions import BaseTransaction
 from p2p import protocol
 from p2p.p2p_proto import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
-from p2p.peer import BasePeer, PeerPool
+from p2p.peer import BasePeer
 from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
@@ -55,7 +55,7 @@ from trinity.protocol.eth.constants import (
     MAX_RECEIPTS_FETCH,
     MAX_STATE_FETCH,
 )
-from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth.requests import HeaderRequest
 from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
@@ -153,7 +153,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(chain, db, peer_pool, token)
         self._pending_bodies = {}
@@ -398,7 +398,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(chain, db, peer_pool, token)
 
@@ -766,7 +766,7 @@ class RegularChainSyncer(BaseBodyChainSyncer):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(chain, db, peer_pool, token)
 

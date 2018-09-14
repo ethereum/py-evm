@@ -11,19 +11,20 @@ from eth.db.chain import ChainDB
 from eth.db.backends.memory import MemoryDB
 
 from p2p.auth import HandshakeInitiator, _handshake
-from p2p.peer import (
-    PeerPool,
-)
 from p2p.kademlia import (
     Node,
     Address,
 )
+from p2p.peer import PeerConnection
+from p2p.tools.paragon import (
+    ParagonContext,
+    ParagonPeer,
+    ParagonPeerPool,
+)
 
-from trinity.protocol.eth.peer import ETHPeer
-from trinity.server import Server
+from trinity.server import BaseServer
 
 from tests.p2p.auth_constants import eip8_values
-from tests.trinity.core.dumb_peer import DumbPeer
 from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
@@ -49,70 +50,49 @@ INITIATOR_ADDRESS = Address('127.0.0.1', get_open_port() + 1)
 INITIATOR_REMOTE = Node(INITIATOR_PUBKEY, INITIATOR_ADDRESS)
 
 
-class MockPeerPool:
-    is_full = False
-    connected_nodes = {}
+class ParagonServer(BaseServer):
+    def _make_peer_pool(self):
+        return ParagonPeerPool(
+            privkey=self.privkey,
+            context=ParagonContext(),
+            token=self.cancel_token,
+        )
 
-    def __init__(self):
-        self._new_peers = asyncio.Queue()
-
-    async def start_peer(self, peer):
-        self.connected_nodes[peer.remote] = peer
-        self._new_peers.put_nowait(peer)
-
-    def is_valid_connection_candidate(self, node):
-        return True
-
-    def __len__(self):
-        return len(self.connected_nodes)
-
-    async def next_peer(self):
-        return await self._new_peers.get()
+    def _make_syncer(self):
+        return
 
 
-def get_server(privkey, address, peer_class):
+def get_server(privkey, address):
     base_db = MemoryDB()
     headerdb = FakeAsyncHeaderDB(base_db)
     chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     chain = RopstenChain(base_db)
-    server = Server(
-        privkey,
-        address.tcp_port,
-        chain,
-        chaindb,
-        headerdb,
-        base_db,
+    server = ParagonServer(
+        privkey=privkey,
+        port=address.tcp_port,
+        chain=chain,
+        chaindb=chaindb,
+        headerdb=headerdb,
+        base_db=base_db,
         network_id=NETWORK_ID,
-        peer_class=peer_class,
     )
     return server
 
 
 @pytest.fixture
 async def server():
-    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, ETHPeer)
+    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS)
     await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
-    yield server
-    server.cancel_token.trigger()
-    await asyncio.wait_for(server._close_tcp_listener(), timeout=1)
-
-
-@pytest.fixture
-async def receiver_server_with_dumb_peer():
-    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, DumbPeer)
-    await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
-    yield server
-    server.cancel_token.trigger()
+    try:
+        yield server
+    finally:
+        server.cancel_token.trigger()
     await asyncio.wait_for(server._close_tcp_listener(), timeout=1)
 
 
 @pytest.mark.asyncio
 async def test_server_incoming_connection(monkeypatch, server, event_loop):
-    # We need this to ensure the server can check if the peer pool is full for
-    # incoming connections.
-    monkeypatch.setattr(server, 'peer_pool', MockPeerPool())
-
     use_eip8 = False
     token = CancelToken("initiator")
     initiator = HandshakeInitiator(RECEIVER_REMOTE, INITIATOR_PRIVKEY, use_eip8, token)
@@ -121,22 +101,33 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
         initiator, reader, writer, token)
 
-    initiator_peer = ETHPeer(
-        remote=initiator.remote, privkey=initiator.privkey, reader=reader,
-        writer=writer, aes_secret=aes_secret, mac_secret=mac_secret,
-        egress_mac=egress_mac, ingress_mac=ingress_mac, headerdb=server.headerdb,
-        network_id=NETWORK_ID)
+    connection = PeerConnection(
+        reader=reader,
+        writer=writer,
+        aes_secret=aes_secret,
+        mac_secret=mac_secret,
+        egress_mac=egress_mac,
+        ingress_mac=ingress_mac,
+    )
+    initiator_peer = ParagonPeer(
+        remote=initiator.remote,
+        privkey=initiator.privkey,
+        connection=connection,
+        context=ParagonContext(),
+        token=token,
+    )
     # Perform p2p/sub-proto handshake, completing the full handshake and causing a new peer to be
     # added to the server's pool.
     await initiator_peer.do_p2p_handshake()
     await initiator_peer.do_sub_proto_handshake()
 
     # wait for peer to be processed
-    await asyncio.wait_for(server.peer_pool.next_peer(), timeout=1)
+    while len(server.peer_pool) == 0:
+        await asyncio.sleep(0)
 
     assert len(server.peer_pool.connected_nodes) == 1
     receiver_peer = list(server.peer_pool.connected_nodes.values())[0]
-    assert isinstance(receiver_peer, ETHPeer)
+    assert isinstance(receiver_peer, ParagonPeer)
     assert initiator_peer.sub_proto is not None
     assert initiator_peer.sub_proto.name == receiver_peer.sub_proto.name
     assert initiator_peer.sub_proto.version == receiver_peer.sub_proto.version
@@ -144,26 +135,26 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_peer_pool_connect(monkeypatch, event_loop, receiver_server_with_dumb_peer):
+async def test_peer_pool_connect(monkeypatch, event_loop, server):
     started_peers = []
 
     async def mock_start_peer(peer):
         nonlocal started_peers
         started_peers.append(peer)
 
-    monkeypatch.setattr(receiver_server_with_dumb_peer, '_start_peer', mock_start_peer)
-    # We need this to ensure the server can check if the peer pool is full for
-    # incoming connections.
-    monkeypatch.setattr(receiver_server_with_dumb_peer, 'peer_pool', MockPeerPool())
+    monkeypatch.setattr(server.peer_pool, 'start_peer', mock_start_peer)
 
-    pool = PeerPool(DumbPeer, FakeAsyncHeaderDB(MemoryDB()), NETWORK_ID, INITIATOR_PRIVKEY, tuple())
+    initiator_peer_pool = ParagonPeerPool(
+        privkey=INITIATOR_PRIVKEY,
+        context=ParagonContext(),
+    )
     nodes = [RECEIVER_REMOTE]
-    await pool.connect_to_nodes(nodes)
+    await initiator_peer_pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.2)
 
     assert len(started_peers) == 1
-    assert len(pool.connected_nodes) == 1
+    assert len(initiator_peer_pool.connected_nodes) == 1
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
-    await list(pool.connected_nodes.values())[0].cancel()
+    await list(initiator_peer_pool.connected_nodes.values())[0].cancel()

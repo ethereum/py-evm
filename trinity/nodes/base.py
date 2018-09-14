@@ -11,12 +11,11 @@ from typing import (
 
 from eth.chains.base import BaseChain
 
-from p2p.peer import (
-    PeerPool
-)
+from p2p.peer import BasePeerPool
 from p2p.service import (
     BaseService,
 )
+
 from trinity.chains import (
     ChainProxy,
 )
@@ -67,7 +66,7 @@ class Node(BaseService):
         raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
-    def get_peer_pool(self) -> PeerPool:
+    def get_peer_pool(self) -> BasePeerPool:
         """
         Return the PeerPool instance of the node
         """
@@ -94,9 +93,10 @@ class Node(BaseService):
         # We currently need this to give plugins the chance to start as soon
         # as the `PeerPool` is available. In the long term, the peer pool may become
         # a plugin itself and we can get rid of this.
+        peer_pool = self.get_peer_pool()
         self._plugin_manager.broadcast(ResourceAvailableEvent(
-            resource=(self.get_peer_pool(), self.cancel_token),
-            resource_type=PeerPool
+            resource=(peer_pool, self.cancel_token),
+            resource_type=type(peer_pool)
         ))
 
         # This broadcasts the *local* chain, which is suited for tasks that aren't blocking

@@ -49,7 +49,7 @@ from p2p.exceptions import (
     NoEligiblePeers,
     NoIdlePeers,
 )
-from p2p.peer import BasePeer, PeerPool, PeerSubscriber
+from p2p.peer import BasePeer, PeerSubscriber
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -58,7 +58,7 @@ from trinity.exceptions import (
     SyncRequestAlreadyProcessed,
 )
 from trinity.p2p.handlers import PeerRequestHandler
-from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth.requests import HeaderRequest
 from trinity.protocol.eth import commands
 from trinity.protocol.eth import (
@@ -82,7 +82,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                  chaindb: AsyncChainDB,
                  account_db: AsyncBaseDB,
                  root_hash: bytes,
-                 peer_pool: PeerPool,
+                 peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chaindb = chaindb
@@ -392,7 +392,8 @@ def _test() -> None:
     from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
     from p2p import ecies
     from p2p.kademlia import Node
-    from p2p.peer import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+    from trinity.protocol.common.context import ChainContext
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncLevelDB, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -414,8 +415,16 @@ def _test() -> None:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
         nodes = DEFAULT_PREFERRED_NODES[network_id]
-    peer_pool = PeerPool(
-        ETHPeer, chaindb, network_id, ecies.generate_privkey(), ROPSTEN_VM_CONFIGURATION)
+
+    context = ChainContext(
+        headerdb=chaindb,
+        network_id=network_id,
+        vm_configuration=ROPSTEN_VM_CONFIGURATION,
+    )
+    peer_pool = ETHPeerPool(
+        privkey=ecies.generate_privkey(),
+        context=context,
+    )
     asyncio.ensure_future(peer_pool.run())
     peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
 

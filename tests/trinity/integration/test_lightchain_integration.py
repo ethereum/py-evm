@@ -24,9 +24,9 @@ from eth.db.backends.memory import MemoryDB
 
 from p2p import ecies
 from p2p.kademlia import Node
-from p2p.peer import PeerPool
+from p2p.peer import BasePeerContext
 
-from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
 from trinity.utils.ipc import (
@@ -163,12 +163,14 @@ async def test_lightchain_integration(
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)
-    peer_pool = PeerPool(
-        LESPeer,
-        FakeAsyncHeaderDB(base_db),
-        ROPSTEN_NETWORK_ID,
-        ecies.generate_privkey(),
-        ROPSTEN_VM_CONFIGURATION,
+    context = BasePeerContext(
+        headerdb=headerdb,
+        network_id=ROPSTEN_NETWORK_ID,
+        vm_configuration=ROPSTEN_VM_CONFIGURATION,
+    )
+    peer_pool = LESPeerPool(
+        privkey=ecies.generate_privkey(),
+        context=context,
     )
     chain = FakeAsyncRopstenChain(base_db)
     syncer = LightChainSyncer(chain, chaindb, peer_pool)

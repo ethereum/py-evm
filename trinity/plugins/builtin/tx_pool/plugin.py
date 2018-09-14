@@ -18,10 +18,6 @@ from eth.chains.ropsten import (
     BaseRopstenChain,
 )
 
-from p2p.peer import (
-    PeerPool
-)
-
 from trinity.constants import (
     SYNC_LIGHT
 )
@@ -39,15 +35,14 @@ from trinity.plugins.builtin.tx_pool.pool import (
 from trinity.plugins.builtin.tx_pool.validators import (
     DefaultTransactionValidator
 )
+from trinity.protocol.eth.peer import ETHPeerPool
 
 
 class TxPlugin(BasePlugin):
-
-    def __init__(self) -> None:
-        self.peer_pool: PeerPool = None
-        self.cancel_token: CancelToken = None
-        self.chain: BaseChain = None
-        self.is_enabled: bool = False
+    peer_pool: ETHPeerPool = None
+    cancel_token: CancelToken = None
+    chain: BaseChain = None
+    is_enabled: bool = False
 
     @property
     def name(self) -> str:
@@ -68,7 +63,7 @@ class TxPlugin(BasePlugin):
                 self.logger.error('The transaction pool is not yet available in light mode')
                 self.context.shutdown_host()
         if isinstance(activation_event, ResourceAvailableEvent):
-            if activation_event.resource_type is PeerPool:
+            if activation_event.resource_type is ETHPeerPool:
                 self.peer_pool, self.cancel_token = activation_event.resource
             elif activation_event.resource_type is BaseChain:
                 self.chain = activation_event.resource

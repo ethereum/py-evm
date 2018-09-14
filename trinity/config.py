@@ -21,12 +21,12 @@ from p2p.constants import (
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
 )
-from p2p.peer import DEFAULT_PREFERRED_NODES
 
 from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
+from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
 from trinity.utils.chains import (
     construct_chain_config_params,
     get_data_dir_for_network_id,

@@ -8,8 +8,6 @@ from eth_utils import (
     keccak,
 )
 
-from trinity.protocol.eth.peer import ETHPeer
-
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
 )
@@ -20,8 +18,6 @@ async def eth_peer_and_remote(request, event_loop):
     peer, remote = await get_directly_linked_peers(
         request,
         event_loop,
-        peer1_class=ETHPeer,
-        peer2_class=ETHPeer,
     )
     return peer, remote
 

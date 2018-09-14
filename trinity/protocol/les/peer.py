@@ -17,7 +17,11 @@ from p2p.exceptions import (
     HandshakeFailure,
 )
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer
+from p2p.peer import (
+    BasePeer,
+    BasePeerPool,
+    BasePeerFactory,
+)
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
@@ -39,13 +43,14 @@ from .handlers import LESExchangeHandler
 
 
 class LESPeer(BasePeer):
+    head_number: BlockNumber = None
+
     max_headers_fetch = MAX_HEADERS_FETCH
 
     _supported_sub_protocols = [LESProtocol, LESProtocolV2]
     sub_proto: LESProtocol = None
 
     _requests: LESExchangeHandler = None
-    head_number: BlockNumber = None
 
     def get_extra_stats(self) -> List[str]:
         stats_pairs = self.requests.get_stats().items()
@@ -96,3 +101,11 @@ class LESPeer(BasePeer):
         self.head_td = msg['headTd']
         self.head_hash = msg['headHash']
         self.head_number = msg['headNum']
+
+
+class LESPeerFactory(BasePeerFactory):
+    peer_class = LESPeer
+
+
+class LESPeerPool(BasePeerPool):
+    peer_factory_class = LESPeerFactory
