@@ -61,8 +61,8 @@ changes need to be made to the host system apart from having ``Docker`` itself i
 
 .. note::
   While we don't officially support Windows just yet, running Trinity through ``Docker`` is a great
-  way to bypass this current limitation as Trinity can run on any system that runs ``Docker``,
-  including Windows.
+  way to bypass this current limitation as Trinity can run on any system that runs ``Docker`` [with
+  support for linux containers](https://docs.docker.com/docker-for-windows/#switch-between-windows-and-linux-containers).
 
 Using ``Docker`` we have two different options to choose from.
 
@@ -94,7 +94,7 @@ our very own image directly from the source code.
 
   make create-docker-image version=my-own-version
 
-After the images was built successfully we can run it by invoking:
+After the image has been successfully created, we can run it by invoking:
 
 .. code:: sh
 
