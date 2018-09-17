@@ -112,6 +112,24 @@ git push && git push --tags
 make release
 ```
 
+To create a docker image:
+
+```sh
+make create-docker-image version=<version>
+```
+
+By default, this will create a new image with two tags pointing to it:
+- `ethereum/trinity:<version>` (explicit version)
+- `ethereum/trinity:latest` (latest until overwritten with a future "latest")
+
+Then, push to docker hub.
+
+```sh
+docker push ethereum/trinity:<version>
+# the following may be left out if we were pushing a patch for an older version
+docker push ethereum/trinity:latest
+```
+
 
 #### How to bumpversion
 
