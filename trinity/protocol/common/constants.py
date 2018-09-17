@@ -16,6 +16,10 @@ from p2p.kademlia import Address, Node
 # The default timeout for a round trip API request and response from a peer.
 ROUND_TRIP_TIMEOUT = 20.0
 
+# Timeout used when performing the check to ensure peers are on the same side of chain splits as
+# us.
+CHAIN_SPLIT_CHECK_TIMEOUT = 15
+
 # The defalt preferred nodes
 DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
     MAINNET_NETWORK_ID: (

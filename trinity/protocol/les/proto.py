@@ -12,11 +12,11 @@ from eth_typing import (
 
 from eth.rlp.headers import BlockHeader
 
-from p2p.peer import ChainInfo
 from p2p.protocol import (
     Protocol,
 )
 
+from trinity.protocol.common.peer import ChainInfo
 from .commands import (
     Status,
     StatusV2,

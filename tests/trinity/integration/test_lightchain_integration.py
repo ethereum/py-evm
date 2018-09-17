@@ -24,8 +24,8 @@ from eth.db.atomic import AtomicDB
 
 from p2p import ecies
 from p2p.kademlia import Node
-from p2p.peer import BasePeerContext
 
+from trinity.protocol.common.context import ChainContext
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
@@ -163,7 +163,7 @@ async def test_lightchain_integration(
     chaindb = FakeAsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     headerdb = FakeAsyncHeaderDB(base_db)
-    context = BasePeerContext(
+    context = ChainContext(
         headerdb=headerdb,
         network_id=ROPSTEN_NETWORK_ID,
         vm_configuration=ROPSTEN_VM_CONFIGURATION,

@@ -5,7 +5,6 @@ import datetime
 import functools
 import logging
 import operator
-import random
 import struct
 from abc import (
     ABC,
@@ -24,7 +23,6 @@ from typing import (
     Set,
     Tuple,
     Type,
-    TYPE_CHECKING,
 )
 
 import sha3
@@ -39,34 +37,23 @@ from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
     to_tuple,
-    ValidationError,
 )
 
-from eth_typing import BlockNumber, Hash32
 
 from eth_keys import datatypes
 
 from cancel_token import CancelToken, OperationCancelled
 
-from lahja import (
-    Endpoint,
-)
-
-from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM
-from eth.vm.forks import HomesteadVM
+from lahja import Endpoint
 
 from p2p import auth
 from p2p import protocol
 from p2p.kademlia import Node
 from p2p.exceptions import (
     BadAckMessage,
-    DAOForkCheckFailure,
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
-    NoConnectedPeers,
     NoMatchingPeerCapabilities,
     PeerConnectionLost,
     RemoteDisconnected,
@@ -91,7 +78,6 @@ from p2p.p2p_proto import (
 )
 
 from .constants import (
-    CHAIN_SPLIT_CHECK_TIMEOUT,
     CONN_IDLE_TIMEOUT,
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -103,9 +89,6 @@ from .events import (
     PeerCountRequest,
     PeerCountResponse,
 )
-
-if TYPE_CHECKING:
-    from trinity.db.header import BaseAsyncHeaderDB  # noqa: F401
 
 
 async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
@@ -149,13 +132,6 @@ async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
     return peer
 
 
-class ChainInfo(NamedTuple):
-    block_number: BlockNumber
-    block_hash: Hash32
-    total_difficulty: int
-    genesis_hash: Hash32
-
-
 class PeerConnection(NamedTuple):
     reader: asyncio.StreamReader
     writer: asyncio.StreamWriter
@@ -165,80 +141,21 @@ class PeerConnection(NamedTuple):
     ingress_mac: sha3.keccak_256
 
 
-class PeerBootManager(BaseService):
+class BasePeerBootManager(BaseService):
+    """
+    The default boot manager does nothing, simply serving as a hook for other
+    protocols which need to perform more complex boot check.
+    """
     def __init__(self, peer: 'BasePeer') -> None:
         super().__init__(peer.cancel_token)
         self.peer = peer
 
     async def _run(self) -> None:
-        try:
-            await self.ensure_same_side_on_dao_fork()
-        except DAOForkCheckFailure as err:
-            self.logger.debug("DAO fork check with %s failed: %s", self.peer, err)
-            # If we `await` the `peer.disconnect` call, we end up with an
-            # OperationCancelled exception bubbling.  This doesn't actually
-            # cause anything *bad* to happen, but it does cause the service to
-            # exit via exception rather than cleanly shutting down.  By using
-            # `run_task`, this service finishes exiting prior to the
-            # cancellation.
-            self.run_daemon_task(self.peer.disconnect(DisconnectReason.useless_peer))
-
-    async def ensure_same_side_on_dao_fork(self) -> None:
-        """Ensure we're on the same side of the DAO fork as the given peer.
-
-        In order to do that we have to request the DAO fork block and its parent, but while we
-        wait for that we may receive other messages from the peer, which are returned so that they
-        can be re-added to our subscribers' queues when the peer is finally added to the pool.
-        """
-        for start_block, vm_class in self.peer.context.vm_configuration:
-            if not issubclass(vm_class, HomesteadVM):
-                continue
-            elif not vm_class.support_dao_fork:
-                break
-            elif start_block > vm_class.dao_fork_block_number:
-                # VM comes after the fork, so stop checking
-                break
-
-            start_block = vm_class.dao_fork_block_number - 1
-
-            try:
-                headers = await self.peer.requests.get_block_headers(  # type: ignore
-                    start_block,
-                    max_headers=2,
-                    reverse=False,
-                    timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
-                )
-
-            except (TimeoutError, PeerConnectionLost) as err:
-                raise DAOForkCheckFailure(
-                    f"Timed out waiting for DAO fork header from {self.peer}: {err}"
-                ) from err
-            except ValidationError as err:
-                raise DAOForkCheckFailure(
-                    f"Invalid header response during DAO fork check: {err}"
-                ) from err
-
-            if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    f"{self.peer} failed to return DAO fork check headers"
-                )
-            else:
-                parent, header = headers
-
-            try:
-                vm_class.validate_header(header, parent, check_seal=True)
-            except ValidationError as err:
-                raise DAOForkCheckFailure(f"{self.peer} failed DAO fork check validation: {err}")
+        pass
 
 
 class BasePeerContext:
-    def __init__(self,
-                 headerdb: 'BaseAsyncHeaderDB',
-                 network_id: int,
-                 vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...]) -> None:
-        self.headerdb = headerdb
-        self.network_id = network_id
-        self.vm_configuration = vm_configuration
+    pass
 
 
 class BasePeer(BaseService):
@@ -250,8 +167,6 @@ class BasePeer(BaseService):
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
     sub_proto: protocol.Protocol = None
-    head_td: int = None
-    head_hash: Hash32 = None
 
     def __init__(self,
                  remote: Node,
@@ -265,10 +180,6 @@ class BasePeer(BaseService):
 
         # Any contextual information the peer may need.
         self.context = context
-
-        self.headerdb = context.headerdb
-        self.network_id = context.network_id
-        self.vm_configuration = context.vm_configuration
 
         # The `Node` that this peer is connected to
         self.remote = remote
@@ -317,10 +228,10 @@ class BasePeer(BaseService):
         return []
 
     @property
-    def boot_manager_class(self) -> Type[PeerBootManager]:
-        return PeerBootManager
+    def boot_manager_class(self) -> Type[BasePeerBootManager]:
+        return BasePeerBootManager
 
-    def get_boot_manager(self) -> PeerBootManager:
+    def get_boot_manager(self) -> BasePeerBootManager:
         return self.boot_manager_class(self)
 
     @abstractmethod
@@ -401,24 +312,6 @@ class BasePeer(BaseService):
                 f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
             )
         await self.process_p2p_handshake(cmd, msg)
-
-    @property
-    async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.wait(
-            self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER)))
-        return await self.wait(self.headerdb.coro_get_block_header_by_hash(genesis_hash))
-
-    @property
-    async def _local_chain_info(self) -> ChainInfo:
-        genesis = await self.genesis
-        head = await self.wait(self.headerdb.coro_get_canonical_head())
-        total_difficulty = await self.headerdb.coro_get_score(head.hash)
-        return ChainInfo(
-            block_number=head.block_number,
-            block_hash=head.hash,
-            total_difficulty=total_difficulty,
-            genesis_hash=genesis.hash,
-        )
 
     @property
     def capabilities(self) -> List[Tuple[str, int]]:
@@ -647,13 +540,7 @@ class BasePeer(BaseService):
             return
         self.writer.write(self.encrypt(header, body))
 
-    async def disconnect(self, reason: DisconnectReason) -> None:
-        """Send a disconnect msg to the remote node and stop this Peer.
-
-        Also awaits for self.cancel() to ensure any pending tasks are cleaned up.
-
-        :param reason: An item from the DisconnectReason enum.
-        """
+    def _disconnect(self, reason: DisconnectReason) -> None:
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
                 f"Reason must be an item of DisconnectReason, got {reason}"
@@ -661,8 +548,25 @@ class BasePeer(BaseService):
         self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
+
+    async def disconnect(self, reason: DisconnectReason) -> None:
+        """Send a disconnect msg to the remote node and stop this Peer.
+
+        Also awaits for self.cancel() to ensure any pending tasks are cleaned up.
+
+        :param reason: An item from the DisconnectReason enum.
+        """
+        self._disconnect(reason)
         if self.is_operational:
             await self.cancel()
+
+    def disconnect_nowait(self, reason: DisconnectReason) -> None:
+        """
+        Non-coroutine version of `disconnect`
+        """
+        self._disconnect(reason)
+        if self.is_operational:
+            self.cancel_nowait()
 
     def select_sub_protocol(self, remote_capabilities: List[Tuple[bytes, int]]
                             ) -> protocol.Protocol:
@@ -1030,22 +934,6 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
     def __aiter__(self) -> AsyncIterator[BasePeer]:
         return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
-
-    @property
-    def highest_td_peer(self) -> BasePeer:
-        peers = tuple(self.connected_nodes.values())
-        if not peers:
-            raise NoConnectedPeers()
-        peers_by_td = groupby(operator.attrgetter('head_td'), peers)
-        max_td = max(peers_by_td.keys())
-        return random.choice(peers_by_td[max_td])
-
-    def get_peers(self, min_td: int) -> List[BasePeer]:
-        # TODO: Consider turning this into a method that returns an AsyncIterator, to make it
-        # harder for callsites to get a list of peers while making blocking calls, as those peers
-        # might disconnect in the meantime.
-        peers = tuple(self.connected_nodes.values())
-        return [peer for peer in peers if peer.head_td >= min_td]
 
     async def _periodically_report_stats(self) -> None:
         while self.is_operational:

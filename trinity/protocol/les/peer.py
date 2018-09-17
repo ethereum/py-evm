@@ -17,14 +17,15 @@ from p2p.exceptions import (
     HandshakeFailure,
 )
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import (
-    BasePeer,
-    BasePeerPool,
-    BasePeerFactory,
-)
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
+)
+
+from trinity.protocol.common.peer import (
+    BaseChainPeer,
+    BaseChainPeerFactory,
+    BaseChainPeerPool,
 )
 
 from .commands import (
@@ -42,7 +43,7 @@ from .proto import (
 from .handlers import LESExchangeHandler
 
 
-class LESPeer(BasePeer):
+class LESPeer(BaseChainPeer):
     head_number: BlockNumber = None
 
     max_headers_fetch = MAX_HEADERS_FETCH
@@ -103,9 +104,9 @@ class LESPeer(BasePeer):
         self.head_number = msg['headNum']
 
 
-class LESPeerFactory(BasePeerFactory):
+class LESPeerFactory(BaseChainPeerFactory):
     peer_class = LESPeer
 
 
-class LESPeerPool(BasePeerPool):
+class LESPeerPool(BaseChainPeerPool):
     peer_factory_class = LESPeerFactory

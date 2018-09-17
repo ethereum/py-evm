@@ -28,10 +28,8 @@ class ParagonPeer(BasePeer):
 
 
 class ParagonContext(BasePeerContext):
-    # TODO: remove override once `BasePeerContext` no longer declares any initialization arguments.
-    def __init__(self) -> None:
-        super().__init__(None, None, None)
-
+    # nothing magic here.  Simply an example of how the context class can be
+    # used to store data specific to a certain peer class.
     paragon: str = "paragon"
 
 
