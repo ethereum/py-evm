@@ -13,6 +13,7 @@ from typing import (
     Callable,
     List,
     Type,
+    Tuple
 )
 
 from eth import MainnetChain, RopstenChain
@@ -191,7 +192,7 @@ def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
 class BaseCustomChain:
     vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
-    def __init__(self, vm_configuration):
+    def __init__(self, vm_configuration) -> None:
         self.vm_configuration = vm_configuration
 
 
@@ -229,7 +230,6 @@ def rebuild_exc(exc, tb):  # type: ignore
 
 def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseDB) -> BaseManager:
     chaindb = AsyncChainDB(base_db)
-    chain_class: Type[BaseChain]
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:

@@ -52,7 +52,7 @@ DEFAULT_DATA_DIRS = {
 }
 
 
-def get_genesis_vm_configuration(genesis: Dict) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+def get_genesis_vm_configuration(genesis: Dict[str, str]) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
     """
     Returns a vm configuration which is a tuple of block numbers associated to a fork
     based on the genesis config provided.
@@ -73,7 +73,7 @@ def get_genesis_vm_configuration(genesis: Dict) -> Tuple[Tuple[int, Type[BaseVM]
     return tuple(vm_configuration)
 
 
-def get_genesis_header(genesis: Dict) -> Tuple[BlockHeader, int]:
+def get_genesis_header(genesis: Dict[str, str]) -> Tuple[BlockHeader, int]:
     """
     Returns the genesis config wrapped as a BlockHeader along with the network_id
     of the chain.
@@ -96,7 +96,7 @@ def get_genesis_header(genesis: Dict) -> Tuple[BlockHeader, int]:
     ), genesis['config']['chainId']
 
 
-def validate_eip1085_genesis_config(genesis: Dict) -> None:
+def validate_eip1085_genesis_config(genesis: Dict[str, str]) -> None:
     """
     Checks that all valid genesis config parameters are present from the decoded
     genesis JSON config specified. If any of the required parameters are missing
@@ -116,7 +116,7 @@ def validate_eip1085_genesis_config(genesis: Dict) -> None:
         raise ValidationError("genesis config missing required 'chainId'")
 
 
-def get_eip1085_genesis_config(genesis_path: Path) -> Dict:
+def get_eip1085_genesis_config(genesis_path: Path) -> Dict[str, str]:
     """
     Will attempt to decode, validate and return a BlockHeader based on the filepath
     given for the genesis config. The genesis config should conform to genesis

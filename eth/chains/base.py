@@ -125,10 +125,6 @@ class BaseChain(Configurable, ABC):
     def __init__(self) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
-    @property
-    def vm_configuration(self) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
-        return self.vm_configuration
-
     #
     # Helpers
     #
