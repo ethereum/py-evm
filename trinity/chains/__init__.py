@@ -12,14 +12,11 @@ from typing import (
     Any,
     Callable,
     List,
-    Type,
-    Tuple
 )
 
 from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
     Chain,
-    BaseChain
 )
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
@@ -112,7 +109,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             "The base chain directory provided does not exist: `{0}`".format(
                 chain_config.data_dir,
             ),
-            chain_config.data_dir
+            chain_config.data_dir,
         )
 
     # Logfile
@@ -129,7 +126,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             "The base logging directory provided does not exist: `{0}`".format(
                 chain_config.logdir_path,
             ),
-            chain_config.logdir_path
+            chain_config.logdir_path,
         )
 
     # Chain data-dir
@@ -190,7 +187,7 @@ def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class BaseCustomChain:
-    vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    vm_configuration = ()  # type: ignore
 
     def __init__(self, vm_configuration) -> None:
         self.vm_configuration = vm_configuration
