@@ -187,7 +187,7 @@ def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class BaseCustomChain:
-    vm_configuration = ()  # type: ignore
+    vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     def __init__(self, vm_configuration) -> None:
         self.vm_configuration = vm_configuration
